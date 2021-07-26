@@ -1,0 +1,40 @@
+###
+# Configure OIDC resources with IdentityServer
+#
+POST http://localhost:5000/api/resource/devimport
+Content-Type: application/json
+
+{
+    "Apis": [
+        {
+            "Name": "dev-api",
+            "Scopes": "dev-api",
+            "UserClaims": ""
+        }
+    ],
+    "Clients": [
+        {
+            "Id": "dev-client",
+            "Secret": "dev-secret",
+            "GrantType": "client_credentials password",
+            "Scopes": " dev-api dev-api-admin openid profile"
+        },
+        {
+            "Id": "dev-code",
+            "GrantType": "authorization_code",
+            "Scopes": "dev-api openid profile",
+            "RedirectUrl": [
+                "http://localhost:4200/oidc",
+                "http://localhost:4201/oidc",
+                "http://localhost:4202/oidc",
+                "http://localhost:4200/assets/oidc-silent.html",
+                "http://localhost:4201/assets/oidc-silent.html",
+                "http://localhost:4202/assets/oidc-silent.html",
+                "http://localhost:5000/api/oauth2-redirect.html"
+                "http://localhost:5001/api/oauth2-redirect.html"
+                "http://localhost:5002/api/oauth2-redirect.html"
+            ]
+
+        }
+    ]
+}
