@@ -5,14 +5,11 @@ FROM mcr.microsoft.com/dotnet/sdk:5.0 AS dev
 
 ENV ASPNETCORE_URLS=http://*:5000 \
     ASPNETCORE_ENVIRONMENT=DEVELOPMENT
-WORKDIR /app
-
-COPY src/Gameboard.Api/Gameboard.Api.csproj /app/src/Gameboard.Api
-RUN dotnet restore
 
 COPY . /app
-RUN dotnet publish -c Release -o /app/dist
 
+WORKDIR /app/src/Gameboard.Api
+RUN dotnet publish -c Release -o /app/dist
 CMD ["dotnet", "run"]
 
 #
