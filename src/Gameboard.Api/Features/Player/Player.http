@@ -1,0 +1,31 @@
+# Example tests with REST Client (VSCode Extension)
+
+@url = http://localhost:5000/api
+@json = content-type: application/json
+
+###
+
+GET {{url}}/players?term=
+
+###
+
+POST {{url}}/player
+{{json}}
+
+{
+    "name": "new player"
+}
+
+###
+
+PUT {{url}}/player
+{{json}}
+
+{
+    "id": 1,
+    "name": "player"
+}
+
+###
+
+DELETE {{url}}/player/1
