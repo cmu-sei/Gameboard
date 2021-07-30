@@ -161,6 +161,25 @@ namespace Gameboard.Api.Services
             return Mapper.Map<Challenge>(challenge);
         }
 
+        public async Task SyncExpired()
+        {
+            var ts = DateTimeOffset.UtcNow;
+
+            var challenges = await Store.DbSet
+                .Where(c =>
+                    c.LastSyncTime < c.Player.SessionEnd &&
+                    c.Player.SessionEnd < ts
+                )
+                .ToArrayAsync()
+            ;
+
+            var tasks = challenges.Select(
+                c => Sync(c)
+            );
+
+            await Task.WhenAll(tasks);
+        }
+
         private async Task<Data.Challenge> Sync(Data.Challenge entity, Task<GameState> task = null)
         {
             if (task is null)

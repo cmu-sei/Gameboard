@@ -7,29 +7,37 @@ using System.Threading.Tasks;
 using Gameboard.Api.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api
 {
     public class JobService : IHostedService
     {
-        public IServiceProvider ServiceProvider { get; }
+        private Timer _timer;
+        private readonly ILogger _logger;
+        private readonly IServiceProvider _services;
 
         public JobService(
             IServiceProvider serviceProvider
         )
         {
-            ServiceProvider = serviceProvider;
+            _services = serviceProvider;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            // using (var scope = ServiceProvider.CreateScope())
-            // {
-            //     var sourceSvc = scope.ServiceProvider.GetRequiredService<SourceService>();
-            //     return sourceSvc.SyncAll();
-            // }
-            return Task.FromResult(0);
+            _timer = new Timer(RunTasks, null, 32000, 64000);
 
+            return Task.FromResult(0);
+        }
+
+        private void RunTasks(object state)
+        {
+            using (var scope = _services.CreateScope())
+            {
+                var svc = scope.ServiceProvider.GetRequiredService<ChallengeService>();
+                svc.SyncExpired().Wait();
+            }
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

@@ -91,6 +91,7 @@ namespace Gameboard.Api
                 .AddGameboardData(Settings.Database.Provider, Settings.Database.ConnectionString)
                 .AddGameboardServices()
                 .AddConfiguredHttpClients(Settings.Core)
+                .AddHostedService<JobService>()
             ;
 
             services.AddSingleton<AutoMapper.IMapper>(
