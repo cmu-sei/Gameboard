@@ -144,6 +144,7 @@ namespace Gameboard.Api.Controllers
         /// <param name="model">PlayerDataFilter</param>
         /// <returns>Standings</returns>
         [HttpGet("/api/scores")]
+        // [ResponseCache] // TODO: consider response caching for this endpoint
         [AllowAnonymous]
         public async Task<Standing[]> Scores([FromQuery] PlayerDataFilter model)
         {
@@ -159,7 +160,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<Team> GetTeam([FromRoute] string id)
         {
-            return await PlayerService.LoadTeam(id, Actor.IsObserver);
+            return await PlayerService.LoadTeam(id, Actor.IsObserver || Actor.IsDirector);
         }
 
         /// <summary>

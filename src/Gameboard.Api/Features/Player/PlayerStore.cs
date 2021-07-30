@@ -41,7 +41,7 @@ namespace Gameboard.Api.Data
         {
             return await DbContext.Challenges
                 .Include(c => c.Events)
-                .Where(c => c.PlayerId == id)
+                .Where(c => c.TeamId == id)
                 .ToArrayAsync()
             ;
         }

@@ -40,7 +40,7 @@ namespace Gameboard.Api
     {
         public string Id { get; set; }
         public string Name { get; set; }
-        public string Slug { get; set; }
+        public string Tag { get; set; }
         public int Points { get; set; }
         public int Score { get; set; }
         public long Duration { get; set; }

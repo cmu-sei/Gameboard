@@ -147,10 +147,12 @@ namespace Gameboard.Api.Services
 
             if (!sudo && game.SessionLimit > 0)
             {
+                var ts = DateTimeOffset.UtcNow;
+
                 int sessionCount = await Store.DbSet
                     .CountAsync(p =>
                         p.GameId == game.Id &&
-                        DateTimeOffset.UtcNow.CompareTo(p.SessionEnd) < 0
+                        ts < p.SessionEnd
                     )
                 ;
 
@@ -242,6 +244,7 @@ namespace Gameboard.Api.Services
                 );
             }
 
+            // TODO: maybe just sort on rank here
             q = q.OrderByDescending(p => p.Score)
                 .ThenBy(p => p.Time)
                 .ThenByDescending(p => p.CorrectCount)
