@@ -63,7 +63,6 @@ namespace Gameboard.Api.Data
             int complete = challenges.Count(c => c.Result == ChallengeResult.Success);
             int partial = challenges.Count(c => c.Result == ChallengeResult.Partial);
 
-
             var players = await DbContext.Players.Where(p => p.TeamId == id).ToArrayAsync();
 
             foreach (var p in players)
@@ -75,24 +74,32 @@ namespace Gameboard.Api.Data
             }
 
             await DbContext.SaveChangesAsync();
+
+            // TODO: consider queuing this for a background process
+            await UpdateRanks(players.First().GameId);
         }
 
-        // If entity has searchable fields, use this:
-        // public override IQueryable<Challenge> List(string term = null)
-        // {
-        //     var q = base.List();
+        public async Task UpdateRanks(string gameId)
+        {
+            var players = await DbContext.Players
+                .Where(p => p.GameId == gameId)
+                .OrderByDescending(p => p.Score)
+                .ThenBy(p => p.Time)
+                .ThenByDescending(p => p.CorrectCount)
+                .ThenByDescending(p => p.PartialCount)
+                .ToArrayAsync()
+            ;
+            int rank = 0;
 
-        //     if (!string.IsNullOrEmpty(term))
-        //     {
-        //         term = term.ToLower();
+            foreach (var team in players.GroupBy(p => p.TeamId))
+            {
+                rank += 1;
+                foreach (var player in team)
+                    player.Rank = rank;
+            }
 
-        //         q = q.Where(t =>
-        //             t.Name.ToLower().Contains(term)
-        //         );
-        //     }
-
-        //     return q;
-        // }
+            await DbContext.SaveChangesAsync();
+        }
 
     }
 }

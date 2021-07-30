@@ -204,12 +204,17 @@ namespace Gameboard.Api.Services
 
         public async Task<Challenge> Grade(SectionSubmission model)
         {
-            var entity = await Sync(
-                model.Id,
+            var entity = await Store.Retrieve(model.Id);
+
+            double currentScore = entity.Score;
+
+            var result = await Sync(
+                entity,
                 Mojo.GradeChallengeAsync(model)
             );
 
-            await Store.UpdateTeam(entity.TeamId);
+            if (result.Score > currentScore)
+                await Store.UpdateTeam(entity.TeamId);
 
             return Mapper.Map<Challenge>(entity);
         }
