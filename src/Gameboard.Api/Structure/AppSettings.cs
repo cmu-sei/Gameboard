@@ -136,6 +136,7 @@ namespace Gameboard.Api
         public string ImageFolder { get; set; } = "wwwroot/img";
         public string DocFolder { get; set; } = "wwwroot/doc";
         public string ChallengeDocUrl { get; set; }
+        public string SafeNamesFile { get; set; } = "names.json";
     }
 
 }

@@ -88,6 +88,7 @@ namespace Gameboard.Api
 
             services
                 .AddSingleton<CoreOptions>(_ => Settings.Core)
+                .AddSingleton<INameService, NameService>()
                 .AddGameboardData(Settings.Database.Provider, Settings.Database.ConnectionString)
                 .AddGameboardServices()
                 .AddConfiguredHttpClients(Settings.Core)

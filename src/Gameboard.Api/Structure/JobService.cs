@@ -35,8 +35,12 @@ namespace Gameboard.Api
         {
             using (var scope = _services.CreateScope())
             {
-                var svc = scope.ServiceProvider.GetRequiredService<ChallengeService>();
-                svc.SyncExpired().Wait();
+                try
+                {
+                    var svc = scope.ServiceProvider.GetRequiredService<ChallengeService>();
+                    svc.SyncExpired().Wait();
+                }
+                catch {}
             }
         }
 

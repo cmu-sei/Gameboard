@@ -17,15 +17,18 @@ namespace Gameboard.Api.Services
         IMapper Mapper { get; }
 
         private readonly IMemoryCache _localcache;
+        private readonly INameService _namesvc;
 
         public UserService (
             IUserStore store,
             IMapper mapper,
-            IMemoryCache cache
+            IMemoryCache cache,
+            INameService namesvc
         ){
             Store = store;
             Mapper = mapper;
             _localcache = cache;
+            _namesvc = namesvc;
         }
 
         /// <summary>
@@ -48,15 +51,8 @@ namespace Gameboard.Api.Services
             {
                 entity = Mapper.Map<Data.User>(model);
 
-                // TODO: use AdjectiveNoun pattern
-                byte[] buffer = new byte[12];
-                new Random().NextBytes(buffer);
-                string rand = Convert.ToBase64String(buffer)
-                    .Replace("+", "")
-                    .Replace("/", "")
-                    .Replace("=", "")
-                ;
-                entity.ApprovedName = "ChangeMe_" + rand;
+                // TODO: add unique check?
+                entity.ApprovedName = _namesvc.GetRandomName();
 
                 await Store.Create(entity);
             }
