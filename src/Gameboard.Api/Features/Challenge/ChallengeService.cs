@@ -46,6 +46,9 @@ namespace Gameboard.Api.Services
             var game = await Store.DbContext.Games.FindAsync(player.GameId);
             var spec = await Store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
 
+            if ((await Store.ChallengeGamespaceCount(player.TeamId)) >= game.GamespaceLimitPerSession)
+                throw new GamespaceLimitReached();
+
             entity = Mapper.Map<Data.Challenge>(model);
 
             Mapper.Map(spec, entity);
@@ -203,6 +206,13 @@ namespace Gameboard.Api.Services
 
         public async Task<Challenge> StartGamespace(string id)
         {
+            var challenge = await Store.Retrieve(id);
+
+            var game = await Store.DbContext.Games.FindAsync(challenge.GameId);
+
+            if ((await Store.ChallengeGamespaceCount(challenge.TeamId)) >= game.GamespaceLimitPerSession)
+                throw new GamespaceLimitReached();
+
             var entity = await Sync(
                 id,
                 Mojo.StartGamespaceAsync(id)

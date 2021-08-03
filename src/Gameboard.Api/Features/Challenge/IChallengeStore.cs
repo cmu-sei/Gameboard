@@ -11,6 +11,7 @@ namespace Gameboard.Api.Data.Abstractions
         Task<Data.Challenge> Load(NewChallenge model);
         Task UpdateTeam(string teamId);
         Task UpdateEtd(string specId);
+        Task<int> ChallengeGamespaceCount(string teamId);
     }
 
 }

@@ -20,4 +20,5 @@ namespace Gameboard.Api
     public class InvalidTeamSize: Exception {}
     public class InvalidConsoleAction: Exception {}
     public class AlreadyExists: Exception {}
+    public class GamespaceLimitReached: Exception {}
 }

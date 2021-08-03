@@ -19,7 +19,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
                 .HasAnnotation("ProductVersion", "5.0.0");
 
-            modelBuilder.Entity("Gameboard.Data.Challenge", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(40)
@@ -89,7 +89,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("Challenges");
                 });
 
-            modelBuilder.Entity("Gameboard.Data.ChallengeEvent", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.ChallengeEvent", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(40)
@@ -124,7 +124,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("ChallengeEvents");
                 });
 
-            modelBuilder.Entity("Gameboard.Data.ChallengeSpec", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.ChallengeSpec", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(40)
@@ -172,7 +172,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("ChallengeSpecs");
                 });
 
-            modelBuilder.Entity("Gameboard.Data.Game", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.Game", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(40)
@@ -201,6 +201,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.Property<DateTimeOffset>("GameStart")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("GamespaceLimitPerSession")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsPublished")
                         .HasColumnType("bit");
@@ -269,7 +272,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("Games");
                 });
 
-            modelBuilder.Entity("Gameboard.Data.Player", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(40)
@@ -341,7 +344,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("Players");
                 });
 
-            modelBuilder.Entity("Gameboard.Data.Sponsor", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.Sponsor", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(40)
@@ -362,7 +365,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("Sponsors");
                 });
 
-            modelBuilder.Entity("Gameboard.Data.User", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.User", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(40)
@@ -396,14 +399,14 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Gameboard.Data.Challenge", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
                 {
-                    b.HasOne("Gameboard.Data.Game", "Game")
+                    b.HasOne("Gameboard.Api.Data.Game", "Game")
                         .WithMany("Challenges")
                         .HasForeignKey("GameId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("Gameboard.Data.Player", "Player")
+                    b.HasOne("Gameboard.Api.Data.Player", "Player")
                         .WithMany("Challenges")
                         .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Cascade);
@@ -413,9 +416,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("Player");
                 });
 
-            modelBuilder.Entity("Gameboard.Data.ChallengeEvent", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.ChallengeEvent", b =>
                 {
-                    b.HasOne("Gameboard.Data.Challenge", "Challenge")
+                    b.HasOne("Gameboard.Api.Data.Challenge", "Challenge")
                         .WithMany("Events")
                         .HasForeignKey("ChallengeId")
                         .OnDelete(DeleteBehavior.Cascade);
@@ -423,9 +426,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("Challenge");
                 });
 
-            modelBuilder.Entity("Gameboard.Data.ChallengeSpec", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.ChallengeSpec", b =>
                 {
-                    b.HasOne("Gameboard.Data.Game", "Game")
+                    b.HasOne("Gameboard.Api.Data.Game", "Game")
                         .WithMany("Specs")
                         .HasForeignKey("GameId")
                         .OnDelete(DeleteBehavior.Cascade);
@@ -433,13 +436,13 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("Game");
                 });
 
-            modelBuilder.Entity("Gameboard.Data.Player", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
                 {
-                    b.HasOne("Gameboard.Data.Game", "Game")
+                    b.HasOne("Gameboard.Api.Data.Game", "Game")
                         .WithMany("Players")
                         .HasForeignKey("GameId");
 
-                    b.HasOne("Gameboard.Data.User", "User")
+                    b.HasOne("Gameboard.Api.Data.User", "User")
                         .WithMany("Enrollments")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade);
@@ -449,12 +452,12 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Gameboard.Data.Challenge", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
                 {
                     b.Navigation("Events");
                 });
 
-            modelBuilder.Entity("Gameboard.Data.Game", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.Game", b =>
                 {
                     b.Navigation("Challenges");
 
@@ -463,12 +466,12 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("Specs");
                 });
 
-            modelBuilder.Entity("Gameboard.Data.Player", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
                 {
                     b.Navigation("Challenges");
                 });
 
-            modelBuilder.Entity("Gameboard.Data.User", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.User", b =>
                 {
                     b.Navigation("Enrollments");
                 });

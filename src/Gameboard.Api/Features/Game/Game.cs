@@ -30,6 +30,7 @@ namespace Gameboard.Api
         public int MaxTeamSize { get; set; }
         public int SessionMinutes { get; set; }
         public int SessionLimit { get; set; }
+        public int GamespaceLimitPerSession { get; set; }
         public bool IsPublished { get; set; }
         public bool RequireSponsoredTeam { get; set; }
         public bool AllowPreview { get; set; }

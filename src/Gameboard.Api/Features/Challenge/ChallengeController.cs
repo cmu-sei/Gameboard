@@ -138,7 +138,7 @@ namespace Gameboard.Api.Controllers
                 () => ChallengeService.UserIsTeamPlayer(model.Id, Actor.Id).Result
             );
 
-            await Validate(new Entity{ Id = model.Id });
+            await Validate(model);
 
             return await ChallengeService.StartGamespace(model.Id);
         }

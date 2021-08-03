@@ -32,6 +32,7 @@ namespace Gameboard.Api.Data
         public int MaxAttempts { get; set; } = 0;
         public int SessionMinutes { get; set; } = 60;
         public int SessionLimit { get; set; } = 0;
+        public int GamespaceLimitPerSession { get; set; } = 1;
         public bool IsPublished { get; set; }
         public bool RequireSponsoredTeam { get; set; }
         public bool AllowPreview { get; set; }

@@ -101,5 +101,12 @@ namespace Gameboard.Api.Data
             await DbContext.SaveChangesAsync();
         }
 
+        public Task<int> ChallengeGamespaceCount(string teamId)
+        {
+            return DbSet.CountAsync(c =>
+                c.TeamId == teamId &&
+                c.HasDeployedGamespace.Equals(true)
+            );
+        }
     }
 }
