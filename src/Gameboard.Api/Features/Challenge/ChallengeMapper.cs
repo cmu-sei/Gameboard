@@ -43,9 +43,14 @@ namespace Gameboard.Api.Services
             ;
 
             CreateMap<Data.Challenge, Challenge>()
+                .ForMember(d => d.Score, opt => opt.MapFrom(s => (int)Math.Floor(s.Score)))
                 .ForMember(d => d.State, opt => opt.MapFrom(s =>
                     JsonSerializer.Deserialize<TopoMojo.Api.Client.GameState>(s.State, JsonOptions))
                 )
+            ;
+
+            CreateMap<Data.Challenge, ChallengeSummary>()
+                .ForMember(d => d.Score, opt => opt.MapFrom(s => (int)Math.Floor(s.Score)))
             ;
 
             CreateMap<TopoMojo.Api.Client.VmConsole, ConsoleSummary>()

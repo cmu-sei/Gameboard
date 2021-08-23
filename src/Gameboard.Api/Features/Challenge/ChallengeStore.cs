@@ -17,6 +17,21 @@ namespace Gameboard.Api.Data
 
         }
 
+        public override IQueryable<Challenge> List(string term)
+        {
+            var q = term.NotEmpty()
+                ? base.List().Where(c =>
+                    c.Id.StartsWith(term) ||
+                    c.Tag.StartsWith(term))
+                : base.List()
+            ;
+
+            return q
+                .Include(c => c.Game)
+                .Include(c => c.Player)
+            ;
+        }
+
         public async Task<Challenge> Load(NewChallenge model)
         {
             var player = await DbContext.Players.FindAsync(model.PlayerId);

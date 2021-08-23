@@ -118,18 +118,18 @@ namespace Gameboard.Api.Services
             );
         }
 
-        public async Task<Challenge[]> List(SearchFilter model)
+        public async Task<ChallengeSummary[]> List(SearchFilter model)
         {
             var q = Store.List(model.Term);
 
-            q = q.OrderBy(p => p.Tag);
+            q = q.OrderByDescending(p => p.LastSyncTime);
 
             q = q.Skip(model.Skip);
 
             if (model.Take > 0)
                 q = q.Take(model.Take);
 
-            return await Mapper.ProjectTo<Challenge>(q).ToArrayAsync();
+            return await Mapper.ProjectTo<ChallengeSummary>(q).ToArrayAsync();
         }
 
         public async Task<Challenge> Preview(NewChallenge model)
@@ -244,6 +244,25 @@ namespace Gameboard.Api.Services
 
             if (result.Score > currentScore)
                 await Store.UpdateTeam(entity.TeamId);
+
+            return Mapper.Map<Challenge>(entity);
+        }
+
+        public async Task<Challenge> ReGrade(string id)
+        {
+            var entity = await Store.Retrieve(id);
+
+            double currentScore = entity.Score;
+
+            // TODO: implement ReGrade on TopoMojo
+
+            // var result = await Sync(
+            //     entity,
+            //     Mojo.RedGradeChallengeAsync(id)
+            // );
+
+            // if (result.Score > currentScore)
+            //     await Store.UpdateTeam(entity.TeamId);
 
             return Mapper.Map<Challenge>(entity);
         }

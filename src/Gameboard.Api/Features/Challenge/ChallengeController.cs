@@ -208,7 +208,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("/api/challenges")]
         [Authorize]
-        public async Task<Challenge[]> List([FromQuery] SearchFilter model)
+        public async Task<ChallengeSummary[]> List([FromQuery] SearchFilter model)
         {
             AuthorizeAny(
                 () => Actor.IsDirector
