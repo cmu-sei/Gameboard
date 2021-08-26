@@ -37,6 +37,7 @@ namespace Gameboard.Api.Data
         public bool RequireSponsoredTeam { get; set; }
         public bool AllowPreview { get; set; }
         public bool AllowReset { get; set; }
+        public string Key { get; set; }
         public ICollection<ChallengeSpec> Specs { get; set; } = new List<ChallengeSpec>();
         public ICollection<Player> Players { get; set; } = new List<Player>();
         public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
