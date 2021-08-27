@@ -52,6 +52,7 @@ namespace Gameboard.Api.Data
                 b.Property(p => p.TestCode).HasMaxLength(64);
                 b.Property(p => p.RegistrationMarkdown).HasMaxLength(1024);
                 b.Property(p => p.RegistrationConstraint).HasMaxLength(1024);
+                b.Property(p => p.Key).HasMaxLength(64);
             });
 
 
@@ -96,7 +97,5 @@ namespace Gameboard.Api.Data
         public DbSet<ChallengeEvent> ChallengeEvents { get; set; }
         public DbSet<ChallengeSpec> ChallengeSpecs { get; set; }
         public DbSet<Sponsor> Sponsors { get; set; }
-
     }
-
 }

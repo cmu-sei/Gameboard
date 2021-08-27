@@ -35,7 +35,7 @@ namespace Gameboard.Api
         public bool RequireSponsoredTeam { get; set; }
         public bool AllowPreview { get; set; }
         public bool AllowReset { get; set; }
-
+        public string Key { get; set; }
     }
 
     public class Game: GameDetail
