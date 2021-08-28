@@ -53,6 +53,10 @@ namespace Gameboard.Api.Data
                 b.Property(p => p.RegistrationMarkdown).HasMaxLength(1024);
                 b.Property(p => p.RegistrationConstraint).HasMaxLength(1024);
                 b.Property(p => p.Key).HasMaxLength(64);
+                b.Property(p => p.CardText1).HasMaxLength(64);
+                b.Property(p => p.CardText2).HasMaxLength(64);
+                b.Property(p => p.CardText3).HasMaxLength(64);
+                b.Property(p => p.Mode).HasMaxLength(40);
             });
 
 
