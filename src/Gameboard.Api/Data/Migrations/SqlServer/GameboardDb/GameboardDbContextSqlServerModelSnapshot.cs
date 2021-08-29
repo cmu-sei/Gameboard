@@ -211,6 +211,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<DateTimeOffset>("GameEnd")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("GameMarkdown")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTimeOffset>("GameStart")
                         .HasColumnType("datetimeoffset");
 

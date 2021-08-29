@@ -20,6 +20,7 @@ namespace Gameboard.Api
         public string TestCode { get; set; }
         public DateTimeOffset GameStart { get; set; }
         public DateTimeOffset GameEnd { get; set; }
+        public string GameMarkdown { get; set; }
         public string RegistrationMarkdown { get; set; }
         public DateTimeOffset RegistrationOpen { get; set; }
         public DateTimeOffset RegistrationClose { get; set; }
