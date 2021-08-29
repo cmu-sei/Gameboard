@@ -1,18 +1,19 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-﻿using System.Threading.Tasks;
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Gameboard.Api.Services;
+using Gameboard.Api.Validators;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-using Gameboard.Api.Services;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Caching.Distributed;
-using Gameboard.Api.Validators;
-using Microsoft.AspNetCore.Http;
-using System.IO;
-using Microsoft.Extensions.Hosting;
-using System.Linq;
 
 namespace Gameboard.Api.Controllers
 {
@@ -145,7 +146,7 @@ namespace Gameboard.Api.Controllers
 
             await Validate(new Entity{ Id = id });
 
-            string filename = $"{id}_{type}{Path.GetExtension(file.FileName)}".ToLower();
+            string filename = $"{type}_{(new Random()).Next().ToString("x8")}{Path.GetExtension(file.FileName)}".ToLower();
 
             string path = Path.Combine(Options.ImageFolder, filename);
 
