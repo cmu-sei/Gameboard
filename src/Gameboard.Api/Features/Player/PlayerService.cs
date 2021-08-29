@@ -240,7 +240,8 @@ namespace Gameboard.Api.Services
 
                 q = q.Where(p =>
                     p.ApprovedName.ToLower().Contains(term) ||
-                    p.Name.ToLower().Contains(term)
+                    p.Name.ToLower().Contains(term) ||
+                    p.User.Name.ToLower().Contains(term)
                 );
             }
 

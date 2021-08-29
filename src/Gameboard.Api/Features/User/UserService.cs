@@ -42,10 +42,10 @@ namespace Gameboard.Api.Services
 
             if (entity is Data.User)
             {
-                entity.Name = model.Name;
-                // entity.Email = model.Email;
-                // entity.Username = model.Username;
-                await Store.Update(entity);
+                // entity.Name = model.Name;
+                // // entity.Email = model.Email;
+                // // entity.Username = model.Username;
+                // await Store.Update(entity);
             }
             else
             {
