@@ -20,6 +20,7 @@ namespace Gameboard.Api
         public string TestCode { get; set; }
         public DateTimeOffset GameStart { get; set; }
         public DateTimeOffset GameEnd { get; set; }
+        public string GameMarkdown { get; set; }
         public string RegistrationMarkdown { get; set; }
         public DateTimeOffset RegistrationOpen { get; set; }
         public DateTimeOffset RegistrationClose { get; set; }
@@ -36,6 +37,10 @@ namespace Gameboard.Api
         public bool AllowPreview { get; set; }
         public bool AllowReset { get; set; }
         public string Key { get; set; }
+        public string CardText1 { get; set; }
+        public string CardText2 { get; set; }
+        public string CardText3 { get; set; }
+        public string Mode { get; set; }
     }
 
     public class Game: GameDetail

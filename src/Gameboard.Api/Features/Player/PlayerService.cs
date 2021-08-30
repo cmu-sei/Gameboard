@@ -81,7 +81,7 @@ namespace Gameboard.Api.Services
             return Mapper.Map<Player>(await Store.Retrieve(id));
         }
 
-        public async Task Update(ChangedPlayer model, bool sudo = false)
+        public async Task<Player> Update(ChangedPlayer model, bool sudo = false)
         {
             var entity = await Store.Retrieve(model.Id);
 
@@ -105,22 +105,23 @@ namespace Gameboard.Api.Services
             await Store.Update(entity);
 
             // change names for whole team
-            if (!pushToTeam)
-                return;
-
-            var team = await Store.ListTeamByPlayer(model.Id);
-
-            foreach( var p in team)
+            if (pushToTeam)
             {
-                p.Name = model.Name;
-                p.ApprovedName = model.ApprovedName;
+                var team = await Store.ListTeamByPlayer(model.Id);
+
+                foreach( var p in team)
+                {
+                    p.Name = model.Name;
+                    p.ApprovedName = model.ApprovedName;
+                }
+
+                await Store.Update(team);
             }
 
-            await Store.Update(team);
-
+            return Mapper.Map<Player>(entity);
         }
 
-        public async Task Delete(string id, bool sudo = false)
+        public async Task<Player> Delete(string id, bool sudo = false)
         {
             var player = await Store.List()
                 .Include(p => p.Game)
@@ -136,6 +137,8 @@ namespace Gameboard.Api.Services
                 throw new RegistrationIsClosed();
 
             await Store.Delete(id);
+
+            return Mapper.Map<Player>(player);
         }
 
         public async Task<Player> Start(SessionStartRequest model, bool sudo)
@@ -240,7 +243,8 @@ namespace Gameboard.Api.Services
 
                 q = q.Where(p =>
                     p.ApprovedName.ToLower().Contains(term) ||
-                    p.Name.ToLower().Contains(term)
+                    p.Name.ToLower().Contains(term) ||
+                    p.User.Name.ToLower().Contains(term)
                 );
             }
 

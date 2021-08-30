@@ -143,4 +143,26 @@ namespace Gameboard.Api
         public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
         public bool IsManager => Role == PlayerRole.Manager;
     }
+
+    public class TeamPlayer
+    {
+        public string Id { get; set; }
+        public string TeamId { get; set; }
+        public string Name { get; set; }
+        public string ApprovedName { get; set; }
+        public string UserName { get; set; }
+        public string UserApprovedName { get; set; }
+        public string Sponsor { get; set; }
+        public PlayerRole Role { get; set; }
+        public bool IsManager => Role == PlayerRole.Manager;
+    }
+
+    public class TeamState
+    {
+        public string TeamId { get; set; }
+        public string ApprovedName { get; set; }
+        public string Name { get; set; }
+        public DateTimeOffset SessionBegin { get; set; }
+        public DateTimeOffset SessionEnd { get; set; }
+    }
 }

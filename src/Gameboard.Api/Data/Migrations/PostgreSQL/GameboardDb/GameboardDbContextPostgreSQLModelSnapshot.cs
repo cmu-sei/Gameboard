@@ -188,6 +188,18 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<string>("CardText1")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("CardText2")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("CardText3")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<string>("Competition")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -198,6 +210,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
                     b.Property<DateTimeOffset>("GameEnd")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GameMarkdown")
+                        .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("GameStart")
                         .HasColumnType("timestamp with time zone");
@@ -225,6 +240,10 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<int>("MinTeamSize")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Mode")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
                     b.Property<string>("Name")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -233,12 +252,10 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("RegistrationConstraint")
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
+                        .HasColumnType("text");
 
                     b.Property<string>("RegistrationMarkdown")
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
+                        .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("RegistrationOpen")
                         .HasColumnType("timestamp with time zone");

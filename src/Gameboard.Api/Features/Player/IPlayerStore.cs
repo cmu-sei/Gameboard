@@ -8,6 +8,7 @@ namespace Gameboard.Api.Data.Abstractions
 
     public interface IPlayerStore : IStore<Player>
     {
+        Task<Player> Load(string id);
         Task<Player[]> ListTeam(string id);
         Task<Player[]> ListTeamByPlayer(string id);
         Task<Challenge[]> ListTeamChallenges(string id);

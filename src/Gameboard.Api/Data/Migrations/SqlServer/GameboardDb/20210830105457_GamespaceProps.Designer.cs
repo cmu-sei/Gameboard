@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 {
     [DbContext(typeof(GameboardDbContextSqlServer))]
-    [Migration("20210827020051_AddGameKeyMaxLength")]
-    partial class AddGameKeyMaxLength
+    [Migration("20210830105457_GamespaceProps")]
+    partial class GamespaceProps
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -190,6 +190,18 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<string>("CardText1")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("CardText2")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("CardText3")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<string>("Competition")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
@@ -200,6 +212,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.Property<DateTimeOffset>("GameEnd")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("GameMarkdown")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTimeOffset>("GameStart")
                         .HasColumnType("datetimeoffset");
@@ -227,6 +242,10 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<int>("MinTeamSize")
                         .HasColumnType("int");
 
+                    b.Property<string>("Mode")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
                     b.Property<string>("Name")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
@@ -235,12 +254,10 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("RegistrationConstraint")
-                        .HasMaxLength(1024)
-                        .HasColumnType("nvarchar(1024)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("RegistrationMarkdown")
-                        .HasMaxLength(1024)
-                        .HasColumnType("nvarchar(1024)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTimeOffset>("RegistrationOpen")
                         .HasColumnType("datetimeoffset");

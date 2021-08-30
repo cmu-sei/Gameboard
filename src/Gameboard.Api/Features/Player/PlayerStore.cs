@@ -17,6 +17,14 @@ namespace Gameboard.Api.Data
 
         }
 
+        public async Task<Player> Load(string id)
+        {
+            return await DbSet
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.Id == id)
+            ;
+        }
+
         public async Task<Player[]> ListTeam(string id)
         {
             return await base.List()
