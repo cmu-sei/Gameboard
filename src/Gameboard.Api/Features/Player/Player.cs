@@ -16,6 +16,7 @@ namespace Gameboard.Api
         public string GameId { get; set; }
         public string ApprovedName { get; set; }
         public string Name { get; set; }
+        public string NameStatus { get; set; }
         public string Sponsor { get; set; }
         public PlayerRole Role { get; set; }
         public DateTimeOffset SessionBegin { get; set; }
@@ -41,8 +42,9 @@ namespace Gameboard.Api
     {
         public string Id { get; set; }
         public string Name { get; set; }
-        public string Sponsor { get; set; }
+        public string NameStatus { get; set; }
         public string ApprovedName { get; set; }
+        public string Sponsor { get; set; }
         public PlayerRole Role { get; set; }
     }
     public class SessionStartRequest
@@ -109,11 +111,16 @@ namespace Gameboard.Api
 
     public class PlayerDataFilter: SearchFilter
     {
+
+        public const string FilterActiveOnly = "active";
+        public const string FilterScoredOnly = "scored";
         public const string FilterCollapseTeams = "collapse";
         public string tid { get; set; }
         public string gid { get; set; }
         public string uid { get; set; }
         public string org { get; set; }
+        public bool WantsActive => Filter.Contains(FilterActiveOnly);
+        public bool WantsScored => Filter.Contains(FilterScoredOnly);
         public bool WantsGame => gid.NotEmpty();
         public bool WantsUser => uid.NotEmpty();
         public bool WantsTeam => tid.NotEmpty();
@@ -129,6 +136,7 @@ namespace Gameboard.Api
         public string GameId { get; set; }
         public string ApprovedName { get; set; }
         public string Name { get; set; }
+        public string NameStatus { get; set; }
         public string Sponsor { get; set; }
         public PlayerRole Role { get; set; }
         public DateTimeOffset SessionBegin { get; set; }
@@ -152,6 +160,7 @@ namespace Gameboard.Api
         public string ApprovedName { get; set; }
         public string UserName { get; set; }
         public string UserApprovedName { get; set; }
+        public string UserNameStatus { get; set; }
         public string Sponsor { get; set; }
         public PlayerRole Role { get; set; }
         public bool IsManager => Role == PlayerRole.Manager;
@@ -162,6 +171,7 @@ namespace Gameboard.Api
         public string TeamId { get; set; }
         public string ApprovedName { get; set; }
         public string Name { get; set; }
+        public string NameStatus { get; set; }
         public DateTimeOffset SessionBegin { get; set; }
         public DateTimeOffset SessionEnd { get; set; }
     }

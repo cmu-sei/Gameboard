@@ -87,7 +87,8 @@ namespace Gameboard.Api.Services
 
             bool pushToTeam =
                 model.Name != entity.Name ||
-                model.ApprovedName != entity.ApprovedName
+                model.ApprovedName != entity.ApprovedName ||
+                model.NameStatus != entity.NameStatus
             ;
 
             if (!sudo)
@@ -102,6 +103,9 @@ namespace Gameboard.Api.Services
                 Mapper.Map(model, entity);
             }
 
+            if (entity.Name == entity.ApprovedName)
+                entity.NameStatus = "";
+
             await Store.Update(entity);
 
             // change names for whole team
@@ -111,8 +115,9 @@ namespace Gameboard.Api.Services
 
                 foreach( var p in team)
                 {
-                    p.Name = model.Name;
-                    p.ApprovedName = model.ApprovedName;
+                    p.Name = entity.Name;
+                    p.ApprovedName = entity.ApprovedName;
+                    p.NameStatus = entity.NameStatus;
                 }
 
                 await Store.Update(team);
@@ -130,7 +135,7 @@ namespace Gameboard.Api.Services
                 )
             ;
 
-            if (!sudo && !player.Game.AllowReset)
+            if (!sudo && !player.Game.AllowReset && player.SessionBegin.Year > 1)
                 throw new ActionForbidden();
 
             if (!sudo && !player.Game.RegistrationActive)
@@ -205,7 +210,7 @@ namespace Gameboard.Api.Services
                 return new Standing[] {};
 
             model.Filter = model.Filter
-                .Append(PlayerDataFilter.FilterCollapseTeams)
+                .Append(PlayerDataFilter.FilterScoredOnly)
                 .ToArray()
             ;
 
@@ -234,8 +239,17 @@ namespace Gameboard.Api.Services
             if (model.WantsTeam)
                 q = q.Where(p => p.TeamId == model.tid);
 
-            if (model.WantsCollapsed)
+            if (model.WantsCollapsed || model.WantsActive || model.WantsScored)
                 q = q.Where(p => p.Role == PlayerRole.Manager);
+
+            if (model.WantsActive)
+            {
+                var ts = DateTimeOffset.UtcNow;
+                q = q.Where(p => p.SessionBegin < ts && p.SessionEnd > ts);
+            }
+
+            if (model.WantsScored)
+                q = q.Where(p => p.Score > 0);
 
             if (model.Term.NotEmpty())
             {
@@ -244,6 +258,8 @@ namespace Gameboard.Api.Services
                 q = q.Where(p =>
                     p.ApprovedName.ToLower().Contains(term) ||
                     p.Name.ToLower().Contains(term) ||
+                    p.Id.StartsWith(term) ||
+                    p.TeamId.StartsWith(term) ||
                     p.User.Name.ToLower().Contains(term)
                 );
             }
@@ -332,6 +348,9 @@ namespace Gameboard.Api.Services
                 return Mapper.Map<Player>(player);
 
             if (!sudo && !manager.Game.RegistrationActive)
+                throw new RegistrationIsClosed();
+
+            if (!sudo && manager.SessionBegin.Year > 1)
                 throw new RegistrationIsClosed();
 
             if (!sudo && manager.Game.RequireSponsoredTeam && !manager.Sponsor.Equals(player.Sponsor))

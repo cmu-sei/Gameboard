@@ -79,6 +79,9 @@ namespace Gameboard.Api.Services
             else
                 Mapper.Map(model, entity);
 
+            if (entity.Name == entity.ApprovedName)
+                entity.NameStatus = "";
+
             await Store.Update(entity);
 
             _localcache.Remove(entity.Id);

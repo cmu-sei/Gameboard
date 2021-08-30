@@ -16,6 +16,7 @@ namespace Gameboard.Api.Data
         public string GameId { get; set; }
         public string ApprovedName { get; set; }
         public string Name { get; set; }
+        public string NameStatus { get; set; }
         public string Sponsor { get; set; }
         public string InviteCode { get; set; }
         public PlayerRole Role { get; set; }

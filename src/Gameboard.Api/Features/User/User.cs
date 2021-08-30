@@ -9,6 +9,7 @@ namespace Gameboard.Api
     {
         public string Id { get; set; }
         public string Name { get; set; }
+        public string NameStatus { get; set; }
         public string ApprovedName { get; set; }
         public string Sponsor { get; set; }
         public UserRole Role { get; set; }
@@ -34,6 +35,7 @@ namespace Gameboard.Api
     {
         public string Id { get; set; }
         public string Name { get; set; }
+        public string NameStatus { get; set; }
         public string ApprovedName { get; set; }
         public string Sponsor { get; set; }
         public UserRole Role { get; set; }

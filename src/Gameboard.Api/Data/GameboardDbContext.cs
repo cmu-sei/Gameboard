@@ -19,8 +19,9 @@ namespace Gameboard.Api.Data
             builder.Entity<User>(b => {
                 b.Property(u => u.Id).HasMaxLength(40);
                 b.Property(u => u.Username).HasMaxLength(64);
-                b.Property(u => u.Name).HasMaxLength(64);
                 b.Property(u => u.ApprovedName).HasMaxLength(64);
+                b.Property(u => u.Name).HasMaxLength(64);
+                b.Property(u => u.NameStatus).HasMaxLength(40);
                 b.Property(u => u.Email).HasMaxLength(64);
                 b.Property(u => u.Sponsor).HasMaxLength(40);
             });
@@ -34,6 +35,7 @@ namespace Gameboard.Api.Data
                 b.Property(p => p.GameId).HasMaxLength(40);
                 b.Property(p => p.ApprovedName).HasMaxLength(64);
                 b.Property(p => p.Name).HasMaxLength(64);
+                b.Property(p => p.NameStatus).HasMaxLength(40);
                 b.Property(p => p.Sponsor).HasMaxLength(40);
                 b.Property(p => p.InviteCode).HasMaxLength(40);
             });
