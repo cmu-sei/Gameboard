@@ -6,9 +6,10 @@ namespace Gameboard.Api.Hubs
     public class HubEvent<T> where T : class
     {
         public HubEvent(
-            EventAction action,
-            T model
+            T model,
+            EventAction action
         ) {
+            Action = action;
             Model = model;
         }
 
@@ -18,9 +19,13 @@ namespace Gameboard.Api.Hubs
 
     public enum EventAction
     {
+        Arrived,
+        Greeted,
+        Departed,
         Created,
         Updated,
-        Deleted
+        Deleted,
+        Started
     }
 
 }

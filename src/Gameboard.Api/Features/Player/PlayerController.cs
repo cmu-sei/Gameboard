@@ -1,13 +1,16 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Caching.Distributed;
 using Gameboard.Api.Validators;
+using Microsoft.AspNetCore.SignalR;
+using Gameboard.Api.Hubs;
+using AutoMapper;
 
 namespace Gameboard.Api.Controllers
 {
@@ -15,15 +18,21 @@ namespace Gameboard.Api.Controllers
     public class PlayerController : _Controller
     {
         PlayerService PlayerService { get; }
+        IHubContext<AppHub, IAppHubEvent> Hub { get; }
+        IMapper Mapper { get; }
 
         public PlayerController(
             ILogger<PlayerController> logger,
             IDistributedCache cache,
+            PlayerValidator validator,
             PlayerService playerService,
-            PlayerValidator validator
+            IHubContext<AppHub, IAppHubEvent> hub,
+            IMapper mapper
         ): base(logger, cache, validator)
         {
             PlayerService = playerService;
+            Hub = hub;
+            Mapper = mapper;
         }
 
         /// <summary>
@@ -79,7 +88,11 @@ namespace Gameboard.Api.Controllers
                 () => PlayerService.MapId(model.Id).Result == Actor.Id
             );
 
-            await PlayerService.Update(model, Actor.IsRegistrar);
+            var result = await PlayerService.Update(model, Actor.IsRegistrar);
+
+            await Hub.Clients.Group(result.TeamId).TeamEvent(
+                new HubEvent<TeamState>(Mapper.Map<TeamState>(result), EventAction.Updated)
+            );
         }
 
         /// <summary>
@@ -98,7 +111,13 @@ namespace Gameboard.Api.Controllers
 
             await Validate(model);
 
-            return await PlayerService.Start(model, Actor.IsTester || Actor.IsRegistrar);
+            var result = await PlayerService.Start(model, Actor.IsTester || Actor.IsRegistrar);
+
+            await Hub.Clients.Group(result.TeamId).TeamEvent(
+                new HubEvent<TeamState>(Mapper.Map<TeamState>(result), EventAction.Started)
+            );
+
+            return result;
         }
 
         /// <summary>
@@ -118,7 +137,11 @@ namespace Gameboard.Api.Controllers
 
             await Validate(new Entity { Id = id });
 
-            await PlayerService.Delete(id, Actor.IsRegistrar || Actor.IsTester);
+            var player = await PlayerService.Delete(id, Actor.IsRegistrar || Actor.IsTester);
+
+            await Hub.Clients.Group(player.TeamId).PresenceEvent(
+                new HubEvent<TeamPlayer>(Mapper.Map<TeamPlayer>(player), EventAction.Deleted)
+            );
         }
 
         /// <summary>

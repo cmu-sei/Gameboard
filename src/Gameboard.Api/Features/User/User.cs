@@ -58,4 +58,10 @@ namespace Gameboard.Api
         public const string UserRoleFilter = "roles";
         public bool WantsRoles => Filter.Contains(UserRoleFilter);
     }
+
+    public class Announcement
+    {
+        public string TeamId { get; set; }
+        public string Message { get; set; }
+    }
 }
