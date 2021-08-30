@@ -7,13 +7,17 @@ namespace Gameboard.Api.Hubs
 {
     public interface IAppHubEvent
     {
-        Task GeneralEvent(string eventMessage);
-        // Task DatumEvent(HubEvent<Datum> payload);
+        Task Announcement(string announcement);
+        Task PresenceEvent(HubEvent<TeamPlayer> ev);
+        Task TeamEvent(HubEvent<TeamState> ev);
+        Task ChallengeEvent(HubEvent<Challenge> challenge);
     }
 
     public interface IAppHubAction
     {
-
+        Task Listen(string id);
+        Task Leave();
+        Task Greet();
     }
 
 }

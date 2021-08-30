@@ -1,7 +1,7 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -14,6 +14,8 @@ using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 using System.IO;
 using System.Linq;
+using Microsoft.AspNetCore.SignalR;
+using Gameboard.Api.Hubs;
 
 namespace Gameboard.Api.Controllers
 {
@@ -22,17 +24,20 @@ namespace Gameboard.Api.Controllers
     {
         UserService UserService { get; }
         CoreOptions Options { get; }
+        IHubContext<AppHub, IAppHubEvent> Hub { get; }
 
         public UserController(
             ILogger<UserController> logger,
             IDistributedCache cache,
             UserValidator validator,
             UserService userService,
-            CoreOptions options
+            CoreOptions options,
+            IHubContext<AppHub, IAppHubEvent> hub
         ): base(logger, cache, validator)
         {
             UserService = userService;
             Options = options;
+            Hub = hub;
         }
 
         /// <summary>
@@ -192,6 +197,18 @@ namespace Gameboard.Api.Controllers
                 .ToArray()
             ;
             return result;
+        }
+
+        [HttpPost("/api/announce")]
+        [Authorize]
+        public async Task Announce(Announcement model)
+        {
+            var audience = string.IsNullOrEmpty(model.TeamId).Equals(false)
+                ? Hub.Clients.Group(model.TeamId)
+                : Hub.Clients.All
+            ;
+
+            await audience.Announcement(model.Message);
         }
     }
 }

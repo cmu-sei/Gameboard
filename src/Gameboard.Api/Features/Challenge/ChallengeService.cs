@@ -93,14 +93,14 @@ namespace Gameboard.Api.Services
             return result;
         }
 
-        public async Task Update(ChangedChallenge model)
-        {
-            var entity = await Store.Retrieve(model.Id);
+        // public async Task Update(ChangedChallenge model)
+        // {
+        //     var entity = await Store.Retrieve(model.Id);
 
-            Mapper.Map(model, entity);
+        //     Mapper.Map(model, entity);
 
-            await Store.Update(entity);
-        }
+        //     await Store.Update(entity);
+        // }
 
         public async Task Delete(string id)
         {

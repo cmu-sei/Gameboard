@@ -10,6 +10,7 @@ namespace Gameboard.Api
     {
         public string Id { get; set; }
         public string SpecId { get; set; }
+        public string TeamId { get; set; }
         public string Name { get; set; }
         public string Tag { get; set; }
         public DateTimeOffset StartTime { get; set; }
@@ -27,6 +28,7 @@ namespace Gameboard.Api
     public class ChallengeSummary
     {
         public string Id { get; set; }
+        public string TeamId { get; set; }
         public string Name { get; set; }
         public string Tag { get; set; }
         public string GameName { get; set; }
@@ -58,6 +60,7 @@ namespace Gameboard.Api
     public class TeamChallenge
     {
         public string Id { get; set; }
+        public string TeamId { get; set; }
         public string Name { get; set; }
         public string Tag { get; set; }
         public int Points { get; set; }

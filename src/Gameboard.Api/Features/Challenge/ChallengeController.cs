@@ -10,6 +10,8 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.AspNetCore.Authorization;
 using TopoMojo.Api.Client;
 using Gameboard.Api.Validators;
+using Microsoft.AspNetCore.SignalR;
+using Gameboard.Api.Hubs;
 
 namespace Gameboard.Api.Controllers
 {
@@ -18,17 +20,21 @@ namespace Gameboard.Api.Controllers
     {
         ChallengeService ChallengeService { get; }
         PlayerService PlayerService { get; }
+        IHubContext<AppHub, IAppHubEvent> Hub { get; }
 
         public ChallengeController(
             ILogger<ChallengeController> logger,
             IDistributedCache cache,
             ChallengeValidator validator,
             ChallengeService challengeService,
-            PlayerService playerService
+            PlayerService playerService,
+            IHubContext<AppHub, IAppHubEvent> hub
+
         ): base(logger, cache, validator)
         {
             ChallengeService = challengeService;
             PlayerService = playerService;
+            Hub = hub;
         }
 
         /// <summary>
@@ -51,7 +57,13 @@ namespace Gameboard.Api.Controllers
             if (Actor.IsTester.Equals(false))
                 model.Variant = 0;
 
-            return await ChallengeService.GetOrAdd(model);
+            var result = await ChallengeService.GetOrAdd(model);
+
+            await Hub.Clients.Group(result.TeamId).ChallengeEvent(
+                new HubEvent<Challenge>(result, EventAction.Updated)
+            );
+
+            return result;
         }
 
         /// <summary>
@@ -98,10 +110,10 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPut("api/challenge")]
         [Authorize]
-        public async Task Update([FromBody] ChangedChallenge model)
+        public Task Update([FromBody] ChangedChallenge model)
         {
-            await ChallengeService.Update(model);
-            return;
+            // await ChallengeService.Update(model);
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -114,8 +126,8 @@ namespace Gameboard.Api.Controllers
         public async Task Delete([FromRoute]string id)
         {
             AuthorizeAny(
-                () => Actor.IsDirector,
-                () => Actor.IsTester && ChallengeService.UserIsTeamPlayer(id, Actor.Id).Result
+                () => Actor.IsDirector
+                // () => Actor.IsTester && ChallengeService.UserIsTeamPlayer(id, Actor.Id).Result
             );
 
             await Validate(new Entity{ Id = id });
@@ -140,7 +152,13 @@ namespace Gameboard.Api.Controllers
 
             await Validate(model);
 
-            return await ChallengeService.StartGamespace(model.Id);
+            var result = await ChallengeService.StartGamespace(model.Id);
+
+            await Hub.Clients.Group(result.TeamId).ChallengeEvent(
+                new HubEvent<Challenge>(result, EventAction.Updated)
+            );
+
+            return result;
         }
 
         /// <summary>
@@ -159,7 +177,13 @@ namespace Gameboard.Api.Controllers
 
             await Validate(new Entity{ Id = model.Id });
 
-            return await ChallengeService.StopGamespace(model.Id);
+            var result = await ChallengeService.StopGamespace(model.Id);
+
+            await Hub.Clients.Group(result.TeamId).ChallengeEvent(
+                new HubEvent<Challenge>(result, EventAction.Updated)
+            );
+
+            return result;
         }
 
         /// <summary>
@@ -178,7 +202,13 @@ namespace Gameboard.Api.Controllers
 
             await Validate(new Entity{ Id = model.Id });
 
-            return await ChallengeService.Grade(model);
+            var result = await ChallengeService.Grade(model);
+
+            await Hub.Clients.Group(result.TeamId).ChallengeEvent(
+                new HubEvent<Challenge>(result, EventAction.Updated)
+            );
+
+            return result;
         }
 
         /// <summary>
