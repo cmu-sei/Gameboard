@@ -252,12 +252,10 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("RegistrationConstraint")
-                        .HasMaxLength(1024)
-                        .HasColumnType("nvarchar(1024)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("RegistrationMarkdown")
-                        .HasMaxLength(1024)
-                        .HasColumnType("nvarchar(1024)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTimeOffset>("RegistrationOpen")
                         .HasColumnType("datetimeoffset");

@@ -10,8 +10,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 {
     [DbContext(typeof(GameboardDbContextPostgreSQL))]
-    [Migration("20210828002152_AddGameFieldMaxLimits")]
-    partial class AddGameFieldMaxLimits
+    [Migration("20210830105504_GamespaceProps")]
+    partial class GamespaceProps
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -213,6 +213,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<DateTimeOffset>("GameEnd")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("GameMarkdown")
+                        .HasColumnType("text");
+
                     b.Property<DateTimeOffset>("GameStart")
                         .HasColumnType("timestamp with time zone");
 
@@ -251,12 +254,10 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("RegistrationConstraint")
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
+                        .HasColumnType("text");
 
                     b.Property<string>("RegistrationMarkdown")
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
+                        .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("RegistrationOpen")
                         .HasColumnType("timestamp with time zone");
