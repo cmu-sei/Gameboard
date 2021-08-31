@@ -63,6 +63,9 @@ namespace Gameboard.Api.Services
 
             var q = Store.List(model.Term);
 
+            if (!sudo)
+                q = q.Where(g => g.IsPublished);
+
             if (model.WantsPresent)
                 q = q.Where(g => g.GameEnd > now && g.GameStart < now);
 
@@ -72,10 +75,10 @@ namespace Gameboard.Api.Services
             if (model.WantsPast)
                 q = q.Where(g => g.GameEnd < now);
 
-            if (!sudo)
-                q = q.Where(g => g.IsPublished);
-
-            q = q.OrderBy(p => p.Name);
+            if (model.WantsPast)
+                q = q.OrderByDescending(g => g.GameStart).ThenBy(g => g.Name);
+            else
+                q = q.OrderBy(g => g.GameStart).ThenBy(g => g.Name);
 
             q = q.Skip(model.Skip);
 
