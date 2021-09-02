@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
 using System.Collections.Generic;
 using Microsoft.Extensions.Caching.Memory;
+using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {
@@ -19,17 +20,20 @@ namespace Gameboard.Api.Services
         IMapper Mapper { get; }
         IMemoryCache LocalCache { get; }
         TimeSpan _idmapExpiration = new TimeSpan(0, 30, 0);
+        ITopoMojoApiClient Mojo { get; }
 
         public PlayerService (
             IPlayerStore store,
             IGameStore gameStore,
             IMapper mapper,
-            IMemoryCache localCache
+            IMemoryCache localCache,
+            ITopoMojoApiClient mojo
         ){
             Store = store;
             GameStore = gameStore;
             Mapper = mapper;
             LocalCache = localCache;
+            Mojo = mojo;
         }
 
         public async Task<Player> Register(NewPlayer model, bool sudo = false)
@@ -130,6 +134,7 @@ namespace Gameboard.Api.Services
         {
             var player = await Store.List()
                 .Include(p => p.Game)
+                .Include(p => p.Challenges)
                 .FirstOrDefaultAsync(
                     p => p.Id == id
                 )
@@ -140,6 +145,9 @@ namespace Gameboard.Api.Services
 
             if (!sudo && !player.Game.RegistrationActive)
                 throw new RegistrationIsClosed();
+
+            foreach(var challenge in player.Challenges.Where(c => c.HasDeployedGamespace))
+                await Mojo.CompleteGamespaceAsync(challenge.Id);
 
             await Store.Delete(id);
 
