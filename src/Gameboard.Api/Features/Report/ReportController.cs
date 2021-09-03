@@ -22,12 +22,45 @@ namespace Gameboard.Api.Controllers
 
         ReportService Service { get; }
 
-        [HttpGet("/api/report/sponsor")]
-        public async Task<ActionResult<SponsorReport>> GetSponsorStats([FromQuery]string gameId)
+        //[HttpGet("/api/report/sponsor")]
+        //public async Task<ActionResult<SponsorReport>> GetSponsorStats([FromQuery]string gameId)
+        //{
+        //    return Ok(
+        //        await Service.GetSponsorStats(gameId)
+        //    );
+        //}
+
+        [HttpGet("/api/report/userstats")]
+        [Authorize]
+        public async Task<ActionResult<UserReport>> GetUserStats()
         {
-            return Ok(
-                await Service.GetSponsorStats(gameId)
+            AuthorizeAny(
+                () => Actor.IsAdmin
             );
+
+            return Ok(await Service.GetUserStats());
+        }
+
+        [HttpGet("/api/report/playerstats")]
+        [Authorize]
+        public async Task<ActionResult<PlayerReport>> GetPlayerStats()
+        {
+            AuthorizeAny(
+                () => Actor.IsAdmin
+            );
+
+            return Ok(await Service.GetPlayerStats());
+        }
+
+        [HttpGet("/api/report/sponsorstats")]
+        [Authorize]
+        public async Task<ActionResult<SponsorReport>> GetSponsorStats()
+        {
+            AuthorizeAny(
+                () => Actor.IsAdmin
+            );
+
+            return Ok(await Service.GetSponsorStats());
         }
     }
 }
