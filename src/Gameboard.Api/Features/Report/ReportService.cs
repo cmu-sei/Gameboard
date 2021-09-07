@@ -69,16 +69,36 @@ namespace Gameboard.Api.Services
         {
             List<GameSponsorStat> gameSponsorStats = new List<GameSponsorStat>();
 
+            if (gameIds == null || gameIds.Length == 0)
+            {
+                gameIds = Store.Games.Select(g => g.Id).ToArray();
+            }
+
+            var games = Store.Games.Where(g => gameIds.Contains(g.Id)).Select(g => new
+            {
+                g.Id,
+                g.Name
+            }).ToDictionary(pair => pair.Id, pair => pair.Name);
+
             foreach (var gameId in gameIds)
             {
                 var sp = (from sponsors in Store.Sponsors
                           join p in Store.Players on
                           sponsors.Logo equals p.Sponsor
+                          join game in Store.Games on
+                          p.GameId equals game.Id
                           where p.GameId == gameId
                           select new { sponsors.Id, sponsors.Name, sponsors.Logo }).GroupBy(s => new { s.Id, s.Name, s.Logo })
                           .Select(g => new SponsorStat { Id = g.Key.Id, Name = g.Key.Name, Logo = g.Key.Logo, Count = g.Count() });
 
-                gameSponsorStats.Add((GameSponsorStat)sp);
+                GameSponsorStat gameSponsorStat = new GameSponsorStat
+                {
+                    GameId = gameId,
+                    GameName = games[gameId],
+                    Stats = (SponsorStat[])sp.ToArray()
+                };
+
+                gameSponsorStats.Add(gameSponsorStat);
             }
 
             GameSponsorReport sponsorReport = new GameSponsorReport
@@ -89,15 +109,5 @@ namespace Gameboard.Api.Services
 
             return Task.FromResult(sponsorReport);
         }
-
-        //internal Task<SponsorReport> GetSponsorStats(string gameId)
-        //{
-        //    //var q = gameId.HasValue()
-        //    //    ? Store.Players.Where(p => p.GameId == gameId).GroupBy(p => p.Sponsor)
-        //    //    : Store.Users.GroupBy(u => u.Sponsor)
-        //    //;
-
-        //    return null;
-        //}
     }
 }
