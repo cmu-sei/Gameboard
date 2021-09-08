@@ -109,5 +109,33 @@ namespace Gameboard.Api.Services
 
             return Task.FromResult(sponsorReport);
         }
+
+        internal Task<TeamReport> GetTeamStats()
+        {
+            List<SponsorStat> sponsorStats = new List<SponsorStat>();
+            var sponsors = Store.Sponsors.ToList();
+
+            foreach (Data.Sponsor sponsor in sponsors)
+            {
+                var teamCount = Store.Players.Where(p => p.Sponsor == sponsor.Logo).Select(p => p.TeamId).Distinct().Count();
+
+                sponsorStats.Add(new SponsorStat
+                {
+                     Id = sponsor.Id,
+                     Logo = sponsor.Logo,
+                     Name = sponsor.Name,
+                     Count = teamCount
+                });
+            }
+
+            TeamReport teamReport = new TeamReport();
+            teamReport.Timestamp = DateTime.UtcNow;
+            // we get the distinct team count separately because it is possible that some teams are made
+            // up of members from multiple sponsors
+            teamReport.TotalTeamCount = Store.Players.Select(p => p.TeamId).Distinct().Count();
+            teamReport.Stats = sponsorStats.ToArray();
+
+            return Task.FromResult(teamReport);
+        }
     }
 }

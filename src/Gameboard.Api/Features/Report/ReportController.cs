@@ -65,5 +65,16 @@ namespace Gameboard.Api.Controllers
 
             return Ok(await Service.GetGameSponsorsStats(gameIds));
         }
+
+        [HttpGet("/api/report/teamstats")]
+        [Authorize]
+        public async Task<ActionResult<TeamReport>> GetTeamStats()
+        {
+            AuthorizeAny(
+                () => Actor.IsAdmin
+            );
+
+            return Ok(await Service.GetTeamStats());
+        }
     }
 }

@@ -58,7 +58,7 @@ namespace Gameboard.Api
 
     public class ChallengeReport
     {
-        public string Title { get; set; } = "ChallengeReport";
+        public string Title { get; set; } = "Challenge Report";
         public DateTimeOffset Timestamp { get; set; }
         public ChallengeStat[] Stats { get; set; }
     }
@@ -70,5 +70,13 @@ namespace Gameboard.Api
         public string Tag { get; set; }
         public int SuccessCount { get; set; }
         public int PartialCount { get; set; }
+    }
+
+    public class TeamReport
+    {
+        public string Title { get; set; } = "Team Board Report";
+        public DateTimeOffset Timestamp { get; set; }
+        public int TotalTeamCount { get; set; }
+        public SponsorStat[] Stats { get; set; }
     }
 }
