@@ -55,26 +55,15 @@ namespace Gameboard.Api.Controllers
             return Ok(await Service.GetSponsorStats());
         }
 
-        [HttpGet("/api/report/gamesponsorstats")]
+        [HttpGet("/api/report/gamesponsorstats/{id}")]
         [Authorize]
-        public async Task<ActionResult<GameSponsorReport>> GetGameSponsorsStats(string[] gameIds)
+        public async Task<ActionResult<GameSponsorReport>> GetGameSponsorsStats([FromRoute] string id)
         {
             AuthorizeAny(
                 () => Actor.IsAdmin
             );
 
-            return Ok(await Service.GetGameSponsorsStats(gameIds));
-        }
-
-        [HttpGet("/api/report/teamstats")]
-        [Authorize]
-        public async Task<ActionResult<TeamReport>> GetTeamStats()
-        {
-            AuthorizeAny(
-                () => Actor.IsAdmin
-            );
-
-            return Ok(await Service.GetTeamStats());
+            return Ok(await Service.GetGameSponsorsStats(id));
         }
     }
 }

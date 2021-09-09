@@ -71,12 +71,4 @@ namespace Gameboard.Api
         public int SuccessCount { get; set; }
         public int PartialCount { get; set; }
     }
-
-    public class TeamReport
-    {
-        public string Title { get; set; } = "Team Board Report";
-        public DateTimeOffset Timestamp { get; set; }
-        public int TotalTeamCount { get; set; }
-        public SponsorStat[] Stats { get; set; }
-    }
 }

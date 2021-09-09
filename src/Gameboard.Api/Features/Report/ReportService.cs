@@ -54,7 +54,7 @@ namespace Gameboard.Api.Services
                       join u in Store.Users on
                       sponsors.Logo equals u.Sponsor
                       select new { sponsors.Id, sponsors.Name, sponsors.Logo }).GroupBy(s => new { s.Id, s.Name, s.Logo })
-                      .Select(g => new SponsorStat { Id = g.Key.Id, Name = g.Key.Name, Logo = g.Key.Logo, Count = g.Count() });
+                      .Select(g => new SponsorStat { Id = g.Key.Id, Name = g.Key.Name, Logo = g.Key.Logo, Count = g.Count() }).OrderByDescending(g => g.Count).ThenBy(g => g.Name);
 
             SponsorReport sponsorReport = new SponsorReport
             {
@@ -65,42 +65,39 @@ namespace Gameboard.Api.Services
             return Task.FromResult(sponsorReport);
         }
 
-        internal Task<GameSponsorReport> GetGameSponsorsStats(string[] gameIds)
+        internal Task<GameSponsorReport> GetGameSponsorsStats(string gameId)
         {
             List<GameSponsorStat> gameSponsorStats = new List<GameSponsorStat>();
 
-            if (gameIds == null || gameIds.Length == 0)
+            if (string.IsNullOrWhiteSpace(gameId))
             {
-                gameIds = Store.Games.Select(g => g.Id).ToArray();
+                throw new ArgumentNullException("Invalid game id");
             }
 
-            var games = Store.Games.Where(g => gameIds.Contains(g.Id)).Select(g => new
+            var games = Store.Games.Where(g => gameId == g.Id).Select(g => new
             {
                 g.Id,
                 g.Name
             }).ToDictionary(pair => pair.Id, pair => pair.Name);
+            
+            var sp = (from sponsors in Store.Sponsors
+                        join p in Store.Players on
+                        sponsors.Logo equals p.Sponsor
+                        join game in Store.Games on
+                        p.GameId equals game.Id
+                        where p.GameId == gameId
+                        select new { sponsors.Id, sponsors.Name, sponsors.Logo }).GroupBy(s => new { s.Id, s.Name, s.Logo })
+                        .Select(g => new SponsorStat { Id = g.Key.Id, Name = g.Key.Name, Logo = g.Key.Logo, Count = g.Count() }).OrderByDescending(g => g.Count).ThenBy(g => g.Name);
 
-            foreach (var gameId in gameIds)
+            GameSponsorStat gameSponsorStat = new GameSponsorStat
             {
-                var sp = (from sponsors in Store.Sponsors
-                          join p in Store.Players on
-                          sponsors.Logo equals p.Sponsor
-                          join game in Store.Games on
-                          p.GameId equals game.Id
-                          where p.GameId == gameId
-                          select new { sponsors.Id, sponsors.Name, sponsors.Logo }).GroupBy(s => new { s.Id, s.Name, s.Logo })
-                          .Select(g => new SponsorStat { Id = g.Key.Id, Name = g.Key.Name, Logo = g.Key.Logo, Count = g.Count() });
+                GameId = gameId,
+                GameName = games[gameId],
+                Stats = (SponsorStat[])sp.ToArray()
+            };
 
-                GameSponsorStat gameSponsorStat = new GameSponsorStat
-                {
-                    GameId = gameId,
-                    GameName = games[gameId],
-                    Stats = (SponsorStat[])sp.ToArray()
-                };
-
-                gameSponsorStats.Add(gameSponsorStat);
-            }
-
+            gameSponsorStats.Add(gameSponsorStat);
+            
             GameSponsorReport sponsorReport = new GameSponsorReport
             {
                 Timestamp = DateTime.UtcNow,
@@ -108,34 +105,6 @@ namespace Gameboard.Api.Services
             };
 
             return Task.FromResult(sponsorReport);
-        }
-
-        internal Task<TeamReport> GetTeamStats()
-        {
-            List<SponsorStat> sponsorStats = new List<SponsorStat>();
-            var sponsors = Store.Sponsors.ToList();
-
-            foreach (Data.Sponsor sponsor in sponsors)
-            {
-                var teamCount = Store.Players.Where(p => p.Sponsor == sponsor.Logo).Select(p => p.TeamId).Distinct().Count();
-
-                sponsorStats.Add(new SponsorStat
-                {
-                     Id = sponsor.Id,
-                     Logo = sponsor.Logo,
-                     Name = sponsor.Name,
-                     Count = teamCount
-                });
-            }
-
-            TeamReport teamReport = new TeamReport();
-            teamReport.Timestamp = DateTime.UtcNow;
-            // we get the distinct team count separately because it is possible that some teams are made
-            // up of members from multiple sponsors
-            teamReport.TotalTeamCount = Store.Players.Select(p => p.TeamId).Distinct().Count();
-            teamReport.Stats = sponsorStats.ToArray();
-
-            return Task.FromResult(teamReport);
         }
     }
 }
