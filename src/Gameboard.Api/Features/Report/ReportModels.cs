@@ -47,6 +47,7 @@ namespace Gameboard.Api
         public string Name { get; set; }
         public string Logo { get; set; }
         public int Count { get; set; }
+        public int TeamCount { get; set; }
     }
 
     public class GameSponsorStat
