@@ -35,7 +35,7 @@ namespace Gameboard.Api.Services
             _localcache = localcache;
         }
 
-        public async Task<Challenge> GetOrAdd(NewChallenge model)
+        public async Task<Challenge> GetOrAdd(NewChallenge model, string actorId)
         {
             var entity = await Store.Load(model);
 
@@ -77,6 +77,15 @@ namespace Gameboard.Api.Services
 
             Mapper.Map(state, entity);
 
+            entity.Events.Add(new Data.ChallengeEvent
+            {
+                Id = Guid.NewGuid().ToString("n"),
+                UserId = actorId,
+                TeamId = entity.TeamId,
+                Timestamp = DateTimeOffset.UtcNow,
+                Type = ChallengeEventType.Started
+            });
+
             await Store.Create(entity);
 
             await Store.UpdateEtd(entity.SpecId);
@@ -87,7 +96,7 @@ namespace Gameboard.Api.Services
         public async Task<Challenge> Retrieve(string id)
         {
             var result = Mapper.Map<Challenge>(
-                await Store.Retrieve(id)
+                await Store.Load(id)
             );
 
             return result;
@@ -204,36 +213,65 @@ namespace Gameboard.Api.Services
             return await Sync(entity, task);
         }
 
-        public async Task<Challenge> StartGamespace(string id)
+        public async Task<Challenge> StartGamespace(string id, string actorId)
         {
-            var challenge = await Store.Retrieve(id);
+            var entity = await Store.Retrieve(id);
 
-            var game = await Store.DbContext.Games.FindAsync(challenge.GameId);
+            var game = await Store.DbContext.Games.FindAsync(entity.GameId);
 
-            if ((await Store.ChallengeGamespaceCount(challenge.TeamId)) >= game.GamespaceLimitPerSession)
+            if ((await Store.ChallengeGamespaceCount(entity.TeamId)) >= game.GamespaceLimitPerSession)
                 throw new GamespaceLimitReached();
 
-            var entity = await Sync(
-                id,
+            entity.Events.Add(new Data.ChallengeEvent
+            {
+                Id = Guid.NewGuid().ToString("n"),
+                UserId = actorId,
+                TeamId = entity.TeamId,
+                Timestamp = DateTimeOffset.UtcNow,
+                Type = ChallengeEventType.GamespaceOn
+            });
+
+            await Sync(
+                entity,
                 Mojo.StartGamespaceAsync(id)
             );
 
             return Mapper.Map<Challenge>(entity);
         }
 
-        public async Task<Challenge> StopGamespace(string id)
+        public async Task<Challenge> StopGamespace(string id, string actorId)
         {
-            var entity = await Sync(
-                id,
+            var entity = await Store.Retrieve(id);
+
+            entity.Events.Add(new Data.ChallengeEvent
+            {
+                Id = Guid.NewGuid().ToString("n"),
+                UserId = actorId,
+                TeamId = entity.TeamId,
+                Timestamp = DateTimeOffset.UtcNow,
+                Type = ChallengeEventType.GamespaceOff
+            });
+
+            await Sync(
+                entity,
                 Mojo.StopGamespaceAsync(id)
             );
 
             return Mapper.Map<Challenge>(entity);
         }
 
-        public async Task<Challenge> Grade(SectionSubmission model)
+        public async Task<Challenge> Grade(SectionSubmission model, string actorId)
         {
             var entity = await Store.Retrieve(model.Id);
+
+            entity.Events.Add(new Data.ChallengeEvent
+            {
+                Id = Guid.NewGuid().ToString("n"),
+                UserId = actorId,
+                TeamId = entity.TeamId,
+                Timestamp = DateTimeOffset.UtcNow,
+                Type = ChallengeEventType.Submission
+            });
 
             double currentScore = entity.Score;
 

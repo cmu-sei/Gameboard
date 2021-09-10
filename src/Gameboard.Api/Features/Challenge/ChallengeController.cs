@@ -1,7 +1,7 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -57,7 +57,7 @@ namespace Gameboard.Api.Controllers
             if (Actor.IsTester.Equals(false))
                 model.Variant = 0;
 
-            var result = await ChallengeService.GetOrAdd(model);
+            var result = await ChallengeService.GetOrAdd(model, Actor.Id);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
                 new HubEvent<Challenge>(result, EventAction.Updated)
@@ -152,7 +152,7 @@ namespace Gameboard.Api.Controllers
 
             await Validate(model);
 
-            var result = await ChallengeService.StartGamespace(model.Id);
+            var result = await ChallengeService.StartGamespace(model.Id, Actor.Id);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
                 new HubEvent<Challenge>(result, EventAction.Updated)
@@ -177,7 +177,7 @@ namespace Gameboard.Api.Controllers
 
             await Validate(new Entity{ Id = model.Id });
 
-            var result = await ChallengeService.StopGamespace(model.Id);
+            var result = await ChallengeService.StopGamespace(model.Id, Actor.Id);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
                 new HubEvent<Challenge>(result, EventAction.Updated)
@@ -202,7 +202,15 @@ namespace Gameboard.Api.Controllers
 
             await Validate(new Entity{ Id = model.Id });
 
-            var result = await ChallengeService.Grade(model);
+            var result = await ChallengeService.Grade(model, Actor.Id);
+
+            await Hub.Clients.Group(result.TeamId).ChallengeEvent(
+                new HubEvent<Challenge>(result, EventAction.Updated)
+            );
+
+            return result;
+        }
+
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
                 new HubEvent<Challenge>(result, EventAction.Updated)
