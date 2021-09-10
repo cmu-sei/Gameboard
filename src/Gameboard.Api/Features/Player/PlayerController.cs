@@ -251,9 +251,23 @@ namespace Gameboard.Api.Controllers
 
             return await PlayerService.Enlist(model, Actor.IsRegistrar);
         }
-         private async Task<bool> IsSelf(string playerId)
+
+        private async Task<bool> IsSelf(string playerId)
         {
           return await PlayerService.MapId(playerId) == Actor.Id;
         }
+
+        /// <summary>
+        /// Rerank a game's players
+        /// </summary>
+        /// <param name="gameId">id</param>
+        /// <returns></returns>
+        [HttpPost("/api/player/rerank")]
+        [Authorize(AppConstants.AdminPolicy)]
+        public async Task Rerank([FromBody]string gameId)
+        {
+            await PlayerService.ReRank(gameId);
+        }
+
     }
 }
