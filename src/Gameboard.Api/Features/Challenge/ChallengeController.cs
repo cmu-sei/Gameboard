@@ -211,12 +211,46 @@ namespace Gameboard.Api.Controllers
             return result;
         }
 
+        /// <summary>
+        /// ReGrade a challenge
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("/api/challenge/regrade")]
+        [Authorize]
+        public async Task<Challenge> Regrade([FromBody]Entity model)
+        {
+            AuthorizeAny(
+                () => Actor.IsDirector
+            );
+
+            await Validate(model);
+
+            var result = await ChallengeService.Regrade(model.Id);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
                 new HubEvent<Challenge>(result, EventAction.Updated)
             );
 
             return result;
+        }
+
+        /// <summary>
+        /// ReGrade a challenge
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [HttpGet("/api/challenge/{id}/audit")]
+        [Authorize]
+        public async Task<SectionSubmission[]> Audit([FromRoute]string id)
+        {
+            AuthorizeAny(
+                () => Actor.IsDirector
+            );
+
+            await Validate(new Entity { Id = id });
+
+            return await ChallengeService.Audit(id);
         }
 
         /// <summary>

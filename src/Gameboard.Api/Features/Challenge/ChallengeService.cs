@@ -286,21 +286,19 @@ namespace Gameboard.Api.Services
             return Mapper.Map<Challenge>(entity);
         }
 
-        public async Task<Challenge> ReGrade(string id)
+        public async Task<Challenge> Regrade(string id)
         {
             var entity = await Store.Retrieve(id);
 
             double currentScore = entity.Score;
 
-            // TODO: implement ReGrade on TopoMojo
+            var result = await Sync(
+                entity,
+                Mojo.RegradeChallengeAsync(id)
+            );
 
-            // var result = await Sync(
-            //     entity,
-            //     Mojo.RedGradeChallengeAsync(id)
-            // );
-
-            // if (result.Score > currentScore)
-            //     await Store.UpdateTeam(entity.TeamId);
+            if (result.Score > currentScore)
+                await Store.UpdateTeam(entity.TeamId);
 
             return Mapper.Map<Challenge>(entity);
         }
@@ -336,6 +334,11 @@ namespace Gameboard.Api.Services
             }
 
             throw new InvalidConsoleAction();
+        }
+
+        internal async Task<SectionSubmission[]> Audit(string id)
+        {
+            return (await Mojo.AuditChallengeAsync(id)).ToArray();
         }
 
         private void Transform(GameState state)
