@@ -79,6 +79,17 @@ namespace Gameboard.Api.Services
             else
                 Mapper.Map(model, entity);
 
+            // check uniqueness
+            bool found = await Store.DbSet.AnyAsync(p =>
+                p.Id != entity.Id &&
+                p.Name == entity.Name
+            );
+
+            if (found)
+                entity.NameStatus = AppConstants.NameStatusNotUnique;
+            else if (entity.NameStatus == AppConstants.NameStatusNotUnique)
+                entity.NameStatus = "";
+
             if (entity.Name == entity.ApprovedName)
                 entity.NameStatus = "";
 

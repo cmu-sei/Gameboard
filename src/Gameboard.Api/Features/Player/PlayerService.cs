@@ -89,12 +89,6 @@ namespace Gameboard.Api.Services
         {
             var entity = await Store.Retrieve(model.Id);
 
-            bool pushToTeam =
-                model.Name != entity.Name ||
-                model.ApprovedName != entity.ApprovedName ||
-                model.NameStatus != entity.NameStatus
-            ;
-
             if (!sudo)
             {
                 Mapper.Map(
@@ -107,13 +101,31 @@ namespace Gameboard.Api.Services
                 Mapper.Map(model, entity);
             }
 
+            // check uniqueness
+            bool found = await Store.DbSet.AnyAsync(p =>
+                p.GameId == entity.GameId &&
+                p.TeamId != entity.TeamId &&
+                p.Name == entity.Name
+            );
+
+            if (found)
+                entity.NameStatus = AppConstants.NameStatusNotUnique;
+            else if (entity.NameStatus == AppConstants.NameStatusNotUnique)
+                entity.NameStatus = "";
+
             if (entity.Name == entity.ApprovedName)
                 entity.NameStatus = "";
 
             await Store.Update(entity);
 
             // change names for whole team
-            if (pushToTeam)
+            bool namesChanged =
+                model.Name != entity.Name ||
+                model.ApprovedName != entity.ApprovedName ||
+                model.NameStatus != entity.NameStatus
+            ;
+
+            if (namesChanged)
             {
                 var team = await Store.ListTeamByPlayer(model.Id);
 
