@@ -171,7 +171,7 @@ namespace Gameboard.Api.Services
 
             var team = await Store.ListTeamByPlayer(model.Id);
 
-            var game = await Store.DbContext.Games.FindAsync(model.GameId);
+            var game = await Store.DbContext.Games.FindAsync(team.First().GameId);
 
             if (!sudo && game.SessionLimit > 0)
             {
@@ -211,6 +211,42 @@ namespace Gameboard.Api.Services
 
             return Mapper.Map<Player>(
                 team.First(p => p.Id == model.Id)
+            );
+        }
+
+        public async Task<Player> ExtendSession(SessionChangeRequest model)
+        {
+            var team = await Store.ListTeam(model.TeamId);
+
+            if (team.First().IsLive.Equals(false))
+                throw new SessionNotActive();
+
+            if (team.First().SessionEnd >= model.SessionEnd)
+                throw new InvalidSessionWindow();
+
+            foreach(var player in team)
+                player.SessionEnd = model.SessionEnd;
+
+            await Store.Update(team);
+
+            // push gamespace extension
+            var challenges = await Store.DbContext.Challenges
+                .Where(c => c.TeamId == team.First().TeamId)
+                .Select(c => c.Id)
+                .ToArrayAsync()
+            ;
+
+            foreach (string id in challenges)
+                await Mojo.UpdateGamespaceAsync(new ChangedGamespace
+                {
+                    Id = id,
+                    ExpirationTime = model.SessionEnd
+                });
+
+            return Mapper.Map<Player>(
+                team.FirstOrDefault(p =>
+                    p.Role == PlayerRole.Manager
+                )
             );
         }
 

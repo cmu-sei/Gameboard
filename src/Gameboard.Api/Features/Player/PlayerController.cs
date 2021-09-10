@@ -96,6 +96,28 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
+        /// Change player session
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("api/team/session")]
+        [Authorize]
+        public async Task UpdateSession([FromBody] SessionChangeRequest model)
+        {
+            await Validate(model);
+
+            AuthorizeAny(
+                () => Actor.IsRegistrar
+            );
+
+            var result = await PlayerService.ExtendSession(model);
+
+            await Hub.Clients.Group(result.TeamId).TeamEvent(
+                new HubEvent<TeamState>(Mapper.Map<TeamState>(result), EventAction.Updated)
+            );
+        }
+
+        /// <summary>
         /// Start player/team session
         /// </summary>
         /// <param name="model"></param>

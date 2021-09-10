@@ -16,6 +16,7 @@ namespace Gameboard.Api
     public class ResourceNotFound: Exception {}
     public class GameNotActive: Exception {}
     public class SessionNotActive: Exception {}
+    public class InvalidSessionWindow: Exception {}
     public class SessionLimitReached: Exception {}
     public class InvalidTeamSize: Exception {}
     public class InvalidConsoleAction: Exception {}
