@@ -69,7 +69,11 @@ namespace Gameboard.Api
         public string Id { get; set; }
         public string Name { get; set; }
         public string Tag { get; set; }
+        public int Points { get; set; }
         public int SuccessCount { get; set; }
         public int PartialCount { get; set; }
+        public int FailureCount { get; set; }
+        public string AverageTime { get; set; }
+        public int AttemptCount { get; set; }
     }
 }

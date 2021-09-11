@@ -93,6 +93,15 @@ namespace Gameboard.Api.Services
             return result;
         }
 
+        public async Task<Challenge[]> GetByGame(string gameId)
+        {
+            var result = Mapper.Map<Challenge[]>(
+                Store.DbSet.Where(c => c.GameId == gameId)
+            );
+
+            return result;
+        }
+
         // public async Task Update(ChangedChallenge model)
         // {
         //     var entity = await Store.Retrieve(model.Id);
