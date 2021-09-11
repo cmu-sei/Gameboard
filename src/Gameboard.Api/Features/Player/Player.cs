@@ -121,6 +121,10 @@ namespace Gameboard.Api
         public const string FilterActiveOnly = "active";
         public const string FilterScoredOnly = "scored";
         public const string FilterCollapseTeams = "collapse";
+        public const string NamePendingFilter = "pending";
+        public const string NameDisallowedFilter = "disallowed";
+        public const string SortRank = "rank";
+        public const string SortTime = "time";
         public string tid { get; set; }
         public string gid { get; set; }
         public string uid { get; set; }
@@ -132,6 +136,10 @@ namespace Gameboard.Api
         public bool WantsTeam => tid.NotEmpty();
         public bool WantsOrg => org.NotEmpty();
         public bool WantsCollapsed => Filter.Contains(FilterCollapseTeams);
+        public bool WantsPending => Filter.Contains(NamePendingFilter);
+        public bool WantsDisallowed => Filter.Contains(NameDisallowedFilter);
+        public bool WantsSortByTime => Sort == SortTime;
+        public bool WantsSortByRank => Sort == SortRank || string.IsNullOrEmpty(Sort);
     }
 
     public class BoardPlayer

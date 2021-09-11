@@ -121,6 +121,12 @@ namespace Gameboard.Api.Services
             if (model.WantsRoles)
                 q = q.Where(u => ((int)u.Role) > 0);
 
+            if (model.WantsPending)
+                q = q.Where(u => string.IsNullOrEmpty(u.NameStatus) && u.Name != u.ApprovedName);
+
+            if (model.WantsDisallowed)
+                q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus));
+
             q = q.OrderBy(p => p.ApprovedName);
 
             q = q.Skip(model.Skip);

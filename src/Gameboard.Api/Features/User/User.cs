@@ -58,7 +58,11 @@ namespace Gameboard.Api
     public class UserSearch: SearchFilter
     {
         public const string UserRoleFilter = "roles";
+        public const string NamePendingFilter = "pending";
+        public const string NameDisallowedFilter = "disallowed";
         public bool WantsRoles => Filter.Contains(UserRoleFilter);
+        public bool WantsPending => Filter.Contains(NamePendingFilter);
+        public bool WantsDisallowed => Filter.Contains(NameDisallowedFilter);
     }
 
     public class Announcement

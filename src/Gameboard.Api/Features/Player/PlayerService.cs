@@ -304,6 +304,12 @@ namespace Gameboard.Api.Services
                 q = q.Where(p => p.SessionBegin < ts && p.SessionEnd > ts);
             }
 
+            if (model.WantsPending)
+                q = q.Where(u => string.IsNullOrEmpty(u.NameStatus) && u.Name != u.ApprovedName);
+
+            if (model.WantsDisallowed)
+                q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus));
+
             if (model.WantsScored)
                 q = q.Where(p => p.Score > 0);
 
@@ -321,12 +327,16 @@ namespace Gameboard.Api.Services
             }
 
             // TODO: maybe just sort on rank here
-            q = q.OrderByDescending(p => p.Score)
-                .ThenBy(p => p.Time)
-                .ThenByDescending(p => p.CorrectCount)
-                .ThenByDescending(p => p.PartialCount)
-                .ThenBy(p => p.Rank)
-                .ThenBy(p => p.ApprovedName);
+            if (model.WantsSortByRank)
+                q = q.OrderByDescending(p => p.Score)
+                    .ThenBy(p => p.Time)
+                    .ThenByDescending(p => p.CorrectCount)
+                    .ThenByDescending(p => p.PartialCount)
+                    .ThenBy(p => p.Rank)
+                    .ThenBy(p => p.ApprovedName);
+
+            if (model.WantsSortByTime)
+                q = q.OrderByDescending(p => p.SessionBegin);
 
             q = q.Skip(model.Skip);
 
