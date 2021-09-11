@@ -38,6 +38,9 @@ namespace Gameboard.Api.Validators
             if (model is SessionStartRequest)
                 return _validate(model as SessionStartRequest);
 
+            if (model is SessionChangeRequest)
+                return _validate(model as SessionChangeRequest);
+
             if (model is TeamAdvancement)
                 return _validate(model as TeamAdvancement);
 
@@ -62,9 +65,11 @@ namespace Gameboard.Api.Validators
             if ((await Exists(model.Id)).Equals(false))
                 throw new ResourceNotFound();
 
-            if ((await GameExists(model.GameId)).Equals(false))
-                throw new ResourceNotFound();
+            await Task.CompletedTask;
+        }
 
+        private async Task _validate(SessionChangeRequest model)
+        {
             await Task.CompletedTask;
         }
 

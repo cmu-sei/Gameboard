@@ -51,8 +51,13 @@ namespace Gameboard.Api
     public class SessionStartRequest
     {
         public string Id { get; set; }
-        public string GameId { get; set; }
 
+    }
+
+    public class SessionChangeRequest
+    {
+        public string TeamId { get; set; }
+        public DateTimeOffset SessionEnd { get; set; }
     }
 
     public class SelfChangedPlayer

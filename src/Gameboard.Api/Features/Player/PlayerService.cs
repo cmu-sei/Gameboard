@@ -89,12 +89,6 @@ namespace Gameboard.Api.Services
         {
             var entity = await Store.Retrieve(model.Id);
 
-            bool pushToTeam =
-                model.Name != entity.Name ||
-                model.ApprovedName != entity.ApprovedName ||
-                model.NameStatus != entity.NameStatus
-            ;
-
             if (!sudo)
             {
                 Mapper.Map(
@@ -107,13 +101,31 @@ namespace Gameboard.Api.Services
                 Mapper.Map(model, entity);
             }
 
+            // check uniqueness
+            bool found = await Store.DbSet.AnyAsync(p =>
+                p.GameId == entity.GameId &&
+                p.TeamId != entity.TeamId &&
+                p.Name == entity.Name
+            );
+
+            if (found)
+                entity.NameStatus = AppConstants.NameStatusNotUnique;
+            else if (entity.NameStatus == AppConstants.NameStatusNotUnique)
+                entity.NameStatus = "";
+
             if (entity.Name == entity.ApprovedName)
                 entity.NameStatus = "";
 
             await Store.Update(entity);
 
             // change names for whole team
-            if (pushToTeam)
+            bool namesChanged =
+                model.Name != entity.Name ||
+                model.ApprovedName != entity.ApprovedName ||
+                model.NameStatus != entity.NameStatus
+            ;
+
+            if (namesChanged)
             {
                 var team = await Store.ListTeamByPlayer(model.Id);
 
@@ -159,7 +171,7 @@ namespace Gameboard.Api.Services
 
             var team = await Store.ListTeamByPlayer(model.Id);
 
-            var game = await Store.DbContext.Games.FindAsync(model.GameId);
+            var game = await Store.DbContext.Games.FindAsync(team.First().GameId);
 
             if (!sudo && game.SessionLimit > 0)
             {
@@ -199,6 +211,42 @@ namespace Gameboard.Api.Services
 
             return Mapper.Map<Player>(
                 team.First(p => p.Id == model.Id)
+            );
+        }
+
+        public async Task<Player> ExtendSession(SessionChangeRequest model)
+        {
+            var team = await Store.ListTeam(model.TeamId);
+
+            if (team.First().IsLive.Equals(false))
+                throw new SessionNotActive();
+
+            if (team.First().SessionEnd >= model.SessionEnd)
+                throw new InvalidSessionWindow();
+
+            foreach(var player in team)
+                player.SessionEnd = model.SessionEnd;
+
+            await Store.Update(team);
+
+            // push gamespace extension
+            var challenges = await Store.DbContext.Challenges
+                .Where(c => c.TeamId == team.First().TeamId)
+                .Select(c => c.Id)
+                .ToArrayAsync()
+            ;
+
+            foreach (string id in challenges)
+                await Mojo.UpdateGamespaceAsync(new ChangedGamespace
+                {
+                    Id = id,
+                    ExpirationTime = model.SessionEnd
+                });
+
+            return Mapper.Map<Player>(
+                team.FirstOrDefault(p =>
+                    p.Role == PlayerRole.Manager
+                )
             );
         }
 
@@ -424,6 +472,32 @@ namespace Gameboard.Api.Services
             await Store.Create(enrollments);
         }
 
+        public async Task ReRank(string gameId)
+        {
+            var players = await Store.List()
+                .Where(p => p.GameId == gameId)
+                .OrderByDescending(p => p.Score)
+                .ThenBy(p => p.Time)
+                .ThenByDescending(p => p.CorrectCount)
+                .ThenByDescending(p => p.PartialCount)
+                .ToArrayAsync()
+            ;
+
+            int rank = 0;
+            string last = "";
+            foreach (var player in players)
+            {
+                if (player.TeamId != last)
+                {
+                    rank += 1;
+                    last = player.TeamId;
+                }
+
+                player.Rank = rank;
+            }
+
+            await Store.Update(players);
+        }
     }
 
 }

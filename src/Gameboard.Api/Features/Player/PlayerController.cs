@@ -96,6 +96,28 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
+        /// Change player session
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("api/team/session")]
+        [Authorize]
+        public async Task UpdateSession([FromBody] SessionChangeRequest model)
+        {
+            await Validate(model);
+
+            AuthorizeAny(
+                () => Actor.IsRegistrar
+            );
+
+            var result = await PlayerService.ExtendSession(model);
+
+            await Hub.Clients.Group(result.TeamId).TeamEvent(
+                new HubEvent<TeamState>(Mapper.Map<TeamState>(result), EventAction.Updated)
+            );
+        }
+
+        /// <summary>
         /// Start player/team session
         /// </summary>
         /// <param name="model"></param>
@@ -251,9 +273,23 @@ namespace Gameboard.Api.Controllers
 
             return await PlayerService.Enlist(model, Actor.IsRegistrar);
         }
-         private async Task<bool> IsSelf(string playerId)
+
+        private async Task<bool> IsSelf(string playerId)
         {
           return await PlayerService.MapId(playerId) == Actor.Id;
         }
+
+        /// <summary>
+        /// Rerank a game's players
+        /// </summary>
+        /// <param name="gameId">id</param>
+        /// <returns></returns>
+        [HttpPost("/api/player/rerank")]
+        [Authorize(AppConstants.AdminPolicy)]
+        public async Task Rerank([FromBody]string gameId)
+        {
+            await PlayerService.ReRank(gameId);
+        }
+
     }
 }
