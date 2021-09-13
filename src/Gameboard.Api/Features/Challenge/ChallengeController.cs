@@ -305,7 +305,7 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("/api/challenge/consoles")]
         [Authorize]
-        public ConsoleActor[] FindConsoles(string gid)
+        public ConsoleActor[] FindConsoles([FromQuery]string gid)
         {
             AuthorizeAny(
               () => Actor.IsDirector,
