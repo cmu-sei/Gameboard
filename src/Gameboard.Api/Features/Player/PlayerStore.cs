@@ -64,11 +64,19 @@ namespace Gameboard.Api.Data
 
         public async Task<Player> LoadBoard(string id)
         {
-            return await DbSet
+            var result = await DbSet.AsNoTracking()
                 .Include(p => p.Game).ThenInclude(g => g.Specs)
                 .Include(p => p.Challenges).ThenInclude(c => c.Events)
                 .FirstOrDefaultAsync(p => p.Id == id)
             ;
+
+            if (result.Game.AllowTeam)
+                result.Challenges = await DbContext.Challenges.AsNoTracking()
+                    .Include(c => c.Events)
+                    .Where(c => c.TeamId == result.TeamId)
+                    .ToArrayAsync();
+
+            return result;
         }
 
         // If entity has searchable fields, use this:
