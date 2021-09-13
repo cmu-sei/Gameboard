@@ -141,13 +141,8 @@ namespace Gameboard.Api.Services
 
             foreach (Data.ChallengeSpec challengeSpec in challengeSpecs)
             {
-                TimeSpan ts = new TimeSpan();
-                var cs = challenges.Where(c => c.SpecId == challengeSpec.Id).ToList();
-
-                foreach (Challenge challenge in cs)
-                {
-                    ts += (challenge.EndTime - challenge.StartTime);
-                }
+                TimeSpan ts = TimeSpan.FromMilliseconds(challenges.Where(c => c.SpecId == challengeSpec.Id).Select(c => c.Duration).Sum() / 
+                    challenges.Where(c => c.SpecId == challengeSpec.Id).Count());
 
                 challengeStats.Add(new ChallengeStat
                 {
@@ -155,9 +150,9 @@ namespace Gameboard.Api.Services
                     Name = challengeSpec.Name,
                     Tag = challengeSpec.Tag,
                     Points = challengeSpec.Points,
-                    SuccessCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Select(c => c.State.Challenge).Where(c => c.Score == c.MaxPoints).Count(),
-                    PartialCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Select(c => c.State.Challenge).Where(c => c.Score > 0 && c.Score < c.MaxPoints).Count(),
-                    FailureCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Select(c => c.State.Challenge).Where(c => c.MaxAttempts == c.Attempts && c.Score == 0).Count(),
+                    SuccessCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Where(c => c.Result == ChallengeResult.Success).Count(),
+                    PartialCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Where(c => c.Result == ChallengeResult.Partial).Count(),
+                    FailureCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Where(c => c.Result == ChallengeResult.None).Count(),
                     AverageTime = ts.ToString(@"hh\:mm\:ss"),
                     AttemptCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Count()
                 });
