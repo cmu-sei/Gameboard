@@ -104,7 +104,7 @@ namespace Gameboard.Api.Controllers
 
             await Validate(model);
 
-            await UserService.Update(model, Actor.IsRegistrar);
+            await UserService.Update(model, Actor.IsRegistrar, Actor.IsAdmin);
         }
 
         /// <summary>
@@ -131,11 +131,12 @@ namespace Gameboard.Api.Controllers
         /// <param name="model"></param>
         /// <returns>User[]</returns>
         [HttpGet("/api/users")]
-        [Authorize(AppConstants.RegistrarPolicy)]
+        [Authorize]
         public async Task<User[]> List([FromQuery] UserSearch model)
         {
             AuthorizeAny(
-                () => Actor.IsRegistrar
+                () => Actor.IsRegistrar,
+                () => Actor.IsObserver
             );
 
             return await UserService.List(model);

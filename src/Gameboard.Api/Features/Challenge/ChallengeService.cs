@@ -314,6 +314,13 @@ namespace Gameboard.Api.Services
 
         public async Task<ConsoleSummary> GetConsole(ConsoleRequest model, bool observer)
         {
+            var challenge = Mapper.Map<Challenge>(
+                await Store.Retrieve(model.SessionId)
+            );
+
+            if (!challenge.State.Vms.Any(v => v.Name == model.Name))
+                throw new ResourceNotFound();
+
             switch (model.Action)
             {
                 case ConsoleAction.Ticket:
@@ -337,12 +344,34 @@ namespace Gameboard.Api.Services
                         Id = vm.Id,
                         Name = vm.Name,
                         SessionId = model.SessionId,
-                        IsRunning = vm.State == VmPowerState.Running
+                        IsRunning = vm.State == VmPowerState.Running,
+                        IsObserver = observer
                     };
 
             }
 
             throw new InvalidConsoleAction();
+        }
+
+        internal async Task<ConsoleActor> SetConsoleActor(ConsoleRequest model, string id, string name)
+        {
+            var entity = await Store.DbSet
+                .Include(c => c.Player)
+                .FirstOrDefaultAsync(c => c.Id == model.SessionId)
+            ;
+
+            return new ConsoleActor
+            {
+                UserId = id,
+                UserName = name,
+                PlayerName = entity.Player.Name,
+                ChallengeName = entity.Name,
+                ChallengeId = model.SessionId,
+                GameId = entity.GameId,
+                VmName = model.Name,
+                Timestamp = DateTimeOffset.UtcNow
+            };
+
         }
 
         internal async Task<SectionSubmission[]> Audit(string id)

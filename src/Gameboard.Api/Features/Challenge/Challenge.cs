@@ -87,6 +87,7 @@ namespace Gameboard.Api
       public string SessionId { get; set; }
       public string Url { get; set; }
       public bool IsRunning { get; set; }
+      public bool IsObserver { get; set; }
     }
 
     public enum ConsoleAction
@@ -102,5 +103,18 @@ namespace Gameboard.Api
         public string Text { get; set; }
         public ChallengeEventType Type { get; set; }
         public DateTimeOffset Timestamp { get; set; }
+    }
+
+    public class ConsoleActor
+    {
+        public string UserId { get; set; }
+        public string UserName { get; set; }
+        public string PlayerName { get; set; }
+        public string ChallengeName { get; set; }
+        public string ChallengeId { get; set; }
+        public string GameId { get; set; }
+        public string VmName { get; set; }
+        public DateTimeOffset Timestamp { get; set; }
+
     }
 }

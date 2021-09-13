@@ -14,6 +14,8 @@ namespace Microsoft.Extensions.DependencyInjection
             this IServiceCollection services
         )
         {
+            services.AddSingleton<Gameboard.Api.Services.ConsoleActorMap>();
+
             // Auto-discover from EntityService pattern
             foreach (var t in Assembly
                 .GetExecutingAssembly()
