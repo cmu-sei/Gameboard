@@ -67,7 +67,7 @@ namespace Gameboard.Api.Services
             return Mapper.Map<User>(await Store.Retrieve(id));
         }
 
-        public async Task Update(ChangedUser model, bool sudo)
+        public async Task Update(ChangedUser model, bool sudo, bool admin = false)
         {
             var entity = await Store.Retrieve(model.Id);
 
@@ -77,7 +77,12 @@ namespace Gameboard.Api.Services
                     entity
                 );
             else
+            {
+                if (!admin && model.Role != entity.Role)
+                    throw new ActionForbidden();
+
                 Mapper.Map(model, entity);
+            }
 
             // check uniqueness
             bool found = await Store.DbSet.AnyAsync(p =>

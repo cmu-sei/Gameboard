@@ -21,6 +21,7 @@ namespace Gameboard.Api.Controllers
         ChallengeService ChallengeService { get; }
         PlayerService PlayerService { get; }
         IHubContext<AppHub, IAppHubEvent> Hub { get; }
+        ConsoleActorMap ActorMap { get; }
 
         public ChallengeController(
             ILogger<ChallengeController> logger,
@@ -28,13 +29,14 @@ namespace Gameboard.Api.Controllers
             ChallengeValidator validator,
             ChallengeService challengeService,
             PlayerService playerService,
-            IHubContext<AppHub, IAppHubEvent> hub
-
+            IHubContext<AppHub, IAppHubEvent> hub,
+            ConsoleActorMap actormap
         ): base(logger, cache, validator)
         {
             ChallengeService = challengeService;
             PlayerService = playerService;
             Hub = hub;
+            ActorMap = actormap;
         }
 
         /// <summary>
@@ -262,6 +264,8 @@ namespace Gameboard.Api.Controllers
         [Authorize(AppConstants.ConsolePolicy)]
         public async Task<ConsoleSummary> GetConsole([FromBody]ConsoleRequest model)
         {
+            await Validate(new Entity { Id = model.SessionId });
+
             var isTeamMember = await ChallengeService.UserIsTeamPlayer(model.SessionId, Actor.Id);
 
             AuthorizeAny(
@@ -270,7 +274,45 @@ namespace Gameboard.Api.Controllers
               () => isTeamMember
             );
 
-            return await ChallengeService.GetConsole(model, isTeamMember.Equals(false));
+            var result = await ChallengeService.GetConsole(model, isTeamMember.Equals(false));
+
+            if (isTeamMember)
+                ActorMap.Update(
+                    await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.Name)
+                );
+
+            return result;
+        }
+
+        /// <summary>
+        /// Console action (ticket, reset)
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("/api/challenge/console")]
+        [Authorize(AppConstants.ConsolePolicy)]
+        public async Task SetConsoleActor([FromBody]ConsoleRequest model)
+        {
+            await Validate(new Entity { Id = model.SessionId });
+
+            var isTeamMember = await ChallengeService.UserIsTeamPlayer(model.SessionId, Actor.Id);
+
+            if (isTeamMember)
+                ActorMap.Update(
+                    await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.Name)
+                );
+        }
+
+        [HttpGet("/api/challenge/consoles")]
+        [Authorize]
+        public ConsoleActor[] FindConsoles(string gid)
+        {
+            AuthorizeAny(
+              () => Actor.IsDirector,
+              () => Actor.IsObserver
+            );
+
+            return ActorMap.Find(gid);
         }
 
         /// <summary>

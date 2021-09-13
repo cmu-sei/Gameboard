@@ -27,7 +27,7 @@ namespace Gameboard.Api.Controllers
         public async Task<ActionResult<UserReport>> GetUserStats()
         {
             AuthorizeAny(
-                () => Actor.IsAdmin
+                () => Actor.IsObserver
             );
 
             return Ok(await Service.GetUserStats());
@@ -38,7 +38,7 @@ namespace Gameboard.Api.Controllers
         public async Task<ActionResult<PlayerReport>> GetPlayerStats()
         {
             AuthorizeAny(
-                () => Actor.IsAdmin
+                () => Actor.IsObserver
             );
 
             return Ok(await Service.GetPlayerStats());
@@ -49,7 +49,7 @@ namespace Gameboard.Api.Controllers
         public async Task<ActionResult<SponsorReport>> GetSponsorStats()
         {
             AuthorizeAny(
-                () => Actor.IsAdmin
+                () => Actor.IsObserver
             );
 
             return Ok(await Service.GetSponsorStats());
@@ -60,7 +60,7 @@ namespace Gameboard.Api.Controllers
         public async Task<ActionResult<GameSponsorReport>> GetGameSponsorsStats([FromRoute] string id)
         {
             AuthorizeAny(
-                () => Actor.IsAdmin
+                () => Actor.IsObserver
             );
 
             return Ok(await Service.GetGameSponsorsStats(id));
@@ -71,7 +71,7 @@ namespace Gameboard.Api.Controllers
         public async Task<ActionResult<ChallengeReport>> GetChallengeStats([FromRoute] string id)
         {
             AuthorizeAny(
-                () => Actor.IsAdmin
+                () => Actor.IsObserver
             );
 
             return Ok(await Service.GetChallengeStats(id));
