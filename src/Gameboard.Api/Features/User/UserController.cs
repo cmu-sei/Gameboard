@@ -201,14 +201,18 @@ namespace Gameboard.Api.Controllers
 
         [HttpPost("/api/announce")]
         [Authorize]
-        public async Task Announce(Announcement model)
+        public async Task Announce([FromBody] Announcement model)
         {
+            AuthorizeAny(
+                () => Actor.IsDirector
+            );
+
             var audience = string.IsNullOrEmpty(model.TeamId).Equals(false)
                 ? Hub.Clients.Group(model.TeamId)
                 : Hub.Clients.All
             ;
 
-            await audience.Announcement(model.Message);
+            await audience.Announcement(new HubEvent<Announcement>(model, EventAction.Created));
         }
 
         /// <summary>
