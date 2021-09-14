@@ -299,7 +299,7 @@ namespace Gameboard.Api.Controllers
 
             if (isTeamMember)
                 ActorMap.Update(
-                    await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.Name)
+                    await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.ApprovedName)
                 );
         }
 

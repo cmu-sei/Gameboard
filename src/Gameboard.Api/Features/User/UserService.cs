@@ -51,8 +51,18 @@ namespace Gameboard.Api.Services
             {
                 entity = Mapper.Map<Data.User>(model);
 
-                // TODO: add unique check?
-                entity.ApprovedName = _namesvc.GetRandomName();
+                bool found = false;
+                int i = 0;
+                do {
+                    entity.ApprovedName = _namesvc.GetRandomName();
+                    entity.Name = entity.ApprovedName;
+
+                    // check uniqueness
+                    found = await Store.DbSet.AnyAsync(p =>
+                        p.Id != entity.Id &&
+                        p.Name == entity.Name
+                    );
+                } while (found && i++ < 20);
 
                 await Store.Create(entity);
             }
