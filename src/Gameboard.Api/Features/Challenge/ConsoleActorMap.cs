@@ -48,7 +48,7 @@ namespace Gameboard.Api.Services
                 : _cache.Values
             ;
 
-            return _cache.Values
+            return q
                 .OrderBy(a => a.GameId)
                 .ThenBy(a => a.PlayerName)
                 .ThenBy(a => a.UserName)
