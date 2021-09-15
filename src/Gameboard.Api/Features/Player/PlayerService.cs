@@ -322,7 +322,9 @@ namespace Gameboard.Api.Services
                     p.Name.ToLower().Contains(term) ||
                     p.Id.StartsWith(term) ||
                     p.TeamId.StartsWith(term) ||
-                    p.User.Name.ToLower().Contains(term)
+                    p.UserId.StartsWith(term) ||
+                    p.User.Name.ToLower().Contains(term) ||
+                    p.User.ApprovedName.ToLower().Contains(term)
                 );
             }
 

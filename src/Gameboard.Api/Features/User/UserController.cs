@@ -104,7 +104,7 @@ namespace Gameboard.Api.Controllers
 
             await Validate(model);
 
-            await UserService.Update(model, Actor.IsRegistrar, Actor.IsAdmin);
+            await UserService.Update(model, Actor.IsRegistrar || Actor.IsAdmin, Actor.IsAdmin);
         }
 
         /// <summary>
