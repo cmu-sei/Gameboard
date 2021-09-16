@@ -121,7 +121,7 @@ namespace Gameboard.Api.Services
             return Task.FromResult(sponsorReport);
         }
 
-        internal Task<ChallengeReport> GetChallengeStats(string gameId)
+        internal async Task<ChallengeReport> GetChallengeStats(string gameId)
         {
             if (string.IsNullOrWhiteSpace(gameId))
             {
@@ -141,8 +141,10 @@ namespace Gameboard.Api.Services
 
             foreach (Data.ChallengeSpec challengeSpec in challengeSpecs)
             {
-                TimeSpan ts = TimeSpan.FromMilliseconds(challenges.Where(c => c.SpecId == challengeSpec.Id).Select(c => c.Duration).Sum() / 
-                    challenges.Where(c => c.SpecId == challengeSpec.Id).Count());
+                int successCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Where(c => c.Result == ChallengeResult.Success).Count();;
+
+                TimeSpan ts = successCount > 0 ? TimeSpan.FromMilliseconds(challenges.Where(c => c.SpecId == challengeSpec.Id).Select(c => c.Duration).Sum() /
+                    successCount) : TimeSpan.FromMilliseconds(0);
 
                 challengeStats.Add(new ChallengeStat
                 {
@@ -150,9 +152,8 @@ namespace Gameboard.Api.Services
                     Name = challengeSpec.Name,
                     Tag = challengeSpec.Tag,
                     Points = challengeSpec.Points,
-                    SuccessCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Where(c => c.Result == ChallengeResult.Success).Count(),
+                    SuccessCount = successCount,
                     PartialCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Where(c => c.Result == ChallengeResult.Partial).Count(),
-                    FailureCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Where(c => c.Result == ChallengeResult.None).Count(),
                     AverageTime = ts.ToString(@"hh\:mm\:ss"),
                     AttemptCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Count()
                 });
@@ -164,7 +165,7 @@ namespace Gameboard.Api.Services
                 Stats = challengeStats.ToArray()
             };
 
-            return Task.FromResult(challengeReport);
+            return challengeReport;
         }
     }
 }
