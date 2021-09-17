@@ -39,6 +39,9 @@ namespace Gameboard.Api
                 {
                     var svc = scope.ServiceProvider.GetRequiredService<ChallengeService>();
                     svc.SyncExpired().Wait();
+
+                    var consoleMap = scope.ServiceProvider.GetService<ConsoleActorMap>();
+                    consoleMap?.Prune();
                 }
                 catch {}
             }
