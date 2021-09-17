@@ -28,6 +28,7 @@ namespace Gameboard.Api.Data
         public DateTimeOffset StartTime { get; set; }
         public DateTimeOffset EndTime { get; set; }
         public bool HasDeployedGamespace { get; set; }
+        public GameEngineType GameEngineType { get; set; }
 
         [NotMapped]
         public ChallengeResult Result => Score == Points

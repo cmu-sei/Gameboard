@@ -79,7 +79,10 @@ internal static class WebApplicationBuilderExtensions
 
         services
             .AddSingleton<CoreOptions>(_ => settings.Core)
+            .AddSingleton<CrucibleOptions>(_ => settings.Crucible)
             .AddSingleton<INameService, NameService>()
+            .AddSingleton<ILockService, LockService>()
+            .AddSingleton<IAuthenticationService, AuthenticationService>()
             .AddGameboardData(settings.Database.Provider, settings.Database.ConnectionString)
             .AddGameboardServices()
             .AddConfiguredHttpClients(settings.Core)

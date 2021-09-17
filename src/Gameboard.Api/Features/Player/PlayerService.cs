@@ -23,7 +23,7 @@ namespace Gameboard.Api.Services
         IMapper Mapper { get; }
         IMemoryCache LocalCache { get; }
         TimeSpan _idmapExpiration = new TimeSpan(0, 30, 0);
-        ITopoMojoApiClient Mojo { get; }
+        GameEngineService GameEngine { get; }
 
         public PlayerService(
             CoreOptions coreOptions,
@@ -32,7 +32,7 @@ namespace Gameboard.Api.Services
             IGameStore gameStore,
             IMapper mapper,
             IMemoryCache localCache,
-            ITopoMojoApiClient mojo
+            GameEngineService gameEngine
         )
         {
             CoreOptions = coreOptions;
@@ -41,7 +41,7 @@ namespace Gameboard.Api.Services
             UserStore = userStore;
             Mapper = mapper;
             LocalCache = localCache;
-            Mojo = mojo;
+            GameEngine = gameEngine;
         }
 
         public async Task<Player> Register(NewPlayer model, bool sudo = false)
@@ -170,7 +170,7 @@ namespace Gameboard.Api.Services
                     // gamespace may be deleted in TopoMojo which would cause error and prevent reset
                     try
                     {
-                        challenge.Submissions = (await Mojo.AuditChallengeAsync(challenge.Id)).ToArray();
+                        challenge.Submissions = await GameEngine.AuditChallenge(challenges.Where(x => x.Id == challenge.Id).FirstOrDefault());
                     }
                     catch
                     {
@@ -188,7 +188,7 @@ namespace Gameboard.Api.Services
                 foreach (var challenge in challenges)
                 {
                     if (challenge.HasDeployedGamespace)
-                        await Mojo.CompleteGamespaceAsync(challenge.Id);
+                        await GameEngine.CompleteGamespace(challenge);
                 }
             }
             catch { }
@@ -289,16 +289,11 @@ namespace Gameboard.Api.Services
             // push gamespace extension
             var challenges = await Store.DbContext.Challenges
                 .Where(c => c.TeamId == team.First().TeamId)
-                .Select(c => c.Id)
                 .ToArrayAsync()
             ;
 
-            foreach (string id in challenges)
-                await Mojo.UpdateGamespaceAsync(new ChangedGamespace
-                {
-                    Id = id,
-                    ExpirationTime = model.SessionEnd
-                });
+            foreach (var challenge in challenges)
+                await GameEngine.ExtendSession(challenge, model.SessionEnd);
 
             return Mapper.Map<Player>(
                 team.FirstOrDefault(p =>

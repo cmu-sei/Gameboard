@@ -17,6 +17,7 @@ namespace Gameboard.Api
         public HeaderOptions Headers { get; set; } = new HeaderOptions();
         public OpenApiOptions OpenApi { get; set; } = new OpenApiOptions();
         public Defaults Defaults { get; set; } = new Defaults();
+        public CrucibleOptions Crucible { get; set; } = new CrucibleOptions();
     }
 
     public class OidcOptions
@@ -136,6 +137,7 @@ namespace Gameboard.Api
         public string GameEngineClientName { get; set; }
         public string GameEngineClientSecret { get; set; }
         public int GameEngineMaxRetries { get; set; } = 2;
+        public bool MojoEnabled { get; set; } = true;
         public string ImageFolder { get; set; } = "wwwroot/img";
         public string DocFolder { get; set; } = "wwwroot/doc";
         public string SupportUploadsRequestPath { get; set; } = "supportfiles";
@@ -144,6 +146,17 @@ namespace Gameboard.Api
         public string SafeNamesFile { get; set; } = "names.json";
         public string KeyPrefix { get; set; } = "GB";
         public string GamebrainApiKey { get; set; }
+    }
+
+    public class CrucibleOptions
+    {
+        public string ApiUrl { get; set; } = "http://localhost:4402/api";
+        public string TokenUrl { get; set; } = "http://localhost:5000/connect/token";
+        public string ClientId { get; set; } = "";
+        public string Scope { get; set; } = "";
+        public string UserName { get; set; } = "";
+        public string Password { get; set; } = "";
+        public bool Enabled { get; set; } = false;
     }
 
     public class Defaults
