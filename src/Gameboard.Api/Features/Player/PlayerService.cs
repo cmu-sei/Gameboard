@@ -294,6 +294,8 @@ namespace Gameboard.Api.Services
 
         private IQueryable<Data.Player> _List(PlayerDataFilter model)
         {
+            var ts = DateTimeOffset.UtcNow;
+
             var q = Store.List()
                 .Include(p => p.User)
                 .AsNoTracking();
@@ -316,10 +318,10 @@ namespace Gameboard.Api.Services
                 q = q.Where(p => p.Role == PlayerRole.Manager);
 
             if (model.WantsActive)
-            {
-                var ts = DateTimeOffset.UtcNow;
                 q = q.Where(p => p.SessionBegin < ts && p.SessionEnd > ts);
-            }
+
+            if (model.WantsComplete)
+                q = q.Where(p => p.SessionEnd > DateTimeOffset.MinValue);
 
             if (model.WantsPending)
                 q = q.Where(u => string.IsNullOrEmpty(u.NameStatus) && u.Name != u.ApprovedName);

@@ -119,6 +119,7 @@ namespace Gameboard.Api
     {
 
         public const string FilterActiveOnly = "active";
+        public const string FilterCompleteOnly = "complete";
         public const string FilterScoredOnly = "scored";
         public const string FilterCollapseTeams = "collapse";
         public const string NamePendingFilter = "pending";
@@ -130,6 +131,7 @@ namespace Gameboard.Api
         public string uid { get; set; }
         public string org { get; set; }
         public bool WantsActive => Filter.Contains(FilterActiveOnly);
+        public bool WantsComplete => Filter.Contains(FilterCompleteOnly);
         public bool WantsScored => Filter.Contains(FilterScoredOnly);
         public bool WantsGame => gid.NotEmpty();
         public bool WantsUser => uid.NotEmpty();
