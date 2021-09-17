@@ -158,10 +158,27 @@ namespace Gameboard.Api.Services
             if (!sudo && !player.Game.RegistrationActive)
                 throw new RegistrationIsClosed();
 
-            foreach(var challenge in player.Challenges.Where(c => c.HasDeployedGamespace))
+            var challenges = player.Challenges;
+            var players = new Data.Player[] { player };
+
+            if (player.IsManager && player.Game.AllowTeam)
+            {
+                challenges = await Store.DbContext.Challenges
+                    .Where(c => c.TeamId == player.TeamId && c.HasDeployedGamespace)
+                    .ToArrayAsync()
+                ;
+
+                players = await Store.DbSet
+                    .Where(p => p.TeamId == player.TeamId)
+                    .ToArrayAsync()
+                ;
+            }
+
+            foreach(var challenge in challenges)
                 await Mojo.CompleteGamespaceAsync(challenge.Id);
 
-            await Store.Delete(id);
+            foreach (var p in players)
+                await Store.Delete(p.Id);
 
             return Mapper.Map<Player>(player);
         }

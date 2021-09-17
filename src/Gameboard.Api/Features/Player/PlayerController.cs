@@ -45,13 +45,13 @@ namespace Gameboard.Api.Controllers
         public async Task<Player> Register([FromBody] NewPlayer model)
         {
             AuthorizeAny(
-                () => Actor.IsTester || Actor.IsRegistrar,
+                () => Actor.IsRegistrar,
                 () => model.UserId == Actor.Id
             );
 
             await Validate(model);
 
-            return await PlayerService.Register(model, Actor.IsTester || Actor.IsRegistrar);
+            return await PlayerService.Register(model, Actor.IsRegistrar);
         }
 
         /// <summary>
@@ -127,13 +127,13 @@ namespace Gameboard.Api.Controllers
         public async Task<Player> Start([FromBody] SessionStartRequest model)
         {
             AuthorizeAny(
-                () => Actor.IsTester || Actor.IsRegistrar,
+                () => Actor.IsRegistrar,
                 () => PlayerService.MapId(model.Id).Result == Actor.Id
             );
 
             await Validate(model);
 
-            var result = await PlayerService.Start(model, Actor.IsTester || Actor.IsRegistrar);
+            var result = await PlayerService.Start(model, Actor.IsRegistrar);
 
             await Hub.Clients.Group(result.TeamId).TeamEvent(
                 new HubEvent<TeamState>(Mapper.Map<TeamState>(result), EventAction.Started)
@@ -153,17 +153,26 @@ namespace Gameboard.Api.Controllers
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
-                () => Actor.IsTester && IsSelf(id).Result,
                 () => IsSelf(id).Result
             );
 
             await Validate(new Entity { Id = id });
 
-            var player = await PlayerService.Delete(id, Actor.IsRegistrar || Actor.IsTester);
+            var player = await PlayerService.Delete(id, Actor.IsRegistrar);
 
             await Hub.Clients.Group(player.TeamId).PresenceEvent(
                 new HubEvent<TeamPlayer>(Mapper.Map<TeamPlayer>(player), EventAction.Deleted)
             );
+
+            if (player.IsManager)
+            {
+                await Hub.Clients.Group(player.TeamId).TeamEvent(
+                    new HubEvent<TeamState>(
+                        new TeamState { TeamId = player.TeamId },
+                        EventAction.Deleted
+                    )
+                );
+            }
         }
 
         /// <summary>
@@ -171,7 +180,7 @@ namespace Gameboard.Api.Controllers
         /// </summary>
         /// <remarks>
         /// Filter with query params `gid, tid, uid, org` (group, team, user, sponsor ids)
-        /// Filter withh query param `filter=collapse` to pull just one player record per team.
+        /// Filter with query param `filter=collapse` to pull just one player record per team.
         /// </remarks>
         /// <param name="model">PlayerDataFilter</param>
         /// <returns></returns>
@@ -179,7 +188,7 @@ namespace Gameboard.Api.Controllers
         [AllowAnonymous]
         public async Task<Player[]> List([FromQuery] PlayerDataFilter model)
         {
-            return await PlayerService.List(model, Actor.IsTester || Actor.IsRegistrar);
+            return await PlayerService.List(model, Actor.IsRegistrar);
         }
 
         /// <summary>
