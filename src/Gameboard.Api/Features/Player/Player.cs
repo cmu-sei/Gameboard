@@ -94,7 +94,8 @@ namespace Gameboard.Api
 
     public class TeamAdvancement
     {
-        public string TeamId { get; set; }
+        public string[] TeamIds { get; set; }
+        public string GameId { get; set; }
         public string NextGameId { get; set; }
     }
 
@@ -102,6 +103,7 @@ namespace Gameboard.Api
     {
         public string TeamId { get; set; }
         public string GameId { get; set; }
+        public string Sponsor { get; set; }
         public DateTimeOffset SessionBegin { get; set; }
         public DateTimeOffset SessionEnd { get; set; }
         public int Rank { get; set; }
@@ -114,6 +116,13 @@ namespace Gameboard.Api
 
     }
 
+    public class TeamSummary
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public string Sponsor { get; set; }
+        public string[] Members { get; set; }
+    }
 
     public class PlayerDataFilter: SearchFilter
     {

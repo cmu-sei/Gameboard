@@ -342,6 +342,7 @@ namespace Gameboard.Api.Services
                     p.Id.StartsWith(term) ||
                     p.TeamId.StartsWith(term) ||
                     p.UserId.StartsWith(term) ||
+                    p.Sponsor.StartsWith(term) ||
                     p.User.Name.ToLower().Contains(term) ||
                     p.User.ApprovedName.ToLower().Contains(term)
                 );
@@ -480,25 +481,61 @@ namespace Gameboard.Api.Services
             return team;
         }
 
-        public async Task AdvanceTeam(TeamAdvancement model)
+        public async Task<TeamSummary[]> LoadTeams(string id, bool sudo)
+        {
+            var players = await Store.List()
+                .Where(p => p.GameId == id)
+                .ToArrayAsync()
+            ;
+
+            var teams = players
+                .GroupBy(p => p.TeamId)
+                .Select(g => new TeamSummary {
+                    Id = g.Key,
+                    Name = g.First().ApprovedName,
+                    Sponsor = g.First().Sponsor,
+                    Members = g.Select(i => i.UserId).ToArray()
+                })
+                .ToArray()
+            ;
+
+            return teams;
+
+        }
+
+        public async Task AdvanceTeams(TeamAdvancement model)
         {
             var game = await GameStore.Retrieve(model.NextGameId);
 
-            var team = await Store.ListTeam(model.TeamId);
+            var allteams = await Store.List()
+                .Where(p => p.GameId == model.GameId)
+                .ToArrayAsync()
+            ;
+
+            var teams = allteams.GroupBy(p => p.TeamId)
+                .Where(g => model.TeamIds.Contains(g.Key))
+                .ToArray()
+            ;
 
             var enrollments = new List<Data.Player>();
 
-            foreach(var player in team)
-                enrollments.Add(new Data.Player {
-                    TeamId = player.TeamId,
-                    UserId = player.UserId,
-                    GameId = model.NextGameId,
-                    ApprovedName = player.ApprovedName,
-                    Name = player.Name,
-                    Sponsor = player.Sponsor,
-                    Role = player.Role,
-                    Rank = player.Rank
-                });
+            foreach(var team in teams)
+            {
+                string newId = Guid.NewGuid().ToString("n");
+
+                foreach(var player in team)
+                {
+                    enrollments.Add(new Data.Player {
+                        TeamId = newId,
+                        UserId = player.UserId,
+                        GameId = model.NextGameId,
+                        ApprovedName = player.ApprovedName,
+                        Name = player.Name,
+                        Sponsor = player.Sponsor,
+                        Role = player.Role,
+                    });
+                }
+            }
 
             await Store.Create(enrollments);
         }

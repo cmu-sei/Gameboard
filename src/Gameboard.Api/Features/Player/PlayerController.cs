@@ -218,6 +218,22 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
+        /// Get a Game's TeamSummary
+        /// </summary>
+        /// <param name="id">Game Id</param>
+        /// <returns>TeamSummary[]</returns>
+        [HttpGet("/api/teams/{id}")]
+        [Authorize]
+        public async Task<TeamSummary[]> GetTeams([FromRoute] string id)
+        {
+            AuthorizeAny(
+                () => Actor.IsRegistrar
+            );
+
+            return await PlayerService.LoadTeams(id, Actor.IsRegistrar);
+        }
+
+        /// <summary>
         /// Get Player Team
         /// </summary>
         /// <param name="id">player id</param>
@@ -242,11 +258,11 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPost("/api/team/advance")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task AdvanceTeam([FromBody]TeamAdvancement model)
+        public async Task AdvanceTeams([FromBody]TeamAdvancement model)
         {
             await Validate(model);
 
-            await PlayerService.AdvanceTeam(model);
+            await PlayerService.AdvanceTeams(model);
         }
 
         [HttpPost("/api/player/{id}/invite")]
