@@ -105,7 +105,7 @@ namespace Gameboard.Api.Services
             var step = ts;
 
             var expirations = await Store.DbContext.Players
-                .Where(p => p.GameId == id && p.SessionEnd.CompareTo(ts) > 0)
+                .Where(p => p.GameId == id && p.Role == PlayerRole.Manager && p.SessionEnd.CompareTo(ts) > 0)
                 .Select(p => p.SessionEnd)
                 .ToArrayAsync();
 

@@ -108,7 +108,10 @@ namespace Gameboard.Api.Validators
 
         private async Task _validate(TeamAdvancement model)
         {
-            if (model.TeamId.IsEmpty())
+            // if (model.TeamId.IsEmpty())
+            //     throw new ResourceNotFound();
+
+            if ((await GameExists(model.GameId)).Equals(false))
                 throw new ResourceNotFound();
 
             if ((await GameExists(model.NextGameId)).Equals(false))

@@ -158,10 +158,27 @@ namespace Gameboard.Api.Services
             if (!sudo && !player.Game.RegistrationActive)
                 throw new RegistrationIsClosed();
 
-            foreach(var challenge in player.Challenges.Where(c => c.HasDeployedGamespace))
+            var challenges = player.Challenges;
+            var players = new Data.Player[] { player };
+
+            if (player.IsManager && player.Game.AllowTeam)
+            {
+                challenges = await Store.DbContext.Challenges
+                    .Where(c => c.TeamId == player.TeamId && c.HasDeployedGamespace)
+                    .ToArrayAsync()
+                ;
+
+                players = await Store.DbSet
+                    .Where(p => p.TeamId == player.TeamId)
+                    .ToArrayAsync()
+                ;
+            }
+
+            foreach(var challenge in challenges)
                 await Mojo.CompleteGamespaceAsync(challenge.Id);
 
-            await Store.Delete(id);
+            foreach (var p in players)
+                await Store.Delete(p.Id);
 
             return Mapper.Map<Player>(player);
         }
@@ -277,6 +294,8 @@ namespace Gameboard.Api.Services
 
         private IQueryable<Data.Player> _List(PlayerDataFilter model)
         {
+            var ts = DateTimeOffset.UtcNow;
+
             var q = Store.List()
                 .Include(p => p.User)
                 .AsNoTracking();
@@ -299,10 +318,10 @@ namespace Gameboard.Api.Services
                 q = q.Where(p => p.Role == PlayerRole.Manager);
 
             if (model.WantsActive)
-            {
-                var ts = DateTimeOffset.UtcNow;
                 q = q.Where(p => p.SessionBegin < ts && p.SessionEnd > ts);
-            }
+
+            if (model.WantsComplete)
+                q = q.Where(p => p.SessionEnd > DateTimeOffset.MinValue);
 
             if (model.WantsPending)
                 q = q.Where(u => string.IsNullOrEmpty(u.NameStatus) && u.Name != u.ApprovedName);
@@ -323,6 +342,7 @@ namespace Gameboard.Api.Services
                     p.Id.StartsWith(term) ||
                     p.TeamId.StartsWith(term) ||
                     p.UserId.StartsWith(term) ||
+                    p.Sponsor.StartsWith(term) ||
                     p.User.Name.ToLower().Contains(term) ||
                     p.User.ApprovedName.ToLower().Contains(term)
                 );
@@ -461,25 +481,61 @@ namespace Gameboard.Api.Services
             return team;
         }
 
-        public async Task AdvanceTeam(TeamAdvancement model)
+        public async Task<TeamSummary[]> LoadTeams(string id, bool sudo)
+        {
+            var players = await Store.List()
+                .Where(p => p.GameId == id)
+                .ToArrayAsync()
+            ;
+
+            var teams = players
+                .GroupBy(p => p.TeamId)
+                .Select(g => new TeamSummary {
+                    Id = g.Key,
+                    Name = g.First().ApprovedName,
+                    Sponsor = g.First().Sponsor,
+                    Members = g.Select(i => i.UserId).ToArray()
+                })
+                .ToArray()
+            ;
+
+            return teams;
+
+        }
+
+        public async Task AdvanceTeams(TeamAdvancement model)
         {
             var game = await GameStore.Retrieve(model.NextGameId);
 
-            var team = await Store.ListTeam(model.TeamId);
+            var allteams = await Store.List()
+                .Where(p => p.GameId == model.GameId)
+                .ToArrayAsync()
+            ;
+
+            var teams = allteams.GroupBy(p => p.TeamId)
+                .Where(g => model.TeamIds.Contains(g.Key))
+                .ToArray()
+            ;
 
             var enrollments = new List<Data.Player>();
 
-            foreach(var player in team)
-                enrollments.Add(new Data.Player {
-                    TeamId = player.TeamId,
-                    UserId = player.UserId,
-                    GameId = model.NextGameId,
-                    ApprovedName = player.ApprovedName,
-                    Name = player.Name,
-                    Sponsor = player.Sponsor,
-                    Role = player.Role,
-                    Rank = player.Rank
-                });
+            foreach(var team in teams)
+            {
+                string newId = Guid.NewGuid().ToString("n");
+
+                foreach(var player in team)
+                {
+                    enrollments.Add(new Data.Player {
+                        TeamId = newId,
+                        UserId = player.UserId,
+                        GameId = model.NextGameId,
+                        ApprovedName = player.ApprovedName,
+                        Name = player.Name,
+                        Sponsor = player.Sponsor,
+                        Role = player.Role,
+                    });
+                }
+            }
 
             await Store.Create(enrollments);
         }

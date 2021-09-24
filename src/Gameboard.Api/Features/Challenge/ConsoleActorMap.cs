@@ -54,5 +54,13 @@ namespace Gameboard.Api.Services
                 .ThenBy(a => a.UserName)
                 .ToArray();
         }
+
+        internal void Prune()
+        {
+            var ts = DateTimeOffset.UtcNow;
+
+            foreach (var actor in _cache.Values.Where(o => ts.AddHours(-1) > o.Timestamp))
+                _cache.TryRemove(actor.UserId, out _);
+        }
     }
 }
