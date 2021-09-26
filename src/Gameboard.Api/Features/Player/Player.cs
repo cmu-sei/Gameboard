@@ -28,6 +28,7 @@ namespace Gameboard.Api
         public long Time { get; set; }
         public int CorrectCount { get; set; }
         public int PartialCount { get; set; }
+        public bool Advanced { get; set; }
         public bool IsManager { get; set; }
     }
 
@@ -85,6 +86,7 @@ namespace Gameboard.Api
         public long Time { get; set; }
         public int CorrectCount { get; set; }
         public int PartialCount { get; set; }
+        public bool Advanced { get; set; }
     }
 
     public class TeamInvitation
@@ -111,6 +113,7 @@ namespace Gameboard.Api
         public long Time { get; set; }
         public int CorrectCount { get; set; }
         public int PartialCount { get; set; }
+        public bool Advanced { get; set; }
         public ICollection<TeamChallenge> Challenges { get; set; } = new List<TeamChallenge>();
         public ICollection<TeamMember> Members { get; set; } = new List<TeamMember>();
 
@@ -130,6 +133,8 @@ namespace Gameboard.Api
         public const string FilterActiveOnly = "active";
         public const string FilterCompleteOnly = "complete";
         public const string FilterScoredOnly = "scored";
+        public const string FilterAdvancedOnly = "advanced";
+        public const string FilterDismissedOnly = "dismissed";
         public const string FilterCollapseTeams = "collapse";
         public const string NamePendingFilter = "pending";
         public const string NameDisallowedFilter = "disallowed";
@@ -141,6 +146,8 @@ namespace Gameboard.Api
         public string org { get; set; }
         public bool WantsActive => Filter.Contains(FilterActiveOnly);
         public bool WantsComplete => Filter.Contains(FilterCompleteOnly);
+        public bool WantsAdvanced => Filter.Contains(FilterAdvancedOnly);
+        public bool WantsDismissed => Filter.Contains(FilterDismissedOnly);
         public bool WantsScored => Filter.Contains(FilterScoredOnly);
         public bool WantsGame => gid.NotEmpty();
         public bool WantsUser => uid.NotEmpty();

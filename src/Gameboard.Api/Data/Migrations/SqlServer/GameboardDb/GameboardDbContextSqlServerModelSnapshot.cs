@@ -153,6 +153,12 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<int>("Points")
                         .HasColumnType("int");
 
+                    b.Property<string>("PrerequisiteId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PrerequisiteScore")
+                        .HasColumnType("int");
+
                     b.Property<float>("R")
                         .HasColumnType("real");
 
@@ -298,6 +304,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<string>("Id")
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
+
+                    b.Property<bool>("Advanced")
+                        .HasColumnType("bit");
 
                     b.Property<string>("ApprovedName")
                         .HasMaxLength(64)
