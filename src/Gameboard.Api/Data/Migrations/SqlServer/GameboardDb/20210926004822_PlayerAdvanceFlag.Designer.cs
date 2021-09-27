@@ -3,80 +3,82 @@ using System;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
-namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
+namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 {
-    [DbContext(typeof(GameboardDbContextPostgreSQL))]
-    partial class GameboardDbContextPostgreSQLModelSnapshot : ModelSnapshot
+    [DbContext(typeof(GameboardDbContextSqlServer))]
+    [Migration("20210926004822_PlayerAdvanceFlag")]
+    partial class PlayerAdvanceFlag
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .UseIdentityByDefaultColumns()
-                .HasAnnotation("Relational:MaxIdentifierLength", 63)
+                .UseIdentityColumns()
+                .HasAnnotation("Relational:MaxIdentifierLength", 128)
                 .HasAnnotation("ProductVersion", "5.0.0");
 
             modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<DateTimeOffset>("EndTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("ExternalId")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("GameId")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<bool>("HasDeployedGamespace")
-                        .HasColumnType("boolean");
+                        .HasColumnType("bit");
 
                     b.Property<DateTimeOffset>("LastScoreTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<DateTimeOffset>("LastSyncTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Name")
-                        .HasColumnType("text");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PlayerId")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<int>("Points")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<double>("Score")
-                        .HasColumnType("double precision");
+                        .HasColumnType("float");
 
                     b.Property<string>("SpecId")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<DateTimeOffset>("StartTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("State")
-                        .HasColumnType("text");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Tag")
-                        .HasColumnType("text");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TeamId")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<DateTimeOffset>("WhenCreated")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -93,29 +95,29 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("ChallengeId")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("TeamId")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("Text")
                         .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
+                        .HasColumnType("nvarchar(1024)");
 
                     b.Property<DateTimeOffset>("Timestamp")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int>("Type")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("UserId")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.HasKey("Id");
 
@@ -128,42 +130,42 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<int>("AverageDeploySeconds")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("Description")
-                        .HasColumnType("text");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("Disabled")
-                        .HasColumnType("boolean");
+                        .HasColumnType("bit");
 
                     b.Property<string>("ExternalId")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("GameId")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("Name")
-                        .HasColumnType("text");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Points")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("PrerequisiteId")
-                        .HasColumnType("text");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("PrerequisiteScore")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<float>("R")
                         .HasColumnType("real");
 
                     b.Property<string>("Tag")
-                        .HasColumnType("text");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<float>("X")
                         .HasColumnType("real");
@@ -182,117 +184,117 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<bool>("AllowPreview")
-                        .HasColumnType("boolean");
+                        .HasColumnType("bit");
 
                     b.Property<bool>("AllowReset")
-                        .HasColumnType("boolean");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Background")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("CardText1")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("CardText2")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("CardText3")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("Competition")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("Division")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<DateTimeOffset>("GameEnd")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("GameMarkdown")
-                        .HasColumnType("text");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTimeOffset>("GameStart")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int>("GamespaceLimitPerSession")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsPublished")
-                        .HasColumnType("boolean");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Key")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("Logo")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<int>("MaxAttempts")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<int>("MaxTeamSize")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<int>("MinTeamSize")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("Mode")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("Name")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<DateTimeOffset>("RegistrationClose")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("RegistrationConstraint")
-                        .HasColumnType("text");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("RegistrationMarkdown")
-                        .HasColumnType("text");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTimeOffset>("RegistrationOpen")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int>("RegistrationType")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<bool>("RequireSponsoredTeam")
-                        .HasColumnType("boolean");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Season")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<int>("SessionLimit")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<int>("SessionMinutes")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("Sponsor")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("TestCode")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("Track")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.HasKey("Id");
 
@@ -303,69 +305,69 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<bool>("Advanced")
-                        .HasColumnType("boolean");
+                        .HasColumnType("bit");
 
                     b.Property<string>("ApprovedName")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<int>("CorrectCount")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("GameId")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("InviteCode")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("Name")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("NameStatus")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<int>("PartialCount")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<int>("Rank")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<int>("Role")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<int>("Score")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<DateTimeOffset>("SessionBegin")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<DateTimeOffset>("SessionEnd")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int>("SessionMinutes")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("Sponsor")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("TeamId")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<long>("Time")
                         .HasColumnType("bigint");
 
                     b.Property<string>("UserId")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.HasKey("Id");
 
@@ -382,17 +384,17 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<bool>("Approved")
-                        .HasColumnType("boolean");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Logo")
-                        .HasColumnType("text");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
                         .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("nvarchar(128)");
 
                     b.HasKey("Id");
 
@@ -403,34 +405,34 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("ApprovedName")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("Email")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("Name")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("NameStatus")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<int>("Role")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("Sponsor")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("Username")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.HasKey("Id");
 

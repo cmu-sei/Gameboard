@@ -28,6 +28,7 @@ namespace Gameboard.Api.Data
         public long Time { get; set; }
         public int CorrectCount { get; set; }
         public int PartialCount { get; set; }
+        public bool Advanced { get; set; }
         public User User { get; set; }
         public Game Game { get; set; }
         public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();

@@ -323,6 +323,12 @@ namespace Gameboard.Api.Services
             if (model.WantsComplete)
                 q = q.Where(p => p.SessionEnd > DateTimeOffset.MinValue);
 
+            if (model.WantsAdvanced)
+                q = q.Where(p => p.Advanced);
+
+            if (model.WantsDismissed)
+                q = q.Where(p => !p.Advanced);
+
             if (model.WantsPending)
                 q = q.Where(u => string.IsNullOrEmpty(u.NameStatus) && u.Name != u.ApprovedName);
 
@@ -525,6 +531,8 @@ namespace Gameboard.Api.Services
 
                 foreach(var player in team)
                 {
+                    player.Advanced = true;
+
                     enrollments.Add(new Data.Player {
                         TeamId = newId,
                         UserId = player.UserId,
@@ -538,6 +546,7 @@ namespace Gameboard.Api.Services
             }
 
             await Store.Create(enrollments);
+            await Store.Update(allteams);
         }
 
         public async Task ReRank(string gameId)

@@ -3,15 +3,17 @@ using System;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 {
     [DbContext(typeof(GameboardDbContextPostgreSQL))]
-    partial class GameboardDbContextPostgreSQLModelSnapshot : ModelSnapshot
+    [Migration("20210926004827_PlayerAdvanceFlag")]
+    partial class PlayerAdvanceFlag
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
