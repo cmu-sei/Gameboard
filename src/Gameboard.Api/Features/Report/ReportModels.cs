@@ -74,5 +74,6 @@ namespace Gameboard.Api
         public int PartialCount { get; set; }
         public string AverageTime { get; set; }
         public int AttemptCount { get; set; }
+        public int AverageScore { get; set; }
     }
 }
