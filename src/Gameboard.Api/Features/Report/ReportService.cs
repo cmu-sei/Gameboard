@@ -141,9 +141,9 @@ namespace Gameboard.Api.Services
 
             foreach (Data.ChallengeSpec challengeSpec in challengeSpecs)
             {
-                int successCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Where(c => c.Result == ChallengeResult.Success).Count();;
+                int successCount = challenges.Where(c => c.SpecId == challengeSpec.Id && c.Result == ChallengeResult.Success).Count();
 
-                TimeSpan ts = successCount > 0 ? TimeSpan.FromMilliseconds(challenges.Where(c => c.SpecId == challengeSpec.Id).Select(c => c.Duration).Sum() /
+                TimeSpan ts = successCount > 0 ? TimeSpan.FromMilliseconds(challenges.Where(c => c.SpecId == challengeSpec.Id && c.Result == ChallengeResult.Success).Select(c => c.Duration).Sum() /
                     successCount) : TimeSpan.FromMilliseconds(0);
 
                 challengeStats.Add(new ChallengeStat
