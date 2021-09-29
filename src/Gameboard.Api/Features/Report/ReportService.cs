@@ -155,7 +155,8 @@ namespace Gameboard.Api.Services
                     SuccessCount = successCount,
                     PartialCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Where(c => c.Result == ChallengeResult.Partial).Count(),
                     AverageTime = ts.ToString(@"hh\:mm\:ss"),
-                    AttemptCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Count()
+                    AttemptCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Count(),
+                    AverageScore = challenges.Where(c => c.SpecId == challengeSpec.Id).Select(c => c.Score).Sum() / challenges.Where(c => c.SpecId == challengeSpec.Id).Count()
                 });
             }
 
