@@ -76,4 +76,20 @@ namespace Gameboard.Api
         public int AttemptCount { get; set; }
         public int AverageScore { get; set; }
     }
+
+    public class ChallengeDetailReport
+    {
+        public string Title { get; set; } = "Challenge Detail Report";
+        public DateTime Timestamp { get; set; }
+        public Part[] Parts { get; set; }
+        public int AttemptCount { get; set; }
+        public string ChallengeId { get; set; }
+    }
+
+    public class Part
+    {
+        public string Text { get; set; }
+        public int SolveCount { get; set; }
+        public int AttemptCount { get; set; }
+    }
 }

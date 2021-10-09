@@ -4,7 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {
@@ -167,6 +169,49 @@ namespace Gameboard.Api.Services
             };
 
             return challengeReport;
+        }
+
+        internal async Task<ChallengeDetailReport> GetChallengeDetails(string id)
+        {
+            var challenges = Mapper.Map<Challenge[]>(await Store.Challenges.Where(c => c.SpecId == id).ToArrayAsync());
+            List<Part> parts = new List<Part>();
+
+            if (challenges.Length > 0)
+            {
+                QuestionView[] questions = challenges[0].State.Challenge.Questions.ToArray();
+
+                foreach (QuestionView questionView in questions)
+                {
+                    parts.Add(new Part{ Text = questionView.Text, SolveCount = 0, AttemptCount = 0 });
+                }
+
+                foreach (Challenge challenge in challenges)
+                {
+                    foreach (QuestionView questionView in challenge.State.Challenge.Questions)
+                    {
+                        if (questionView.IsGraded)
+                        {
+                            Part part = parts.Find(p => p.Text == questionView.Text);
+
+                            if (part != null)
+                            {
+                                if (questionView.IsCorrect)
+                                {
+                                    part.SolveCount++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            ChallengeDetailReport challengeDetailReport = new ChallengeDetailReport();
+            challengeDetailReport.Timestamp = DateTime.UtcNow;
+            challengeDetailReport.Parts = parts.ToArray();
+            challengeDetailReport.AttemptCount = challenges != null ? challenges.Length : 0;
+            challengeDetailReport.ChallengeId = id;
+
+            return challengeDetailReport;
         }
     }
 }
