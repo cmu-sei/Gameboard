@@ -2,12 +2,12 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
-using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
-using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TopoMojo.Api.Client;
 
@@ -174,8 +174,13 @@ namespace Gameboard.Api.Services
                 ;
             }
 
-            foreach(var challenge in challenges)
-                await Mojo.CompleteGamespaceAsync(challenge.Id);
+            // courtesy call; ignore error (gamespace may have already been removed from backend)
+            try
+            {
+                foreach(var challenge in challenges)
+                    await Mojo.CompleteGamespaceAsync(challenge.Id);
+            }
+            catch {}
 
             foreach (var p in players)
                 await Store.Delete(p.Id);

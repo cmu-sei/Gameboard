@@ -3,14 +3,14 @@
 
 using System;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using AutoMapper;
-using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
-using TopoMojo.Api.Client;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {
@@ -44,10 +44,20 @@ namespace Gameboard.Api.Services
 
             var player = await Store.DbContext.Players.FindAsync(model.PlayerId);
             var game = await Store.DbContext.Games.FindAsync(player.GameId);
-            var spec = await Store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
 
             if ((await Store.ChallengeGamespaceCount(player.TeamId)) >= game.GamespaceLimitPerSession)
                 throw new GamespaceLimitReached();
+
+            // TODO: validate prereq
+
+            var spec = await Store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
+
+            int playerCount = (game.AllowTeam)
+                ? await Store.DbContext.Players.CountAsync(
+                    p => p.TeamId == player.TeamId
+                )
+                : 1
+            ;
 
             entity = Mapper.Map<Data.Challenge>(model);
 
@@ -70,7 +80,8 @@ namespace Gameboard.Api.Services
                 Points = spec.Points,
                 MaxAttempts = game.MaxAttempts,
                 StartGamespace = true,
-                ExpirationTime = entity.Player.SessionEnd
+                ExpirationTime = entity.Player.SessionEnd,
+                PlayerCount = playerCount
             });
 
             Transform(state);
@@ -97,15 +108,6 @@ namespace Gameboard.Api.Services
         {
             var result = Mapper.Map<Challenge>(
                 await Store.Load(id)
-            );
-
-            return result;
-        }
-
-        public async Task<Challenge[]> GetByGame(string gameId)
-        {
-            var result = Mapper.Map<Challenge[]>(
-                Store.DbSet.Where(c => c.GameId == gameId)
             );
 
             return result;
