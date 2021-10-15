@@ -148,7 +148,9 @@ namespace Gameboard.Api.Services
                     Points = g.First().Points,
                     SuccessCount = g.Count(o => o.Result == ChallengeResult.Success),
                     PartialCount = g.Count(o => o.Result == ChallengeResult.Partial),
-                    AverageTime = g.Where(c => c.Result == ChallengeResult.Success).Average(o => o.Duration).ToString(@"hh\:mm\:ss"),
+                    AverageTime = g.Any(c => c.Result == ChallengeResult.Success)
+                        ? g.Where(c => c.Result == ChallengeResult.Success).Average(o => o.Duration).ToString(@"hh\:mm\:ss")
+                        : "",
                     AttemptCount = g.Count(),
                     AverageScore = (int)g.Average(c => c.Score)
                 })
