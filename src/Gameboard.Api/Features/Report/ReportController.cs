@@ -76,5 +76,21 @@ namespace Gameboard.Api.Controllers
 
             return Ok(await Service.GetChallengeStats(id));
         }
+
+        /// <summary>
+        /// Retrieve challenge details by Spec Id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [HttpGet("api/report/challengedetails/{id}")]
+        [Authorize]
+        public async Task<ChallengeDetailReport> GetChallengeDetails([FromRoute] string id)
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            return await Service.GetChallengeDetails(id);
+        }
     }
 }
