@@ -113,7 +113,7 @@ namespace Gameboard.Api.Services
             };
 
             gameSponsorStats.Add(gameSponsorStat);
-            
+
             GameSponsorReport sponsorReport = new GameSponsorReport
             {
                 Timestamp = DateTime.UtcNow,
@@ -125,47 +125,43 @@ namespace Gameboard.Api.Services
 
         internal async Task<ChallengeReport> GetChallengeStats(string gameId)
         {
-            if (string.IsNullOrWhiteSpace(gameId))
-            {
-                throw new ArgumentNullException("Invalid game id");
-            }
+            var challenges = await Store.Challenges
+                .Where(c => c.GameId == gameId)
+                .Select(c => new {
+                    SpecId = c.SpecId,
+                    Name = c.Name,
+                    Tag = c.Tag,
+                    Points = c.Points,
+                    Score = c.Score,
+                    Result = c.Result,
+                    Duration = c.Duration
+                })
+                .ToArrayAsync()
+            ;
 
-            var game = Store.Games.Where(g => g.Id == gameId).Select(g => new { g.Id, g.Name }).FirstOrDefault();
-
-            if (game == null)
-            {
-                throw new Exception("Invalid game");
-            }
-
-            List<ChallengeStat> challengeStats = new List<ChallengeStat>();
-            var challengeSpecs = Store.ChallengeSpecs.Where(c => c.GameId == gameId).OrderBy(c => c.Name).ToList();
-            var challenges = _challengeService.GetByGame(gameId).Result;
-
-            foreach (Data.ChallengeSpec challengeSpec in challengeSpecs)
-            {
-                int successCount = challenges.Where(c => c.SpecId == challengeSpec.Id && c.Result == ChallengeResult.Success).Count();
-
-                TimeSpan ts = successCount > 0 ? TimeSpan.FromMilliseconds(challenges.Where(c => c.SpecId == challengeSpec.Id && c.Result == ChallengeResult.Success).Select(c => c.Duration).Sum() /
-                    successCount) : TimeSpan.FromMilliseconds(0);
-
-                challengeStats.Add(new ChallengeStat
+            var stats = challenges
+                .GroupBy(c => c.SpecId)
+                .Select(g => new ChallengeStat
                 {
-                    Id = challengeSpec.Id,
-                    Name = challengeSpec.Name,
-                    Tag = challengeSpec.Tag,
-                    Points = challengeSpec.Points,
-                    SuccessCount = successCount,
-                    PartialCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Where(c => c.Result == ChallengeResult.Partial).Count(),
-                    AverageTime = ts.ToString(@"hh\:mm\:ss"),
-                    AttemptCount = challenges.Where(c => c.SpecId == challengeSpec.Id).Count(),
-                    AverageScore = challenges.Where(c => c.SpecId == challengeSpec.Id).Select(c => c.Score).Sum() / challenges.Where(c => c.SpecId == challengeSpec.Id).Count()
-                });
-            }
+                    Id = g.Key,
+                    Name = g.First().Name,
+                    Tag = g.First().Tag,
+                    Points = g.First().Points,
+                    SuccessCount = g.Count(o => o.Result == ChallengeResult.Success),
+                    PartialCount = g.Count(o => o.Result == ChallengeResult.Partial),
+                    AverageTime = g.Any(c => c.Result == ChallengeResult.Success)
+                        ? g.Where(c => c.Result == ChallengeResult.Success).Average(o => o.Duration).ToString(@"hh\:mm\:ss")
+                        : "",
+                    AttemptCount = g.Count(),
+                    AverageScore = (int)g.Average(c => c.Score)
+                })
+                .ToArray()
+            ;
 
             ChallengeReport challengeReport = new ChallengeReport
             {
                 Timestamp = DateTime.UtcNow,
-                Stats = challengeStats.ToArray()
+                Stats = stats.ToArray()
             };
 
             return challengeReport;
