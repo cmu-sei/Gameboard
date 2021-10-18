@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -48,7 +49,8 @@ namespace Gameboard.Api.Services
             if ((await Store.ChallengeGamespaceCount(player.TeamId)) >= game.GamespaceLimitPerSession)
                 throw new GamespaceLimitReached();
 
-            // TODO: validate prereq
+            if ((await IsUnlocked(player, game, model.SpecId)).Equals(false))
+                throw new ChallengeLocked();
 
             var spec = await Store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
 
@@ -102,6 +104,24 @@ namespace Gameboard.Api.Services
             await Store.UpdateEtd(entity.SpecId);
 
             return Mapper.Map<Challenge>(entity);
+        }
+
+        private async Task<bool> IsUnlocked(Data.Player player, Data.Game game, string specId)
+        {
+            bool result = true;
+
+            foreach (var prereq in game.Prerequisites.Where(p => p.TargetId == specId))
+            {
+                var condition = await Store.DbSet.AnyAsync(c =>
+                    c.TeamId == player.TeamId &&
+                    c.SpecId == prereq.RequiredId &&
+                    c.Score >= prereq.RequiredScore
+                );
+
+                result &= condition;
+            }
+
+            return result;
         }
 
         public async Task<Challenge> Retrieve(string id)

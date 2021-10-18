@@ -1,7 +1,7 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -12,7 +12,7 @@ using Microsoft.Extensions.Caching.Distributed;
 
 namespace Gameboard.Api.Controllers
 {
-    [Authorize]
+    [Authorize(AppConstants.DesignerPolicy)]
     public class ChallengeSpecController : _Controller
     {
         ChallengeSpecService ChallengeSpecService { get; }
@@ -85,8 +85,7 @@ namespace Gameboard.Api.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpGet("/api/challengespecs")]
-        // [Authorize(AppConstants.GameManagerPolicy)]
-        [AllowAnonymous]
+        [Authorize(AppConstants.DesignerPolicy)]
         public async Task<ExternalSpec[]> List([FromQuery] SearchFilter model)
         {
             return await ChallengeSpecService.List(model);
