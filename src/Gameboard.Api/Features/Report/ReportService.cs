@@ -181,7 +181,7 @@ namespace Gameboard.Api.Services
 
                 foreach (QuestionView questionView in questions)
                 {
-                    parts.Add(new Part{ Text = questionView.Text, SolveCount = 0, AttemptCount = 0 });
+                    parts.Add(new Part{ Text = questionView.Text, SolveCount = 0, AttemptCount = 0, Weight = questionView.Weight });
                 }
 
                 foreach (Challenge challenge in challenges)

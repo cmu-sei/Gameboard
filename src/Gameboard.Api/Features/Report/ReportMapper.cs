@@ -1,4 +1,0 @@
-namespace Gameboard.Api.Controllers
-{
-
-}
