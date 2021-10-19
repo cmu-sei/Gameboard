@@ -131,5 +131,12 @@ namespace Gameboard.Api.Data
                 c.HasDeployedGamespace.Equals(true)
             );
         }
+
+        public async Task<Challenge> ResolveApiKey(string hash)
+        {
+            return await DbSet.FirstOrDefaultAsync(c =>
+                c.GraderKey == hash
+            );
+        }
     }
 }

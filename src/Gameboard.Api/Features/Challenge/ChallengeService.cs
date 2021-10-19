@@ -15,7 +15,7 @@ using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {
-    public class ChallengeService : _Service
+    public class ChallengeService : _Service, IApiKeyAuthenticationService
     {
         IChallengeStore Store { get; }
         ITopoMojoApiClient Mojo { get; }
@@ -54,6 +54,8 @@ namespace Gameboard.Api.Services
 
             var spec = await Store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
 
+            string graderKey = Guid.NewGuid().ToString("n");
+
             int playerCount = (game.AllowTeam)
                 ? await Store.DbContext.Players.CountAsync(
                     p => p.TeamId == player.TeamId
@@ -69,6 +71,8 @@ namespace Gameboard.Api.Services
 
             entity.TeamId = player.TeamId;
 
+            entity.GraderKey = graderKey.ToSha256();
+
             var state = await Mojo.RegisterGamespaceAsync(new GamespaceRegistration
             {
                 Players = new RegistrationPlayer[] {
@@ -83,6 +87,7 @@ namespace Gameboard.Api.Services
                 MaxAttempts = game.MaxAttempts,
                 StartGamespace = true,
                 ExpirationTime = entity.Player.SessionEnd,
+                // GraderKey = graderKey,
                 PlayerCount = playerCount
             });
 
@@ -295,6 +300,8 @@ namespace Gameboard.Api.Services
         {
             var entity = await Store.Retrieve(model.Id);
 
+            // TODO: don't log auto-grader events
+            // if (model.Id != actorId)
             entity.Events.Add(new Data.ChallengeEvent
             {
                 Id = Guid.NewGuid().ToString("n"),
@@ -373,6 +380,16 @@ namespace Gameboard.Api.Services
             }
 
             throw new InvalidConsoleAction();
+        }
+
+        public async Task<string> ResolveApiKey(string key)
+        {
+            if (key.IsEmpty())
+                return null;
+
+            var entity = await Store.ResolveApiKey(key.ToSha256());
+
+            return entity?.Id;
         }
 
         internal async Task<ConsoleActor> SetConsoleActor(ConsoleRequest model, string id, string name)

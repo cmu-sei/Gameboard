@@ -17,6 +17,7 @@ namespace Gameboard.Api
         public const string ConsolePolicy = "ConsolePolicy";
         public const string HubPolicy = "HubPolicy";
         public const string TicketOnlyPolicy = "TicketOnlyPolicy";
+        public const string GraderPolicy = "GraderPolicy";
         public const string DataProtectionPurpose = "_dp:Gameboard";
         public const string MksCookie = "gameboard.mks";
         public const string ImageMapType = "map";

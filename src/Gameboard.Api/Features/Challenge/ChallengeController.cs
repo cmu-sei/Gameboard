@@ -194,11 +194,12 @@ namespace Gameboard.Api.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPut("/api/challenge/grade")]
-        [Authorize]
+        [Authorize(AppConstants.GraderPolicy)]
         public async Task<Challenge> Grade([FromBody]SectionSubmission model)
         {
             AuthorizeAny(
                 () => Actor.IsDirector,
+                () => Actor.Id == model.Id, // auto-grader
                 () => ChallengeService.UserIsTeamPlayer(model.Id, Actor.Id).Result
             );
 

@@ -4,14 +4,16 @@ using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 {
     [DbContext(typeof(GameboardDbContextSqlServer))]
-    partial class GameboardDbContextSqlServerModelSnapshot : ModelSnapshot
+    [Migration("20211019020820_GraderKey")]
+    partial class GraderKey
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

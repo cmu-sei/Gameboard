@@ -17,7 +17,8 @@ namespace  Microsoft.Extensions.DependencyInjection
                 _.DefaultPolicy = new AuthorizationPolicyBuilder()
                     .RequireAuthenticatedUser()
                     .AddAuthenticationSchemes(
-                        JwtBearerDefaults.AuthenticationScheme
+                        JwtBearerDefaults.AuthenticationScheme,
+                        ApiKeyAuthentication.AuthenticationScheme
                     ).Build();
 
                 _.AddPolicy(AppConstants.RegistrarPolicy, new AuthorizationPolicyBuilder()
@@ -66,7 +67,13 @@ namespace  Microsoft.Extensions.DependencyInjection
                     )
                     .Build()
                 );
-
+                _.AddPolicy(AppConstants.GraderPolicy, new AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .AddAuthenticationSchemes(
+                        JwtBearerDefaults.AuthenticationScheme,
+                        ApiKeyAuthentication.AuthenticationScheme
+                    ).Build()
+                );
             });
 
             return services;

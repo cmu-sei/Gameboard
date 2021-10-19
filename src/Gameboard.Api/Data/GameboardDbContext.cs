@@ -70,6 +70,7 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.PlayerId).HasMaxLength(40);
                 b.Property(u => u.TeamId).HasMaxLength(40);
                 b.Property(u => u.GameId).HasMaxLength(40);
+                b.Property(u => u.GraderKey).HasMaxLength(64);
             });
 
             builder.Entity<ChallengeEvent>(b => {
