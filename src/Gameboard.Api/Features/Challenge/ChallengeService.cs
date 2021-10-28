@@ -36,7 +36,7 @@ namespace Gameboard.Api.Services
             _localcache = localcache;
         }
 
-        public async Task<Challenge> GetOrAdd(NewChallenge model, string actorId)
+        public async Task<Challenge> GetOrAdd(NewChallenge model, string actorId, string graderUrl)
         {
             var entity = await Store.Load(model);
 
@@ -87,7 +87,8 @@ namespace Gameboard.Api.Services
                 MaxAttempts = game.MaxAttempts,
                 StartGamespace = true,
                 ExpirationTime = entity.Player.SessionEnd,
-                // GraderKey = graderKey,
+                GraderKey = graderKey,
+                GraderUrl = graderUrl,
                 PlayerCount = playerCount
             });
 

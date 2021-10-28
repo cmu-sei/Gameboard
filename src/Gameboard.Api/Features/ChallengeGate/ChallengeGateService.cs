@@ -66,6 +66,17 @@ namespace Gameboard.Api.Services
             await Store.Delete(id);
         }
 
+        internal async Task<ChallengeGate[]> List(string id)
+        {
+            if (id.IsEmpty())
+                return new ChallengeGate[]{};
+
+            return
+                await Mapper.ProjectTo<ChallengeGate>(
+                    Store.List().Where(g => g.GameId == id)
+                ).ToArrayAsync()
+            ;
+        }
     }
 
 }

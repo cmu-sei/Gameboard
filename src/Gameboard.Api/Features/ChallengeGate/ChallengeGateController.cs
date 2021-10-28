@@ -79,5 +79,16 @@ namespace Gameboard.Api.Controllers
             return;
         }
 
+        /// <summary>
+        /// Retrieve challenge gates
+        /// </summary>
+        /// <param name="g">game id</param>
+        /// <returns></returns>
+        [HttpGet("api/challengegates")]
+        [Authorize(AppConstants.DesignerPolicy)]
+        public async Task<ChallengeGate[]> List([FromQuery]string g)
+        {
+            return await ChallengeGateService.List(g);
+        }
     }
 }
