@@ -21,6 +21,7 @@ namespace Gameboard.Api.Services
         ITopoMojoApiClient Mojo { get; }
 
         private IMemoryCache _localcache;
+        private ConsoleActorMap _actorMap;
 
         public ChallengeService(
             ILogger<ChallengeService> logger,
@@ -28,12 +29,14 @@ namespace Gameboard.Api.Services
             CoreOptions options,
             IChallengeStore store,
             ITopoMojoApiClient mojo,
-            IMemoryCache localcache
+            IMemoryCache localcache,
+            ConsoleActorMap actorMap
         ) : base(logger, mapper, options)
         {
             Store = store;
             Mojo = mojo;
             _localcache = localcache;
+            _actorMap = actorMap;
         }
 
         public async Task<Challenge> GetOrAdd(NewChallenge model, string actorId, string graderUrl)
@@ -222,6 +225,9 @@ namespace Gameboard.Api.Services
                 .ToArrayAsync()
             ;
 
+            foreach (var challenge in challenges)
+                _actorMap.RemoveTeam(challenge.TeamId);
+
             var tasks = challenges.Select(
                 c => Sync(c)
             );
@@ -408,6 +414,7 @@ namespace Gameboard.Api.Services
                 ChallengeName = entity.Name,
                 ChallengeId = model.SessionId,
                 GameId = entity.GameId,
+                TeamId = entity.TeamId,
                 VmName = model.Name,
                 Timestamp = DateTimeOffset.UtcNow
             };
