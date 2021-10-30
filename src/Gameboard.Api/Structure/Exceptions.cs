@@ -23,4 +23,5 @@ namespace Gameboard.Api
     public class AlreadyExists: Exception {}
     public class GamespaceLimitReached: Exception {}
     public class ChallengeLocked: Exception {}
+    public class SessionAlreadyStarted: Exception {}
 }
