@@ -193,7 +193,9 @@ namespace Gameboard.Api.Services
 
             var team = await Store.ListTeamByPlayer(model.Id);
 
-            var game = await Store.DbContext.Games.FindAsync(team.First().GameId);
+            var player = team.First();
+
+            var game = await Store.DbContext.Games.FindAsync(player.GameId);
 
             if (!sudo && game.SessionLimit > 0)
             {
@@ -221,10 +223,11 @@ namespace Gameboard.Api.Services
                 throw new InvalidTeamSize();
 
             var st = DateTimeOffset.UtcNow;
-            var et = st.AddMinutes(team.First().SessionMinutes);
+            var et = st.AddMinutes(game.SessionMinutes);
 
             foreach( var p in team)
             {
+                p.SessionMinutes = game.SessionMinutes;
                 p.SessionBegin = st;
                 p.SessionEnd = et;
             }

@@ -208,9 +208,17 @@ namespace Gameboard.Api.Services
             if (task is null)
                 task = Mojo.LoadGamespaceAsync(entity.Id);
 
-            var state = await task;
+            try
+            {
+                var state = await task;
 
-            Mapper.Map(state, entity);
+                Mapper.Map(state, entity);
+            }
+            catch (Exception ex)
+            {
+                entity.LastSyncTime = DateTimeOffset.Now;
+                Logger.LogError(ex, "Sync error on {0} {1}", entity.Id, entity.Name);
+            }
 
             await Store.Update(entity);
 

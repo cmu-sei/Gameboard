@@ -65,6 +65,10 @@ namespace Gameboard.Api.Validators
             if ((await Exists(model.Id)).Equals(false))
                 throw new ResourceNotFound();
 
+            var player = await _store.Retrieve(model.Id);
+            if (player.SessionBegin.Year > 1)
+                throw new SessionAlreadyStarted();
+
             await Task.CompletedTask;
         }
 
