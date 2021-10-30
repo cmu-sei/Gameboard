@@ -90,5 +90,17 @@ namespace Gameboard.Api.Controllers
         {
             return await ChallengeSpecService.List(model);
         }
+
+        /// <summary>
+        /// Sync challengespec name/description with external source
+        /// </summary>
+        /// <param name="id">game id</param>
+        /// <returns></returns>
+        [HttpPost("/api/challengespecs/sync/{id}")]
+        [Authorize(AppConstants.DesignerPolicy)]
+        public async Task Sync([FromQuery]string id)
+        {
+            await ChallengeSpecService.Sync(id);
+        }
     }
 }

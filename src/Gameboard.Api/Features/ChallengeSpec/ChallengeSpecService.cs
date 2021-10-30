@@ -83,6 +83,23 @@ namespace Gameboard.Api.Services
             );
         }
 
+        public async Task Sync(string id)
+        {
+            var externals = (await List(new SearchFilter()))
+                .ToDictionary(o => o.ExternalId)
+            ;
+
+            foreach(var spec in Store.DbSet.Where(s => s.GameId == id))
+            {
+                if (externals.ContainsKey(spec.ExternalId).Equals(false))
+                    continue;
+
+                spec.Name = externals[spec.ExternalId].Name;
+                spec.Description = externals[spec.ExternalId].Description;
+            }
+
+            await Store.DbContext.SaveChangesAsync();
+        }
     }
 
 }
