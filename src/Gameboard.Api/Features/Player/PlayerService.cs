@@ -234,6 +234,26 @@ namespace Gameboard.Api.Services
 
             await Store.Update(team);
 
+            if (player.Score > 0)
+            {
+                // insert _initialscore_ "challenge"
+                var challenge = new Data.Challenge
+                {
+                    Id = Guid.NewGuid().ToString("n"),
+                    PlayerId = player.Id,
+                    TeamId = player.TeamId,
+                    GameId = player.GameId,
+                    SpecId = "_initialscore_",
+                    Name = "_initialscore_",
+                    Points = player.Score,
+                    Score = player.Score,
+                };
+
+                Store.DbContext.Add(challenge);
+
+                await Store.DbContext.SaveChangesAsync();
+            }
+
             return Mapper.Map<Player>(
                 team.First(p => p.Id == model.Id)
             );
@@ -549,6 +569,7 @@ namespace Gameboard.Api.Services
                         Name = player.Name,
                         Sponsor = player.Sponsor,
                         Role = player.Role,
+                        Score = model.WithScores ? player.Score : 0
                     });
                 }
             }

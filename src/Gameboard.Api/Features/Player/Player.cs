@@ -98,6 +98,7 @@ namespace Gameboard.Api
     {
         public string[] TeamIds { get; set; }
         public string GameId { get; set; }
+        public bool WithScores { get; set; }
         public string NextGameId { get; set; }
     }
 
