@@ -91,5 +91,6 @@ namespace Gameboard.Api
         public string Text { get; set; }
         public int SolveCount { get; set; }
         public int AttemptCount { get; set; }
+        public float Weight { get; set; }
     }
 }
