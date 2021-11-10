@@ -7,12 +7,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Validators
 {
-    public class ChallengeSpecValidator: IModelValidator
+    public class ChallengeGateValidator: IModelValidator
     {
-        private readonly IChallengeStore _store;
+        private readonly IChallengeGateStore _store;
 
-        public ChallengeSpecValidator(
-            IChallengeStore store
+        public ChallengeGateValidator(
+            IChallengeGateStore store
         )
         {
             _store = store;
@@ -23,11 +23,12 @@ namespace Gameboard.Api.Validators
             if (model is Entity)
                 return _validate(model as Entity);
 
-            if (model is NewChallengeSpec)
-                return _validate(model as NewChallengeSpec);
+            if (model is NewChallengeGate)
+                return _validate(model as NewChallengeGate);
 
-            if (model is ChangedChallengeSpec)
-                return _validate(model as ChangedChallengeSpec);
+            if (model is ChangedChallengeGate)
+                return _validate(model as ChangedChallengeGate);
+
 
             throw new System.NotImplementedException();
         }
@@ -40,14 +41,21 @@ namespace Gameboard.Api.Validators
             await Task.CompletedTask;
         }
 
-        private async Task _validate(NewChallengeSpec model)
+        private async Task _validate(NewChallengeGate model)
         {
             if ((await GameExists(model.GameId)).Equals(false))
                 throw new ResourceNotFound();
 
+            if ((await SpecExists(model.TargetId)).Equals(false))
+                throw new ResourceNotFound();
+
+            if ((await SpecExists(model.RequiredId)).Equals(false))
+                throw new ResourceNotFound();
+
             await Task.CompletedTask;
         }
-        private async Task _validate(ChangedChallengeSpec model)
+
+        private async Task _validate(ChangedChallengeGate model)
         {
             if ((await Exists(model.Id)).Equals(false))
                 throw new ResourceNotFound();
@@ -59,7 +67,7 @@ namespace Gameboard.Api.Validators
         {
             return
                 id.NotEmpty() &&
-                (await _store.Retrieve(id)) is Data.Challenge
+                (await _store.Retrieve(id)) is Data.ChallengeGate
             ;
         }
 
@@ -68,6 +76,14 @@ namespace Gameboard.Api.Validators
             return
                 id.NotEmpty() &&
                 (await _store.DbContext.Games.FindAsync(id)) is Data.Game
+            ;
+        }
+
+        private async Task<bool> SpecExists(string id)
+        {
+            return
+                id.NotEmpty() &&
+                (await _store.DbContext.ChallengeSpecs.FindAsync(id)) is Data.ChallengeSpec
             ;
         }
 

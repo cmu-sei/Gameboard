@@ -59,7 +59,14 @@ namespace Gameboard.Api.Controllers
             if (Actor.IsTester.Equals(false))
                 model.Variant = 0;
 
-            var result = await ChallengeService.GetOrAdd(model, Actor.Id);
+            string graderUrl = string.Format(
+                "{0}://{1}{2}",
+                Request.Scheme,
+                Request.Host,
+                Url.Action("Grade")
+            );
+
+            var result = await ChallengeService.GetOrAdd(model, Actor.Id, graderUrl);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
                 new HubEvent<Challenge>(result, EventAction.Updated)
@@ -194,11 +201,12 @@ namespace Gameboard.Api.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPut("/api/challenge/grade")]
-        [Authorize]
+        [Authorize(AppConstants.GraderPolicy)]
         public async Task<Challenge> Grade([FromBody]SectionSubmission model)
         {
             AuthorizeAny(
                 () => Actor.IsDirector,
+                () => Actor.Id == model.Id, // auto-grader
                 () => ChallengeService.UserIsTeamPlayer(model.Id, Actor.Id).Result
             );
 

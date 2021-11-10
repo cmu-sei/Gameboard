@@ -17,6 +17,7 @@ namespace Gameboard.Api.Services
         {
             Task.Run(() => Cleanup());
         }
+
         private async Task Cleanup()
         {
             while (true)
@@ -28,14 +29,16 @@ namespace Gameboard.Api.Services
                         string.IsNullOrEmpty(a.VmName) &&
                         ts.Subtract(a.Timestamp).TotalMinutes > 1
                     )
+                    .ToArray()
                 ;
 
                 foreach (var item in stale)
-                    _cache.TryRemove(item.UserId, out ConsoleActor discard);
+                    _cache.TryRemove(item.UserId, out _);
 
                 await Task.Delay(20000);
             }
         }
+
         public void Update(ConsoleActor actor)
         {
             _cache.AddOrUpdate(actor.UserId, actor, (i, a) => actor);
@@ -52,15 +55,34 @@ namespace Gameboard.Api.Services
                 .OrderBy(a => a.GameId)
                 .ThenBy(a => a.PlayerName)
                 .ThenBy(a => a.UserName)
-                .ToArray();
+                .ToArray()
+            ;
         }
 
-        internal void Prune()
+        public void Prune()
         {
-            var ts = DateTimeOffset.UtcNow;
+            var ts = DateTimeOffset.UtcNow.AddHours(-4);
 
-            foreach (var actor in _cache.Values.Where(o => ts.AddHours(-1) > o.Timestamp))
+            var stale = _cache.Values
+                .Where(o => o.Timestamp < ts)
+                .ToArray()
+            ;
+
+            foreach (var actor in stale)
                 _cache.TryRemove(actor.UserId, out _);
         }
+
+        public void RemoveTeam(string id)
+        {
+            var team = _cache.Values
+                .Where(a => a.TeamId == id)
+                .ToArray()
+            ;
+
+            foreach (var item in team)
+                _cache.TryRemove(item.UserId, out _);
+
+        }
+
     }
 }

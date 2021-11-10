@@ -36,6 +36,10 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
+                    b.Property<string>("GraderKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<bool>("HasDeployedGamespace")
                         .HasColumnType("boolean");
 
@@ -124,6 +128,34 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.ToTable("ChallengeEvents");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.ChallengeGate", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("GameId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("RequiredId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<double>("RequiredScore")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("TargetId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameId");
+
+                    b.ToTable("ChallengeGates");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ChallengeSpec", b =>
                 {
                     b.Property<string>("Id")
@@ -151,12 +183,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasColumnType("text");
 
                     b.Property<int>("Points")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("PrerequisiteId")
-                        .HasColumnType("text");
-
-                    b.Property<int>("PrerequisiteScore")
                         .HasColumnType("integer");
 
                     b.Property<float>("R")
@@ -464,6 +490,16 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Challenge");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.ChallengeGate", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Game", "Game")
+                        .WithMany("Prerequisites")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Game");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ChallengeSpec", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
@@ -500,6 +536,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Challenges");
 
                     b.Navigation("Players");
+
+                    b.Navigation("Prerequisites");
 
                     b.Navigation("Specs");
                 });

@@ -18,6 +18,7 @@ namespace Gameboard.Api.Data
         public string TeamId { get; set; }
         public string GameId { get; set; }
         public string Tag { get; set; }
+        public string GraderKey { get; set; }
         public string State { get; set; }
         public int Points { get; set; }
         public double Score { get; set; }

@@ -185,5 +185,22 @@ namespace Gameboard.Api.Controllers
             return Ok(new UploadedFile { Filename = "" });
         }
 
+        /// <summary>
+        /// Rerank a game's players
+        /// </summary>
+        /// <param name="id">id</param>
+        /// <returns></returns>
+        [HttpPost("/api/game/{id}/rerank")]
+        [Authorize(AppConstants.AdminPolicy)]
+        public async Task Rerank([FromRoute]string id)
+        {
+            AuthorizeAny(
+                () => Actor.IsDesigner
+            );
+
+            await Validate(new Entity{ Id = id });
+
+            await GameService.ReRank(id);
+        }
     }
 }

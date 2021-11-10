@@ -70,6 +70,7 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.PlayerId).HasMaxLength(40);
                 b.Property(u => u.TeamId).HasMaxLength(40);
                 b.Property(u => u.GameId).HasMaxLength(40);
+                b.Property(u => u.GraderKey).HasMaxLength(64);
             });
 
             builder.Entity<ChallengeEvent>(b => {
@@ -88,10 +89,19 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.ExternalId).HasMaxLength(40);
             });
 
+            builder.Entity<ChallengeGate>(b => {
+                b.HasOne(p => p.Game).WithMany(u => u.Prerequisites).OnDelete(DeleteBehavior.Cascade);
+                b.Property(g => g.Id).HasMaxLength(40);
+                b.Property(g => g.TargetId).HasMaxLength(40);
+                b.Property(g => g.RequiredId).HasMaxLength(40);
+                b.Property(g => g.GameId).HasMaxLength(40);
+            });
+
             builder.Entity<Sponsor>(b => {
                 b.Property(u => u.Id).HasMaxLength(40);
                 b.Property(u => u.Name).HasMaxLength(128);
             });
+
         }
 
         public DbSet<User> Users { get; set; }
@@ -100,6 +110,7 @@ namespace Gameboard.Api.Data
         public DbSet<Challenge> Challenges { get; set; }
         public DbSet<ChallengeEvent> ChallengeEvents { get; set; }
         public DbSet<ChallengeSpec> ChallengeSpecs { get; set; }
+        public DbSet<ChallengeGate> ChallengeGates { get; set; }
         public DbSet<Sponsor> Sponsors { get; set; }
     }
 }

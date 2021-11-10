@@ -113,6 +113,7 @@ namespace Gameboard.Api
         public string ChallengeName { get; set; }
         public string ChallengeId { get; set; }
         public string GameId { get; set; }
+        public string TeamId { get; set; }
         public string VmName { get; set; }
         public DateTimeOffset Timestamp { get; set; }
 

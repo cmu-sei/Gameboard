@@ -193,7 +193,9 @@ namespace Gameboard.Api.Services
 
             var team = await Store.ListTeamByPlayer(model.Id);
 
-            var game = await Store.DbContext.Games.FindAsync(team.First().GameId);
+            var player = team.First();
+
+            var game = await Store.DbContext.Games.FindAsync(player.GameId);
 
             if (!sudo && game.SessionLimit > 0)
             {
@@ -221,15 +223,36 @@ namespace Gameboard.Api.Services
                 throw new InvalidTeamSize();
 
             var st = DateTimeOffset.UtcNow;
-            var et = st.AddMinutes(team.First().SessionMinutes);
+            var et = st.AddMinutes(game.SessionMinutes);
 
             foreach( var p in team)
             {
+                p.SessionMinutes = game.SessionMinutes;
                 p.SessionBegin = st;
                 p.SessionEnd = et;
             }
 
             await Store.Update(team);
+
+            if (player.Score > 0)
+            {
+                // insert _initialscore_ "challenge"
+                var challenge = new Data.Challenge
+                {
+                    Id = Guid.NewGuid().ToString("n"),
+                    PlayerId = player.Id,
+                    TeamId = player.TeamId,
+                    GameId = player.GameId,
+                    SpecId = "_initialscore_",
+                    Name = "_initialscore_",
+                    Points = player.Score,
+                    Score = player.Score,
+                };
+
+                Store.DbContext.Add(challenge);
+
+                await Store.DbContext.SaveChangesAsync();
+            }
 
             return Mapper.Map<Player>(
                 team.First(p => p.Id == model.Id)
@@ -546,6 +569,7 @@ namespace Gameboard.Api.Services
                         Name = player.Name,
                         Sponsor = player.Sponsor,
                         Role = player.Role,
+                        Score = model.WithScores ? player.Score : 0
                     });
                 }
             }
@@ -554,32 +578,6 @@ namespace Gameboard.Api.Services
             await Store.Update(allteams);
         }
 
-        public async Task ReRank(string gameId)
-        {
-            var players = await Store.List()
-                .Where(p => p.GameId == gameId)
-                .OrderByDescending(p => p.Score)
-                .ThenBy(p => p.Time)
-                .ThenByDescending(p => p.CorrectCount)
-                .ThenByDescending(p => p.PartialCount)
-                .ToArrayAsync()
-            ;
-
-            int rank = 0;
-            string last = "";
-            foreach (var player in players)
-            {
-                if (player.TeamId != last)
-                {
-                    rank += 1;
-                    last = player.TeamId;
-                }
-
-                player.Rank = rank;
-            }
-
-            await Store.Update(players);
-        }
     }
 
 }

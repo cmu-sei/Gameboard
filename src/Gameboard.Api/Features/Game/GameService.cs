@@ -188,6 +188,33 @@ namespace Gameboard.Api.Services
 
             await Store.Update(entity);
         }
+
+        public async Task ReRank(string id)
+        {
+            var players = await Store.DbContext.Players
+                .Where(p => p.GameId == id)
+                .OrderByDescending(p => p.Score)
+                .ThenBy(p => p.Time)
+                .ThenByDescending(p => p.CorrectCount)
+                .ThenByDescending(p => p.PartialCount)
+                .ToArrayAsync()
+            ;
+
+            int rank = 0;
+            string last = "";
+            foreach (var player in players)
+            {
+                if (player.TeamId != last)
+                {
+                    rank += 1;
+                    last = player.TeamId;
+                }
+
+                player.Rank = rank;
+            }
+
+            await Store.DbContext.SaveChangesAsync();
+        }
     }
 
 }
