@@ -65,7 +65,10 @@ namespace Gameboard.Api.Data
         public async Task<Player> LoadBoard(string id)
         {
             var result = await DbSet.AsNoTracking()
-                .Include(p => p.Game).ThenInclude(g => g.Specs)
+                .Include(p => p.Game)
+                    .ThenInclude(g => g.Specs)
+                .Include(p => p.Game)
+                    .ThenInclude(g => g.Prerequisites)
                 .Include(p => p.Challenges).ThenInclude(c => c.Events)
                 .FirstOrDefaultAsync(p => p.Id == id)
             ;

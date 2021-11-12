@@ -47,7 +47,11 @@ namespace Gameboard.Api.Services
                 return Mapper.Map<Challenge>(entity);
 
             var player = await Store.DbContext.Players.FindAsync(model.PlayerId);
-            var game = await Store.DbContext.Games.FindAsync(player.GameId);
+            var game = await Store.DbContext.Games
+                .Include(g => g.Prerequisites)
+                .Where(g => g.Id == player.GameId)
+                .FirstOrDefaultAsync()
+            ;
 
             if ((await Store.ChallengeGamespaceCount(player.TeamId)) >= game.GamespaceLimitPerSession)
                 throw new GamespaceLimitReached();
