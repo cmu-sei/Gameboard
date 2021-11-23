@@ -93,4 +93,25 @@ namespace Gameboard.Api
         public int AttemptCount { get; set; }
         public float Weight { get; set; }
     }
+
+    public class ChallengeStatsExport
+    {
+        public string ChallengeName { get; set; }
+        public string Tag { get; set; }
+        public string Points { get; set; }
+        public string Attempts { get; set; }
+        public string Complete { get; set; }
+        public string Partial { get; set; }
+        public string AvgTime { get; set; }
+        public string AvgScore { get; set; }
+    }
+
+    public class ChallengeDetailsExport
+    {
+        public string ChallengeName { get; set; }
+        public string Tag { get; set; }
+        public string Question { get; set; }
+        public string Points { get; set; }
+        public string Solves { get; set; }
+    }
 }
