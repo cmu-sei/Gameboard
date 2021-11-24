@@ -90,6 +90,13 @@ namespace Gameboard.Api
                 .PersistKeys(() => Settings.Cache)
             ;
 
+            services.AddSignalR()
+                .AddJsonProtocol(options => {
+                    options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter(
+                        JsonNamingPolicy.CamelCase
+                    ));
+                })
+            ;
             services.AddSignalRHub();
 
             services
