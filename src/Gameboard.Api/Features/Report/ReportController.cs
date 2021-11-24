@@ -173,6 +173,8 @@ namespace Gameboard.Api.Controllers
             if (game.MaxTeamSize > 1)
             {
                 List<Tuple<string, string, string>> gameSponsorStats = new List<Tuple<string, string, string>>();
+                gameSponsorStats.Add(new Tuple<string, string, string>("Board:", game.Name, ""));
+                gameSponsorStats.Add(new Tuple<string, string, string>("", "", ""));
                 gameSponsorStats.Add(new Tuple<string, string, string>("Name", "Player Count", "Team Count"));
 
                 foreach (GameSponsorStat gameSponsorStat in result.Stats)
@@ -186,12 +188,14 @@ namespace Gameboard.Api.Controllers
                 return File(
                     Service.ConvertToBytes(gameSponsorStats),
                     "application/octet-stream",
-                    string.Format("game-sponsor-report-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+                    string.Format("board-report-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
 
             }
             else
             {
                 List<Tuple<string, string>> gameSponsorStats = new List<Tuple<string, string>>();
+                gameSponsorStats.Add(new Tuple<string, string>("Board:", game.Name));
+                gameSponsorStats.Add(new Tuple<string, string>("", ""));
                 gameSponsorStats.Add(new Tuple<string, string>("Name", "Player Count"));
 
                 foreach (GameSponsorStat gameSponsorStat in result.Stats)
@@ -205,7 +209,7 @@ namespace Gameboard.Api.Controllers
                 return File(
                     Service.ConvertToBytes(gameSponsorStats),
                     "application/octet-stream",
-                    string.Format("game-sponsor-report-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+                    string.Format("board-report-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
             }
         }
 
@@ -251,15 +255,21 @@ namespace Gameboard.Api.Controllers
             );
 
             var result = await Service.GetChallengeStats(id);
+            var game = await GameService.Retrieve(id);
+
+            if (game == null)
+            {
+                return NotFound();
+            }
 
             List<ChallengeStatsExport> challengeStats = new List<ChallengeStatsExport>();
-            challengeStats.Add(new ChallengeStatsExport { ChallengeName = "Challenge", Tag = "Tag", Points = "Points", Attempts = "Attempts #", 
+            challengeStats.Add(new ChallengeStatsExport { GameName = "Game", ChallengeName = "Challenge", Tag = "Tag", Points = "Points", Attempts = "Attempts #", 
                 Complete = "Complete(#/%)", Partial = "Partial(#/%)", AvgTime = "Avg Time", AvgScore = "Avg Score" });
 
             foreach (ChallengeStat challengeStat in result.Stats)
             {
                 challengeStats.Add(new ChallengeStatsExport {
-                    ChallengeName = challengeStat.Name, Tag = challengeStat.Tag, Points = challengeStat.Points.ToString(), Attempts = challengeStat.AttemptCount.ToString(), 
+                    GameName = game.Name, ChallengeName = challengeStat.Name, Tag = challengeStat.Tag, Points = challengeStat.Points.ToString(), Attempts = challengeStat.AttemptCount.ToString(), 
                     Complete = challengeStat.SuccessCount.ToString() + " / " + (challengeStat.SuccessCount / challengeStat.AttemptCount).ToString("P", CultureInfo.InvariantCulture),
                     Partial = challengeStat.PartialCount.ToString() + " / " + (challengeStat.PartialCount / challengeStat.AttemptCount).ToString("P", CultureInfo.InvariantCulture), 
                     AvgTime = challengeStat.AverageTime, AvgScore = challengeStat.AverageScore.ToString()});
@@ -268,7 +278,7 @@ namespace Gameboard.Api.Controllers
             return File(
                 Service.ConvertToBytes(challengeStats),
                 "application/octet-stream",
-                string.Format("challenge-stats-report-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+                string.Format("challenge-statistics-report-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
         }
 
         /// <summary>
@@ -286,9 +296,15 @@ namespace Gameboard.Api.Controllers
             );
 
             var result = await Service.GetChallengeStats(id);
+            var game = await GameService.Retrieve(id);
+
+            if (game == null)
+            {
+                return NotFound();
+            }
 
             List<ChallengeDetailsExport> challengeDetails = new List<ChallengeDetailsExport>();
-            challengeDetails.Add(new ChallengeDetailsExport { ChallengeName = "Challenge Name", Tag = "Tag", Question = "Question", Points = "Points / % of Total", Solves = 
+            challengeDetails.Add(new ChallengeDetailsExport { GameName = "Game", ChallengeName = "Challenge", Tag = "Tag", Question = "Question", Points = "Points / % of Total", Solves = 
                 "Solves / % of Attempts Correct" });
 
             foreach (ChallengeStat stat in result.Stats)
@@ -297,7 +313,7 @@ namespace Gameboard.Api.Controllers
 
                 foreach (Part part in challengeDetail.Parts)
                 {
-                    challengeDetails.Add(new ChallengeDetailsExport { ChallengeName = stat.Name, Tag = stat.Tag, Question = part.Text, 
+                    challengeDetails.Add(new ChallengeDetailsExport { GameName = game.Name, ChallengeName = stat.Name, Tag = stat.Tag, Question = part.Text, 
                         Points = part.Weight.ToString() + " / " + (part.Weight / stat.Points).ToString("P", CultureInfo.InvariantCulture),
                         Solves = part.SolveCount.ToString() + " / " + ((decimal)part.SolveCount / (decimal)challengeDetail.AttemptCount).ToString("P", CultureInfo.InvariantCulture)
                     });

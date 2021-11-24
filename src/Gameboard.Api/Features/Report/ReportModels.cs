@@ -96,6 +96,7 @@ namespace Gameboard.Api
 
     public class ChallengeStatsExport
     {
+        public string GameName { get; set; }
         public string ChallengeName { get; set; }
         public string Tag { get; set; }
         public string Points { get; set; }
@@ -108,6 +109,7 @@ namespace Gameboard.Api
 
     public class ChallengeDetailsExport
     {
+        public string GameName { get; set; }
         public string ChallengeName { get; set; }
         public string Tag { get; set; }
         public string Question { get; set; }
