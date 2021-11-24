@@ -14,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Polly;
 using Polly.Extensions.Http;
+using ServiceStack.Text;
 using TopoMojo.Api.Client;
 
 namespace Gameboard.Api
@@ -45,6 +46,11 @@ namespace Gameboard.Api
                 Settings.Core.ChallengeDocUrl += "/";
 
             Directory.CreateDirectory(Settings.Core.ImageFolder);
+
+            CsvConfig<Tuple<string, string>>.OmitHeaders = true;
+            CsvConfig<Tuple<string, string, string>>.OmitHeaders = true;
+            CsvConfig<ChallengeStatsExport>.OmitHeaders = true;
+            CsvConfig<ChallengeDetailsExport>.OmitHeaders = true;
 
             if (env.IsDevelopment())
                 Settings.Oidc.RequireHttpsMetadata = false;

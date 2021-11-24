@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
@@ -211,6 +212,13 @@ namespace Gameboard.Api.Services
             challengeDetailReport.ChallengeId = id;
 
             return challengeDetailReport;
+        }
+
+        internal byte[] ConvertToBytes<T>(IEnumerable<T> collection)
+        {
+            var value = ServiceStack.StringExtensions.ToCsv(collection);
+
+            return Encoding.UTF8.GetBytes(value.ToString());
         }
     }
 }

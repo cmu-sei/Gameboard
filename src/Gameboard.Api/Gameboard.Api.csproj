@@ -14,6 +14,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="5.0" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="5.0" />
+    <PackageReference Include="ServiceStack.Text" Version="5.13.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1" />
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.1" />
     <PackageReference Include="TopoMojo.Api.Client" Version="2.0.6" />
