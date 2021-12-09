@@ -47,6 +47,7 @@ namespace Gameboard.Api.Services
                 return Mapper.Map<Challenge>(entity);
 
             var player = await Store.DbContext.Players.FindAsync(model.PlayerId);
+
             var game = await Store.DbContext.Games
                 .Include(g => g.Prerequisites)
                 .Where(g => g.Id == player.GameId)
@@ -58,6 +59,16 @@ namespace Gameboard.Api.Services
 
             if ((await IsUnlocked(player, game, model.SpecId)).Equals(false))
                 throw new ChallengeLocked();
+
+            var lockkey = $"{player.TeamId}{model.SpecId}";
+            var lockval = Guid.NewGuid();
+            var locked = _localcache.GetOrCreate(lockkey, entry => {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
+                return lockval;
+            });
+
+            if (locked != lockval)
+                throw new ChallengeStartPending();
 
             var spec = await Store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
 
@@ -80,41 +91,51 @@ namespace Gameboard.Api.Services
 
             entity.GraderKey = graderKey.ToSha256();
 
-            var state = await Mojo.RegisterGamespaceAsync(new GamespaceRegistration
+            try {
+                var state = await Mojo.RegisterGamespaceAsync(new GamespaceRegistration
+                {
+                    Players = new RegistrationPlayer[] {
+                        new RegistrationPlayer {
+                            SubjectId = player.TeamId,
+                            SubjectName = player.Name
+                        }
+                    },
+                    ResourceId = entity.ExternalId,
+                    Variant = model.Variant,
+                    Points = spec.Points,
+                    MaxAttempts = game.MaxAttempts,
+                    StartGamespace = true,
+                    ExpirationTime = entity.Player.SessionEnd,
+                    GraderKey = graderKey,
+                    GraderUrl = graderUrl,
+                    PlayerCount = playerCount
+                });
+
+                Transform(state);
+
+                Mapper.Map(state, entity);
+
+                entity.Events.Add(new Data.ChallengeEvent
+                {
+                    Id = Guid.NewGuid().ToString("n"),
+                    UserId = actorId,
+                    TeamId = entity.TeamId,
+                    Timestamp = DateTimeOffset.UtcNow,
+                    Type = ChallengeEventType.Started
+                });
+
+                await Store.Create(entity);
+
+                await Store.UpdateEtd(entity.SpecId);
+            }
+            catch (Exception ex)
             {
-                Players = new RegistrationPlayer[] {
-                    new RegistrationPlayer {
-                        SubjectId = player.TeamId,
-                        SubjectName = player.Name
-                    }
-                },
-                ResourceId = entity.ExternalId,
-                Variant = model.Variant,
-                Points = spec.Points,
-                MaxAttempts = game.MaxAttempts,
-                StartGamespace = true,
-                ExpirationTime = entity.Player.SessionEnd,
-                GraderKey = graderKey,
-                GraderUrl = graderUrl,
-                PlayerCount = playerCount
-            });
-
-            Transform(state);
-
-            Mapper.Map(state, entity);
-
-            entity.Events.Add(new Data.ChallengeEvent
+                throw ex;
+            }
+            finally
             {
-                Id = Guid.NewGuid().ToString("n"),
-                UserId = actorId,
-                TeamId = entity.TeamId,
-                Timestamp = DateTimeOffset.UtcNow,
-                Type = ChallengeEventType.Started
-            });
-
-            await Store.Create(entity);
-
-            await Store.UpdateEtd(entity.SpecId);
+               _localcache.Remove(lockkey);
+            }
 
             return Mapper.Map<Challenge>(entity);
         }
