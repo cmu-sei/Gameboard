@@ -63,6 +63,9 @@ namespace Gameboard.Api.Services
 
             var q = Store.List(model.Term);
 
+            if (!sudo)
+                q = q.Where(g => g.IsPublished);
+
             if (model.WantsPresent)
                 q = q.Where(g => g.GameEnd > now && g.GameStart < now);
 
@@ -72,10 +75,10 @@ namespace Gameboard.Api.Services
             if (model.WantsPast)
                 q = q.Where(g => g.GameEnd < now);
 
-            if (!sudo)
-                q = q.Where(g => g.IsPublished);
-
-            q = q.OrderBy(p => p.Name);
+            if (model.WantsPast)
+                q = q.OrderByDescending(g => g.GameStart).ThenBy(g => g.Name);
+            else
+                q = q.OrderBy(g => g.GameStart).ThenBy(g => g.Name);
 
             q = q.Skip(model.Skip);
 
@@ -102,7 +105,7 @@ namespace Gameboard.Api.Services
             var step = ts;
 
             var expirations = await Store.DbContext.Players
-                .Where(p => p.GameId == id && p.SessionEnd.CompareTo(ts) > 0)
+                .Where(p => p.GameId == id && p.Role == PlayerRole.Manager && p.SessionEnd.CompareTo(ts) > 0)
                 .Select(p => p.SessionEnd)
                 .ToArrayAsync();
 
@@ -184,6 +187,33 @@ namespace Gameboard.Api.Services
             }
 
             await Store.Update(entity);
+        }
+
+        public async Task ReRank(string id)
+        {
+            var players = await Store.DbContext.Players
+                .Where(p => p.GameId == id)
+                .OrderByDescending(p => p.Score)
+                .ThenBy(p => p.Time)
+                .ThenByDescending(p => p.CorrectCount)
+                .ThenByDescending(p => p.PartialCount)
+                .ToArrayAsync()
+            ;
+
+            int rank = 0;
+            string last = "";
+            foreach (var player in players)
+            {
+                if (player.TeamId != last)
+                {
+                    rank += 1;
+                    last = player.TeamId;
+                }
+
+                player.Rank = rank;
+            }
+
+            await Store.DbContext.SaveChangesAsync();
         }
     }
 

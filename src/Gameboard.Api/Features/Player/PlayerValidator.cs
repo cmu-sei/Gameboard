@@ -38,6 +38,9 @@ namespace Gameboard.Api.Validators
             if (model is SessionStartRequest)
                 return _validate(model as SessionStartRequest);
 
+            if (model is SessionChangeRequest)
+                return _validate(model as SessionChangeRequest);
+
             if (model is TeamAdvancement)
                 return _validate(model as TeamAdvancement);
 
@@ -62,9 +65,15 @@ namespace Gameboard.Api.Validators
             if ((await Exists(model.Id)).Equals(false))
                 throw new ResourceNotFound();
 
-            if ((await GameExists(model.GameId)).Equals(false))
-                throw new ResourceNotFound();
+            var player = await _store.Retrieve(model.Id);
+            if (player.SessionBegin.Year > 1)
+                throw new SessionAlreadyStarted();
 
+            await Task.CompletedTask;
+        }
+
+        private async Task _validate(SessionChangeRequest model)
+        {
             await Task.CompletedTask;
         }
 
@@ -103,7 +112,10 @@ namespace Gameboard.Api.Validators
 
         private async Task _validate(TeamAdvancement model)
         {
-            if (model.TeamId.IsEmpty())
+            // if (model.TeamId.IsEmpty())
+            //     throw new ResourceNotFound();
+
+            if ((await GameExists(model.GameId)).Equals(false))
                 throw new ResourceNotFound();
 
             if ((await GameExists(model.NextGameId)).Equals(false))

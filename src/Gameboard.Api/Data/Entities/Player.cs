@@ -16,6 +16,7 @@ namespace Gameboard.Api.Data
         public string GameId { get; set; }
         public string ApprovedName { get; set; }
         public string Name { get; set; }
+        public string NameStatus { get; set; }
         public string Sponsor { get; set; }
         public string InviteCode { get; set; }
         public PlayerRole Role { get; set; }
@@ -27,6 +28,7 @@ namespace Gameboard.Api.Data
         public long Time { get; set; }
         public int CorrectCount { get; set; }
         public int PartialCount { get; set; }
+        public bool Advanced { get; set; }
         public User User { get; set; }
         public Game Game { get; set; }
         public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();

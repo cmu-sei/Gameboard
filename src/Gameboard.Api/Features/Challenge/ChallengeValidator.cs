@@ -26,6 +26,9 @@ namespace Gameboard.Api.Validators
             if (model is NewChallenge)
                 return _validate(model as NewChallenge);
 
+            if (model is ChangedChallenge)
+                return _validate(model as ChangedChallenge);
+
             throw new System.NotImplementedException();
         }
 
@@ -62,6 +65,14 @@ namespace Gameboard.Api.Validators
               throw new ActionForbidden();
 
             // Note: not checking "already exists" since this is used idempotently
+
+            await Task.CompletedTask;
+        }
+
+        private async Task _validate(ChangedChallenge model)
+        {
+            if ((await Exists(model.Id)).Equals(false))
+                throw new ResourceNotFound();
 
             await Task.CompletedTask;
         }

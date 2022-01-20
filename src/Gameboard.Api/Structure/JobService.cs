@@ -18,9 +18,11 @@ namespace Gameboard.Api
         private readonly IServiceProvider _services;
 
         public JobService(
+            ILogger<JobService> logger,
             IServiceProvider serviceProvider
         )
         {
+            _logger = logger;
             _services = serviceProvider;
         }
 
@@ -39,8 +41,14 @@ namespace Gameboard.Api
                 {
                     var svc = scope.ServiceProvider.GetRequiredService<ChallengeService>();
                     svc.SyncExpired().Wait();
+
+                    var consoleMap = scope.ServiceProvider.GetRequiredService<ConsoleActorMap>();
+                    consoleMap.Prune();
                 }
-                catch {}
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error running job");
+                }
             }
         }
 

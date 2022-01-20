@@ -36,6 +36,10 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
+                    b.Property<string>("GraderKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<bool>("HasDeployedGamespace")
                         .HasColumnType("boolean");
 
@@ -122,6 +126,34 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.HasIndex("ChallengeId");
 
                     b.ToTable("ChallengeEvents");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.ChallengeGate", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("GameId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("RequiredId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<double>("RequiredScore")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("TargetId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameId");
+
+                    b.ToTable("ChallengeGates");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.ChallengeSpec", b =>
@@ -299,6 +331,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
+                    b.Property<bool>("Advanced")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("ApprovedName")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -317,6 +352,10 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<string>("Name")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
+
+                    b.Property<string>("NameStatus")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.Property<int>("PartialCount")
                         .HasColumnType("integer");
@@ -404,6 +443,10 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<string>("NameStatus")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
                     b.Property<int>("Role")
                         .HasColumnType("integer");
 
@@ -447,6 +490,16 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Challenge");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.ChallengeGate", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Game", "Game")
+                        .WithMany("Prerequisites")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Game");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ChallengeSpec", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
@@ -483,6 +536,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Challenges");
 
                     b.Navigation("Players");
+
+                    b.Navigation("Prerequisites");
 
                     b.Navigation("Specs");
                 });

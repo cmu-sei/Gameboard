@@ -13,6 +13,7 @@ namespace Gameboard.Api.Data
         public string Username { get; set; }
         public string Email { get; set; }
         public string Name { get; set; }
+        public string NameStatus { get; set; }
         public string ApprovedName { get; set; }
         public string Sponsor { get; set; }
         public UserRole Role { get; set; }

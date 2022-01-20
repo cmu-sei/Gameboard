@@ -27,6 +27,17 @@ namespace Gameboard.Api
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries);
         }
 
+        public static string ToSha256(this string input)
+        {
+            using (SHA256 alg = SHA256.Create())
+            {
+                return BitConverter.ToString(alg
+                    .ComputeHash(Encoding.UTF8.GetBytes(input)))
+                    .Replace("-", "")
+                    .ToLower();
+            }
+        }
+
         public static bool NotEmpty(this DateTimeOffset ts)
         {
             return ts.Year > 1;

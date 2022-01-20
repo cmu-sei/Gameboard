@@ -9,9 +9,11 @@ namespace Gameboard.Api.Data.Abstractions
     public interface IChallengeStore : IStore<Challenge>
     {
         Task<Data.Challenge> Load(NewChallenge model);
+        Task<Data.Challenge> Load(string id);
         Task UpdateTeam(string teamId);
         Task UpdateEtd(string specId);
         Task<int> ChallengeGamespaceCount(string teamId);
+        Task<Data.Challenge> ResolveApiKey(string key);
     }
 
 }

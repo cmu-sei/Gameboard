@@ -3,22 +3,20 @@
 
 using AutoMapper;
 
-
 namespace Gameboard.Api.Services
 {
-    public class ChallengeEventMapper : Profile
+    public class ChallengeGateMapper : Profile
     {
-        public ChallengeEventMapper()
+        public ChallengeGateMapper()
         {
             CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
 
-            CreateMap<Data.ChallengeEvent, ChallengeEvent>();
+            CreateMap<Data.ChallengeGate, ChallengeGate>();
 
-            CreateMap<ChallengeEvent, Data.ChallengeEvent>();
+            CreateMap<NewChallengeGate, Data.ChallengeGate>();
 
-            CreateMap<NewChallengeEvent, Data.ChallengeEvent>();
+            CreateMap<ChangedChallengeGate, Data.ChallengeGate>();
 
-            CreateMap<ChangedChallengeEvent, Data.ChallengeEvent>();
         }
     }
 }

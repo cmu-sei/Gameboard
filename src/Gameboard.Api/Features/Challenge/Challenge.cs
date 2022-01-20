@@ -22,6 +22,7 @@ namespace Gameboard.Api
         public int Score { get; set; }
         public long Duration { get; set; }
         public ChallengeResult Result { get; set; }
+        public ChallengeEvent[] Events { get; set; }
         public TopoMojo.Api.Client.GameState State { get; set; }
     }
 
@@ -43,6 +44,7 @@ namespace Gameboard.Api
         public int Score { get; set; }
         public long Duration { get; set; }
         public ChallengeResult Result { get; set; }
+        public ChallengeEvent[] Events { get; set; }
     }
 
     public class NewChallenge
@@ -67,6 +69,7 @@ namespace Gameboard.Api
         public int Score { get; set; }
         public long Duration { get; set; }
         public ChallengeResult Result { get; set; }
+        public ChallengeEvent[] Events { get; set; }
     }
 
     public class ConsoleRequest
@@ -84,6 +87,7 @@ namespace Gameboard.Api
       public string SessionId { get; set; }
       public string Url { get; set; }
       public bool IsRunning { get; set; }
+      public bool IsObserver { get; set; }
     }
 
     public enum ConsoleAction
@@ -91,5 +95,27 @@ namespace Gameboard.Api
       None,
       Ticket,
       Reset
+    }
+
+    public class ChallengeEvent
+    {
+        public string UserId { get; set; }
+        public string Text { get; set; }
+        public ChallengeEventType Type { get; set; }
+        public DateTimeOffset Timestamp { get; set; }
+    }
+
+    public class ConsoleActor
+    {
+        public string UserId { get; set; }
+        public string UserName { get; set; }
+        public string PlayerName { get; set; }
+        public string ChallengeName { get; set; }
+        public string ChallengeId { get; set; }
+        public string GameId { get; set; }
+        public string TeamId { get; set; }
+        public string VmName { get; set; }
+        public DateTimeOffset Timestamp { get; set; }
+
     }
 }

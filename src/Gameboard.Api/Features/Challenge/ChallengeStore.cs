@@ -32,6 +32,14 @@ namespace Gameboard.Api.Data
             ;
         }
 
+        public async Task<Challenge> Load(string id)
+        {
+            return await DbSet
+                .Include(c => c.Events)
+                .FirstOrDefaultAsync(c => c.Id == id)
+            ;
+        }
+
         public async Task<Challenge> Load(NewChallenge model)
         {
             var player = await DbContext.Players.FindAsync(model.PlayerId);
@@ -121,6 +129,13 @@ namespace Gameboard.Api.Data
             return DbSet.CountAsync(c =>
                 c.TeamId == teamId &&
                 c.HasDeployedGamespace.Equals(true)
+            );
+        }
+
+        public async Task<Challenge> ResolveApiKey(string hash)
+        {
+            return await DbSet.FirstOrDefaultAsync(c =>
+                c.GraderKey == hash
             );
         }
     }

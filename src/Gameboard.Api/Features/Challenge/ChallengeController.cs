@@ -1,7 +1,7 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -21,6 +21,7 @@ namespace Gameboard.Api.Controllers
         ChallengeService ChallengeService { get; }
         PlayerService PlayerService { get; }
         IHubContext<AppHub, IAppHubEvent> Hub { get; }
+        ConsoleActorMap ActorMap { get; }
 
         public ChallengeController(
             ILogger<ChallengeController> logger,
@@ -28,13 +29,14 @@ namespace Gameboard.Api.Controllers
             ChallengeValidator validator,
             ChallengeService challengeService,
             PlayerService playerService,
-            IHubContext<AppHub, IAppHubEvent> hub
-
+            IHubContext<AppHub, IAppHubEvent> hub,
+            ConsoleActorMap actormap
         ): base(logger, cache, validator)
         {
             ChallengeService = challengeService;
             PlayerService = playerService;
             Hub = hub;
+            ActorMap = actormap;
         }
 
         /// <summary>
@@ -57,7 +59,14 @@ namespace Gameboard.Api.Controllers
             if (Actor.IsTester.Equals(false))
                 model.Variant = 0;
 
-            var result = await ChallengeService.GetOrAdd(model);
+            string graderUrl = string.Format(
+                "{0}://{1}{2}",
+                Request.Scheme,
+                Request.Host,
+                Url.Action("Grade")
+            );
+
+            var result = await ChallengeService.GetOrAdd(model, Actor.Id, graderUrl);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
                 new HubEvent<Challenge>(result, EventAction.Updated)
@@ -152,7 +161,7 @@ namespace Gameboard.Api.Controllers
 
             await Validate(model);
 
-            var result = await ChallengeService.StartGamespace(model.Id);
+            var result = await ChallengeService.StartGamespace(model.Id, Actor.Id);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
                 new HubEvent<Challenge>(result, EventAction.Updated)
@@ -177,7 +186,7 @@ namespace Gameboard.Api.Controllers
 
             await Validate(new Entity{ Id = model.Id });
 
-            var result = await ChallengeService.StopGamespace(model.Id);
+            var result = await ChallengeService.StopGamespace(model.Id, Actor.Id);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
                 new HubEvent<Challenge>(result, EventAction.Updated)
@@ -192,23 +201,66 @@ namespace Gameboard.Api.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPut("/api/challenge/grade")]
-        [Authorize]
+        [Authorize(AppConstants.GraderPolicy)]
         public async Task<Challenge> Grade([FromBody]SectionSubmission model)
         {
             AuthorizeAny(
                 () => Actor.IsDirector,
+                () => Actor.Id == model.Id, // auto-grader
                 () => ChallengeService.UserIsTeamPlayer(model.Id, Actor.Id).Result
             );
 
             await Validate(new Entity{ Id = model.Id });
 
-            var result = await ChallengeService.Grade(model);
+            var result = await ChallengeService.Grade(model, Actor.Id);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
                 new HubEvent<Challenge>(result, EventAction.Updated)
             );
 
             return result;
+        }
+
+        /// <summary>
+        /// ReGrade a challenge
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("/api/challenge/regrade")]
+        [Authorize]
+        public async Task<Challenge> Regrade([FromBody]Entity model)
+        {
+            AuthorizeAny(
+                () => Actor.IsDirector
+            );
+
+            await Validate(model);
+
+            var result = await ChallengeService.Regrade(model.Id);
+
+            await Hub.Clients.Group(result.TeamId).ChallengeEvent(
+                new HubEvent<Challenge>(result, EventAction.Updated)
+            );
+
+            return result;
+        }
+
+        /// <summary>
+        /// ReGrade a challenge
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [HttpGet("/api/challenge/{id}/audit")]
+        [Authorize]
+        public async Task<SectionSubmission[]> Audit([FromRoute]string id)
+        {
+            AuthorizeAny(
+                () => Actor.IsDirector
+            );
+
+            await Validate(new Entity { Id = id });
+
+            return await ChallengeService.Audit(id);
         }
 
         /// <summary>
@@ -220,6 +272,8 @@ namespace Gameboard.Api.Controllers
         [Authorize(AppConstants.ConsolePolicy)]
         public async Task<ConsoleSummary> GetConsole([FromBody]ConsoleRequest model)
         {
+            await Validate(new Entity { Id = model.SessionId });
+
             var isTeamMember = await ChallengeService.UserIsTeamPlayer(model.SessionId, Actor.Id);
 
             AuthorizeAny(
@@ -228,7 +282,45 @@ namespace Gameboard.Api.Controllers
               () => isTeamMember
             );
 
-            return await ChallengeService.GetConsole(model, isTeamMember.Equals(false));
+            var result = await ChallengeService.GetConsole(model, isTeamMember.Equals(false));
+
+            if (isTeamMember)
+                ActorMap.Update(
+                    await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.Name)
+                );
+
+            return result;
+        }
+
+        /// <summary>
+        /// Console action (ticket, reset)
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("/api/challenge/console")]
+        [Authorize(AppConstants.ConsolePolicy)]
+        public async Task SetConsoleActor([FromBody]ConsoleRequest model)
+        {
+            await Validate(new Entity { Id = model.SessionId });
+
+            var isTeamMember = await ChallengeService.UserIsTeamPlayer(model.SessionId, Actor.Id);
+
+            if (isTeamMember)
+                ActorMap.Update(
+                    await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.ApprovedName)
+                );
+        }
+
+        [HttpGet("/api/challenge/consoles")]
+        [Authorize]
+        public ConsoleActor[] FindConsoles([FromQuery]string gid)
+        {
+            AuthorizeAny(
+              () => Actor.IsDirector,
+              () => Actor.IsObserver
+            );
+
+            return ActorMap.Find(gid);
         }
 
         /// <summary>

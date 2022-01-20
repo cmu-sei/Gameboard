@@ -9,7 +9,7 @@ namespace Microsoft.Extensions.DependencyInjection
 {
     public static class ApiKeyAuthenticationExtensions
     {
-        public static AuthenticationBuilder AddApiKey(
+        public static AuthenticationBuilder AddApiKeyAuthentication(
             this AuthenticationBuilder builder,
             string scheme,
             Action<ApiKeyAuthenticationOptions> options

@@ -26,6 +26,8 @@ namespace Gameboard.Api.Validators
             if (model is NewChallengeSpec)
                 return _validate(model as NewChallengeSpec);
 
+            if (model is ChangedChallengeSpec)
+                return _validate(model as ChangedChallengeSpec);
 
             throw new System.NotImplementedException();
         }
@@ -52,7 +54,6 @@ namespace Gameboard.Api.Validators
 
             await Task.CompletedTask;
         }
-
 
         private async Task<bool> Exists(string id)
         {

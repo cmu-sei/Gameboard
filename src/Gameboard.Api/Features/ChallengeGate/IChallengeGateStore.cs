@@ -4,6 +4,6 @@
 namespace Gameboard.Api.Data.Abstractions
 {
 
-    public interface IChallengeEventStore: IStore<ChallengeEvent> { }
+    public interface IChallengeGateStore: IStore<ChallengeGate> { }
 
 }

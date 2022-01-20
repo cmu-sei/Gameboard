@@ -36,6 +36,10 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<string>("GraderKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<bool>("HasDeployedGamespace")
                         .HasColumnType("bit");
 
@@ -122,6 +126,34 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.HasIndex("ChallengeId");
 
                     b.ToTable("ChallengeEvents");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.ChallengeGate", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("GameId")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("RequiredId")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<double>("RequiredScore")
+                        .HasColumnType("float");
+
+                    b.Property<string>("TargetId")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameId");
+
+                    b.ToTable("ChallengeGates");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.ChallengeSpec", b =>
@@ -299,6 +331,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<bool>("Advanced")
+                        .HasColumnType("bit");
+
                     b.Property<string>("ApprovedName")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
@@ -317,6 +352,10 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<string>("Name")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("NameStatus")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<int>("PartialCount")
                         .HasColumnType("int");
@@ -404,6 +443,10 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<string>("NameStatus")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
                     b.Property<int>("Role")
                         .HasColumnType("int");
 
@@ -447,6 +490,16 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("Challenge");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.ChallengeGate", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Game", "Game")
+                        .WithMany("Prerequisites")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Game");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ChallengeSpec", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
@@ -483,6 +536,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("Challenges");
 
                     b.Navigation("Players");
+
+                    b.Navigation("Prerequisites");
 
                     b.Navigation("Specs");
                 });

@@ -104,7 +104,7 @@ namespace Gameboard.Api.Controllers
 
             await Validate(model);
 
-            await UserService.Update(model, Actor.IsRegistrar);
+            await UserService.Update(model, Actor.IsRegistrar || Actor.IsAdmin, Actor.IsAdmin);
         }
 
         /// <summary>
@@ -131,11 +131,12 @@ namespace Gameboard.Api.Controllers
         /// <param name="model"></param>
         /// <returns>User[]</returns>
         [HttpGet("/api/users")]
-        [Authorize(AppConstants.RegistrarPolicy)]
+        [Authorize]
         public async Task<User[]> List([FromQuery] UserSearch model)
         {
             AuthorizeAny(
-                () => Actor.IsRegistrar
+                () => Actor.IsRegistrar,
+                () => Actor.IsObserver
             );
 
             return await UserService.List(model);
@@ -201,14 +202,32 @@ namespace Gameboard.Api.Controllers
 
         [HttpPost("/api/announce")]
         [Authorize]
-        public async Task Announce(Announcement model)
+        public async Task Announce([FromBody] Announcement model)
         {
+            AuthorizeAny(
+                () => Actor.IsDirector
+            );
+
             var audience = string.IsNullOrEmpty(model.TeamId).Equals(false)
                 ? Hub.Clients.Group(model.TeamId)
                 : Hub.Clients.All
             ;
 
-            await audience.Announcement(model.Message);
+            await audience.Announcement(new HubEvent<Announcement>(model, EventAction.Created));
         }
+
+        /// <summary>
+        /// check version
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("/api/version")]
+        [AllowAnonymous]
+        public IActionResult Version()
+        {
+            return Ok(new {
+                Commit = Environment.GetEnvironmentVariable("COMMIT") ?? "no version info"
+            });
+        }
+
     }
 }

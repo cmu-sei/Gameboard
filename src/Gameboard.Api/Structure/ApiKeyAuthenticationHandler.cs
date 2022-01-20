@@ -30,14 +30,18 @@ namespace Gameboard.Api
     }
     public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthenticationOptions>
     {
+        private readonly IApiKeyAuthenticationService _svc;
+
         public ApiKeyAuthenticationHandler(
             IOptionsMonitor<ApiKeyAuthenticationOptions> options,
             ILoggerFactory logger,
             UrlEncoder encoder,
-            ISystemClock clock
+            ISystemClock clock,
+            IApiKeyAuthenticationService svc
         )
             : base(options, logger, encoder, clock)
         {
+            _svc = svc;
         }
 
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -61,19 +65,22 @@ namespace Gameboard.Api
                 }
             }
 
-            var client = Options.Clients.Where(c => c.Key == key).SingleOrDefault();
+            string subjectId = await _svc.ResolveApiKey(key);
+            // var client = Options.Clients.Where(c => c.Key == key).SingleOrDefault();
 
-            if (client == null)
+            if (string.IsNullOrEmpty(subjectId))
                 return AuthenticateResult.NoResult();
 
             var principal = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     new Claim[] {
-                        // new Claim(AppConstants.RoleClaimName, AppConstants.AgentRole),
-                        new Claim(AppConstants.SubjectClaimName, client.Id ?? "invalid"),
-                        new Claim(ApiKeyAuthentication.ClaimNames.ClientId, client.Id ?? "invalid"),
-                        new Claim(ApiKeyAuthentication.ClaimNames.ClientScope, client.Scope ?? "public"),
-                        new Claim(ApiKeyAuthentication.ClaimNames.ClientUrl, client.Url ?? "")
+                        new Claim(AppConstants.SubjectClaimName, subjectId),
+                        new Claim(AppConstants.NameClaimName, "AutoGrader"),
+                        // new Claim(AppConstants.SubjectClaimName, client.Id ?? "invalid"),
+                        // new Claim(AppConstants.NameClaimName, client.Name ?? "invalid"),
+                        // new Claim(ApiKeyAuthentication.ClaimNames.ClientId, client.Id ?? "invalid"),
+                        // new Claim(ApiKeyAuthentication.ClaimNames.ClientScope, client.Scope ?? "public"),
+                        // new Claim(ApiKeyAuthentication.ClaimNames.ClientUrl, client.Url ?? "")
                     },
                     Scheme.Name
                 )
@@ -100,9 +107,14 @@ namespace Gameboard.Api
     public class ApiKeyClient
     {
         public string Id { get; set; }
+        public string Name { get; set; }
         public string Key { get; set; }
         public string Scope { get; set; } = "public";
         public string Url { get; set; }
     }
 
+    public interface IApiKeyAuthenticationService
+    {
+        Task<string> ResolveApiKey(string key);
+    }
 }

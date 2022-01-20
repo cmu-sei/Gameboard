@@ -9,16 +9,16 @@ using Gameboard.Api.Data.Abstractions;
 namespace Gameboard.Api.Data
 {
 
-    public class ChallengeEventStore: Store<ChallengeEvent>, IChallengeEventStore
+    public class ChallengeGateStore: Store<ChallengeGate>, IChallengeGateStore
     {
-        public ChallengeEventStore(GameboardDbContext dbContext)
+        public ChallengeGateStore(GameboardDbContext dbContext)
         :base(dbContext)
         {
 
         }
 
         // If entity has searchable fields, use this:
-        // public override IQueryable<ChallengeEvent> List(string term = null)
+        // public override IQueryable<ChallengeGate> List(string term = null)
         // {
         //     var q = base.List();
 

@@ -51,8 +51,18 @@ namespace Gameboard.Api.Services
             {
                 entity = Mapper.Map<Data.User>(model);
 
-                // TODO: add unique check?
-                entity.ApprovedName = _namesvc.GetRandomName();
+                bool found = false;
+                int i = 0;
+                do {
+                    entity.ApprovedName = _namesvc.GetRandomName();
+                    entity.Name = entity.ApprovedName;
+
+                    // check uniqueness
+                    found = await Store.DbSet.AnyAsync(p =>
+                        p.Id != entity.Id &&
+                        p.Name == entity.Name
+                    );
+                } while (found && i++ < 20);
 
                 await Store.Create(entity);
             }
@@ -67,7 +77,7 @@ namespace Gameboard.Api.Services
             return Mapper.Map<User>(await Store.Retrieve(id));
         }
 
-        public async Task Update(ChangedUser model, bool sudo)
+        public async Task Update(ChangedUser model, bool sudo, bool admin = false)
         {
             var entity = await Store.Retrieve(model.Id);
 
@@ -77,7 +87,26 @@ namespace Gameboard.Api.Services
                     entity
                 );
             else
+            {
+                if (!admin && model.Role != entity.Role)
+                    throw new ActionForbidden();
+
                 Mapper.Map(model, entity);
+            }
+
+            // check uniqueness
+            bool found = await Store.DbSet.AnyAsync(p =>
+                p.Id != entity.Id &&
+                p.Name == entity.Name
+            );
+
+            if (found)
+                entity.NameStatus = AppConstants.NameStatusNotUnique;
+            else if (entity.NameStatus == AppConstants.NameStatusNotUnique)
+                entity.NameStatus = "";
+
+            if (entity.Name == entity.ApprovedName)
+                entity.NameStatus = "";
 
             await Store.Update(entity);
 
@@ -97,8 +126,21 @@ namespace Gameboard.Api.Services
         {
             var q = Store.List(model.Term);
 
+            if (model.Term.HasValue())
+                q = q.Where(u =>
+                    u.Id.StartsWith(model.Term) ||
+                    u.Name.ToLower().Contains(model.Term) ||
+                    u.ApprovedName.ToLower().Contains(model.Term)
+                );
+
             if (model.WantsRoles)
                 q = q.Where(u => ((int)u.Role) > 0);
+
+            if (model.WantsPending)
+                q = q.Where(u => string.IsNullOrEmpty(u.NameStatus) && u.Name != u.ApprovedName);
+
+            if (model.WantsDisallowed)
+                q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus));
 
             q = q.OrderBy(p => p.ApprovedName);
 

@@ -2,24 +2,26 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using AutoMapper;
-using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
-using TopoMojo.Api.Client;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {
-    public class ChallengeService : _Service
+    public class ChallengeService : _Service, IApiKeyAuthenticationService
     {
         IChallengeStore Store { get; }
         ITopoMojoApiClient Mojo { get; }
 
         private IMemoryCache _localcache;
+        private ConsoleActorMap _actorMap;
 
         public ChallengeService(
             ILogger<ChallengeService> logger,
@@ -27,15 +29,17 @@ namespace Gameboard.Api.Services
             CoreOptions options,
             IChallengeStore store,
             ITopoMojoApiClient mojo,
-            IMemoryCache localcache
+            IMemoryCache localcache,
+            ConsoleActorMap actorMap
         ) : base(logger, mapper, options)
         {
             Store = store;
             Mojo = mojo;
             _localcache = localcache;
+            _actorMap = actorMap;
         }
 
-        public async Task<Challenge> GetOrAdd(NewChallenge model)
+        public async Task<Challenge> GetOrAdd(NewChallenge model, string actorId, string graderUrl)
         {
             var entity = await Store.Load(model);
 
@@ -43,11 +47,39 @@ namespace Gameboard.Api.Services
                 return Mapper.Map<Challenge>(entity);
 
             var player = await Store.DbContext.Players.FindAsync(model.PlayerId);
-            var game = await Store.DbContext.Games.FindAsync(player.GameId);
-            var spec = await Store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
+
+            var game = await Store.DbContext.Games
+                .Include(g => g.Prerequisites)
+                .Where(g => g.Id == player.GameId)
+                .FirstOrDefaultAsync()
+            ;
 
             if ((await Store.ChallengeGamespaceCount(player.TeamId)) >= game.GamespaceLimitPerSession)
                 throw new GamespaceLimitReached();
+
+            if ((await IsUnlocked(player, game, model.SpecId)).Equals(false))
+                throw new ChallengeLocked();
+
+            var lockkey = $"{player.TeamId}{model.SpecId}";
+            var lockval = Guid.NewGuid();
+            var locked = _localcache.GetOrCreate(lockkey, entry => {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
+                return lockval;
+            });
+
+            if (locked != lockval)
+                throw new ChallengeStartPending();
+
+            var spec = await Store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
+
+            string graderKey = Guid.NewGuid().ToString("n");
+
+            int playerCount = (game.AllowTeam)
+                ? await Store.DbContext.Players.CountAsync(
+                    p => p.TeamId == player.TeamId
+                )
+                : 1
+            ;
 
             entity = Mapper.Map<Data.Challenge>(model);
 
@@ -57,37 +89,79 @@ namespace Gameboard.Api.Services
 
             entity.TeamId = player.TeamId;
 
-            var state = await Mojo.RegisterGamespaceAsync(new GamespaceRegistration
+            entity.GraderKey = graderKey.ToSha256();
+
+            try {
+                var state = await Mojo.RegisterGamespaceAsync(new GamespaceRegistration
+                {
+                    Players = new RegistrationPlayer[] {
+                        new RegistrationPlayer {
+                            SubjectId = player.TeamId,
+                            SubjectName = player.Name
+                        }
+                    },
+                    ResourceId = entity.ExternalId,
+                    Variant = model.Variant,
+                    Points = spec.Points,
+                    MaxAttempts = game.MaxAttempts,
+                    StartGamespace = true,
+                    ExpirationTime = entity.Player.SessionEnd,
+                    GraderKey = graderKey,
+                    GraderUrl = graderUrl,
+                    PlayerCount = playerCount
+                });
+
+                Transform(state);
+
+                Mapper.Map(state, entity);
+
+                entity.Events.Add(new Data.ChallengeEvent
+                {
+                    Id = Guid.NewGuid().ToString("n"),
+                    UserId = actorId,
+                    TeamId = entity.TeamId,
+                    Timestamp = DateTimeOffset.UtcNow,
+                    Type = ChallengeEventType.Started
+                });
+
+                await Store.Create(entity);
+
+                await Store.UpdateEtd(entity.SpecId);
+            }
+            catch (Exception ex)
             {
-                Players = new RegistrationPlayer[] {
-                    new RegistrationPlayer {
-                        SubjectId = player.TeamId,
-                        SubjectName = player.Name
-                    }
-                },
-                ResourceId = entity.ExternalId,
-                Variant = model.Variant,
-                Points = spec.Points,
-                MaxAttempts = game.MaxAttempts,
-                StartGamespace = true,
-                ExpirationTime = entity.Player.SessionEnd
-            });
-
-            Transform(state);
-
-            Mapper.Map(state, entity);
-
-            await Store.Create(entity);
-
-            await Store.UpdateEtd(entity.SpecId);
+                throw ex;
+            }
+            finally
+            {
+               _localcache.Remove(lockkey);
+            }
 
             return Mapper.Map<Challenge>(entity);
+        }
+
+        private async Task<bool> IsUnlocked(Data.Player player, Data.Game game, string specId)
+        {
+            bool result = true;
+
+            foreach (var prereq in game.Prerequisites.Where(p => p.TargetId == specId))
+            {
+                var condition = await Store.DbSet.AnyAsync(c =>
+                    c.TeamId == player.TeamId &&
+                    c.SpecId == prereq.RequiredId &&
+                    c.Score >= prereq.RequiredScore
+                );
+
+                result &= condition;
+            }
+
+            return result;
         }
 
         public async Task<Challenge> Retrieve(string id)
         {
             var result = Mapper.Map<Challenge>(
-                await Store.Retrieve(id)
+                await Store.Load(id)
             );
 
             return result;
@@ -176,6 +250,9 @@ namespace Gameboard.Api.Services
                 .ToArrayAsync()
             ;
 
+            foreach (var challenge in challenges)
+                _actorMap.RemoveTeam(challenge.TeamId);
+
             var tasks = challenges.Select(
                 c => Sync(c)
             );
@@ -188,9 +265,17 @@ namespace Gameboard.Api.Services
             if (task is null)
                 task = Mojo.LoadGamespaceAsync(entity.Id);
 
-            var state = await task;
+            try
+            {
+                var state = await task;
 
-            Mapper.Map(state, entity);
+                Mapper.Map(state, entity);
+            }
+            catch (Exception ex)
+            {
+                entity.LastSyncTime = DateTimeOffset.Now;
+                Logger.LogError(ex, "Sync error on {0} {1}", entity.Id, entity.Name);
+            }
 
             await Store.Update(entity);
 
@@ -204,36 +289,67 @@ namespace Gameboard.Api.Services
             return await Sync(entity, task);
         }
 
-        public async Task<Challenge> StartGamespace(string id)
+        public async Task<Challenge> StartGamespace(string id, string actorId)
         {
-            var challenge = await Store.Retrieve(id);
+            var entity = await Store.Retrieve(id);
 
-            var game = await Store.DbContext.Games.FindAsync(challenge.GameId);
+            var game = await Store.DbContext.Games.FindAsync(entity.GameId);
 
-            if ((await Store.ChallengeGamespaceCount(challenge.TeamId)) >= game.GamespaceLimitPerSession)
+            if ((await Store.ChallengeGamespaceCount(entity.TeamId)) >= game.GamespaceLimitPerSession)
                 throw new GamespaceLimitReached();
 
-            var entity = await Sync(
-                id,
+            entity.Events.Add(new Data.ChallengeEvent
+            {
+                Id = Guid.NewGuid().ToString("n"),
+                UserId = actorId,
+                TeamId = entity.TeamId,
+                Timestamp = DateTimeOffset.UtcNow,
+                Type = ChallengeEventType.GamespaceOn
+            });
+
+            await Sync(
+                entity,
                 Mojo.StartGamespaceAsync(id)
             );
 
             return Mapper.Map<Challenge>(entity);
         }
 
-        public async Task<Challenge> StopGamespace(string id)
+        public async Task<Challenge> StopGamespace(string id, string actorId)
         {
-            var entity = await Sync(
-                id,
+            var entity = await Store.Retrieve(id);
+
+            entity.Events.Add(new Data.ChallengeEvent
+            {
+                Id = Guid.NewGuid().ToString("n"),
+                UserId = actorId,
+                TeamId = entity.TeamId,
+                Timestamp = DateTimeOffset.UtcNow,
+                Type = ChallengeEventType.GamespaceOff
+            });
+
+            await Sync(
+                entity,
                 Mojo.StopGamespaceAsync(id)
             );
 
             return Mapper.Map<Challenge>(entity);
         }
 
-        public async Task<Challenge> Grade(SectionSubmission model)
+        public async Task<Challenge> Grade(SectionSubmission model, string actorId)
         {
             var entity = await Store.Retrieve(model.Id);
+
+            // TODO: don't log auto-grader events
+            // if (model.Id != actorId)
+            entity.Events.Add(new Data.ChallengeEvent
+            {
+                Id = Guid.NewGuid().ToString("n"),
+                UserId = actorId,
+                TeamId = entity.TeamId,
+                Timestamp = DateTimeOffset.UtcNow,
+                Type = ChallengeEventType.Submission
+            });
 
             double currentScore = entity.Score;
 
@@ -248,27 +364,32 @@ namespace Gameboard.Api.Services
             return Mapper.Map<Challenge>(entity);
         }
 
-        public async Task<Challenge> ReGrade(string id)
+        public async Task<Challenge> Regrade(string id)
         {
             var entity = await Store.Retrieve(id);
 
             double currentScore = entity.Score;
 
-            // TODO: implement ReGrade on TopoMojo
+            var result = await Sync(
+                entity,
+                Mojo.RegradeChallengeAsync(id)
+            );
 
-            // var result = await Sync(
-            //     entity,
-            //     Mojo.RedGradeChallengeAsync(id)
-            // );
-
-            // if (result.Score > currentScore)
-            //     await Store.UpdateTeam(entity.TeamId);
+            if (result.Score > currentScore)
+                await Store.UpdateTeam(entity.TeamId);
 
             return Mapper.Map<Challenge>(entity);
         }
 
         public async Task<ConsoleSummary> GetConsole(ConsoleRequest model, bool observer)
         {
+            var challenge = Mapper.Map<Challenge>(
+                await Store.Retrieve(model.SessionId)
+            );
+
+            if (!challenge.State.Vms.Any(v => v.Name == model.Name))
+                throw new ResourceNotFound();
+
             switch (model.Action)
             {
                 case ConsoleAction.Ticket:
@@ -292,12 +413,50 @@ namespace Gameboard.Api.Services
                         Id = vm.Id,
                         Name = vm.Name,
                         SessionId = model.SessionId,
-                        IsRunning = vm.State == VmPowerState.Running
+                        IsRunning = vm.State == VmPowerState.Running,
+                        IsObserver = observer
                     };
 
             }
 
             throw new InvalidConsoleAction();
+        }
+
+        public async Task<string> ResolveApiKey(string key)
+        {
+            if (key.IsEmpty())
+                return null;
+
+            var entity = await Store.ResolveApiKey(key.ToSha256());
+
+            return entity?.Id;
+        }
+
+        internal async Task<ConsoleActor> SetConsoleActor(ConsoleRequest model, string id, string name)
+        {
+            var entity = await Store.DbSet
+                .Include(c => c.Player)
+                .FirstOrDefaultAsync(c => c.Id == model.SessionId)
+            ;
+
+            return new ConsoleActor
+            {
+                UserId = id,
+                UserName = name,
+                PlayerName = entity.Player.Name,
+                ChallengeName = entity.Name,
+                ChallengeId = model.SessionId,
+                GameId = entity.GameId,
+                TeamId = entity.TeamId,
+                VmName = model.Name,
+                Timestamp = DateTimeOffset.UtcNow
+            };
+
+        }
+
+        internal async Task<SectionSubmission[]> Audit(string id)
+        {
+            return (await Mojo.AuditChallengeAsync(id)).ToArray();
         }
 
         private void Transform(GameState state)

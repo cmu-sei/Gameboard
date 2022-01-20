@@ -13,9 +13,11 @@ namespace Gameboard.Api
         public string TeamId { get; set; }
         public string UserId { get; set; }
         public string UserName { get; set; }
+        public string UserApprovedName { get; set; }
         public string GameId { get; set; }
         public string ApprovedName { get; set; }
         public string Name { get; set; }
+        public string NameStatus { get; set; }
         public string Sponsor { get; set; }
         public PlayerRole Role { get; set; }
         public DateTimeOffset SessionBegin { get; set; }
@@ -26,6 +28,7 @@ namespace Gameboard.Api
         public long Time { get; set; }
         public int CorrectCount { get; set; }
         public int PartialCount { get; set; }
+        public bool Advanced { get; set; }
         public bool IsManager { get; set; }
     }
 
@@ -41,15 +44,21 @@ namespace Gameboard.Api
     {
         public string Id { get; set; }
         public string Name { get; set; }
-        public string Sponsor { get; set; }
+        public string NameStatus { get; set; }
         public string ApprovedName { get; set; }
+        public string Sponsor { get; set; }
         public PlayerRole Role { get; set; }
     }
     public class SessionStartRequest
     {
         public string Id { get; set; }
-        public string GameId { get; set; }
 
+    }
+
+    public class SessionChangeRequest
+    {
+        public string TeamId { get; set; }
+        public DateTimeOffset SessionEnd { get; set; }
     }
 
     public class SelfChangedPlayer
@@ -77,6 +86,7 @@ namespace Gameboard.Api
         public long Time { get; set; }
         public int CorrectCount { get; set; }
         public int PartialCount { get; set; }
+        public bool Advanced { get; set; }
     }
 
     public class TeamInvitation
@@ -86,7 +96,9 @@ namespace Gameboard.Api
 
     public class TeamAdvancement
     {
-        public string TeamId { get; set; }
+        public string[] TeamIds { get; set; }
+        public string GameId { get; set; }
+        public bool WithScores { get; set; }
         public string NextGameId { get; set; }
     }
 
@@ -94,6 +106,7 @@ namespace Gameboard.Api
     {
         public string TeamId { get; set; }
         public string GameId { get; set; }
+        public string Sponsor { get; set; }
         public DateTimeOffset SessionBegin { get; set; }
         public DateTimeOffset SessionEnd { get; set; }
         public int Rank { get; set; }
@@ -101,24 +114,51 @@ namespace Gameboard.Api
         public long Time { get; set; }
         public int CorrectCount { get; set; }
         public int PartialCount { get; set; }
+        public bool Advanced { get; set; }
         public ICollection<TeamChallenge> Challenges { get; set; } = new List<TeamChallenge>();
         public ICollection<TeamMember> Members { get; set; } = new List<TeamMember>();
 
     }
 
+    public class TeamSummary
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public string Sponsor { get; set; }
+        public string[] Members { get; set; }
+    }
 
     public class PlayerDataFilter: SearchFilter
     {
+
+        public const string FilterActiveOnly = "active";
+        public const string FilterCompleteOnly = "complete";
+        public const string FilterScoredOnly = "scored";
+        public const string FilterAdvancedOnly = "advanced";
+        public const string FilterDismissedOnly = "dismissed";
         public const string FilterCollapseTeams = "collapse";
+        public const string NamePendingFilter = "pending";
+        public const string NameDisallowedFilter = "disallowed";
+        public const string SortRank = "rank";
+        public const string SortTime = "time";
         public string tid { get; set; }
         public string gid { get; set; }
         public string uid { get; set; }
         public string org { get; set; }
+        public bool WantsActive => Filter.Contains(FilterActiveOnly);
+        public bool WantsComplete => Filter.Contains(FilterCompleteOnly);
+        public bool WantsAdvanced => Filter.Contains(FilterAdvancedOnly);
+        public bool WantsDismissed => Filter.Contains(FilterDismissedOnly);
+        public bool WantsScored => Filter.Contains(FilterScoredOnly);
         public bool WantsGame => gid.NotEmpty();
         public bool WantsUser => uid.NotEmpty();
         public bool WantsTeam => tid.NotEmpty();
         public bool WantsOrg => org.NotEmpty();
         public bool WantsCollapsed => Filter.Contains(FilterCollapseTeams);
+        public bool WantsPending => Filter.Contains(NamePendingFilter);
+        public bool WantsDisallowed => Filter.Contains(NameDisallowedFilter);
+        public bool WantsSortByTime => Sort == SortTime;
+        public bool WantsSortByRank => Sort == SortRank || string.IsNullOrEmpty(Sort);
     }
 
     public class BoardPlayer
@@ -129,6 +169,7 @@ namespace Gameboard.Api
         public string GameId { get; set; }
         public string ApprovedName { get; set; }
         public string Name { get; set; }
+        public string NameStatus { get; set; }
         public string Sponsor { get; set; }
         public PlayerRole Role { get; set; }
         public DateTimeOffset SessionBegin { get; set; }
@@ -152,6 +193,7 @@ namespace Gameboard.Api
         public string ApprovedName { get; set; }
         public string UserName { get; set; }
         public string UserApprovedName { get; set; }
+        public string UserNameStatus { get; set; }
         public string Sponsor { get; set; }
         public PlayerRole Role { get; set; }
         public bool IsManager => Role == PlayerRole.Manager;
@@ -162,6 +204,7 @@ namespace Gameboard.Api
         public string TeamId { get; set; }
         public string ApprovedName { get; set; }
         public string Name { get; set; }
+        public string NameStatus { get; set; }
         public DateTimeOffset SessionBegin { get; set; }
         public DateTimeOffset SessionEnd { get; set; }
     }

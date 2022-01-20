@@ -87,6 +87,7 @@ namespace Gameboard.Api
         public bool AllowPreview { get; set; }
         public bool AllowReset { get; set; }
         public ICollection<BoardSpec> Specs { get; set; } = new List<BoardSpec>();
+        public ICollection<ChallengeGate> Prerequisites { get; set; } = new List<ChallengeGate>();
 
     }
 

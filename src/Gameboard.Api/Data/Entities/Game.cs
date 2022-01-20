@@ -47,7 +47,7 @@ namespace Gameboard.Api.Data
         public ICollection<ChallengeSpec> Specs { get; set; } = new List<ChallengeSpec>();
         public ICollection<Player> Players { get; set; } = new List<Player>();
         public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
-
+        public ICollection<ChallengeGate> Prerequisites { get; set; } = new List<ChallengeGate>();
 
         [NotMapped] public bool RequireSession => SessionMinutes > 0;
         [NotMapped] public bool RequireTeam => MinTeamSize > 1;

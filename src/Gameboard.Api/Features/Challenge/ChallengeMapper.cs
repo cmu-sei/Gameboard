@@ -15,8 +15,6 @@ namespace Gameboard.Api.Services
         {
             CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
 
-
-
             CreateMap<Data.Challenge, TeamChallenge>();
 
             CreateMap<Challenge, Data.Challenge>();
@@ -53,9 +51,13 @@ namespace Gameboard.Api.Services
                 .ForMember(d => d.Score, opt => opt.MapFrom(s => (int)Math.Floor(s.Score)))
             ;
 
+            CreateMap<Data.ChallengeEvent, ChallengeEvent>()
+            ;
+
             CreateMap<TopoMojo.Api.Client.VmConsole, ConsoleSummary>()
                 .ForMember(d => d.SessionId, opt => opt.MapFrom(s => s.IsolationId))
             ;
+
             JsonOptions = new JsonSerializerOptions
             {
                 AllowTrailingCommas = true,
