@@ -102,6 +102,16 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.Name).HasMaxLength(128);
             });
 
+            builder.Entity<Feedback>(b => {
+                b.Property(u => u.Id).HasMaxLength(40);
+                b.Property(u => u.UserId).HasMaxLength(40);
+                b.Property(u => u.PlayerId).HasMaxLength(40);
+                b.Property(u => u.ChallengeId).HasMaxLength(40);
+                b.Property(u => u.ChallengeSpecId).HasMaxLength(40);
+                b.Property(u => u.GameId).HasMaxLength(40);
+                b.Property(u => u.Answers).HasMaxLength(8192);
+            });
+
         }
 
         public DbSet<User> Users { get; set; }
@@ -112,5 +122,6 @@ namespace Gameboard.Api.Data
         public DbSet<ChallengeSpec> ChallengeSpecs { get; set; }
         public DbSet<ChallengeGate> ChallengeGates { get; set; }
         public DbSet<Sponsor> Sponsors { get; set; }
+        public DbSet<Feedback> Feedback { get; set; }
     }
 }

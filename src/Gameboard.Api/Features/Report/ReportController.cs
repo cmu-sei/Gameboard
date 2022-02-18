@@ -18,15 +18,18 @@ namespace Gameboard.Api.Controllers
             ILogger<ReportController> logger,
             IDistributedCache cache,
             ReportService service,
-            GameService gameService
+            GameService gameService,
+            FeedbackService feedbackService
         ): base(logger, cache)
         {
             Service = service;
             GameService = gameService;
+            FeedbackService = feedbackService;
         }
 
         ReportService Service { get; }
         GameService GameService { get; }
+        FeedbackService FeedbackService { get; }
 
         [HttpGet("/api/report/userstats")]
         [Authorize]
@@ -325,5 +328,64 @@ namespace Gameboard.Api.Controllers
                 "application/octet-stream",
                 string.Format("challenge-details-report-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
         }
+
+        /// <summary>
+        /// Export challenge details to CSV
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [HttpGet("api/report/exportchallengefeedback/{id}")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportChallengeFeedback([FromRoute] string id)
+        {
+            // AuthorizeAny(
+            //     () => Actor.IsObserver
+            // );
+
+            var feedback = await FeedbackService.ListByChallengeSpec(id);
+            if (feedback.Length < 1)
+            {
+                return NotFound();
+            }
+
+            var game = await GameService.Retrieve(feedback[0].GameId);
+
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            // var results = new List<System.Dynamic.ExpandoObject>();
+            // foreach (Feedback response in feedback)
+            // {
+            //     dynamic feedbackRow = new System.Dynamic.ExpandoObject();
+            //     feedbackRow.test = response.Questions;
+            //     results.Add(feedbackRow);
+            // }
+
+            // List<ChallengeDetailsExport> challengeDetails = new List<ChallengeDetailsExport>();
+            // challengeDetails.Add(new ChallengeDetailsExport { GameName = "Game", ChallengeName = "Challenge", Tag = "Tag", Question = "Question", Points = "Points / % of Total", Solves = 
+            //     "Solves / % of Attempts Correct" });
+
+            // foreach (ChallengeStat stat in result.Stats)
+            // {
+            //     var challengeDetail = await Service.GetChallengeDetails(stat.Id);
+
+            //     foreach (Part part in challengeDetail.Parts)
+            //     {
+            //         challengeDetails.Add(new ChallengeDetailsExport { GameName = game.Name, ChallengeName = stat.Name, Tag = stat.Tag, Question = part.Text, 
+            //             Points = part.Weight.ToString() + " / " + (part.Weight / stat.Points).ToString("P", CultureInfo.InvariantCulture),
+            //             Solves = part.SolveCount.ToString() + " / " + ((decimal)part.SolveCount / (decimal)challengeDetail.AttemptCount).ToString("P", CultureInfo.InvariantCulture)
+            //         });
+            //     }
+            // }
+
+            return File(
+                Service.ConvertToBytes(feedback),
+                "application/octet-stream",
+                string.Format("challenge-feedback-report-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+        }
+
     }
 }
