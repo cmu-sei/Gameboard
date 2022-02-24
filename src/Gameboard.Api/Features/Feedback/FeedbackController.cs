@@ -65,8 +65,7 @@ namespace Gameboard.Api.Controllers
         public async Task<Feedback> Submit([FromBody]FeedbackSubmission model)
         {
             AuthorizeAny(
-                () => model.ChallengeId.IsEmpty() && model.ChallengeSpecId.IsEmpty(),
-                () => ChallengeService.UserIsTeamPlayer(model.ChallengeId, Actor.Id).Result
+                () => FeedbackService.UserIsEnrolled(model.GameId, Actor.Id).Result
             );
 
             await Validate(model);

@@ -9,10 +9,10 @@ namespace Gameboard.Api.Validators
 {
     public class FeedbackValidator: IModelValidator
     {
-        private readonly IChallengeStore _store;
+        private readonly IFeedbackStore _store;
 
         public FeedbackValidator(
-            IChallengeStore store
+            IFeedbackStore store
         )
         {
             _store = store;
@@ -37,17 +37,14 @@ namespace Gameboard.Api.Validators
 
         private async Task _validate(FeedbackSubmission model)
         {
-            // if ((await UserExists(model.UserId)).Equals(false))
-            //     throw new ResourceNotFound();
-
-            // if ((await PlayerExists(model.PlayerId)).Equals(false))
-            //     throw new ResourceNotFound();
-
-            if ((await SpecExists(model.ChallengeSpecId)).Equals(false))
+            if (model.ChallengeSpecId.NotEmpty() && (await SpecExists(model.ChallengeSpecId)).Equals(false))
                 throw new ResourceNotFound();
 
-            if ((await ChallengeExists(model.ChallengeId)).Equals(false))
+            if (model.ChallengeId.NotEmpty() && (await ChallengeExists(model.ChallengeId)).Equals(false))
                 throw new ResourceNotFound();
+
+            if (model.ChallengeId.IsEmpty() != model.ChallengeSpecId.IsEmpty())
+                throw new InvalideFeedbackFormat();
 
             if ((await GameExists(model.GameId)).Equals(false))
                 throw new ResourceNotFound();
@@ -58,22 +55,28 @@ namespace Gameboard.Api.Validators
             // if (player.IsLive.Equals(false))
             //   throw new SessionNotActive();
 
-            var game = await _store.DbContext.Games.FindAsync(model.GameId);
-            var spec = await _store.DbContext.ChallengeSpecs.FindAsync(model.ChallengeSpecId);
-            var challenge = await _store.DbContext.Challenges.FindAsync(model.ChallengeId);
 
-            if (spec.GameId != game.Id)
-              throw new ActionForbidden();
+            if (model.ChallengeSpecId.NotEmpty() && model.ChallengeId.NotEmpty()) { // aka, a challenge-specific feedback response
+                var game = await _store.DbContext.Games.FindAsync(model.GameId);
+                var spec = await _store.DbContext.ChallengeSpecs.FindAsync(model.ChallengeSpecId);
+                var challenge = await _store.DbContext.Challenges.FindAsync(model.ChallengeId);
+
+                if (spec.GameId != game.Id)
+                throw new ActionForbidden();
+
+                if (spec.Id != challenge.SpecId)
+                throw new ActionForbidden();
+            }
 
             // if (spec.GameId != player.GameId)
             //   throw new ActionForbidden();
 
-            if (spec.Id != challenge.SpecId)
-              throw new ActionForbidden();
+            
 
             // if (player.UserId != model.UserId)
             //   throw new ActionForbidden();
 
+            //todo, improve validation
             await Task.CompletedTask;
         }
 

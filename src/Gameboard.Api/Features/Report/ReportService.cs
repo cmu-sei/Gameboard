@@ -21,7 +21,8 @@ namespace Gameboard.Api.Services
             IMapper mapper,
             CoreOptions options,
             GameboardDbContext store,
-            ChallengeService challengeService
+            ChallengeService challengeService,
+            GameService gameService
         ): base (logger, mapper, options)
         {
             Store = store;
@@ -212,6 +213,52 @@ namespace Gameboard.Api.Services
             challengeDetailReport.ChallengeId = id;
 
             return challengeDetailReport;
+        }
+
+        internal List<QuestionStats> GetFeedbackStats(QuestionTemplate[] questionTemplate, FeedbackReportHelper[] expandedTable)
+        {
+            List<QuestionStats> questionStats = new List<QuestionStats>();
+            foreach (QuestionTemplate question in questionTemplate)
+            {
+                if (question.Type != "likert")
+                    continue;
+
+                List<int> answers = new List<int>();
+                foreach (var response in expandedTable.Where(f => f.Submitted || true))
+                {
+                    var answer = response.IdToAnswer.GetValueOrDefault(question.Id, null);
+                    if (answer != null)
+                        answers.Add(Int32.Parse(answer));
+                }
+                var newStat = new QuestionStats {
+                    Id = question.Id,
+                    Prompt = question.Prompt,
+                    ShortName = question.ShortName,
+                    ScaleMin = question.Min,
+                    ScaleMax = question.Max,
+                    Count = answers.Count(),
+                };
+                if (newStat.Count > 0) 
+                {
+                    newStat.Average = answers.Average();
+                    newStat.Lowest = answers.Min();
+                    newStat.Highest = answers.Max();
+                }
+                questionStats.Add(newStat);
+            }
+            return questionStats;
+        }
+
+        internal string GetFeedbackFilename(string gameName, bool wantsGame, bool wantsSpecificChallenge, string challengeTag, bool isStats)
+        {
+            string filename = string.Format(
+                "{0}-{1}-feedback{2}-{3}", 
+                wantsSpecificChallenge ? challengeTag : gameName,
+                wantsGame ? "game" : "challenge",
+                isStats ? "-stats" : "",
+                DateTime.UtcNow.ToString("yyyy-MM-dd")
+            ) + ".csv";
+            return filename;
         }
 
         internal byte[] ConvertToBytes<T>(IEnumerable<T> collection)

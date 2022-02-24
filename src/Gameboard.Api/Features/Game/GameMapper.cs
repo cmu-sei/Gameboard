@@ -18,15 +18,25 @@ namespace Gameboard.Api.Services
 
             CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
 
+            // Use BeforeMap for custom mapping since Deserialize() could error and prevent Game from loading
+            // Need to not throw error if format is invalid. If Deserialize() could default to null on error, that would be ideal
             CreateMap<Data.Game, Game>()
-                .ForMember(d => d.FeedbackTemplate, opt => opt.MapFrom(s =>
-                    yaml.Deserialize<BoardFeedbackTemplate>(s.FeedbackConfig ?? "")
-                ));
+                .BeforeMap((src, dest) => {
+                    try {
+                        dest.FeedbackTemplate = yaml.Deserialize<BoardFeedbackTemplate>(src.FeedbackConfig ?? "");
+                    } catch {
+                        dest.FeedbackTemplate = null;
+                    }
+                });
 
             CreateMap<Data.Game, BoardGame>()
-                .ForMember(d => d.FeedbackTemplate, opt => opt.MapFrom(s =>
-                    yaml.Deserialize<BoardFeedbackTemplate>(s.FeedbackConfig)
-                ));
+                .BeforeMap((src, dest) => {
+                    try {
+                        dest.FeedbackTemplate = yaml.Deserialize<BoardFeedbackTemplate>(src.FeedbackConfig ?? "");
+                    } catch {
+                        dest.FeedbackTemplate = null;
+                    }
+                });
 
             CreateMap<Game, Data.Game>();
 

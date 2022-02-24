@@ -17,7 +17,7 @@ namespace Gameboard.Api.Services
 
             CreateMap<Data.Feedback, Api.Feedback>()
                 .ForMember(d => d.Questions, opt => opt.MapFrom(s =>
-                    JsonSerializer.Deserialize<FeedbackQuestion[]>(s.Answers, JsonOptions))
+                    JsonSerializer.Deserialize<QuestionSubmission[]>(s.Answers, JsonOptions))
                 );
 
             CreateMap<Api.Feedback, Data.Feedback>();
@@ -25,15 +25,21 @@ namespace Gameboard.Api.Services
             CreateMap<Api.FeedbackSubmission, Data.Feedback>()
                 .ForMember(d => d.Submitted, opt => opt.MapFrom(s => s.Submit))
                 .ForMember(d => d.Answers, opt => opt.MapFrom(s =>
-                    JsonSerializer.Serialize<FeedbackQuestion[]>(s.Questions, JsonOptions))
+                    JsonSerializer.Serialize<QuestionSubmission[]>(s.Questions, JsonOptions))
                 );
 
             CreateMap<Data.Feedback, Api.FeedbackReportDetails>()
                 .ForMember(d => d.Questions, opt => opt.MapFrom(s =>
-                        JsonSerializer.Deserialize<FeedbackQuestion[]>(s.Answers, JsonOptions))
+                        JsonSerializer.Deserialize<QuestionSubmission[]>(s.Answers, JsonOptions))
                 )
                 .ForMember(d => d.ApprovedName, opt => opt.MapFrom(s => s.Player.ApprovedName))
                 .ForMember(d => d.ChallengeTag, opt => opt.MapFrom(s => s.ChallengeSpec.Tag));
+
+            // Use a dictionary to map each question id in a response to the answer 
+            CreateMap<Api.FeedbackReportDetails, Api.FeedbackReportHelper>()
+                .AfterMap((src, dest) => {
+                    foreach (QuestionSubmission q in src.Questions) { dest.IdToAnswer.Add(q.Id, q.Answer); }
+                });
 
             JsonOptions = new JsonSerializerOptions
             {

@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Globalization;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -19,17 +22,20 @@ namespace Gameboard.Api.Controllers
             IDistributedCache cache,
             ReportService service,
             GameService gameService,
+            ChallengeSpecService challengeSpecService,
             FeedbackService feedbackService
         ): base(logger, cache)
         {
             Service = service;
             GameService = gameService;
             FeedbackService = feedbackService;
+            ChallengeSpecService = challengeSpecService;
         }
 
         ReportService Service { get; }
         GameService GameService { get; }
         FeedbackService FeedbackService { get; }
+        ChallengeSpecService ChallengeSpecService { get; }
 
         [HttpGet("/api/report/userstats")]
         [Authorize]
@@ -332,59 +338,158 @@ namespace Gameboard.Api.Controllers
         /// <summary>
         /// Export challenge details to CSV
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="model"></param> // todo
         /// <returns></returns>
-        [HttpGet("api/report/exportchallengefeedback/{id}")]
+        [HttpGet("api/report/exportfeedbackdetails")]
         [Authorize]
         [ProducesResponseType(typeof(FileContentResult), 200)]
-        public async Task<IActionResult> ExportChallengeFeedback([FromRoute] string id)
+        public async Task<IActionResult> ExportFeedbackDetails([FromQuery] FeedbackSearchParams model)
         {
-            // AuthorizeAny(
-            //     () => Actor.IsObserver
-            // );
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
 
-            var feedback = await FeedbackService.ListByChallengeSpec(id);
-            if (feedback.Length < 1)
-            {
+            // gameId must be specified, even for challenge feedback, since template is stored in Game
+            var game = await GameService.Retrieve(model.GameId);
+            if (game == null || game.FeedbackTemplate == null)
                 return NotFound();
+
+            var feedback = await FeedbackService.List(model);
+
+            QuestionTemplate[] questionTemplate;
+            if (model.WantsGame)
+                questionTemplate = game.FeedbackTemplate.Board;
+            else
+                questionTemplate = game.FeedbackTemplate.Challenge;
+            
+            if (questionTemplate == null)
+                return NotFound();
+
+            var expandedTable = FeedbackService.MakeHelperList(feedback);
+
+            // Create list to hold objects with dynamic attributes, key of dictionary is columnm name
+            var results = new List<IDictionary<string, object>>();
+            foreach (var response in expandedTable)
+            {
+                IDictionary<string, object> feedbackRow = new ExpandoObject() as IDictionary<string, Object>;
+                // Add all meta data from feedback response, columnms based on order of FeedbackReportExport definition
+                foreach (var p in typeof(FeedbackReportExport).GetProperties())
+                {
+                    feedbackRow.Add(p.Name, (p.GetValue(response, null)?.ToString() ?? ""));
+                }
+                // Add each individual response
+                foreach (var q in questionTemplate) {
+                    feedbackRow.Add(q.Prompt ?? q.Id, response.IdToAnswer.GetValueOrDefault(q.Id, ""));
+                }
+                results.Add(feedbackRow);
             }
 
-            var game = await GameService.Retrieve(feedback[0].GameId);
+            string challengeTag = "";
+            if (model.WantsSpecificChallenge)
+                challengeTag = (await ChallengeSpecService.Retrieve(model.ChallengeSpecId))?.Tag ?? "";
+            
+            string filename = Service.GetFeedbackFilename(game.Name, model.WantsGame, model.WantsSpecificChallenge, challengeTag, false);
+        
+            return File(
+                Service.ConvertToBytes(results),
+                "application/octet-stream",
+                filename);
+        }
 
-            if (game == null)
-            {
+        /// <summary>
+        /// Export challenge stats to CSV
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpGet("api/report/exportfeedbackstats")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportFeedbackStats([FromQuery] FeedbackSearchParams model)
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            // gameId must be specified, even for challenge feedback, since template is stored in Game
+            var game = await GameService.Retrieve(model.GameId);
+            if (game == null || game.FeedbackTemplate == null)
                 return NotFound();
-            }
 
-            // var results = new List<System.Dynamic.ExpandoObject>();
-            // foreach (Feedback response in feedback)
-            // {
-            //     dynamic feedbackRow = new System.Dynamic.ExpandoObject();
-            //     feedbackRow.test = response.Questions;
-            //     results.Add(feedbackRow);
-            // }
+            var feedback = await FeedbackService.List(model);
 
-            // List<ChallengeDetailsExport> challengeDetails = new List<ChallengeDetailsExport>();
-            // challengeDetails.Add(new ChallengeDetailsExport { GameName = "Game", ChallengeName = "Challenge", Tag = "Tag", Question = "Question", Points = "Points / % of Total", Solves = 
-            //     "Solves / % of Attempts Correct" });
+            QuestionTemplate[] questionTemplate;
+            if (model.WantsGame)
+                questionTemplate = game.FeedbackTemplate.Board;
+            else
+                questionTemplate = game.FeedbackTemplate.Challenge;
 
-            // foreach (ChallengeStat stat in result.Stats)
-            // {
-            //     var challengeDetail = await Service.GetChallengeDetails(stat.Id);
+            if (questionTemplate == null)
+                return NotFound();
 
-            //     foreach (Part part in challengeDetail.Parts)
-            //     {
-            //         challengeDetails.Add(new ChallengeDetailsExport { GameName = game.Name, ChallengeName = stat.Name, Tag = stat.Tag, Question = part.Text, 
-            //             Points = part.Weight.ToString() + " / " + (part.Weight / stat.Points).ToString("P", CultureInfo.InvariantCulture),
-            //             Solves = part.SolveCount.ToString() + " / " + ((decimal)part.SolveCount / (decimal)challengeDetail.AttemptCount).ToString("P", CultureInfo.InvariantCulture)
-            //         });
-            //     }
-            // }
+            var expandedTable = FeedbackService.MakeHelperList(feedback);
+
+            var result = Service.GetFeedbackStats(questionTemplate, expandedTable);
+
+            string challengeTag = "";
+            if (model.WantsSpecificChallenge)
+                challengeTag = (await ChallengeSpecService.Retrieve(model.ChallengeSpecId))?.Tag ?? "";
+            
+            string filename = Service.GetFeedbackFilename(game.Name, model.WantsGame, model.WantsSpecificChallenge, challengeTag, true);
 
             return File(
-                Service.ConvertToBytes(feedback),
+                Service.ConvertToBytes(result),
                 "application/octet-stream",
-                string.Format("challenge-feedback-report-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+                filename);
+        }
+
+        [HttpGet("/api/report/feedbackstats")]
+        [Authorize]
+        public async Task<ActionResult<FeedbackStats>> GetFeedbackStats([FromQuery] FeedbackSearchParams model)
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            // gameId must be specified, even for challenge feedback, since template is stored in Game
+            var game = await GameService.Retrieve(model.GameId);
+            if (game == null || game.FeedbackTemplate == null)
+                return NotFound();
+
+            model.SubmitStatus = "";
+            model.Take = 0;
+            model.Skip = 0;
+            model.Sort = "";
+            var feedback = await FeedbackService.List(model);
+
+            QuestionTemplate[] questionTemplate;
+            if (model.WantsGame)
+                questionTemplate = game.FeedbackTemplate.Board;
+            else
+                questionTemplate = game.FeedbackTemplate.Challenge;
+
+            if (questionTemplate == null)
+                return NotFound();
+
+            var submittedFeedback = feedback.Where(f => f.Submitted).ToArray();
+            var expandedTable = FeedbackService.MakeHelperList(submittedFeedback);
+
+            var questionStats = Service.GetFeedbackStats(questionTemplate, expandedTable);
+
+            var fullStats = new FeedbackStats 
+            {
+                GameId = game.Id,
+                ChallengeSpecId = model.ChallengeSpecId,
+                ConfiguredCount = questionTemplate.Length,
+                LikertCount = questionTemplate.Where(q => q.Type == "likert").Count(),
+                TextCount = questionTemplate.Where(q => q.Type == "text").Count(),
+                RequiredCount = questionTemplate.Where(q => q.Required).Count(),
+                ResponsesCount = feedback.Length,
+                InProgressCount = feedback.Length - submittedFeedback.Length,
+                SubmittedCount = submittedFeedback.Length,
+                QuestionStats = questionStats
+            };
+
+            return Ok(fullStats);
         }
 
     }

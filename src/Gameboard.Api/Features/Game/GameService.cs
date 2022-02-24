@@ -85,7 +85,8 @@ namespace Gameboard.Api.Services
             if (model.Take > 0)
                 q = q.Take(model.Take);
 
-            return await Mapper.ProjectTo<Game>(q).ToArrayAsync();
+            // Use map to support YAML parsing in automapper
+            return Mapper.Map<Game[]>(await q.ToArrayAsync());
         }
 
         public async Task<ChallengeSpec[]> RetrieveChallenges(string id)
