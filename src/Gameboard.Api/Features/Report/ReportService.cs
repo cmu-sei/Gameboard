@@ -234,6 +234,7 @@ namespace Gameboard.Api.Services
                     Id = question.Id,
                     Prompt = question.Prompt,
                     ShortName = question.ShortName,
+                    Required = question.Required,
                     ScaleMin = question.Min,
                     ScaleMax = question.Max,
                     Count = answers.Count(),

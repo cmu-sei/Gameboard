@@ -336,9 +336,9 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
-        /// Export challenge details to CSV
+        /// Export feedback response details to CSV
         /// </summary>
-        /// <param name="model"></param> // todo
+        /// <param name="model"></param>
         /// <returns></returns>
         [HttpGet("api/report/exportfeedbackdetails")]
         [Authorize]
@@ -354,14 +354,10 @@ namespace Gameboard.Api.Controllers
             if (game == null || game.FeedbackTemplate == null)
                 return NotFound();
 
-            var feedback = await FeedbackService.List(model);
+            model.SubmitStatus = "submitted";
+            var feedback = await FeedbackService.ListFull(model);
 
-            QuestionTemplate[] questionTemplate;
-            if (model.WantsGame)
-                questionTemplate = game.FeedbackTemplate.Board;
-            else
-                questionTemplate = game.FeedbackTemplate.Challenge;
-            
+            var questionTemplate = FeedbackService.GetTemplate(model.WantsGame, game);
             if (questionTemplate == null)
                 return NotFound();
 
@@ -377,9 +373,9 @@ namespace Gameboard.Api.Controllers
                 {
                     feedbackRow.Add(p.Name, (p.GetValue(response, null)?.ToString() ?? ""));
                 }
-                // Add each individual response
+                // Add each individual response as a new cell
                 foreach (var q in questionTemplate) {
-                    feedbackRow.Add(q.Prompt ?? q.Id, response.IdToAnswer.GetValueOrDefault(q.Id, ""));
+                    feedbackRow.Add($"{q.Id} - {q.Prompt}", response.IdToAnswer.GetValueOrDefault(q.Id, ""));
                 }
                 results.Add(feedbackRow);
             }
@@ -397,7 +393,7 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
-        /// Export challenge stats to CSV
+        /// Export feedback stats to CSV
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
@@ -415,14 +411,11 @@ namespace Gameboard.Api.Controllers
             if (game == null || game.FeedbackTemplate == null)
                 return NotFound();
 
-            var feedback = await FeedbackService.List(model);
+            model.SubmitStatus = "submitted";
+            model.Sort = "";
+            var feedback = await FeedbackService.ListFull(model);
 
-            QuestionTemplate[] questionTemplate;
-            if (model.WantsGame)
-                questionTemplate = game.FeedbackTemplate.Board;
-            else
-                questionTemplate = game.FeedbackTemplate.Challenge;
-
+            var questionTemplate = FeedbackService.GetTemplate(model.WantsGame, game);
             if (questionTemplate == null)
                 return NotFound();
 
@@ -456,17 +449,10 @@ namespace Gameboard.Api.Controllers
                 return NotFound();
 
             model.SubmitStatus = "";
-            model.Take = 0;
-            model.Skip = 0;
             model.Sort = "";
-            var feedback = await FeedbackService.List(model);
+            var feedback = await FeedbackService.ListFull(model);
 
-            QuestionTemplate[] questionTemplate;
-            if (model.WantsGame)
-                questionTemplate = game.FeedbackTemplate.Board;
-            else
-                questionTemplate = game.FeedbackTemplate.Challenge;
-
+            var questionTemplate = FeedbackService.GetTemplate(model.WantsGame, game);
             if (questionTemplate == null)
                 return NotFound();
 

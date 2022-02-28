@@ -32,7 +32,7 @@ namespace Gameboard.Api
     {
         public string Type { get; set; } = "text"; // if unspecified in config
         public bool Required { get; set; } = false; // if unspecified in config
-
+        
         // For 'likert' type questions only
         public int Min { get; set; } = 1;
         public int Max { get; set; }
@@ -40,9 +40,9 @@ namespace Gameboard.Api
         public string MaxLabel { get; set; }
     }
 
-    public class BoardFeedbackTemplate
+    public class GameFeedbackTemplate
     {
-        public QuestionTemplate[] Board { get; set; } = new QuestionTemplate[0];
+        public QuestionTemplate[] Game { get; set; } = new QuestionTemplate[0];
         public QuestionTemplate[] Challenge { get; set; } = new QuestionTemplate[0];
     }
     
@@ -127,6 +127,7 @@ namespace Gameboard.Api
         public string Id { get; set; }
         public string Prompt { get; set; }
         public string ShortName { get; set; }
+        public bool Required { get; set; }
         public double Average { get; set; } // mean of all ratings for this question
         public int ScaleMin { get; set; } // lower bound of likert scale (default 1)
         public int ScaleMax { get; set; } // upper bound of likert scale

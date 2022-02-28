@@ -26,4 +26,5 @@ namespace Gameboard.Api
     public class ChallengeStartPending: Exception {}
     public class SessionAlreadyStarted: Exception {}
     public class InvalideFeedbackFormat: Exception {}
+    public class MissingRequiredField: Exception {}
 }

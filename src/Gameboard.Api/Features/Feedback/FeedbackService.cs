@@ -134,22 +134,11 @@ namespace Gameboard.Api.Services
             return await Mapper.ProjectTo<FeedbackReportDetails>(q).ToArrayAsync();
         }
 
-        public async Task<Feedback[]> ListBySpec(string specId)
+        public async Task<FeedbackReportDetails[]> ListFull(FeedbackSearchParams model)
         {
-            var q = Store.List();
-
-            q = q.Where(u => u.ChallengeSpecId == specId);
-
-            return await Mapper.ProjectTo<Feedback>(q).ToArrayAsync();
-        }
-
-        public async Task<Feedback[]> ListByGame(string gameId, bool challengeOnly)
-        {
-            var q = Store.List();
-
-            q = q.Where(u => u.GameId == gameId && u.ChallengeSpecId == null);
-
-            return await Mapper.ProjectTo<Feedback>(q).ToArrayAsync();
+            model.Take = 0;
+            model.Skip = 0;
+            return await List(model);
         }
 
         public async Task<string> ResolveApiKey(string key)
@@ -170,7 +159,17 @@ namespace Gameboard.Api.Services
             );
         }
 
-         public FeedbackReportHelper[] MakeHelperList(FeedbackReportDetails[] feedback)
+        public QuestionTemplate[] GetTemplate(bool wantsGame, Game game)
+        {
+            QuestionTemplate[] questionTemplate;
+            if (wantsGame)
+                questionTemplate = game.FeedbackTemplate.Game;
+            else
+                questionTemplate = game.FeedbackTemplate.Challenge;
+            return questionTemplate;
+        }
+
+        public FeedbackReportHelper[] MakeHelperList(FeedbackReportDetails[] feedback)
         {
             var result = Mapper.Map<FeedbackReportDetails[], FeedbackReportHelper[]>(feedback);
             return result;
@@ -178,40 +177,34 @@ namespace Gameboard.Api.Services
 
         private async Task<bool> FeedbackMatchesTemplate(QuestionSubmission[] feedback, string gameId, string challengeId) {
             var game = Mapper.Map<Game>(await Store.DbContext.Games.FindAsync(gameId));
-            QuestionTemplate[] feedbackTemplate;
-            if (challengeId.IsEmpty())
-                feedbackTemplate = game.FeedbackTemplate.Board;
-            else 
-                feedbackTemplate = game.FeedbackTemplate.Challenge;
+            
+            var feedbackTemplate = GetTemplate(challengeId.IsEmpty(), game);
 
             if (feedbackTemplate.Length != feedback.Length)
-                return false;
-            // naive approach, only run on 'submit' and not 'autosave'?
+                throw new InvalideFeedbackFormat();
+
+            Dictionary<string, QuestionTemplate> templateMap = new Dictionary<string, QuestionTemplate>();
+            foreach (QuestionTemplate q in feedbackTemplate) { templateMap.Add(q.Id, q); }
+
             foreach (var q in feedback) 
             {
-                var template = Array.Find<QuestionTemplate>(feedbackTemplate, delegate(QuestionTemplate s) { return s.Id == q.Id; });
+                var template = templateMap.GetValueOrDefault(q.Id, null);
                 if (template == null)
-                    return false;
-                // if (template.Prompt != q.Prompt)
-                //     return false;
-                // if (template.Type != q.Type)
-                //     return false;
+                    throw new InvalideFeedbackFormat();
                 if (template.Required && q.Answer.IsEmpty())
-                    return false;
+                    throw new MissingRequiredField();
                 if (q.Answer.IsEmpty())
                     continue;
-                if (template.Type == "text" && q.Answer.Length > 4000)
-                    return false;
+                if (template.Type == "text" && q.Answer.Length > 2000)
+                    throw new InvalideFeedbackFormat();
                 if (template.Type == "likert" )
                 {
                     int answerInt;
                     bool isInt = Int32.TryParse(q.Answer, out answerInt);
                     if (!isInt || answerInt < template.Min || answerInt > template.Max)
-                        return false;
+                        throw new InvalideFeedbackFormat();
                 }
-                    
             }
-
             return true;
         }
 

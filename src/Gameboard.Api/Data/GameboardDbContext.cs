@@ -109,7 +109,6 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.ChallengeId).HasMaxLength(40);
                 b.Property(u => u.ChallengeSpecId).HasMaxLength(40);
                 b.Property(u => u.GameId).HasMaxLength(40);
-                b.Property(u => u.Answers).HasMaxLength(8192);
             });
 
         }

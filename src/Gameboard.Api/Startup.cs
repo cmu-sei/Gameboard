@@ -101,6 +101,19 @@ namespace Gameboard.Api
 
             services
                 .AddSingleton<CoreOptions>(_ => Settings.Core)
+                .AddSingleton<Defaults>(_ => {
+                    var file = Path.Combine(Environment.ContentRootPath,
+                        Configuration.GetValue<string>(Settings.Defaults.GlobalFeedbackTemplate, "feedback-template.yaml"));
+                    string template;
+                    if (File.Exists(file))
+                        template = File.ReadAllText(file);
+                    else
+                        template = Settings.Defaults.GlobalFeedbackTemplate;
+                    return new Defaults {
+                        GlobalFeedbackTemplate = template,
+                        FeedbackTemplateFile = Settings.Defaults.FeedbackTemplateFile
+                    };
+                })
                 .AddSingleton<INameService, NameService>()
                 .AddGameboardData(Settings.Database.Provider, Settings.Database.ConnectionString)
                 .AddGameboardServices()

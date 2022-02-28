@@ -23,7 +23,7 @@ namespace Gameboard.Api.Services
             CreateMap<Data.Game, Game>()
                 .BeforeMap((src, dest) => {
                     try {
-                        dest.FeedbackTemplate = yaml.Deserialize<BoardFeedbackTemplate>(src.FeedbackConfig ?? "");
+                        dest.FeedbackTemplate = yaml.Deserialize<GameFeedbackTemplate>(src.FeedbackConfig ?? "");
                     } catch {
                         dest.FeedbackTemplate = null;
                     }
@@ -32,7 +32,7 @@ namespace Gameboard.Api.Services
             CreateMap<Data.Game, BoardGame>()
                 .BeforeMap((src, dest) => {
                     try {
-                        dest.FeedbackTemplate = yaml.Deserialize<BoardFeedbackTemplate>(src.FeedbackConfig ?? "");
+                        dest.FeedbackTemplate = yaml.Deserialize<GameFeedbackTemplate>(src.FeedbackConfig ?? "");
                     } catch {
                         dest.FeedbackTemplate = null;
                     }

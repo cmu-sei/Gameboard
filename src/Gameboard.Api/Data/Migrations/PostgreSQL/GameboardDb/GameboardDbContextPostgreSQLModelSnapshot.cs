@@ -211,8 +211,7 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasColumnType("character varying(40)");
 
                     b.Property<string>("Answers")
-                        .HasMaxLength(8192)
-                        .HasColumnType("character varying(8192)");
+                        .HasColumnType("text");
 
                     b.Property<string>("ChallengeId")
                         .HasMaxLength(40)

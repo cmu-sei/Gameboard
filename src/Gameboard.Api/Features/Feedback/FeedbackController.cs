@@ -43,7 +43,7 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
-        /// ____
+        /// Gets feedback response
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
@@ -51,12 +51,16 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<Feedback> Retrieve([FromQuery] FeedbackSearchParams model)
         {
+            AuthorizeAny(
+                () => Actor.IsObserver,
+                () => FeedbackService.UserIsEnrolled(model.GameId, Actor.Id).Result
+            );
             return await FeedbackService.Retrieve(model, Actor.Id);
         }
 
 
         /// <summary>
-        /// _____
+        /// Saves feedback response
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
@@ -76,14 +80,17 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
-        /// _____
+        /// Lists feedback based on search params
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpGet("/api/feedback/list")]
-        [Authorize] // todo, admin-only
+        [Authorize]
         public async Task<FeedbackReportDetails[]> List([FromQuery] FeedbackSearchParams model)
         {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
             FeedbackReportDetails[] result = await FeedbackService.List(model);
             return result;
         }

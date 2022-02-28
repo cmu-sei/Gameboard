@@ -16,6 +16,7 @@ namespace Gameboard.Api
         public DatabaseOptions Database { get; set; } = new DatabaseOptions();
         public HeaderOptions Headers { get; set; } = new HeaderOptions();
         public OpenApiOptions OpenApi { get; set; } = new OpenApiOptions();
+        public Defaults Defaults { get; set; } = new Defaults();
 
     }
 
@@ -137,6 +138,12 @@ namespace Gameboard.Api
         public string DocFolder { get; set; } = "wwwroot/doc";
         public string ChallengeDocUrl { get; set; }
         public string SafeNamesFile { get; set; } = "names.json";
+    }
+
+    public class Defaults
+    {
+        public string FeedbackTemplateFile { get; set; } = "";
+        public string GlobalFeedbackTemplate { get; set; } = "";
     }
 
 }

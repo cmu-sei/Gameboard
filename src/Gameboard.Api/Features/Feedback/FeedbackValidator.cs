@@ -26,15 +26,6 @@ namespace Gameboard.Api.Validators
             throw new System.NotImplementedException();
         }
 
-        private async Task _validate(Entity model)
-        {
-            if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound();
-
-            await Task.CompletedTask;
-        }
-
-
         private async Task _validate(FeedbackSubmission model)
         {
             if (model.ChallengeSpecId.NotEmpty() && (await SpecExists(model.ChallengeSpecId)).Equals(false))
@@ -49,14 +40,7 @@ namespace Gameboard.Api.Validators
             if ((await GameExists(model.GameId)).Equals(false))
                 throw new ResourceNotFound();
 
-            // var player = await _store.DbContext.Players.FindAsync(model.PlayerId);
-
-            // maybe some constraints for session start
-            // if (player.IsLive.Equals(false))
-            //   throw new SessionNotActive();
-
-
-            if (model.ChallengeSpecId.NotEmpty() && model.ChallengeId.NotEmpty()) { // aka, a challenge-specific feedback response
+            if (model.ChallengeSpecId.NotEmpty() || model.ChallengeId.NotEmpty()) { // aka, a challenge-specific feedback response
                 var game = await _store.DbContext.Games.FindAsync(model.GameId);
                 var spec = await _store.DbContext.ChallengeSpecs.FindAsync(model.ChallengeSpecId);
                 var challenge = await _store.DbContext.Challenges.FindAsync(model.ChallengeId);
@@ -67,25 +51,8 @@ namespace Gameboard.Api.Validators
                 if (spec.Id != challenge.SpecId)
                 throw new ActionForbidden();
             }
-
-            // if (spec.GameId != player.GameId)
-            //   throw new ActionForbidden();
-
             
-
-            // if (player.UserId != model.UserId)
-            //   throw new ActionForbidden();
-
-            //todo, improve validation
             await Task.CompletedTask;
-        }
-
-        private async Task<bool> Exists(string id)
-        {
-            return
-                id.NotEmpty() &&
-                (await _store.Retrieve(id)) is Data.Challenge
-            ;
         }
 
         private async Task<bool> GameExists(string id)

@@ -18,19 +18,24 @@ namespace Gameboard.Api.Services
     public class GameService: _Service
     {
         IGameStore Store { get; }
-
+        Defaults Defaults { get; }
         public GameService (
             ILogger<GameService> logger,
             IMapper mapper,
             CoreOptions options,
+            Defaults defaults,
             IGameStore store
         ): base(logger, mapper, options)
         {
             Store = store;
+            Defaults = defaults; 
         }
 
         public async Task<Game> Create(NewGame model)
         {
+            if (Defaults.GlobalFeedbackTemplate.NotEmpty())
+                model.FeedbackConfig = Defaults.GlobalFeedbackTemplate;
+            
             var entity = Mapper.Map<Data.Game>(model);
 
             await Store.Create(entity);
@@ -84,7 +89,9 @@ namespace Gameboard.Api.Services
 
             if (model.Take > 0)
                 q = q.Take(model.Take);
-
+            
+            // Using Project instead of Map to skip YAML parsing in automapper, because not needed in list list
+            // return await Mapper.ProjectTo<Game>(q).ToArrayAsync();
             // Use map to support YAML parsing in automapper
             return Mapper.Map<Game[]>(await q.ToArrayAsync());
         }
