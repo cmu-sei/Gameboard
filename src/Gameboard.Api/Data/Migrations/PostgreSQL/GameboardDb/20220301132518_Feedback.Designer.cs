@@ -10,7 +10,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 {
     [DbContext(typeof(GameboardDbContextPostgreSQL))]
-    [Migration("20220228210950_Feedback")]
+    [Migration("20220301132518_Feedback")]
     partial class Feedback
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
