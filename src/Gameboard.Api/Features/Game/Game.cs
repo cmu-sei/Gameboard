@@ -57,7 +57,7 @@ namespace Gameboard.Api
 
     public class NewGame: GameDetail
     {
-
+        public bool IsClone { get; set; } = false;
     }
 
     public class ChangedGame: Game

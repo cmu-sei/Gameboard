@@ -262,6 +262,28 @@ namespace Gameboard.Api.Services
             return filename;
         }
 
+        public async Task<int> GetFeedbackMaxResponses(FeedbackSearchParams model)
+        {
+            int total = 0;
+            if (model.WantsGame) 
+            {
+                var ts = DateTimeOffset.UtcNow;
+                // count enrollments for a specific game id, that are started
+                total = await Store.Players.Where(p => p.GameId == model.GameId && p.SessionBegin < p.SessionEnd).CountAsync();
+            }
+            else if (model.WantsSpecificChallenge)
+            {
+                // count challenges with specific challenge spec id
+                total = await Store.Challenges.Where(p => p.SpecId == model.ChallengeSpecId).CountAsync();
+            }
+            else if (model.WantsChallenge)
+            {
+                // count challenges with specific game id
+                total = await Store.Challenges.Where(p => p.GameId == model.GameId).CountAsync();
+            }
+            return total;
+        }
+
         internal byte[] ConvertToBytes<T>(IEnumerable<T> collection)
         {
             var value = ServiceStack.StringExtensions.ToCsv(collection);

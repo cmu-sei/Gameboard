@@ -458,7 +458,7 @@ namespace Gameboard.Api.Controllers
 
             var submittedFeedback = feedback.Where(f => f.Submitted).ToArray();
             var expandedTable = FeedbackService.MakeHelperList(submittedFeedback);
-
+            var maxResponses = await Service.GetFeedbackMaxResponses(model);
             var questionStats = Service.GetFeedbackStats(questionTemplate, expandedTable);
 
             var fullStats = new FeedbackStats 
@@ -470,6 +470,7 @@ namespace Gameboard.Api.Controllers
                 TextCount = questionTemplate.Where(q => q.Type == "text").Count(),
                 RequiredCount = questionTemplate.Where(q => q.Required).Count(),
                 ResponsesCount = feedback.Length,
+                MaxResponseCount = maxResponses,
                 InProgressCount = feedback.Length - submittedFeedback.Length,
                 SubmittedCount = submittedFeedback.Length,
                 QuestionStats = questionStats

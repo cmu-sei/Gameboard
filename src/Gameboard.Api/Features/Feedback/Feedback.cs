@@ -116,6 +116,7 @@ namespace Gameboard.Api
         public int TextCount { get; set; }
         public int RequiredCount { get; set; }
         public int ResponsesCount { get; set; }
+        public int MaxResponseCount { get; set; }
         public int InProgressCount { get; set; }
         public int SubmittedCount { get; set; }
         public List<QuestionStats> QuestionStats { get; set; }
