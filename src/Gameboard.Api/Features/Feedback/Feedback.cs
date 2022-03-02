@@ -44,6 +44,7 @@ namespace Gameboard.Api
     {
         public QuestionTemplate[] Game { get; set; } = new QuestionTemplate[0];
         public QuestionTemplate[] Challenge { get; set; } = new QuestionTemplate[0];
+        public string Message { get; set; }
     }
     
 
