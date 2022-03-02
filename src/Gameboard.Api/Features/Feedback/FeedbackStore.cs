@@ -27,10 +27,14 @@ namespace Gameboard.Api.Data
         public async Task<Feedback> Load(Feedback model)
         {
             return await DbSet
-                .FirstOrDefaultAsync(c => c.Id == model.Id)
+                .FirstOrDefaultAsync(s =>
+                    s.ChallengeSpecId == model.ChallengeSpecId &&
+                    s.ChallengeId == model.ChallengeId &&
+                    s.UserId == model.UserId &&
+                    s.GameId == model.GameId
+                );
             ;
         }
-
 
         public async Task<Feedback> ResolveApiKey(string hash)
         {

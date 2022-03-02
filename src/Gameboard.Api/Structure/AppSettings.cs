@@ -142,8 +142,8 @@ namespace Gameboard.Api
 
     public class Defaults
     {
-        public string FeedbackTemplateFile { get; set; } = "";
-        public string GlobalFeedbackTemplate { get; set; } = "";
+        public string FeedbackTemplateFile { get; set; }
+        public string FeedbackTemplate { get; set; } = "";
     }
 
 }

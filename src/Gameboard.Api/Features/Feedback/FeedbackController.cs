@@ -52,7 +52,6 @@ namespace Gameboard.Api.Controllers
         public async Task<Feedback> Retrieve([FromQuery] FeedbackSearchParams model)
         {
             AuthorizeAny(
-                () => Actor.IsObserver,
                 () => FeedbackService.UserIsEnrolled(model.GameId, Actor.Id).Result
             );
             return await FeedbackService.Retrieve(model, Actor.Id);

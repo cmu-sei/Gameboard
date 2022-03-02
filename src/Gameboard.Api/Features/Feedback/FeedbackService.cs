@@ -44,25 +44,16 @@ namespace Gameboard.Api.Services
  
         public async Task<Feedback> Retrieve(FeedbackSearchParams model, string actorId)
         {
-            var entity = await Store.List().FirstOrDefaultAsync(s =>
-                s.ChallengeSpecId == model.ChallengeSpecId &&
-                s.GameId == model.GameId &&
-                s.UserId == actorId
-            );
+            var lookup = MakeFeedbackLookup(model.GameId, model.ChallengeId, model.ChallengeSpecId, actorId);
+            var entity = await Store.Load(lookup);
             return Mapper.Map<Feedback>(entity);
         }
 
        
         public async Task<Feedback> Submit(FeedbackSubmission model, string actorId)
         {
-
-            var entity = await Store.List()
-                .FirstOrDefaultAsync(s =>
-                    s.ChallengeSpecId == model.ChallengeSpecId &&
-                    s.ChallengeId == model.ChallengeId &&
-                    s.UserId == actorId &&
-                    s.GameId == model.GameId
-                );
+            var lookup = MakeFeedbackLookup(model.GameId, model.ChallengeId, model.ChallengeSpecId, actorId);
+            var entity = await Store.Load(lookup);
 
             if (model.Submit) // Only fully validate questions on submit as a slight optimization
             { 
@@ -77,11 +68,10 @@ namespace Gameboard.Api.Services
                     return Mapper.Map<Feedback>(entity);
                 }
                 Mapper.Map(model, entity);
-                entity.UserId = actorId;
-                entity.Timestamp = DateTimeOffset.UtcNow;
+                entity.Timestamp = DateTimeOffset.UtcNow; // always last saved/submitted
                 await Store.Update(entity);
             }
-            else // create new entity and 
+            else // create new entity and assign player based on user/game combination
             {
                 var player = await Store.DbContext.Players.FirstOrDefaultAsync(s =>
                     s.UserId == actorId &&
@@ -101,6 +91,7 @@ namespace Gameboard.Api.Services
             return Mapper.Map<Feedback>(entity);
         }
 
+        // List feedback responses based on params such as game/challenge filtering, skip/take, and sorting
         public async Task<FeedbackReportDetails[]> List(FeedbackSearchParams model)
         {
             var q = Store.List(model.Term);
@@ -134,6 +125,7 @@ namespace Gameboard.Api.Services
             return await Mapper.ProjectTo<FeedbackReportDetails>(q).ToArrayAsync();
         }
 
+        // Same as List() but ensures that query is not limited by take or skip
         public async Task<FeedbackReportDetails[]> ListFull(FeedbackSearchParams model)
         {
             model.Take = 0;
@@ -141,16 +133,18 @@ namespace Gameboard.Api.Services
             return await List(model);
         }
 
-        public async Task<string> ResolveApiKey(string key)
+        // Supports turning feedback search params or feedback submission into model to lookup with Load()
+        private Data.Feedback MakeFeedbackLookup(string gameId, string challengeId, string challengeSpecId, string userId)
         {
-            if (key.IsEmpty())
-                return null;
-
-            var entity = await Store.ResolveApiKey(key.ToSha256());
-
-            return entity?.Id;
+            return new Data.Feedback{
+                GameId = gameId,
+                ChallengeId = challengeId,
+                ChallengeSpecId = challengeSpecId,
+                UserId = userId
+            };
         }
 
+        // check that the actor/user is enrolled in this game they are trying to submit feedback for
         public async Task<bool> UserIsEnrolled(string gameId, string userId)
         {
             return await Store.DbContext.Users.AnyAsync(u =>
@@ -159,6 +153,7 @@ namespace Gameboard.Api.Services
             );
         }
 
+        // Simple helper for returning the feedback template questions based on type of feedback
         public QuestionTemplate[] GetTemplate(bool wantsGame, Game game)
         {
             QuestionTemplate[] questionTemplate;
@@ -169,12 +164,14 @@ namespace Gameboard.Api.Services
             return questionTemplate;
         }
 
+        // Maps report details to helper object to efficiently process individual questions based on question ids
         public FeedbackReportHelper[] MakeHelperList(FeedbackReportDetails[] feedback)
         {
             var result = Mapper.Map<FeedbackReportDetails[], FeedbackReportHelper[]>(feedback);
             return result;
         }
 
+        // Given a submission of questions and a gameId, check that the questions match the game template and meet requirements
         private async Task<bool> FeedbackMatchesTemplate(QuestionSubmission[] feedback, string gameId, string challengeId) {
             var game = Mapper.Map<Game>(await Store.DbContext.Games.FindAsync(gameId));
             
@@ -189,23 +186,33 @@ namespace Gameboard.Api.Services
             foreach (var q in feedback) 
             {
                 var template = templateMap.GetValueOrDefault(q.Id, null);
-                if (template == null)
+                if (template == null) // user submitted id that isn't in game template
                     throw new InvalideFeedbackFormat();
-                if (template.Required && q.Answer.IsEmpty())
+                if (template.Required && q.Answer.IsEmpty()) // requirement config is not met
                     throw new MissingRequiredField();
-                if (q.Answer.IsEmpty())
+                if (q.Answer.IsEmpty()) // don't validate answer is null/empty, if not required
                     continue;
-                if (template.Type == "text" && q.Answer.Length > 2000)
+                if (template.Type == "text" && q.Answer.Length > 2000) // universal character limit per text question 
                     throw new InvalideFeedbackFormat();
-                if (template.Type == "likert" )
+                if (template.Type == "likert" ) // because all likert options are ints, parse and check range with max config
                 {
                     int answerInt;
                     bool isInt = Int32.TryParse(q.Answer, out answerInt);
-                    if (!isInt || answerInt < template.Min || answerInt > template.Max)
+                    if (!isInt || answerInt < template.Min || answerInt > template.Max) // parsing failed or outside of range
                         throw new InvalideFeedbackFormat();
                 }
             }
             return true;
+        }
+
+        public async Task<string> ResolveApiKey(string key)
+        {
+            if (key.IsEmpty())
+                return null;
+
+            var entity = await Store.ResolveApiKey(key.ToSha256());
+
+            return entity?.Id;
         }
 
     }

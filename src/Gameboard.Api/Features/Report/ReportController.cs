@@ -421,7 +421,7 @@ namespace Gameboard.Api.Controllers
 
             var expandedTable = FeedbackService.MakeHelperList(feedback);
 
-            var result = Service.GetFeedbackStats(questionTemplate, expandedTable);
+            var result = Service.GetFeedbackQuestionStats(questionTemplate, expandedTable);
 
             string challengeTag = "";
             if (model.WantsSpecificChallenge)
@@ -448,7 +448,7 @@ namespace Gameboard.Api.Controllers
             if (game == null || game.FeedbackTemplate == null)
                 return NotFound();
 
-            model.SubmitStatus = "";
+            model.SubmitStatus = ""; // at first get unsubmitted too, to count in progress vs submitted
             model.Sort = "";
             var feedback = await FeedbackService.ListFull(model);
 
@@ -459,7 +459,7 @@ namespace Gameboard.Api.Controllers
             var submittedFeedback = feedback.Where(f => f.Submitted).ToArray();
             var expandedTable = FeedbackService.MakeHelperList(submittedFeedback);
             var maxResponses = await Service.GetFeedbackMaxResponses(model);
-            var questionStats = Service.GetFeedbackStats(questionTemplate, expandedTable);
+            var questionStats = Service.GetFeedbackQuestionStats(questionTemplate, expandedTable);
 
             var fullStats = new FeedbackStats 
             {

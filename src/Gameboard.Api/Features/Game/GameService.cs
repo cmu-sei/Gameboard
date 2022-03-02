@@ -33,8 +33,9 @@ namespace Gameboard.Api.Services
 
         public async Task<Game> Create(NewGame model)
         {
-            if (!model.IsClone && Defaults.GlobalFeedbackTemplate.NotEmpty())
-                model.FeedbackConfig = Defaults.GlobalFeedbackTemplate;
+            // for "New Game" set feedback template to global default, if defined
+            if (!model.IsClone && Defaults.FeedbackTemplate.NotEmpty())
+                model.FeedbackConfig = Defaults.FeedbackTemplate;
             
             var entity = Mapper.Map<Data.Game>(model);
 

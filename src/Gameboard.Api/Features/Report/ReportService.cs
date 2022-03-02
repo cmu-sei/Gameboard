@@ -215,7 +215,8 @@ namespace Gameboard.Api.Services
             return challengeDetailReport;
         }
 
-        internal List<QuestionStats> GetFeedbackStats(QuestionTemplate[] questionTemplate, FeedbackReportHelper[] expandedTable)
+        // Compute aggregates for each feedback question in template based on all responses in feedback table
+        internal List<QuestionStats> GetFeedbackQuestionStats(QuestionTemplate[] questionTemplate, FeedbackReportHelper[] feedbackTable)
         {
             List<QuestionStats> questionStats = new List<QuestionStats>();
             foreach (QuestionTemplate question in questionTemplate)
@@ -224,7 +225,7 @@ namespace Gameboard.Api.Services
                     continue;
 
                 List<int> answers = new List<int>();
-                foreach (var response in expandedTable.Where(f => f.Submitted || true))
+                foreach (var response in feedbackTable.Where(f => f.Submitted || true))
                 {
                     var answer = response.IdToAnswer.GetValueOrDefault(question.Id, null);
                     if (answer != null)
@@ -250,6 +251,7 @@ namespace Gameboard.Api.Services
             return questionStats;
         }
 
+        // create file name for feedback reports based on type and names of games/challenges
         internal string GetFeedbackFilename(string gameName, bool wantsGame, bool wantsSpecificChallenge, string challengeTag, bool isStats)
         {
             string filename = string.Format(
@@ -262,25 +264,16 @@ namespace Gameboard.Api.Services
             return filename;
         }
 
+        // Count the maximum amount of feedback responses possible given the search params (how much feedback there could be if 100% response rate)
         public async Task<int> GetFeedbackMaxResponses(FeedbackSearchParams model)
         {
             int total = 0;
-            if (model.WantsGame) 
-            {
-                var ts = DateTimeOffset.UtcNow;
-                // count enrollments for a specific game id, that are started
+            if (model.WantsGame) // count enrollments for a specific game id, that are started
                 total = await Store.Players.Where(p => p.GameId == model.GameId && p.SessionBegin < p.SessionEnd).CountAsync();
-            }
-            else if (model.WantsSpecificChallenge)
-            {
-                // count challenges with specific challenge spec id
+            else if (model.WantsSpecificChallenge) // count challenges with specific challenge spec id
                 total = await Store.Challenges.Where(p => p.SpecId == model.ChallengeSpecId).CountAsync();
-            }
-            else if (model.WantsChallenge)
-            {
-                // count challenges with specific game id
+            else if (model.WantsChallenge) // count challenges with specific game id
                 total = await Store.Challenges.Where(p => p.GameId == model.GameId).CountAsync();
-            }
             return total;
         }
 
