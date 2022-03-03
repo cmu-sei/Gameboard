@@ -269,12 +269,12 @@ namespace Gameboard.Api.Services
         {
             int total = 0;
             if (model.WantsGame) // count enrollments for a specific game id, that are started
-                total = await Store.Players.Where(p => p.GameId == model.GameId && p.SessionBegin < p.SessionEnd).CountAsync();
+                total = await Store.Players.Where(p => p.GameId == model.GameId && p.SessionBegin > DateTimeOffset.MinValue).CountAsync();
             else if (model.WantsSpecificChallenge) // count challenges with specific challenge spec id
                 total = await Store.Challenges.Where(p => p.SpecId == model.ChallengeSpecId).CountAsync();
             else if (model.WantsChallenge) // count challenges with specific game id
                 total = await Store.Challenges.Where(p => p.GameId == model.GameId).CountAsync();
-            return total;
+            return total; 
         }
 
         internal byte[] ConvertToBytes<T>(IEnumerable<T> collection)
