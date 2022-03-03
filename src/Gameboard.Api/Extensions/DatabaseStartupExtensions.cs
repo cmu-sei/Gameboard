@@ -79,12 +79,39 @@ namespace Gameboard.Api.Extensions
                     }
                     db.SaveChanges();
 
+                    foreach (var player in seedModel.Players)
+                    {
+                        if (db.Players.Any(u => u.Id == player.Id))
+                            continue;
+
+                        db.Players.Add(player);
+                    }
+                    db.SaveChanges();
+
+                    foreach (var challenge in seedModel.Challenges)
+                    {
+                        if (db.Challenges.Any(u => u.Id == challenge.Id))
+                            continue;
+
+                        db.Challenges.Add(challenge);
+                    }
+                    db.SaveChanges();
+
                     foreach (var sponsor in seedModel.Sponsors)
                     {
                         if (db.Sponsors.Any(u => u.Id == sponsor.Id))
                             continue;
 
                         db.Sponsors.Add(sponsor);
+                    }
+                    db.SaveChanges();
+
+                    foreach (var feedback in seedModel.Feedback)
+                    {
+                        if (db.Feedback.Any(u => u.Id == feedback.Id))
+                            continue;
+
+                        db.Feedback.Add(feedback);
                     }
                     db.SaveChanges();
                 }
