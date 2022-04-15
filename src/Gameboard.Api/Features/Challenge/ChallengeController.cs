@@ -12,6 +12,7 @@ using TopoMojo.Api.Client;
 using Gameboard.Api.Validators;
 using Microsoft.AspNetCore.SignalR;
 using Gameboard.Api.Hubs;
+using System.Collections.Generic;
 
 namespace Gameboard.Api.Controllers
 {
@@ -313,14 +314,24 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("/api/challenge/consoles")]
         [Authorize]
-        public ConsoleActor[] FindConsoles([FromQuery]string gid)
+        public async Task<List<ObserveChallenge>> FindConsoles([FromQuery]string gid)
         {
             AuthorizeAny(
               () => Actor.IsDirector,
               () => Actor.IsObserver
             );
+            return await ChallengeService.GetPlayerConsoles(gid);
+        }
 
-            return ActorMap.Find(gid);
+        [HttpGet("/api/challenge/consoleactors")]
+        [Authorize]
+        public Dictionary<string, List<string>> GetConsoleActors([FromQuery]string gid)
+        {
+            AuthorizeAny(
+              () => Actor.IsDirector,
+              () => Actor.IsObserver
+            );
+            return ChallengeService.GetConsoleActors(gid);
         }
 
         /// <summary>

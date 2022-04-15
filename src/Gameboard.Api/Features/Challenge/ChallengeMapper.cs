@@ -92,6 +92,22 @@ namespace Gameboard.Api.Services
                     JsonSerializer.Deserialize<string[]>(s.TeamMembers, JsonOptions))
                 )
             ;
+            
+            CreateMap<Data.Challenge, ObserveChallenge>()
+                .ForMember(d => d.GameRank, opt => opt.MapFrom(s => s.Player.Rank))
+                .ForMember(d => d.GameScore, opt => opt.MapFrom(s => s.Player.Score))
+                .ForMember(d => d.ChallengeScore, opt => opt.MapFrom(s => (int)Math.Floor(s.Score)))
+                .ForMember(d => d.Consoles, opt => opt.MapFrom(s =>
+                    JsonSerializer.Deserialize<TopoMojo.Api.Client.GameState>(s.State, JsonOptions).Vms)
+                )
+                .ForMember(d => d.isActive, opt => opt.MapFrom(s =>
+                    JsonSerializer.Deserialize<TopoMojo.Api.Client.GameState>(s.State, JsonOptions).IsActive)
+                )
+            ;
+
+            CreateMap<TopoMojo.Api.Client.VmState, ObserveVM>()
+                 .ForMember(d => d.ChallengeId, opt => opt.MapFrom(s => s.IsolationId))
+            ;
 
             CreateMap<TopoMojo.Api.Client.VmConsole, ConsoleSummary>()
                 .ForMember(d => d.SessionId, opt => opt.MapFrom(s => s.IsolationId))
