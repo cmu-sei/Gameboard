@@ -287,7 +287,7 @@ namespace Gameboard.Api.Controllers
 
             if (isTeamMember)
                 ActorMap.Update(
-                    await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.Name)
+                    await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.ApprovedName)
                 );
 
             return result;
@@ -320,18 +320,29 @@ namespace Gameboard.Api.Controllers
               () => Actor.IsDirector,
               () => Actor.IsObserver
             );
-            return await ChallengeService.GetPlayerConsoles(gid);
+            return await ChallengeService.GetChallengeConsoles(gid);
         }
 
         [HttpGet("/api/challenge/consoleactors")]
         [Authorize]
-        public Dictionary<string, List<string>> GetConsoleActors([FromQuery]string gid)
+        public ConsoleActor[] GetConsoleActors([FromQuery]string gid)
         {
             AuthorizeAny(
               () => Actor.IsDirector,
               () => Actor.IsObserver
             );
             return ChallengeService.GetConsoleActors(gid);
+        }
+
+        [HttpGet("/api/challenge/consoleactor")]
+        [Authorize(AppConstants.ConsolePolicy)]
+        public ConsoleActor GetConsoleActor([FromQuery]string uid)
+        {
+            AuthorizeAny(
+              () => Actor.IsDirector,
+              () => Actor.IsObserver
+            );
+            return ChallengeService.GetConsoleActor(uid);
         }
 
         /// <summary>

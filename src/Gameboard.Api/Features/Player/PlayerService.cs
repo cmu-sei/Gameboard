@@ -409,6 +409,10 @@ namespace Gameboard.Api.Services
 
             if (model.WantsSortByTime)
                 q = q.OrderByDescending(p => p.SessionBegin);
+            
+            if (model.WantsSortByName)
+                q = q.OrderBy(p => p.ApprovedName)
+                    .ThenBy(p => p.User.ApprovedName);
 
             q = q.Skip(model.Skip);
 

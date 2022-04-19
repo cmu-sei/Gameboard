@@ -448,7 +448,7 @@ namespace Gameboard.Api.Services
             throw new InvalidConsoleAction();
         }
 
-        public async Task<List<ObserveChallenge>> GetPlayerConsoles(string gameId)
+        public async Task<List<ObserveChallenge>> GetChallengeConsoles(string gameId)
         {
             var q = Store.DbContext.Challenges
                 .Where(c => c.GameId == gameId &&
@@ -468,9 +468,14 @@ namespace Gameboard.Api.Services
             return result;
         }
 
-        public Dictionary<string, List<string>> GetConsoleActors(string gameId)
+        public ConsoleActor[] GetConsoleActors(string gameId)
         {
-            return _actorMap.ReverseLookup(gameId);
+            return _actorMap.Find(gameId);
+        }
+
+        public ConsoleActor GetConsoleActor(string userId)
+        {
+            return _actorMap.FindActor(userId);
         }
 
         public async Task<string> ResolveApiKey(string key)

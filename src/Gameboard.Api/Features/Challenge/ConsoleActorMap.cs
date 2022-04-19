@@ -51,12 +51,7 @@ namespace Gameboard.Api.Services
                 : _cache.Values
             ;
 
-            return q
-                .OrderBy(a => a.GameId)
-                .ThenBy(a => a.PlayerName)
-                .ThenBy(a => a.UserName)
-                .ToArray()
-            ;
+            return q.ToArray();
         }
 
         public Dictionary<string, List<string>> ReverseLookup(string gid)
@@ -72,6 +67,11 @@ namespace Gameboard.Api.Services
                     vmToActor.Add(key, new List<string>{a.UserName});
             }
             return vmToActor;
+        }
+
+        public ConsoleActor FindActor(string uid)
+        {
+            return _cache.GetValueOrDefault(uid, null);
         }
 
         public void Prune()
