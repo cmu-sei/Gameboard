@@ -10,7 +10,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 {
     [DbContext(typeof(GameboardDbContextPostgreSQL))]
-    [Migration("20220301132518_Feedback")]
+    [Migration("20220421175506_Feedback")]
     partial class Feedback
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -568,24 +568,29 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
             modelBuilder.Entity("Gameboard.Api.Data.Feedback", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Challenge", "Challenge")
-                        .WithMany()
-                        .HasForeignKey("ChallengeId");
+                        .WithMany("Feedback")
+                        .HasForeignKey("ChallengeId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("Gameboard.Api.Data.ChallengeSpec", "ChallengeSpec")
-                        .WithMany()
-                        .HasForeignKey("ChallengeSpecId");
+                        .WithMany("Feedback")
+                        .HasForeignKey("ChallengeSpecId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
-                        .WithMany()
-                        .HasForeignKey("GameId");
+                        .WithMany("Feedback")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("Gameboard.Api.Data.Player", "Player")
-                        .WithMany()
-                        .HasForeignKey("PlayerId");
+                        .WithMany("Feedback")
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("Gameboard.Api.Data.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId");
+                        .WithMany("Feedback")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Challenge");
 
@@ -617,11 +622,20 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
             modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
                 {
                     b.Navigation("Events");
+
+                    b.Navigation("Feedback");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.ChallengeSpec", b =>
+                {
+                    b.Navigation("Feedback");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Game", b =>
                 {
                     b.Navigation("Challenges");
+
+                    b.Navigation("Feedback");
 
                     b.Navigation("Players");
 
@@ -633,11 +647,15 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
             modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
                 {
                     b.Navigation("Challenges");
+
+                    b.Navigation("Feedback");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.User", b =>
                 {
                     b.Navigation("Enrollments");
+
+                    b.Navigation("Feedback");
                 });
 #pragma warning restore 612, 618
         }

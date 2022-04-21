@@ -103,6 +103,11 @@ namespace Gameboard.Api.Data
             });
 
             builder.Entity<Feedback>(b => {
+                b.HasOne(p => p.User).WithMany(u => u.Feedback).OnDelete(DeleteBehavior.Cascade);
+                b.HasOne(p => p.Player).WithMany(u => u.Feedback).OnDelete(DeleteBehavior.Cascade);
+                b.HasOne(p => p.Game).WithMany(u => u.Feedback).OnDelete(DeleteBehavior.Cascade);
+                b.HasOne(p => p.Challenge).WithMany(u => u.Feedback).OnDelete(DeleteBehavior.Cascade);
+                b.HasOne(p => p.ChallengeSpec).WithMany(u => u.Feedback).OnDelete(DeleteBehavior.Cascade);
                 b.Property(u => u.Id).HasMaxLength(40);
                 b.Property(u => u.UserId).HasMaxLength(40);
                 b.Property(u => u.PlayerId).HasMaxLength(40);

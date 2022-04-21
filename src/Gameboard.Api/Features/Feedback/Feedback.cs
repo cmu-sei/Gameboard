@@ -97,7 +97,7 @@ namespace Gameboard.Api
         // public string Type => ChallengeSpecId == null ? "game" : "challenge";
         // public string GameId { get; set; }
         // public string ChallengeSpecId { get; set; } 
-        // public string ChallengeId { get; set; } 
+        public string ChallengeId { get; set; } 
         public string ChallengeTag { get; set; }
         public bool Submitted { get; set; } 
         public DateTimeOffset Timestamp { get; set; }
