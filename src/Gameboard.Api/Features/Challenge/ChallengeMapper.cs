@@ -49,9 +49,48 @@ namespace Gameboard.Api.Services
 
             CreateMap<Data.Challenge, ChallengeSummary>()
                 .ForMember(d => d.Score, opt => opt.MapFrom(s => (int)Math.Floor(s.Score)))
+                .ForMember(d => d.UserId, opt => opt.MapFrom(s => s.Player.UserId))
+                .ForMember(d => d.IsActive, opt => opt.MapFrom(s =>
+                    JsonSerializer.Deserialize<TopoMojo.Api.Client.GameState>(s.State, JsonOptions).IsActive)
+                )
             ;
 
             CreateMap<Data.ChallengeEvent, ChallengeEvent>()
+            ;
+
+            CreateMap<Data.Challenge, ArchivedChallenge>()
+                .ForMember(d => d.PlayerName, opt => opt.MapFrom(s => s.Player.ApprovedName))
+                .ForMember(d => d.GameName, opt => opt.MapFrom(s => s.Game.Name))
+                .ForMember(d => d.UserId, opt => opt.MapFrom(s => s.Player.UserId))
+                .ForMember(d => d.Score, opt => opt.MapFrom(s => (int)Math.Floor(s.Score)))
+                .ForMember(d => d.IsActive, opt => opt.MapFrom(s =>
+                    JsonSerializer.Deserialize<TopoMojo.Api.Client.GameState>(s.State, JsonOptions).IsActive)
+                )
+            ;
+
+            // Squash arrays of challenge events, submissions, and team members into a single record
+            CreateMap<ArchivedChallenge, Data.ArchivedChallenge>()
+                .ForMember(d => d.Events, opt => opt.MapFrom(s =>
+                    JsonSerializer.Serialize(s.Events, JsonOptions))
+                )
+                .ForMember(d => d.Submissions, opt => opt.MapFrom(s =>
+                    JsonSerializer.Serialize(s.Submissions, JsonOptions))
+                )
+                .ForMember(d => d.TeamMembers, opt => opt.MapFrom(s =>
+                    JsonSerializer.Serialize(s.TeamMembers, JsonOptions))
+                )
+            ;
+
+            CreateMap<Data.ArchivedChallenge, ArchivedChallenge>()
+                .ForMember(d => d.Events, opt => opt.MapFrom(s =>
+                    JsonSerializer.Deserialize<ChallengeEvent[]>(s.Events, JsonOptions))
+                )
+                .ForMember(d => d.Submissions, opt => opt.MapFrom(s =>
+                    JsonSerializer.Deserialize<TopoMojo.Api.Client.SectionSubmission[]>(s.Submissions, JsonOptions))
+                )
+                .ForMember(d => d.TeamMembers, opt => opt.MapFrom(s =>
+                    JsonSerializer.Deserialize<string[]>(s.TeamMembers, JsonOptions))
+                )
             ;
 
             CreateMap<TopoMojo.Api.Client.VmConsole, ConsoleSummary>()

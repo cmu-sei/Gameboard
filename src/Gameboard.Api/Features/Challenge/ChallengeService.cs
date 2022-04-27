@@ -206,6 +206,32 @@ namespace Gameboard.Api.Services
             return await Mapper.ProjectTo<ChallengeSummary>(q).ToArrayAsync();
         }
 
+        public async Task<ArchivedChallenge[]> ListArchived(SearchFilter model)
+        { 
+            var q = Store.DbContext.ArchivedChallenges.AsQueryable();
+            
+            if (model.Term.NotEmpty())
+            {
+                var term = model.Term.ToLower();
+                q = q.Where(c =>
+                    c.Id.StartsWith(term) || // Challenge Id
+                    c.Tag.ToLower().StartsWith(term) || // Challenge Tag
+                    c.UserId.StartsWith(term) || // User Id
+                    c.Name.ToLower().Contains(term) || // Challenge Title
+                    c.PlayerName.ToLower().Contains(term) // Team Name (or indiv. Player Name)
+                );
+            }
+    
+            q = q.OrderByDescending(p => p.LastSyncTime);
+
+            q = q.Skip(model.Skip);
+
+            if (model.Take > 0)
+                q = q.Take(model.Take);
+
+            return await Mapper.ProjectTo<ArchivedChallenge>(q).ToArrayAsync();
+        }
+
         public async Task<Challenge> Preview(NewChallenge model)
         {
             var entity = await Store.Load(model);

@@ -88,6 +88,7 @@ namespace Gameboard.Api.Services
         public async Task<Player> Update(ChangedPlayer model, bool sudo = false)
         {
             var entity = await Store.Retrieve(model.Id);
+            var prev = Mapper.Map<Player>(entity);
 
             if (!sudo)
             {
@@ -120,9 +121,9 @@ namespace Gameboard.Api.Services
 
             // change names for whole team
             bool namesChanged =
-                model.Name != entity.Name ||
-                model.ApprovedName != entity.ApprovedName ||
-                model.NameStatus != entity.NameStatus
+                prev.Name != entity.Name ||
+                prev.ApprovedName != entity.ApprovedName ||
+                prev.NameStatus != entity.NameStatus
             ;
 
             if (namesChanged)
@@ -147,6 +148,7 @@ namespace Gameboard.Api.Services
             var player = await Store.List()
                 .Include(p => p.Game)
                 .Include(p => p.Challenges)
+                .ThenInclude(c => c.Events)
                 .FirstOrDefaultAsync(
                     p => p.Id == id
                 )
@@ -164,7 +166,8 @@ namespace Gameboard.Api.Services
             if (player.IsManager && player.Game.AllowTeam)
             {
                 challenges = await Store.DbContext.Challenges
-                    .Where(c => c.TeamId == player.TeamId && c.HasDeployedGamespace)
+                    .Where(c => c.TeamId == player.TeamId)
+                    .Include(c => c.Events)
                     .ToArrayAsync()
                 ;
 
@@ -173,12 +176,25 @@ namespace Gameboard.Api.Services
                     .ToArrayAsync()
                 ;
             }
+            var toArchive = Mapper.Map<ArchivedChallenge[]>(challenges);
+            if (toArchive.Length > 0)
+            {
+                var teamMembers = players.Select(a => a.UserId).ToArray();
+                foreach (var challenge in toArchive)
+                {
+                    challenge.Submissions = (await Mojo.AuditChallengeAsync(challenge.Id)).ToArray();
+                    challenge.TeamMembers = teamMembers;
+                }
+                Store.DbContext.ArchivedChallenges.AddRange(Mapper.Map<Data.ArchivedChallenge[]>(toArchive));
+            }
 
             // courtesy call; ignore error (gamespace may have already been removed from backend)
             try
             {
-                foreach(var challenge in challenges)
-                    await Mojo.CompleteGamespaceAsync(challenge.Id);
+                foreach(var challenge in challenges) {
+                    if (challenge.HasDeployedGamespace)
+                        await Mojo.CompleteGamespaceAsync(challenge.Id);
+                }
             }
             catch {}
 

@@ -19,12 +19,20 @@ namespace Gameboard.Api.Data
 
         public override IQueryable<Challenge> List(string term)
         {
-            var q = term.NotEmpty()
-                ? base.List().Where(c =>
-                    c.Id.StartsWith(term) ||
-                    c.Tag.StartsWith(term))
-                : base.List()
-            ;
+            var q = base.List();
+
+            if (term.NotEmpty())
+            {
+                term = term.ToLower();
+                q = q.Include(c => c.Player);
+                q = q.Where(c =>
+                    c.Id.StartsWith(term) || // Challenge Id
+                    c.Tag.ToLower().StartsWith(term) || // Challenge Tag
+                    c.Player.UserId.StartsWith(term) || // User Id
+                    c.Name.ToLower().Contains(term) || // Challenge Title
+                    c.Player.ApprovedName.ToLower().Contains(term) // Team Name (or indiv. Player Name)
+                );
+            }
 
             return q
                 .Include(c => c.Game)
