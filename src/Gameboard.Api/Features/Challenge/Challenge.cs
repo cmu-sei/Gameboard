@@ -80,6 +80,7 @@ namespace Gameboard.Api
         public string Id { get; set; }
         public string TeamId { get; set; }
         public string Name { get; set; }
+        public string Tag { get; set; }
         public string PlayerId { get; set; }
         public string PlayerName { get; set; } 
         public long Duration { get; set; }

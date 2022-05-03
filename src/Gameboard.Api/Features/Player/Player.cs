@@ -105,6 +105,7 @@ namespace Gameboard.Api
     public class Team
     {
         public string TeamId { get; set; }
+        public string ApprovedName { get; set; }
         public string GameId { get; set; }
         public string Sponsor { get; set; }
         public DateTimeOffset SessionBegin { get; set; }

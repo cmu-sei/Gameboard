@@ -557,6 +557,44 @@ namespace Gameboard.Api.Services
 
         }
 
+        public async Task<Team[]> ObserveTeams(string id)
+        {
+            var players = await Store.List()
+                .Where(p => p.GameId == id)
+                .Include(p => p.User)
+                .ToArrayAsync()
+            ;
+
+            var teams = players
+                .Where(p => p.IsLive)
+                .GroupBy(p => p.TeamId)
+                .Select(g => new Team {
+                    TeamId = g.Key,
+                    ApprovedName = g.First().ApprovedName,
+                    Sponsor = g.First().Sponsor,
+                    GameId = g.First().GameId,
+                    SessionBegin = g.First().SessionBegin,
+                    SessionEnd = g.First().SessionEnd,
+                    Rank = g.First().Rank,
+                    Score = g.First().Score,
+                    Time = g.First().Time,
+                    CorrectCount = g.First().CorrectCount,
+                    PartialCount = g.First().PartialCount,
+                    Advanced = g.First().Advanced,
+                    Members = g.Select(i => new TeamMember{
+                        Id = i.UserId,
+                        ApprovedName = i.User.ApprovedName,
+                        Role = i.Role
+                    }).OrderBy(t => t.ApprovedName).ToArray()
+                })
+                .OrderBy(g => g.ApprovedName)
+                .ToArray()
+            ;
+
+            return teams;
+
+        }
+
         public async Task AdvanceTeams(TeamAdvancement model)
         {
             var game = await GameStore.Retrieve(model.NextGameId);
