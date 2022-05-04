@@ -6,7 +6,7 @@ using Gameboard.Api;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
-    // Startup extension for setting up defaults. May be expanded in future to involve the databse.
+    // Startup extension for setting up defaults. May be expanded in future to involve the database.
     public static class DefaultsStartupExtensions
     {
         public static IServiceCollection AddDefaults(
@@ -15,7 +15,7 @@ namespace Microsoft.Extensions.DependencyInjection
             string contentRootPath
         ) {
             services.AddSingleton<Defaults>(_ => {
-                // if no filename specified, check for presence of 'feedback-template.yaml
+                // if no filename specified, check for presence of 'feedback-template.yaml'
                 var filename = defaults.FeedbackTemplateFile.NotEmpty() ? defaults.FeedbackTemplateFile : "feedback-template.yaml";
                 var file = Path.Combine(contentRootPath, filename);
                 string template = null;

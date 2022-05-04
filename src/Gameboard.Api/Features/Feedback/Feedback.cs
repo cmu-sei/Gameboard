@@ -67,7 +67,7 @@ namespace Gameboard.Api
         public string ChallengeTag { get; set; }
     }
 
-     public class FeedbackSearchParams: SearchFilter
+    public class FeedbackSearchParams: SearchFilter
     {
         public const string GameType = "game";
         public const string ChallengeType = "challenge";
@@ -90,13 +90,9 @@ namespace Gameboard.Api
     // Order of properties below determines order of columns in CSV export
     public class FeedbackReportExport
     {
-        // public string Id { get; set; } 
         public string UserId { get; set; } 
         public string PlayerId { get; set; } 
         public string ApprovedName { get; set; }
-        // public string Type => ChallengeSpecId == null ? "game" : "challenge";
-        // public string GameId { get; set; }
-        // public string ChallengeSpecId { get; set; } 
         public string ChallengeId { get; set; } 
         public string ChallengeTag { get; set; }
         public bool Submitted { get; set; } 

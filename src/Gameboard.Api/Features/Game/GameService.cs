@@ -91,9 +91,7 @@ namespace Gameboard.Api.Services
             if (model.Take > 0)
                 q = q.Take(model.Take);
             
-            // Using Project instead of Map to skip YAML parsing in automapper, because not needed in list list
-            // return await Mapper.ProjectTo<Game>(q).ToArrayAsync();
-            // Use map to support YAML parsing in automapper
+            // Use Map instead of 'Mapper.ProjectTo<Game>' to support YAML parsing in automapper
             return Mapper.Map<Game[]>(await q.ToArrayAsync());
         }
 

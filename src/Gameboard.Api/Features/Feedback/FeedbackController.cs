@@ -8,10 +8,7 @@ using Microsoft.Extensions.Logging;
 using Gameboard.Api.Services;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.AspNetCore.Authorization;
-using TopoMojo.Api.Client;
 using Gameboard.Api.Validators;
-using Microsoft.AspNetCore.SignalR;
-using Gameboard.Api.Hubs;
 
 namespace Gameboard.Api.Controllers
 {
@@ -21,8 +18,6 @@ namespace Gameboard.Api.Controllers
         ChallengeService ChallengeService { get; }
         FeedbackService FeedbackService { get; }
         PlayerService PlayerService { get; }
-        IHubContext<AppHub, IAppHubEvent> Hub { get; }
-        ConsoleActorMap ActorMap { get; }
 
         public FeedbackController(
             ILogger<ChallengeController> logger,
@@ -30,16 +25,12 @@ namespace Gameboard.Api.Controllers
             FeedbackValidator validator,
             ChallengeService challengeService,
             FeedbackService feedbackService,
-            PlayerService playerService,
-            IHubContext<AppHub, IAppHubEvent> hub,
-            ConsoleActorMap actormap
+            PlayerService playerService
         ): base(logger, cache, validator)
         {
             ChallengeService = challengeService;
             FeedbackService = feedbackService;
             PlayerService = playerService;
-            Hub = hub;
-            ActorMap = actormap;
         }
 
         /// <summary>

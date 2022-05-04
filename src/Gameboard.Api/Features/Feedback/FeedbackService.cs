@@ -4,25 +4,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {
     public class FeedbackService : _Service, IApiKeyAuthenticationService
     {
-        IChallengeStore ChallengeStore { get; }
         IFeedbackStore Store { get; }
-        ITopoMojoApiClient Mojo { get; }
 
         private IMemoryCache _localcache;
-        private ConsoleActorMap _actorMap;
 
         public FeedbackService(
             ILogger<FeedbackService> logger,
@@ -30,16 +25,11 @@ namespace Gameboard.Api.Services
             CoreOptions options,
             IChallengeStore challenegeStore,
             IFeedbackStore store,
-            ITopoMojoApiClient mojo,
-            IMemoryCache localcache,
-            ConsoleActorMap actorMap
+            IMemoryCache localcache
         ) : base(logger, mapper, options)
         {
-            ChallengeStore = challenegeStore;
             Store = store;
-            Mojo = mojo;
             _localcache = localcache;
-            _actorMap = actorMap;
         }
  
         public async Task<Feedback> Retrieve(FeedbackSearchParams model, string actorId)
