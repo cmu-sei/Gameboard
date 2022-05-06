@@ -18,19 +18,25 @@ namespace Gameboard.Api.Services
     public class GameService: _Service
     {
         IGameStore Store { get; }
-
+        Defaults Defaults { get; }
         public GameService (
             ILogger<GameService> logger,
             IMapper mapper,
             CoreOptions options,
+            Defaults defaults,
             IGameStore store
         ): base(logger, mapper, options)
         {
             Store = store;
+            Defaults = defaults; 
         }
 
         public async Task<Game> Create(NewGame model)
         {
+            // for "New Game" set feedback template to global default, if defined
+            if (!model.IsClone && Defaults.FeedbackTemplate.NotEmpty())
+                model.FeedbackConfig = Defaults.FeedbackTemplate;
+            
             var entity = Mapper.Map<Data.Game>(model);
 
             await Store.Create(entity);
@@ -84,8 +90,9 @@ namespace Gameboard.Api.Services
 
             if (model.Take > 0)
                 q = q.Take(model.Take);
-
-            return await Mapper.ProjectTo<Game>(q).ToArrayAsync();
+            
+            // Use Map instead of 'Mapper.ProjectTo<Game>' to support YAML parsing in automapper
+            return Mapper.Map<Game[]>(await q.ToArrayAsync());
         }
 
         public async Task<ChallengeSpec[]> RetrieveChallenges(string id)

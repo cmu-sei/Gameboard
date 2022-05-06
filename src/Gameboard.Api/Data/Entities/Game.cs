@@ -23,6 +23,7 @@ namespace Gameboard.Api.Data
         public DateTimeOffset GameStart { get; set; }
         public DateTimeOffset GameEnd { get; set; }
         public string GameMarkdown { get; set; }
+        public string FeedbackConfig { get; set; }
         public string RegistrationMarkdown { get; set; }
         public DateTimeOffset RegistrationOpen { get; set; }
         public DateTimeOffset RegistrationClose { get; set; }
@@ -48,6 +49,7 @@ namespace Gameboard.Api.Data
         public ICollection<Player> Players { get; set; } = new List<Player>();
         public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
         public ICollection<ChallengeGate> Prerequisites { get; set; } = new List<ChallengeGate>();
+        public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
 
         [NotMapped] public bool RequireSession => SessionMinutes > 0;
         [NotMapped] public bool RequireTeam => MinTeamSize > 1;

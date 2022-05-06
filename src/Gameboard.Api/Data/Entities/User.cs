@@ -18,6 +18,7 @@ namespace Gameboard.Api.Data
         public string Sponsor { get; set; }
         public UserRole Role { get; set; }
         public ICollection<Player> Enrollments { get; set; } = new List<Player>();
+        public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
     }
 
 }

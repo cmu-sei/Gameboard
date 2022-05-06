@@ -21,6 +21,8 @@ namespace Gameboard.Api
         public DateTimeOffset GameStart { get; set; }
         public DateTimeOffset GameEnd { get; set; }
         public string GameMarkdown { get; set; }
+        public string FeedbackConfig { get; set; }
+        public GameFeedbackTemplate FeedbackTemplate { get; set; }
         public string RegistrationMarkdown { get; set; }
         public DateTimeOffset RegistrationOpen { get; set; }
         public DateTimeOffset RegistrationClose { get; set; }
@@ -55,7 +57,7 @@ namespace Gameboard.Api
 
     public class NewGame: GameDetail
     {
-
+        public bool IsClone { get; set; } = false;
     }
 
     public class ChangedGame: Game
@@ -83,6 +85,7 @@ namespace Gameboard.Api
         public string Division { get; set; }
         public string Logo { get; set; }
         public string Sponsor { get; set; }
+        public GameFeedbackTemplate FeedbackTemplate { get; set; }
         public string Background { get; set; }
         public bool AllowPreview { get; set; }
         public bool AllowReset { get; set; }

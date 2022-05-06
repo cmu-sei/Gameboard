@@ -21,7 +21,8 @@ namespace Gameboard.Api.Services
             IMapper mapper,
             CoreOptions options,
             GameboardDbContext store,
-            ChallengeService challengeService
+            ChallengeService challengeService,
+            GameService gameService
         ): base (logger, mapper, options)
         {
             Store = store;
@@ -212,6 +213,68 @@ namespace Gameboard.Api.Services
             challengeDetailReport.ChallengeId = id;
 
             return challengeDetailReport;
+        }
+
+        // Compute aggregates for each feedback question in template based on all responses in feedback table
+        internal List<QuestionStats> GetFeedbackQuestionStats(QuestionTemplate[] questionTemplate, FeedbackReportHelper[] feedbackTable)
+        {
+            List<QuestionStats> questionStats = new List<QuestionStats>();
+            foreach (QuestionTemplate question in questionTemplate)
+            {
+                if (question.Type != "likert")
+                    continue;
+
+                List<int> answers = new List<int>();
+                foreach (var response in feedbackTable.Where(f => f.Submitted || true))
+                {
+                    var answer = response.IdToAnswer.GetValueOrDefault(question.Id, null);
+                    if (answer != null)
+                        answers.Add(Int32.Parse(answer));
+                }
+                var newStat = new QuestionStats {
+                    Id = question.Id,
+                    Prompt = question.Prompt,
+                    ShortName = question.ShortName,
+                    Required = question.Required,
+                    ScaleMin = question.Min,
+                    ScaleMax = question.Max,
+                    Count = answers.Count(),
+                };
+                if (newStat.Count > 0) 
+                {
+                    newStat.Average = answers.Average();
+                    newStat.Lowest = answers.Min();
+                    newStat.Highest = answers.Max();
+                }
+                questionStats.Add(newStat);
+            }
+            return questionStats;
+        }
+
+        // create file name for feedback reports based on type and names of games/challenges
+        internal string GetFeedbackFilename(string gameName, bool wantsGame, bool wantsSpecificChallenge, string challengeTag, bool isStats)
+        {
+            string filename = string.Format(
+                "{0}-{1}-feedback{2}-{3}", 
+                wantsSpecificChallenge ? challengeTag : gameName,
+                wantsGame ? "game" : "challenge",
+                isStats ? "-stats" : "",
+                DateTime.UtcNow.ToString("yyyy-MM-dd")
+            ) + ".csv";
+            return filename;
+        }
+
+        // Count the maximum amount of feedback responses possible given the search params (how much feedback there could be if 100% response rate)
+        public async Task<int> GetFeedbackMaxResponses(FeedbackSearchParams model)
+        {
+            int total = 0;
+            if (model.WantsGame) // count enrollments for a specific game id, that are started
+                total = await Store.Players.Where(p => p.GameId == model.GameId && p.SessionBegin > DateTimeOffset.MinValue).CountAsync();
+            else if (model.WantsSpecificChallenge) // count challenges with specific challenge spec id
+                total = await Store.Challenges.Where(p => p.SpecId == model.ChallengeSpecId).CountAsync();
+            else if (model.WantsChallenge) // count challenges with specific game id
+                total = await Store.Challenges.Where(p => p.GameId == model.GameId).CountAsync();
+            return total; 
         }
 
         internal byte[] ConvertToBytes<T>(IEnumerable<T> collection)

@@ -106,6 +106,7 @@ namespace Gameboard.Api
                 .AddGameboardServices()
                 .AddConfiguredHttpClients(Settings.Core)
                 .AddHostedService<JobService>()
+                .AddDefaults(Settings.Defaults, Environment.ContentRootPath)
             ;
 
             services.AddSingleton<AutoMapper.IMapper>(

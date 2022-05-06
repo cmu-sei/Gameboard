@@ -42,6 +42,7 @@ namespace Gameboard.Api.Data
         public Game Game { get; set; }
         public Player Player { get; set; }
         public ICollection<ChallengeEvent> Events { get; set; } = new List<ChallengeEvent>();
+        public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
     }
 
 }
