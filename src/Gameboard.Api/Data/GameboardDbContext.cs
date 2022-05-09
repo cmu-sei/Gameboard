@@ -116,6 +116,21 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.GameId).HasMaxLength(40);
             });
 
+            builder.Entity<ArchivedChallenge>(b => {
+                // Archive is snapshot with no foreign keys; explicitly index Id fields for searching
+                b.HasIndex(p => p.TeamId);
+                b.HasIndex(p => p.GameId);
+                b.HasIndex(p => p.PlayerId);
+                b.HasIndex(p => p.UserId);
+                b.Property(u => u.Id).HasMaxLength(40);
+                b.Property(u => u.TeamId).HasMaxLength(40);
+                b.Property(p => p.GameId).HasMaxLength(40);
+                b.Property(p => p.GameName).HasMaxLength(64);
+                b.Property(u => u.PlayerId).HasMaxLength(40);
+                b.Property(p => p.PlayerName).HasMaxLength(64);
+                b.Property(u => u.UserId).HasMaxLength(40);
+            });
+
         }
 
         public DbSet<User> Users { get; set; }
@@ -127,5 +142,6 @@ namespace Gameboard.Api.Data
         public DbSet<ChallengeGate> ChallengeGates { get; set; }
         public DbSet<Sponsor> Sponsors { get; set; }
         public DbSet<Feedback> Feedback { get; set; }
+        public DbSet<ArchivedChallenge> ArchivedChallenges { get; set; }
     }
 }

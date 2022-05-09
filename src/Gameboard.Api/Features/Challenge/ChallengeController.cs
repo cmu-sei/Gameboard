@@ -339,6 +339,22 @@ namespace Gameboard.Api.Controllers
             return await ChallengeService.List(model);
         }
 
+        /// <summary>
+        /// Find archived challenges
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpGet("/api/challenges/archived")]
+        [Authorize]
+        public async Task<ArchivedChallenge[]> ListArchived([FromQuery] SearchFilter model)
+        {
+            AuthorizeAny(
+                () => Actor.IsDirector
+            );
+
+            return await ChallengeService.ListArchived(model);
+        }
+
         private async Task<bool> IsSelf(string playerId)
         {
           return await PlayerService.MapId(playerId) == Actor.Id;

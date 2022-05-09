@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using TopoMojo.Api.Client;
 
 namespace Gameboard.Api
 {
@@ -35,6 +36,7 @@ namespace Gameboard.Api
         public string GameName { get; set; }
         public string PlayerId { get; set; }
         public string PlayerName { get; set; }
+        public string UserId { get; set; }
         public DateTimeOffset StartTime { get; set; }
         public DateTimeOffset EndTime { get; set; }
         public DateTimeOffset LastScoreTime { get; set; }
@@ -45,6 +47,7 @@ namespace Gameboard.Api
         public long Duration { get; set; }
         public ChallengeResult Result { get; set; }
         public ChallengeEvent[] Events { get; set; }
+        public bool IsActive { get; set; }
     }
 
     public class NewChallenge
@@ -116,6 +119,31 @@ namespace Gameboard.Api
         public string TeamId { get; set; }
         public string VmName { get; set; }
         public DateTimeOffset Timestamp { get; set; }
+    }
 
+    public class ArchivedChallenge
+    {
+        public string Id { get; set; }
+        public string TeamId { get; set; }
+        public string Name { get; set; }
+        public string Tag { get; set; }
+        public string GameId { get; set; }
+        public string GameName { get; set; }
+        public string PlayerId { get; set; }
+        public string PlayerName { get; set; }
+        public string UserId { get; set; }
+        public DateTimeOffset StartTime { get; set; }
+        public DateTimeOffset EndTime { get; set; }
+        public DateTimeOffset LastScoreTime { get; set; }
+        public DateTimeOffset LastSyncTime { get; set; }
+        public bool HasGamespaceDeployed { get; set; }
+        public int Points { get; set; }
+        public int Score { get; set; }
+        public long Duration { get; set; }
+        public ChallengeResult Result { get; set; }
+        public ChallengeEvent[] Events { get; set; }
+        public string[] TeamMembers { get; set; } // User Ids of all team members
+        public bool IsActive { get; set; }
+        public SectionSubmission[] Submissions { get; set; }
     }
 }
