@@ -12,6 +12,7 @@ using TopoMojo.Api.Client;
 using Gameboard.Api.Validators;
 using Microsoft.AspNetCore.SignalR;
 using Gameboard.Api.Hubs;
+using System.Collections.Generic;
 
 namespace Gameboard.Api.Controllers
 {
@@ -286,7 +287,7 @@ namespace Gameboard.Api.Controllers
 
             if (isTeamMember)
                 ActorMap.Update(
-                    await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.Name)
+                    await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.ApprovedName)
                 );
 
             return result;
@@ -313,14 +314,35 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("/api/challenge/consoles")]
         [Authorize]
-        public ConsoleActor[] FindConsoles([FromQuery]string gid)
+        public async Task<List<ObserveChallenge>> FindConsoles([FromQuery]string gid)
         {
             AuthorizeAny(
               () => Actor.IsDirector,
               () => Actor.IsObserver
             );
+            return await ChallengeService.GetChallengeConsoles(gid);
+        }
 
-            return ActorMap.Find(gid);
+        [HttpGet("/api/challenge/consoleactors")]
+        [Authorize]
+        public ConsoleActor[] GetConsoleActors([FromQuery]string gid)
+        {
+            AuthorizeAny(
+              () => Actor.IsDirector,
+              () => Actor.IsObserver
+            );
+            return ChallengeService.GetConsoleActors(gid);
+        }
+
+        [HttpGet("/api/challenge/consoleactor")]
+        [Authorize(AppConstants.ConsolePolicy)]
+        public ConsoleActor GetConsoleActor([FromQuery]string uid)
+        {
+            AuthorizeAny(
+              () => Actor.IsDirector,
+              () => Actor.IsObserver
+            );
+            return ChallengeService.GetConsoleActor(uid);
         }
 
         /// <summary>

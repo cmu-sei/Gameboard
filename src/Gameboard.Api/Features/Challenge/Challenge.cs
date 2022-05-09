@@ -75,6 +75,31 @@ namespace Gameboard.Api
         public ChallengeEvent[] Events { get; set; }
     }
 
+    public class ObserveChallenge
+    {
+        public string Id { get; set; }
+        public string TeamId { get; set; }
+        public string Name { get; set; }
+        public string Tag { get; set; }
+        public string PlayerId { get; set; }
+        public string PlayerName { get; set; } 
+        public long Duration { get; set; }
+        public int ChallengeScore { get; set; }
+        public int GameScore { get; set; }
+        public int GameRank { get; set; }
+        public bool isActive { get; set; }
+        public ObserveVM[] Consoles { get; set; }
+    }
+
+    public class ObserveVM
+    {
+      public string Id { get; set; }
+      public string Name { get; set; }
+      public string ChallengeId { get; set; }
+      public bool IsRunning { get; set; }
+      public bool IsVisible { get; set; }
+    }
+
     public class ConsoleRequest
     {
       public string Name { get; set; }

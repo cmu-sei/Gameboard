@@ -105,6 +105,7 @@ namespace Gameboard.Api
     public class Team
     {
         public string TeamId { get; set; }
+        public string ApprovedName { get; set; }
         public string GameId { get; set; }
         public string Sponsor { get; set; }
         public DateTimeOffset SessionBegin { get; set; }
@@ -141,6 +142,7 @@ namespace Gameboard.Api
         public const string NameDisallowedFilter = "disallowed";
         public const string SortRank = "rank";
         public const string SortTime = "time";
+        public const string SortName = "name";
         public string tid { get; set; }
         public string gid { get; set; }
         public string uid { get; set; }
@@ -159,6 +161,7 @@ namespace Gameboard.Api
         public bool WantsDisallowed => Filter.Contains(NameDisallowedFilter);
         public bool WantsSortByTime => Sort == SortTime;
         public bool WantsSortByRank => Sort == SortRank || string.IsNullOrEmpty(Sort);
+        public bool WantsSortByName => Sort == SortName;
     }
 
     public class BoardPlayer

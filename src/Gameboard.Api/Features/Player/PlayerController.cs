@@ -234,6 +234,23 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
+        /// Get a Game's Teams with Members
+        /// </summary>
+        /// <param name="id">Game Id</param>
+        /// <returns>Team[]</returns>
+        [HttpGet("/api/teams/observe/{id}")]
+        [Authorize]
+        public async Task<Team[]> ObserveTeams([FromRoute] string id)
+        {
+            AuthorizeAny(
+                () => Actor.IsDirector,
+                () => Actor.IsObserver
+            );
+
+            return await PlayerService.ObserveTeams(id);
+        }
+
+        /// <summary>
         /// Get Player Team
         /// </summary>
         /// <param name="id">player id</param>

@@ -46,6 +46,7 @@ namespace Gameboard.Api
             var claims = new List<Claim>();
             claims.Add(new Claim(AppConstants.SubjectClaimName, user.Id));
             claims.Add(new Claim(AppConstants.NameClaimName, user.Name ?? ""));
+            claims.Add(new Claim(AppConstants.ApprovedNameClaimName, user.ApprovedName ?? ""));
             claims.Add(new Claim(AppConstants.RoleListClaimName, user.Role.ToString()));
 
             foreach(string role in user.Role.ToString().Replace(" ", "").Split(','))

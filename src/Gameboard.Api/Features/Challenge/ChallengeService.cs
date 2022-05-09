@@ -448,6 +448,36 @@ namespace Gameboard.Api.Services
             throw new InvalidConsoleAction();
         }
 
+        public async Task<List<ObserveChallenge>> GetChallengeConsoles(string gameId)
+        {
+            var q = Store.DbContext.Challenges
+                .Where(c => c.GameId == gameId &&
+                    c.HasDeployedGamespace)
+                .Include(c => c.Player)
+                .OrderBy(c => c.Player.Name)
+                .ThenBy(c => c.Name);
+            var challenges = Mapper.Map<ObserveChallenge[]>(await q.ToArrayAsync());
+            var result = new List<ObserveChallenge>();
+            foreach (var challenge in challenges.Where(c => c.isActive))
+            {
+                challenge.Consoles = challenge.Consoles
+                    .Where(v => v.IsVisible)
+                    .ToArray();
+                result.Add(challenge);
+            }
+            return result;
+        }
+
+        public ConsoleActor[] GetConsoleActors(string gameId)
+        {
+            return _actorMap.Find(gameId);
+        }
+
+        public ConsoleActor GetConsoleActor(string userId)
+        {
+            return _actorMap.FindActor(userId);
+        }
+
         public async Task<string> ResolveApiKey(string key)
         {
             if (key.IsEmpty())
