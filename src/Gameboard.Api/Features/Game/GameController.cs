@@ -117,7 +117,7 @@ namespace Gameboard.Api.Controllers
         [AllowAnonymous]
         public async Task<Game[]> List([FromQuery] GameSearchFilter model)
         {
-            return await GameService.List(model, Actor.IsDesigner);
+            return await GameService.List(model, Actor.IsDesigner || Actor.IsTester);
         }
 
         [HttpPost("/api/game/import")]
