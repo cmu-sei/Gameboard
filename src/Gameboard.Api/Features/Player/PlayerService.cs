@@ -636,6 +636,54 @@ namespace Gameboard.Api.Services
             await Store.Update(allteams);
         }
 
+        public async Task<PlayerCertificate> MakeCertificate(string id)
+        {
+            var player = await Store.List()
+                .Include(p => p.Game)
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.Id == id);
+            
+            return CertificateFromTemplate(player);
+        }
+
+        public async Task<PlayerCertificate[]> MakeCertificates(string uid)
+        {  
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+
+            var completedSessions = await Store.List()
+                .Include(p => p.Game)
+                .Include(p => p.User)
+                .Where(p => p.UserId == uid && 
+                    p.Game.GameEnd < now &&
+                    p.Game.CertificateTemplate != null && 
+                    p.Game.CertificateTemplate.Length > 0)
+                .OrderByDescending(p => p.Game.GameEnd)
+                .ToArrayAsync();
+            
+            return completedSessions.Select(c => CertificateFromTemplate(c)).ToArray();
+        }
+
+        private Api.PlayerCertificate CertificateFromTemplate(Data.Player player) {
+            string certificateHTML = player.Game.CertificateTemplate;
+            if (certificateHTML.IsEmpty())
+                return null;
+            certificateHTML =  certificateHTML.Replace("{{leaderboard_name}}", player.ApprovedName);
+            certificateHTML =  certificateHTML.Replace("{{user_name}}", player.User.ApprovedName);
+            certificateHTML =  certificateHTML.Replace("{{score}}", player.Score.ToString());
+            certificateHTML =  certificateHTML.Replace("{{rank}}", player.Rank.ToString());
+            certificateHTML =  certificateHTML.Replace("{{game_name}}", player.Game.Name);
+            certificateHTML =  certificateHTML.Replace("{{competition}}", player.Game.Competition);
+            certificateHTML =  certificateHTML.Replace("{{season}}", player.Game.Season);
+            certificateHTML =  certificateHTML.Replace("{{track}}", player.Game.Track);
+            certificateHTML =  certificateHTML.Replace("{{date}}", player.SessionEnd.ToString("MMMM dd, yyyy"));
+            return new Api.PlayerCertificate
+            {
+                Game = Mapper.Map<Game>(player.Game), 
+                Player = Mapper.Map<Player>(player), 
+                Html = certificateHTML
+            };
+        }
+
     }
 
 }
