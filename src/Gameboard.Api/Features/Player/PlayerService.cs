@@ -182,7 +182,15 @@ namespace Gameboard.Api.Services
                 var teamMembers = players.Select(a => a.UserId).ToArray();
                 foreach (var challenge in toArchive)
                 {
-                    challenge.Submissions = (await Mojo.AuditChallengeAsync(challenge.Id)).ToArray();
+                    // gamespace may be deleted in TopoMojo which would cause error and prevent reset
+                    try 
+                    {
+                        challenge.Submissions = (await Mojo.AuditChallengeAsync(challenge.Id)).ToArray();
+                    }  
+                    catch
+                    { 
+                        challenge.Submissions = new SectionSubmission[] {};
+                    }
                     challenge.TeamMembers = teamMembers;
                 }
                 Store.DbContext.ArchivedChallenges.AddRange(Mapper.Map<Data.ArchivedChallenge[]>(toArchive));
