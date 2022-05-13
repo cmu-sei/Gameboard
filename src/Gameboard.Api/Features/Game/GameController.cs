@@ -59,8 +59,9 @@ namespace Gameboard.Api.Controllers
         [AllowAnonymous]
         public async Task<Game> Retrieve([FromRoute] string id)
         {
-            return await GameService.Retrieve(id);
-        }
+            // only designers and testers can retrieve or list unpublished games
+            return await GameService.Retrieve(id, Actor.IsDesigner || Actor.IsTester);
+        } 
 
         [HttpGet("api/game/{id}/specs")]
         [Authorize]
