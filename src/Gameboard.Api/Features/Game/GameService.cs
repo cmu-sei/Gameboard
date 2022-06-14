@@ -48,9 +48,12 @@ namespace Gameboard.Api.Services
             return Mapper.Map<Game>(entity);
         }
 
-        public async Task<Game> Retrieve(string id)
+        public async Task<Game> Retrieve(string id, bool accessHidden = true)
         {
-            return Mapper.Map<Game>(await Store.Retrieve(id));
+            var game = await Store.Retrieve(id);
+            if (!accessHidden && !game.IsPublished)
+                throw new ActionForbidden();
+            return Mapper.Map<Game>(game);
         }
 
         public async Task Update(ChangedGame account)
