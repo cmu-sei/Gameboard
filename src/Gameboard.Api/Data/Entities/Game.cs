@@ -24,6 +24,7 @@ namespace Gameboard.Api.Data
         public DateTimeOffset GameEnd { get; set; }
         public string GameMarkdown { get; set; }
         public string FeedbackConfig { get; set; }
+        public string CertificateTemplate { get; set; }
         public string RegistrationMarkdown { get; set; }
         public DateTimeOffset RegistrationOpen { get; set; }
         public DateTimeOffset RegistrationClose { get; set; }
@@ -58,6 +59,9 @@ namespace Gameboard.Api.Data
             GameStart != DateTimeOffset.MinValue &&
             GameStart.CompareTo(DateTimeOffset.UtcNow) < 0 &&
             GameEnd.CompareTo(DateTimeOffset.UtcNow) > 0
+        ;
+        [NotMapped] public bool HasEnded =>
+            GameEnd.CompareTo(DateTimeOffset.UtcNow) < 0
         ;
         [NotMapped] public bool RegistrationActive =>
             RegistrationType != GameRegistrationType.None &&
