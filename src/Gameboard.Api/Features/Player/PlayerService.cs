@@ -176,16 +176,26 @@ namespace Gameboard.Api.Services
                     .ToArrayAsync()
                 ;
             }
-            var toArchive = Mapper.Map<ArchivedChallenge[]>(challenges);
-            if (toArchive.Length > 0)
+            
+            if (challenges.Count > 0)
             {
+                var toArchive = Mapper.Map<ArchivedChallenge[]>(challenges);
                 var teamMembers = players.Select(a => a.UserId).ToArray();
                 foreach (var challenge in toArchive)
                 {
-                    challenge.Submissions = (await Mojo.AuditChallengeAsync(challenge.Id)).ToArray();
+                    // gamespace may be deleted in TopoMojo which would cause error and prevent reset
+                    try 
+                    {
+                        challenge.Submissions = (await Mojo.AuditChallengeAsync(challenge.Id)).ToArray();
+                    }  
+                    catch
+                    { 
+                        challenge.Submissions = new SectionSubmission[] {};
+                    }
                     challenge.TeamMembers = teamMembers;
                 }
                 Store.DbContext.ArchivedChallenges.AddRange(Mapper.Map<Data.ArchivedChallenge[]>(toArchive));
+                await Store.DbContext.SaveChangesAsync();
             }
 
             // courtesy call; ignore error (gamespace may have already been removed from backend)
