@@ -102,6 +102,48 @@ namespace Gameboard.Api.Services
             return Mapper.Map<Game[]>(await q.ToArrayAsync());
         }
 
+        public async Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo)
+        {
+            DateTimeOffset now = DateTimeOffset.Now;
+
+            var q = Store.List(model.Term);
+
+            if (!sudo)
+                q = q.Where(g => g.IsPublished);
+
+            if (model.WantsPresent)
+                q = q.Where(g => g.GameEnd > now && g.GameStart < now);
+            if (model.WantsFuture)
+                q = q.Where(g => g.GameStart > now);
+            if (model.WantsPast)
+                q = q.Where(g => g.GameEnd < now);
+
+            var games = await q.ToArrayAsync();
+
+            var b = games
+                .GroupBy(g => new 
+                {
+                    g.GameStart.Year,
+                    g.GameStart.Month,
+                })
+                .Select(g => new GameGroup
+                {
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    Games = g
+                        .OrderBy(c => c.GameStart)
+                        .Select(c =>  Mapper.Map<Game>(c))
+                        .ToArray()
+                });
+            
+            if (model.WantsPast)
+                b = b.OrderByDescending(g => g.Year).ThenByDescending(g => g.Month);
+            else
+                b = b.OrderBy(g => g.Year).ThenBy(g => g.Month);
+
+            return b.ToArray();
+        }
+
         public async Task<ChallengeSpec[]> RetrieveChallenges(string id)
         {
             var entity = await Store.Load(id);

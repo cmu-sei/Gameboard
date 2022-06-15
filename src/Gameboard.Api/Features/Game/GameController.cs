@@ -121,6 +121,18 @@ namespace Gameboard.Api.Controllers
             return await GameService.List(model, Actor.IsDesigner || Actor.IsTester);
         }
 
+        /// <summary>
+        /// List games grouped by year and month
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpGet("/api/games/grouped")]
+        [AllowAnonymous]
+        public async Task<GameGroup[]> ListGrouped([FromQuery] GameSearchFilter model)
+        {
+            return await GameService.ListGrouped(model, Actor.IsDesigner || Actor.IsTester);
+        }
+
         [HttpPost("/api/game/import")]
         [Authorize(AppConstants.DesignerPolicy)]
         public async Task<Game> ImportGameSpec([FromBody] GameSpecImport model)
