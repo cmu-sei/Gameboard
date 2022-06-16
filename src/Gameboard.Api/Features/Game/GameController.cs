@@ -59,8 +59,9 @@ namespace Gameboard.Api.Controllers
         [AllowAnonymous]
         public async Task<Game> Retrieve([FromRoute] string id)
         {
-            return await GameService.Retrieve(id);
-        }
+            // only designers and testers can retrieve or list unpublished games
+            return await GameService.Retrieve(id, Actor.IsDesigner || Actor.IsTester);
+        } 
 
         [HttpGet("api/game/{id}/specs")]
         [Authorize]
@@ -118,6 +119,18 @@ namespace Gameboard.Api.Controllers
         public async Task<Game[]> List([FromQuery] GameSearchFilter model)
         {
             return await GameService.List(model, Actor.IsDesigner || Actor.IsTester);
+        }
+
+        /// <summary>
+        /// List games grouped by year and month
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpGet("/api/games/grouped")]
+        [AllowAnonymous]
+        public async Task<GameGroup[]> ListGrouped([FromQuery] GameSearchFilter model)
+        {
+            return await GameService.ListGrouped(model, Actor.IsDesigner || Actor.IsTester);
         }
 
         [HttpPost("/api/game/import")]

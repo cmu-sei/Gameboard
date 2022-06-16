@@ -40,7 +40,10 @@ namespace Gameboard.Api.Data
                     t.Track.ToLower().Contains(term) ||
                     t.Division.ToLower().Contains(term) ||
                     t.Competition.ToLower().Contains(term) ||
-                    t.Sponsor.ToLower().Contains(term)
+                    t.Sponsor.ToLower().Contains(term) ||
+                    t.Key.ToLower().Contains(term) ||
+                    t.Mode.ToLower().Contains(term) ||
+                    t.Id.ToLower().StartsWith(term)
                 );
             }
 

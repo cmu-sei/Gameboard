@@ -16,14 +16,23 @@ namespace Microsoft.Extensions.DependencyInjection
         ) {
             services.AddSingleton<Defaults>(_ => {
                 // if no filename specified, check for presence of 'feedback-template.yaml'
-                var filename = defaults.FeedbackTemplateFile.NotEmpty() ? defaults.FeedbackTemplateFile : "feedback-template.yaml";
-                var file = Path.Combine(contentRootPath, filename);
-                string template = null;
-                if (File.Exists(file))
-                    template = File.ReadAllText(file);
+                var feedbackFilename = defaults.FeedbackTemplateFile.NotEmpty() ? defaults.FeedbackTemplateFile : "feedback-template.yaml";
+                var feedbackFile = Path.Combine(contentRootPath, feedbackFilename);
+                string feedbackTemplate = null;
+                if (File.Exists(feedbackFile))
+                    feedbackTemplate = File.ReadAllText(feedbackFile);
+
+                var certificateFilename = defaults.CertificateTemplateFile.NotEmpty() ? defaults.CertificateTemplateFile : "certificate-template.html";
+                var certificateFile = Path.Combine(contentRootPath, certificateFilename);
+                string certificateTemplate = null;
+                if (File.Exists(certificateFile))
+                    certificateTemplate = File.ReadAllText(certificateFile);
+
                 return new Defaults {
-                    FeedbackTemplate = template,
-                    FeedbackTemplateFile = defaults.FeedbackTemplateFile
+                    FeedbackTemplate = feedbackTemplate,
+                    FeedbackTemplateFile = defaults.FeedbackTemplateFile,
+                    CertificateTemplate = certificateTemplate,
+                    CertificateTemplateFile = defaults.CertificateTemplateFile
                 };
             });
             

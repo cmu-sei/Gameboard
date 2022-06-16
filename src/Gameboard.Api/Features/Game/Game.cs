@@ -23,6 +23,7 @@ namespace Gameboard.Api
         public string GameMarkdown { get; set; }
         public string FeedbackConfig { get; set; }
         public GameFeedbackTemplate FeedbackTemplate { get; set; }
+        public string CertificateTemplate { get; set; }
         public string RegistrationMarkdown { get; set; }
         public DateTimeOffset RegistrationOpen { get; set; }
         public DateTimeOffset RegistrationClose { get; set; }
@@ -52,6 +53,7 @@ namespace Gameboard.Api
         public bool RequireTeam { get; set; }
         public bool AllowTeam { get; set; }
         public bool IsLive { get; set; }
+        public bool HasEnded { get; set; }
         public bool RegistrationActive { get; set; }
     }
 
@@ -104,5 +106,12 @@ namespace Gameboard.Api
         public DateTimeOffset Time { get; set; }
         public int Available { get; set; }
         public int Reserved { get; set; }
+    }
+
+    public class GameGroup
+    {
+        public int Year { get; set; }
+        public int Month { get; set; }
+        public Game[] Games { get; set; }
     }
 }

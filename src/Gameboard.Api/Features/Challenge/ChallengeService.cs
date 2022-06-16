@@ -196,6 +196,9 @@ namespace Gameboard.Api.Services
         {
             var q = Store.List(model.Term);
 
+            // filter out challenge records with no state used to give starting score to player
+            q = q.Where(p => p.Name != "_initialscore_" && p.State != null);
+
             q = q.OrderByDescending(p => p.LastSyncTime);
 
             q = q.Skip(model.Skip);

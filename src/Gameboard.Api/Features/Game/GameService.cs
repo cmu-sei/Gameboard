@@ -33,9 +33,13 @@ namespace Gameboard.Api.Services
 
         public async Task<Game> Create(NewGame model)
         {
-            // for "New Game" set feedback template to global default, if defined
-            if (!model.IsClone && Defaults.FeedbackTemplate.NotEmpty())
-                model.FeedbackConfig = Defaults.FeedbackTemplate;
+            // for "New Game" only, set global defaults, if defined
+            if (!model.IsClone)
+            {   if (Defaults.FeedbackTemplate.NotEmpty())
+                    model.FeedbackConfig = Defaults.FeedbackTemplate;
+                if (Defaults.CertificateTemplate.NotEmpty())
+                    model.CertificateTemplate = Defaults.CertificateTemplate;
+            }      
             
             var entity = Mapper.Map<Data.Game>(model);
 
@@ -44,9 +48,12 @@ namespace Gameboard.Api.Services
             return Mapper.Map<Game>(entity);
         }
 
-        public async Task<Game> Retrieve(string id)
+        public async Task<Game> Retrieve(string id, bool accessHidden = true)
         {
-            return Mapper.Map<Game>(await Store.Retrieve(id));
+            var game = await Store.Retrieve(id);
+            if (!accessHidden && !game.IsPublished)
+                throw new ActionForbidden();
+            return Mapper.Map<Game>(game);
         }
 
         public async Task Update(ChangedGame account)
@@ -93,6 +100,48 @@ namespace Gameboard.Api.Services
             
             // Use Map instead of 'Mapper.ProjectTo<Game>' to support YAML parsing in automapper
             return Mapper.Map<Game[]>(await q.ToArrayAsync());
+        }
+
+        public async Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo)
+        {
+            DateTimeOffset now = DateTimeOffset.Now;
+
+            var q = Store.List(model.Term);
+
+            if (!sudo)
+                q = q.Where(g => g.IsPublished);
+
+            if (model.WantsPresent)
+                q = q.Where(g => g.GameEnd > now && g.GameStart < now);
+            if (model.WantsFuture)
+                q = q.Where(g => g.GameStart > now);
+            if (model.WantsPast)
+                q = q.Where(g => g.GameEnd < now);
+
+            var games = await q.ToArrayAsync();
+
+            var b = games
+                .GroupBy(g => new 
+                {
+                    g.GameStart.Year,
+                    g.GameStart.Month,
+                })
+                .Select(g => new GameGroup
+                {
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    Games = g
+                        .OrderBy(c => c.GameStart)
+                        .Select(c =>  Mapper.Map<Game>(c))
+                        .ToArray()
+                });
+            
+            if (model.WantsPast)
+                b = b.OrderByDescending(g => g.Year).ThenByDescending(g => g.Month);
+            else
+                b = b.OrderBy(g => g.Year).ThenBy(g => g.Month);
+
+            return b.ToArray();
         }
 
         public async Task<ChallengeSpec[]> RetrieveChallenges(string id)

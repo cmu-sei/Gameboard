@@ -147,6 +147,8 @@ namespace Gameboard.Api
     {
         public string FeedbackTemplateFile { get; set; }
         public string FeedbackTemplate { get; set; } = "";
+        public string CertificateTemplateFile { get; set; }
+        public string CertificateTemplate { get; set; } = "";
     }
 
 }

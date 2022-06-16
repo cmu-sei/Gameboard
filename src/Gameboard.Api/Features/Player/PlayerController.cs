@@ -316,6 +316,35 @@ namespace Gameboard.Api.Controllers
             return await PlayerService.Enlist(model, Actor.IsRegistrar);
         }
 
+        /// <summary>
+        /// Get Player Certificate
+        /// </summary>
+        /// <param name="id">player id</param>
+        /// <returns></returns>
+        [HttpGet("/api/certificate/{id}")]
+        [Authorize]
+        public async Task<PlayerCertificate> GetCertificate([FromRoute] string id)
+        {
+            await Validate(new Entity{ Id = id });
+
+            AuthorizeAny(
+                () => IsSelf(id).Result
+            );
+
+            return await PlayerService.MakeCertificate(id);
+        }
+
+        /// <summary>
+        /// Get List of Player Certificates
+        /// </summary>
+        /// <returns> </returns>
+        [HttpGet("/api/certificates")]
+        [Authorize]
+        public async Task<PlayerCertificate[]> GetCertificates()
+        {
+            return await PlayerService.MakeCertificates(Actor.Id);
+        }
+
         private async Task<bool> IsSelf(string playerId)
         {
           return await PlayerService.MapId(playerId) == Actor.Id;

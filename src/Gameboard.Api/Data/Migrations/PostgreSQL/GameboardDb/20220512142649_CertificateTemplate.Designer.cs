@@ -3,15 +3,17 @@ using System;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 {
     [DbContext(typeof(GameboardDbContextPostgreSQL))]
-    partial class GameboardDbContextPostgreSQLModelSnapshot : ModelSnapshot
+    [Migration("20220512142649_CertificateTemplate")]
+    partial class CertificateTemplate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -566,115 +568,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.ToTable("Sponsors");
                 });
 
-            modelBuilder.Entity("Gameboard.Api.Data.Ticket", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<string>("AssigneeId")
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<string>("Attachments")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ChallengeId")
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatorId")
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<int>("Key")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .UseSerialColumn();
-
-                    b.Property<string>("Label")
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset>("LastUpdated")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PlayerId")
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<string>("RequesterId")
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<bool>("StaffCreated")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Status")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Summary")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<string>("TeamId")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AssigneeId");
-
-                    b.HasIndex("ChallengeId");
-
-                    b.HasIndex("CreatorId");
-
-                    b.HasIndex("PlayerId");
-
-                    b.HasIndex("RequesterId");
-
-                    b.ToTable("Tickets");
-                });
-
-            modelBuilder.Entity("Gameboard.Api.Data.TicketActivity", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<string>("AssigneeId")
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<string>("Attachments")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Message")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Status")
-                        .HasColumnType("text");
-
-                    b.Property<string>("TicketId")
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset>("Timestamp")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("UserId")
-                        .HasColumnType("character varying(40)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AssigneeId");
-
-                    b.HasIndex("TicketId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("TicketActivity");
-                });
-
             modelBuilder.Entity("Gameboard.Api.Data.User", b =>
                 {
                     b.Property<string>("Id")
@@ -814,61 +707,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Gameboard.Api.Data.Ticket", b =>
-                {
-                    b.HasOne("Gameboard.Api.Data.User", "Assignee")
-                        .WithMany()
-                        .HasForeignKey("AssigneeId");
-
-                    b.HasOne("Gameboard.Api.Data.Challenge", "Challenge")
-                        .WithMany()
-                        .HasForeignKey("ChallengeId");
-
-                    b.HasOne("Gameboard.Api.Data.User", "Creator")
-                        .WithMany()
-                        .HasForeignKey("CreatorId");
-
-                    b.HasOne("Gameboard.Api.Data.Player", "Player")
-                        .WithMany()
-                        .HasForeignKey("PlayerId");
-
-                    b.HasOne("Gameboard.Api.Data.User", "Requester")
-                        .WithMany()
-                        .HasForeignKey("RequesterId");
-
-                    b.Navigation("Assignee");
-
-                    b.Navigation("Challenge");
-
-                    b.Navigation("Creator");
-
-                    b.Navigation("Player");
-
-                    b.Navigation("Requester");
-                });
-
-            modelBuilder.Entity("Gameboard.Api.Data.TicketActivity", b =>
-                {
-                    b.HasOne("Gameboard.Api.Data.User", "Assignee")
-                        .WithMany()
-                        .HasForeignKey("AssigneeId");
-
-                    b.HasOne("Gameboard.Api.Data.Ticket", "Ticket")
-                        .WithMany("Activity")
-                        .HasForeignKey("TicketId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.HasOne("Gameboard.Api.Data.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId");
-
-                    b.Navigation("Assignee");
-
-                    b.Navigation("Ticket");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
                 {
                     b.Navigation("Events");
@@ -899,11 +737,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Challenges");
 
                     b.Navigation("Feedback");
-                });
-
-            modelBuilder.Entity("Gameboard.Api.Data.Ticket", b =>
-                {
-                    b.Navigation("Activity");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.User", b =>

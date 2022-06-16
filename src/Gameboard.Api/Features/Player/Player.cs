@@ -222,4 +222,11 @@ namespace Gameboard.Api
         public DateTimeOffset SessionBegin { get; set; }
         public DateTimeOffset SessionEnd { get; set; }
     }
+
+    public class PlayerCertificate 
+    {
+        public Game Game { get; set; }
+        public Player Player { get; set; }
+        public string Html { get; set; }
+    }
 }
