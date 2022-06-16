@@ -75,6 +75,20 @@ namespace Gameboard.Api
         public ChallengeEvent[] Events { get; set; }
     }
 
+    public class ChallengeOverview
+    {
+        public string Id { get; set; }
+        public string TeamId { get; set; }
+        public string GameId { get; set; }
+        public string GameName { get; set; }
+        public string Name { get; set; }
+        public string Tag { get; set; }
+        public int Points { get; set; }
+        public int Score { get; set; }
+        public long Duration { get; set; }
+        public bool AllowTeam { get; set; }
+    }
+
     public class ObserveChallenge
     {
         public string Id { get; set; }
@@ -170,5 +184,13 @@ namespace Gameboard.Api
         public string[] TeamMembers { get; set; } // User Ids of all team members
         public bool IsActive { get; set; }
         public SectionSubmission[] Submissions { get; set; }
+    }
+
+    public class ChallengeSearchFilter: SearchFilter
+    {
+        // public const string PresentFilter = "present";
+        // public bool WantsPresent => Filter.Contains(PresentFilter);
+
+        public string uid { get; set; }
     }
 }

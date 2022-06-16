@@ -362,6 +362,27 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
+        /// Find challenges by user
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpGet("/api/userchallenges")]
+        [Authorize]
+        public async Task<ChallengeOverview[]> ListByUser([FromQuery] ChallengeSearchFilter model)
+        {
+            // AuthorizeAny(
+            //     () => Actor.IsSupport,
+            //     () => Actor.IsObserver,
+            //     () => Actor.Id == id
+            // );
+
+            if (!(Actor.IsSupport || Actor.IsObserver) || model.uid.IsEmpty())
+                model.uid = Actor.Id;
+
+            return await ChallengeService.ListByUser(model.uid);
+        }
+
+        /// <summary>
         /// Find archived challenges
         /// </summary>
         /// <param name="model"></param>

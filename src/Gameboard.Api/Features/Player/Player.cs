@@ -15,6 +15,7 @@ namespace Gameboard.Api
         public string UserName { get; set; }
         public string UserApprovedName { get; set; }
         public string GameId { get; set; }
+        public string GameName { get; set; }
         public string ApprovedName { get; set; }
         public string Name { get; set; }
         public string NameStatus { get; set; }
@@ -127,6 +128,16 @@ namespace Gameboard.Api
         public string Name { get; set; }
         public string Sponsor { get; set; }
         public string[] Members { get; set; }
+    }
+
+    public class PlayerOverview
+    {
+        public string Id { get; set; }
+        public string TeamId { get; set; }
+        public string GameId { get; set; }
+        public string GameName { get; set; }
+        public string ApprovedName { get; set; }
+    
     }
 
     public class PlayerDataFilter: SearchFilter

@@ -16,6 +16,8 @@ namespace Gameboard.Api.Services
 
             CreateMap<Data.User, TeamMember>();
 
+            CreateMap<Data.User, UserSummary>();
+
             CreateMap<User, Data.User>();
 
             CreateMap<NewUser, Data.User>();

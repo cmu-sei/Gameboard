@@ -131,6 +131,19 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.UserId).HasMaxLength(40);
             });
 
+            builder.Entity<Ticket>(b => {
+                // todo - limits and FK constraints
+                b.Property(u => u.AssigneeId).IsRequired(false);
+                // b.Property(u => u.Key).ValueGeneratedOnAdd();
+                b.Property(u => u.Key).UseSerialColumn();
+                b.Property(u => u.Summary).HasMaxLength(128).IsRequired();
+            });
+
+            builder.Entity<TicketActivity>(b => {
+                b.HasOne(p => p.Ticket).WithMany(u => u.Activity).OnDelete(DeleteBehavior.Cascade);
+            });
+
+
         }
 
         public DbSet<User> Users { get; set; }
@@ -143,5 +156,7 @@ namespace Gameboard.Api.Data
         public DbSet<Sponsor> Sponsors { get; set; }
         public DbSet<Feedback> Feedback { get; set; }
         public DbSet<ArchivedChallenge> ArchivedChallenges { get; set; }
+        public DbSet<Ticket> Tickets { get; set; }
+        public DbSet<TicketActivity> TicketActivity { get; set; }
     }
 }

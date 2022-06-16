@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -81,6 +82,27 @@ namespace Gameboard.Api
         public static bool NotEmpty(this string str)
         {
             return str.IsEmpty().Equals(false);
+        }
+
+        public static string Sanitize(this string target, char[] exclude)
+        {
+            string p = "";
+
+            foreach (char c in target.ToCharArray())
+                if (!exclude.Contains(c))
+                    p += c;
+
+            return p.Replace(" ", "_");
+        }
+
+        public static string SanitizeFilename(this string target)
+        {
+            return target.Sanitize(Path.GetInvalidFileNameChars());
+        }
+
+        public static string SanitizePath(this string target)
+        {
+            return target.Sanitize(Path.GetInvalidPathChars());
         }
     }
 }

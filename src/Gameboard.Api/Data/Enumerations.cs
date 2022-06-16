@@ -10,12 +10,13 @@ namespace Gameboard.Api
     public enum UserRole
     {
         Member =    0,
-        Observer =  0b00000001,
-        Tester =    0b00000010,
-        Designer =  0b00000100,
-        Registrar = 0b00001000,
-        Director =  0b00010000,
-        Admin =     0b00100000
+        Observer =  0b1,
+        Tester =    0b10,
+        Designer =  0b100,
+        Registrar = 0b1000,
+        Director =  0b10000,
+        Admin =     0b100000,
+        Support =   0b1000000
     }
 
     public enum PlayerRole
@@ -44,5 +45,19 @@ namespace Gameboard.Api
         None,
         Partial,
         Success
+    }
+
+    public enum ActivityType
+    {
+        Comment,
+        StatusChange,
+        AssigneeChange
+    }
+
+    public enum TicketStatus
+    {
+        Open,
+        InProgress,
+        Closed
     }
 }

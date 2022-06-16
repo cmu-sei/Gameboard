@@ -20,6 +20,7 @@ namespace Gameboard.Api
         public bool IsDesigner => Role.HasFlag(UserRole.Designer);
         public bool IsTester => Role.HasFlag(UserRole.Tester);
         public bool IsObserver => Role.HasFlag(UserRole.Observer);
+        public bool IsSupport => Role.HasFlag(UserRole.Support);
     }
 
     public class NewUser
@@ -63,6 +64,12 @@ namespace Gameboard.Api
         public bool WantsRoles => Filter.Contains(UserRoleFilter);
         public bool WantsPending => Filter.Contains(NamePendingFilter);
         public bool WantsDisallowed => Filter.Contains(NameDisallowedFilter);
+    }
+    
+    public class UserSummary 
+    {
+        public string Id { get; set; }
+        public string ApprovedName { get; set; }
     }
 
     public class Announcement

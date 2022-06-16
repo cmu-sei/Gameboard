@@ -63,7 +63,7 @@ namespace Gameboard.Api
 
     public class DatabaseOptions
     {
-        public string Provider { get; set; } = "InMemory";
+        public string Provider { get; set; } = "PostgreSQL";
         public string ConnectionString { get; set; } = "gameboard_db";
         public string SeedFile { get; set; } = "seed-data.json";
     }
@@ -136,8 +136,11 @@ namespace Gameboard.Api
         public int GameEngineMaxRetries { get; set; } = 2;
         public string ImageFolder { get; set; } = "wwwroot/img";
         public string DocFolder { get; set; } = "wwwroot/doc";
+        public string SupportUploadsRequestPath { get; set; } = "img/secure/support";
+        public string SupportUploadsFolder { get; set; } = "wwwroot/img/secure/support";
         public string ChallengeDocUrl { get; set; }
         public string SafeNamesFile { get; set; } = "names.json";
+        public string KeyPrefix { get; set; }
     }
 
     public class Defaults

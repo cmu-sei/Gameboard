@@ -23,19 +23,22 @@ namespace Gameboard.Api.Controllers
             ReportService service,
             GameService gameService,
             ChallengeSpecService challengeSpecService,
-            FeedbackService feedbackService
+            FeedbackService feedbackService,
+            TicketService ticketService
         ): base(logger, cache)
         {
             Service = service;
             GameService = gameService;
             FeedbackService = feedbackService;
             ChallengeSpecService = challengeSpecService;
+            TicketService = ticketService;
         }
 
         ReportService Service { get; }
         GameService GameService { get; }
         FeedbackService FeedbackService { get; }
         ChallengeSpecService ChallengeSpecService { get; }
+        TicketService TicketService { get; }
 
         [HttpGet("/api/report/userstats")]
         [Authorize]
@@ -477,6 +480,45 @@ namespace Gameboard.Api.Controllers
             };
 
             return Ok(fullStats);
+        }
+
+        [HttpGet("/api/report/supportdaystats")]
+        [Authorize]
+        public async Task<ActionResult<object[]>> GetTicketVolumeStats([FromQuery] TicketReportFilter model)
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var tickets = await Service.GetTicketVolume(model);
+
+            return Ok(tickets);
+        }
+
+        [HttpGet("/api/report/supportlabelstats")]
+        [Authorize]
+        public async Task<ActionResult<object[]>> GetTicketLabelStats([FromQuery] TicketReportFilter model)
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var tickets = await Service.GetTicketLabels(model);
+
+            return Ok(tickets);
+        }
+
+        [HttpGet("/api/report/supportchallengestats")]
+        [Authorize]
+        public async Task<ActionResult<object[]>> GetTicketChallengeStats([FromQuery] TicketReportFilter model)
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var tickets = await Service.GetTicketChallenges(model);
+
+            return Ok(tickets);
         }
 
     }
