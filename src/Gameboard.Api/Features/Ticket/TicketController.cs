@@ -82,7 +82,7 @@ namespace Gameboard.Api.Controllers
 
             if (uploads.Count() > 0 && result != null && !result.Id.IsEmpty())
             {
-                string path = BuildPath("tickets", result.Id);
+                string path = BuildPath(result.Id);
                 await WriteUploadFiles(uploads, path);
             }
 
@@ -152,7 +152,7 @@ namespace Gameboard.Api.Controllers
 
             if (uploads.Count() > 0 && result != null && !result.Id.IsEmpty())
             {
-                string path = BuildPath("tickets", result.TicketId, result.Id);
+                string path = BuildPath(result.TicketId, result.Id);
                 await WriteUploadFiles(uploads, path);
             }
 

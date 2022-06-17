@@ -36,28 +36,26 @@ namespace Gameboard.Api
         {
             if (context.Request.Path.StartsWithSegments("/"+_options.SupportUploadsRequestPath))
             {
-                var requestPath = context.Request.Path.ToString();
-                Regex pattern = new Regex($@"{_options.SupportUploadsRequestPath}/tickets/(?<ticketId>.*)/.*");
-                Match match = pattern.Match(requestPath);
-                var ticketId = match.Groups["ticketId"].Value;
-                var userId = context.User.FindFirst("sub");
-                // var userId = _user.FindFirst("sub");
-                var key = $"{"file-permit:"}{userId}:{ticketId}";
-                string cachedValue = await _cache.GetStringAsync(key);
-                if (false && cachedValue.IsEmpty())
-                {
-                    // throw new Exception("Unauthorized");
-                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    return;
-                }
-                // if (!context.User.Identity.IsAuthenticated
-                //     && context.Request.Path.StartsWithSegments("/"+_options.SupportUploadsRequestPath))
+                // TODO: May need to change approach for static file requests since the UI with render them with src without token
+
+                // var requestPath = context.Request.Path.ToString();
+                // Regex pattern = new Regex($@"{_options.SupportUploadsRequestPath}/(?<ticketId>.*)/.*");
+                // Match match = pattern.Match(requestPath);
+                // var ticketId = match.Groups["ticketId"].Value;
+                // var sub = context.User.FindFirst("sub");
+                // if (sub == null)
                 // {
-                //     throw new Exception("Not authenticated");
-                // }\
-                // context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                // return System.Threading.Tasks.Task.CompletedTask;
-                
+                //     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                //     return;
+                // }
+                // var userId = context.User.FindFirst("sub").Value;
+                // var key = $"{"file-permit:"}{userId}:{ticketId}";
+                // string cachedValue = await _cache.GetStringAsync(key);
+                // if (cachedValue.IsEmpty())
+                // {
+                //     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                //     return;
+                // }
             }
 
             await _next(context);
