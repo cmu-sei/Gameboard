@@ -152,7 +152,8 @@ namespace Gameboard.Api.Controllers
         public async Task<UserSummary[]> ListSupport([FromQuery] SearchFilter model)
         {
             AuthorizeAny(
-                () => Actor.IsObserver
+                () => Actor.IsObserver,
+                () => Actor.IsSupport
             );
 
             return await UserService.ListSupport(model);

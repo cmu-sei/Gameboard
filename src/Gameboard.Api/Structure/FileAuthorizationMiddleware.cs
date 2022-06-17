@@ -25,7 +25,6 @@ namespace Gameboard.Api
             _logger = logger;
             _options = options;
             _cache = cache;
-            // _user = user;
         }
         private readonly RequestDelegate _next;
         private readonly ILogger _logger;

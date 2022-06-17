@@ -42,7 +42,10 @@ namespace Gameboard.Api.Data
         public Game Game { get; set; }
         public Player Player { get; set; }
         public ICollection<ChallengeEvent> Events { get; set; } = new List<ChallengeEvent>();
+
+        // Control delete behavior with relationships
         public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
+        public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
     }
 
 }

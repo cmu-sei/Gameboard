@@ -159,14 +159,18 @@ namespace Gameboard.Api.Services
         {
             var q = Store.List(model.Term);
 
-            q = q.Where(u => u.Role.HasFlag(UserRole.Observer));
+            // Might want to also include observers if they can be assigned. Or just make possible assignees "Support" roles
+            q = q.Where(u => u.Role.HasFlag(UserRole.Support));
 
             if (model.Term.HasValue())
+            {
+                model.Term = model.Term.ToLower();
                 q = q.Where(u =>
                     u.Id.StartsWith(model.Term) ||
                     u.Name.ToLower().Contains(model.Term) ||
                     u.ApprovedName.ToLower().Contains(model.Term)
                 );
+            }
 
             
             return await Mapper.ProjectTo<UserSummary>(q).ToArrayAsync();

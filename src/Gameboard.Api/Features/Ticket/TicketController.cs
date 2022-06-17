@@ -52,11 +52,12 @@ namespace Gameboard.Api.Controllers
 
            await Validate(new Entity { Id = id });
 
+            // Once authenticated, authorized, and validated, cache a file permit for this user id & ticket id
             await Cache.SetStringAsync(
                 $"{"file-permit:"}{Actor.Id}:{id}",
                 "true",
                 new DistributedCacheEntryOptions {
-                    AbsoluteExpirationRelativeToNow = new TimeSpan(0, 30, 0)
+                    AbsoluteExpirationRelativeToNow = new TimeSpan(0, 15, 0)
                 }
             );
 
@@ -111,7 +112,7 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
-        /// Lists feedback based on search params
+        /// Lists tickets based on search params
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
@@ -119,15 +120,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<TicketSummary[]> List([FromQuery] TicketSearchFilter model)
         {
-            // AuthorizeAny(
-            //     () => Actor.IsObserver
-            // );
-
-            // todo: filter here or new end point for by user or team 
-            TicketSummary[] result = await TicketService.List(model, Actor.Id, Actor.IsSupport || Actor.IsObserver);
-            return result;
+            return await TicketService.List(model, Actor.Id, Actor.IsSupport || Actor.IsObserver);
         }
-
 
         /// <summary>
         /// Create new ticket comment
@@ -174,9 +168,7 @@ namespace Gameboard.Api.Controllers
                 () => Actor.IsObserver
             );
 
-            // todo: filter here or new end point for by user or team 
-            string[] result = await TicketService.ListLabels(model);
-            return result;
+            return await TicketService.ListLabels(model);
         }
 
         private List<UploadFile> GetUploadFiles(List<IFormFile> uploads)
@@ -210,8 +202,6 @@ namespace Gameboard.Api.Controllers
             }
         }
 
-        // private List<UploadedFile> ProcessFilenames
-
         private string BuildPath(params string[] segments)
         {
             string path = Options.SupportUploadsFolder;
@@ -224,16 +214,6 @@ namespace Gameboard.Api.Controllers
 
             return path;
         }
-
-        /*
-        TODO 
-            - add comment with endpoint
-            - admin edit (more fields can be edited)
-            - either indiv enpoints for different functions:
-                - status change
-                - assignee change
-              OR one put endpoint and it would automatically detect change to key fields 
-        */
 
     }
 }

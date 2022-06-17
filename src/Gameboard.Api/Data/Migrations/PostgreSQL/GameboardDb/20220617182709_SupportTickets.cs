@@ -12,18 +12,18 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 name: "Tickets",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "text", nullable: false),
+                    Id = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
                     Key = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.SerialColumn),
-                    RequesterId = table.Column<string>(type: "character varying(40)", nullable: true),
-                    AssigneeId = table.Column<string>(type: "character varying(40)", nullable: true),
-                    CreatorId = table.Column<string>(type: "character varying(40)", nullable: true),
-                    ChallengeId = table.Column<string>(type: "character varying(40)", nullable: true),
-                    PlayerId = table.Column<string>(type: "character varying(40)", nullable: true),
-                    TeamId = table.Column<string>(type: "text", nullable: true),
+                    RequesterId = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
+                    AssigneeId = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
+                    CreatorId = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
+                    ChallengeId = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
+                    PlayerId = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
+                    TeamId = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
                     Summary = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
-                    Status = table.Column<string>(type: "text", nullable: true),
+                    Status = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
                     Label = table.Column<string>(type: "text", nullable: true),
                     StaffCreated = table.Column<bool>(type: "boolean", nullable: false),
                     Created = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
@@ -50,19 +50,19 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         column: x => x.AssigneeId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Tickets_Users_CreatorId",
                         column: x => x.CreatorId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Tickets_Users_RequesterId",
                         column: x => x.RequesterId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -70,11 +70,11 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "text", nullable: false),
-                    TicketId = table.Column<string>(type: "text", nullable: true),
-                    UserId = table.Column<string>(type: "character varying(40)", nullable: true),
-                    AssigneeId = table.Column<string>(type: "character varying(40)", nullable: true),
+                    TicketId = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
+                    UserId = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
+                    AssigneeId = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
                     Message = table.Column<string>(type: "text", nullable: true),
-                    Status = table.Column<string>(type: "text", nullable: true),
+                    Status = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
                     Type = table.Column<int>(type: "integer", nullable: false),
                     Timestamp = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     Attachments = table.Column<string>(type: "text", nullable: true)
@@ -93,13 +93,13 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         column: x => x.AssigneeId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_TicketActivity_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(

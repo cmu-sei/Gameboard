@@ -49,9 +49,10 @@ namespace Gameboard.Api.Validators
 
         private async Task _validate(NewTicket model)
         {
-            // if ((await Exists(model.TicketId)).Equals(false))
-            //     throw new ResourceNotFound();
-            
+            // TODO validate that references exist and belong to the requester
+            // see feedback validator for examples
+            // for example, challenge exists and it is part of a player session that the user belongs to
+
             await Task.CompletedTask;
         }
 
@@ -67,6 +68,8 @@ namespace Gameboard.Api.Validators
         {
             if ((await Exists(model.Id)).Equals(false))
                 throw new ResourceNotFound();
+
+            // TODO validate that references exist and belong to the requester
             
             await Task.CompletedTask;
         }

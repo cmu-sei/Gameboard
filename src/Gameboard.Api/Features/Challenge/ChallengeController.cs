@@ -370,12 +370,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ChallengeOverview[]> ListByUser([FromQuery] ChallengeSearchFilter model)
         {
-            // AuthorizeAny(
-            //     () => Actor.IsSupport,
-            //     () => Actor.IsObserver,
-            //     () => Actor.Id == id
-            // );
 
+            // if not sudo or not specified, search use Actor.Id as uid in filtering
             if (!(Actor.IsSupport || Actor.IsObserver) || model.uid.IsEmpty())
                 model.uid = Actor.Id;
 

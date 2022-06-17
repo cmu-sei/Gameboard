@@ -8,7 +8,6 @@ using System.Linq;
 
 namespace Gameboard.Api
 {
-    // same as Data.Ticket
     public class Ticket
     {
         public string Id { get; set; } 
@@ -127,12 +126,6 @@ namespace Gameboard.Api
         public UserSummary Assignee { get; set; }
     }
 
-    // public class AttachmentFile
-    // {
-    //     public string Filename { get; set; }
-    //     public string Extension { get; set; }
-    // }
-
     public class UploadFile 
     {
         public string FileName { get; set; }
@@ -164,28 +157,6 @@ namespace Gameboard.Api
 
         public bool WantsAfterStartTime => StartRange != DateTimeOffset.MinValue;
         public bool WantsBeforeEndTime => EndRange != DateTimeOffset.MinValue;
-    }
-
-
-    public class TicketMeta
-    {
-        public string Id { get; set; } 
-        public int Key { get; set; } 
-        public string FullKey { get; set; } 
-        public string RequesterId { get; set; }
-        public string AssigneeId { get; set; }
-        public string CreatorId { get; set; }
-        public string ChallengeId { get; set; }
-        public string TeamId { get; set; }
-        public string Summary { get; set; }
-        public string Description { get; set; }
-        public string Status { get; set; }
-        public string Label { get; set; }
-        public bool SelfCreated { get; set; }
-
-        public DateTimeOffset Created { get; set; }
-        public DateTimeOffset LastUpdated { get; set; }
-        
     }
 
     public class TicketDayGroup

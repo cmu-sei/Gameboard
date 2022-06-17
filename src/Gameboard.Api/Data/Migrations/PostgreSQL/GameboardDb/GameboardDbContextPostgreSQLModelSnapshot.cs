@@ -569,21 +569,25 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
             modelBuilder.Entity("Gameboard.Api.Data.Ticket", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("text");
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.Property<string>("AssigneeId")
+                        .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
                     b.Property<string>("Attachments")
                         .HasColumnType("text");
 
                     b.Property<string>("ChallengeId")
+                        .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
                     b.Property<DateTimeOffset>("Created")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CreatorId")
+                        .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
                     b.Property<string>("Description")
@@ -601,16 +605,19 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PlayerId")
+                        .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
                     b.Property<string>("RequesterId")
+                        .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
                     b.Property<bool>("StaffCreated")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Status")
-                        .HasColumnType("text");
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("Summary")
                         .IsRequired()
@@ -618,7 +625,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasColumnType("character varying(128)");
 
                     b.Property<string>("TeamId")
-                        .HasColumnType("text");
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.HasKey("Id");
 
@@ -641,6 +649,7 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasColumnType("text");
 
                     b.Property<string>("AssigneeId")
+                        .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
                     b.Property<string>("Attachments")
@@ -650,10 +659,12 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasColumnType("text");
 
                     b.Property<string>("Status")
-                        .HasColumnType("text");
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("TicketId")
-                        .HasColumnType("text");
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.Property<DateTimeOffset>("Timestamp")
                         .HasColumnType("timestamp with time zone");
@@ -662,6 +673,7 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasColumnType("integer");
 
                     b.Property<string>("UserId")
+                        .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
                     b.HasKey("Id");
@@ -821,16 +833,18 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasForeignKey("AssigneeId");
 
                     b.HasOne("Gameboard.Api.Data.Challenge", "Challenge")
-                        .WithMany()
-                        .HasForeignKey("ChallengeId");
+                        .WithMany("Tickets")
+                        .HasForeignKey("ChallengeId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Gameboard.Api.Data.User", "Creator")
                         .WithMany()
                         .HasForeignKey("CreatorId");
 
                     b.HasOne("Gameboard.Api.Data.Player", "Player")
-                        .WithMany()
-                        .HasForeignKey("PlayerId");
+                        .WithMany("Tickets")
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Gameboard.Api.Data.User", "Requester")
                         .WithMany()
@@ -874,6 +888,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Events");
 
                     b.Navigation("Feedback");
+
+                    b.Navigation("Tickets");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.ChallengeSpec", b =>
@@ -899,6 +915,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Challenges");
 
                     b.Navigation("Feedback");
+
+                    b.Navigation("Tickets");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Ticket", b =>

@@ -23,7 +23,6 @@ namespace Gameboard.Api.Services
             ;
             CreateMap<Ticket, Data.Ticket>();
             CreateMap<Data.Ticket, TicketSummary>();
-            CreateMap<Data.Ticket, TicketMeta>();
 
             CreateMap<NewTicket, SelfNewTicket>();
 

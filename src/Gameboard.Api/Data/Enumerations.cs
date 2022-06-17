@@ -54,10 +54,4 @@ namespace Gameboard.Api
         AssigneeChange
     }
 
-    public enum TicketStatus
-    {
-        Open,
-        InProgress,
-        Closed
-    }
 }

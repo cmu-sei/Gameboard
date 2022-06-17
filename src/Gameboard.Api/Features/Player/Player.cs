@@ -137,7 +137,6 @@ namespace Gameboard.Api
         public string GameId { get; set; }
         public string GameName { get; set; }
         public string ApprovedName { get; set; }
-    
     }
 
     public class PlayerDataFilter: SearchFilter

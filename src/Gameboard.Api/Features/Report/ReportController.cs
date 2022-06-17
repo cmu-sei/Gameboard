@@ -484,7 +484,7 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("/api/report/supportdaystats")]
         [Authorize]
-        public async Task<ActionResult<object[]>> GetTicketVolumeStats([FromQuery] TicketReportFilter model)
+        public async Task<ActionResult<TicketDayGroup[]>> GetTicketVolumeStats([FromQuery] TicketReportFilter model)
         {
             AuthorizeAny(
                 () => Actor.IsObserver
@@ -497,7 +497,7 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("/api/report/supportlabelstats")]
         [Authorize]
-        public async Task<ActionResult<object[]>> GetTicketLabelStats([FromQuery] TicketReportFilter model)
+        public async Task<ActionResult<TicketLabelGroup[]>> GetTicketLabelStats([FromQuery] TicketReportFilter model)
         {
             AuthorizeAny(
                 () => Actor.IsObserver
@@ -510,7 +510,7 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("/api/report/supportchallengestats")]
         [Authorize]
-        public async Task<ActionResult<object[]>> GetTicketChallengeStats([FromQuery] TicketReportFilter model)
+        public async Task<ActionResult<TicketChallengeGroup[]>> GetTicketChallengeStats([FromQuery] TicketReportFilter model)
         {
             AuthorizeAny(
                 () => Actor.IsObserver

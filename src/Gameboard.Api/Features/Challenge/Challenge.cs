@@ -188,9 +188,6 @@ namespace Gameboard.Api
 
     public class ChallengeSearchFilter: SearchFilter
     {
-        // public const string PresentFilter = "present";
-        // public bool WantsPresent => Filter.Contains(PresentFilter);
-
-        public string uid { get; set; }
+        public string uid { get; set; } // Used to search for all challenges of a user
     }
 }

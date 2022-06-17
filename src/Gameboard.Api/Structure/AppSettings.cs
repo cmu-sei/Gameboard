@@ -63,7 +63,7 @@ namespace Gameboard.Api
 
     public class DatabaseOptions
     {
-        public string Provider { get; set; } = "PostgreSQL";
+        public string Provider { get; set; } = "InMemory";
         public string ConnectionString { get; set; } = "gameboard_db";
         public string SeedFile { get; set; } = "seed-data.json";
     }

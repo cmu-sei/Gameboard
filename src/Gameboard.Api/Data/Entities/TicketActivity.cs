@@ -16,10 +16,9 @@ namespace Gameboard.Api.Data
         public string AssigneeId { get; set; }
         public string Message { get; set; }
         public string Status { get; set; }
-        public ActivityType Type { get; set; } // string or enum?
+        public ActivityType Type { get; set; }
         public DateTimeOffset Timestamp { get; set; }
-        public string Attachments { get; set; } // JSON paths to static files
-
+        public string Attachments { get; set; }
         public Ticket Ticket { get; set; }
         public User User { get; set; }
         [ForeignKey("AssigneeId")]

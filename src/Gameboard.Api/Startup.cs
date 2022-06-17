@@ -143,10 +143,6 @@ namespace Gameboard.Api
 
             app.UseCors(Settings.Headers.Cors.Name);
 
-            // app.UseFileProtection();
-
-            // app.UseStaticFiles();
-
             app.UseAuthentication();
 
             app.UseAuthorization();

@@ -11,9 +11,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
-using System.Text.Json;
-using System.Text.Json.Serialization;
-
 namespace Gameboard.Api.Services
 {
     public class TicketService : _Service, IApiKeyAuthenticationService
@@ -46,7 +43,7 @@ namespace Gameboard.Api.Services
         {
             Data.Ticket entity;
             var timestamp = DateTimeOffset.UtcNow;
-            if (sudo) 
+            if (sudo) // staff with full management capability
             {
                 entity = Mapper.Map<Data.Ticket>(model);
                 AddActivity(entity, actorId, !entity.Status.IsEmpty(), !entity.AssigneeId.IsEmpty(), timestamp);
@@ -132,7 +129,7 @@ namespace Gameboard.Api.Services
             if (model.WantsUnassigned)
                 q = q.Where(t => t.AssigneeId == null || t.AssigneeId == "");
             
-            if (!sudo) // normal user should only see "their" tickets
+            if (!sudo) // normal user should only see "their" tickets (requester or team member)
             {
                 var userTeams = await Store.DbContext.Players
                     .Where(p => p.UserId == userId && p.TeamId != null && p.TeamId != "")
@@ -183,7 +180,6 @@ namespace Gameboard.Api.Services
 
             var tickets = await Mapper.ProjectTo<TicketSummary>(q).ToArrayAsync();
 
-            // todo, cache???
             var b = tickets
                 .Where(t => !t.Label.IsEmpty())
                 .SelectMany(t => t.Label.Split(" "))
@@ -279,40 +275,6 @@ namespace Gameboard.Api.Services
             entity.PlayerId = null;
         }
 
-        // private async Task UpdatedPlayer(Data.Ticket entity)
-        // {
-        //     var player = await Store.DbContext.Players.FirstOrDefaultAsync(c =>
-        //         c.Id == entity.PlayerId
-        //     );
-        //     if (player != null)
-        //     {
-        //         entity.TeamId = player.TeamId;
-        //         entity.PlayerId = player.Id;
-        //     }
-        //     else    
-        //     {
-        //         entity.ChallengeId = null;
-        //         entity.PlayerId = null;
-        //     }
-        // }
-
-        // private async Task UpdatedChallenge(Data.Ticket entity) 
-        // {
-        //         var challenge = await Store.DbContext.Challenges.FirstOrDefaultAsync(c =>
-        //             c.Id == entity.ChallengeId
-        //         );
-        //         if (challenge != null)
-        //         {
-        //             entity.TeamId = challenge.TeamId;
-        //             entity.PlayerId = challenge.PlayerId;
-        //         }
-        //         else    
-        //         {
-        //             entity.ChallengeId = null;
-        //             entity.PlayerId = null;
-        //         }
-        // }
-
         private void AddActivity(Data.Ticket entity, string actorId, bool statusChanged, bool assigneeChanged, DateTimeOffset timestamp) 
         {
             if (statusChanged)
@@ -341,6 +303,7 @@ namespace Gameboard.Api.Services
             }
         }
 
+        // Transform functions to create full ticket key with configurable key prefix
         private TicketSummary[] Transform(TicketSummary[] tickets) {
             return tickets.Select(x => { x.FullKey = FullKey(x.Key); return x; }).ToArray();
         }

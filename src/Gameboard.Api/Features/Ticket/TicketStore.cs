@@ -48,8 +48,6 @@ namespace Gameboard.Api.Data
                 .Include(c => c.Challenge)
                 .Include(c => c.Player)
                 .Include(c => c.Player.Game)
-                // .Include(c => c.Challenge.Player)
-                // .Include(c => c.Challenge.Game)
                 .FirstOrDefaultAsync(c => c.Id == id)
             ;
         }

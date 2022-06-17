@@ -220,11 +220,11 @@ namespace Gameboard.Api.Services
 
             q = q.Where(t => userTeams.Any(i => i == t.TeamId));
 
-            // todo other filtering
+            // Todo other filtering?
 
             q = q.Include(c => c.Player).Include(c => c.Game);
 
-            DateTimeOffset recent = DateTimeOffset.Now.AddDays(-1);
+            DateTimeOffset recent = DateTimeOffset.UtcNow.AddDays(-1);
 
             q = q.Where(c => c.Game.GameEnd > recent);
 
