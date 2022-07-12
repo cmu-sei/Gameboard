@@ -43,7 +43,10 @@ namespace Gameboard.Api.Data
                     t.Sponsor.ToLower().Contains(term) ||
                     t.Key.ToLower().Contains(term) ||
                     t.Mode.ToLower().Contains(term) ||
-                    t.Id.ToLower().StartsWith(term)
+                    t.Id.ToLower().StartsWith(term) ||
+                    t.CardText1.ToLower().Contains(term) ||
+                    t.CardText2.ToLower().Contains(term) ||
+                    t.CardText3.ToLower().Contains(term)
                 );
             }
 
