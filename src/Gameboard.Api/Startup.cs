@@ -5,10 +5,12 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -141,11 +143,13 @@ namespace Gameboard.Api
 
             app.UseCors(Settings.Headers.Cors.Name);
 
-            app.UseStaticFiles();
-
             app.UseAuthentication();
 
             app.UseAuthorization();
+
+            app.UseFileProtection();
+
+            app.UseStaticFiles();
 
             if (Settings.OpenApi.Enabled)
                 app.UseConfiguredSwagger(Settings.OpenApi, Settings.Oidc.Audience, Settings.PathBase);

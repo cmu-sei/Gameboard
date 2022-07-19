@@ -209,6 +209,30 @@ namespace Gameboard.Api.Services
             return await Mapper.ProjectTo<ChallengeSummary>(q).ToArrayAsync();
         }
 
+        public async Task<ChallengeOverview[]> ListByUser(string uid)
+        {
+            var q = Store.List(null);
+
+            var userTeams = await Store.DbContext.Players
+                    .Where(p => p.UserId == uid && p.TeamId != null && p.TeamId != "")
+                    .Select(p => p.TeamId)
+                    .ToListAsync();
+
+            q = q.Where(t => userTeams.Any(i => i == t.TeamId));
+
+            // Todo other filtering?
+
+            q = q.Include(c => c.Player).Include(c => c.Game);
+
+            DateTimeOffset recent = DateTimeOffset.UtcNow.AddDays(-1);
+
+            q = q.Where(c => c.Game.GameEnd > recent);
+
+            q = q.OrderByDescending(p => p.StartTime);
+
+            return await Mapper.ProjectTo<ChallengeOverview>(q).ToArrayAsync();
+        }
+
         public async Task<ArchivedChallenge[]> ListArchived(SearchFilter model)
         { 
             var q = Store.DbContext.ArchivedChallenges.AsQueryable();

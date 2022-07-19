@@ -136,8 +136,11 @@ namespace Gameboard.Api
         public int GameEngineMaxRetries { get; set; } = 2;
         public string ImageFolder { get; set; } = "wwwroot/img";
         public string DocFolder { get; set; } = "wwwroot/doc";
+        public string SupportUploadsRequestPath { get; set; } = "supportfiles";
+        public string SupportUploadsFolder { get; set; } = "wwwroot/supportfiles";
         public string ChallengeDocUrl { get; set; }
         public string SafeNamesFile { get; set; } = "names.json";
+        public string KeyPrefix { get; set; } = "GB";
     }
 
     public class Defaults

@@ -143,6 +143,23 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
+        /// Find users with SUPPORT role
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns>User[]</returns>
+        [HttpGet("/api/users/support")]
+        [Authorize]
+        public async Task<UserSummary[]> ListSupport([FromQuery] SearchFilter model)
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver,
+                () => Actor.IsSupport
+            );
+
+            return await UserService.ListSupport(model);
+        }
+
+        /// <summary>
         /// Retrieve one-time-ticket to authenticate a signalr connection
         /// </summary>
         /// <remarks>Expires in 20s</remarks>

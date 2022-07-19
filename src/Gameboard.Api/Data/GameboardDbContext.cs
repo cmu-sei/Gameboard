@@ -131,6 +131,30 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.UserId).HasMaxLength(40);
             });
 
+            builder.Entity<Ticket>(b => {
+                b.HasOne(p => p.Challenge).WithMany(u => u.Tickets).OnDelete(DeleteBehavior.SetNull);
+                b.HasOne(p => p.Player).WithMany(u => u.Tickets).OnDelete(DeleteBehavior.SetNull);
+                b.Property(u => u.Id).HasMaxLength(40);
+                b.Property(u => u.CreatorId).HasMaxLength(40);
+                b.Property(u => u.RequesterId).HasMaxLength(40);
+                b.Property(u => u.AssigneeId).HasMaxLength(40);
+                b.Property(u => u.ChallengeId).HasMaxLength(40);
+                b.Property(u => u.PlayerId).HasMaxLength(40);
+                b.Property(u => u.TeamId).HasMaxLength(40);
+                b.Property(u => u.Status).HasMaxLength(64);
+                b.Property(u => u.Key).UseSerialColumn(); // Serial increment by 1
+                b.Property(u => u.Summary).HasMaxLength(128).IsRequired();
+            });
+
+            builder.Entity<TicketActivity>(b => {
+                b.HasOne(p => p.Ticket).WithMany(u => u.Activity).OnDelete(DeleteBehavior.Cascade);
+                b.Property(u => u.TicketId).HasMaxLength(40);
+                b.Property(u => u.UserId).HasMaxLength(40);
+                b.Property(u => u.AssigneeId).HasMaxLength(40);
+                b.Property(u => u.Status).HasMaxLength(64);
+            });
+
+
         }
 
         public DbSet<User> Users { get; set; }
@@ -143,5 +167,7 @@ namespace Gameboard.Api.Data
         public DbSet<Sponsor> Sponsors { get; set; }
         public DbSet<Feedback> Feedback { get; set; }
         public DbSet<ArchivedChallenge> ArchivedChallenges { get; set; }
+        public DbSet<Ticket> Tickets { get; set; }
+        public DbSet<TicketActivity> TicketActivity { get; set; }
     }
 }

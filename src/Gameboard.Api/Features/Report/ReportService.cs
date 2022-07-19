@@ -251,6 +251,108 @@ namespace Gameboard.Api.Services
             return questionStats;
         }
 
+        internal async Task<TicketDayGroup[]> GetTicketVolume(TicketReportFilter model)
+        {
+            var q = ListFilteredTickets(model);
+            var tickets = await q.ToArrayAsync();
+
+            // Todo: make sure times are eastern when grouping days and shifts
+            var result = tickets
+                .GroupBy(g => new {
+                    Date = g.Created.ToString("MM/dd/yyyy"),
+                    DayOfWeek = g.Created.DayOfWeek.ToString()
+                })
+                .Select(g => {
+                        var shift1Count = 0;
+                        var shift2Count = 0;
+                        var outsideShiftCount = 0;
+                        g.ToList().ForEach(ticket => {
+                            if (ticket.Created.Hour >= 8 && ticket.Created.Hour < 16)
+                                shift1Count += 1;
+                            else if (ticket.Created.Hour >= 16 && ticket.Created.Hour < 23)
+                                shift2Count += 1;
+                            else 
+                                outsideShiftCount += 1;
+                        });
+                        return new TicketDayGroup {
+                        Date = g.Key.Date,
+                        DayOfWeek = g.Key.DayOfWeek,
+                        Count = shift1Count + shift2Count + outsideShiftCount,
+                        Shift1Count = shift1Count,
+                        Shift2Count = shift2Count,
+                        OutsideShiftCount = outsideShiftCount
+                    };
+                })
+                .OrderByDescending(g => g.Date)
+                .AsQueryable();
+
+            // if no custom date range, only show the most recent 10
+            if (!model.WantsAfterStartTime && !model.WantsBeforeEndTime) 
+                result = result.Take(7);
+
+            return result.ToArray();
+
+        }
+
+        internal async Task<TicketLabelGroup[]> GetTicketLabels(TicketReportFilter model)
+        {
+            var q = ListFilteredTickets(model);
+            q = q.Where(t => t.Label != null);
+
+            var tickets = await q.ToArrayAsync();
+
+            return tickets
+                .SelectMany(t => t.Label.Split(" "))
+                .GroupBy(a => a)
+                .Select(a => new TicketLabelGroup {
+                    Label = a.Key,
+                    Count = a.Count()
+                })
+                .OrderByDescending(a => a.Count)
+                .ToArray();
+        }
+
+        internal async Task<TicketChallengeGroup[]> GetTicketChallenges(TicketReportFilter model)
+        {   
+            var q = ListFilteredTickets(model);
+            
+            q = q.Where(t => t.ChallengeId != null).Include(t => t.Challenge);
+            
+            var tickets = await q.ToArrayAsync();
+
+            return tickets
+                .GroupBy(t => new {
+                    ChallengeSpecId = t.Challenge.SpecId,
+                    ChallengeTag = t.Challenge.Tag,
+                    ChallengeName = t.Challenge.Name
+                })
+                .Select(a => new TicketChallengeGroup {
+                    ChallengeSpecId = a.Key.ChallengeSpecId,
+                    ChallengeTag = a.Key.ChallengeTag,
+                    ChallengeName = a.Key.ChallengeName,
+                    Count = a.Count()
+                })
+                .OrderByDescending(a => a.Count)
+                .ToArray();
+        }
+
+        private IQueryable<Data.Ticket> ListFilteredTickets(TicketReportFilter model)
+        {
+            var q = Store.Tickets.AsNoTracking();
+
+            if (model.WantsGame)
+                q = q.Include(t => t.Player).Where(t => t.Player.GameId == model.GameId);
+
+            if (model.WantsAfterStartTime)
+                q = q.Where(t => t.Created > model.StartRange);
+
+            if (model.WantsBeforeEndTime) 
+                q = q.Where(t => t.Created < model.EndRange);
+
+            return q;
+        }
+
+
         // create file name for feedback reports based on type and names of games/challenges
         internal string GetFeedbackFilename(string gameName, bool wantsGame, bool wantsSpecificChallenge, string challengeTag, bool isStats)
         {

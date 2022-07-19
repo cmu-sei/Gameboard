@@ -127,11 +127,14 @@ namespace Gameboard.Api.Services
             var q = Store.List(model.Term);
 
             if (model.Term.HasValue())
+            {
+                model.Term = model.Term.ToLower();
                 q = q.Where(u =>
                     u.Id.StartsWith(model.Term) ||
                     u.Name.ToLower().Contains(model.Term) ||
                     u.ApprovedName.ToLower().Contains(model.Term)
                 );
+            }
 
             if (model.WantsRoles)
                 q = q.Where(u => ((int)u.Role) > 0);
@@ -150,6 +153,27 @@ namespace Gameboard.Api.Services
                 q = q.Take(model.Take);
 
             return await Mapper.ProjectTo<User>(q).ToArrayAsync();
+        }
+
+        public async Task<UserSummary[]> ListSupport(SearchFilter model)
+        {
+            var q = Store.List(model.Term);
+
+            // Might want to also include observers if they can be assigned. Or just make possible assignees "Support" roles
+            q = q.Where(u => u.Role.HasFlag(UserRole.Support));
+
+            if (model.Term.HasValue())
+            {
+                model.Term = model.Term.ToLower();
+                q = q.Where(u =>
+                    u.Id.StartsWith(model.Term) ||
+                    u.Name.ToLower().Contains(model.Term) ||
+                    u.ApprovedName.ToLower().Contains(model.Term)
+                );
+            }
+
+            
+            return await Mapper.ProjectTo<UserSummary>(q).ToArrayAsync();
         }
 
     }

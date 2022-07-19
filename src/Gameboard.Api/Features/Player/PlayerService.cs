@@ -358,12 +358,12 @@ namespace Gameboard.Api.Services
             {
                 q = q.Where(p => p.GameId == model.gid);
 
-                if (model.WantsUser)
-                    q = q.Where(p => p.UserId == model.uid);
-
                 if (model.WantsOrg)
                     q = q.Where(p => p.Sponsor == model.org);
             }
+
+            if (model.WantsUser)
+                q = q.Where(p => p.UserId == model.uid);
 
             if (model.WantsTeam)
                 q = q.Where(p => p.TeamId == model.tid);

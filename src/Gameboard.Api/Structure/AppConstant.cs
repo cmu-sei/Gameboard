@@ -30,7 +30,8 @@ namespace Gameboard.Api
             UserRole.Registrar |
             UserRole.Designer |
             UserRole.Tester |
-            UserRole.Observer
+            UserRole.Observer |
+            UserRole.Support
         ;
     }
 }

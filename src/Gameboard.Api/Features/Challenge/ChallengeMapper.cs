@@ -17,6 +17,12 @@ namespace Gameboard.Api.Services
 
             CreateMap<Data.Challenge, TeamChallenge>();
 
+            CreateMap<Data.Challenge, ChallengeOverview>()
+                .ForMember(d => d.Score, opt => opt.MapFrom(s => (int)Math.Floor(s.Score)))
+                .ForMember(d => d.GameId, opt => opt.MapFrom(s => s.GameId))
+                .ForMember(d => d.AllowTeam, opt => opt.MapFrom(s => s.Game.AllowTeam))
+            ;
+
             CreateMap<Challenge, Data.Challenge>();
 
             CreateMap<NewChallenge, Data.Challenge>();
