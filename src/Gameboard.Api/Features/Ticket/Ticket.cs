@@ -140,12 +140,31 @@ namespace Gameboard.Api
         public const string NotClosedFilter = "not closed";
         public const string AssignedToMeFilter = "assigned to me";
         public const string UnassignedFilter = "unassigned";
+
         public bool WantsOpen => Filter.Contains(OpenFilter);
         public bool WantsInProgress => Filter.Contains(InProgressFilter);
         public bool WantsClosed => Filter.Contains(ClosedFilter);
         public bool WantsNotClosed => Filter.Contains(NotClosedFilter);
         public bool WantsAssignedToMe => Filter.Contains(AssignedToMeFilter);
         public bool WantsUnassigned => Filter.Contains(UnassignedFilter);
+
+        // Ordering logic - set up string constants, then check if they're in the request
+        public const string KeyOrderString = "key";
+        public const string SummaryOrderString = "summary";
+        public const string StatusOrderString = "status";
+        public const string CreatedOrderString = "created";
+        public const string UpdatedOrderString = "updated";
+        
+        // Ordering by column
+        public bool WantsOrderingByKey => OrderItem.Equals(KeyOrderString);
+        public bool WantsOrderingBySummary => OrderItem.Equals(SummaryOrderString);
+        public bool WantsOrderingByStatus => OrderItem.Equals(StatusOrderString);
+        public bool WantsOrderingByCreated => OrderItem.Equals(CreatedOrderString);
+        public bool WantsOrderingByUpdated => OrderItem.Equals(UpdatedOrderString);
+
+        // Ordering method - descending or ascending
+        public bool WantsOrderingDesc => IsDescending.Equals(true);
+        public bool WantsOrderingByAsc => IsDescending.Equals(false);
     }
 
     public class TicketReportFilter: SearchFilter

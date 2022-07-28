@@ -140,7 +140,36 @@ namespace Gameboard.Api.Services
                         userTeams.Any(i => i == t.TeamId));
             }
 
-            q = q.OrderByDescending(t => t.Created);
+            // Ordering in descending order
+            if (model.WantsOrderingDesc) {
+                if (model.WantsOrderingByKey)
+                    q = q.OrderByDescending(t => t.Key);
+                if (model.WantsOrderingBySummary)
+                    q = q.OrderByDescending(t => t.Summary.ToLower());
+                if (model.WantsOrderingByStatus)
+                    q = q.OrderByDescending(t => t.Status);
+                if (model.WantsOrderingByCreated)
+                    q = q.OrderByDescending(t => t.Created);
+                if (model.WantsOrderingByUpdated)
+                    q = q.OrderByDescending(t => t.LastUpdated);
+            }
+            // Ordering in ascending order
+            else {
+                if (model.WantsOrderingByKey)
+                    q = q.OrderBy(t => t.Key);
+                if (model.WantsOrderingBySummary)
+                    q = q.OrderBy(t => t.Summary.ToLower());
+                if (model.WantsOrderingByStatus)
+                    q = q.OrderBy(t => t.Status);
+                if (model.WantsOrderingByCreated)
+                    q = q.OrderBy(t => t.Created);
+                if (model.WantsOrderingByUpdated)
+                    q = q.OrderBy(t => t.LastUpdated);
+            }
+
+            // Default clause to order by created date descending if nothing is given - we should never hit this.
+            if (!(model.WantsOrderingByKey || model.WantsOrderingBySummary || model.WantsOrderingByStatus || model.WantsOrderingByCreated || model.WantsOrderingByUpdated))
+                q = q.OrderByDescending(t => t.Created);
 
             q = q.Skip(model.Skip);
 

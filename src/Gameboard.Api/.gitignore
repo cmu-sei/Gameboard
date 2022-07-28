@@ -4,6 +4,7 @@ bin/
 obj/
 wwwroot/doc
 wwwroot/img
+wwwroot/supportfiles
 .dpk/
 .DS_Store
 Gameboard.xml
