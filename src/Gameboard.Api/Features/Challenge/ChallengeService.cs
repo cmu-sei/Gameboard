@@ -268,21 +268,19 @@ namespace Gameboard.Api.Services
 
             var spec = await Store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
 
-            //check preview cache, else mojo
             var cachestate = _localcache.Get<string>(spec.ExternalId);
 
-            if (cachestate == null)
-            {
-                var state = await Mojo.PreviewGamespaceAsync(spec.ExternalId);
+            // Null cache state means this is a new challenge we haven't retrieved yet
+            // Non-null cache state means this challenge has been retrieved before
 
-                Transform(state);
-
-                cachestate = JsonSerializer.Serialize(state);
-
-                if (cachestate != null)
-                    _localcache.Set(spec.ExternalId, cachestate, new TimeSpan(0, 60, 0));
-
-            }
+            // No matter what, retrieve the gamespace state, because we need to handle markdown changes
+            var state = await Mojo.PreviewGamespaceAsync(spec.ExternalId);
+            // Transform state markdown to become more readable
+            Transform(state);
+            cachestate = JsonSerializer.Serialize(state);
+            // Set the local cache to use this cache state for this challenge
+            if (cachestate != null)
+                _localcache.Set(spec.ExternalId, cachestate, new TimeSpan(0, 60, 0));
 
             var challenge = Mapper.Map<Data.Challenge>(spec);
 

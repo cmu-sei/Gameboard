@@ -267,9 +267,11 @@ namespace Gameboard.Api.Services
                         var shift2Count = 0;
                         var outsideShiftCount = 0;
                         g.ToList().ForEach(ticket => {
-                            if (ticket.Created.Hour >= 8 && ticket.Created.Hour < 16)
+                            // Convert creation to local time
+                            var ticketCreatedHour = ticket.Created.ToLocalTime().Hour;
+                            if (ticketCreatedHour >= 8 && ticketCreatedHour < 16)
                                 shift1Count += 1;
-                            else if (ticket.Created.Hour >= 16 && ticket.Created.Hour < 23)
+                            else if (ticketCreatedHour >= 16 && ticketCreatedHour < 23)
                                 shift2Count += 1;
                             else 
                                 outsideShiftCount += 1;
