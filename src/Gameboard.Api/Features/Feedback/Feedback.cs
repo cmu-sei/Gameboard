@@ -38,6 +38,11 @@ namespace Gameboard.Api
         public int Max { get; set; }
         public string MinLabel { get; set; }
         public string MaxLabel { get; set; }
+
+        // For 'selectOne' and 'selectAllThatApply' type questions only
+        public string[] Options { get; set; }
+        // Display type
+        public string Display { get; set; }
     }
 
     public class GameFeedbackTemplate
@@ -111,6 +116,8 @@ namespace Gameboard.Api
         public int ConfiguredCount { get; set; }
         public int LikertCount { get; set; }
         public int TextCount { get; set; }
+        public int SelectOneCount { get; set; }
+        public int SelectAllThatApplyCount { get; set;}
         public int RequiredCount { get; set; }
         public int ResponsesCount { get; set; }
         public int MaxResponseCount { get; set; }
