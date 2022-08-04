@@ -14,6 +14,9 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.SignalR;
+using Gameboard.Api.Hubs;
+using AutoMapper;
 
 namespace Gameboard.Api.Controllers
 {
@@ -22,18 +25,23 @@ namespace Gameboard.Api.Controllers
     {
         TicketService TicketService { get; }
         public CoreOptions Options { get; }
-        
+        IHubContext<AppHub, IAppHubEvent> Hub { get; }
+        IMapper Mapper { get; }
 
         public TicketController(
             ILogger<ChallengeController> logger,
             IDistributedCache cache,
             TicketValidator validator,
             CoreOptions options,
-            TicketService ticketService
+            TicketService ticketService,
+            IHubContext<AppHub, IAppHubEvent> hub,
+            IMapper mapper
         ): base(logger, cache, validator)
         {
             TicketService = ticketService;
             Options = options;
+            Hub = hub;
+            Mapper = mapper;
         }
 
         /// <summary>
@@ -43,14 +51,14 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("api/ticket/{id}")]
         [Authorize]
-        public async Task<Ticket> Retrieve([FromRoute] string id)
+        public async Task<Ticket> Retrieve([FromRoute] int id)
         {
             AuthorizeAny(
                 () => Actor.IsObserver,
                 () => TicketService.IsOwnerOrTeamMember(id, Actor.Id).Result
             );
 
-           await Validate(new Entity { Id = id });
+        //    await Validate(new Entity { Id = id });
 
             // Once authenticated, authorized, and validated, cache a file permit for this user id & ticket id
             await Cache.SetStringAsync(
@@ -87,6 +95,8 @@ namespace Gameboard.Api.Controllers
                 await WriteUploadFiles(uploads, path);
             }
 
+            await Notify(Mapper.Map<TicketNotification>(result), EventAction.Created);
+
             return result;
         }
 
@@ -107,6 +117,8 @@ namespace Gameboard.Api.Controllers
             await Validate(model);
 
             var result = await TicketService.Update(model, Actor.Id, Actor.IsSupport);
+            
+            await Notify(Mapper.Map<TicketNotification>(result), EventAction.Updated);
 
             return result;
         }
@@ -149,6 +161,8 @@ namespace Gameboard.Api.Controllers
                 string path = BuildPath(result.TicketId, result.Id);
                 await WriteUploadFiles(uploads, path);
             }
+
+            await Notify(Mapper.Map<TicketNotification>(result), EventAction.Updated);
 
             return result;
         }
@@ -215,5 +229,20 @@ namespace Gameboard.Api.Controllers
             return path;
         }
 
+        private Task Notify(TicketNotification notification, EventAction action)
+        {   
+            var ev = new HubEvent<TicketNotification>(notification, action);
+
+            var tasks = new List<Task>();
+
+            tasks.Add(Hub.Clients.Group(AppConstants.InternalSupportChannel).TicketEvent(ev));
+
+            if (!string.IsNullOrEmpty(notification.TeamId))
+                tasks.Add(Hub.Clients.Group(notification.TeamId).TicketEvent(ev));
+            else
+                tasks.Add(Hub.Clients.Group(notification.RequesterId).TicketEvent(ev));
+
+            return Task.WhenAll(tasks);
+        }
     }
 }

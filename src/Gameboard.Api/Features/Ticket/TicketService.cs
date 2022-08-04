@@ -38,6 +38,13 @@ namespace Gameboard.Api.Services
             return Transform(Mapper.Map<Ticket>(entity));
         }
 
+        public async Task<Ticket> Retrieve(int id, string actorId)
+        {
+            var entity = await Store.LoadDetails(id);
+            entity.Activity = entity.Activity.OrderByDescending(a => a.Timestamp).ToList();
+            return Transform(Mapper.Map<Ticket>(entity));
+        }
+
        
         public async Task<Ticket> Create(NewTicket model, string actorId, bool sudo, List<UploadFile> uploads)
         {
@@ -200,7 +207,12 @@ namespace Gameboard.Api.Services
             entity.LastUpdated = timestamp;
             await Store.Update(entity);
 
-            return Mapper.Map<TicketActivity>(commentActivity);
+            var result = Mapper.Map<TicketActivity>(commentActivity);
+            result.RequesterId = entity.RequesterId;
+            result.LastUpdated = entity.LastUpdated;
+            result.Key = entity.Key;
+            result.Status = entity.Status;
+            return result;
         }
 
         public async Task<string[]> ListLabels(SearchFilter model)
@@ -224,6 +236,21 @@ namespace Gameboard.Api.Services
                 u.Id == userId &&
                 u.Enrollments.Any(e => e.GameId == gameId)
             );
+        }
+
+        public async Task<bool> IsOwnerOrTeamMember(int ticketId, string userId)
+        {
+            var ticket = await Store.Load(ticketId);
+            if (ticket == null)
+                return false;
+            if (ticket.RequesterId == userId)
+                return true;
+            if (ticket.TeamId.IsEmpty())
+                return false;
+            // if team associated with ticket, see if this user has an enrollment with matching teamId
+            return await Store.DbContext.Players.AnyAsync(p => 
+                p.UserId == userId &&
+                p.TeamId == ticket.TeamId);
         }
 
         public async Task<bool> IsOwnerOrTeamMember(string ticketId, string userId)

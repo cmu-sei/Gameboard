@@ -116,11 +116,14 @@ namespace Gameboard.Api
     {
         public string Id { get; set; }
         public string TicketId { get; set; }
+        public string RequesterId { get; set; }
         public string Message { get; set; }
         public string Status { get; set; }
         public string AssigneeId { get; set; }
+        public int Key { get; set; }
         public int Type { get; set; }
         public DateTimeOffset Timestamp { get; set; }
+        public DateTimeOffset LastUpdated { get; set; }
         public string[] Attachments { get; set; }
         public UserSummary User { get; set; }
         public UserSummary Assignee { get; set; }
@@ -200,5 +203,15 @@ namespace Gameboard.Api
         public string ChallengeTag { get; set; }
         public string ChallengeName { get; set; }
         public int Count { get; set; }
+    }
+
+    public class TicketNotification
+    {
+        public string Id { get; set; }
+        public int Key { get; set; }
+        public string TeamId { get; set; }
+        public string RequesterId { get; set; }
+        public string Status { get; set; }
+        public DateTimeOffset LastUpdated { get; set; }
     }
 }

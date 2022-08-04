@@ -11,6 +11,7 @@ namespace Gameboard.Api.Hubs
         Task PresenceEvent(HubEvent<TeamPlayer> ev);
         Task TeamEvent(HubEvent<TeamState> ev);
         Task ChallengeEvent(HubEvent<Challenge> challenge);
+        Task TicketEvent(HubEvent<TicketNotification> ev);
     }
 
     public interface IAppHubAction

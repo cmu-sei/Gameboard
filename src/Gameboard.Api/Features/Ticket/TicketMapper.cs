@@ -39,6 +39,9 @@ namespace Gameboard.Api.Services
                 )
             ;
 
+            CreateMap<Ticket, TicketNotification>();
+            CreateMap<TicketActivity, TicketNotification>();
+            
             JsonOptions = new JsonSerializerOptions
             {
                 AllowTrailingCommas = true,
