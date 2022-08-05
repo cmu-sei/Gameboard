@@ -43,6 +43,8 @@ namespace Gameboard.Api
         public string[] Options { get; set; }
         // Display type
         public string Display { get; set; }
+        // Specification for a certain answer
+        public QuestionSpecify Specify { get; set; }
     }
 
     public class GameFeedbackTemplate
@@ -139,6 +141,12 @@ namespace Gameboard.Api
         public int Count { get; set; } // how many responses for this question
         public int Lowest { get; set; } // lowest rating given
         public int Highest { get; set; } // highest rating given
+    }
+
+    public class QuestionSpecify
+    {
+        public string Key { get; set; }
+        public string Prompt { get; set; }
     }
 
 }
