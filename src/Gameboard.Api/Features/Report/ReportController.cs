@@ -471,6 +471,8 @@ namespace Gameboard.Api.Controllers
                 ConfiguredCount = questionTemplate.Length,
                 LikertCount = questionTemplate.Where(q => q.Type == "likert").Count(),
                 TextCount = questionTemplate.Where(q => q.Type == "text").Count(),
+                SelectOneCount = questionTemplate.Where(q => q.Type == "selectOne").Count(),
+                SelectManyCount = questionTemplate.Where(q => q.Type == "selectMany").Count(),
                 RequiredCount = questionTemplate.Where(q => q.Required).Count(),
                 ResponsesCount = feedback.Length,
                 MaxResponseCount = maxResponses,

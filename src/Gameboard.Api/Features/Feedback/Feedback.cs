@@ -38,6 +38,13 @@ namespace Gameboard.Api
         public int Max { get; set; }
         public string MinLabel { get; set; }
         public string MaxLabel { get; set; }
+
+        // For 'selectOne' and 'selectMany' type questions only
+        public string[] Options { get; set; }
+        // Display type
+        public string Display { get; set; }
+        // Specification for a certain answer
+        public QuestionSpecify Specify { get; set; }
     }
 
     public class GameFeedbackTemplate
@@ -111,6 +118,8 @@ namespace Gameboard.Api
         public int ConfiguredCount { get; set; }
         public int LikertCount { get; set; }
         public int TextCount { get; set; }
+        public int SelectOneCount { get; set; }
+        public int SelectManyCount { get; set;}
         public int RequiredCount { get; set; }
         public int ResponsesCount { get; set; }
         public int MaxResponseCount { get; set; }
@@ -132,6 +141,12 @@ namespace Gameboard.Api
         public int Count { get; set; } // how many responses for this question
         public int Lowest { get; set; } // lowest rating given
         public int Highest { get; set; } // highest rating given
+    }
+
+    public class QuestionSpecify
+    {
+        public string Key { get; set; }
+        public string Prompt { get; set; }
     }
 
 }
