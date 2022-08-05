@@ -50,10 +50,10 @@ namespace Gameboard.Api
         public string Sponsor { get; set; }
         public PlayerRole Role { get; set; }
     }
+
     public class SessionStartRequest
     {
         public string Id { get; set; }
-
     }
 
     public class SessionChangeRequest
@@ -80,6 +80,7 @@ namespace Gameboard.Api
         public string TeamId { get; set; }
         public string ApprovedName { get; set; }
         public string Sponsor { get; set; }
+        public string TeamSponsors { get; set; }
         public DateTimeOffset SessionBegin { get; set; }
         public DateTimeOffset SessionEnd { get; set; }
         public int Rank { get; set; }
@@ -88,6 +89,7 @@ namespace Gameboard.Api
         public int CorrectCount { get; set; }
         public int PartialCount { get; set; }
         public bool Advanced { get; set; }
+        public string[] SponsorList => (TeamSponsors ?? Sponsor).Split("|");
     }
 
     public class TeamInvitation
@@ -109,6 +111,7 @@ namespace Gameboard.Api
         public string ApprovedName { get; set; }
         public string GameId { get; set; }
         public string Sponsor { get; set; }
+        public string TeamSponsors { get; set; }
         public DateTimeOffset SessionBegin { get; set; }
         public DateTimeOffset SessionEnd { get; set; }
         public int Rank { get; set; }
@@ -119,7 +122,7 @@ namespace Gameboard.Api
         public bool Advanced { get; set; }
         public ICollection<TeamChallenge> Challenges { get; set; } = new List<TeamChallenge>();
         public ICollection<TeamMember> Members { get; set; } = new List<TeamMember>();
-
+        public string[] SponsorList => (TeamSponsors ?? Sponsor).Split("|");
     }
 
     public class TeamSummary
@@ -127,7 +130,9 @@ namespace Gameboard.Api
         public string Id { get; set; }
         public string Name { get; set; }
         public string Sponsor { get; set; }
+        public string TeamSponsors { get; set; }
         public string[] Members { get; set; }
+        public string[] SponsorList => (TeamSponsors ?? Sponsor).Split("|");
     }
 
     public class PlayerOverview

@@ -116,6 +116,8 @@ namespace Gameboard.Api.Services
 
             if (entity.Name == entity.ApprovedName)
                 entity.NameStatus = "";
+            else if (string.IsNullOrEmpty(entity.NameStatus))
+                entity.NameStatus = AppConstants.NameStatusPending;
 
             await Store.Update(entity);
 
@@ -210,6 +212,9 @@ namespace Gameboard.Api.Services
 
             foreach (var p in players)
                 await Store.Delete(p.Id);
+
+            if (!player.IsManager && !player.Game.RequireSponsoredTeam)
+                await UpdateTeamSponsors(player.TeamId);
 
             return Mapper.Map<Player>(player);
         }
@@ -466,6 +471,10 @@ namespace Gameboard.Api.Services
 
         public async Task<Player> Enlist(PlayerEnlistment model, bool sudo = false)
         {
+            var player = await Store.Retrieve(model.PlayerId);
+
+            if (player is not Data.Player)
+                throw new NotYetRegistered();
 
             var manager = await Store.List()
                 .Include(p => p.Game)
@@ -476,25 +485,6 @@ namespace Gameboard.Api.Services
 
             if (manager is not Data.Player)
                 throw new InvalidInvitationCode();
-
-            var player = model.PlayerId.NotEmpty()
-                ? await Store.Retrieve(model.PlayerId)
-                : await Store.List().FirstOrDefaultAsync(p =>
-                    p.UserId == model.UserId &&
-                    p.GameId == manager.GameId
-                )
-            ;
-
-            if (player is not Data.Player)
-            {
-                //returns the model, but we want the entity
-                var tmp = await Register(new NewPlayer{
-                    UserId = model.UserId,
-                    GameId = manager.GameId
-                });
-
-                player = await Store.Retrieve(tmp.Id);
-            }
 
             if (player.Id == manager.Id)
                 return Mapper.Map<Player>(player);
@@ -520,7 +510,42 @@ namespace Gameboard.Api.Services
 
             await Store.Update(player);
 
+            if (manager.Game.AllowTeam && !manager.Game.RequireSponsoredTeam)
+                await UpdateTeamSponsors(manager.TeamId);
+
             return  Mapper.Map<Player>(player);
+        }
+
+        private async Task UpdateTeamSponsors(string id)
+        {
+            var members = await Store.DbSet
+                .Where(p => p.TeamId == id)
+                .Select(p => new { 
+                    Id = p.Id, 
+                    Sponsor = p.Sponsor,
+                    IsManager = p.IsManager
+                })
+                .ToArrayAsync()
+            ;
+            
+            var sponsors = string.Join('|', members
+                .Select(p => p.Sponsor)
+                .Distinct()
+                .ToArray()
+            );
+
+            var manager = members.FirstOrDefault(
+                p => p.IsManager
+            );
+
+            if (manager is null || manager.Sponsor.Equals(sponsors))
+                return;
+
+            var m = await Store.Retrieve(manager.Id);
+
+            m.TeamSponsors = sponsors;
+
+            await Store.Update(m);
         }
 
         public async Task<Team> LoadTeam(string id, bool sudo)
