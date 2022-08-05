@@ -26,6 +26,13 @@ namespace Gameboard.Api.Data
             ;
         }
 
+        public async Task<Ticket> Load(int id)
+        {
+            return await DbSet
+                .FirstOrDefaultAsync(c => c.Key== id)
+            ;
+        }
+
         public async Task<Ticket> Load(Api.Ticket model)
         {
             return await DbSet
@@ -49,6 +56,23 @@ namespace Gameboard.Api.Data
                 .Include(c => c.Player)
                 .Include(c => c.Player.Game)
                 .FirstOrDefaultAsync(c => c.Id == id)
+            ;
+        }
+
+        public async Task<Ticket> LoadDetails(int id)
+        {
+            return await DbSet
+                .Include(c => c.Requester)
+                .Include(c => c.Assignee)
+                .Include(c => c.Creator)
+                .Include(c => c.Activity)
+                    .ThenInclude(a => a.User)
+                .Include(c => c.Activity)
+                    .ThenInclude(a => a.Assignee)
+                .Include(c => c.Challenge)
+                .Include(c => c.Player)
+                .Include(c => c.Player.Game)
+                .FirstOrDefaultAsync(c => c.Key == id)
             ;
         }
 

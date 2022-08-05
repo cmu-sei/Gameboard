@@ -23,6 +23,7 @@ namespace Gameboard.Api
         public const string ImageMapType = "map";
         public const string ImageCardType = "card";
         public const string NameStatusNotUnique = "not_unique";
+        public const string InternalSupportChannel = "internal_support";
 
         public const UserRole AllRoles =
             UserRole.Admin |

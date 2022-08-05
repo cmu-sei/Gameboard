@@ -144,6 +144,7 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.Status).HasMaxLength(64);
                 b.Property(u => u.Key).UseSerialColumn(); // Serial increment by 1
                 b.Property(u => u.Summary).HasMaxLength(128).IsRequired();
+                b.HasIndex(u => u.Key).IsUnique();
             });
 
             builder.Entity<TicketActivity>(b => {
@@ -153,7 +154,6 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.AssigneeId).HasMaxLength(40);
                 b.Property(u => u.Status).HasMaxLength(64);
             });
-
 
         }
 

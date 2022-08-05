@@ -9,8 +9,10 @@ namespace Gameboard.Api.Data.Abstractions
     public interface ITicketStore : IStore<Ticket>
     {
         Task<Data.Ticket> Load(string id);
+        Task<Data.Ticket> Load(int id);
         Task<Data.Ticket> Load(Api.Ticket model);
         Task<Data.Ticket> LoadDetails(string id);
+        Task<Data.Ticket> LoadDetails(int id);
         Task<Data.Ticket> ResolveApiKey(string key);
     }
 
