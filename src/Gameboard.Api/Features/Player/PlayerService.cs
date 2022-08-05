@@ -389,10 +389,10 @@ namespace Gameboard.Api.Services
                 q = q.Where(p => !p.Advanced);
 
             if (model.WantsPending)
-                q = q.Where(u => string.IsNullOrEmpty(u.NameStatus) && u.Name != u.ApprovedName);
+                q = q.Where(u => u.NameStatus.Equals(AppConstants.NameStatusPending));
 
             if (model.WantsDisallowed)
-                q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus));
+                q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus) && !u.NameStatus.Equals(AppConstants.NameStatusPending));
 
             if (model.WantsScored)
                 q = q.Where(p => p.Score > 0);
