@@ -54,7 +54,6 @@ namespace Gameboard.Api.Controllers
         /// <summary>
         /// Export user stats to CSV
         /// </summary>
-        /// <param name="id"></param>
         /// <returns></returns>
         [HttpGet("api/report/exportuserstats")]
         [Authorize]
@@ -93,7 +92,6 @@ namespace Gameboard.Api.Controllers
         /// <summary>
         /// Export player stats to CSV
         /// </summary>
-        /// <param name="id"></param>
         /// <returns></returns>
         [HttpGet("api/report/exportplayerstats")]
         [Authorize]
