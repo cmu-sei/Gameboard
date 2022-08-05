@@ -37,6 +37,7 @@ namespace Gameboard.Api.Data
                 b.Property(p => p.Name).HasMaxLength(64);
                 b.Property(p => p.NameStatus).HasMaxLength(40);
                 b.Property(p => p.Sponsor).HasMaxLength(40);
+                b.Property(p => p.TeamSponsors).HasMaxLength(255);
                 b.Property(p => p.InviteCode).HasMaxLength(40);
             });
 

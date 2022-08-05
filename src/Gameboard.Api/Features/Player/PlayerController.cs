@@ -308,7 +308,7 @@ namespace Gameboard.Api.Controllers
             AuthorizeAny(
                 () => Actor.IsRegistrar,
                 () => model.UserId == Actor.Id,
-                () => PlayerService.MapId(model.PlayerId).Result == Actor.Id
+                () => IsSelf(model.PlayerId).Result
             );
 
             await Validate(model);

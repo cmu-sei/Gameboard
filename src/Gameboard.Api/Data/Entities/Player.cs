@@ -18,6 +18,7 @@ namespace Gameboard.Api.Data
         public string Name { get; set; }
         public string NameStatus { get; set; }
         public string Sponsor { get; set; }
+        public string TeamSponsors { get; set; }
         public string InviteCode { get; set; }
         public PlayerRole Role { get; set; }
         public DateTimeOffset SessionBegin { get; set; }
