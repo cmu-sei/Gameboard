@@ -91,6 +91,8 @@ namespace Gameboard.Api.Services
 
             entity.GraderKey = graderKey.ToSha256();
 
+            Exception error = null;
+
             try {
                 var state = await Mojo.RegisterGamespaceAsync(new GamespaceRegistration
                 {
@@ -130,13 +132,16 @@ namespace Gameboard.Api.Services
             }
             catch (Exception ex)
             {
-                throw ex;
+                error = ex;
             }
             finally
             {
                _localcache.Remove(lockkey);
             }
 
+            if (error is Exception)
+                throw error;
+                
             return Mapper.Map<Challenge>(entity);
         }
 
@@ -324,7 +329,7 @@ namespace Gameboard.Api.Services
             }
             catch (Exception ex)
             {
-                entity.LastSyncTime = DateTimeOffset.Now;
+                entity.LastSyncTime = DateTimeOffset.UtcNow;
                 Logger.LogError(ex, "Sync error on {0} {1}", entity.Id, entity.Name);
             }
 

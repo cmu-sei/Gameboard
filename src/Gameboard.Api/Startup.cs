@@ -64,13 +64,14 @@ namespace Gameboard.Api
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers()
-            .SetCompatibilityVersion(CompatibilityVersion.Version_3_0)
+            services.AddMvc()
             .AddJsonOptions(options =>
             {
-                options.JsonSerializerOptions.Converters.Add(
-                    new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
-                );
+                options.JsonSerializerOptions.Converters
+                    .Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+
+                options.JsonSerializerOptions.Converters
+                    .Add(new JsonDateTimeConverter());
             });
 
             services.ConfigureForwarding(Settings.Headers.Forwarding);

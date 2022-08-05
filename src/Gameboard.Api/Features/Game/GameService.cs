@@ -72,7 +72,7 @@ namespace Gameboard.Api.Services
 
         public async Task<Game[]> List(GameSearchFilter model, bool sudo)
         {
-            DateTimeOffset now = DateTimeOffset.Now;
+            DateTimeOffset now = DateTimeOffset.UtcNow;
 
             var q = Store.List(model.Term);
 
@@ -104,7 +104,7 @@ namespace Gameboard.Api.Services
 
         public async Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo)
         {
-            DateTimeOffset now = DateTimeOffset.Now;
+            DateTimeOffset now = DateTimeOffset.UtcNow;
 
             var q = Store.List(model.Term);
 

@@ -4,11 +4,11 @@ Developed by Carnegie Mellon University's Software Engineering Institute (SEI), 
 
 ## Dependencies
 
-The Gameboard API requires the .NET Core 5.0 framework.
+The Gameboard API requires the .NET Core 6.0 framework.
 
 ## Getting Started
 
-1. Install .Net Core SDK 5.0
+1. Install .Net Core SDK 6.0
 2. Start the application using the following command: `dotnet run`
 3. Browse to `http://localhost:5000/api`
 
