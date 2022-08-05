@@ -39,7 +39,7 @@ namespace Gameboard.Api
         public string MinLabel { get; set; }
         public string MaxLabel { get; set; }
 
-        // For 'selectOne' and 'selectAllThatApply' type questions only
+        // For 'selectOne' and 'selectMany' type questions only
         public string[] Options { get; set; }
         // Display type
         public string Display { get; set; }
@@ -119,7 +119,7 @@ namespace Gameboard.Api
         public int LikertCount { get; set; }
         public int TextCount { get; set; }
         public int SelectOneCount { get; set; }
-        public int SelectAllThatApplyCount { get; set;}
+        public int SelectManyCount { get; set;}
         public int RequiredCount { get; set; }
         public int ResponsesCount { get; set; }
         public int MaxResponseCount { get; set; }
