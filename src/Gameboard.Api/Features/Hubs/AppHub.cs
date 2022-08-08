@@ -48,16 +48,14 @@ namespace Gameboard.Api.Hubs
 
         public async Task Listen(string id)
         {
-            var tasks = new List<Task>();
-            
             await Leave();
 
             if (Context.User.IsInRole(UserRole.Support.ToString()))
-                tasks.Add(Groups.AddToGroupAsync(Context.ConnectionId, AppConstants.InternalSupportChannel));
+                await Groups.AddToGroupAsync(Context.ConnectionId, AppConstants.InternalSupportChannel);
             
             if (id == Context.UserIdentifier)
             {
-                tasks.Add(Groups.AddToGroupAsync(Context.ConnectionId, id));
+                await Groups.AddToGroupAsync(Context.ConnectionId, id);
             }
             else
             {
@@ -69,15 +67,13 @@ namespace Gameboard.Api.Hubs
 
                     Context.Items.Add(ContextPlayerKey, player);
 
-                    tasks.Add(Groups.AddToGroupAsync(Context.ConnectionId, player.TeamId));
+                    await Groups.AddToGroupAsync(Context.ConnectionId, player.TeamId);
 
-                    tasks.Add(Clients.OthersInGroup(player.TeamId).PresenceEvent(
+                    await Clients.OthersInGroup(player.TeamId).PresenceEvent(
                         new HubEvent<TeamPlayer>(player, EventAction.Arrived)
-                    ));
+                    );
                 }
             }
-
-            await Task.WhenAll(tasks);
 
         }
 
