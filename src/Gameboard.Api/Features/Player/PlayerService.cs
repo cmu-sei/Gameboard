@@ -96,28 +96,30 @@ namespace Gameboard.Api.Services
                     Mapper.Map<SelfChangedPlayer>(model),
                     entity
                 );
+
+                entity.NameStatus = entity.Name != entity.ApprovedName
+                    ? "pending"
+                    : ""
+                ;
             }
             else
             {
                 Mapper.Map(model, entity);
             }
 
-            // check uniqueness
-            bool found = await Store.DbSet.AnyAsync(p =>
-                p.GameId == entity.GameId &&
-                p.TeamId != entity.TeamId &&
-                p.Name == entity.Name
-            );
+            if (prev.Name != entity.Name)
+            {
+                // check uniqueness
+                bool found = await Store.DbSet.AnyAsync(p =>
+                    p.GameId == entity.GameId &&
+                    p.TeamId != entity.TeamId &&
+                    p.Name == entity.Name
+                );
 
-            if (found)
-                entity.NameStatus = AppConstants.NameStatusNotUnique;
-            else if (entity.NameStatus == AppConstants.NameStatusNotUnique)
-                entity.NameStatus = "";
+                if (found)
+                    entity.NameStatus = AppConstants.NameStatusNotUnique;
 
-            if (entity.Name == entity.ApprovedName)
-                entity.NameStatus = "";
-            else if (string.IsNullOrEmpty(entity.NameStatus))
-                entity.NameStatus = AppConstants.NameStatusPending;
+            }
 
             await Store.Update(entity);
 
@@ -132,7 +134,7 @@ namespace Gameboard.Api.Services
             {
                 var team = await Store.ListTeamByPlayer(model.Id);
 
-                foreach( var p in team)
+                foreach( var p in team.Where(o => o.Id != entity.Id))
                 {
                     p.Name = entity.Name;
                     p.ApprovedName = entity.ApprovedName;

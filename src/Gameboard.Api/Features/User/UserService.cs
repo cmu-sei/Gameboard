@@ -80,12 +80,20 @@ namespace Gameboard.Api.Services
         public async Task Update(ChangedUser model, bool sudo, bool admin = false)
         {
             var entity = await Store.Retrieve(model.Id);
+            bool differentName = entity.Name != model.Name;
 
             if (!sudo)
+            {
                 Mapper.Map(
                     Mapper.Map<SelfChangedUser>(model),
                     entity
                 );
+
+                entity.NameStatus = entity.Name != entity.ApprovedName
+                    ? "pending"
+                    : ""
+                ;
+            }
             else
             {
                 if (!admin && model.Role != entity.Role)
@@ -94,20 +102,18 @@ namespace Gameboard.Api.Services
                 Mapper.Map(model, entity);
             }
 
-            // check uniqueness
-            bool found = await Store.DbSet.AnyAsync(p =>
-                p.Id != entity.Id &&
-                p.Name == entity.Name
-            );
+            if (differentName)
+            {
+                // check uniqueness
+                bool found = await Store.DbSet.AnyAsync(p =>
+                    p.Id != entity.Id &&
+                    p.Name == entity.Name
+                );
 
-            if (found)
-                entity.NameStatus = AppConstants.NameStatusNotUnique;
-            else if (entity.NameStatus == AppConstants.NameStatusNotUnique)
-                entity.NameStatus = "";
-
-            if (entity.Name == entity.ApprovedName)
-                entity.NameStatus = "";
-
+                if (found)
+                    entity.NameStatus = AppConstants.NameStatusNotUnique;
+            }
+        
             await Store.Update(entity);
 
             _localcache.Remove(entity.Id);
@@ -171,7 +177,6 @@ namespace Gameboard.Api.Services
                     u.ApprovedName.ToLower().Contains(model.Term)
                 );
             }
-
             
             return await Mapper.ProjectTo<UserSummary>(q).ToArrayAsync();
         }
