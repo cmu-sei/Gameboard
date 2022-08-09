@@ -30,7 +30,7 @@ namespace Gameboard.Api.Services
             Store = store;
             _localcache = localcache;
         }
- 
+
         public async Task<Ticket> Retrieve(string id, string actorId)
         {
             var entity = await Store.LoadDetails(id);
@@ -45,7 +45,7 @@ namespace Gameboard.Api.Services
             return Transform(Mapper.Map<Ticket>(entity));
         }
 
-       
+
         public async Task<Ticket> Create(NewTicket model, string actorId, bool sudo, List<UploadFile> uploads)
         {
             Data.Ticket entity;
@@ -55,8 +55,8 @@ namespace Gameboard.Api.Services
                 entity = Mapper.Map<Data.Ticket>(model);
                 AddActivity(entity, actorId, !entity.Status.IsEmpty(), !entity.AssigneeId.IsEmpty(), timestamp);
                 entity.StaffCreated = true;
-            } 
-            else 
+            }
+            else
             {
                 var selfMade = Mapper.Map<SelfNewTicket>(model);
                 entity = Mapper.Map<Data.Ticket>(selfMade);
@@ -75,9 +75,10 @@ namespace Gameboard.Api.Services
             entity.Created = timestamp;
             entity.LastUpdated = timestamp;
 
-            if (uploads.Count() > 0) {
+            if (uploads.Count() > 0)
+            {
                 var filenames = uploads.Select(x => x.FileName).ToArray();
-                 entity.Attachments = Mapper.Map<string>(filenames);
+                entity.Attachments = Mapper.Map<string>(filenames);
             }
 
             await Store.Create(entity);
@@ -100,21 +101,21 @@ namespace Gameboard.Api.Services
 
                 if (prev.PlayerId != entity.PlayerId || prev.ChallengeId != entity.ChallengeId)
                 {
-                    await UpdatedSessionContext(entity);   
+                    await UpdatedSessionContext(entity);
                 }
             }
             else // regular participant can only edit a few fields
             {
-                
+
                 Mapper.Map(
                     Mapper.Map<SelfChangedTicket>(model),
                     entity
                 );
             }
-            
+
             entity.LastUpdated = timestamp;
             await Store.Update(entity);
-            
+
             return Transform(Mapper.Map<Ticket>(entity));
         }
 
@@ -135,7 +136,7 @@ namespace Gameboard.Api.Services
                 q = q.Where(t => t.AssigneeId == userId);
             if (model.WantsUnassigned)
                 q = q.Where(t => t.AssigneeId == null || t.AssigneeId == "");
-            
+
             if (!sudo) // normal user should only see "their" tickets (requester or team member)
             {
                 var userTeams = await Store.DbContext.Players
@@ -148,7 +149,8 @@ namespace Gameboard.Api.Services
             }
 
             // Ordering in descending order
-            if (model.WantsOrderingDesc) {
+            if (model.WantsOrderingDesc)
+            {
                 if (model.WantsOrderingByKey)
                     q = q.OrderByDescending(t => t.Key);
                 if (model.WantsOrderingBySummary)
@@ -161,7 +163,8 @@ namespace Gameboard.Api.Services
                     q = q.OrderByDescending(t => t.LastUpdated);
             }
             // Ordering in ascending order
-            else {
+            else
+            {
                 if (model.WantsOrderingByKey)
                     q = q.OrderBy(t => t.Key);
                 if (model.WantsOrderingBySummary)
@@ -199,7 +202,8 @@ namespace Gameboard.Api.Services
                 Timestamp = timestamp
             };
 
-            if (uploads.Count() > 0) {
+            if (uploads.Count() > 0)
+            {
                 commentActivity.Attachments = Mapper.Map<string>(uploads.Select(x => x.FileName).ToArray());
             }
 
@@ -248,9 +252,10 @@ namespace Gameboard.Api.Services
             if (ticket.TeamId.IsEmpty())
                 return false;
             // if team associated with ticket, see if this user has an enrollment with matching teamId
-            return await Store.DbContext.Players.AnyAsync(p => 
+            return await Store.DbContext.Players.AnyAsync(p =>
                 p.UserId == userId &&
-                p.TeamId == ticket.TeamId);
+                p.TeamId == ticket.TeamId
+            );
         }
 
         public async Task<bool> IsOwnerOrTeamMember(string ticketId, string userId)
@@ -263,9 +268,10 @@ namespace Gameboard.Api.Services
             if (ticket.TeamId.IsEmpty())
                 return false;
             // if team associated with ticket, see if this user has an enrollment with matching teamId
-            return await Store.DbContext.Players.AnyAsync(p => 
+            return await Store.DbContext.Players.AnyAsync(p =>
                 p.UserId == userId &&
-                p.TeamId == ticket.TeamId);
+                p.TeamId == ticket.TeamId
+            );
         }
 
         public async Task<bool> IsOwner(string ticketId, string userId)
@@ -331,11 +337,11 @@ namespace Gameboard.Api.Services
             entity.PlayerId = null;
         }
 
-        private void AddActivity(Data.Ticket entity, string actorId, bool statusChanged, bool assigneeChanged, DateTimeOffset timestamp) 
+        private void AddActivity(Data.Ticket entity, string actorId, bool statusChanged, bool assigneeChanged, DateTimeOffset timestamp)
         {
             if (statusChanged)
             {
-                var statusActivity = new Data.TicketActivity 
+                var statusActivity = new Data.TicketActivity
                 {
                     Id = Guid.NewGuid().ToString("n"),
                     UserId = actorId,
@@ -347,7 +353,7 @@ namespace Gameboard.Api.Services
             }
             if (assigneeChanged)
             {
-                var assigneeActivity = new Data.TicketActivity 
+                var assigneeActivity = new Data.TicketActivity
                 {
                     Id = Guid.NewGuid().ToString("n"),
                     UserId = actorId,
@@ -360,17 +366,20 @@ namespace Gameboard.Api.Services
         }
 
         // Transform functions to create full ticket key with configurable key prefix
-        private TicketSummary[] Transform(TicketSummary[] tickets) {
+        private TicketSummary[] Transform(TicketSummary[] tickets)
+        {
             return tickets.Select(x => { x.FullKey = FullKey(x.Key); return x; }).ToArray();
         }
 
-        private Ticket Transform(Ticket ticket) {
+        private Ticket Transform(Ticket ticket)
+        {
             ticket.FullKey = FullKey(ticket.Key);
             return ticket;
         }
 
-        private string FullKey(int key) {
-            return Options.KeyPrefix+"-"+key.ToString();
+        private string FullKey(int key)
+        {
+            return Options.KeyPrefix + "-" + key.ToString();
         }
 
     }
