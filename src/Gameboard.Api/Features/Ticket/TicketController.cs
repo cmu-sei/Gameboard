@@ -193,10 +193,10 @@ namespace Gameboard.Api.Controllers
                 var fileNum = 1;
                 foreach (var upload in uploads)
                 {
-                    string nameOnly = Path.GetFileNameWithoutExtension(upload.FileName).ToLower();
+                    string nameOnly = Path.GetFileNameWithoutExtension(upload.FileName);
                     string extension = Path.GetExtension(upload.FileName);
                     string filename = $"{nameOnly}_{fileNum}{extension}";
-                    var sanitized = filename.SanitizeFilename();
+                    var sanitized = filename.SanitizeFilename().ToLower();
                     result.Add(new UploadFile{ FileName = sanitized, File = upload});
                     fileNum += 1;
                 }
