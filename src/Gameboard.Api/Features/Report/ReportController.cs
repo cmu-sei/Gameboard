@@ -104,12 +104,12 @@ namespace Gameboard.Api.Controllers
 
             var result = await Service.GetPlayerStats();
 
-            List<Tuple<string, string>> playerStats = new List<Tuple<string, string>>();
-            playerStats.Add(new Tuple<string, string>("Game", "Player Count"));
+            List<Tuple<string, string, string>> playerStats = new List<Tuple<string, string, string>>();
+            playerStats.Add(new Tuple<string, string, string>("Game", "Player Count", "Players with Sessions Count"));
 
             foreach(PlayerStat playerStat in result.Stats)
             {
-                playerStats.Add(new Tuple<string, string>(playerStat.GameName, playerStat.PlayerCount.ToString()));
+                playerStats.Add(new Tuple<string, string, string>(playerStat.GameName, playerStat.PlayerCount.ToString(), playerStat.SessionPlayerCount.ToString()));
             }
 
             return File(
@@ -519,6 +519,55 @@ namespace Gameboard.Api.Controllers
             var tickets = await Service.GetTicketChallenges(model);
 
             return Ok(tickets);
+        }
+
+        [HttpGet("api/report/seasonstats")]
+        [Authorize]
+        public async Task<ActionResult<SeasonReport>> GetSeasonStats() {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            return Ok(await Service.GetSeasonStats());
+        }
+
+        /// <summary>
+        /// Export season stats to CSV
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("api/report/exportseasonstats")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportSeasonStats()
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var result = await Service.GetSeasonStats();
+
+            List<Tuple<string, string, string, string>> seasonStats = new List<Tuple<string, string, string, string>>();
+            seasonStats.Add(new Tuple<string, string, string, string>("Season", "Game Count", "Player Count", "Players with Sessions Count"));
+
+            foreach (SeasonStat seasonStat in result.Stats)
+            {
+                seasonStats.Add(new Tuple<string, string, string, string>(seasonStat.Season, seasonStat.GameCount.ToString(), seasonStat.PlayerCount.ToString(), seasonStat.SessionPlayerCount.ToString()));
+            }
+
+            // Create the byte array now to remove a header row shortly
+            byte[] fileBytes = Service.ConvertToBytes(seasonStats);
+            // The number of items per row
+            int numItemsPerRow = 4;
+            // The set length of each garbage string item in the header
+            int itemLengthSkip = 5;
+            // The character size of a newline character
+            int newlineSkip = 1;
+
+            return File(
+                // .NET inserts a garbage header line ("Item1", "Item2", ... "ItemN") into a CSV when its lines are created via a Tuple with more than 3 items, so we have to remove the first 5*(n+1) bytes from the resulting array
+                fileBytes.ToArray().TakeLast(fileBytes.Count() - (numItemsPerRow * itemLengthSkip + numItemsPerRow + newlineSkip)).ToArray(),
+                "application/octet-stream",
+                string.Format("season-stats-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
         }
 
     }

@@ -44,7 +44,14 @@ namespace Gameboard.Api.Services
         internal Task<PlayerReport> GetPlayerStats()
         {
             var ps = from games in Store.Games
-                     select new PlayerStat { GameId = games.Id, GameName = games.Name, PlayerCount = games.Players.Count };
+                     select new PlayerStat { 
+                        GameId = games.Id, 
+                        GameName = games.Name, 
+                        // games.Players - people who have enrolled in the game (not necessarily those who played it)
+                        PlayerCount = games.Players.Count, 
+                        // If a player has a session year later than 0001, they've started a session
+                        SessionPlayerCount = games.Players.Where(p => p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Count()
+                    };
 
             PlayerReport playerReport = new PlayerReport
             {
@@ -213,6 +220,26 @@ namespace Gameboard.Api.Services
             challengeDetailReport.ChallengeId = id;
 
             return challengeDetailReport;
+        }
+
+        internal Task<SeasonReport> GetSeasonStats() {
+
+            SeasonStat[] stats = Store.Games.GroupBy(g => g.Season).Select(
+                s => new SeasonStat {
+                    Season = s.Key,
+                    GameCount = s.Count(),
+                    PlayerCount = Store.Players.Where(p => p.Game.Season == s.Key).Count(),
+                    SessionPlayerCount = Store.Players.Where(p => p.Game.Season == s.Key && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Count()
+                }
+            ).OrderBy(stat => stat.Season).ToArray();
+
+            SeasonReport seasonReport = new SeasonReport
+            {
+                Timestamp = DateTime.UtcNow,
+                Stats = stats
+            };
+
+            return Task.FromResult(seasonReport);
         }
 
         // Compute aggregates for each feedback question in template based on all responses in feedback table

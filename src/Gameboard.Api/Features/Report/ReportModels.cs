@@ -39,6 +39,7 @@ namespace Gameboard.Api
         public string GameId { get; set; }
         public string GameName { get; set; }
         public int PlayerCount { get; set; }
+        public int SessionPlayerCount { get; set; }
     }
 
     public class SponsorStat
@@ -84,6 +85,21 @@ namespace Gameboard.Api
         public Part[] Parts { get; set; }
         public int AttemptCount { get; set; }
         public string ChallengeId { get; set; }
+    }
+
+    public class SeasonReport
+    {
+        public string Title { get; set; } = "Season Report";
+        public DateTime Timestamp { get; set; }
+        public SeasonStat[] Stats { get; set; }
+    }
+
+    public class SeasonStat
+    {
+        public string Season { get; set; }
+        public int GameCount { get; set; }
+        public int PlayerCount { get; set; }
+        public int SessionPlayerCount { get; set; }
     }
 
     public class Part
