@@ -228,8 +228,8 @@ namespace Gameboard.Api.Services
                 s => new SeasonStat {
                     Season = s.Key,
                     GameCount = s.Count(),
-                    PlayerCount = Store.Players.Where(p => p.Game.Season == s.Key).Count(),
-                    SessionPlayerCount = Store.Players.Where(p => p.Game.Season == s.Key && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Count()
+                    PlayerCount = Store.Players.Where(p => p.Game.Season == s.Key).Select(p => p.UserId).Distinct().Count(),
+                    SessionPlayerCount = Store.Players.Where(p => p.Game.Season == s.Key && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count()
                 }
             ).OrderBy(stat => stat.Season).ToArray();
 
