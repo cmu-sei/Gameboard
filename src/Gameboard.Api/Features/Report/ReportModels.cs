@@ -87,19 +87,54 @@ namespace Gameboard.Api
         public string ChallengeId { get; set; }
     }
 
-    public class SeasonReport
+    public class ParticipationReport
     {
-        public string Title { get; set; } = "Season Report";
+        public string Key { get; set; } = "Participation";
         public DateTime Timestamp { get; set; }
-        public SeasonStat[] Stats { get; set; }
+        public ParticipationStat[] Stats { get; set; }
     }
 
-    public class SeasonStat
+    public class ParticipationStat
     {
-        public string Season { get; set; }
+        public string Key { get; set; }
         public int GameCount { get; set; }
         public int PlayerCount { get; set; }
         public int SessionPlayerCount { get; set; }
+    }
+
+    public class SeriesReport : ParticipationReport
+    {
+        public SeriesReport() {
+            Key = "Series";
+        }
+    }
+
+    public class TrackReport : ParticipationReport
+    {
+        public TrackReport() {
+            Key = "Track";
+        }
+    }
+
+    public class SeasonReport : ParticipationReport
+    {
+        public SeasonReport() {
+            Key = "Season";
+        }
+    }
+
+    public class DivisionReport : ParticipationReport
+    {
+        public DivisionReport() {
+            Key = "Division";
+        }
+    }
+
+    public class ModeReport : ParticipationReport
+    {
+        public ModeReport() {
+            Key = "Mode";
+        }
     }
 
     public class Part

@@ -521,6 +521,26 @@ namespace Gameboard.Api.Controllers
             return Ok(tickets);
         }
 
+        [HttpGet("api/report/seriesstats")]
+        [Authorize]
+        public async Task<ActionResult<SeriesReport>> GetSeriesStats() {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            return Ok(await Service.GetSeriesStats());
+        }
+
+        [HttpGet("api/report/trackstats")]
+        [Authorize]
+        public async Task<ActionResult<TrackReport>> GetTrackStats() {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            return Ok(await Service.GetTrackStats());
+        }
+
         [HttpGet("api/report/seasonstats")]
         [Authorize]
         public async Task<ActionResult<SeasonReport>> GetSeasonStats() {
@@ -529,6 +549,62 @@ namespace Gameboard.Api.Controllers
             );
 
             return Ok(await Service.GetSeasonStats());
+        }
+
+        [HttpGet("api/report/divisionstats")]
+        [Authorize]
+        public async Task<ActionResult<DivisionReport>> GetDivisionStats() {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            return Ok(await Service.GetDivisionStats());
+        }
+
+        [HttpGet("api/report/modestats")]
+        [Authorize]
+        public async Task<ActionResult<ModeReport>> GetModeStats() {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            return Ok(await Service.GetModeStats());
+        }
+
+        /// <summary>
+        /// Export series stats to CSV
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("api/report/exportseriesstats")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportSeriesStats()
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var result = await Service.GetSeriesStats();
+
+            return ConstructParticipationReport(result);
+        }
+
+        /// <summary>
+        /// Export track stats to CSV
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("api/report/exporttrackstats")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportTrackStats()
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var result = await Service.GetTrackStats();
+
+            return ConstructParticipationReport(result);
         }
 
         /// <summary>
@@ -546,16 +622,57 @@ namespace Gameboard.Api.Controllers
 
             var result = await Service.GetSeasonStats();
 
-            List<Tuple<string, string, string, string>> seasonStats = new List<Tuple<string, string, string, string>>();
-            seasonStats.Add(new Tuple<string, string, string, string>("Season", "Game Count", "Player Count", "Players with Sessions Count"));
+            return ConstructParticipationReport(result);
+        }
 
-            foreach (SeasonStat seasonStat in result.Stats)
+        /// <summary>
+        /// Export division stats to CSV
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("api/report/exportdivisionstats")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportDivisionStats()
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var result = await Service.GetDivisionStats();
+
+            return ConstructParticipationReport(result);
+        }
+
+        /// <summary>
+        /// Export mode stats to CSV
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("api/report/exportmodestats")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportModeStats()
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var result = await Service.GetModeStats();
+
+            return ConstructParticipationReport(result);
+        }
+
+        // Helper method to create participation reports
+        public FileContentResult ConstructParticipationReport(ParticipationReport report) {
+            List<Tuple<string, string, string, string>> participationStats = new List<Tuple<string, string, string, string>>();
+            participationStats.Add(new Tuple<string, string, string, string>(report.Key, "Game Count", "Player Count", "Players with Sessions Count"));
+
+            foreach (ParticipationStat seasonStat in report.Stats)
             {
-                seasonStats.Add(new Tuple<string, string, string, string>(seasonStat.Season, seasonStat.GameCount.ToString(), seasonStat.PlayerCount.ToString(), seasonStat.SessionPlayerCount.ToString()));
+                participationStats.Add(new Tuple<string, string, string, string>(seasonStat.Key, seasonStat.GameCount.ToString(), seasonStat.PlayerCount.ToString(), seasonStat.SessionPlayerCount.ToString()));
             }
 
             // Create the byte array now to remove a header row shortly
-            byte[] fileBytes = Service.ConvertToBytes(seasonStats);
+            byte[] fileBytes = Service.ConvertToBytes(participationStats);
             // The number of items per row
             int numItemsPerRow = 4;
             // The set length of each garbage string item in the header
@@ -569,6 +686,5 @@ namespace Gameboard.Api.Controllers
                 "application/octet-stream",
                 string.Format("season-stats-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
         }
-
     }
 }
