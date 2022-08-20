@@ -407,6 +407,33 @@ namespace Gameboard.Api.Services
             return Task.FromResult(modeReport);
         }
 
+        internal Task<CorrelationReport> GetCorrelationStats() {
+
+            // Create a temporary table to first group by the user ID and count the number of games played
+            var tempTable = Store.Players.GroupBy(g => g.UserId).Select(
+                s => new {
+                    UserId = s.Key,
+                    GameCount = s.Count()
+                }
+            );
+
+            // Re-group by the number of games played to count the number of users who enrolled in them
+            CorrelationStat[] stats = tempTable.GroupBy(g => g.GameCount ).Select(
+                s => new CorrelationStat {  
+                    GameCount = s.Key,
+                    UserCount = s.Count()
+                }
+            ).OrderBy(stat => stat.GameCount).ToArray();
+
+            CorrelationReport correlationReport = new CorrelationReport
+            {
+                Timestamp = DateTime.UtcNow,
+                Stats = stats
+            };
+
+            return Task.FromResult(correlationReport);
+        }
+
         private static string GetCommonGroupString(string original) {
             return string.IsNullOrWhiteSpace(original) ? "N/A" : original;
         }

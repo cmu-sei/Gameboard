@@ -137,6 +137,19 @@ namespace Gameboard.Api
         }
     }
 
+    public class CorrelationReport
+    {
+        public string Title { get; set; } = "Correlation Report";
+        public DateTime Timestamp { get; set; }
+        public CorrelationStat[] Stats { get; set; }
+    }
+
+    public class CorrelationStat
+    {
+        public int GameCount { get; set; }
+        public int UserCount { get; set; }
+    }
+
     public class Part
     {
         public string Text { get; set; }

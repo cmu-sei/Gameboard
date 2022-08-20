@@ -571,6 +571,16 @@ namespace Gameboard.Api.Controllers
             return Ok(await Service.GetModeStats());
         }
 
+        [HttpGet("api/report/correlationstats")]
+        [Authorize]
+        public async Task<ActionResult<ModeReport>> GetCorrelationStats() {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            return Ok(await Service.GetCorrelationStats());
+        }
+
         /// <summary>
         /// Export series stats to CSV
         /// </summary>
@@ -661,14 +671,43 @@ namespace Gameboard.Api.Controllers
             return ConstructParticipationReport(result);
         }
 
+        /// <summary>
+        /// Export correlation stats to CSV
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("api/report/exportcorrelationstats")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportCorrelationStats()
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var result = await Service.GetCorrelationStats();
+
+            List<Tuple<string, string>> correlationStats = new List<Tuple<string, string>>();
+            correlationStats.Add(new Tuple<string, string>("Game Count", "Player Count"));
+
+            foreach (CorrelationStat stat in result.Stats)
+            {
+                correlationStats.Add(new Tuple<string, string>(stat.GameCount.ToString(), stat.UserCount.ToString()));
+            }
+
+            return File(
+                Service.ConvertToBytes(correlationStats),
+                "application/octet-stream",
+                string.Format("season-stats-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+        }
+
         // Helper method to create participation reports
         public FileContentResult ConstructParticipationReport(ParticipationReport report) {
             List<Tuple<string, string, string, string>> participationStats = new List<Tuple<string, string, string, string>>();
             participationStats.Add(new Tuple<string, string, string, string>(report.Key, "Game Count", "Player Count", "Players with Sessions Count"));
 
-            foreach (ParticipationStat seasonStat in report.Stats)
+            foreach (ParticipationStat stat in report.Stats)
             {
-                participationStats.Add(new Tuple<string, string, string, string>(seasonStat.Key, seasonStat.GameCount.ToString(), seasonStat.PlayerCount.ToString(), seasonStat.SessionPlayerCount.ToString()));
+                participationStats.Add(new Tuple<string, string, string, string>(stat.Key, stat.GameCount.ToString(), stat.PlayerCount.ToString(), stat.SessionPlayerCount.ToString()));
             }
 
             // Create the byte array now to remove a header row shortly
