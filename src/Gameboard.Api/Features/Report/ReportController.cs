@@ -521,7 +521,7 @@ namespace Gameboard.Api.Controllers
             return Ok(tickets);
         }
 
-        [HttpGet("api/report/seriesstats")]
+        [HttpGet("api/report/gameseriesstats")]
         [Authorize]
         public async Task<ActionResult<SeriesReport>> GetSeriesStats() {
             AuthorizeAny(
@@ -531,7 +531,7 @@ namespace Gameboard.Api.Controllers
             return Ok(await Service.GetSeriesStats());
         }
 
-        [HttpGet("api/report/trackstats")]
+        [HttpGet("api/report/gametrackstats")]
         [Authorize]
         public async Task<ActionResult<TrackReport>> GetTrackStats() {
             AuthorizeAny(
@@ -541,7 +541,7 @@ namespace Gameboard.Api.Controllers
             return Ok(await Service.GetTrackStats());
         }
 
-        [HttpGet("api/report/seasonstats")]
+        [HttpGet("api/report/gameseasonstats")]
         [Authorize]
         public async Task<ActionResult<SeasonReport>> GetSeasonStats() {
             AuthorizeAny(
@@ -551,7 +551,7 @@ namespace Gameboard.Api.Controllers
             return Ok(await Service.GetSeasonStats());
         }
 
-        [HttpGet("api/report/divisionstats")]
+        [HttpGet("api/report/gamedivisionstats")]
         [Authorize]
         public async Task<ActionResult<DivisionReport>> GetDivisionStats() {
             AuthorizeAny(
@@ -561,7 +561,7 @@ namespace Gameboard.Api.Controllers
             return Ok(await Service.GetDivisionStats());
         }
 
-        [HttpGet("api/report/modestats")]
+        [HttpGet("api/report/gamemodestats")]
         [Authorize]
         public async Task<ActionResult<ModeReport>> GetModeStats() {
             AuthorizeAny(
@@ -585,7 +585,7 @@ namespace Gameboard.Api.Controllers
         /// Export series stats to CSV
         /// </summary>
         /// <returns></returns>
-        [HttpGet("api/report/exportseriesstats")]
+        [HttpGet("api/report/exportgameseriesstats")]
         [Authorize]
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportSeriesStats()
@@ -603,7 +603,7 @@ namespace Gameboard.Api.Controllers
         /// Export track stats to CSV
         /// </summary>
         /// <returns></returns>
-        [HttpGet("api/report/exporttrackstats")]
+        [HttpGet("api/report/exportgametrackstats")]
         [Authorize]
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportTrackStats()
@@ -621,7 +621,7 @@ namespace Gameboard.Api.Controllers
         /// Export season stats to CSV
         /// </summary>
         /// <returns></returns>
-        [HttpGet("api/report/exportseasonstats")]
+        [HttpGet("api/report/exportgameseasonstats")]
         [Authorize]
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportSeasonStats()
@@ -639,7 +639,7 @@ namespace Gameboard.Api.Controllers
         /// Export division stats to CSV
         /// </summary>
         /// <returns></returns>
-        [HttpGet("api/report/exportdivisionstats")]
+        [HttpGet("api/report/exportgamedivisionstats")]
         [Authorize]
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportDivisionStats()
@@ -657,7 +657,7 @@ namespace Gameboard.Api.Controllers
         /// Export mode stats to CSV
         /// </summary>
         /// <returns></returns>
-        [HttpGet("api/report/exportmodestats")]
+        [HttpGet("api/report/exportgamemodestats")]
         [Authorize]
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportModeStats()
@@ -697,7 +697,7 @@ namespace Gameboard.Api.Controllers
             return File(
                 Service.ConvertToBytes(correlationStats),
                 "application/octet-stream",
-                string.Format("season-stats-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+                string.Format("correlation-stats-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
         }
 
         // Helper method to create participation reports
@@ -723,7 +723,7 @@ namespace Gameboard.Api.Controllers
                 // .NET inserts a garbage header line ("Item1", "Item2", ... "ItemN") into a CSV when its lines are created via a Tuple with more than 3 items, so we have to remove the first 5*(n+1) bytes from the resulting array
                 fileBytes.ToArray().TakeLast(fileBytes.Count() - (numItemsPerRow * itemLengthSkip + numItemsPerRow + newlineSkip)).ToArray(),
                 "application/octet-stream",
-                string.Format("season-stats-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+                string.Format("{0}-stats-{1}", report.Key.ToLower(), DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
         }
     }
 }
