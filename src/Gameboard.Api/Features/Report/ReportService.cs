@@ -490,8 +490,9 @@ namespace Gameboard.Api.Services
                         var shift2Count = 0;
                         var outsideShiftCount = 0;
                         g.ToList().ForEach(ticket => {
-                            // Convert creation to local time
-                            var ticketCreatedHour = ticket.Created.ToLocalTime().Hour;
+                            // Force convert creation to eastern standard time
+                            DateTimeOffset tz = TimeZoneInfo.ConvertTime(ticket.Created, TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
+                            var ticketCreatedHour = tz.Hour;
                             if (ticketCreatedHour >= 8 && ticketCreatedHour < 16)
                                 shift1Count += 1;
                             else if (ticketCreatedHour >= 16 && ticketCreatedHour < 23)
