@@ -44,7 +44,14 @@ namespace Gameboard.Api.Services
         internal Task<PlayerReport> GetPlayerStats()
         {
             var ps = from games in Store.Games
-                     select new PlayerStat { GameId = games.Id, GameName = games.Name, PlayerCount = games.Players.Count };
+                     select new PlayerStat { 
+                        GameId = games.Id, 
+                        GameName = games.Name, 
+                        // games.Players - people who have enrolled in the game (not necessarily those who played it)
+                        PlayerCount = games.Players.Count, 
+                        // If a player has a session year later than 0001, they've started a session
+                        SessionPlayerCount = games.Players.Where(p => p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Count()
+                    };
 
             PlayerReport playerReport = new PlayerReport
             {
@@ -213,6 +220,222 @@ namespace Gameboard.Api.Services
             challengeDetailReport.ChallengeId = id;
 
             return challengeDetailReport;
+        }
+
+        internal Task<SeriesReport> GetSeriesStats() {
+
+            // Create a temporary table of all series with the number of games in that series included
+            var tempTable = Store.Games.Select(
+                g => new {
+                    // Replace null, white space, or empty series with "N/A"
+                    Series = string.IsNullOrWhiteSpace(g.Competition) ? "N/A" : g.Competition
+                // To create the table we have to group by the series, then count the rows in each group
+                }).GroupBy(g => g.Series).Select(
+                s => new {
+                    Series = s.Key,
+                    GameCount = s.Count()
+                });
+
+            // Perform actual grouping logic using the above table; we group by both columns
+            ParticipationStat[] stats = tempTable.GroupBy(g => new { g.Series, g.GameCount } ).Select(
+                s => new ParticipationStat {
+                    // Get the formatted series
+                    Key = s.Key.Series,
+                    // Get the number of games in the series
+                    GameCount = s.Key.GameCount,
+                    // Get the number of registered players in the series
+                    PlayerCount = Store.Players.Where(p => p.Game.Competition == s.Key.Series).Select(p => p.UserId).Distinct().Count(),
+                    // Get the number of enrolled players in the series
+                    SessionPlayerCount = Store.Players.Where(p => p.Game.Competition == s.Key.Series && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count()
+                }
+            ).OrderBy(stat => stat.Key).ToArray();
+
+            SeriesReport seriesReport = new SeriesReport
+            {
+                Timestamp = DateTime.UtcNow,
+                Stats = stats
+            };
+
+            return Task.FromResult(seriesReport);
+        }
+
+        internal Task<TrackReport> GetTrackStats() {
+
+            // Create a temporary table of all tracks with the number of games in that track included
+            var tempTable = Store.Games.Select(
+                g => new {
+                    // Replace null, white space, or empty tracks with "N/A"
+                    Track = string.IsNullOrWhiteSpace(g.Track) ? "N/A" : g.Track
+                // To create the table we have to group by the track, then count the rows in each group
+                }).GroupBy(g => g.Track).Select(
+                s => new {
+                    Track = s.Key,
+                    GameCount = s.Count()
+                });
+
+            // Perform actual grouping logic using the above table; we group by both columns
+            ParticipationStat[] stats = tempTable.GroupBy(g => new { g.Track, g.GameCount } ).Select(
+                s => new ParticipationStat {
+                    // Get the formatted track
+                    Key = s.Key.Track,
+                    // Get the number of games in the track
+                    GameCount = s.Key.GameCount,
+                    // Get the number of registered players in the track
+                    PlayerCount = Store.Players.Where(p => p.Game.Track == s.Key.Track).Select(p => p.UserId).Distinct().Count(),
+                    // Get the number of enrolled players in the track
+                    SessionPlayerCount = Store.Players.Where(p => p.Game.Track == s.Key.Track && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count()
+                }
+            ).OrderBy(stat => stat.Key).ToArray();
+
+            TrackReport trackReport = new TrackReport
+            {
+                Timestamp = DateTime.UtcNow,
+                Stats = stats
+            };
+
+            return Task.FromResult(trackReport);
+        }
+
+        internal Task<SeasonReport> GetSeasonStats() {
+
+            // Create a temporary table of all divisions with the number of games in that division included
+            var tempTable = Store.Games.Select(
+                g => new {
+                    // Replace null, white space, or empty divisions with "N/A"
+                    Season = string.IsNullOrWhiteSpace(g.Season) ? "N/A" : g.Season
+                // To create the table we have to group by the division, then count the rows in each group
+                }).GroupBy(g => g.Season).Select(
+                s => new {
+                    Season = s.Key,
+                    GameCount = s.Count()
+                });
+
+            // Perform actual grouping logic using the above table; we group by both columns
+            ParticipationStat[] stats = tempTable.GroupBy(g => new { g.Season, g.GameCount } ).Select(
+                s => new ParticipationStat {
+                    // Get the formatted division
+                    Key = s.Key.Season,
+                    // Get the number of games in the division
+                    GameCount = s.Key.GameCount,
+                    // Get the number of registered players in the division
+                    PlayerCount = Store.Players.Where(p => p.Game.Season == s.Key.Season).Select(p => p.UserId).Distinct().Count(),
+                    // Get the number of enrolled players in the division
+                    SessionPlayerCount = Store.Players.Where(p => p.Game.Season == s.Key.Season && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count()
+                }
+            ).OrderBy(stat => stat.Key).ToArray();
+
+            SeasonReport divisionReport = new SeasonReport
+            {
+                Timestamp = DateTime.UtcNow,
+                Stats = stats
+            };
+
+            return Task.FromResult(divisionReport);
+        }
+
+        internal Task<DivisionReport> GetDivisionStats() {
+
+            // Create a temporary table of all divisions with the number of games in that division included
+            var tempTable = Store.Games.Select(
+                g => new {
+                    // Replace null, white space, or empty divisions with "N/A"
+                    Division = string.IsNullOrWhiteSpace(g.Division) ? "N/A" : g.Division
+                // To create the table we have to group by the division, then count the rows in each group
+                }).GroupBy(g => g.Division).Select(
+                s => new {
+                    Division = s.Key,
+                    GameCount = s.Count()
+                });
+
+            // Perform actual grouping logic using the above table; we group by both columns
+            ParticipationStat[] stats = tempTable.GroupBy(g => new { g.Division, g.GameCount } ).Select(
+                s => new ParticipationStat {
+                    // Get the formatted division
+                    Key = s.Key.Division,
+                    // Get the number of games in the division
+                    GameCount = s.Key.GameCount,
+                    // Get the number of registered players in the division
+                    PlayerCount = Store.Players.Where(p => p.Game.Division == s.Key.Division).Select(p => p.UserId).Distinct().Count(),
+                    // Get the number of enrolled players in the division
+                    SessionPlayerCount = Store.Players.Where(p => p.Game.Division == s.Key.Division && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count()
+                }
+            ).OrderBy(stat => stat.Key).ToArray();
+
+            DivisionReport divisionReport = new DivisionReport
+            {
+                Timestamp = DateTime.UtcNow,
+                Stats = stats
+            };
+
+            return Task.FromResult(divisionReport);
+        }
+
+        internal Task<ModeReport> GetModeStats() {
+
+            // Create a temporary table of all modes with the number of games in that mode included
+            var tempTable = Store.Games.Select(
+                g => new {
+                    // Replace null, white space, or empty modes with "N/A"
+                    Mode = string.IsNullOrWhiteSpace(g.Mode) ? "N/A" : g.Mode
+                // To create the table we have to group by the mode, then count the rows in each group
+                }).GroupBy(g => g.Mode).Select(
+                s => new {
+                    Mode = s.Key,
+                    GameCount = s.Count()
+                });
+
+            // Perform actual grouping logic using the above table; we group by both columns
+            ParticipationStat[] stats = tempTable.GroupBy(g => new { g.Mode, g.GameCount } ).Select(
+                s => new ParticipationStat {
+                    // Get the formatted mode
+                    Key = s.Key.Mode,
+                    // Get the number of games in the mode
+                    GameCount = s.Key.GameCount,
+                    // Get the number of registered players in the mode
+                    PlayerCount = Store.Players.Where(p => p.Game.Mode == s.Key.Mode).Select(p => p.UserId).Distinct().Count(),
+                    // Get the number of enrolled players in the mode
+                    SessionPlayerCount = Store.Players.Where(p => p.Game.Mode == s.Key.Mode && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count()
+                }
+            ).OrderBy(stat => stat.Key).ToArray();
+
+            ModeReport modeReport = new ModeReport
+            {
+                Timestamp = DateTime.UtcNow,
+                Stats = stats
+            };
+
+            return Task.FromResult(modeReport);
+        }
+
+        internal Task<CorrelationReport> GetCorrelationStats() {
+
+            // Create a temporary table to first group by the user ID and count the number of games played
+            var tempTable = Store.Players.GroupBy(g => g.UserId).Select(
+                s => new {
+                    UserId = s.Key,
+                    GameCount = s.Count()
+                }
+            );
+
+            // Re-group by the number of games played to count the number of users who enrolled in them
+            CorrelationStat[] stats = tempTable.GroupBy(g => g.GameCount ).Select(
+                s => new CorrelationStat {  
+                    GameCount = s.Key,
+                    UserCount = s.Count()
+                }
+            ).OrderBy(stat => stat.GameCount).ToArray();
+
+            CorrelationReport correlationReport = new CorrelationReport
+            {
+                Timestamp = DateTime.UtcNow,
+                Stats = stats
+            };
+
+            return Task.FromResult(correlationReport);
+        }
+
+        private static string GetCommonGroupString(string original) {
+            return string.IsNullOrWhiteSpace(original) ? "N/A" : original;
         }
 
         // Compute aggregates for each feedback question in template based on all responses in feedback table

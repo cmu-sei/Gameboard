@@ -104,12 +104,12 @@ namespace Gameboard.Api.Controllers
 
             var result = await Service.GetPlayerStats();
 
-            List<Tuple<string, string>> playerStats = new List<Tuple<string, string>>();
-            playerStats.Add(new Tuple<string, string>("Game", "Player Count"));
+            List<Tuple<string, string, string>> playerStats = new List<Tuple<string, string, string>>();
+            playerStats.Add(new Tuple<string, string, string>("Game", "Player Count", "Players with Sessions Count"));
 
             foreach(PlayerStat playerStat in result.Stats)
             {
-                playerStats.Add(new Tuple<string, string>(playerStat.GameName, playerStat.PlayerCount.ToString()));
+                playerStats.Add(new Tuple<string, string, string>(playerStat.GameName, playerStat.PlayerCount.ToString(), playerStat.SessionPlayerCount.ToString()));
             }
 
             return File(
@@ -521,5 +521,209 @@ namespace Gameboard.Api.Controllers
             return Ok(tickets);
         }
 
+        [HttpGet("api/report/gameseriesstats")]
+        [Authorize]
+        public async Task<ActionResult<SeriesReport>> GetSeriesStats() {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            return Ok(await Service.GetSeriesStats());
+        }
+
+        [HttpGet("api/report/gametrackstats")]
+        [Authorize]
+        public async Task<ActionResult<TrackReport>> GetTrackStats() {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            return Ok(await Service.GetTrackStats());
+        }
+
+        [HttpGet("api/report/gameseasonstats")]
+        [Authorize]
+        public async Task<ActionResult<SeasonReport>> GetSeasonStats() {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            return Ok(await Service.GetSeasonStats());
+        }
+
+        [HttpGet("api/report/gamedivisionstats")]
+        [Authorize]
+        public async Task<ActionResult<DivisionReport>> GetDivisionStats() {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            return Ok(await Service.GetDivisionStats());
+        }
+
+        [HttpGet("api/report/gamemodestats")]
+        [Authorize]
+        public async Task<ActionResult<ModeReport>> GetModeStats() {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            return Ok(await Service.GetModeStats());
+        }
+
+        [HttpGet("api/report/correlationstats")]
+        [Authorize]
+        public async Task<ActionResult<ModeReport>> GetCorrelationStats() {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            return Ok(await Service.GetCorrelationStats());
+        }
+
+        /// <summary>
+        /// Export series stats to CSV
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("api/report/exportgameseriesstats")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportSeriesStats()
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var result = await Service.GetSeriesStats();
+
+            return ConstructParticipationReport(result);
+        }
+
+        /// <summary>
+        /// Export track stats to CSV
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("api/report/exportgametrackstats")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportTrackStats()
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var result = await Service.GetTrackStats();
+
+            return ConstructParticipationReport(result);
+        }
+
+        /// <summary>
+        /// Export season stats to CSV
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("api/report/exportgameseasonstats")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportSeasonStats()
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var result = await Service.GetSeasonStats();
+
+            return ConstructParticipationReport(result);
+        }
+
+        /// <summary>
+        /// Export division stats to CSV
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("api/report/exportgamedivisionstats")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportDivisionStats()
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var result = await Service.GetDivisionStats();
+
+            return ConstructParticipationReport(result);
+        }
+
+        /// <summary>
+        /// Export mode stats to CSV
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("api/report/exportgamemodestats")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportModeStats()
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var result = await Service.GetModeStats();
+
+            return ConstructParticipationReport(result);
+        }
+
+        /// <summary>
+        /// Export correlation stats to CSV
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("api/report/exportcorrelationstats")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportCorrelationStats()
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var result = await Service.GetCorrelationStats();
+
+            List<Tuple<string, string>> correlationStats = new List<Tuple<string, string>>();
+            correlationStats.Add(new Tuple<string, string>("Game Count", "Player Count"));
+
+            foreach (CorrelationStat stat in result.Stats)
+            {
+                correlationStats.Add(new Tuple<string, string>(stat.GameCount.ToString(), stat.UserCount.ToString()));
+            }
+
+            return File(
+                Service.ConvertToBytes(correlationStats),
+                "application/octet-stream",
+                string.Format("correlation-stats-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+        }
+
+        // Helper method to create participation reports
+        public FileContentResult ConstructParticipationReport(ParticipationReport report) {
+            List<Tuple<string, string, string, string>> participationStats = new List<Tuple<string, string, string, string>>();
+            participationStats.Add(new Tuple<string, string, string, string>(report.Key, "Game Count", "Player Count", "Players with Sessions Count"));
+
+            foreach (ParticipationStat stat in report.Stats)
+            {
+                participationStats.Add(new Tuple<string, string, string, string>(stat.Key, stat.GameCount.ToString(), stat.PlayerCount.ToString(), stat.SessionPlayerCount.ToString()));
+            }
+
+            // Create the byte array now to remove a header row shortly
+            byte[] fileBytes = Service.ConvertToBytes(participationStats);
+            // The number of items per row
+            int numItemsPerRow = 4;
+            // The set length of each garbage string item in the header
+            int itemLengthSkip = 5;
+            // The character size of a newline character
+            int newlineSkip = 1;
+
+            return File(
+                // .NET inserts a garbage header line ("Item1", "Item2", ... "ItemN") into a CSV when its lines are created via a Tuple with more than 3 items, so we have to remove the first 5*(n+1) bytes from the resulting array
+                fileBytes.ToArray().TakeLast(fileBytes.Count() - (numItemsPerRow * itemLengthSkip + numItemsPerRow + newlineSkip)).ToArray(),
+                "application/octet-stream",
+                string.Format("{0}-stats-{1}", report.Key.ToLower(), DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+        }
     }
 }

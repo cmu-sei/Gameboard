@@ -39,6 +39,7 @@ namespace Gameboard.Api
         public string GameId { get; set; }
         public string GameName { get; set; }
         public int PlayerCount { get; set; }
+        public int SessionPlayerCount { get; set; }
     }
 
     public class SponsorStat
@@ -84,6 +85,69 @@ namespace Gameboard.Api
         public Part[] Parts { get; set; }
         public int AttemptCount { get; set; }
         public string ChallengeId { get; set; }
+    }
+
+    public class ParticipationReport
+    {
+        public string Key { get; set; } = "Participation";
+        public DateTime Timestamp { get; set; }
+        public ParticipationStat[] Stats { get; set; }
+    }
+
+    public class ParticipationStat
+    {
+        public string Key { get; set; }
+        public int GameCount { get; set; }
+        public int PlayerCount { get; set; }
+        public int SessionPlayerCount { get; set; }
+    }
+
+    public class SeriesReport : ParticipationReport
+    {
+        public SeriesReport() {
+            Key = "Series";
+        }
+    }
+
+    public class TrackReport : ParticipationReport
+    {
+        public TrackReport() {
+            Key = "Track";
+        }
+    }
+
+    public class SeasonReport : ParticipationReport
+    {
+        public SeasonReport() {
+            Key = "Season";
+        }
+    }
+
+    public class DivisionReport : ParticipationReport
+    {
+        public DivisionReport() {
+            Key = "Division";
+        }
+    }
+
+    public class ModeReport : ParticipationReport
+    {
+        public ModeReport() {
+            Key = "Mode";
+        }
+    }
+
+    public class CorrelationReport
+    {
+        public string Title { get; set; } = "Correlation Report";
+        public DateTime Timestamp { get; set; }
+        public CorrelationStat[] Stats { get; set; }
+    }
+
+    public class CorrelationStat
+    {
+        public int GameCount { get; set; }
+        public int UserCount { get; set; }
     }
 
     public class Part

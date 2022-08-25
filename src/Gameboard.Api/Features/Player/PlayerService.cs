@@ -679,8 +679,12 @@ namespace Gameboard.Api.Services
                 .Include(p => p.Game)
                 .Include(p => p.User)
                 .FirstOrDefaultAsync(p => p.Id == id);
+
+            var playerCount = await Store.DbSet
+                .Where(p => p.GameId == player.GameId)
+                .CountAsync();
             
-            return CertificateFromTemplate(player);
+            return CertificateFromTemplate(player, playerCount);
         }
 
         public async Task<PlayerCertificate[]> MakeCertificates(string uid)
@@ -697,10 +701,11 @@ namespace Gameboard.Api.Services
                 .OrderByDescending(p => p.Game.GameEnd)
                 .ToArrayAsync();
             
-            return completedSessions.Select(c => CertificateFromTemplate(c)).ToArray();
+            return completedSessions.Select(c => CertificateFromTemplate(c, Store.DbSet.Where(pl => pl.Game == c.Game).Count())).ToArray();
         }
 
-        private Api.PlayerCertificate CertificateFromTemplate(Data.Player player) {
+        private Api.PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount) {
+
             string certificateHTML = player.Game.CertificateTemplate;
             if (certificateHTML.IsEmpty())
                 return null;
@@ -713,6 +718,7 @@ namespace Gameboard.Api.Services
             certificateHTML =  certificateHTML.Replace("{{season}}", player.Game.Season);
             certificateHTML =  certificateHTML.Replace("{{track}}", player.Game.Track);
             certificateHTML =  certificateHTML.Replace("{{date}}", player.SessionEnd.ToString("MMMM dd, yyyy"));
+            certificateHTML =  certificateHTML.Replace("{{player_count}}", playerCount.ToString());
             return new Api.PlayerCertificate
             {
                 Game = Mapper.Map<Game>(player.Game), 
