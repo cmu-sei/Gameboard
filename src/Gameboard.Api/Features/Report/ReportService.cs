@@ -222,6 +222,36 @@ namespace Gameboard.Api.Services
             return challengeDetailReport;
         }
 
+        #region Ticket Reports
+        internal Task<TicketDetailReport> GetTicketDetails() {
+            TicketDetail[] details = Store.Tickets.Select(
+                t => new TicketDetail {
+                    Key = t.Key,
+                    Summary = t.Summary,
+                    Description = t.Description,
+                    Challenge = t.Challenge.Name,
+                    Team = t.Player.ApprovedName,
+                    GameSession = t.Player.Game.Name,
+                    Assignee = t.Assignee.Name,
+                    Requester = t.Requester.Name,
+                    Creator = t.Creator.Name,
+                    Created = t.Created,
+                    LastUpdated = t.LastUpdated,
+                    Label = t.Label,
+                    Status = t.Status
+                }
+            ).OrderBy(detail => detail.Key).ToArray();
+
+            TicketDetailReport ticketReport = new TicketDetailReport
+            {
+                Timestamp = DateTime.UtcNow,
+                Details = details
+            };
+
+            return Task.FromResult(ticketReport);
+        }
+        #endregion
+
         internal Task<SeriesReport> GetSeriesStats() {
 
             // Create a temporary table of all series with the number of games in that series included

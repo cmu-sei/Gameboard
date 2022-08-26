@@ -521,6 +521,72 @@ namespace Gameboard.Api.Controllers
             return Ok(tickets);
         }
 
+        #region Support Stat Exports
+
+        [HttpGet("api/report/exportticketdetails")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportTicketDetails() {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var result = await Service.GetTicketDetails();
+
+            List<TicketDetailsExport> ticketDetails = new List<TicketDetailsExport>();
+            ticketDetails.Add(new TicketDetailsExport { 
+                Key = "Key",
+                Summary = "Summary",
+                Description = "Description",
+                Challenge = "Challenge",
+                GameSession = "Game Session",
+                Team = "Team",
+                Assignee = "Assignee",
+                Requester = "Requester",
+                Creator = "Creator",
+                Created = "Created",
+                LastUpdated = "Last Updated",
+                Label = "Label",
+                Status = "Status" });
+
+            foreach (TicketDetail detail in result.Details)
+            {
+                ticketDetails.Add(new TicketDetailsExport {
+                    Key = detail.Key.ToString(),
+                    Summary = detail.Summary,
+                    Description = detail.Description,
+                    Challenge = detail.Challenge,
+                    GameSession = detail.GameSession,
+                    Team = detail.Team,
+                    Assignee = detail.Assignee,
+                    Requester = detail.Requester,
+                    Creator = detail.Creator,
+                    Created = detail.Created.ToString(),
+                    LastUpdated = detail.LastUpdated.ToString(),
+                    Label = detail.Label,
+                    Status = detail.Status
+                });
+            }
+
+            // Create the byte array now to remove a header row shortly
+            byte[] fileBytes = Service.ConvertToBytes(ticketDetails);
+            // The total length of all properties concatenated together and separated by commas
+            int totalCharacterLength = 0;
+            foreach (System.Reflection.PropertyInfo p in typeof(TicketDetailsExport).GetProperties()) {
+                totalCharacterLength += p.Name.ToString().Count() + 1;
+            }
+            // The extra characters inserted into the second row that make them different from the variable names (spaces, punctuation, etc.)
+            int extraChars = 2;
+
+            return File(
+                // .NET inserts a line of variables into a CSV this way, so we have to remove the first few bytes from the resulting array
+                fileBytes.ToArray().TakeLast(fileBytes.Count() - (totalCharacterLength + extraChars - 1)).ToArray(),
+                "application/octet-stream",
+                string.Format("ticket-details-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+        }
+
+        #endregion
+
         [HttpGet("api/report/gameseriesstats")]
         [Authorize]
         public async Task<ActionResult<SeriesReport>> GetSeriesStats() {

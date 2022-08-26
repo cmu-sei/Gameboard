@@ -87,6 +87,31 @@ namespace Gameboard.Api
         public string ChallengeId { get; set; }
     }
 
+    #region Ticket Reports
+    public class TicketDetail {
+        public int Key { get; set; }
+        public string Summary { get; set; }
+        public string Description { get; set; }
+        public string Challenge { get; set; }
+        public string GameSession { get; set; }
+        public string Team { get; set; }
+        public string Assignee { get; set; }
+        public string Requester { get; set; }
+        public string Creator { get; set; }
+        public DateTimeOffset Created { get; set; }
+        public DateTimeOffset LastUpdated { get; set; }
+        public string Label { get; set; }
+        public string Status { get; set; }
+    }
+
+    public class TicketDetailReport
+    {
+        public string Title { get; set; } = "Ticket Detail Report";
+        public DateTime Timestamp { get; set; }
+        public TicketDetail[] Details { get; set; }
+    }
+    #endregion
+
     public class ParticipationReport
     {
         public string Key { get; set; } = "Participation";
@@ -179,5 +204,21 @@ namespace Gameboard.Api
         public string Question { get; set; }
         public string Points { get; set; }
         public string Solves { get; set; }
+    }
+
+    public class TicketDetailsExport {
+        public string Key { get; set; }
+        public string Summary { get; set; }
+        public string Description { get; set; }
+        public string Challenge { get; set; }
+        public string GameSession { get; set; }
+        public string Team { get; set; }
+        public string Assignee { get; set; }
+        public string Requester { get; set; }
+        public string Creator { get; set; }
+        public string Created { get; set; }
+        public string LastUpdated { get; set; }
+        public string Label { get; set; }
+        public string Status { get; set; }
     }
 }
