@@ -862,7 +862,7 @@ namespace Gameboard.Api.Controllers
                 string.Format("correlation-stats-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
         }
 
-        // Helper method to create long reports
+        // Helper method to create participation reports
         public FileContentResult ConstructParticipationReport(ParticipationReport report) {
             List<Tuple<string, string, string, string>> participationStats = new List<Tuple<string, string, string, string>>();
             participationStats.Add(new Tuple<string, string, string, string>(report.Key, "Game Count", "Player Count", "Players with Sessions Count"));
