@@ -482,6 +482,7 @@ namespace Gameboard.Api.Controllers
             return Ok(fullStats);
         }
 
+        #region Support Stats
         [HttpGet("/api/report/supportdaystats")]
         [Authorize]
         public async Task<ActionResult<TicketDayGroup[]>> GetTicketVolumeStats([FromQuery] TicketReportFilter model)
@@ -520,18 +521,22 @@ namespace Gameboard.Api.Controllers
 
             return Ok(tickets);
         }
+        #endregion
 
         #region Support Stat Exports
-
+        /// <summary>
+        /// Export ticket details to CSV
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("api/report/exportticketdetails")]
         [Authorize]
         [ProducesResponseType(typeof(FileContentResult), 200)]
-        public async Task<IActionResult> ExportTicketDetails() {
+        public async Task<IActionResult> ExportTicketDetails([FromQuery] TicketReportFilter model) {
             AuthorizeAny(
                 () => Actor.IsObserver
             );
 
-            var result = await Service.GetTicketDetails();
+            var result = await Service.GetTicketDetails(model, Actor.Id);
 
             List<TicketDetailsExport> ticketDetails = new List<TicketDetailsExport>();
             ticketDetails.Add(new TicketDetailsExport { 
@@ -549,7 +554,7 @@ namespace Gameboard.Api.Controllers
                 Label = "Label",
                 Status = "Status" });
 
-            foreach (TicketDetail detail in result.Details)
+            foreach (TicketDetail detail in result)
             {
                 ticketDetails.Add(new TicketDetailsExport {
                     Key = detail.Key.ToString(),
@@ -585,6 +590,97 @@ namespace Gameboard.Api.Controllers
                 string.Format("ticket-details-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
         }
 
+        /// <summary>
+        /// Export ticket day stats to CSV
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("api/report/exportticketdaystats")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportTicketDayStats([FromQuery] TicketReportFilter model)
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var result = await Service.GetTicketVolume(model);
+
+            List<Tuple<string, string, string, string, string, string>> dayStats = new List<Tuple<string, string, string, string, string, string>>();
+            dayStats.Add(new Tuple<string, string, string, string, string, string>("Date", "Day of Week", "Shift 1 Count", "Shift 2 Count", "Outside of Shifts Count", "Total Created"));
+
+            int[] sums = new int[4];
+
+            foreach (TicketDayGroup group in result)
+            {
+                dayStats.Add(new Tuple<string, string, string, string, string, string>(group.Date, group.DayOfWeek, group.Shift1Count.ToString(), group.Shift2Count.ToString(), group.OutsideShiftCount.ToString(), group.Count.ToString()));
+                sums[0] += group.Shift1Count;
+                sums[1] += group.Shift2Count;
+                sums[2] += group.OutsideShiftCount;
+                sums[3] += group.Count;
+            }
+
+            dayStats.Add(new Tuple<string, string, string, string, string, string>("", "Total", sums[0].ToString(), sums[1].ToString(), sums[2].ToString(), sums[3].ToString()));
+
+            return ConstructManyColumnTupleReport(dayStats, "day");
+        }
+
+        /// <summary>
+        /// Export ticket label stats to CSV
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("api/report/exportticketlabelstats")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportTicketLabelStats([FromQuery] TicketReportFilter model)
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var result = await Service.GetTicketLabels(model);
+
+            List<Tuple<string, string>> labelStats = new List<Tuple<string, string>>();
+            labelStats.Add(new Tuple<string, string>("Label", "Count"));
+
+            foreach (TicketLabelGroup group in result)
+            {
+                labelStats.Add(new Tuple<string, string>(group.Label, group.Count.ToString()));
+            }
+
+            return File(
+                Service.ConvertToBytes(labelStats),
+                "application/octet-stream",
+                string.Format("ticket-label-stats-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+        }
+
+        /// <summary>
+        /// Export ticket label stats to CSV
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("api/report/exportticketchallengestats")]
+        [Authorize]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<IActionResult> ExportTicketChallengeStats([FromQuery] TicketReportFilter model)
+        {
+            AuthorizeAny(
+                () => Actor.IsObserver
+            );
+
+            var result = await Service.GetTicketChallenges(model);
+
+            List<Tuple<string, string, string>> challengeStats = new List<Tuple<string, string, string>>();
+            challengeStats.Add(new Tuple<string, string, string>("Challenge", "Tag", "Count"));
+
+            foreach (TicketChallengeGroup group in result)
+            {
+                challengeStats.Add(new Tuple<string, string, string>(group.ChallengeName, group.ChallengeTag, group.Count.ToString()));
+            }
+
+            return File(
+                Service.ConvertToBytes(challengeStats),
+                "application/octet-stream",
+                string.Format("ticket-challenge-stats-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+        }
         #endregion
 
         [HttpGet("api/report/gameseriesstats")]
@@ -766,7 +862,7 @@ namespace Gameboard.Api.Controllers
                 string.Format("correlation-stats-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
         }
 
-        // Helper method to create participation reports
+        // Helper method to create long reports
         public FileContentResult ConstructParticipationReport(ParticipationReport report) {
             List<Tuple<string, string, string, string>> participationStats = new List<Tuple<string, string, string, string>>();
             participationStats.Add(new Tuple<string, string, string, string>(report.Key, "Game Count", "Player Count", "Players with Sessions Count"));
@@ -776,8 +872,14 @@ namespace Gameboard.Api.Controllers
                 participationStats.Add(new Tuple<string, string, string, string>(stat.Key, stat.GameCount.ToString(), stat.PlayerCount.ToString(), stat.SessionPlayerCount.ToString()));
             }
 
+            return ConstructManyColumnTupleReport(participationStats, report.Key.ToLower());
+        }
+
+        #region Many Column Tuple Report Helper Methods
+        // Helper method to create reports constructed out of a tuple with 4 items
+        public FileContentResult ConstructManyColumnTupleReport(List<Tuple<string, string, string, string>> stats, string title) {
             // Create the byte array now to remove a header row shortly
-            byte[] fileBytes = Service.ConvertToBytes(participationStats);
+            byte[] fileBytes = Service.ConvertToBytes(stats);
             // The number of items per row
             int numItemsPerRow = 4;
             // The set length of each garbage string item in the header
@@ -789,7 +891,80 @@ namespace Gameboard.Api.Controllers
                 // .NET inserts a garbage header line ("Item1", "Item2", ... "ItemN") into a CSV when its lines are created via a Tuple with more than 3 items, so we have to remove the first 5*(n+1) bytes from the resulting array
                 fileBytes.ToArray().TakeLast(fileBytes.Count() - (numItemsPerRow * itemLengthSkip + numItemsPerRow + newlineSkip)).ToArray(),
                 "application/octet-stream",
-                string.Format("{0}-stats-{1}", report.Key.ToLower(), DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+                string.Format("{0}-stats-{1}", title, DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
         }
+
+        // Helper method to create reports constructed out of a tuple with 5 items
+        public FileContentResult ConstructManyColumnTupleReport(List<Tuple<string, string, string, string, string>> stats, string title) {
+            // Create the byte array now to remove a header row shortly
+            byte[] fileBytes = Service.ConvertToBytes(stats);
+            // The number of items per row
+            int numItemsPerRow = 5;
+            // The set length of each garbage string item in the header
+            int itemLengthSkip = 5;
+            // The character size of a newline character
+            int newlineSkip = 1;
+
+            return File(
+                // .NET inserts a garbage header line ("Item1", "Item2", ... "ItemN") into a CSV when its lines are created via a Tuple with more than 3 items, so we have to remove the first 5*(n+1) bytes from the resulting array
+                fileBytes.ToArray().TakeLast(fileBytes.Count() - (numItemsPerRow * itemLengthSkip + numItemsPerRow + newlineSkip)).ToArray(),
+                "application/octet-stream",
+                string.Format("{0}-stats-{1}", title, DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+        }
+
+        // Helper method to create reports constructed out of a tuple with 6 items
+        public FileContentResult ConstructManyColumnTupleReport(List<Tuple<string, string, string, string, string, string>> stats, string title) {
+            // Create the byte array now to remove a header row shortly
+            byte[] fileBytes = Service.ConvertToBytes(stats);
+            // The number of items per row
+            int numItemsPerRow = 6;
+            // The set length of each garbage string item in the header
+            int itemLengthSkip = 5;
+            // The character size of a newline character
+            int newlineSkip = 1;
+
+            return File(
+                // .NET inserts a garbage header line ("Item1", "Item2", ... "ItemN") into a CSV when its lines are created via a Tuple with more than 3 items, so we have to remove the first 5*(n+1) bytes from the resulting array
+                fileBytes.ToArray().TakeLast(fileBytes.Count() - (numItemsPerRow * itemLengthSkip + numItemsPerRow + newlineSkip)).ToArray(),
+                "application/octet-stream",
+                string.Format("{0}-stats-{1}", title, DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+        }
+
+        // Helper method to create reports constructed out of a tuple with 7 items
+        public FileContentResult ConstructManyColumnTupleReport(List<Tuple<string, string, string, string, string, string, string>> stats, string title) {
+            // Create the byte array now to remove a header row shortly
+            byte[] fileBytes = Service.ConvertToBytes(stats);
+            // The number of items per row
+            int numItemsPerRow = 7;
+            // The set length of each garbage string item in the header
+            int itemLengthSkip = 5;
+            // The character size of a newline character
+            int newlineSkip = 1;
+
+            return File(
+                // .NET inserts a garbage header line ("Item1", "Item2", ... "ItemN") into a CSV when its lines are created via a Tuple with more than 3 items, so we have to remove the first 5*(n+1) bytes from the resulting array
+                fileBytes.ToArray().TakeLast(fileBytes.Count() - (numItemsPerRow * itemLengthSkip + numItemsPerRow + newlineSkip)).ToArray(),
+                "application/octet-stream",
+                string.Format("{0}-stats-{1}", title, DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+        }
+
+        // Helper method to create reports constructed out of a tuple with 8 items
+        public FileContentResult ConstructManyColumnTupleReport(List<Tuple<string, string, string, string, string, string, string, string>> stats, string title) {
+            // Create the byte array now to remove a header row shortly
+            byte[] fileBytes = Service.ConvertToBytes(stats);
+            // The number of items per row
+            int numItemsPerRow = 8;
+            // The set length of each garbage string item in the header
+            int itemLengthSkip = 5;
+            // The character size of a newline character
+            int newlineSkip = 1;
+
+            return File(
+                // .NET inserts a garbage header line ("Item1", "Item2", ... "ItemN") into a CSV when its lines are created via a Tuple with more than 3 items, so we have to remove the first 5*(n+1) bytes from the resulting array
+                fileBytes.ToArray().TakeLast(fileBytes.Count() - (numItemsPerRow * itemLengthSkip + numItemsPerRow + newlineSkip)).ToArray(),
+                "application/octet-stream",
+                string.Format("{0}-stats-{1}", title, DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+        }
+        #endregion
     }
 }

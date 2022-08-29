@@ -104,12 +104,12 @@ namespace Gameboard.Api
         public string Status { get; set; }
     }
 
-    public class TicketDetailReport
+    /*public class TicketDetailReport
     {
         public string Title { get; set; } = "Ticket Detail Report";
         public DateTime Timestamp { get; set; }
         public TicketDetail[] Details { get; set; }
-    }
+    }*/
     #endregion
 
     public class ParticipationReport
