@@ -411,7 +411,8 @@ namespace Gameboard.Api.Services
                     p.UserId.StartsWith(term) ||
                     p.Sponsor.StartsWith(term) ||
                     p.User.Name.ToLower().Contains(term) ||
-                    p.User.ApprovedName.ToLower().Contains(term)
+                    p.User.ApprovedName.ToLower().Contains(term) ||
+                    Store.DbSet.Where(p2 => p2.TeamId == p.TeamId && (p2.UserId.StartsWith(term) || p2.User.ApprovedName.ToLower().Contains(term))).Any()
                 );
             }
 

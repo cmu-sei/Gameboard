@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
+using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TopoMojo.Api.Client;
@@ -14,6 +15,7 @@ namespace Gameboard.Api.Services
     public class ReportService : _Service
     {
         GameboardDbContext Store { get; }
+        ITicketStore TicketStore { get; }
         ChallengeService _challengeService { get; }
 
         string blankName = "N/A";
@@ -23,12 +25,14 @@ namespace Gameboard.Api.Services
             IMapper mapper,
             CoreOptions options,
             GameboardDbContext store,
+            ITicketStore ticketStore,
             ChallengeService challengeService,
             GameService gameService
         ): base (logger, mapper, options)
         {
             Store = store;
             _challengeService = challengeService;
+            TicketStore = ticketStore;
         }
 
         internal Task<UserReport> GetUserStats()
@@ -485,6 +489,33 @@ namespace Gameboard.Api.Services
             return questionStats;
         }
 
+        #region Support Stats
+        internal async Task<TicketDetail[]> GetTicketDetails(TicketReportFilter model, string userId) {
+
+            var q = ListFilteredTickets(model, userId);
+            var tickets = await q.ToArrayAsync();
+
+            // Todo: make sure times are eastern when grouping days and shifts
+            return tickets
+                .Select(t => new TicketDetail {
+                        Key = t.Key,
+                        Summary = t.Summary != null ? t.Summary : "",
+                        Description = t.Description != null ? t.Description : "",
+                        Challenge = t.Challenge != null && t.Challenge.Name != null ? t.Challenge.Name : "",
+                        Team = t.Player != null && t.Player.ApprovedName != null ? t.Player.ApprovedName : "",
+                        GameSession = t.Player != null && t.Player.Game != null && t.Player.Game.Name != null ? t.Player.Game.Name : "",
+                        Assignee = t.Assignee != null && t.Assignee.Name != null ? t.Assignee.Name : "",
+                        Requester = t.Requester != null && t.Requester.Name != null ? t.Requester.Name : "",
+                        Creator = t.Creator != null && t.Creator.Name != null ? t.Creator.Name : "",
+                        Created = t.Created,
+                        LastUpdated = t.LastUpdated,
+                        Label = t.Label,
+                        Status = t.Status
+                    }
+                )
+                .OrderBy(detail => detail.Key).ToArray();
+        }
+
         internal async Task<TicketDayGroup[]> GetTicketVolume(TicketReportFilter model)
         {
             var q = ListFilteredTickets(model);
@@ -501,8 +532,9 @@ namespace Gameboard.Api.Services
                         var shift2Count = 0;
                         var outsideShiftCount = 0;
                         g.ToList().ForEach(ticket => {
-                            // Convert creation to local time
-                            var ticketCreatedHour = ticket.Created.ToLocalTime().Hour;
+                            // Force convert creation to eastern standard time
+                            DateTimeOffset tz = TimeZoneInfo.ConvertTime(ticket.Created, TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
+                            var ticketCreatedHour = tz.Hour;
                             if (ticketCreatedHour >= 8 && ticketCreatedHour < 16)
                                 shift1Count += 1;
                             else if (ticketCreatedHour >= 16 && ticketCreatedHour < 23)
@@ -571,10 +603,14 @@ namespace Gameboard.Api.Services
                 .OrderByDescending(a => a.Count)
                 .ToArray();
         }
+        #endregion
 
-        private IQueryable<Data.Ticket> ListFilteredTickets(TicketReportFilter model)
+        private IQueryable<Data.Ticket> ListFilteredTickets(TicketReportFilter model, string userId=null)
         {
             var q = Store.Tickets.AsNoTracking();
+            if (userId != null) {
+                q = TicketStore.List(model.Term).AsNoTracking();
+            }
 
             if (model.WantsGame)
                 q = q.Include(t => t.Player).Where(t => t.Player.GameId == model.GameId);
@@ -584,6 +620,20 @@ namespace Gameboard.Api.Services
 
             if (model.WantsBeforeEndTime) 
                 q = q.Where(t => t.Created < model.EndRange);
+
+            if (model.WantsOpen)
+                q = q.Where(t => t.Status == "Open");
+            if (model.WantsInProgress)
+                q = q.Where(t => t.Status == "In Progress");
+            if (model.WantsClosed)
+                q = q.Where(t => t.Status == "Closed");
+            if (model.WantsNotClosed)
+                q = q.Where(t => t.Status != "Closed");
+
+            if (model.WantsAssignedToMe)
+                q = q.Where(t => t.AssigneeId == userId);
+            if (model.WantsUnassigned)
+                q = q.Where(t => t.AssigneeId == null || t.AssigneeId == "");
 
             return q;
         }
