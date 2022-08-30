@@ -702,18 +702,18 @@ namespace Gameboard.Api.Controllers
 
         // Helper method to create participation reports
         public FileContentResult ConstructParticipationReport(ParticipationReport report) {
-            List<Tuple<string, string, string, string>> participationStats = new List<Tuple<string, string, string, string>>();
-            participationStats.Add(new Tuple<string, string, string, string>(report.Key, "Game Count", "Player Count", "Players with Sessions Count"));
+            List<Tuple<string, string, string, string, string>> participationStats = new List<Tuple<string, string, string, string, string>>();
+            participationStats.Add(new Tuple<string, string, string, string, string>(report.Key, "Game Count", "Player Count", "Players with Sessions Count", "Challenges Deployed Count"));
 
             foreach (ParticipationStat stat in report.Stats)
             {
-                participationStats.Add(new Tuple<string, string, string, string>(stat.Key, stat.GameCount.ToString(), stat.PlayerCount.ToString(), stat.SessionPlayerCount.ToString()));
+                participationStats.Add(new Tuple<string, string, string, string, string>(stat.Key, stat.GameCount.ToString(), stat.PlayerCount.ToString(), stat.SessionPlayerCount.ToString(), stat.ChallengesDeployedCount.ToString()));
             }
 
             // Create the byte array now to remove a header row shortly
             byte[] fileBytes = Service.ConvertToBytes(participationStats);
             // The number of items per row
-            int numItemsPerRow = 4;
+            int numItemsPerRow = 5;
             // The set length of each garbage string item in the header
             int itemLengthSkip = 5;
             // The character size of a newline character
