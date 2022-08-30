@@ -170,7 +170,7 @@ namespace Gameboard.Api
         public bool WantsOrderingByAsc => IsDescending.Equals(false);
     }
 
-    public class TicketReportFilter: SearchFilter
+    public class TicketReportFilter: TicketSearchFilter
     {
         public string GameId { get; set; }
         public bool WantsGame => !GameId.IsEmpty();
