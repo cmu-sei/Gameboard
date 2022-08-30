@@ -116,9 +116,15 @@ namespace Gameboard.Api.Controllers
 
             await Validate(model);
 
+            // Retrieve the previous ticket result for comparison soon
+            var prevTicket = await TicketService.Retrieve(model.Id, Actor.Id);
             var result = await TicketService.Update(model, Actor.Id, Actor.IsSupport);
-            
-            await Notify(Mapper.Map<TicketNotification>(result), EventAction.Updated);
+            // Ignore labels being different
+            if (result.Label != prevTicket.Label) prevTicket.LastUpdated = result.LastUpdated;
+            // If the ticket hasn't been meaningfully updated, don't send a notification
+            if (prevTicket.LastUpdated != result.LastUpdated) {
+                await Notify(Mapper.Map<TicketNotification>(result), EventAction.Updated);
+            }
 
             return result;
         }

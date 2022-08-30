@@ -209,6 +209,8 @@ namespace Gameboard.Api.Services
 
             entity.Activity.Add(Mapper.Map<Data.TicketActivity>(commentActivity));
             entity.LastUpdated = timestamp;
+            // Set the ticket status to be Open if it was closed before and someone leaves a new comment
+            entity.Status = entity.Status == "Closed" ? "Open" : entity.Status;
             await Store.Update(entity);
 
             var result = Mapper.Map<TicketActivity>(commentActivity);
