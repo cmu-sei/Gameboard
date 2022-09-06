@@ -347,13 +347,13 @@ namespace Gameboard.Api.Services
                 }
             ).OrderBy(stat => stat.Key).ToArray();
 
-            SeasonReport divisionReport = new SeasonReport
+            SeasonReport seasonReport = new SeasonReport
             {
                 Timestamp = DateTime.UtcNow,
                 Stats = stats
             };
 
-            return Task.FromResult(divisionReport);
+            return Task.FromResult(seasonReport);
         }
 
         internal Task<DivisionReport> GetDivisionStats() {
