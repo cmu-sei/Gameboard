@@ -16,12 +16,14 @@ namespace Gameboard.Api.Services
     {
         GameboardDbContext Store { get; }
         ITicketStore TicketStore { get; }
+        Defaults Defaults { get; }
         ChallengeService _challengeService { get; }
 
         public ReportService (
             ILogger<ReportService> logger,
             IMapper mapper,
             CoreOptions options,
+            Defaults defaults,
             GameboardDbContext store,
             ITicketStore ticketStore,
             ChallengeService challengeService,
@@ -31,6 +33,7 @@ namespace Gameboard.Api.Services
             Store = store;
             _challengeService = challengeService;
             TicketStore = ticketStore;
+            Defaults = defaults;
         }
 
         internal Task<UserReport> GetUserStats()
@@ -505,39 +508,57 @@ namespace Gameboard.Api.Services
                 .OrderBy(detail => detail.Key).ToArray();
         }
 
-        internal async Task<TicketDayGroup[]> GetTicketVolume(TicketReportFilter model)
+        internal async Task<TicketDayReport> GetTicketVolume(TicketReportFilter model)
         {
             var q = ListFilteredTickets(model);
             var tickets = await q.ToArrayAsync();
 
-            // Todo: make sure times are eastern when grouping days and shifts
-            var result = tickets
+            var ticketsGrouped = tickets
                 .GroupBy(g => new {
-                    Date = g.Created.ToString("MM/dd/yyyy"),
-                    DayOfWeek = g.Created.DayOfWeek.ToString()
-                })
+                    Date = TimeZoneInfo.ConvertTime(g.Created, TimeZoneInfo.FindSystemTimeZoneById(Defaults.ShiftTimezone)).ToString("MM/dd/yyyy"),
+                    DayOfWeek = TimeZoneInfo.ConvertTime(g.Created, TimeZoneInfo.FindSystemTimeZoneById(Defaults.ShiftTimezone)).DayOfWeek.ToString()
+                });
+
+            // Get the shifts provided in AppSettings.cs
+            DateTimeOffset[][] shifts = Defaults.Shifts;
+
+            // Counts
+            int[][] shiftCountsByDay = new int[ticketsGrouped.Count()][];
+            int[] outsideShiftCountsByDay = new int[ticketsGrouped.Count()];
+
+            // Set the number of days observed so far
+            int dayNum = 0;
+
+            var result = ticketsGrouped
                 .Select(g => {
-                        var shift1Count = 0;
-                        var shift2Count = 0;
-                        var outsideShiftCount = 0;
-                        g.ToList().ForEach(ticket => {
-                            // Force convert creation to eastern standard time
-                            DateTimeOffset tz = TimeZoneInfo.ConvertTime(ticket.Created, TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
-                            var ticketCreatedHour = tz.Hour;
-                            if (ticketCreatedHour >= 8 && ticketCreatedHour < 16)
-                                shift1Count += 1;
-                            else if (ticketCreatedHour >= 16 && ticketCreatedHour < 23)
-                                shift2Count += 1;
-                            else 
-                                outsideShiftCount += 1;
-                        });
-                        return new TicketDayGroup {
+                    // Set the shift counts 
+                    shiftCountsByDay[dayNum] = new int[shifts.Length];
+                    g.ToList().ForEach(ticket => {
+                        // Force convert creation to the default timezone (in AppSettings.cs this is Eastern Standard Time)
+                        DateTimeOffset tz = TimeZoneInfo.ConvertTime(ticket.Created, TimeZoneInfo.FindSystemTimeZoneById(Defaults.ShiftTimezone));
+                        var ticketCreatedHour = tz.Hour;
+                        // Flag to check if we've found a matching shift or not
+                        var found = false;
+                        // Loop through all given shifts
+                        for (int i = 0; i < shifts.Length; i++) {
+                            // See if the ticket falls within this shift; each shift hour is already converted to the default time
+                            if (ticketCreatedHour >= shifts[i][0].Hour && ticketCreatedHour < shifts[i][1].Hour) {
+                                shiftCountsByDay[dayNum][i] += 1;
+                                found = true;
+                            }
+                        }
+                        // If we haven't found a matching shift for this ticket, it's outside shift hours for this day
+                        if (!found) outsideShiftCountsByDay[dayNum] += 1;
+                    });
+                    // Increase the number of days observed
+                    dayNum += 1;
+                    // Create a new TicketDayGroup and set its attributes
+                    return new TicketDayGroup {
                         Date = g.Key.Date,
                         DayOfWeek = g.Key.DayOfWeek,
-                        Count = shift1Count + shift2Count + outsideShiftCount,
-                        Shift1Count = shift1Count,
-                        Shift2Count = shift2Count,
-                        OutsideShiftCount = outsideShiftCount
+                        Count = shiftCountsByDay[dayNum - 1].Sum() + outsideShiftCountsByDay[dayNum - 1],
+                        ShiftCounts = shiftCountsByDay[dayNum - 1],
+                        OutsideShiftCount = outsideShiftCountsByDay[dayNum - 1]
                     };
                 })
                 .OrderByDescending(g => g.Date)
@@ -546,9 +567,18 @@ namespace Gameboard.Api.Services
             // if no custom date range, only show the most recent 10
             if (!model.WantsAfterStartTime && !model.WantsBeforeEndTime) 
                 result = result.Take(7);
+            
+            string timezone = "";
+            foreach (string word in Defaults.ShiftTimezone.Split(" ")) {
+                timezone += word.First();
+            }
 
-            return result.ToArray();
+            TicketDayReport ticketDayReport = new TicketDayReport {
+                Timezone = timezone,
+                TicketDays = result.ToArray()
+            };
 
+            return ticketDayReport;
         }
 
         internal async Task<TicketLabelGroup[]> GetTicketLabels(TicketReportFilter model)

@@ -181,13 +181,19 @@ namespace Gameboard.Api
         public bool WantsBeforeEndTime => EndRange != DateTimeOffset.MinValue;
     }
 
+    public class TicketDayReport
+    {
+        public string[][] Shifts { get; set; } = Defaults.ShiftStrings;
+        public string Timezone { get; set; }
+        public TicketDayGroup[] TicketDays { get; set; }
+    }
+
     public class TicketDayGroup
     {
         public string Date { get; set; }
         public string DayOfWeek { get; set; }
         public int Count { get; set; }
-        public int Shift1Count { get; set; }
-        public int Shift2Count { get; set; }
+        public int[] ShiftCounts { get; set; }
         public int OutsideShiftCount { get; set; }
     }
 
