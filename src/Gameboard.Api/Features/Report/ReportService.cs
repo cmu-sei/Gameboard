@@ -616,10 +616,8 @@ namespace Gameboard.Api.Services
             if (!model.WantsAfterStartTime && !model.WantsBeforeEndTime) 
                 result = result.Take(7);
             
-            string timezone = "";
-            foreach (string word in Defaults.ShiftTimezone.Split(" ")) {
-                timezone += word.First();
-            }
+            string[] tzWords = Defaults.ShiftTimezone.Split(" ");
+            string timezone = tzWords[0].First() + "" + tzWords[tzWords.Length - 1].First();
 
             TicketDayReport ticketDayReport = new TicketDayReport {
                 Timezone = timezone,
