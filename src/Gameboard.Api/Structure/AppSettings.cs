@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using System;
 
 namespace Gameboard.Api
 {
@@ -149,6 +150,31 @@ namespace Gameboard.Api
         public string FeedbackTemplate { get; set; } = "";
         public string CertificateTemplateFile { get; set; }
         public string CertificateTemplate { get; set; } = "";
+        // The timezone to format support shifts in
+        public static string ShiftTimezone { get; set; } = "Eastern Standard Time";
+        // The support shifts; each string[] is the shift start time and the shift end time
+        public static string[][] ShiftStrings { get; } = new string[][] {
+            new string[] { "8:00 AM", "4:00 PM" },
+            new string[] { "4:00 PM", "11:00 PM" }
+        };
+        // Get date-formatted versions of the shifts
+        public static DateTimeOffset[][] Shifts { get; set; } = GetShifts();
+
+        // Helper method to format shifts as DateTimeOffset objects
+        private static DateTimeOffset[][] GetShifts() {
+            DateTimeOffset[][] offsets = new DateTimeOffset[ShiftStrings.Length][];
+            // Create a new DateTimeOffset representation for every string time given
+            for (int i = 0; i < ShiftStrings.Length; i++)
+            {
+                offsets[i] = new DateTimeOffset[] { ConvertTime(ShiftStrings[i][0]), ConvertTime(ShiftStrings[i][1]) };
+            }
+            return offsets;
+        }
+
+        // Helper method to convert a given string time into a DateTimeOffset representation
+        private static DateTimeOffset ConvertTime(string time) {
+            return TimeZoneInfo.ConvertTime(DateTimeOffset.Parse(time), TimeZoneInfo.FindSystemTimeZoneById(ShiftTimezone));
+        }
     }
 
 }
