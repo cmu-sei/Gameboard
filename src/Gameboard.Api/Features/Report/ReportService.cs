@@ -103,7 +103,7 @@ namespace Gameboard.Api.Services
             }
 
             var players = Store.Players.Where(p => p.GameId == gameId)
-                .Select(p => new { p.Sponsor, p.TeamId }).ToList();
+                .Select(p => new { p.Sponsor, p.TeamId, p.Id, p.UserId }).ToList();
 
             var sponsors = Store.Sponsors;
 
@@ -117,9 +117,26 @@ namespace Gameboard.Api.Services
                     Name = sponsor.Name,
                     Logo = sponsor.Logo,
                     Count = players.Where(p => p.Sponsor == sponsor.Logo).Count(),
-                    TeamCount = players.Where(p => p.Sponsor == sponsor.Logo).Select(p => p.TeamId).Distinct().Count()
+                    TeamCount = players.Where(p => p.Sponsor == sponsor.Logo && (
+                        // Either every player on a team has the same sponsor, or...
+                        players.Where(p2 => p.Id != p2.Id && p.TeamId == p2.TeamId).All(p2 => p.Sponsor == p2.Sponsor) ||
+                        // ...the team has only one player on it, so still count them
+                        players.Where(p2 => p.TeamId == p2.TeamId).Count() == 1)
+                    ).Select(p => p.TeamId).Distinct().Count()
                 });
             }
+
+            // Create row for multisponsor teams
+            sponsorStats.Add(new SponsorStat 
+            {
+                Id = "Multisponsor",
+                Name = "Multisponsor",
+                Logo = "",
+                Count = 0,
+                TeamCount = players.Where(p => 
+                            players.Where(p2 => p.Id != p2.Id && p.TeamId == p2.TeamId)
+                                .Any(p2 => p.Sponsor != p2.Sponsor)).Select(p => p.TeamId).Distinct().Count()
+            });
 
             GameSponsorStat gameSponsorStat = new GameSponsorStat
             {
