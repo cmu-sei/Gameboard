@@ -24,7 +24,8 @@ namespace Gameboard.Api.Controllers
             GameService gameService,
             ChallengeSpecService challengeSpecService,
             FeedbackService feedbackService,
-            TicketService ticketService
+            TicketService ticketService,
+            Defaults defaults
         ): base(logger, cache)
         {
             Service = service;
@@ -32,6 +33,7 @@ namespace Gameboard.Api.Controllers
             FeedbackService = feedbackService;
             ChallengeSpecService = challengeSpecService;
             TicketService = ticketService;
+            Defaults = defaults;
         }
 
         ReportService Service { get; }
@@ -39,6 +41,7 @@ namespace Gameboard.Api.Controllers
         FeedbackService FeedbackService { get; }
         ChallengeSpecService ChallengeSpecService { get; }
         TicketService TicketService { get; }
+        Defaults Defaults { get; }
 
         [HttpGet("/api/report/userstats")]
         [Authorize]

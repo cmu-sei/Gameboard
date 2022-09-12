@@ -151,29 +151,34 @@ namespace Gameboard.Api
         public string CertificateTemplateFile { get; set; }
         public string CertificateTemplate { get; set; } = "";
         // The timezone to format support shifts in
-        public static string ShiftTimezone { get; set; } = "Eastern Standard Time";
+        public string ShiftTimezone { get; set; }
+        public static string ShiftTimezoneFallback { get; set; } = "Eastern Standard Time";
         // The support shifts; each string[] is the shift start time and the shift end time
-        public static string[][] ShiftStrings { get; } = new string[][] {
+        public string[][] ShiftStrings { get; set; }
+        public static string[][] ShiftStringsFallback { get; } = new string[][] {
             new string[] { "8:00 AM", "4:00 PM" },
             new string[] { "4:00 PM", "11:00 PM" }
         };
         // Get date-formatted versions of the shifts
-        public static DateTimeOffset[][] Shifts { get; set; } = GetShifts();
+        public DateTimeOffset[][] Shifts { get; set; }
+        public static DateTimeOffset[][] ShiftsFallback { get; set; } = GetShifts(ShiftStringsFallback);
 
         // Helper method to format shifts as DateTimeOffset objects
-        private static DateTimeOffset[][] GetShifts() {
-            DateTimeOffset[][] offsets = new DateTimeOffset[ShiftStrings.Length][];
+        public static DateTimeOffset[][] GetShifts(string[][] shiftStrings) {
+            DateTimeOffset[][] offsets = new DateTimeOffset[shiftStrings.Length][];
             // Create a new DateTimeOffset representation for every string time given
-            for (int i = 0; i < ShiftStrings.Length; i++)
+            for (int i = 0; i < shiftStrings.Length; i++)
             {
-                offsets[i] = new DateTimeOffset[] { ConvertTime(ShiftStrings[i][0]), ConvertTime(ShiftStrings[i][1]) };
+                offsets[i] = new DateTimeOffset[] { 
+                    ConvertTime(shiftStrings[i][0], ShiftTimezoneFallback), 
+                    ConvertTime(shiftStrings[i][1], ShiftTimezoneFallback) };
             }
             return offsets;
         }
 
         // Helper method to convert a given string time into a DateTimeOffset representation
-        private static DateTimeOffset ConvertTime(string time) {
-            return TimeZoneInfo.ConvertTime(DateTimeOffset.Parse(time), TimeZoneInfo.FindSystemTimeZoneById(ShiftTimezone));
+        public static DateTimeOffset ConvertTime(string time, string shiftTimezone) {
+            return TimeZoneInfo.ConvertTime(DateTimeOffset.Parse(time), TimeZoneInfo.FindSystemTimeZoneById(shiftTimezone));
         }
     }
 

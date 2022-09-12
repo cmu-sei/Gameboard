@@ -183,7 +183,7 @@ namespace Gameboard.Api
 
     public class TicketDayReport
     {
-        public string[][] Shifts { get; set; } = Defaults.ShiftStrings;
+        public string[][] Shifts { get; set; }
         public string Timezone { get; set; }
         public TicketDayGroup[] TicketDays { get; set; }
     }

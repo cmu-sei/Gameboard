@@ -620,6 +620,7 @@ namespace Gameboard.Api.Services
             string timezone = tzWords[0].First() + "" + tzWords[tzWords.Length - 1].First();
 
             TicketDayReport ticketDayReport = new TicketDayReport {
+                Shifts = Defaults.ShiftStrings,
                 Timezone = timezone,
                 TicketDays = result.ToArray()
             };
