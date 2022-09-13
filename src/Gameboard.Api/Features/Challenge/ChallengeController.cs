@@ -280,6 +280,7 @@ namespace Gameboard.Api.Controllers
             AuthorizeAny(
               () => Actor.IsDirector,
               () => Actor.IsObserver,
+              () => Actor.IsSupport,
               () => isTeamMember
             );
 
@@ -318,7 +319,8 @@ namespace Gameboard.Api.Controllers
         {
             AuthorizeAny(
               () => Actor.IsDirector,
-              () => Actor.IsObserver
+              () => Actor.IsObserver,
+              () => Actor.IsSupport
             );
             return await ChallengeService.GetChallengeConsoles(gid);
         }
@@ -329,7 +331,8 @@ namespace Gameboard.Api.Controllers
         {
             AuthorizeAny(
               () => Actor.IsDirector,
-              () => Actor.IsObserver
+              () => Actor.IsObserver,
+              () => Actor.IsSupport
             );
             return ChallengeService.GetConsoleActors(gid);
         }
@@ -340,7 +343,8 @@ namespace Gameboard.Api.Controllers
         {
             AuthorizeAny(
               () => Actor.IsDirector,
-              () => Actor.IsObserver
+              () => Actor.IsObserver,
+              () => Actor.IsSupport
             );
             return ChallengeService.GetConsoleActor(uid);
         }
@@ -355,7 +359,8 @@ namespace Gameboard.Api.Controllers
         public async Task<ChallengeSummary[]> List([FromQuery] SearchFilter model)
         {
             AuthorizeAny(
-                () => Actor.IsDirector
+                () => Actor.IsDirector,
+                () => Actor.IsSupport
             );
 
             return await ChallengeService.List(model);
@@ -388,7 +393,8 @@ namespace Gameboard.Api.Controllers
         public async Task<ArchivedChallenge[]> ListArchived([FromQuery] SearchFilter model)
         {
             AuthorizeAny(
-                () => Actor.IsDirector
+                () => Actor.IsDirector,
+                () => Actor.IsSupport
             );
 
             return await ChallengeService.ListArchived(model);

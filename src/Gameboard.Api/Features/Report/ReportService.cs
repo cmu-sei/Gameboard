@@ -16,12 +16,16 @@ namespace Gameboard.Api.Services
     {
         GameboardDbContext Store { get; }
         ITicketStore TicketStore { get; }
+        Defaults Defaults { get; }
         ChallengeService _challengeService { get; }
+
+        string blankName = "N/A";
 
         public ReportService (
             ILogger<ReportService> logger,
             IMapper mapper,
             CoreOptions options,
+            Defaults defaults,
             GameboardDbContext store,
             ITicketStore ticketStore,
             ChallengeService challengeService,
@@ -31,6 +35,7 @@ namespace Gameboard.Api.Services
             Store = store;
             _challengeService = challengeService;
             TicketStore = ticketStore;
+            Defaults = defaults;
         }
 
         internal Task<UserReport> GetUserStats()
@@ -100,7 +105,7 @@ namespace Gameboard.Api.Services
             }
 
             var players = Store.Players.Where(p => p.GameId == gameId)
-                .Select(p => new { p.Sponsor, p.TeamId }).ToList();
+                .Select(p => new { p.Sponsor, p.TeamId, p.Id, p.UserId }).ToList();
 
             var sponsors = Store.Sponsors;
 
@@ -114,9 +119,26 @@ namespace Gameboard.Api.Services
                     Name = sponsor.Name,
                     Logo = sponsor.Logo,
                     Count = players.Where(p => p.Sponsor == sponsor.Logo).Count(),
-                    TeamCount = players.Where(p => p.Sponsor == sponsor.Logo).Select(p => p.TeamId).Distinct().Count()
+                    TeamCount = players.Where(p => p.Sponsor == sponsor.Logo && (
+                        // Either every player on a team has the same sponsor, or...
+                        players.Where(p2 => p.Id != p2.Id && p.TeamId == p2.TeamId).All(p2 => p.Sponsor == p2.Sponsor) ||
+                        // ...the team has only one player on it, so still count them
+                        players.Where(p2 => p.TeamId == p2.TeamId).Count() == 1)
+                    ).Select(p => p.TeamId).Distinct().Count()
                 });
             }
+
+            // Create row for multisponsor teams
+            sponsorStats.Add(new SponsorStat 
+            {
+                Id = "Multisponsor",
+                Name = "Multisponsor",
+                Logo = "",
+                Count = 0,
+                TeamCount = players.Where(p => 
+                            players.Where(p2 => p.Id != p2.Id && p.TeamId == p2.TeamId)
+                                .Any(p2 => p.Sponsor != p2.Sponsor)).Select(p => p.TeamId).Distinct().Count()
+            });
 
             GameSponsorStat gameSponsorStat = new GameSponsorStat
             {
@@ -232,7 +254,7 @@ namespace Gameboard.Api.Services
             var tempTable = Store.Games.Select(
                 g => new {
                     // Replace null, white space, or empty series with "N/A"
-                    Series = string.IsNullOrWhiteSpace(g.Competition) ? "N/A" : g.Competition
+                    Series = string.IsNullOrWhiteSpace(g.Competition) ? blankName : g.Competition
                 // To create the table we have to group by the series, then count the rows in each group
                 }).GroupBy(g => g.Series).Select(
                 s => new {
@@ -240,7 +262,6 @@ namespace Gameboard.Api.Services
                     GameCount = s.Count()
                 });
 
-            // Perform actual grouping logic using the above table; we group by both columns
             ParticipationStat[] stats = tempTable.GroupBy(g => new { g.Series, g.GameCount } ).Select(
                 s => new ParticipationStat {
                     // Get the formatted series
@@ -248,9 +269,15 @@ namespace Gameboard.Api.Services
                     // Get the number of games in the series
                     GameCount = s.Key.GameCount,
                     // Get the number of registered players in the series
-                    PlayerCount = Store.Players.Where(p => p.Game.Competition == s.Key.Series).Select(p => p.UserId).Distinct().Count(),
+                    PlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Competition) ? blankName : p.Game.Competition) == s.Key.Series).Select(p => p.UserId).Distinct().Count(),
                     // Get the number of enrolled players in the series
-                    SessionPlayerCount = Store.Players.Where(p => p.Game.Competition == s.Key.Series && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count()
+                    SessionPlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Competition) ? blankName : p.Game.Competition) == s.Key.Series && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count(),
+                    // Get the number of registered teams in the series
+                    TeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Competition) ? blankName : p.Game.Competition) == s.Key.Series).Select(p => p.TeamId).Distinct().Count(),
+                    // Get the number of enrolled teams in the series
+                    SessionTeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Competition) ? blankName : p.Game.Competition) == s.Key.Series && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.TeamId).Distinct().Count(),
+                    // Get the number of challenges deployed in this series
+                    ChallengesDeployedCount = Store.ArchivedChallenges.Join(Store.Games, ac => ac.GameId, g => g.Id, (ac, g) => new { GameId = g.Id, Series = g.Competition }).Where(g => (string.IsNullOrWhiteSpace(g.Series) ? blankName : g.Series) == s.Key.Series).Count() + Store.Challenges.Join(Store.Games, c => c.GameId, g => g.Id, (c, g) => new { Series = g.Competition }).Where(g => (string.IsNullOrWhiteSpace(g.Series) ? blankName : g.Series) == s.Key.Series).Count()
                 }
             ).OrderBy(stat => stat.Key).ToArray();
 
@@ -269,7 +296,7 @@ namespace Gameboard.Api.Services
             var tempTable = Store.Games.Select(
                 g => new {
                     // Replace null, white space, or empty tracks with "N/A"
-                    Track = string.IsNullOrWhiteSpace(g.Track) ? "N/A" : g.Track
+                    Track = string.IsNullOrWhiteSpace(g.Track) ? blankName : g.Track
                 // To create the table we have to group by the track, then count the rows in each group
                 }).GroupBy(g => g.Track).Select(
                 s => new {
@@ -285,9 +312,15 @@ namespace Gameboard.Api.Services
                     // Get the number of games in the track
                     GameCount = s.Key.GameCount,
                     // Get the number of registered players in the track
-                    PlayerCount = Store.Players.Where(p => p.Game.Track == s.Key.Track).Select(p => p.UserId).Distinct().Count(),
+                    PlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Track) ? blankName : p.Game.Track) == s.Key.Track).Select(p => p.UserId).Distinct().Count(),
                     // Get the number of enrolled players in the track
-                    SessionPlayerCount = Store.Players.Where(p => p.Game.Track == s.Key.Track && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count()
+                    SessionPlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Track) ? blankName : p.Game.Track) == s.Key.Track && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count(),
+                    // Get the number of registered teams in the track
+                    TeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Track) ? blankName : p.Game.Track) == s.Key.Track).Select(p => p.TeamId).Distinct().Count(),
+                    // Get the number of enrolled teams in the track
+                    SessionTeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Track) ? blankName : p.Game.Track) == s.Key.Track && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.TeamId).Distinct().Count(),
+                    // Get the number of challenges deployed in this track
+                    ChallengesDeployedCount = Store.ArchivedChallenges.Join(Store.Games, ac => ac.GameId, g => g.Id, (ac, g) => new { GameId = g.Id, Track = g.Track }).Where(g => (string.IsNullOrWhiteSpace(g.Track) ? blankName : g.Track) == s.Key.Track).Count() + Store.Challenges.Join(Store.Games, c => c.GameId, g => g.Id, (c, g) => new { Track = g.Track }).Where(g => (string.IsNullOrWhiteSpace(g.Track) ? blankName : g.Track) == s.Key.Track).Count()
                 }
             ).OrderBy(stat => stat.Key).ToArray();
 
@@ -306,7 +339,7 @@ namespace Gameboard.Api.Services
             var tempTable = Store.Games.Select(
                 g => new {
                     // Replace null, white space, or empty divisions with "N/A"
-                    Season = string.IsNullOrWhiteSpace(g.Season) ? "N/A" : g.Season
+                    Season = string.IsNullOrWhiteSpace(g.Season) ? blankName : g.Season
                 // To create the table we have to group by the division, then count the rows in each group
                 }).GroupBy(g => g.Season).Select(
                 s => new {
@@ -322,19 +355,25 @@ namespace Gameboard.Api.Services
                     // Get the number of games in the division
                     GameCount = s.Key.GameCount,
                     // Get the number of registered players in the division
-                    PlayerCount = Store.Players.Where(p => p.Game.Season == s.Key.Season).Select(p => p.UserId).Distinct().Count(),
+                    PlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Season) ? blankName : p.Game.Season) == s.Key.Season).Select(p => p.UserId).Distinct().Count(),
                     // Get the number of enrolled players in the division
-                    SessionPlayerCount = Store.Players.Where(p => p.Game.Season == s.Key.Season && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count()
+                    SessionPlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Season) ? blankName : p.Game.Season) == s.Key.Season && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count(),
+                    // Get the number of registered teams in the season
+                    TeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Season) ? blankName : p.Game.Season) == s.Key.Season).Select(p => p.TeamId).Distinct().Count(),
+                    // Get the number of enrolled teams in the season
+                    SessionTeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Season) ? blankName : p.Game.Season) == s.Key.Season && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.TeamId).Distinct().Count(),
+                    // Get the number of challenges deployed in this season
+                    ChallengesDeployedCount = Store.ArchivedChallenges.Join(Store.Games, ac => ac.GameId, g => g.Id, (ac, g) => new { GameId = g.Id, Season = g.Season }).Where(g => (string.IsNullOrWhiteSpace(g.Season) ? blankName : g.Season) == s.Key.Season).Count() + Store.Challenges.Join(Store.Games, c => c.GameId, g => g.Id, (c, g) => new { Season = g.Season }).Where(g => (string.IsNullOrWhiteSpace(g.Season) ? blankName : g.Season) == s.Key.Season).Count()
                 }
             ).OrderBy(stat => stat.Key).ToArray();
 
-            SeasonReport divisionReport = new SeasonReport
+            SeasonReport seasonReport = new SeasonReport
             {
                 Timestamp = DateTime.UtcNow,
                 Stats = stats
             };
 
-            return Task.FromResult(divisionReport);
+            return Task.FromResult(seasonReport);
         }
 
         internal Task<DivisionReport> GetDivisionStats() {
@@ -343,7 +382,7 @@ namespace Gameboard.Api.Services
             var tempTable = Store.Games.Select(
                 g => new {
                     // Replace null, white space, or empty divisions with "N/A"
-                    Division = string.IsNullOrWhiteSpace(g.Division) ? "N/A" : g.Division
+                    Division = string.IsNullOrWhiteSpace(g.Division) ? blankName : g.Division
                 // To create the table we have to group by the division, then count the rows in each group
                 }).GroupBy(g => g.Division).Select(
                 s => new {
@@ -359,9 +398,15 @@ namespace Gameboard.Api.Services
                     // Get the number of games in the division
                     GameCount = s.Key.GameCount,
                     // Get the number of registered players in the division
-                    PlayerCount = Store.Players.Where(p => p.Game.Division == s.Key.Division).Select(p => p.UserId).Distinct().Count(),
+                    PlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Division) ? blankName : p.Game.Division) == s.Key.Division).Select(p => p.UserId).Distinct().Count(),
                     // Get the number of enrolled players in the division
-                    SessionPlayerCount = Store.Players.Where(p => p.Game.Division == s.Key.Division && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count()
+                    SessionPlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Division) ? blankName : p.Game.Division) == s.Key.Division && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count(),
+                    // Get the number of registered teams in the division
+                    TeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Division) ? blankName : p.Game.Division) == s.Key.Division).Select(p => p.TeamId).Distinct().Count(),
+                    // Get the number of enrolled teams in the division
+                    SessionTeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Division) ? blankName : p.Game.Division) == s.Key.Division && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.TeamId).Distinct().Count(),
+                    // Get the number of challenges deployed in this division
+                    ChallengesDeployedCount = Store.ArchivedChallenges.Join(Store.Games, ac => ac.GameId, g => g.Id, (ac, g) => new { GameId = g.Id, Division = g.Division }).Where(g => (string.IsNullOrWhiteSpace(g.Division) ? blankName : g.Division) == s.Key.Division).Count() + Store.Challenges.Join(Store.Games, c => c.GameId, g => g.Id, (c, g) => new { Division = g.Division }).Where(g => (string.IsNullOrWhiteSpace(g.Division) ? blankName : g.Division) == s.Key.Division).Count()
                 }
             ).OrderBy(stat => stat.Key).ToArray();
 
@@ -380,7 +425,7 @@ namespace Gameboard.Api.Services
             var tempTable = Store.Games.Select(
                 g => new {
                     // Replace null, white space, or empty modes with "N/A"
-                    Mode = string.IsNullOrWhiteSpace(g.Mode) ? "N/A" : g.Mode
+                    Mode = string.IsNullOrWhiteSpace(g.Mode) ? blankName : g.Mode
                 // To create the table we have to group by the mode, then count the rows in each group
                 }).GroupBy(g => g.Mode).Select(
                 s => new {
@@ -396,9 +441,15 @@ namespace Gameboard.Api.Services
                     // Get the number of games in the mode
                     GameCount = s.Key.GameCount,
                     // Get the number of registered players in the mode
-                    PlayerCount = Store.Players.Where(p => p.Game.Mode == s.Key.Mode).Select(p => p.UserId).Distinct().Count(),
+                    PlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Mode) ? blankName : p.Game.Mode) == s.Key.Mode).Select(p => p.UserId).Distinct().Count(),
                     // Get the number of enrolled players in the mode
-                    SessionPlayerCount = Store.Players.Where(p => p.Game.Mode == s.Key.Mode && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count()
+                    SessionPlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Mode) ? blankName : p.Game.Mode) == s.Key.Mode && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count(),
+                    // Get the number of registered teams in the mode
+                    TeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Mode) ? blankName : p.Game.Mode) == s.Key.Mode).Select(p => p.TeamId).Distinct().Count(),
+                    // Get the number of enrolled teams in the mode
+                    SessionTeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Mode) ? blankName : p.Game.Mode) == s.Key.Mode && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.TeamId).Distinct().Count(),
+                    // Get the number of challenges deployed in this mode
+                    ChallengesDeployedCount = Store.ArchivedChallenges.Join(Store.Games, ac => ac.GameId, g => g.Id, (ac, g) => new { GameId = g.Id, Mode = g.Mode }).Where(g => (string.IsNullOrWhiteSpace(g.Mode) ? blankName : g.Mode) == s.Key.Mode).Count() + Store.Challenges.Join(Store.Games, c => c.GameId, g => g.Id, (c, g) => new { Mode = g.Mode }).Where(g => (string.IsNullOrWhiteSpace(g.Mode) ? blankName : g.Mode) == s.Key.Mode).Count()
                 }
             ).OrderBy(stat => stat.Key).ToArray();
 
@@ -505,39 +556,57 @@ namespace Gameboard.Api.Services
                 .OrderBy(detail => detail.Key).ToArray();
         }
 
-        internal async Task<TicketDayGroup[]> GetTicketVolume(TicketReportFilter model)
+        internal async Task<TicketDayReport> GetTicketVolume(TicketReportFilter model)
         {
             var q = ListFilteredTickets(model);
             var tickets = await q.ToArrayAsync();
 
-            // Todo: make sure times are eastern when grouping days and shifts
-            var result = tickets
+            var ticketsGrouped = tickets
                 .GroupBy(g => new {
-                    Date = g.Created.ToString("MM/dd/yyyy"),
-                    DayOfWeek = g.Created.DayOfWeek.ToString()
-                })
+                    Date = TimeZoneInfo.ConvertTime(g.Created, TimeZoneInfo.FindSystemTimeZoneById(Defaults.ShiftTimezone)).ToString("MM/dd/yyyy"),
+                    DayOfWeek = TimeZoneInfo.ConvertTime(g.Created, TimeZoneInfo.FindSystemTimeZoneById(Defaults.ShiftTimezone)).DayOfWeek.ToString()
+                });
+
+            // Get the shifts provided in AppSettings.cs
+            DateTimeOffset[][] shifts = Defaults.Shifts;
+
+            // Counts
+            int[][] shiftCountsByDay = new int[ticketsGrouped.Count()][];
+            int[] outsideShiftCountsByDay = new int[ticketsGrouped.Count()];
+
+            // Set the number of days observed so far
+            int dayNum = 0;
+
+            var result = ticketsGrouped
                 .Select(g => {
-                        var shift1Count = 0;
-                        var shift2Count = 0;
-                        var outsideShiftCount = 0;
-                        g.ToList().ForEach(ticket => {
-                            // Force convert creation to eastern standard time
-                            DateTimeOffset tz = TimeZoneInfo.ConvertTime(ticket.Created, TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
-                            var ticketCreatedHour = tz.Hour;
-                            if (ticketCreatedHour >= 8 && ticketCreatedHour < 16)
-                                shift1Count += 1;
-                            else if (ticketCreatedHour >= 16 && ticketCreatedHour < 23)
-                                shift2Count += 1;
-                            else 
-                                outsideShiftCount += 1;
-                        });
-                        return new TicketDayGroup {
+                    // Set the shift counts 
+                    shiftCountsByDay[dayNum] = new int[shifts.Length];
+                    g.ToList().ForEach(ticket => {
+                        // Force convert creation to the default timezone (in AppSettings.cs this is Eastern Standard Time)
+                        DateTimeOffset tz = TimeZoneInfo.ConvertTime(ticket.Created, TimeZoneInfo.FindSystemTimeZoneById(Defaults.ShiftTimezone));
+                        var ticketCreatedHour = tz.Hour;
+                        // Flag to check if we've found a matching shift or not
+                        var found = false;
+                        // Loop through all given shifts
+                        for (int i = 0; i < shifts.Length; i++) {
+                            // See if the ticket falls within this shift; each shift hour is already converted to the default time
+                            if (ticketCreatedHour >= shifts[i][0].Hour && ticketCreatedHour < shifts[i][1].Hour) {
+                                shiftCountsByDay[dayNum][i] += 1;
+                                found = true;
+                            }
+                        }
+                        // If we haven't found a matching shift for this ticket, it's outside shift hours for this day
+                        if (!found) outsideShiftCountsByDay[dayNum] += 1;
+                    });
+                    // Increase the number of days observed
+                    dayNum += 1;
+                    // Create a new TicketDayGroup and set its attributes
+                    return new TicketDayGroup {
                         Date = g.Key.Date,
                         DayOfWeek = g.Key.DayOfWeek,
-                        Count = shift1Count + shift2Count + outsideShiftCount,
-                        Shift1Count = shift1Count,
-                        Shift2Count = shift2Count,
-                        OutsideShiftCount = outsideShiftCount
+                        Count = shiftCountsByDay[dayNum - 1].Sum() + outsideShiftCountsByDay[dayNum - 1],
+                        ShiftCounts = shiftCountsByDay[dayNum - 1],
+                        OutsideShiftCount = outsideShiftCountsByDay[dayNum - 1]
                     };
                 })
                 .OrderByDescending(g => g.Date)
@@ -546,9 +615,17 @@ namespace Gameboard.Api.Services
             // if no custom date range, only show the most recent 10
             if (!model.WantsAfterStartTime && !model.WantsBeforeEndTime) 
                 result = result.Take(7);
+            
+            string[] tzWords = Defaults.ShiftTimezone.Split(" ");
+            string timezone = tzWords[0].First() + "" + tzWords[tzWords.Length - 1].First();
 
-            return result.ToArray();
+            TicketDayReport ticketDayReport = new TicketDayReport {
+                Shifts = Defaults.ShiftStrings,
+                Timezone = timezone,
+                TicketDays = result.ToArray()
+            };
 
+            return ticketDayReport;
         }
 
         internal async Task<TicketLabelGroup[]> GetTicketLabels(TicketReportFilter model)

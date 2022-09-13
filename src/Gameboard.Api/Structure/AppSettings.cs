@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using System;
 
 namespace Gameboard.Api
 {
@@ -149,6 +150,36 @@ namespace Gameboard.Api
         public string FeedbackTemplate { get; set; } = "";
         public string CertificateTemplateFile { get; set; }
         public string CertificateTemplate { get; set; } = "";
+        // The timezone to format support shifts in
+        public string ShiftTimezone { get; set; }
+        public static string ShiftTimezoneFallback { get; set; } = "Eastern Standard Time";
+        // The support shifts; each string[] is the shift start time and the shift end time
+        public string[][] ShiftStrings { get; set; }
+        public static string[][] ShiftStringsFallback { get; } = new string[][] {
+            new string[] { "8:00 AM", "4:00 PM" },
+            new string[] { "4:00 PM", "11:00 PM" }
+        };
+        // Get date-formatted versions of the shifts
+        public DateTimeOffset[][] Shifts { get; set; }
+        public static DateTimeOffset[][] ShiftsFallback { get; set; } = GetShifts(ShiftStringsFallback);
+
+        // Helper method to format shifts as DateTimeOffset objects
+        public static DateTimeOffset[][] GetShifts(string[][] shiftStrings) {
+            DateTimeOffset[][] offsets = new DateTimeOffset[shiftStrings.Length][];
+            // Create a new DateTimeOffset representation for every string time given
+            for (int i = 0; i < shiftStrings.Length; i++)
+            {
+                offsets[i] = new DateTimeOffset[] { 
+                    ConvertTime(shiftStrings[i][0], ShiftTimezoneFallback), 
+                    ConvertTime(shiftStrings[i][1], ShiftTimezoneFallback) };
+            }
+            return offsets;
+        }
+
+        // Helper method to convert a given string time into a DateTimeOffset representation
+        public static DateTimeOffset ConvertTime(string time, string shiftTimezone) {
+            return TimeZoneInfo.ConvertTime(DateTimeOffset.Parse(time), TimeZoneInfo.FindSystemTimeZoneById(shiftTimezone));
+        }
     }
 
 }

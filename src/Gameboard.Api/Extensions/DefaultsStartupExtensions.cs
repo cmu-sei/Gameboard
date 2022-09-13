@@ -28,11 +28,23 @@ namespace Microsoft.Extensions.DependencyInjection
                 if (File.Exists(certificateFile))
                     certificateTemplate = File.ReadAllText(certificateFile);
 
+                var shiftTimezone = defaults.ShiftTimezone.NotEmpty() ? defaults.ShiftTimezone : Defaults.ShiftTimezoneFallback;
+                var shiftStrings = defaults.ShiftStrings != null ? defaults.ShiftStrings : Defaults.ShiftStringsFallback;
+                var shifts = defaults.ShiftStrings != null ? new System.DateTimeOffset[shiftStrings.Length][] : Defaults.ShiftsFallback;
+                if (defaults.ShiftStrings != null) {
+                    for (int i = 0; i < shiftStrings.Length; i++) {
+                        shifts[i] = new System.DateTimeOffset[] { Defaults.ConvertTime(shiftStrings[i][0], shiftTimezone), Defaults.ConvertTime(shiftStrings[i][1], shiftTimezone) };
+                    }
+                }
+
                 return new Defaults {
                     FeedbackTemplate = feedbackTemplate,
                     FeedbackTemplateFile = defaults.FeedbackTemplateFile,
                     CertificateTemplate = certificateTemplate,
-                    CertificateTemplateFile = defaults.CertificateTemplateFile
+                    CertificateTemplateFile = defaults.CertificateTemplateFile,
+                    ShiftStrings = shiftStrings,
+                    Shifts = shifts,
+                    ShiftTimezone = shiftTimezone
                 };
             });
             

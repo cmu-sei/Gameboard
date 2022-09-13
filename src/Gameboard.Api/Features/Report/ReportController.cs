@@ -24,7 +24,8 @@ namespace Gameboard.Api.Controllers
             GameService gameService,
             ChallengeSpecService challengeSpecService,
             FeedbackService feedbackService,
-            TicketService ticketService
+            TicketService ticketService,
+            Defaults defaults
         ): base(logger, cache)
         {
             Service = service;
@@ -32,6 +33,7 @@ namespace Gameboard.Api.Controllers
             FeedbackService = feedbackService;
             ChallengeSpecService = challengeSpecService;
             TicketService = ticketService;
+            Defaults = defaults;
         }
 
         ReportService Service { get; }
@@ -39,6 +41,7 @@ namespace Gameboard.Api.Controllers
         FeedbackService FeedbackService { get; }
         ChallengeSpecService ChallengeSpecService { get; }
         TicketService TicketService { get; }
+        Defaults Defaults { get; }
 
         [HttpGet("/api/report/userstats")]
         [Authorize]
@@ -485,7 +488,7 @@ namespace Gameboard.Api.Controllers
         #region Support Stats
         [HttpGet("/api/report/supportdaystats")]
         [Authorize]
-        public async Task<ActionResult<TicketDayGroup[]>> GetTicketVolumeStats([FromQuery] TicketReportFilter model)
+        public async Task<ActionResult<TicketDayReport>> GetTicketVolumeStats([FromQuery] TicketReportFilter model)
         {
             AuthorizeAny(
                 () => Actor.IsObserver
@@ -605,23 +608,64 @@ namespace Gameboard.Api.Controllers
 
             var result = await Service.GetTicketVolume(model);
 
-            List<Tuple<string, string, string, string, string, string>> dayStats = new List<Tuple<string, string, string, string, string, string>>();
-            dayStats.Add(new Tuple<string, string, string, string, string, string>("Date", "Day of Week", "Shift 1 Count", "Shift 2 Count", "Outside of Shifts Count", "Total Created"));
+            // Create the file result early on so we can manipulate its bits later
+            FileContentResult f = File(
+                Service.ConvertToBytes(""),
+                "application/octet-stream",
+                string.Format("ticket-day-stats-{0}", DateTime.UtcNow.ToString("yyyy-MM-dd")) + ".csv");
+            // Send the file contents to a list so it can be added to easily
+            List<byte> fc = f.FileContents.ToList();
 
-            int[] sums = new int[4];
+            // Create an array of titles for the first line of the CSV
+            string[] titles = new string[Defaults.ShiftStrings.Length + 4];
+            titles[0] = "Date";
+            titles[1] = "Day of Week";
+            titles[titles.Count() - 2] = "Outside of Shifts Count";
+            titles[titles.Count() - 1] = "Total Created";
+            // Create a new title for each shift
+            for (int i = 2; i < titles.Count() - 2; i++) {
+                titles[i] = "Shift " + (i - 1) + " Count";
+            }
+            // Add to the byte list and remove the whitespace and newline from the file
+            fc.AddRange(Service.ConvertToBytes(titles));
+            fc = fc.TakeLast(fc.Count() - 2).ToList();
 
-            foreach (TicketDayGroup group in result)
-            {
-                dayStats.Add(new Tuple<string, string, string, string, string, string>(group.Date, group.DayOfWeek, group.Shift1Count.ToString(), group.Shift2Count.ToString(), group.OutsideShiftCount.ToString(), group.Count.ToString()));
-                sums[0] += group.Shift1Count;
-                sums[1] += group.Shift2Count;
-                sums[2] += group.OutsideShiftCount;
-                sums[3] += group.Count;
+            // Create an array of sums
+            int[] sums = new int[titles.Count() - 2];
+
+            // Loop through each received TicketDayGroup
+            foreach (TicketDayGroup group in result.TicketDays) {
+                // Set each value within the row
+                string[] row = new string[titles.Length];
+                row[0] = group.Date;
+                row[1] = group.DayOfWeek;
+                for (int i = 2; i < row.Count() - 2; i++) {
+                    row[i] = group.ShiftCounts[i - 2].ToString();
+                    sums[i - 2] += group.ShiftCounts[i - 2];
+                }
+                // Add the outside row count and total count
+                row[row.Count() - 2] = group.OutsideShiftCount.ToString();
+                sums[sums.Count() - 2] += group.OutsideShiftCount;
+                row[row.Count() - 1] = group.Count.ToString();
+                sums[sums.Count() - 1] += group.Count;
+                // Add to the list
+                fc.AddRange(Service.ConvertToBytes(row));
             }
 
-            dayStats.Add(new Tuple<string, string, string, string, string, string>("", "Total", sums[0].ToString(), sums[1].ToString(), sums[2].ToString(), sums[3].ToString()));
+            // Create a final row composing of totals of the numbered columns
+            string[] rowLater = new string[titles.Length];
+            rowLater[0] = "";
+            rowLater[1] = "Total";
+            for (int i = 2; i < rowLater.Length; i++) {
+                rowLater[i] = sums[i - 2].ToString();
+            }
+            // Add to the list
+            fc.AddRange(Service.ConvertToBytes(rowLater));
+            
+            // Convert the final byte list back to an array and return the resulting file
+            f.FileContents = fc.ToArray();
 
-            return ConstructManyColumnTupleReport(dayStats, "day");
+            return f;
         }
 
         /// <summary>
@@ -864,12 +908,12 @@ namespace Gameboard.Api.Controllers
 
         // Helper method to create participation reports
         public FileContentResult ConstructParticipationReport(ParticipationReport report) {
-            List<Tuple<string, string, string, string>> participationStats = new List<Tuple<string, string, string, string>>();
-            participationStats.Add(new Tuple<string, string, string, string>(report.Key, "Game Count", "Player Count", "Players with Sessions Count"));
+            List<Tuple<string, string, string, string, string, string, string>> participationStats = new List<Tuple<string, string, string, string, string, string, string>>();
+            participationStats.Add(new Tuple<string, string, string, string, string, string, string>(report.Key, "Game Count", "Player Count", "Players with Sessions Count", "Team Count", "Teams with Session Count", "Challenges Deployed Count"));
 
             foreach (ParticipationStat stat in report.Stats)
             {
-                participationStats.Add(new Tuple<string, string, string, string>(stat.Key, stat.GameCount.ToString(), stat.PlayerCount.ToString(), stat.SessionPlayerCount.ToString()));
+                participationStats.Add(new Tuple<string, string, string, string, string, string, string>(stat.Key, stat.GameCount.ToString(), stat.PlayerCount.ToString(), stat.SessionPlayerCount.ToString(), stat.TeamCount.ToString(), stat.SessionTeamCount.ToString(), stat.ChallengesDeployedCount.ToString()));
             }
 
             return ConstructManyColumnTupleReport(participationStats, report.Key.ToLower());

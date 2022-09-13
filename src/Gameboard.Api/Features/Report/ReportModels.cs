@@ -125,6 +125,9 @@ namespace Gameboard.Api
         public int GameCount { get; set; }
         public int PlayerCount { get; set; }
         public int SessionPlayerCount { get; set; }
+        public int TeamCount { get; set; }
+        public int SessionTeamCount { get; set; }
+        public int ChallengesDeployedCount { get; set; }
     }
 
     public class SeriesReport : ParticipationReport
