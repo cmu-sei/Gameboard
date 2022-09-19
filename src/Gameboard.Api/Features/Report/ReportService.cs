@@ -75,9 +75,10 @@ namespace Gameboard.Api.Services
         {
             var sp = (from sponsors in Store.Sponsors
                       join u in Store.Users on
-                      sponsors.Logo equals u.Sponsor
+                      sponsors.Logo equals u.Sponsor into j
+                      from allSponsors in j.DefaultIfEmpty()
                       select new { sponsors.Id, sponsors.Name, sponsors.Logo }).GroupBy(s => new { s.Id, s.Name, s.Logo })
-                      .Select(g => new SponsorStat { Id = g.Key.Id, Name = g.Key.Name, Logo = g.Key.Logo, Count = g.Count() }).OrderByDescending(g => g.Count).ThenBy(g => g.Name);
+                      .Select(g => new SponsorStat { Id = g.Key.Id, Name = g.Key.Name, Logo = g.Key.Logo, Count = g.Count(gr => Store.Users.Any(u => u.Sponsor == gr.Logo) ) }).OrderByDescending(g => g.Count).ThenBy(g => g.Name);
 
             SponsorReport sponsorReport = new SponsorReport
             {
@@ -97,7 +98,7 @@ namespace Gameboard.Api.Services
                 throw new ArgumentNullException("Invalid game id");
             }
 
-            var game = Store.Games.Where(g => g.Id == gameId).Select(g => new { g.Id, g.Name }).FirstOrDefault();
+            var game = Store.Games.Where(g => g.Id == gameId).Select(g => new { g.Id, g.Name, g.MaxTeamSize }).FirstOrDefault();
 
             if (game == null)
             {
@@ -127,6 +128,8 @@ namespace Gameboard.Api.Services
                     ).Select(p => p.TeamId).Distinct().Count()
                 });
             }
+
+            sponsorStats = sponsorStats.OrderByDescending(g => game.MaxTeamSize > 0 ? g.TeamCount : g.Count).ToList();
 
             // Create row for multisponsor teams
             sponsorStats.Add(new SponsorStat 
