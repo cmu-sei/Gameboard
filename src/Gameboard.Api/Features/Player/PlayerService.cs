@@ -703,6 +703,7 @@ namespace Gameboard.Api.Services
                 .Include(p => p.Game)
                 .Include(p => p.User)
                 .Where(p => p.UserId == uid && 
+                    p.SessionEnd > DateTimeOffset.MinValue &&
                     p.Game.GameEnd < now &&
                     p.Game.CertificateTemplate != null && 
                     p.Game.CertificateTemplate.Length > 0)
