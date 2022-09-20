@@ -682,10 +682,17 @@ namespace Gameboard.Api.Services
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             var playerCount = await Store.DbSet
-                .Where(p => p.GameId == player.GameId)
+                .Where(p => p.GameId == player.GameId && 
+                    p.SessionEnd > DateTimeOffset.MinValue)
                 .CountAsync();
             
-            return CertificateFromTemplate(player, playerCount);
+            var teamCount = await Store.DbSet
+                .Where(p => p.GameId == player.GameId && 
+                    p.SessionEnd > DateTimeOffset.MinValue)
+                .GroupBy(p => p.TeamId)
+                .CountAsync();
+            
+            return CertificateFromTemplate(player, playerCount, teamCount);
         }
 
         public async Task<PlayerCertificate[]> MakeCertificates(string uid)
@@ -696,16 +703,26 @@ namespace Gameboard.Api.Services
                 .Include(p => p.Game)
                 .Include(p => p.User)
                 .Where(p => p.UserId == uid && 
+                    p.SessionEnd > DateTimeOffset.MinValue &&
                     p.Game.GameEnd < now &&
                     p.Game.CertificateTemplate != null && 
                     p.Game.CertificateTemplate.Length > 0)
                 .OrderByDescending(p => p.Game.GameEnd)
                 .ToArrayAsync();
             
-            return completedSessions.Select(c => CertificateFromTemplate(c, Store.DbSet.Where(pl => pl.Game == c.Game).Count())).ToArray();
+            return completedSessions.Select(c => CertificateFromTemplate(c, 
+                Store.DbSet
+                    .Where(p => p.Game == c.Game && 
+                        p.SessionEnd > DateTimeOffset.MinValue)
+                    .Count(),
+                Store.DbSet
+                    .Where(p => p.Game == c.Game && 
+                        p.SessionEnd > DateTimeOffset.MinValue)
+                    .GroupBy(p => p.TeamId).Count()
+            )).ToArray();
         }
 
-        private Api.PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount) {
+        private Api.PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount) {
 
             string certificateHTML = player.Game.CertificateTemplate;
             if (certificateHTML.IsEmpty())
@@ -720,6 +737,7 @@ namespace Gameboard.Api.Services
             certificateHTML =  certificateHTML.Replace("{{track}}", player.Game.Track);
             certificateHTML =  certificateHTML.Replace("{{date}}", player.SessionEnd.ToString("MMMM dd, yyyy"));
             certificateHTML =  certificateHTML.Replace("{{player_count}}", playerCount.ToString());
+            certificateHTML =  certificateHTML.Replace("{{team_count}}", teamCount.ToString());
             return new Api.PlayerCertificate
             {
                 Game = Mapper.Map<Game>(player.Game), 
