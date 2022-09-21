@@ -85,6 +85,7 @@ namespace Gameboard.Api
         public string Season { get; set; }
         public string Track { get; set; }
         public string Division { get; set; }
+        public string Mode { get; set; }
         public string Logo { get; set; }
         public string Sponsor { get; set; }
         public GameFeedbackTemplate FeedbackTemplate { get; set; }
