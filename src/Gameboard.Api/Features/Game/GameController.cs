@@ -13,7 +13,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
+using System.Net.Http;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Gameboard.Api.Controllers
 {
@@ -23,6 +24,7 @@ namespace Gameboard.Api.Controllers
         GameService GameService { get; }
         public CoreOptions Options { get; }
         public IHostEnvironment Env { get; }
+        private readonly IHttpClientFactory HttpClientFactory;
 
         public GameController(
             ILogger<GameController> logger,
@@ -30,13 +32,17 @@ namespace Gameboard.Api.Controllers
             GameService gameService,
             GameValidator validator,
             CoreOptions options,
-            IHostEnvironment env
+            IHostEnvironment env,
+            IHttpClientFactory factory
         ) : base(logger, cache, validator)
         {
             GameService = gameService;
             Options = options;
             Env = env;
+            HttpClientFactory = factory;
         }
+
+        private HttpClient GetGamebrain() => HttpClientFactory.CreateClient("Gamebrain");
 
         /// <summary>
         /// Create new game
@@ -215,5 +221,14 @@ namespace Gameboard.Api.Controllers
 
             await GameService.ReRank(id);
         }
+
+        #region GAMEBRAIN METHODS
+        [HttpGet("/api/game/headless/{tid}")]
+        [Authorize]
+        public async Task<string> GetGameUrl([FromRoute]string tid)
+        {
+            return await GetGamebrain().GetStringAsync($"/admin/headless_client/{tid}");
+        }
+        #endregion
     }
 }

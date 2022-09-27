@@ -132,6 +132,7 @@ namespace Gameboard.Api
     public class CoreOptions
     {
         public string GameEngineUrl { get; set; } = "http://localhost:5004";
+        public string GamebrainUrl { get; set; } = "http://foundry.local/gamebrain";
         public string GameEngineClientName { get; set; }
         public string GameEngineClientSecret { get; set; }
         public int GameEngineMaxRetries { get; set; } = 2;
