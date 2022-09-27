@@ -271,6 +271,14 @@ namespace Gameboard.Api.Services
 
             await Store.DbContext.SaveChangesAsync();
         }
+
+        public async Task<bool> UserIsOnTeam(string uid, string tid)
+        {
+            return await Store.DbContext.Users.AnyAsync(u =>
+                u.Id == uid &&
+                u.Enrollments.Any(e => e.TeamId == tid)
+            );
+        }
     }
 
 }
