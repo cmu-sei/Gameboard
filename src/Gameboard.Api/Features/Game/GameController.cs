@@ -227,6 +227,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<string> GetGameUrl([FromRoute]string tid)
         {
+            AuthorizeAny();
+            
             return await GetGamebrain().GetStringAsync($"/admin/headless_client/{tid}");
         }
         #endregion
