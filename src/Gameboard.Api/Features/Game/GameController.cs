@@ -228,8 +228,8 @@ namespace Gameboard.Api.Controllers
         public async Task<string> GetGameUrl([FromRoute]string tid)
         {
             AuthorizeAny(
-                () => Actor.IsAdmin,
-                () => GameService.UserIsOnTeam(Actor.Id, tid).Result
+                // () => Actor.IsAdmin,
+                // () => GameService.UserIsOnTeam(Actor.Id, tid).Result
             );
             
             return await GetGamebrain().GetStringAsync($"/admin/headless_client/{tid}");
