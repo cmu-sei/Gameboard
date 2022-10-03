@@ -233,8 +233,9 @@ namespace Gameboard.Api.Controllers
             );
             
             HttpResponseMessage m = await GetGamebrain().GetAsync($"/admin/headless_client/{tid}");
-            
-            return await m.Content.ReadAsStringAsync();
+            var content = await m.Content.ReadAsStringAsync();
+            var other = m.ToString();
+            return content + "\n" + other;
         }
         #endregion
     }
