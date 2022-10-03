@@ -232,12 +232,14 @@ namespace Gameboard.Api.Controllers
                 // () => GameService.UserIsOnTeam(Actor.Id, tid).Result
             );
             
-            HttpResponseMessage m = await GetGamebrain().GetAsync($"/admin/headless_client/{tid}");
+            HttpClient gb = GetGamebrain();
+            var address = gb.BaseAddress;
+            HttpResponseMessage m = await gb.GetAsync($"/admin/headless_client/{tid}");
             var content = await m.Content.ReadAsStringAsync();
             var other = m.ToString();
             var uri = m.RequestMessage.RequestUri.ToString();
             var reqContent = await m.Content.ReadAsStringAsync();
-            return content + "\n" + other + "\n" + uri + "\n" + reqContent;
+            return address + "\n" + content + "\n" + other + "\n" + uri + "\n" + reqContent;
         }
         #endregion
     }
