@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
@@ -42,7 +43,7 @@ namespace Gameboard.Api.Controllers
             HttpClientFactory = factory;
         }
 
-        private HttpClient GetGamebrain() => HttpClientFactory.CreateClient("Gamebrain");
+        private HttpClient CreateGamebrain() => HttpClientFactory.CreateClient("Gamebrain");
 
         /// <summary>
         /// Create new game
@@ -228,18 +229,23 @@ namespace Gameboard.Api.Controllers
         public async Task<string> GetGameUrl([FromRoute]string tid)
         {
             AuthorizeAny(
-                // () => Actor.IsAdmin,
+                // () => Actor.IsAdmin
                 // () => GameService.UserIsOnTeam(Actor.Id, tid).Result
             );
             
-            HttpClient gb = GetGamebrain();
-            var address = gb.BaseAddress;
+            var accessToken = await HttpContext.GetTokenAsync("access_token");
+            HttpClient gb = CreateGamebrain();
+            gb.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
             HttpResponseMessage m = await gb.GetAsync($"admin/headless_client/{tid}");
+            return await m.Content.ReadAsStringAsync();
+            /*
+            var address = gb.BaseAddress;
             var content = await m.Content.ReadAsStringAsync();
             var other = m.ToString();
             var uri = m.RequestMessage.RequestUri.ToString();
             var reqContent = await m.Content.ReadAsStringAsync();
             return address + "\n" + content + "\n" + other + "\n" + uri + "\n" + reqContent;
+            */
         }
         #endregion
     }
