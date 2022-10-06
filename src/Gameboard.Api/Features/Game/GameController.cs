@@ -237,7 +237,7 @@ namespace Gameboard.Api.Controllers
             HttpClient gb = CreateGamebrain();
             gb.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
             HttpResponseMessage m = await gb.GetAsync($"admin/headless_client/{tid}");
-            return accessToken;
+            return await m.Content.ReadAsStringAsync();
             /*
             var address = gb.BaseAddress;
             var content = await m.Content.ReadAsStringAsync();
