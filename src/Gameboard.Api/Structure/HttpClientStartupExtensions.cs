@@ -35,8 +35,11 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddHttpClient("Gamebrain", httpClient =>
                 {
                     httpClient.BaseAddress = new Uri(config.GamebrainUrl);
+                })
+                .ConfigureHttpClient(client =>
+                {
+                    client.DefaultRequestHeaders.Add("x-api-key", config.GamebrainApiKey);
                 });
-                
 
             return services;
         }

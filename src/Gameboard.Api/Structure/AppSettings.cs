@@ -143,6 +143,7 @@ namespace Gameboard.Api
         public string ChallengeDocUrl { get; set; }
         public string SafeNamesFile { get; set; } = "names.json";
         public string KeyPrefix { get; set; } = "GB";
+        public string GamebrainApiKey { get; set; }
     }
 
     public class Defaults
