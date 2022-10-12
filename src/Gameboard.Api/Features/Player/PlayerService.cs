@@ -667,6 +667,15 @@ namespace Gameboard.Api.Services
                         Role = player.Role,
                         Score = model.WithScores ? player.Score : 0
                     });
+
+                    if (player.IsManager)
+                    {
+                        player.TeamSponsors = string.Join('|', team
+                            .Select(p => p.Sponsor)
+                            .Distinct()
+                            .ToArray()
+                        );
+                    }
                 }
             }
 
