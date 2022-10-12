@@ -146,6 +146,7 @@ namespace Gameboard.Api
 
     public class Defaults
     {
+        public string DefaultSponsor { get; set; }
         public string FeedbackTemplateFile { get; set; }
         public string FeedbackTemplate { get; set; } = "";
         public string CertificateTemplateFile { get; set; }
