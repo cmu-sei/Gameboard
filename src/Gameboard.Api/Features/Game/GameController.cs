@@ -238,14 +238,54 @@ namespace Gameboard.Api.Controllers
             gb.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
             HttpResponseMessage m = await gb.GetAsync($"admin/headless_client/{tid}");
             return await m.Content.ReadAsStringAsync();
-            /*
-            var address = gb.BaseAddress;
-            var content = await m.Content.ReadAsStringAsync();
-            var other = m.ToString();
-            var uri = m.RequestMessage.RequestUri.ToString();
-            var reqContent = await m.Content.ReadAsStringAsync();
-            return address + "\n" + content + "\n" + other + "\n" + uri + "\n" + reqContent;
-            */
+        }
+
+        [HttpGet("/api/deployunityspace/{gid}/{tid}")]
+        [Authorize]
+        public async Task<string> DeployUnitySpace([FromRoute]string gid, [FromRoute]string tid)
+        {
+            AuthorizeAny(
+                // () => Actor.IsAdmin
+                // () => GameService.UserIsOnTeam(Actor.Id, tid).Result
+            );
+
+            var accessToken = await HttpContext.GetTokenAsync("access_token");
+            HttpClient gb = CreateGamebrain();
+            gb.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
+            HttpResponseMessage m = await gb.GetAsync($"admin/deploy/{gid}/{tid}");
+            return await m.Content.ReadAsStringAsync();
+        }
+
+        [HttpGet("/api/undeployunityspace/{gid}/{tid}")]
+        [Authorize]
+        public async Task<string> UndeployUnitySpace([FromRoute]string gid, [FromRoute]string tid)
+        {
+            AuthorizeAny(
+                // () => Actor.IsAdmin
+                // () => GameService.UserIsOnTeam(Actor.Id, tid).Result
+            );
+
+            var accessToken = await HttpContext.GetTokenAsync("access_token");
+            HttpClient gb = CreateGamebrain();
+            gb.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
+            HttpResponseMessage m = await gb.GetAsync($"admin/undeploy/{gid}/{tid}");
+            return await m.Content.ReadAsStringAsync();
+        }
+
+        [HttpGet("/api/unassignunityspace/{tid}")]
+        [Authorize]
+        public async Task<string> UnassignUnitySpace([FromRoute]string tid)
+        {
+            AuthorizeAny(
+                // () => Actor.IsAdmin
+                // () => GameService.UserIsOnTeam(Actor.Id, tid).Result
+            );
+
+            var accessToken = await HttpContext.GetTokenAsync("access_token");
+            HttpClient gb = CreateGamebrain();
+            gb.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
+            HttpResponseMessage m = await gb.GetAsync($"admin/headless_client_unassign/{tid}");
+            return await m.Content.ReadAsStringAsync();
         }
         #endregion
     }
