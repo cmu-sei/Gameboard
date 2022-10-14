@@ -256,9 +256,9 @@ namespace Gameboard.Api.Controllers
             return await m.Content.ReadAsStringAsync();
         }
 
-        [HttpGet("/api/undeployunityspace/{gid}/{tid}")]
+        [HttpGet("/api/undeployunityspace/{tid}")]
         [Authorize]
-        public async Task<string> UndeployUnitySpace([FromRoute]string gid, [FromRoute]string tid)
+        public async Task<string> UndeployUnitySpace([FromRoute]string tid)
         {
             AuthorizeAny(
                 // () => Actor.IsAdmin
@@ -268,7 +268,7 @@ namespace Gameboard.Api.Controllers
             var accessToken = await HttpContext.GetTokenAsync("access_token");
             HttpClient gb = CreateGamebrain();
             gb.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
-            HttpResponseMessage m = await gb.GetAsync($"admin/undeploy/{gid}/{tid}");
+            HttpResponseMessage m = await gb.GetAsync($"admin/undeploy/{tid}");
             return await m.Content.ReadAsStringAsync();
         }
 
