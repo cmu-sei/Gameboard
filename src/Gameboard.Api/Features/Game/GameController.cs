@@ -226,11 +226,11 @@ namespace Gameboard.Api.Controllers
         #region GAMEBRAIN METHODS
         [HttpGet("/api/game/headless/{tid}")]
         [Authorize]
-        public async Task<string> GetGameUrl([FromRoute]string tid)
+        public async Task<string> GetGameUrl([FromQuery]string gid, [FromRoute]string tid)
         {
             AuthorizeAny(
-                // () => Actor.IsAdmin
-                // () => GameService.UserIsOnTeam(Actor.Id, tid).Result
+                () => Actor.IsDirector,
+                () => GameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
             );
             
             var accessToken = await HttpContext.GetTokenAsync("access_token");
@@ -245,8 +245,8 @@ namespace Gameboard.Api.Controllers
         public async Task<string> DeployUnitySpace([FromRoute]string gid, [FromRoute]string tid)
         {
             AuthorizeAny(
-                // () => Actor.IsAdmin
-                // () => GameService.UserIsOnTeam(Actor.Id, tid).Result
+                () => Actor.IsDirector,
+                () => GameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
             );
 
             var accessToken = await HttpContext.GetTokenAsync("access_token");
@@ -258,11 +258,11 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("/api/undeployunityspace/{tid}")]
         [Authorize]
-        public async Task<string> UndeployUnitySpace([FromRoute]string tid)
+        public async Task<string> UndeployUnitySpace([FromQuery]string gid, [FromRoute]string tid)
         {
             AuthorizeAny(
-                // () => Actor.IsAdmin
-                // () => GameService.UserIsOnTeam(Actor.Id, tid).Result
+                () => Actor.IsAdmin,
+                () => GameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
             );
 
             var accessToken = await HttpContext.GetTokenAsync("access_token");
@@ -272,13 +272,15 @@ namespace Gameboard.Api.Controllers
             return await m.Content.ReadAsStringAsync();
         }
 
+        // Unused
+        /*
         [HttpGet("/api/unassignunityspace/{tid}")]
         [Authorize]
-        public async Task<string> UnassignUnitySpace([FromRoute]string tid)
+        public async Task<string> UnassignUnitySpace([FromQuery]string gid, [FromRoute]string tid)
         {
             AuthorizeAny(
-                // () => Actor.IsAdmin
-                // () => GameService.UserIsOnTeam(Actor.Id, tid).Result
+                () => Actor.IsAdmin,
+                () => GameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
             );
 
             var accessToken = await HttpContext.GetTokenAsync("access_token");
@@ -287,6 +289,7 @@ namespace Gameboard.Api.Controllers
             HttpResponseMessage m = await gb.GetAsync($"admin/headless_client_unassign/{tid}");
             return await m.Content.ReadAsStringAsync();
         }
+        */
         #endregion
     }
 }
