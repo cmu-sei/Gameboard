@@ -244,6 +244,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<string> DeployUnitySpace([FromRoute]string gid, [FromRoute]string tid)
         {
+            Console.WriteLine($"Deploy? {gid} is the GID.");
+
             AuthorizeAny(
                 () => Actor.IsDirector,
                 () => GameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result

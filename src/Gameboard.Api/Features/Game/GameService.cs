@@ -276,9 +276,14 @@ namespace Gameboard.Api.Services
         {
             bool authd = await Store.DbContext.Users.AnyAsync(u =>
                 u.Id == uid &&
-                u.Enrollments.Any(e => e.TeamId == tid && e.GameId == gid)
+                u.Enrollments.Any(e => e.TeamId == tid)
             );
-            Console.WriteLine(authd);
+
+            var players = Store.DbContext.Players.Where(p => p.UserId == uid);
+            foreach (var e in players) {
+                Console.WriteLine("game id: " + e.GameId + " | gid: " + gid);
+            }
+
             return authd;
         }
 
