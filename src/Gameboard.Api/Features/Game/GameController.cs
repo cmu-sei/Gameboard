@@ -252,7 +252,7 @@ namespace Gameboard.Api.Controllers
             return await m.Content.ReadAsStringAsync();
         }
 
-        [HttpGet("/api/hasGamespace/{gid}/{tid")]
+        [HttpGet("/api/hasGamespace/{gid}/{tid}")]
         [Authorize]
         public async Task<ActionResult<bool>> HasGamespace([FromRoute] string gid, [FromRoute] string tid)
         {
