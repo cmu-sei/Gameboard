@@ -4,18 +4,18 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Net.Http;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Gameboard.Api.Controllers
 {
@@ -43,8 +43,6 @@ namespace Gameboard.Api.Controllers
             HttpClientFactory = factory;
         }
 
-        private HttpClient CreateGamebrain() => HttpClientFactory.CreateClient("Gamebrain");
-
         /// <summary>
         /// Create new game
         /// </summary>
@@ -68,13 +66,13 @@ namespace Gameboard.Api.Controllers
         {
             // only designers and testers can retrieve or list unpublished games
             return await GameService.Retrieve(id, Actor.IsDesigner || Actor.IsTester);
-        } 
+        }
 
         [HttpGet("api/game/{id}/specs")]
         [Authorize]
         public async Task<ChallengeSpec[]> RetrieveChallenges([FromRoute] string id)
         {
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             return await GameService.RetrieveChallenges(id);
         }
@@ -83,7 +81,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<SessionForecast[]> GetSessionForecast([FromRoute] string id)
         {
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             return await GameService.SessionForecast(id);
         }
@@ -97,7 +95,7 @@ namespace Gameboard.Api.Controllers
         [Authorize(AppConstants.DesignerPolicy)]
         public async Task Update([FromBody] ChangedGame model)
         {
-            await Validate(new Entity{ Id = model.Id });
+            await Validate(new Entity { Id = model.Id });
 
             await GameService.Update(model);
         }
@@ -111,7 +109,7 @@ namespace Gameboard.Api.Controllers
         [Authorize(AppConstants.DesignerPolicy)]
         public async Task Delete([FromRoute] string id)
         {
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             await GameService.Delete(id);
         }
@@ -164,7 +162,7 @@ namespace Gameboard.Api.Controllers
                 () => Actor.IsDesigner
             );
 
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             string filename = $"{type}_{(new Random()).Next().ToString("x8")}{Path.GetExtension(file.FileName)}".ToLower();
 
@@ -182,13 +180,13 @@ namespace Gameboard.Api.Controllers
 
         [HttpDelete("api/game/{id}/{type}")]
         [Authorize]
-        public async Task<ActionResult<UploadedFile>> DeleteImage([FromRoute]string id, [FromRoute]string type)
+        public async Task<ActionResult<UploadedFile>> DeleteImage([FromRoute] string id, [FromRoute] string type)
         {
             AuthorizeAny(
                 () => Actor.IsDesigner
             );
 
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             string target = $"{id}_{type}.*".ToLower();
 
@@ -212,13 +210,13 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPost("/api/game/{id}/rerank")]
         [Authorize(AppConstants.AdminPolicy)]
-        public async Task Rerank([FromRoute]string id)
+        public async Task Rerank([FromRoute] string id)
         {
             AuthorizeAny(
                 () => Actor.IsDesigner
             );
 
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             await GameService.ReRank(id);
         }
@@ -226,23 +224,21 @@ namespace Gameboard.Api.Controllers
         #region GAMEBRAIN METHODS
         [HttpGet("/api/game/headless/{tid}")]
         [Authorize]
-        public async Task<string> GetGameUrl([FromQuery]string gid, [FromRoute]string tid)
+        public async Task<string> GetGameUrl([FromQuery] string gid, [FromRoute] string tid)
         {
             AuthorizeAny(
                 () => Actor.IsDirector,
                 () => GameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
             );
-            
-            var accessToken = await HttpContext.GetTokenAsync("access_token");
-            HttpClient gb = CreateGamebrain();
-            gb.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
-            HttpResponseMessage m = await gb.GetAsync($"admin/headless_client/{tid}");
+
+            var gb = await CreateGamebrain();
+            var m = await gb.GetAsync($"admin/headless_client/{tid}");
             return await m.Content.ReadAsStringAsync();
         }
 
         [HttpGet("/api/deployunityspace/{gid}/{tid}")]
         [Authorize]
-        public async Task<string> DeployUnitySpace([FromRoute]string gid, [FromRoute]string tid)
+        public async Task<string> DeployUnitySpace([FromRoute] string gid, [FromRoute] string tid)
         {
             Console.WriteLine($"Deploy? {gid} is the GID.");
 
@@ -251,16 +247,49 @@ namespace Gameboard.Api.Controllers
                 () => GameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
             );
 
-            var accessToken = await HttpContext.GetTokenAsync("access_token");
-            HttpClient gb = CreateGamebrain();
-            gb.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
-            HttpResponseMessage m = await gb.GetAsync($"admin/deploy/{gid}/{tid}");
+            var gb = await CreateGamebrain();
+            var m = await gb.GetAsync($"admin/deploy/{gid}/{tid}");
             return await m.Content.ReadAsStringAsync();
+        }
+
+        [HttpGet("/api/hasGamespace/{gid}/{tid")]
+        [Authorize]
+        public async Task<ActionResult<bool>> HasGamespace([FromRoute] string gid, [FromRoute] string tid)
+        {
+            AuthorizeAny(
+                () => GameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
+            );
+
+            var gb = await CreateGamebrain();
+            var m = await gb.GetAsync($"team_active/{tid}");
+
+            if (m.IsSuccessStatusCode)
+            {
+                var stringContent = await m.Content.ReadAsStringAsync();
+                var boolContent = false;
+
+                if (bool.TryParse(stringContent, out boolContent))
+                {
+                    return Ok(boolContent);
+                }
+                else
+                {
+                    var response = new ObjectResult($"Failed to convert {stringContent} to int: {m.ReasonPhrase}"); ;
+                    response.StatusCode = (int)m.StatusCode;
+                    return response;
+                }
+            }
+            else
+            {
+                var response = new ObjectResult($"Bad response from Gamebrain: {m.Content} : {m.ReasonPhrase}");
+                response.StatusCode = (int)m.StatusCode;
+                return response;
+            }
         }
 
         [HttpGet("/api/undeployunityspace/{tid}")]
         [Authorize]
-        public async Task<string> UndeployUnitySpace([FromQuery]string gid, [FromRoute]string tid)
+        public async Task<string> UndeployUnitySpace([FromQuery] string gid, [FromRoute] string tid)
         {
             AuthorizeAny(
                 () => Actor.IsAdmin,
@@ -268,30 +297,18 @@ namespace Gameboard.Api.Controllers
             );
 
             var accessToken = await HttpContext.GetTokenAsync("access_token");
-            HttpClient gb = CreateGamebrain();
-            gb.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
-            HttpResponseMessage m = await gb.GetAsync($"admin/undeploy/{tid}");
+            HttpClient gb = await CreateGamebrain();
+
+            var m = await gb.GetAsync($"admin/undeploy/{tid}");
             return await m.Content.ReadAsStringAsync();
         }
 
-        // Unused
-        /*
-        [HttpGet("/api/unassignunityspace/{tid}")]
-        [Authorize]
-        public async Task<string> UnassignUnitySpace([FromQuery]string gid, [FromRoute]string tid)
+        private async Task<HttpClient> CreateGamebrain()
         {
-            AuthorizeAny(
-                () => Actor.IsAdmin,
-                () => GameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
-            );
-
-            var accessToken = await HttpContext.GetTokenAsync("access_token");
-            HttpClient gb = CreateGamebrain();
-            gb.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
-            HttpResponseMessage m = await gb.GetAsync($"admin/headless_client_unassign/{tid}");
-            return await m.Content.ReadAsStringAsync();
+            var gb = HttpClientFactory.CreateClient("Gamebrain");
+            gb.DefaultRequestHeaders.Add("Authorization", $"Bearer {await HttpContext.GetTokenAsync("access_token")}");
+            return gb;
         }
-        */
         #endregion
     }
 }
