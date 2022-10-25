@@ -236,7 +236,7 @@ namespace Gameboard.Api.Controllers
         }
 
         [HttpGet("/api/getUnitySpace/{gid}/{tid}")]
-        [Authorize
+        [Authorize]
         public async Task<ActionResult<bool>> GetUnitySpace([FromRoute] string gid, [FromRoute] string tid)
         {
             AuthorizeAny(
