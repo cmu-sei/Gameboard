@@ -251,9 +251,9 @@ namespace Gameboard.Api.Controllers
             return await m.Content.ReadAsStringAsync();
         }
 
-        [HttpGet("/api/hasGamespace/{gid}/{tid}")]
+        [HttpGet("/api/getGamespace/{gid}/{tid}")]
         [Authorize]
-        public async Task<ActionResult<bool>> HasGamespace([FromRoute] string gid, [FromRoute] string tid)
+        public async Task<IActionResult> HasGamespace([FromRoute] string gid, [FromRoute] string tid)
         {
             AuthorizeAny(
                 () => GameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
@@ -265,18 +265,13 @@ namespace Gameboard.Api.Controllers
             if (m.IsSuccessStatusCode)
             {
                 var stringContent = await m.Content.ReadAsStringAsync();
-                var boolContent = false;
 
-                if (bool.TryParse(stringContent, out boolContent))
+                if (!stringContent.IsEmpty())
                 {
-                    return Ok(boolContent);
+                    return new JsonResult(stringContent);
                 }
-                else
-                {
-                    var response = new ObjectResult($"Failed to convert {stringContent} to int: {m.ReasonPhrase}"); ;
-                    response.StatusCode = (int)m.StatusCode;
-                    return response;
-                }
+
+                return Ok();
             }
             else
             {
