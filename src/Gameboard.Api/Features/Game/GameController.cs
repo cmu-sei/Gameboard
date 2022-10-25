@@ -221,26 +221,10 @@ namespace Gameboard.Api.Controllers
         }
 
         #region GAMEBRAIN METHODS
-        [HttpGet("/api/game/headless/{tid}")]
-        [Authorize]
-        public async Task<string> GetGameUrl([FromQuery] string gid, [FromRoute] string tid)
-        {
-            AuthorizeAny(
-                () => Actor.IsDirector,
-                () => GameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
-            );
-
-            var gb = await CreateGamebrain();
-            var m = await gb.GetAsync($"admin/headless_client/{tid}");
-            return await m.Content.ReadAsStringAsync();
-        }
-
-        [HttpGet("/api/deployunityspace/{gid}/{tid}")]
+        [HttpPost("/api/deployunityspace/{gid}/{tid}")]
         [Authorize]
         public async Task<string> DeployUnitySpace([FromRoute] string gid, [FromRoute] string tid)
         {
-            Console.WriteLine($"Deploy? {gid} is the GID.");
-
             AuthorizeAny(
                 () => Actor.IsDirector,
                 () => GameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
@@ -251,16 +235,16 @@ namespace Gameboard.Api.Controllers
             return await m.Content.ReadAsStringAsync();
         }
 
-        [HttpGet("/api/hasGamespace/{gid}/{tid}")]
-        [Authorize]
-        public async Task<ActionResult<bool>> HasGamespace([FromRoute] string gid, [FromRoute] string tid)
+        [HttpGet("/api/getUnitySpace/{gid}/{tid}")]
+        [Authorize
+        public async Task<ActionResult<bool>> GetUnitySpace([FromRoute] string gid, [FromRoute] string tid)
         {
             AuthorizeAny(
                 () => GameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
             );
 
             var gb = await CreateGamebrain();
-            var m = await gb.GetAsync($"team_active/{tid}");
+            var m = await gb.GetAsync($"admin/deploy/{gid}/{tid}");
 
             if (m.IsSuccessStatusCode)
             {
@@ -273,16 +257,12 @@ namespace Gameboard.Api.Controllers
                 }
                 else
                 {
-                    var response = new ObjectResult($"Failed to convert {stringContent} to int: {m.ReasonPhrase}"); ;
-                    response.StatusCode = (int)m.StatusCode;
-                    return response;
+                    return BuildError<bool>(m, $"Failed to convert {stringContent} to int: {m.ReasonPhrase}");
                 }
             }
             else
             {
-                var response = new ObjectResult($"Bad response from Gamebrain: {m.Content} : {m.ReasonPhrase}");
-                response.StatusCode = (int)m.StatusCode;
-                return response;
+                return BuildError<bool>(m, $"Bad response from Gamebrain: {m.Content} : {m.ReasonPhrase}");
             }
         }
 
@@ -300,6 +280,19 @@ namespace Gameboard.Api.Controllers
 
             var m = await gb.GetAsync($"admin/undeploy/{tid}");
             return await m.Content.ReadAsStringAsync();
+        }
+
+        private ActionResult<T> BuildError<T>(HttpResponse response, string message = null) {
+            var result = new ObjectResult(message);
+            result.StatusCode = response.StatusCode;
+            return result;
+        }
+
+        private ActionResult<T> BuildError<T>(HttpResponseMessage response, string message)
+        {
+            var result = new ObjectResult(message);
+            result.StatusCode = (int) response.StatusCode;
+            return result;
         }
 
         private async Task<HttpClient> CreateGamebrain()
