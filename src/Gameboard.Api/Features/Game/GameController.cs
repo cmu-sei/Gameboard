@@ -231,7 +231,7 @@ namespace Gameboard.Api.Controllers
             );
 
             var gb = await CreateGamebrain();
-            var m = await gb.GetAsync($"admin/deploy/{gid}/{tid}");
+            var m = await gb.PostAsync($"admin/deploy/{gid}/{tid}", null);
             return await m.Content.ReadAsStringAsync();
         }
 
