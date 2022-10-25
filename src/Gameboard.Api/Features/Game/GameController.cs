@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -231,6 +232,7 @@ namespace Gameboard.Api.Controllers
             );
 
             var gb = await CreateGamebrain();
+            Debug.WriteLine($"HEY BEN! We're about to post to admin/deploy/{gid}/{tid}");
             var m = await gb.PostAsync($"admin/deploy/{gid}/{tid}", null);
             return await m.Content.ReadAsStringAsync();
         }
