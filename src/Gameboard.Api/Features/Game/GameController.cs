@@ -2,14 +2,12 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -220,85 +218,5 @@ namespace Gameboard.Api.Controllers
 
             await GameService.ReRank(id);
         }
-
-        #region GAMEBRAIN METHODS
-        [HttpPost("/api/deployunityspace/{gid}/{tid}")]
-        [Authorize]
-        public async Task<string> DeployUnitySpace([FromRoute] string gid, [FromRoute] string tid)
-        {
-            AuthorizeAny(
-                () => Actor.IsDirector,
-                () => GameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
-            );
-
-            var gb = await CreateGamebrain();
-            var m = await gb.PostAsync($"admin/deploy/{gid}/{tid}", null);
-            return await m.Content.ReadAsStringAsync();
-        }
-
-
-        [HttpGet("/api/getGamespace/{gid}/{tid}")]
-        [Authorize]
-        public async Task<IActionResult> GetGamespace([FromRoute] string gid, [FromRoute] string tid)
-        {
-            AuthorizeAny(
-                () => GameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
-            );
-
-            var gb = await CreateGamebrain();
-            var m = await gb.GetAsync($"admin/deploy/{gid}/{tid}");
-
-            if (m.IsSuccessStatusCode)
-            {
-                var stringContent = await m.Content.ReadAsStringAsync();
-
-                if (!stringContent.IsEmpty())
-                {
-                    return new JsonResult(stringContent);
-                }
-
-                return Ok();
-            }
-
-            return BuildError(m, $"Bad response from Gamebrain: {m.Content} : {m.ReasonPhrase}");
-        }
-
-        [HttpGet("/api/undeployunityspace/{tid}")]
-        [Authorize]
-        public async Task<string> UndeployUnitySpace([FromQuery] string gid, [FromRoute] string tid)
-        {
-            AuthorizeAny(
-                () => Actor.IsAdmin,
-                () => GameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
-            );
-
-            var accessToken = await HttpContext.GetTokenAsync("access_token");
-            HttpClient gb = await CreateGamebrain();
-
-            var m = await gb.GetAsync($"admin/undeploy/{tid}");
-            return await m.Content.ReadAsStringAsync();
-        }
-
-        private ActionResult<T> BuildError<T>(HttpResponse response, string message = null)
-        {
-            var result = new ObjectResult(message);
-            result.StatusCode = response.StatusCode;
-            return result;
-        }
-
-        private ActionResult BuildError(HttpResponseMessage response, string message)
-        {
-            var result = new ObjectResult(message);
-            result.StatusCode = (int)response.StatusCode;
-            return result;
-        }
-
-        private async Task<HttpClient> CreateGamebrain()
-        {
-            var gb = HttpClientFactory.CreateClient("Gamebrain");
-            gb.DefaultRequestHeaders.Add("Authorization", $"Bearer {await HttpContext.GetTokenAsync("access_token")}");
-            return gb;
-        }
-        #endregion
     }
 }
