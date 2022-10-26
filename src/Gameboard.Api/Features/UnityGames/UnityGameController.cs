@@ -106,7 +106,7 @@ public class UnityGameController : _Controller
         var accessToken = await HttpContext.GetTokenAsync("access_token");
         var gb = await CreateGamebrain();
 
-        var m = await gb.GetAsync($"admin/undeploy/{gid}/{tid}");
+        var m = await gb.GetAsync($"admin/undeploy/{tid}");
         return await m.Content.ReadAsStringAsync();
     }
 
