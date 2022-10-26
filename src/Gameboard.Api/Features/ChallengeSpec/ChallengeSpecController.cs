@@ -2,13 +2,12 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-
 using Gameboard.Api.Services;
-using Microsoft.AspNetCore.Authorization;
 using Gameboard.Api.Validators;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Controllers
 {
@@ -22,13 +21,13 @@ namespace Gameboard.Api.Controllers
             IDistributedCache cache,
             ChallengeSpecValidator validator,
             ChallengeSpecService challengespecService
-        ): base(logger, cache, validator)
+        ) : base(logger, cache, validator)
         {
             ChallengeSpecService = challengespecService;
         }
 
         /// <summary>
-        /// Create new challengespec
+        /// Create a new challengespec.
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
@@ -48,7 +47,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("api/challengespec/{id}")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task<ChallengeSpec> Retrieve([FromRoute]string id)
+        public async Task<ChallengeSpec> Retrieve([FromRoute] string id)
         {
             return await ChallengeSpecService.Retrieve(id);
         }
@@ -73,7 +72,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpDelete("/api/challengespec/{id}")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task Delete([FromRoute]string id)
+        public async Task Delete([FromRoute] string id)
         {
             await ChallengeSpecService.Delete(id);
             return;
@@ -98,7 +97,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPost("/api/challengespecs/sync/{id}")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task Sync([FromQuery]string id)
+        public async Task Sync([FromQuery] string id)
         {
             await ChallengeSpecService.Sync(id);
         }

@@ -3,11 +3,10 @@
 
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
-using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Validators
 {
-    public class ChallengeValidator: IModelValidator
+    public class ChallengeValidator : IModelValidator
     {
         private readonly IChallengeStore _store;
 
@@ -32,19 +31,16 @@ namespace Gameboard.Api.Validators
             throw new System.NotImplementedException();
         }
 
-        private async Task _validate(PlayerDataFilter model)
+        private Task _validate(PlayerDataFilter model)
         {
-            await Task.CompletedTask;
+            return Task.CompletedTask;
         }
 
         private async Task _validate(Entity model)
         {
             if ((await Exists(model.Id)).Equals(false))
                 throw new ResourceNotFound();
-
-            await Task.CompletedTask;
         }
-
 
         private async Task _validate(NewChallenge model)
         {
@@ -57,12 +53,12 @@ namespace Gameboard.Api.Validators
             var player = await _store.DbContext.Players.FindAsync(model.PlayerId);
 
             if (player.IsLive.Equals(false))
-              throw new SessionNotActive();
+                throw new SessionNotActive();
 
             var spec = await _store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
 
             if (spec.GameId != player.GameId)
-              throw new ActionForbidden();
+                throw new ActionForbidden();
 
             // Note: not checking "already exists" since this is used idempotently
 

@@ -8,3 +8,4 @@ wwwroot/supportfiles
 .dpk/
 .DS_Store
 Gameboard.xml
+seed-data.json

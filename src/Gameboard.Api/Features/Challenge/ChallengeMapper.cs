@@ -5,7 +5,7 @@ using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoMapper;
-
+using Gameboard.Api.Features.ChallengeEvents;
 
 namespace Gameboard.Api.Services
 {
@@ -61,8 +61,7 @@ namespace Gameboard.Api.Services
                 )
             ;
 
-            CreateMap<Data.ChallengeEvent, ChallengeEvent>()
-            ;
+
 
             CreateMap<Data.Challenge, ArchivedChallenge>()
                 .ForMember(d => d.PlayerName, opt => opt.MapFrom(s => s.Player.ApprovedName))
@@ -89,7 +88,7 @@ namespace Gameboard.Api.Services
 
             CreateMap<Data.ArchivedChallenge, ArchivedChallenge>()
                 .ForMember(d => d.Events, opt => opt.MapFrom(s =>
-                    JsonSerializer.Deserialize<ChallengeEvent[]>(s.Events, JsonOptions))
+                    JsonSerializer.Deserialize<ChallengeEventSummary[]>(s.Events, JsonOptions))
                 )
                 .ForMember(d => d.Submissions, opt => opt.MapFrom(s =>
                     JsonSerializer.Deserialize<TopoMojo.Api.Client.SectionSubmission[]>(s.Submissions, JsonOptions))
@@ -98,7 +97,7 @@ namespace Gameboard.Api.Services
                     JsonSerializer.Deserialize<string[]>(s.TeamMembers, JsonOptions))
                 )
             ;
-            
+
             CreateMap<Data.Challenge, ObserveChallenge>()
                 .ForMember(d => d.GameRank, opt => opt.MapFrom(s => s.Player.Rank))
                 .ForMember(d => d.GameScore, opt => opt.MapFrom(s => s.Player.Score))
