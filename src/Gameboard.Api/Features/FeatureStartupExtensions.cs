@@ -5,7 +5,6 @@ using System;
 using System.Linq;
 using System.Reflection;
 using AutoMapper;
-using Gameboard.Api.Features.ChallengeEvents;
 using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
@@ -35,7 +34,6 @@ namespace Microsoft.Extensions.DependencyInjection
             }
 
             // TODO: Ben -> fix this
-            services.AddScoped<IChallengeEventStore, ChallengeEventStore>();
             services.AddScoped<IUnityStore, UnityStore>();
 
             foreach (var t in Assembly
