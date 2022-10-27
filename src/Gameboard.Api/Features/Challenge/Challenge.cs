@@ -2,7 +2,6 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
-using Gameboard.Api.Features.ChallengeEvents;
 using TopoMojo.Api.Client;
 
 namespace Gameboard.Api
@@ -176,6 +175,14 @@ namespace Gameboard.Api
         public string[] TeamMembers { get; set; } // User Ids of all team members
         public bool IsActive { get; set; }
         public SectionSubmission[] Submissions { get; set; }
+    }
+
+    public class ChallengeEventSummary
+    {
+        public string UserId { get; set; }
+        public string Text { get; set; }
+        public ChallengeEventType Type { get; set; }
+        public DateTimeOffset Timestamp { get; set; }
     }
 
     public class ChallengeSearchFilter : SearchFilter
