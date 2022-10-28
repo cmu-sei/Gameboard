@@ -68,9 +68,6 @@ namespace Gameboard.Api.Services
                 .ForMember(d => d.GameName, opt => opt.MapFrom(s => s.Game.Name))
                 .ForMember(d => d.UserId, opt => opt.MapFrom(s => s.Player.UserId))
                 .ForMember(d => d.Score, opt => opt.MapFrom(s => (int)Math.Floor(s.Score)))
-                .ForMember(d => d.IsActive, opt => opt.MapFrom(s =>
-                    JsonSerializer.Deserialize<TopoMojo.Api.Client.GameState>(s.State, JsonOptions).IsActive)
-                )
             ;
 
             // Squash arrays of challenge events, submissions, and team members into a single record

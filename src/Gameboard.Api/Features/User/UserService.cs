@@ -17,18 +17,21 @@ namespace Gameboard.Api.Services
 
         private readonly IMemoryCache _localcache;
         private readonly INameService _namesvc;
+        private readonly Defaults _defaultOptions;
 
         public UserService(
             IUserStore store,
             IMapper mapper,
             IMemoryCache cache,
-            INameService namesvc
+            INameService namesvc,
+            Defaults defaultOptions
         )
         {
             Store = store;
             Mapper = mapper;
             _localcache = cache;
             _namesvc = namesvc;
+            _defaultOptions = defaultOptions;
         }
 
         /// <summary>
@@ -64,6 +67,8 @@ namespace Gameboard.Api.Services
                         p.Name == entity.Name
                     );
                 } while (found && i++ < 20);
+
+                entity.Sponsor = _defaultOptions.DefaultSponsor;
 
                 await Store.Create(entity);
             }

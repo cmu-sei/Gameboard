@@ -38,6 +38,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 }
 
                 return new Defaults {
+                    DefaultSponsor = defaults.DefaultSponsor,
                     FeedbackTemplate = feedbackTemplate,
                     FeedbackTemplateFile = defaults.FeedbackTemplateFile,
                     CertificateTemplate = certificateTemplate,
