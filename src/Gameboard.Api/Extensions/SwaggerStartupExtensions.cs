@@ -5,10 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using Gameboard.Api;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.OpenApi.Models;
-using Gameboard.Api;
-using System.Linq;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -29,10 +28,11 @@ namespace Microsoft.Extensions.DependencyInjection
                 {
                     Title = openapi.ApiName,
                     Version = "v1",
-                    Description = "API documentation and interaction"
+                    Description = "API documentation and interaction",
                 });
 
                 options.EnableAnnotations();
+                options.CustomSchemaIds(i => i.FullName);
 
 #if DEBUG
                 string[] files = Directory.GetFiles("bin", xmlDoc, SearchOption.AllDirectories);
@@ -44,10 +44,10 @@ namespace Microsoft.Extensions.DependencyInjection
                     options.IncludeXmlComments(xmlDoc);
 #endif
 
-                options.CustomSchemaIds(type => type.FullName.StartsWith("Gameboard")
-                    ? type.Name
-                    : type.FullName.Replace(".", "")
-                );
+                // options.CustomSchemaIds(type => type.FullName.StartsWith("Gameboard")
+                //     ? type.Name
+                //     : type.FullName.Replace(".", "")
+                // );
 
                 if (!string.IsNullOrEmpty(oidc.Authority))
                 {

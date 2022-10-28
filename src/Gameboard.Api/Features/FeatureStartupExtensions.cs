@@ -5,22 +5,24 @@ using System;
 using System.Linq;
 using System.Reflection;
 using AutoMapper;
+using Gameboard.Api.Features.ChallengeEvents;
+using Gameboard.Api.Features.UnityGames;
+using Gameboard.Api.Services;
+using Gameboard.Api.Validators;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
     public static class ServiceStartupExtensions
     {
-        public static IServiceCollection AddGameboardServices(
-            this IServiceCollection services
-        )
+        public static IServiceCollection AddGameboardServices(this IServiceCollection services)
         {
-            services.AddSingleton<Gameboard.Api.Services.ConsoleActorMap>();
+            services.AddSingleton<ConsoleActorMap>();
 
             // Auto-discover from EntityService pattern
             foreach (var t in Assembly
                 .GetExecutingAssembly()
                 .ExportedTypes
-                .Where(t => t.Namespace == "Gameboard.Api.Services"
+                .Where(t => (t.Namespace == "Gameboard.Api.Services" || t.BaseType == typeof(_Service))
                     && t.Name.EndsWith("Service")
                     && t.IsClass
                     && !t.IsAbstract
@@ -32,11 +34,15 @@ namespace Microsoft.Extensions.DependencyInjection
                 services.AddScoped(t);
             }
 
+            // TODO: Ben -> fix this
+            services.AddScoped<IChallengeEventStore, ChallengeEventStore>();
+            services.AddScoped<IUnityStore, UnityStore>();
+
             foreach (var t in Assembly
                 .GetExecutingAssembly()
                 .ExportedTypes
-                .Where(t => t.Namespace == "Gameboard.Api.Validators"
-                    && t.Name.EndsWith("Validator")
+                .Where(t =>
+                    t.GetInterface(nameof(IModelValidator)) != null
                     && t.IsClass
                     && !t.IsAbstract
                 )

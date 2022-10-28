@@ -3,21 +3,17 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
+using Gameboard.Api.Data.Abstractions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Polly;
-using Polly.Extensions.Http;
 using ServiceStack.Text;
-using TopoMojo.Api.Client;
 
 namespace Gameboard.Api
 {
@@ -94,7 +90,8 @@ namespace Gameboard.Api
             ;
 
             services.AddSignalR()
-                .AddJsonProtocol(options => {
+                .AddJsonProtocol(options =>
+                {
                     options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter(
                         JsonNamingPolicy.CamelCase
                     ));
@@ -113,7 +110,8 @@ namespace Gameboard.Api
             ;
 
             services.AddSingleton<AutoMapper.IMapper>(
-                new AutoMapper.MapperConfiguration(cfg => {
+                new AutoMapper.MapperConfiguration(cfg =>
+                {
                     cfg.AddGameboardMaps();
                 }).CreateMapper()
             );
@@ -121,7 +119,6 @@ namespace Gameboard.Api
             // Configure Auth
             services.AddConfiguredAuthentication(Settings.Oidc);
             services.AddConfiguredAuthorization();
-
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -141,15 +138,10 @@ namespace Gameboard.Api
                 app.UseHsts();
 
             app.UseRouting();
-
             app.UseCors(Settings.Headers.Cors.Name);
-
             app.UseAuthentication();
-
             app.UseAuthorization();
-
             app.UseFileProtection();
-
             app.UseStaticFiles();
 
             if (Settings.OpenApi.Enabled)

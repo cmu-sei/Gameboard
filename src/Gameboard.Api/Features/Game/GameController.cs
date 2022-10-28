@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
@@ -14,7 +15,6 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-
 namespace Gameboard.Api.Controllers
 {
     [Authorize]
@@ -23,6 +23,7 @@ namespace Gameboard.Api.Controllers
         GameService GameService { get; }
         public CoreOptions Options { get; }
         public IHostEnvironment Env { get; }
+        private readonly IHttpClientFactory HttpClientFactory;
 
         public GameController(
             ILogger<GameController> logger,
@@ -30,12 +31,14 @@ namespace Gameboard.Api.Controllers
             GameService gameService,
             GameValidator validator,
             CoreOptions options,
-            IHostEnvironment env
+            IHostEnvironment env,
+            IHttpClientFactory factory
         ) : base(logger, cache, validator)
         {
             GameService = gameService;
             Options = options;
             Env = env;
+            HttpClientFactory = factory;
         }
 
         /// <summary>
@@ -61,13 +64,13 @@ namespace Gameboard.Api.Controllers
         {
             // only designers and testers can retrieve or list unpublished games
             return await GameService.Retrieve(id, Actor.IsDesigner || Actor.IsTester);
-        } 
+        }
 
         [HttpGet("api/game/{id}/specs")]
         [Authorize]
         public async Task<ChallengeSpec[]> RetrieveChallenges([FromRoute] string id)
         {
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             return await GameService.RetrieveChallenges(id);
         }
@@ -76,7 +79,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<SessionForecast[]> GetSessionForecast([FromRoute] string id)
         {
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             return await GameService.SessionForecast(id);
         }
@@ -90,7 +93,7 @@ namespace Gameboard.Api.Controllers
         [Authorize(AppConstants.DesignerPolicy)]
         public async Task Update([FromBody] ChangedGame model)
         {
-            await Validate(new Entity{ Id = model.Id });
+            await Validate(new Entity { Id = model.Id });
 
             await GameService.Update(model);
         }
@@ -104,7 +107,7 @@ namespace Gameboard.Api.Controllers
         [Authorize(AppConstants.DesignerPolicy)]
         public async Task Delete([FromRoute] string id)
         {
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             await GameService.Delete(id);
         }
@@ -157,7 +160,7 @@ namespace Gameboard.Api.Controllers
                 () => Actor.IsDesigner
             );
 
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             string filename = $"{type}_{(new Random()).Next().ToString("x8")}{Path.GetExtension(file.FileName)}".ToLower();
 
@@ -175,13 +178,13 @@ namespace Gameboard.Api.Controllers
 
         [HttpDelete("api/game/{id}/{type}")]
         [Authorize]
-        public async Task<ActionResult<UploadedFile>> DeleteImage([FromRoute]string id, [FromRoute]string type)
+        public async Task<ActionResult<UploadedFile>> DeleteImage([FromRoute] string id, [FromRoute] string type)
         {
             AuthorizeAny(
                 () => Actor.IsDesigner
             );
 
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             string target = $"{id}_{type}.*".ToLower();
 
@@ -205,13 +208,13 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPost("/api/game/{id}/rerank")]
         [Authorize(AppConstants.AdminPolicy)]
-        public async Task Rerank([FromRoute]string id)
+        public async Task Rerank([FromRoute] string id)
         {
             AuthorizeAny(
                 () => Actor.IsDesigner
             );
 
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             await GameService.ReRank(id);
         }

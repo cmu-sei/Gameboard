@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 
 namespace Gameboard.Api.Data.Abstractions
 {
-
     public interface IChallengeStore : IStore<Challenge>
     {
         Task<Data.Challenge> Load(NewChallenge model);
@@ -15,5 +14,4 @@ namespace Gameboard.Api.Data.Abstractions
         Task<int> ChallengeGamespaceCount(string teamId);
         Task<Data.Challenge> ResolveApiKey(string key);
     }
-
 }

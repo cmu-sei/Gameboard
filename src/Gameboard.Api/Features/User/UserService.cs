@@ -1,12 +1,11 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
-using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Api.Services
@@ -20,13 +19,14 @@ namespace Gameboard.Api.Services
         private readonly INameService _namesvc;
         private readonly Defaults _defaultOptions;
 
-        public UserService (
+        public UserService(
             IUserStore store,
             IMapper mapper,
             IMemoryCache cache,
             INameService namesvc,
             Defaults defaultOptions
-        ){
+        )
+        {
             Store = store;
             Mapper = mapper;
             _localcache = cache;
@@ -56,7 +56,8 @@ namespace Gameboard.Api.Services
 
                 bool found = false;
                 int i = 0;
-                do {
+                do
+                {
                     entity.ApprovedName = _namesvc.GetRandomName();
                     entity.Name = entity.ApprovedName;
 
@@ -118,7 +119,7 @@ namespace Gameboard.Api.Services
                 if (found)
                     entity.NameStatus = AppConstants.NameStatusNotUnique;
             }
-        
+
             await Store.Update(entity);
 
             _localcache.Remove(entity.Id);
@@ -182,7 +183,7 @@ namespace Gameboard.Api.Services
                     u.ApprovedName.ToLower().Contains(model.Term)
                 );
             }
-            
+
             return await Mapper.ProjectTo<UserSummary>(q).ToArrayAsync();
         }
 

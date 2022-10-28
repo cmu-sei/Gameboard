@@ -62,7 +62,8 @@ namespace Gameboard.Api.Services
 
             var lockkey = $"{player.TeamId}{model.SpecId}";
             var lockval = Guid.NewGuid();
-            var locked = _localcache.GetOrCreate(lockkey, entry => {
+            var locked = _localcache.GetOrCreate(lockkey, entry =>
+            {
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
                 return lockval;
             });
@@ -93,7 +94,8 @@ namespace Gameboard.Api.Services
 
             Exception error = null;
 
-            try {
+            try
+            {
                 var state = await Mojo.RegisterGamespaceAsync(new GamespaceRegistration
                 {
                     Players = new RegistrationPlayer[] {
@@ -136,12 +138,12 @@ namespace Gameboard.Api.Services
             }
             finally
             {
-               _localcache.Remove(lockkey);
+                _localcache.Remove(lockkey);
             }
 
             if (error is Exception)
                 throw error;
-                
+
             return Mapper.Map<Challenge>(entity);
         }
 
@@ -171,15 +173,6 @@ namespace Gameboard.Api.Services
 
             return result;
         }
-
-        // public async Task Update(ChangedChallenge model)
-        // {
-        //     var entity = await Store.Retrieve(model.Id);
-
-        //     Mapper.Map(model, entity);
-
-        //     await Store.Update(entity);
-        // }
 
         public async Task Delete(string id)
         {
@@ -239,9 +232,9 @@ namespace Gameboard.Api.Services
         }
 
         public async Task<ArchivedChallenge[]> ListArchived(SearchFilter model)
-        { 
+        {
             var q = Store.DbContext.ArchivedChallenges.AsQueryable();
-            
+
             if (model.Term.NotEmpty())
             {
                 var term = model.Term.ToLower();
@@ -253,7 +246,7 @@ namespace Gameboard.Api.Services
                     c.PlayerName.ToLower().Contains(term) // Team Name (or indiv. Player Name)
                 );
             }
-    
+
             q = q.OrderByDescending(p => p.LastSyncTime);
 
             q = q.Skip(model.Skip);
@@ -514,7 +507,6 @@ namespace Gameboard.Api.Services
                 return null;
 
             var entity = await Store.ResolveApiKey(key.ToSha256());
-
             return entity?.Id;
         }
 

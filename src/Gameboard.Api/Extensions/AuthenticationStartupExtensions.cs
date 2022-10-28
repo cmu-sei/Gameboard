@@ -34,6 +34,8 @@ namespace Microsoft.Extensions.DependencyInjection
                         RoleClaimType = AppConstants.RoleClaimName
                     };
 
+                    jwt.SaveToken = true;
+
                 })
                 .AddCookie(AppConstants.MksCookie, opt => {
                     opt.ExpireTimeSpan = new System.TimeSpan(0, options.MksCookieMinutes, 0);
