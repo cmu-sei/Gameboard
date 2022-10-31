@@ -1,6 +1,7 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Gameboard.Api.Data.Abstractions
@@ -12,7 +13,8 @@ namespace Gameboard.Api.Data.Abstractions
         Task<Player[]> ListTeam(string id);
         Task<Player[]> ListTeamByPlayer(string id);
         Task<Challenge[]> ListTeamChallenges(string id);
-        Task<User> GetUserEnrollments(string id);
+        // Task<User> GetUserEnrollments(string id);
+        Task<IEnumerable<Player>> GetExistingGames(string playerId);
         Task<Player> LoadBoard(string id);
     }
 

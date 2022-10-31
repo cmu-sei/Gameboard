@@ -22,6 +22,12 @@ namespace Gameboard.Api.Services
 
             CreateMap<Data.Player, TeamPlayer>();
 
+            CreateMap<TeamPlayer, Data.Player>()
+                .ForMember(p => p.Game, source => source.Ignore())
+                .ForMember(p => p.Challenges, source => source.Ignore())
+                .ForMember(p => p.Feedback, source => source.Ignore())
+                .ForMember(p => p.User, source => source.Ignore());
+
             CreateMap<Data.Player, PlayerOverview>();
 
             CreateMap<Player, TeamPlayer>();
