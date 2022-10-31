@@ -63,6 +63,7 @@ namespace Gameboard.Api
             services.AddMvc()
             .AddJsonOptions(options =>
             {
+                options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
                 options.JsonSerializerOptions.Converters
                     .Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
 

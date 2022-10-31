@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
@@ -35,23 +36,13 @@ public class UnityGameService : _Service
         _challengeStore = challengeStore;
     }
 
-    public async Task<IList<Data.Challenge>> Add(NewUnityChallenge newChallenge, User actor)
+    public async Task<IList<Data.Challenge>> AddChallenge(NewUnityChallenge newChallenge, User actor)
     {
-        // find the team's players and make sure their data is what we expect
+        // find the team's players
         var teamPlayers = await Store.DbContext
             .Players
             .Where(p => p.TeamId == newChallenge.TeamId)
             .ToListAsync();
-
-        if (teamPlayers.Count == 0)
-        {
-            throw new TeamHasNoPlayersException();
-        }
-
-        if (teamPlayers.Any(p => p.GameId != newChallenge.GameId))
-        {
-            throw new PlayerWrongGameIDException();
-        }
 
         // load the spec associated with the game
         var challengeSpec = await Store.DbContext.ChallengeSpecs.FirstOrDefaultAsync(c => c.GameId == newChallenge.GameId);
@@ -92,6 +83,7 @@ public class UnityGameService : _Service
         var playerChallenges = from p in teamPlayers
                                select new Data.Challenge
                                {
+                                   Id = Guid.NewGuid().ToString("n"),
                                    Name = $"{teamPlayers.First().ApprovedName} vs. Cubespace",
                                    GameId = challengeSpec.GameId,
                                    TeamId = newChallenge.TeamId,
@@ -105,9 +97,30 @@ public class UnityGameService : _Service
                                    { initialEvent }
                                };
 
+
         Store.DbContext.Challenges.AddRange(playerChallenges);
         await Store.DbContext.SaveChangesAsync();
 
         return playerChallenges.ToList();
+    }
+
+    public async Task<IEnumerable<ChallengeEvent>> AddChallengeEvents(NewUnityChallengeEvent model, string userId)
+    {
+        var teamPlayers = await Store.DbContext
+            .Players
+            .Where(p => p.TeamId == model.TeamId)
+            .ToListAsync();
+
+        var events = teamPlayers.Select(p => new Data.ChallengeEvent
+        {
+            ChallengeId = model.ChallengeId,
+            UserId = userId,
+            TeamId = model.TeamId,
+            Text = model.Text,
+            Type = model.Type,
+            Timestamp = model.Timestamp
+        });
+
+        return await Store.AddUnityChallengeEvents(events);
     }
 }
