@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
@@ -77,7 +78,37 @@ public class UnityGameService : _Service
             UserId = actor.Id,
             TeamId = newChallenge.TeamId,
             Timestamp = DateTimeOffset.UtcNow,
+            Text = $"{actor.ApprovedName}'s journey into CubeSpace has begun...",
             Type = ChallengeEventType.Started
+        };
+
+        // we have to spoof topomojo data here. load the game and related data.
+        var game = await this.Store
+            .DbContext
+            .Games
+            .FirstOrDefaultAsync(g => g.Id == newChallenge.GameId);
+
+        var teamCaptain = teamPlayers.FirstOrDefault(t => t.IsManager);
+
+        // this is some guesswork on my part and omits some fields.
+        // we'll see how it goes - BS
+        var state = new TopoMojo.Api.Client.GameState
+        {
+            Id = newChallenge.GameId,
+            Name = game.Id,
+            ManagerId = string.IsNullOrWhiteSpace(teamCaptain?.Id) ? null : teamCaptain.Id,
+            ManagerName = string.IsNullOrEmpty(teamCaptain?.Name) ? null : teamCaptain.Name,
+            Markdown = game.GameMarkdown,
+            Players = teamPlayers.Select(p => new TopoMojo.Api.Client.Player
+            {
+                SubjectId = p.Id,
+                SubjectName = p.ApprovedName,
+                Permission = p.IsManager ? TopoMojo.Api.Client.Permission.Manager : TopoMojo.Api.Client.Permission.None
+            }).ToArray(),
+            StartTime = game.GameStart,
+            EndTime = game.GameEnd,
+            IsActive = game.IsLive,
+            WhenCreated = DateTimeOffset.UtcNow,
         };
 
         var playerChallenges = from p in teamPlayers
@@ -90,11 +121,12 @@ public class UnityGameService : _Service
                                    PlayerId = p.Id,
                                    HasDeployedGamespace = true,
                                    SpecId = challengeSpec.Id,
+                                   State = JsonSerializer.Serialize(state),
                                    GraderKey = Guid.NewGuid().ToString("n").ToSha256(),
                                    Points = newChallenge.Points,
                                    Score = 0,
-                                   Events = new List<Data.ChallengeEvent>
-                                   { initialEvent }
+                                   Events = new List<Data.ChallengeEvent> { initialEvent },
+                                   WhenCreated = DateTimeOffset.UtcNow,
                                };
 
 
