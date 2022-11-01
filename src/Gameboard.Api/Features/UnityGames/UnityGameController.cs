@@ -154,6 +154,20 @@ public class UnityGameController : _Controller
         return await _unityGameService.AddChallengeEvents(model, Actor.Id);
     }
 
+    [Authorize]
+    [HttpPost("api/unity/admin/deleteChallengeData")]
+    public async Task<IActionResult> DeleteChallengeData(string gameId)
+    {
+        AuthorizeAny(
+            () => Actor.IsDirector,
+            () => Actor.IsAdmin,
+            () => Actor.IsDesigner
+        );
+
+        await _unityGameService.DeleteChallengeData(gameId);
+        return Ok();
+    }
+
     private ActionResult<T> BuildError<T>(HttpResponse response, string message = null)
     {
         var result = new ObjectResult(message);

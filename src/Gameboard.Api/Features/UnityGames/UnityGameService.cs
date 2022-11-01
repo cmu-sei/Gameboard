@@ -155,4 +155,24 @@ public class UnityGameService : _Service
 
         return await Store.AddUnityChallengeEvents(events);
     }
+
+    internal async Task DeleteChallengeData(string gameId)
+    {
+        var challenges = await Store
+            .DbContext
+            .Challenges
+            .Include(c => c.Events)
+            .Where(c => c.GameId == gameId)
+            .ToListAsync();
+
+        if (challenges.Count == 0)
+        {
+            return;
+        }
+
+        Store.DbContext.Challenges.RemoveRange(challenges);
+        Store.DbContext.ChallengeEvents.RemoveRange(challenges.SelectMany(c => c.Events));
+
+        await Store.DbContext.SaveChangesAsync();
+    }
 }
