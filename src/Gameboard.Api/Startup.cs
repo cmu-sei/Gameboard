@@ -3,16 +3,15 @@
 
 using System;
 using System.IO;
-using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Gameboard.Api.Data.Abstractions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Serilog;
 using ServiceStack.Text;
 
 namespace Gameboard.Api
@@ -63,7 +62,8 @@ namespace Gameboard.Api
             services.AddMvc()
             .AddJsonOptions(options =>
             {
-                options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+                options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+
                 options.JsonSerializerOptions.Converters
                     .Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
 
@@ -93,12 +93,15 @@ namespace Gameboard.Api
             services.AddSignalR()
                 .AddJsonProtocol(options =>
                 {
+                    options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
                     options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter(
                         JsonNamingPolicy.CamelCase
                     ));
                 })
             ;
             services.AddSignalRHub();
+
+            services.AddLogging(loggingBuilder => loggingBuilder.AddSerilog(dispose: true));
 
             services
                 .AddSingleton<CoreOptions>(_ => Settings.Core)
@@ -137,6 +140,11 @@ namespace Gameboard.Api
 
             if (Settings.Headers.UseHsts)
                 app.UseHsts();
+
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
 
             app.UseRouting();
             app.UseCors(Settings.Headers.Cors.Name);
