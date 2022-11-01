@@ -23,7 +23,6 @@ namespace Gameboard.Api.Controllers;
 public class UnityGameController : _Controller
 {
     private readonly ConsoleActorMap _actorMap;
-    private readonly ChallengeEventService _challengeEventService;
     private readonly GameService _gameService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IHubContext<AppHub, IAppHubEvent> _hub;
@@ -33,20 +32,18 @@ public class UnityGameController : _Controller
     public UnityGameController(
         // required by _Controller
         IDistributedCache cache,
-        ILogger<ChallengeEventController> logger,
+        ILogger<UnityGameController> logger,
         UnityGamesValidator validator,
         // other stuff
         ConsoleActorMap actorMap,
         GameService gameService,
         IHttpClientFactory httpClientFactory,
         UnityGameService unityGameService,
-        ChallengeEventService challengeEventService,
         IHubContext<AppHub, IAppHubEvent> hub,
         IMapper mapper
     ) : base(logger, cache, validator)
     {
         _actorMap = actorMap;
-        _challengeEventService = challengeEventService;
         _gameService = gameService;
         _httpClientFactory = httpClientFactory;
         _hub = hub;
@@ -115,17 +112,18 @@ public class UnityGameController : _Controller
     /// </summary>
     /// <param name="model">NewChallengeEvent</param>
     /// <returns>ChallengeEvent</returns>
-    [HttpPost("api/unity/challenges")]
     [Authorize]
+    [HttpPost("api/unity/challenges")]
     public async Task<IList<Data.Challenge>> CreateChallenge([FromBody] NewUnityChallenge model)
     {
         AuthorizeAny(
+            () => Actor.IsDirector,
             () => Actor.IsAdmin,
-            () => Actor.IsDirector
+            () => Actor.IsDesigner
         );
 
         await Validate(model);
-        var result = await _unityGameService.Add(model, Actor);
+        var result = await _unityGameService.AddChallenge(model, Actor);
 
         foreach (var challenge in result.Select(c => _mapper.Map<Challenge>(c)))
         {
@@ -135,6 +133,25 @@ public class UnityGameController : _Controller
         }
 
         return result;
+    }
+
+    /// <summary>
+    ///     Log a challenge event for all members of the specified team.
+    /// </summary>
+    /// <param name="model">NewChallengeEvent</param>
+    /// <returns>ChallengeEvent</returns>
+    [HttpPost("api/unity/challengeEvents")]
+    [Authorize]
+    public async Task<IEnumerable<Data.ChallengeEvent>> CreateChallengeEvent([FromBody] NewUnityChallengeEvent model)
+    {
+        AuthorizeAny(
+            () => Actor.IsDirector,
+            () => Actor.IsAdmin,
+            () => Actor.IsDesigner
+        );
+
+        await Validate(model);
+        return await _unityGameService.AddChallengeEvents(model, Actor.Id);
     }
 
     private ActionResult<T> BuildError<T>(HttpResponse response, string message = null)

@@ -5,7 +5,6 @@ using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoMapper;
-using Gameboard.Api.Features.ChallengeEvents;
 
 namespace Gameboard.Api.Services
 {
@@ -114,6 +113,8 @@ namespace Gameboard.Api.Services
             CreateMap<TopoMojo.Api.Client.VmConsole, ConsoleSummary>()
                 .ForMember(d => d.SessionId, opt => opt.MapFrom(s => s.IsolationId))
             ;
+
+            CreateMap<Data.ChallengeEvent, ChallengeEventSummary>();
 
             JsonOptions = new JsonSerializerOptions
             {

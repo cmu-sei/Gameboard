@@ -3,7 +3,6 @@
 
 using System;
 using System.Threading.Tasks;
-using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -12,13 +11,14 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Controllers
 {
-    public class _Controller: ControllerBase, IActionFilter
+    public class _Controller : ControllerBase, IActionFilter
     {
-        public _Controller (
+        public _Controller(
             ILogger logger,
             IDistributedCache cache,
             params IModelValidator[] validators
-        ){
+        )
+        {
             Logger = logger;
             Cache = cache;
             _validators = validators;
@@ -57,7 +57,7 @@ namespace Gameboard.Api.Controllers
         {
             bool valid = true;
 
-            foreach(var requirement in requirements)
+            foreach (var requirement in requirements)
                 valid &= requirement.Invoke();
 
             if (valid.Equals(false))
@@ -75,7 +75,7 @@ namespace Gameboard.Api.Controllers
 
             bool valid = false;
 
-            foreach(var requirement in requirements)
+            foreach (var requirement in requirements)
             {
                 valid |= requirement.Invoke();
                 if (valid) break;
