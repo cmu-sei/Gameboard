@@ -47,15 +47,10 @@ namespace Gameboard.Api.Services
             if (!sudo && !game.RegistrationActive)
                 throw new RegistrationIsClosed();
 
-            // var user = await Store.GetUserEnrollments(model.UserId);
-            var getExistingGames = await Store.GetExistingGames(model.UserId);
-            if (getExistingGames.Any(g => g.GameId == model.GameId))
-            {
+            var user = await Store.GetUserEnrollments(model.UserId);
+            if (user.Enrollments.Any(p => p.GameId == model.GameId))
                 throw new AlreadyRegistered();
-            }
 
-            // have to load the user model separately because EF core is having a tantrum
-            var user = await this.UserStore.Retrieve(model.UserId);
             var entity = Mapper.Map<Data.Player>(model);
 
             entity.TeamId = Guid.NewGuid().ToString("n");
@@ -130,27 +125,6 @@ namespace Gameboard.Api.Services
             }
 
             await Store.Update(entity);
-
-            // change names for whole team
-            // bool namesChanged =
-            //     prev.Name != entity.Name ||
-            //     prev.ApprovedName != entity.ApprovedName ||
-            //     prev.NameStatus != entity.NameStatus
-            // ;
-
-            // if (namesChanged)
-            // {
-            //     var team = await Store.ListTeamByPlayer(model.Id);
-
-            //     foreach (var p in team.Where(o => o.Id != entity.Id))
-            //     {
-            //         p.Name = entity.Name;
-            //         p.ApprovedName = entity.ApprovedName;
-            //         p.NameStatus = entity.NameStatus;
-            //     }
-
-            //     await Store.Update(team);
-            // }
 
             return Mapper.Map<Player>(entity);
         }
@@ -516,8 +490,6 @@ namespace Gameboard.Api.Services
                 throw new TeamIsFull();
 
             player.TeamId = manager.TeamId;
-            // player.Name = manager.Name;
-            // player.ApprovedName = manager.ApprovedName;
             player.Role = PlayerRole.Member;
 
             await Store.Update(player);

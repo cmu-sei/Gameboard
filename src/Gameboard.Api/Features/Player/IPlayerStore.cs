@@ -13,8 +13,7 @@ namespace Gameboard.Api.Data.Abstractions
         Task<Player[]> ListTeam(string id);
         Task<Player[]> ListTeamByPlayer(string id);
         Task<Challenge[]> ListTeamChallenges(string id);
-        // Task<User> GetUserEnrollments(string id);
-        Task<IEnumerable<Player>> GetExistingGames(string playerId);
+        Task<User> GetUserEnrollments(string id);
         Task<Player> LoadBoard(string id);
     }
 

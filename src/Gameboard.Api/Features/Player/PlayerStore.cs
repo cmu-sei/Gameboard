@@ -19,7 +19,7 @@ namespace Gameboard.Api.Data
         {
             return await DbSet
                 .AsNoTracking()
-                // .Include(p => p.User)
+                .Include(p => p.User)
                 .FirstOrDefaultAsync(p => p.Id == id)
             ;
         }
@@ -51,31 +51,23 @@ namespace Gameboard.Api.Data
             return challengeEvents.Where(c => c.TeamId == id).ToArray();
         }
 
-        public async Task<IEnumerable<Player>> GetExistingGames(string userId)
+        public async Task<User> GetUserEnrollments(string id)
         {
-            return await DbContext.Players
+            // have to fetch these backward because ef core is being terrible
+            // https://github.com/dotnet/efcore/issues/11564
+            var players = await base.DbContext
+                .Players
                 .AsNoTracking()
-                .Where(p => p.UserId == userId)
+                .Where(p => p.UserId == id)
                 .ToListAsync();
+
+            if (players.Count() == 0)
+            {
+                return await base.DbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
+            }
+
+            return players.First().User;
         }
-
-        // public async Task<User> GetUserEnrollments(string id)
-        // {
-        //     // have to fetch these backward because ef core is being terrible
-        //     // https://github.com/dotnet/efcore/issues/11564
-        //     var players = await base.DbContext
-        //         .Players
-        //         .AsNoTracking()
-        //         .Where(p => p.UserId == id)
-        //         .ToListAsync();
-
-        //     if (players.Count() == 0)
-        //     {
-        //         return await base.DbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
-        //     }
-
-        //     return players.First().User;
-        // }
 
         public async Task<Player> LoadBoard(string id)
         {
