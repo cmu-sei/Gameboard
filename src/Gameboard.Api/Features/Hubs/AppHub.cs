@@ -2,7 +2,6 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -80,14 +79,14 @@ namespace Gameboard.Api.Hubs
             );
         }
 
-        public async Task<IEnumerable<Data.Player>> ListTeam(string teamId)
+        public async Task<Data.Player[]> ListTeam(string teamId)
         {
             var teamPlayers = await PlayerStore.DbSet
                 .AsNoTrackingWithIdentityResolution()
                 .Where(p => p.TeamId == teamId)
                 .Include(p => p.Game)
                 .Include(p => p.User)
-                .ToListAsync();
+                .ToArrayAsync();
 
             return teamPlayers;
         }
