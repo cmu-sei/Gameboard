@@ -13,7 +13,7 @@ using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Features.UnityGames;
 
-public class UnityGameService : _Service
+internal class UnityGameService : _Service, IUnityGameService
 {
     private readonly IChallengeStore _challengeStore;
     IUnityStore Store { get; }
@@ -45,12 +45,15 @@ public class UnityGameService : _Service
             .Where(p => p.TeamId == newChallenge.TeamId)
             .ToListAsync();
 
+        // team name?
+        var teamCaptain = ResolveTeamCaptain(teamPlayers, newChallenge.TeamId);
+        var challengeName = $"{teamCaptain.ApprovedName} vs. Cubespace";
+
         // load the spec associated with the game
         var challengeSpec = await Store.DbContext.ChallengeSpecs.FirstOrDefaultAsync(c => c.GameId == newChallenge.GameId);
-
         if (challengeSpec == null)
         {
-            throw new SpecNotFound();
+            throw new SpecNotFound(newChallenge.GameId);
         }
 
         // start building the challenge to insert
@@ -78,7 +81,7 @@ public class UnityGameService : _Service
             UserId = actor.Id,
             TeamId = newChallenge.TeamId,
             Timestamp = DateTimeOffset.UtcNow,
-            Text = $"{actor.ApprovedName}'s journey into CubeSpace has begun...",
+            Text = $"{teamCaptain.ApprovedName}'s journey into CubeSpace has begun...",
             Type = ChallengeEventType.Started
         };
 
@@ -88,16 +91,14 @@ public class UnityGameService : _Service
             .Games
             .FirstOrDefaultAsync(g => g.Id == newChallenge.GameId);
 
-        var teamCaptain = teamPlayers.FirstOrDefault(t => t.IsManager);
-
         // this is some guesswork on my part and omits some fields.
         // we'll see how it goes - BS
         var state = new TopoMojo.Api.Client.GameState
         {
             Id = newChallenge.GameId,
             Name = game.Id,
-            ManagerId = string.IsNullOrWhiteSpace(teamCaptain?.Id) ? null : teamCaptain.Id,
-            ManagerName = string.IsNullOrEmpty(teamCaptain?.Name) ? null : teamCaptain.Name,
+            ManagerId = teamCaptain.Id,
+            ManagerName = teamCaptain.ApprovedName,
             Markdown = game.GameMarkdown,
             Players = teamPlayers.Select(p => new TopoMojo.Api.Client.Player
             {
@@ -107,15 +108,28 @@ public class UnityGameService : _Service
             }).ToArray(),
             StartTime = game.GameStart,
             EndTime = game.GameEnd,
+            Challenge = new ChallengeView()
+            {
+                Attempts = 1,
+                LastScoreTime = DateTimeOffset.MinValue,
+                MaxPoints = newChallenge.MaxPoints,
+                Text = challengeName
+            },
             IsActive = game.IsLive,
             WhenCreated = DateTimeOffset.UtcNow,
+            Vms = newChallenge.Vms.Select(vm => new VmState
+            {
+                Id = vm.Id,
+                Name = vm.Name,
+                IsolationId = newChallenge.GamespaceId
+            }).ToList()
         };
 
         var playerChallenges = from p in teamPlayers
                                select new Data.Challenge
                                {
                                    Id = Guid.NewGuid().ToString("n"),
-                                   Name = $"{teamPlayers.First().ApprovedName} vs. Cubespace",
+                                   Name = $"{teamCaptain.ApprovedName} vs. Cubespace",
                                    GameId = challengeSpec.GameId,
                                    TeamId = newChallenge.TeamId,
                                    PlayerId = p.Id,
@@ -123,7 +137,7 @@ public class UnityGameService : _Service
                                    SpecId = challengeSpec.Id,
                                    State = JsonSerializer.Serialize(state),
                                    GraderKey = Guid.NewGuid().ToString("n").ToSha256(),
-                                   Points = newChallenge.Points,
+                                   Points = newChallenge.MaxPoints,
                                    Score = 0,
                                    Events = new List<Data.ChallengeEvent> { initialEvent },
                                    WhenCreated = DateTimeOffset.UtcNow,
@@ -156,7 +170,7 @@ public class UnityGameService : _Service
         return await Store.AddUnityChallengeEvents(events);
     }
 
-    internal async Task DeleteChallengeData(string gameId)
+    public async Task DeleteChallengeData(string gameId)
     {
         var challenges = await Store
             .DbContext
@@ -174,5 +188,30 @@ public class UnityGameService : _Service
         Store.DbContext.ChallengeEvents.RemoveRange(challenges.SelectMany(c => c.Events));
 
         await Store.DbContext.SaveChangesAsync();
+    }
+
+    private Data.Player ResolveTeamCaptain(IEnumerable<Data.Player> players, string teamId)
+    {
+        if (players.Count() == 0)
+        {
+            throw new CaptainResolutionFailure(teamId);
+        }
+
+        // find the player with the earliest alphabetic name in case we need to tiebreak
+        // between captains or if the team doesn't have one. sometimes weird stuff happens. 
+        // you can quote me.
+        var sortedPlayers = players.OrderBy(p => p.ApprovedName);
+        var captains = players.Where(p => p.IsManager);
+
+        if (captains.Count() == 1)
+        {
+            return captains.First();
+        }
+        else if (captains.Count() > 1)
+        {
+            sortedPlayers = captains.OrderBy(c => c.ApprovedName);
+        }
+
+        return sortedPlayers.First();
     }
 }

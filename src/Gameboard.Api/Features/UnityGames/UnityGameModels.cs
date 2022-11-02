@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Gameboard.Api.Features.UnityGames;
 
@@ -6,7 +7,16 @@ public class NewUnityChallenge
 {
     public string GameId { get; set; }
     public string TeamId { get; set; }
-    public int Points { get; set; }
+    public int MaxPoints { get; set; }
+    public string GamespaceId { get; set; }
+    public IEnumerable<UnityGameVm> Vms { get; set; }
+}
+
+public class UnityGameVm
+{
+    public string Id { get; set; }
+    public string Url { get; set; }
+    public string Name { get; set; }
 }
 
 public class NewUnityChallengeEvent

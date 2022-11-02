@@ -34,6 +34,7 @@ namespace Microsoft.Extensions.DependencyInjection
             }
 
             // TODO: Ben -> fix this
+            services.AddScoped<IUnityGameService, UnityGameService>();
             services.AddScoped<IUnityStore, UnityStore>();
 
             foreach (var t in Assembly

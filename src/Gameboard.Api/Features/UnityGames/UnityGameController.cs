@@ -27,7 +27,7 @@ public class UnityGameController : _Controller
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IHubContext<AppHub, IAppHubEvent> _hub;
     private readonly IMapper _mapper;
-    private readonly UnityGameService _unityGameService;
+    private readonly IUnityGameService _unityGameService;
 
     public UnityGameController(
         // required by _Controller
@@ -38,7 +38,7 @@ public class UnityGameController : _Controller
         ConsoleActorMap actorMap,
         GameService gameService,
         IHttpClientFactory httpClientFactory,
-        UnityGameService unityGameService,
+        IUnityGameService unityGameService,
         IHubContext<AppHub, IAppHubEvent> hub,
         IMapper mapper
     ) : base(logger, cache, validator)

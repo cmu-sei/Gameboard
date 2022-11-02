@@ -442,12 +442,10 @@ namespace Gameboard.Api.Services
             switch (model.Action)
             {
                 case ConsoleAction.Ticket:
-
                     return Mapper.Map<ConsoleSummary>(
                         await Mojo.GetVmTicketAsync(model.Id)
                     );
                 case ConsoleAction.Reset:
-
                     var vm = await Mojo.ChangeVmAsync(
                         new VmOperation
                         {
