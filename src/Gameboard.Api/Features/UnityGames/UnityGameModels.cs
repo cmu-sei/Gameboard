@@ -6,6 +6,7 @@ namespace Gameboard.Api.Features.UnityGames;
 public class NewUnityChallenge
 {
     public string GameId { get; set; }
+    public string PlayerId { get; set; }
     public string TeamId { get; set; }
     public int MaxPoints { get; set; }
     public string GamespaceId { get; set; }

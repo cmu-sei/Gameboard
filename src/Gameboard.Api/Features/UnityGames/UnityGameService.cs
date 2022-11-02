@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
@@ -15,6 +16,7 @@ namespace Gameboard.Api.Features.UnityGames;
 
 internal class UnityGameService : _Service, IUnityGameService
 {
+    private static SemaphoreSlim SEMAPHORE = new SemaphoreSlim(1, 1);
     private readonly IChallengeStore _challengeStore;
     IUnityStore Store { get; }
     ITopoMojoApiClient Mojo { get; }
@@ -37,8 +39,23 @@ internal class UnityGameService : _Service, IUnityGameService
         _challengeStore = challengeStore;
     }
 
-    public async Task<IList<Data.Challenge>> AddChallenge(NewUnityChallenge newChallenge, User actor)
+    public async Task<Data.Challenge> AddChallenge(NewUnityChallenge newChallenge, User actor)
     {
+        // each player should only create their challenge data once, so if they call again, just return what they've already
+        // got
+        var existingChallenge = await Store.DbContext
+            .Challenges
+            .AsNoTracking()
+            .Include(c => c.Events)
+            .Where(c => c.GameId == newChallenge.GameId && c.PlayerId == newChallenge.PlayerId)
+            .FirstOrDefaultAsync();
+
+        if (existingChallenge != null)
+        {
+            return existingChallenge;
+        }
+
+        // otherwise, let's make some challenges
         // find the team's players
         var teamPlayers = await Store.DbContext
             .Players
@@ -55,35 +72,6 @@ internal class UnityGameService : _Service, IUnityGameService
         {
             throw new SpecNotFound(newChallenge.GameId);
         }
-
-        // start building the challenge to insert
-
-        // honestly not sure why this syntax doesn't work?
-        // var playerChallenges = teamPlayers.Select<Data.Challenge>(p =>
-        // {
-        //     return new Data.Challenge
-        //     {
-        //         Name = $"{teamPlayers.First().ApprovedName} vs. Cubespace",
-        //         GameId = challengeSpec.GameId,
-        //         TeamId = newChallenge.TeamId,
-        //         PlayerId = p.Id,
-        //         HasDeployedGamespace = true,
-        //         SpecId = challengeSpec.Id,
-        //         GraderKey = Guid.NewGuid().ToString("n").ToSha256(),
-        //         Points = newChallenge.Points,
-        //         Score = 0
-        //     };
-        // });
-
-        var initialEvent = new Data.ChallengeEvent
-        {
-            Id = Guid.NewGuid().ToString("n"),
-            UserId = actor.Id,
-            TeamId = newChallenge.TeamId,
-            Timestamp = DateTimeOffset.UtcNow,
-            Text = $"{teamCaptain.ApprovedName}'s journey into CubeSpace has begun...",
-            Type = ChallengeEventType.Started
-        };
 
         // we have to spoof topomojo data here. load the game and related data.
         var game = await this.Store
@@ -125,29 +113,40 @@ internal class UnityGameService : _Service, IUnityGameService
             }).ToList()
         };
 
-        var playerChallenges = from p in teamPlayers
-                               select new Data.Challenge
-                               {
-                                   Id = Guid.NewGuid().ToString("n"),
-                                   Name = $"{teamCaptain.ApprovedName} vs. Cubespace",
-                                   GameId = challengeSpec.GameId,
-                                   TeamId = newChallenge.TeamId,
-                                   PlayerId = p.Id,
-                                   HasDeployedGamespace = true,
-                                   SpecId = challengeSpec.Id,
-                                   State = JsonSerializer.Serialize(state),
-                                   GraderKey = Guid.NewGuid().ToString("n").ToSha256(),
-                                   Points = newChallenge.MaxPoints,
-                                   Score = 0,
-                                   Events = new List<Data.ChallengeEvent> { initialEvent },
-                                   WhenCreated = DateTimeOffset.UtcNow,
-                               };
+        var newChallengeEntity = new Data.Challenge
+        {
+            Id = Guid.NewGuid().ToString("n"),
+            Name = $"{teamCaptain.ApprovedName} vs. Cubespace",
+            GameId = challengeSpec.GameId,
+            TeamId = newChallenge.TeamId,
+            PlayerId = newChallenge.PlayerId,
+            HasDeployedGamespace = true,
+            SpecId = challengeSpec.Id,
+            State = JsonSerializer.Serialize(state),
+            GraderKey = Guid.NewGuid().ToString("n").ToSha256(),
+            Points = newChallenge.MaxPoints,
+            Score = 0,
+            Events = new List<Data.ChallengeEvent>
+            {  
+                // an initial event to start the party
+                new ChallengeEvent
+                {
+                    Id = Guid.NewGuid().ToString("n"),
+                    UserId = actor.Id,
+                    TeamId = newChallenge.TeamId,
+                    Timestamp = DateTimeOffset.UtcNow,
+                    Text = $"{teamCaptain.ApprovedName}'s journey into CubeSpace has begun...",
+                    Type = ChallengeEventType.Started
+                }
+            },
+            WhenCreated = DateTimeOffset.UtcNow,
+        };
 
 
-        Store.DbContext.Challenges.AddRange(playerChallenges);
+        await Store.DbContext.Challenges.AddAsync(newChallengeEntity);
         await Store.DbContext.SaveChangesAsync();
 
-        return playerChallenges.ToList();
+        return newChallengeEntity;
     }
 
     public async Task<IEnumerable<ChallengeEvent>> AddChallengeEvents(NewUnityChallengeEvent model, string userId)

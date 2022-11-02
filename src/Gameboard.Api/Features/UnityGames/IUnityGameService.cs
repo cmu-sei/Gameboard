@@ -7,6 +7,6 @@ namespace Gameboard.Api.Features.UnityGames;
 public interface IUnityGameService
 {
     Task<IEnumerable<ChallengeEvent>> AddChallengeEvents(NewUnityChallengeEvent model, string userId);
-    Task<IList<Data.Challenge>> AddChallenge(NewUnityChallenge newChallenge, User actor);
+    Task<Data.Challenge> AddChallenge(NewUnityChallenge newChallenge, User actor);
     Task DeleteChallengeData(string gameId);
 }

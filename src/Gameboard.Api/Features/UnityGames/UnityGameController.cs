@@ -114,7 +114,7 @@ public class UnityGameController : _Controller
     /// <returns>ChallengeEvent</returns>
     [Authorize]
     [HttpPost("api/unity/challenges")]
-    public async Task<IList<Data.Challenge>> CreateChallenge([FromBody] NewUnityChallenge model)
+    public async Task<Data.Challenge> CreateChallenge([FromBody] NewUnityChallenge model)
     {
         AuthorizeAny(
             () => Actor.IsDirector,
@@ -125,12 +125,9 @@ public class UnityGameController : _Controller
         await Validate(model);
         var result = await _unityGameService.AddChallenge(model, Actor);
 
-        foreach (var challenge in result.Select(c => _mapper.Map<Challenge>(c)))
-        {
-            await _hub.Clients
+        await _hub.Clients
                 .Group(model.TeamId)
-                .ChallengeEvent(new HubEvent<Challenge>(challenge, EventAction.Updated));
-        }
+                .ChallengeEvent(new HubEvent<Challenge>(_mapper.Map<Challenge>(result), EventAction.Updated));
 
         return result;
     }
