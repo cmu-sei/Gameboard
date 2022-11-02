@@ -8,5 +8,6 @@ public interface IUnityGameService
 {
     Task<IEnumerable<ChallengeEvent>> AddChallengeEvents(NewUnityChallengeEvent model, string userId);
     Task<Data.Challenge> AddChallenge(NewUnityChallenge newChallenge, User actor);
+    Task CreateMissionEvent(UnityMissionUpdate model, Api.User actor);
     Task DeleteChallengeData(string gameId);
 }

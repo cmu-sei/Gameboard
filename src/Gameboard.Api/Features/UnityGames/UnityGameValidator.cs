@@ -59,6 +59,15 @@ public class UnityGamesValidator : IModelValidator
                 throw new ResourceNotFound<Team>(typedModel.TeamId);
             }
         }
+        else if (model is UnityMissionUpdate)
+        {
+            var typedModel = model as UnityMissionUpdate;
+
+            if (!(await TeamExists(typedModel.TeamId)))
+            {
+                throw new ResourceNotFound<Team>(typedModel.TeamId);
+            }
+        }
         else
         {
             throw new ValidationTypeFailure<UnityGamesValidator>(model.GetType());

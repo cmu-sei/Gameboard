@@ -152,6 +152,21 @@ public class UnityGameController : _Controller
     }
 
     [Authorize]
+    [HttpPost("api/unity/mission-update")]
+    public async Task CreateMissionEvent([FromBody] UnityMissionUpdate model)
+    {
+        AuthorizeAny(
+            () => Actor.IsDirector,
+            () => Actor.IsAdmin,
+            () => Actor.IsDesigner
+        );
+
+        await Validate(model);
+
+        await _unityGameService.CreateMissionEvent(model, Actor);
+    }
+
+    [Authorize]
     [HttpPost("api/unity/admin/deleteChallengeData")]
     public async Task<IActionResult> DeleteChallengeData(string gameId)
     {

@@ -28,3 +28,11 @@ public class NewUnityChallengeEvent
     public ChallengeEventType Type { get; set; }
     public DateTimeOffset Timestamp { get; set; }
 }
+
+public class UnityMissionUpdate
+{
+    public string TeamId { get; set; }
+    public string MissionId { get; set; }
+    public string MissionName { get; set; }
+    public int PointsScored { get; set; }
+}

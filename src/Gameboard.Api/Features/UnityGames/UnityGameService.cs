@@ -122,6 +122,7 @@ internal class UnityGameService : _Service, IUnityGameService
             PlayerId = newChallenge.PlayerId,
             HasDeployedGamespace = true,
             SpecId = challengeSpec.Id,
+            StartTime = DateTimeOffset.UtcNow,
             State = JsonSerializer.Serialize(state),
             GraderKey = Guid.NewGuid().ToString("n").ToSha256(),
             Points = newChallenge.MaxPoints,
@@ -186,6 +187,35 @@ internal class UnityGameService : _Service, IUnityGameService
         Store.DbContext.Challenges.RemoveRange(challenges);
         Store.DbContext.ChallengeEvents.RemoveRange(challenges.SelectMany(c => c.Events));
 
+        await Store.DbContext.SaveChangesAsync();
+    }
+
+    public async Task CreateMissionEvent(UnityMissionUpdate model, Api.User actor)
+    {
+        var player = await Store.DbContext
+            .Players
+            .Include(p => p.Challenges)
+            // TODO: need to think about how we ensure, across this service, that
+            // we're loading the unity game (or the right one when we get more than one)
+            .Include(p => p.Game)
+            .FirstOrDefaultAsync(p => p.Game.Mode == "unity" && p.TeamId == model.TeamId);
+
+        if (player.Challenges.Count() != 1)
+        {
+            throw new ChallengeResolutionFailure(model.TeamId);
+        }
+
+        var challengeEvent = new Data.ChallengeEvent()
+        {
+            ChallengeId = player.Challenges.First().Id,
+            UserId = actor.Id,
+            TeamId = model.TeamId,
+            Text = $"{player.ApprovedName} has found the codex for {model.MissionName}!",
+            Type = ChallengeEventType.Submission,
+            Timestamp = DateTimeOffset.UtcNow
+        };
+
+        await Store.DbContext.ChallengeEvents.AddAsync(challengeEvent);
         await Store.DbContext.SaveChangesAsync();
     }
 
