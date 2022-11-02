@@ -437,7 +437,7 @@ namespace Gameboard.Api.Services
             );
 
             if (!challenge.State.Vms.Any(v => v.Name == model.Name))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<VmState>("n/a", $"VMS for challenge {model.Name}");
 
             switch (model.Action)
             {
@@ -446,7 +446,6 @@ namespace Gameboard.Api.Services
                     return Mapper.Map<ConsoleSummary>(
                         await Mojo.GetVmTicketAsync(model.Id)
                     );
-
                 case ConsoleAction.Reset:
 
                     var vm = await Mojo.ChangeVmAsync(
@@ -456,7 +455,6 @@ namespace Gameboard.Api.Services
                             Type = VmOperationType.Reset
                         }
                     );
-
                     return new ConsoleSummary
                     {
                         Id = vm.Id,

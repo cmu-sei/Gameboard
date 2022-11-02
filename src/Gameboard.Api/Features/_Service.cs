@@ -24,7 +24,8 @@ namespace Gameboard.Api.Services
             {
                 AllowTrailingCommas = true,
                 WriteIndented = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                ReferenceHandler = ReferenceHandler.IgnoreCycles,
             };
             JsonOptions.Converters.Add(
                 new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
@@ -35,6 +36,5 @@ namespace Gameboard.Api.Services
         protected ILogger Logger { get; }
         protected CoreOptions Options { get; }
         protected JsonSerializerOptions JsonOptions { get; }
-
     }
 }

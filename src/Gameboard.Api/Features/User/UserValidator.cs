@@ -8,7 +8,7 @@ using Gameboard.Api.Data.Abstractions;
 namespace Gameboard.Api.Validators
 {
 
-    public class UserValidator: IModelValidator
+    public class UserValidator : IModelValidator
     {
         private readonly IUserStore _store;
 
@@ -37,7 +37,7 @@ namespace Gameboard.Api.Validators
         private async Task _validate(Entity model)
         {
             if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<User>(model.Id);
 
             await Task.CompletedTask;
         }
@@ -45,7 +45,7 @@ namespace Gameboard.Api.Validators
         private async Task _validate(ChangedUser model)
         {
             if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<User>(model.Id);
 
             await Task.CompletedTask;
         }

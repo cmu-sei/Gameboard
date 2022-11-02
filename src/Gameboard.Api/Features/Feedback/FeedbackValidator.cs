@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Validators
 {
-    public class FeedbackValidator: IModelValidator
+    public class FeedbackValidator : IModelValidator
     {
         private readonly IFeedbackStore _store;
 
@@ -29,20 +29,21 @@ namespace Gameboard.Api.Validators
         private async Task _validate(FeedbackSubmission model)
         {
             if ((await GameExists(model.GameId)).Equals(false)) // game must always exist
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Game>(model.GameId);
 
             if (model.ChallengeId.IsEmpty() != model.ChallengeSpecId.IsEmpty()) // must specify both or neither
                 throw new InvalideFeedbackFormat();
 
             // if not blank, must exist for challenge and challenge spec
             if (model.ChallengeSpecId.NotEmpty() && (await SpecExists(model.ChallengeSpecId)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<ChallengeSpec>(model.ChallengeSpecId);
 
             if (model.ChallengeId.NotEmpty() && (await ChallengeExists(model.ChallengeId)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Challenge>(model.ChallengeId);
 
             // if specified, this is a challenge-specific feedback response, so validate challenge/spec/game match
-            if (model.ChallengeSpecId.NotEmpty()) { 
+            if (model.ChallengeSpecId.NotEmpty())
+            {
                 var game = await _store.DbContext.Games.FindAsync(model.GameId);
                 var spec = await _store.DbContext.ChallengeSpecs.FindAsync(model.ChallengeSpecId);
                 var challenge = await _store.DbContext.Challenges.FindAsync(model.ChallengeId);
@@ -53,7 +54,7 @@ namespace Gameboard.Api.Validators
                 if (challenge.SpecId != spec.Id)
                     throw new ActionForbidden();
             }
-            
+
             await Task.CompletedTask;
         }
 
