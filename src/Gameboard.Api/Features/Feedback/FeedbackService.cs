@@ -31,7 +31,7 @@ namespace Gameboard.Api.Services
             Store = store;
             _localcache = localcache;
         }
- 
+
         public async Task<Feedback> Retrieve(FeedbackSearchParams model, string actorId)
         {
             var lookup = MakeFeedbackLookup(model.GameId, model.ChallengeId, model.ChallengeSpecId, actorId);
@@ -39,14 +39,14 @@ namespace Gameboard.Api.Services
             return Mapper.Map<Feedback>(entity);
         }
 
-       
+
         public async Task<Feedback> Submit(FeedbackSubmission model, string actorId)
         {
             var lookup = MakeFeedbackLookup(model.GameId, model.ChallengeId, model.ChallengeSpecId, actorId);
             var entity = await Store.Load(lookup);
 
             if (model.Submit) // Only fully validate questions on submit as a slight optimization
-            { 
+            {
                 var valid = await FeedbackMatchesTemplate(model.Questions, model.GameId, model.ChallengeId);
                 if (!valid)
                     throw new InvalideFeedbackFormat();
@@ -54,7 +54,8 @@ namespace Gameboard.Api.Services
 
             if (entity is Data.Feedback)
             {
-                if (entity.Submitted) {
+                if (entity.Submitted)
+                {
                     return Mapper.Map<Feedback>(entity);
                 }
                 Mapper.Map(model, entity);
@@ -68,7 +69,7 @@ namespace Gameboard.Api.Services
                     s.GameId == model.GameId
                 );
                 if (player == null)
-                    throw new ResourceNotFound();
+                    throw new ResourceNotFound<Player>("Id from user/game", $"COuldn't find a player by game {model.GameId} and user {actorId}.");
 
                 entity = Mapper.Map<Data.Feedback>(model);
                 entity.UserId = actorId;
@@ -85,10 +86,10 @@ namespace Gameboard.Api.Services
         public async Task<FeedbackReportDetails[]> List(FeedbackSearchParams model)
         {
             var q = Store.List(model.Term);
-            
+
             if (model.GameId.HasValue())
                 q = q.Where(u => u.GameId == model.GameId);
-            
+
             if (model.WantsGame)
                 q = q.Where(u => u.ChallengeSpecId == null);
             else
@@ -126,7 +127,8 @@ namespace Gameboard.Api.Services
         // Supports turning feedback search params or feedback submission into model to lookup with Load()
         private Data.Feedback MakeFeedbackLookup(string gameId, string challengeId, string challengeSpecId, string userId)
         {
-            return new Data.Feedback{
+            return new Data.Feedback
+            {
                 GameId = gameId,
                 ChallengeId = challengeId,
                 ChallengeSpecId = challengeSpecId,
@@ -162,9 +164,10 @@ namespace Gameboard.Api.Services
         }
 
         // Given a submission of questions and a gameId, check that the questions match the game template and meet requirements
-        private async Task<bool> FeedbackMatchesTemplate(QuestionSubmission[] feedback, string gameId, string challengeId) {
+        private async Task<bool> FeedbackMatchesTemplate(QuestionSubmission[] feedback, string gameId, string challengeId)
+        {
             var game = Mapper.Map<Game>(await Store.DbContext.Games.FindAsync(gameId));
-            
+
             var feedbackTemplate = GetTemplate(challengeId.IsEmpty(), game);
 
             if (feedbackTemplate.Length != feedback.Length)
@@ -173,7 +176,7 @@ namespace Gameboard.Api.Services
             Dictionary<string, QuestionTemplate> templateMap = new Dictionary<string, QuestionTemplate>();
             foreach (QuestionTemplate q in feedbackTemplate) { templateMap.Add(q.Id, q); }
 
-            foreach (var q in feedback) 
+            foreach (var q in feedback)
             {
                 var template = templateMap.GetValueOrDefault(q.Id, null);
                 if (template == null) // user submitted id that isn't in game template
@@ -184,7 +187,7 @@ namespace Gameboard.Api.Services
                     continue;
                 if (template.Type == "text" && q.Answer.Length > 2000) // universal character limit per text question 
                     throw new InvalideFeedbackFormat();
-                if (template.Type == "likert" ) // because all likert options are ints, parse and check range with max config
+                if (template.Type == "likert") // because all likert options are ints, parse and check range with max config
                 {
                     int answerInt;
                     bool isInt = Int32.TryParse(q.Answer, out answerInt);

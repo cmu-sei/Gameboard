@@ -39,21 +39,21 @@ namespace Gameboard.Api.Validators
         private async Task _validate(Entity model)
         {
             if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Challenge>(model.Id);
         }
 
         private async Task _validate(NewChallenge model)
         {
             if ((await PlayerExists(model.PlayerId)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Player>(model.PlayerId);
 
             if ((await SpecExists(model.SpecId)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<ChallengeSpec>(model.SpecId);
 
             var player = await _store.DbContext.Players.FindAsync(model.PlayerId);
 
             if (player.IsLive.Equals(false))
-                throw new SessionNotActive();
+                throw new SessionNotActive(player.Id);
 
             var spec = await _store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
 
@@ -68,7 +68,7 @@ namespace Gameboard.Api.Validators
         private async Task _validate(ChangedChallenge model)
         {
             if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Challenge>(model.Id);
 
             await Task.CompletedTask;
         }

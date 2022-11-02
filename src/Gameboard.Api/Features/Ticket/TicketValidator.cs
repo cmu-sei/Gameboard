@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Validators
 {
-    public class TicketValidator: IModelValidator
+    public class TicketValidator : IModelValidator
     {
         private readonly ITicketStore _store;
 
@@ -42,7 +42,7 @@ namespace Gameboard.Api.Validators
         private async Task _validate(Entity model)
         {
             if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Ticket>(model.Id);
 
             await Task.CompletedTask;
         }
@@ -59,26 +59,26 @@ namespace Gameboard.Api.Validators
         private async Task _validate(Ticket model)
         {
             if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound();
-            
+                throw new ResourceNotFound<Ticket>(model.Id);
+
             await Task.CompletedTask;
         }
 
         private async Task _validate(ChangedTicket model)
         {
             if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Ticket>(model.Id);
 
             // TODO validate that references exist and belong to the requester
-            
+
             await Task.CompletedTask;
         }
 
         private async Task _validate(NewTicketComment model)
         {
             if ((await Exists(model.TicketId)).Equals(false))
-                throw new ResourceNotFound();
-            
+                throw new ResourceNotFound<Ticket>(model.TicketId);
+
             await Task.CompletedTask;
         }
 

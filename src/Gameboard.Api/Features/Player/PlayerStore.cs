@@ -1,25 +1,24 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data
 {
 
-    public class PlayerStore: Store<Player>, IPlayerStore
+    public class PlayerStore : Store<Player>, IPlayerStore
     {
         public PlayerStore(GameboardDbContext dbContext)
-        :base(dbContext)
-        {
-
-        }
+        : base(dbContext) { }
 
         public async Task<Player> Load(string id)
         {
             return await DbSet
+                .AsNoTracking()
                 .Include(p => p.User)
                 .FirstOrDefaultAsync(p => p.Id == id)
             ;
@@ -27,12 +26,9 @@ namespace Gameboard.Api.Data
 
         public async Task<Player[]> ListTeam(string id)
         {
-            return await base.List()
-                .Include(p => p.User)
-                .Include(p => p.Game)
-                .Where(p => p.TeamId == id)
-                .ToArrayAsync()
-            ;
+            // things are exploding
+            var players = await this.DbContext.Players.ToListAsync();
+            return players.Where(p => p.TeamId == id).ToArray();
         }
 
         public async Task<Player[]> ListTeamByPlayer(string id)
@@ -47,20 +43,18 @@ namespace Gameboard.Api.Data
 
         public async Task<Challenge[]> ListTeamChallenges(string id)
         {
-            return await DbContext.Challenges
+            var challengeEvents = await DbContext.Challenges
+                .AsNoTracking()
                 .Include(c => c.Events)
-                .Where(c => c.TeamId == id)
-                .ToArrayAsync()
-            ;
+                .ToListAsync();
+
+            return challengeEvents.Where(c => c.TeamId == id).ToArray();
         }
 
         public async Task<User> GetUserEnrollments(string id)
-        {
-            return await DbContext.Users
+            => await DbContext.Users
                 .Include(u => u.Enrollments)
-                .FirstOrDefaultAsync(u => u.Id == id)
-            ;
-        }
+                .FirstOrDefaultAsync(u => u.Id == id);
 
         public async Task<Player> LoadBoard(string id)
         {
@@ -81,23 +75,5 @@ namespace Gameboard.Api.Data
 
             return result;
         }
-
-        // If entity has searchable fields, use this:
-        // public override IQueryable<Player> List(string term = null)
-        // {
-        //     var q = base.List();
-
-        //     if (!string.IsNullOrEmpty(term))
-        //     {
-        //         term = term.ToLower();
-
-        //         q = q.Where(t =>
-        //             t.Name.ToLower().Contains(term)
-        //         );
-        //     }
-
-        //     return q;
-        // }
-
     }
 }

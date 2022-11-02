@@ -22,6 +22,8 @@ namespace Gameboard.Api.Services
 
             CreateMap<Data.Player, TeamPlayer>();
 
+            CreateMap<TeamPlayer, Data.Player>();
+
             CreateMap<Data.Player, PlayerOverview>();
 
             CreateMap<Player, TeamPlayer>();

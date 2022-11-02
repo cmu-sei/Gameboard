@@ -3,18 +3,20 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Hubs
 {
     [Authorize(AppConstants.HubPolicy)]
-    public class AppHub: Hub<IAppHubEvent>, IAppHubAction
+    public class AppHub : Hub<IAppHubEvent>, IAppHubAction
     {
         ILogger Logger { get; }
         IPlayerStore PlayerStore { get; }
@@ -25,7 +27,8 @@ namespace Gameboard.Api.Hubs
             ILogger<AppHub> logger,
             IMapper mapper,
             IPlayerStore playerStore
-        ) {
+        )
+        {
             Logger = logger;
             PlayerStore = playerStore;
             Mapper = mapper;
@@ -46,35 +49,47 @@ namespace Gameboard.Api.Hubs
             await Leave();
         }
 
-        public async Task Listen(string id)
+        public async Task Listen(string teamId)
         {
             await Leave();
 
             if (Context.User.IsInRole(UserRole.Support.ToString()))
                 await Groups.AddToGroupAsync(Context.ConnectionId, AppConstants.InternalSupportChannel);
-            
-            if (id == Context.UserIdentifier)
+
+            // ensure the player is on the right team
+            var teamPlayers = await PlayerStore.ListTeam(teamId);
+            var player = teamPlayers.FirstOrDefault(p => p.UserId == Context.UserIdentifier);
+
+            if (player == null)
             {
-                await Groups.AddToGroupAsync(Context.ConnectionId, id);
-            }
-            else
-            {
-                var entity = await PlayerStore.Load(id);
-
-                if (entity?.UserId == Context.UserIdentifier)
-                {
-                    var player = Mapper.Map<TeamPlayer>(entity);
-
-                    Context.Items.Add(ContextPlayerKey, player);
-
-                    await Groups.AddToGroupAsync(Context.ConnectionId, player.TeamId);
-
-                    await Clients.OthersInGroup(player.TeamId).PresenceEvent(
-                        new HubEvent<TeamPlayer>(player, EventAction.Arrived)
-                    );
-                }
+                throw new PlayerIsntOnTeam();
             }
 
+            if (Context.Items[ContextPlayerKey] != null)
+            {
+                Context.Items.Remove(ContextPlayerKey);
+            }
+
+            var teamPlayer = Mapper.Map<TeamPlayer>(player);
+            Context.Items.Add(ContextPlayerKey, player);
+
+            // add to group and broadcast
+            await Groups.AddToGroupAsync(Context.ConnectionId, player.TeamId);
+            await Clients.OthersInGroup(player.TeamId).PresenceEvent(
+                new HubEvent<TeamPlayer>(teamPlayer, EventAction.Arrived)
+            );
+        }
+
+        public async Task<IEnumerable<Data.Player>> ListTeam(string teamId)
+        {
+            var teamPlayers = await PlayerStore.DbSet
+                .AsNoTrackingWithIdentityResolution()
+                .Where(p => p.TeamId == teamId)
+                .Include(p => p.Game)
+                .Include(p => p.User)
+                .ToListAsync();
+
+            return teamPlayers;
         }
 
         public Task Leave()
@@ -92,9 +107,8 @@ namespace Gameboard.Api.Hubs
             }
             else
             {
-
                 Logger.LogDebug($"Leave {player.TeamId} {Context.User?.Identity.Name} {Context.ConnectionId}");
-                
+
                 tasks = new Task[] {
                     Groups.RemoveFromGroupAsync(Context.ConnectionId, player.TeamId),
                     Groups.RemoveFromGroupAsync(Context.ConnectionId, AppConstants.InternalSupportChannel),

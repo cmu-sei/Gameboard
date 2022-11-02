@@ -22,12 +22,12 @@ public class UnityGamesValidator : IModelValidator
 
             if (!(await GameExists(typedModel.GameId)))
             {
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Game>(typedModel.GameId);
             }
 
             if (!(await TeamExists(typedModel.TeamId)))
             {
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Team>(typedModel.TeamId);
             }
 
             var teamPlayers = await _store.DbContext
@@ -51,19 +51,18 @@ public class UnityGamesValidator : IModelValidator
 
             if (!(await ChallengeExists(typedModel.ChallengeId)))
             {
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Challenge>(typedModel.ChallengeId);
             }
 
             if (!(await TeamExists(typedModel.TeamId)))
             {
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Team>(typedModel.TeamId);
             }
         }
         else
         {
-            throw new System.NotImplementedException();
+            throw new ValidationTypeFailure<UnityGamesValidator>(model.GetType());
         }
-
     }
 
     private async Task<bool> ChallengeExists(string id)

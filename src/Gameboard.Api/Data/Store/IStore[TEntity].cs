@@ -16,19 +16,12 @@ namespace Gameboard.Api.Data.Abstractions
         DbSet<TEntity> DbSet { get; }
 
         IQueryable<TEntity> List(string term = null);
-
         Task<TEntity> Create(TEntity entity);
-
         Task<IEnumerable<TEntity>> Create(IEnumerable<TEntity> range);
-
         Task<TEntity> Retrieve(string id, Func<IQueryable<TEntity>, IQueryable<TEntity>> includes = null);
-
         Task Update(TEntity entity);
-
         Task Update(IEnumerable<TEntity> range);
-
         Task Delete(string id);
-
     }
 
 }
