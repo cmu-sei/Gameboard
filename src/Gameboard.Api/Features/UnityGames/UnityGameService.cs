@@ -89,12 +89,16 @@ internal class UnityGameService : _Service, IUnityGameService
             Markdown = game.GameMarkdown,
             Players = teamPlayers.Select(p => new TopoMojo.Api.Client.Player
             {
+                GamespaceId = newChallenge.GamespaceId,
                 SubjectId = p.Id,
                 SubjectName = p.ApprovedName,
-                Permission = p.IsManager ? TopoMojo.Api.Client.Permission.Manager : TopoMojo.Api.Client.Permission.None
+                Permission = p.IsManager ? TopoMojo.Api.Client.Permission.Manager : TopoMojo.Api.Client.Permission.None,
+                IsManager = p.IsManager
             }).ToArray(),
             StartTime = game.GameStart,
             EndTime = game.GameEnd,
+            ExpirationTime = game.GameStart.AddMinutes(game.SessionMinutes),
+            WhenCreated = DateTimeOffset.UtcNow,
             Challenge = new ChallengeView()
             {
                 Attempts = 1,
@@ -103,12 +107,12 @@ internal class UnityGameService : _Service, IUnityGameService
                 Text = challengeName
             },
             IsActive = game.IsLive,
-            WhenCreated = DateTimeOffset.UtcNow,
             Vms = newChallenge.Vms.Select(vm => new VmState
             {
                 Id = vm.Id,
                 Name = vm.Name,
-                IsolationId = newChallenge.GamespaceId
+                IsolationId = newChallenge.GamespaceId,
+                IsVisible = true
             }).ToList()
         };
 
