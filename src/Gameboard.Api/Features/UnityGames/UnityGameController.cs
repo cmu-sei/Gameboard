@@ -148,7 +148,7 @@ public class UnityGameController : _Controller
         );
 
         await Validate(model);
-        return await _unityGameService.AddChallengeEvents(model, Actor.Id);
+        return await _unityGameService.AddChallengeEvent(model, Actor.Id);
     }
 
     [Authorize]

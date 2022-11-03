@@ -16,7 +16,6 @@ namespace Gameboard.Api.Features.UnityGames;
 
 internal class UnityGameService : _Service, IUnityGameService
 {
-    private static SemaphoreSlim SEMAPHORE = new SemaphoreSlim(1, 1);
     private readonly IChallengeStore _challengeStore;
     IUnityStore Store { get; }
     ITopoMojoApiClient Mojo { get; }
@@ -123,6 +122,7 @@ internal class UnityGameService : _Service, IUnityGameService
             HasDeployedGamespace = true,
             SpecId = challengeSpec.Id,
             StartTime = DateTimeOffset.UtcNow,
+            LastSyncTime = DateTimeOffset.UtcNow,
             State = JsonSerializer.Serialize(state),
             GraderKey = Guid.NewGuid().ToString("n").ToSha256(),
             Points = newChallenge.MaxPoints,
@@ -150,7 +150,7 @@ internal class UnityGameService : _Service, IUnityGameService
         return newChallengeEntity;
     }
 
-    public async Task<IEnumerable<ChallengeEvent>> AddChallengeEvents(NewUnityChallengeEvent model, string userId)
+    public async Task<IEnumerable<ChallengeEvent>> AddChallengeEvent(NewUnityChallengeEvent model, string userId)
     {
         var teamPlayers = await Store.DbContext
             .Players

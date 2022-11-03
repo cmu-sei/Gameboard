@@ -461,8 +461,7 @@ namespace Gameboard.Api.Services
                 .Include(p => p.Game)
                 .FirstOrDefaultAsync(
                     p => p.InviteCode == model.Code
-                )
-            ;
+                );
 
             var player = await Store.DbSet.FirstOrDefaultAsync(p => p.Id == model.PlayerId);
 
@@ -498,6 +497,8 @@ namespace Gameboard.Api.Services
 
             player.TeamId = manager.TeamId;
             player.Role = PlayerRole.Member;
+            // retain the code for future enlistees
+            player.InviteCode = model.Code;
 
             await Store.Update(player);
 
