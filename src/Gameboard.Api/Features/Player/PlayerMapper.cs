@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using AutoMapper;
 
 namespace Gameboard.Api.Services
@@ -18,9 +19,22 @@ namespace Gameboard.Api.Services
 
             CreateMap<Data.Player, Standing>();
 
-            CreateMap<Data.Player, Team>();
+            CreateMap<Data.Player, Team>()
+                .AfterMap((player, team) => team.Members = new List<TeamMember>
+                {
+                    new TeamMember()
+                    {
+                        Id = player.Id,
+                        ApprovedName = player.ApprovedName,
+                        Role = player.Role
+                    }
+                });
 
             CreateMap<Data.Player, TeamPlayer>();
+
+            CreateMap<Data.Player, TeamMember>();
+
+            CreateMap<TeamPlayer, Data.Player>();
 
             CreateMap<Data.Player, PlayerOverview>();
 

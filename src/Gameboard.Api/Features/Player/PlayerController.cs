@@ -2,15 +2,15 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Gameboard.Api.Services;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Caching.Distributed;
-using Gameboard.Api.Validators;
-using Microsoft.AspNetCore.SignalR;
-using Gameboard.Api.Hubs;
 using AutoMapper;
+using Gameboard.Api.Hubs;
+using Gameboard.Api.Services;
+using Gameboard.Api.Validators;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Controllers
 {
@@ -28,7 +28,7 @@ namespace Gameboard.Api.Controllers
             PlayerService playerService,
             IHubContext<AppHub, IAppHubEvent> hub,
             IMapper mapper
-        ): base(logger, cache, validator)
+        ) : base(logger, cache, validator)
         {
             PlayerService = playerService;
             Hub = hub;
@@ -61,7 +61,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("api/player/{id}")]
         [Authorize]
-        public async Task<Player> Retrieve([FromRoute]string id)
+        public async Task<Player> Retrieve([FromRoute] string id)
         {
             // TODO: consider appropriate authorization
             // Note: this is essentially a scoreboard entry
@@ -149,7 +149,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpDelete("/api/player/{id}")]
         [Authorize]
-        public async Task Delete([FromRoute]string id)
+        public async Task Delete([FromRoute] string id)
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
@@ -259,7 +259,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<BoardPlayer> GetBoard([FromRoute] string id)
         {
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             AuthorizeAny(
                 () => IsSelf(id).Result
@@ -275,7 +275,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPost("/api/team/advance")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task AdvanceTeams([FromBody]TeamAdvancement model)
+        public async Task AdvanceTeams([FromBody] TeamAdvancement model)
         {
             await Validate(model);
 
@@ -284,7 +284,7 @@ namespace Gameboard.Api.Controllers
 
         [HttpPost("/api/player/{id}/invite")]
         [Authorize]
-        public async Task<TeamInvitation> Invite([FromRoute]string id)
+        public async Task<TeamInvitation> Invite([FromRoute] string id)
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
@@ -303,7 +303,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPost("/api/player/enlist")]
         [Authorize]
-        public async Task<Player> Enlist([FromBody]PlayerEnlistment model)
+        public async Task<Player> Enlist([FromBody] PlayerEnlistment model)
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
@@ -325,7 +325,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<PlayerCertificate> GetCertificate([FromRoute] string id)
         {
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             AuthorizeAny(
                 () => IsSelf(id).Result
@@ -347,7 +347,7 @@ namespace Gameboard.Api.Controllers
 
         private async Task<bool> IsSelf(string playerId)
         {
-          return await PlayerService.MapId(playerId) == Actor.Id;
+            return await PlayerService.MapId(playerId) == Actor.Id;
         }
 
     }

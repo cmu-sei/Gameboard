@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Validators
 {
-    public class GameValidator: IModelValidator
+    public class GameValidator : IModelValidator
     {
         private readonly IGameStore _store;
 
@@ -23,13 +23,13 @@ namespace Gameboard.Api.Validators
             if (model is Entity)
                 return _validate(model as Entity);
 
-            throw new System.NotImplementedException();
+            throw new ValidationTypeFailure<GameValidator>(model.GetType());
         }
 
         private async Task _validate(Entity model)
         {
             if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Game>(model.Id);
 
             await Task.CompletedTask;
         }

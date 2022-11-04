@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Validators
 {
-    public class SponsorValidator: IModelValidator
+    public class SponsorValidator : IModelValidator
     {
         private readonly ISponsorStore _store;
 
@@ -35,7 +35,7 @@ namespace Gameboard.Api.Validators
         private async Task _validate(Entity model)
         {
             if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Sponsor>(model.Id);
 
             await Task.CompletedTask;
         }
@@ -43,7 +43,7 @@ namespace Gameboard.Api.Validators
         private async Task _validate(ChangedSponsor model)
         {
             if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Sponsor>(model.Id);
 
             await Task.CompletedTask;
         }

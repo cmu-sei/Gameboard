@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Validators
 {
-    public class PlayerValidator: IModelValidator
+    public class PlayerValidator : IModelValidator
     {
         private readonly IPlayerStore _store;
 
@@ -55,7 +55,7 @@ namespace Gameboard.Api.Validators
         private async Task _validate(Entity model)
         {
             if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Data.Player>(model.Id);
 
             await Task.CompletedTask;
         }
@@ -63,7 +63,7 @@ namespace Gameboard.Api.Validators
         private async Task _validate(SessionStartRequest model)
         {
             if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<SessionStartRequest>(model.Id);
 
             var player = await _store.Retrieve(model.Id);
             if (player.SessionBegin.Year > 1)
@@ -79,11 +79,15 @@ namespace Gameboard.Api.Validators
 
         private async Task _validate(NewPlayer model)
         {
-            if (
-                (await GameExists(model.GameId)).Equals(false) ||
-                (await UserExists(model.UserId)).Equals(false)
-            )
-                throw new ResourceNotFound();
+            if (!(await GameExists(model.GameId)))
+            {
+                throw new ResourceNotFound<Game>(model.GameId);
+            }
+
+            if (!(await UserExists(model.UserId)))
+            {
+                throw new ResourceNotFound<User>(model.UserId);
+            }
 
             await Task.CompletedTask;
         }
@@ -91,7 +95,7 @@ namespace Gameboard.Api.Validators
         private async Task _validate(ChangedPlayer model)
         {
             if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Player>(model.Id);
 
             await Task.CompletedTask;
         }
@@ -99,13 +103,13 @@ namespace Gameboard.Api.Validators
         private async Task _validate(PlayerEnlistment model)
         {
             if (model.Code.IsEmpty())
-                throw new InvalidInvitationCode();
+                throw new InvalidInvitationCode(model.Code, "No code was provided.");
 
             if (model.PlayerId.NotEmpty() && (await Exists(model.PlayerId)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Player>(model.PlayerId);
 
             if (model.UserId.NotEmpty() && (await UserExists(model.UserId)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<User>(model.UserId);
 
             await Task.CompletedTask;
         }
@@ -116,10 +120,10 @@ namespace Gameboard.Api.Validators
             //     throw new ResourceNotFound();
 
             if ((await GameExists(model.GameId)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Game>(model.GameId);
 
             if ((await GameExists(model.NextGameId)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Game>(model.NextGameId, "The next game");
 
             await Task.CompletedTask;
         }

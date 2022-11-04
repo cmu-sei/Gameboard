@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Validators
 {
-    public class ChallengeGateValidator: IModelValidator
+    public class ChallengeGateValidator : IModelValidator
     {
         private readonly IChallengeGateStore _store;
 
@@ -36,7 +36,7 @@ namespace Gameboard.Api.Validators
         private async Task _validate(Entity model)
         {
             if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<ChallengeGate>(model.Id);
 
             await Task.CompletedTask;
         }
@@ -44,13 +44,13 @@ namespace Gameboard.Api.Validators
         private async Task _validate(NewChallengeGate model)
         {
             if ((await GameExists(model.GameId)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<Game>(model.GameId);
 
             if ((await SpecExists(model.TargetId)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<ChallengeSpec>(model.TargetId, "The target spec");
 
             if ((await SpecExists(model.RequiredId)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<ChallengeSpec>(model.RequiredId, "The required spec");
 
             await Task.CompletedTask;
         }
@@ -58,7 +58,7 @@ namespace Gameboard.Api.Validators
         private async Task _validate(ChangedChallengeGate model)
         {
             if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound();
+                throw new ResourceNotFound<ChallengeGate>(model.Id);
 
             await Task.CompletedTask;
         }

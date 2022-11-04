@@ -17,20 +17,24 @@ namespace Gameboard.Api.Services
     {
         IPlayerStore Store { get; }
         IGameStore GameStore { get; }
+        IUserStore UserStore { get; }
         IMapper Mapper { get; }
         IMemoryCache LocalCache { get; }
         TimeSpan _idmapExpiration = new TimeSpan(0, 30, 0);
         ITopoMojoApiClient Mojo { get; }
 
-        public PlayerService (
+        public PlayerService(
             IPlayerStore store,
+            IUserStore userStore,
             IGameStore gameStore,
             IMapper mapper,
             IMemoryCache localCache,
             ITopoMojoApiClient mojo
-        ){
+        )
+        {
             Store = store;
             GameStore = gameStore;
+            UserStore = userStore;
             Mapper = mapper;
             LocalCache = localCache;
             Mojo = mojo;
@@ -41,12 +45,11 @@ namespace Gameboard.Api.Services
             var game = await GameStore.Retrieve(model.GameId);
 
             if (!sudo && !game.RegistrationActive)
-                throw new RegistrationIsClosed();
+                throw new RegistrationIsClosed(model.GameId);
 
             var user = await Store.GetUserEnrollments(model.UserId);
-
             if (user.Enrollments.Any(p => p.GameId == model.GameId))
-                throw new AlreadyRegistered();
+                throw new AlreadyRegistered(model.UserId, model.GameId);
 
             var entity = Mapper.Map<Data.Player>(model);
 
@@ -123,27 +126,6 @@ namespace Gameboard.Api.Services
 
             await Store.Update(entity);
 
-            // change names for whole team
-            bool namesChanged =
-                prev.Name != entity.Name ||
-                prev.ApprovedName != entity.ApprovedName ||
-                prev.NameStatus != entity.NameStatus
-            ;
-
-            if (namesChanged)
-            {
-                var team = await Store.ListTeamByPlayer(model.Id);
-
-                foreach( var p in team.Where(o => o.Id != entity.Id))
-                {
-                    p.Name = entity.Name;
-                    p.ApprovedName = entity.ApprovedName;
-                    p.NameStatus = entity.NameStatus;
-                }
-
-                await Store.Update(team);
-            }
-
             return Mapper.Map<Player>(entity);
         }
 
@@ -162,7 +144,7 @@ namespace Gameboard.Api.Services
                 throw new ActionForbidden();
 
             if (!sudo && !player.Game.RegistrationActive)
-                throw new RegistrationIsClosed();
+                throw new RegistrationIsClosed(player.GameId, "Registration is inactive.");
 
             var challenges = player.Challenges;
             var players = new Data.Player[] { player };
@@ -180,7 +162,7 @@ namespace Gameboard.Api.Services
                     .ToArrayAsync()
                 ;
             }
-            
+
             if (challenges.Count > 0)
             {
                 var toArchive = Mapper.Map<ArchivedChallenge[]>(challenges);
@@ -188,13 +170,13 @@ namespace Gameboard.Api.Services
                 foreach (var challenge in toArchive)
                 {
                     // gamespace may be deleted in TopoMojo which would cause error and prevent reset
-                    try 
+                    try
                     {
                         challenge.Submissions = (await Mojo.AuditChallengeAsync(challenge.Id)).ToArray();
-                    }  
+                    }
                     catch
-                    { 
-                        challenge.Submissions = new SectionSubmission[] {};
+                    {
+                        challenge.Submissions = new SectionSubmission[] { };
                     }
                     challenge.TeamMembers = teamMembers;
                 }
@@ -205,12 +187,13 @@ namespace Gameboard.Api.Services
             // courtesy call; ignore error (gamespace may have already been removed from backend)
             try
             {
-                foreach(var challenge in challenges) {
+                foreach (var challenge in challenges)
+                {
                     if (challenge.HasDeployedGamespace)
                         await Mojo.CompleteGamespaceAsync(challenge.Id);
                 }
             }
-            catch {}
+            catch { }
 
             foreach (var p in players)
                 await Store.Delete(p.Id);
@@ -258,7 +241,7 @@ namespace Gameboard.Api.Services
             var st = DateTimeOffset.UtcNow;
             var et = st.AddMinutes(game.SessionMinutes);
 
-            foreach( var p in team)
+            foreach (var p in team)
             {
                 p.SessionMinutes = game.SessionMinutes;
                 p.SessionBegin = st;
@@ -297,12 +280,12 @@ namespace Gameboard.Api.Services
             var team = await Store.ListTeam(model.TeamId);
 
             if (team.First().IsLive.Equals(false))
-                throw new SessionNotActive();
+                throw new SessionNotActive(team.First().Id);
 
             if (team.First().SessionEnd >= model.SessionEnd)
                 throw new InvalidSessionWindow();
 
-            foreach(var player in team)
+            foreach (var player in team)
                 player.SessionEnd = model.SessionEnd;
 
             await Store.Update(team);
@@ -331,7 +314,7 @@ namespace Gameboard.Api.Services
         public async Task<Player[]> List(PlayerDataFilter model, bool sudo = false)
         {
             if (!sudo && !model.WantsGame && !model.WantsTeam)
-                return new Player[] {};
+                return new Player[] { };
 
             var q = _List(model);
 
@@ -341,7 +324,7 @@ namespace Gameboard.Api.Services
         public async Task<Standing[]> Standings(PlayerDataFilter model)
         {
             if (model.gid.IsEmpty())
-                return new Standing[] {};
+                return new Standing[] { };
 
             model.Filter = model.Filter
                 .Append(PlayerDataFilter.FilterScoredOnly)
@@ -427,7 +410,7 @@ namespace Gameboard.Api.Services
 
             if (model.WantsSortByTime)
                 q = q.OrderByDescending(p => p.SessionBegin);
-            
+
             if (model.WantsSortByName)
                 q = q.OrderBy(p => p.ApprovedName)
                     .ThenBy(p => p.User.ApprovedName);
@@ -474,63 +457,70 @@ namespace Gameboard.Api.Services
 
         public async Task<Player> Enlist(PlayerEnlistment model, bool sudo = false)
         {
-            var player = await Store.Retrieve(model.PlayerId);
-
-            if (player is not Data.Player)
-                throw new NotYetRegistered();
-
             var manager = await Store.List()
                 .Include(p => p.Game)
                 .FirstOrDefaultAsync(
                     p => p.InviteCode == model.Code
-                )
-            ;
+                );
+
+            var player = await Store.DbSet.FirstOrDefaultAsync(p => p.Id == model.PlayerId);
+
+            if (player == null)
+            {
+                throw new ResourceNotFound<Player>(model.PlayerId);
+            }
+
+            if (player.GameId != manager.GameId)
+            {
+                throw new NotYetRegistered(player.Id, manager.GameId);
+            }
 
             if (manager is not Data.Player)
-                throw new InvalidInvitationCode();
+                throw new InvalidInvitationCode(model.Code, "Couldn't find the manager record.");
 
             if (player.Id == manager.Id)
                 return Mapper.Map<Player>(player);
 
             if (!sudo && !manager.Game.RegistrationActive)
-                throw new RegistrationIsClosed();
+                throw new RegistrationIsClosed(manager.GameId);
 
             if (!sudo && manager.SessionBegin.Year > 1)
-                throw new RegistrationIsClosed();
+                throw new RegistrationIsClosed(manager.GameId, "Registration begins in more than a year.");
 
             if (!sudo && manager.Game.RequireSponsoredTeam && !manager.Sponsor.Equals(player.Sponsor))
-                throw new RequiresSameSponsor();
+                throw new RequiresSameSponsor(manager.GameId, manager.Id, manager.Sponsor, player.Id, player.Sponsor);
 
             int count = await Store.List().CountAsync(p => p.TeamId == manager.TeamId);
 
             if (!sudo && manager.Game.AllowTeam && count >= manager.Game.MaxTeamSize)
-                throw new TeamIsFull();
+                throw new TeamIsFull(manager.Id, count, manager.Game.MaxTeamSize);
 
             player.TeamId = manager.TeamId;
-            player.Name = manager.Name;
-            player.ApprovedName = manager.ApprovedName;
             player.Role = PlayerRole.Member;
+            // retain the code for future enlistees
+            player.InviteCode = model.Code;
 
             await Store.Update(player);
 
             if (manager.Game.AllowTeam && !manager.Game.RequireSponsoredTeam)
                 await UpdateTeamSponsors(manager.TeamId);
 
-            return  Mapper.Map<Player>(player);
+            return Mapper.Map<Player>(player);
         }
 
         private async Task UpdateTeamSponsors(string id)
         {
             var members = await Store.DbSet
                 .Where(p => p.TeamId == id)
-                .Select(p => new { 
-                    Id = p.Id, 
+                .Select(p => new
+                {
+                    Id = p.Id,
                     Sponsor = p.Sponsor,
                     IsManager = p.IsManager
                 })
                 .ToArrayAsync()
             ;
-            
+
             var sponsors = string.Join('|', members
                 .Select(p => p.Sponsor)
                 .Distinct()
@@ -559,9 +549,7 @@ namespace Gameboard.Api.Services
                 players.First(p => p.IsManager)
             );
 
-            team.Members = Mapper.Map<TeamMember[]>(
-                players.Select(p => p.User)
-            );
+            team.Members = Mapper.Map<TeamMember[]>(players);
 
             // TODO: consider display of challenge detail after game closed
             // if (sudo || !players.First().Game.IsLive)
@@ -582,7 +570,8 @@ namespace Gameboard.Api.Services
 
             var teams = players
                 .GroupBy(p => p.TeamId)
-                .Select(g => new TeamSummary {
+                .Select(g => new TeamSummary
+                {
                     Id = g.Key,
                     Name = g.First().ApprovedName,
                     Sponsor = g.First().Sponsor,
@@ -606,7 +595,8 @@ namespace Gameboard.Api.Services
             var teams = players
                 .Where(p => p.IsLive)
                 .GroupBy(p => p.TeamId)
-                .Select(g => new Team {
+                .Select(g => new Team
+                {
                     TeamId = g.Key,
                     ApprovedName = g.First().ApprovedName,
                     Sponsor = g.First().Sponsor,
@@ -619,7 +609,8 @@ namespace Gameboard.Api.Services
                     CorrectCount = g.First().CorrectCount,
                     PartialCount = g.First().PartialCount,
                     Advanced = g.First().Advanced,
-                    Members = g.Select(i => new TeamMember{
+                    Members = g.Select(i => new TeamMember
+                    {
                         Id = i.UserId,
                         ApprovedName = i.User.ApprovedName,
                         Role = i.Role
@@ -649,15 +640,16 @@ namespace Gameboard.Api.Services
 
             var enrollments = new List<Data.Player>();
 
-            foreach(var team in teams)
+            foreach (var team in teams)
             {
                 string newId = Guid.NewGuid().ToString("n");
 
-                foreach(var player in team)
+                foreach (var player in team)
                 {
                     player.Advanced = true;
 
-                    enrollments.Add(new Data.Player {
+                    enrollments.Add(new Data.Player
+                    {
                         TeamId = newId,
                         UserId = player.UserId,
                         GameId = model.NextGameId,
@@ -691,66 +683,69 @@ namespace Gameboard.Api.Services
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             var playerCount = await Store.DbSet
-                .Where(p => p.GameId == player.GameId && 
+                .Where(p => p.GameId == player.GameId &&
                     p.SessionEnd > DateTimeOffset.MinValue)
                 .CountAsync();
-            
+
             var teamCount = await Store.DbSet
-                .Where(p => p.GameId == player.GameId && 
+                .Where(p => p.GameId == player.GameId &&
                     p.SessionEnd > DateTimeOffset.MinValue)
                 .GroupBy(p => p.TeamId)
                 .CountAsync();
-            
+
             return CertificateFromTemplate(player, playerCount, teamCount);
         }
 
         public async Task<PlayerCertificate[]> MakeCertificates(string uid)
-        {  
+        {
             DateTimeOffset now = DateTimeOffset.UtcNow;
 
             var completedSessions = await Store.List()
                 .Include(p => p.Game)
                 .Include(p => p.User)
-                .Where(p => p.UserId == uid && 
+                .Where(p => p.UserId == uid &&
                     p.SessionEnd > DateTimeOffset.MinValue &&
                     p.Game.GameEnd < now &&
-                    p.Game.CertificateTemplate != null && 
+                    p.Game.CertificateTemplate != null &&
                     p.Game.CertificateTemplate.Length > 0)
                 .OrderByDescending(p => p.Game.GameEnd)
                 .ToArrayAsync();
-            
-            return completedSessions.Select(c => CertificateFromTemplate(c, 
+
+            return completedSessions.Select(c => CertificateFromTemplate(c,
                 Store.DbSet
-                    .Where(p => p.Game == c.Game && 
+                    .Where(p => p.Game == c.Game &&
                         p.SessionEnd > DateTimeOffset.MinValue)
                     .Count(),
                 Store.DbSet
-                    .Where(p => p.Game == c.Game && 
+                    .Where(p => p.Game == c.Game &&
                         p.SessionEnd > DateTimeOffset.MinValue)
                     .GroupBy(p => p.TeamId).Count()
             )).ToArray();
         }
 
-        private Api.PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount) {
+        private Api.PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount)
+        {
 
             string certificateHTML = player.Game.CertificateTemplate;
             if (certificateHTML.IsEmpty())
                 return null;
-            certificateHTML =  certificateHTML.Replace("{{leaderboard_name}}", player.ApprovedName);
-            certificateHTML =  certificateHTML.Replace("{{user_name}}", player.User.ApprovedName);
-            certificateHTML =  certificateHTML.Replace("{{score}}", player.Score.ToString());
-            certificateHTML =  certificateHTML.Replace("{{rank}}", player.Rank.ToString());
-            certificateHTML =  certificateHTML.Replace("{{game_name}}", player.Game.Name);
-            certificateHTML =  certificateHTML.Replace("{{competition}}", player.Game.Competition);
-            certificateHTML =  certificateHTML.Replace("{{season}}", player.Game.Season);
-            certificateHTML =  certificateHTML.Replace("{{track}}", player.Game.Track);
-            certificateHTML =  certificateHTML.Replace("{{date}}", player.SessionEnd.ToString("MMMM dd, yyyy"));
-            certificateHTML =  certificateHTML.Replace("{{player_count}}", playerCount.ToString());
-            certificateHTML =  certificateHTML.Replace("{{team_count}}", teamCount.ToString());
+
+            certificateHTML = certificateHTML.Replace("{{leaderboard_name}}", player.ApprovedName);
+            certificateHTML = certificateHTML.Replace("{{user_name}}", player.User.ApprovedName);
+            certificateHTML = certificateHTML.Replace("{{score}}", player.Score.ToString());
+            certificateHTML = certificateHTML.Replace("{{rank}}", player.Rank.ToString());
+            certificateHTML = certificateHTML.Replace("{{game_name}}", player.Game.Name);
+            certificateHTML = certificateHTML.Replace("{{competition}}", player.Game.Competition);
+            certificateHTML = certificateHTML.Replace("{{season}}", player.Game.Season);
+            certificateHTML = certificateHTML.Replace("{{track}}", player.Game.Track);
+            certificateHTML = certificateHTML.Replace("{{date}}", player.SessionEnd.ToString("MMMM dd, yyyy"));
+            certificateHTML = certificateHTML.Replace("{{player_count}}", playerCount.ToString());
+            certificateHTML = certificateHTML.Replace("{{team_count}}", teamCount.ToString());
+
             return new Api.PlayerCertificate
             {
-                Game = Mapper.Map<Game>(player.Game), 
-                Player = Mapper.Map<Player>(player), 
+                Game = Mapper.Map<Game>(player.Game),
+                Player = Mapper.Map<Player>(player),
                 Html = certificateHTML
             };
         }

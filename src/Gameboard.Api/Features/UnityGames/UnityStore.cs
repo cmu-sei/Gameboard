@@ -13,6 +13,14 @@ public class UnityStore : Store<Data.ChallengeSpec>, IUnityStore
         : base(dbContext) { }
 
 
+    public async Task<IEnumerable<Data.ChallengeEvent>> AddUnityChallengeEvents(IEnumerable<Data.ChallengeEvent> challengeEvents)
+    {
+        this.DbContext.ChallengeEvents.AddRange(challengeEvents);
+        await this.DbContext.SaveChangesAsync();
+
+        return challengeEvents;
+    }
+
     // public async Task UpdateAvgDeployTime(string gameId)
     // {
     //     var stats = await DbContext.Challenges
