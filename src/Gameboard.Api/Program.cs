@@ -7,8 +7,6 @@ using System.Linq;
 using Gameboard.Api.Extensions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
-using Serilog;
-using Serilog.Formatting.Compact;
 
 namespace Gameboard.Api
 {
@@ -31,31 +29,33 @@ namespace Gameboard.Api
             {
                 try
                 {
-                    Log.Information("Starting Gameboard...");
+                    // Log.Information("Starting Gameboard...");
+                    System.Diagnostics.Debug.WriteLine("Starting Gameboard...");
                     hostBuilder.Run();
                 }
                 catch (Exception ex)
                 {
-                    Log.Fatal($"Gameboard terminated unexpectedly: {ex.GetType().Name} - {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Gameboard terminated unexpectedly: {ex.GetType().Name} - {ex.Message}");
+                    // Log.Fatal($"Gameboard terminated unexpectedly: {ex.GetType().Name} - {ex.Message}");
                 }
                 finally
                 {
-                    Log.CloseAndFlush();
+                    // Log.CloseAndFlush();
                 }
             }
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .UseSerilog((ctx, cfg) =>
-                {
-                    cfg
-                        .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
-                        .Enrich.FromLogContext()
-                        .Enrich.WithProperty("Application", ctx.HostingEnvironment.ApplicationName)
-                        .Enrich.WithProperty("Environment", ctx.HostingEnvironment.EnvironmentName)
-                        .WriteTo.Console(new RenderedCompactJsonFormatter());
-                })
+                // .UseSerilog((ctx, cfg) =>
+                // {
+                //     cfg
+                //         .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+                //         .Enrich.FromLogContext()
+                //         .Enrich.WithProperty("Application", ctx.HostingEnvironment.ApplicationName)
+                //         .Enrich.WithProperty("Environment", ctx.HostingEnvironment.EnvironmentName)
+                //         .WriteTo.Console(new RenderedCompactJsonFormatter());
+                // })
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();

@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Serilog;
 using ServiceStack.Text;
 
 namespace Gameboard.Api
@@ -100,8 +99,6 @@ namespace Gameboard.Api
                 })
             ;
             services.AddSignalRHub();
-
-            services.AddLogging(loggingBuilder => loggingBuilder.AddSerilog(dispose: true));
 
             services
                 .AddSingleton<CoreOptions>(_ => Settings.Core)
