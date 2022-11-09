@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
@@ -40,13 +39,14 @@ internal class UnityGameService : _Service, IUnityGameService
 
     public async Task<Data.Challenge> AddChallenge(NewUnityChallenge newChallenge, User actor)
     {
+        // each _team_ should only get one copy of the challenge. If anyone else tries, send them on their way
         // each player should only create their challenge data once, so if they call again, just return what they've already
         // got
         var existingChallenge = await Store.DbContext
             .Challenges
             .AsNoTracking()
             .Include(c => c.Events)
-            .Where(c => c.GameId == newChallenge.GameId && c.PlayerId == newChallenge.PlayerId)
+            .Where(c => c.GameId == newChallenge.GameId && c.TeamId == newChallenge.TeamId)
             .FirstOrDefaultAsync();
 
         if (existingChallenge != null)
@@ -61,8 +61,7 @@ internal class UnityGameService : _Service, IUnityGameService
             .Where(p => p.TeamId == newChallenge.TeamId)
             .ToListAsync();
 
-        // team name?
-        var teamCaptain = ResolveTeamCaptain(teamPlayers, newChallenge.TeamId);
+        var teamCaptain = ResolveTeamCaptain(teamPlayers, newChallenge);
         var challengeName = $"{teamCaptain.ApprovedName} vs. Cubespace";
 
         // load the spec associated with the game
@@ -77,6 +76,11 @@ internal class UnityGameService : _Service, IUnityGameService
             .DbContext
             .Games
             .FirstOrDefaultAsync(g => g.Id == newChallenge.GameId);
+
+        if (game == null)
+        {
+            throw new ResourceNotFound<Game>(newChallenge.GameId);
+        }
 
         // this is some guesswork on my part and omits some fields.
         // we'll see how it goes - BS
@@ -147,21 +151,15 @@ internal class UnityGameService : _Service, IUnityGameService
             WhenCreated = DateTimeOffset.UtcNow,
         };
 
-
         await Store.DbContext.Challenges.AddAsync(newChallengeEntity);
         await Store.DbContext.SaveChangesAsync();
 
         return newChallengeEntity;
     }
 
-    public async Task<IEnumerable<ChallengeEvent>> AddChallengeEvent(NewUnityChallengeEvent model, string userId)
+    public async Task<ChallengeEvent> AddChallengeEvent(NewUnityChallengeEvent model, string userId)
     {
-        var teamPlayers = await Store.DbContext
-            .Players
-            .Where(p => p.TeamId == model.TeamId)
-            .ToListAsync();
-
-        var events = teamPlayers.Select(p => new Data.ChallengeEvent
+        var challengeEvent = new Data.ChallengeEvent
         {
             ChallengeId = model.ChallengeId,
             UserId = userId,
@@ -169,9 +167,9 @@ internal class UnityGameService : _Service, IUnityGameService
             Text = model.Text,
             Type = model.Type,
             Timestamp = model.Timestamp
-        });
+        };
 
-        return await Store.AddUnityChallengeEvents(events);
+        return await Store.AddUnityChallengeEvent(challengeEvent);
     }
 
     public async Task DeleteChallengeData(string gameId)
@@ -223,17 +221,18 @@ internal class UnityGameService : _Service, IUnityGameService
         await Store.DbContext.SaveChangesAsync();
     }
 
-    private Data.Player ResolveTeamCaptain(IEnumerable<Data.Player> players, string teamId)
+    private Data.Player ResolveTeamCaptain(IEnumerable<Data.Player> players, NewUnityChallenge newChallenge)
     {
         if (players.Count() == 0)
         {
-            throw new CaptainResolutionFailure(teamId);
+            throw new CaptainResolutionFailure(newChallenge.TeamId);
         }
 
-        // find the player with the earliest alphabetic name in case we need to tiebreak
-        // between captains or if the team doesn't have one. sometimes weird stuff happens. 
-        // you can quote me.
+        // if the team has a captain (manager, yay)
+        // if they have too many, boo (pick one by name which is stupid but stupid things happen sometimes)
+        // if they have none, congratulations to the player who called the API!
         var sortedPlayers = players.OrderBy(p => p.ApprovedName);
+        var actingPlayer = players.First(p => p.Id == newChallenge.PlayerId);
         var captains = players.Where(p => p.IsManager);
 
         if (captains.Count() == 1)
@@ -242,9 +241,9 @@ internal class UnityGameService : _Service, IUnityGameService
         }
         else if (captains.Count() > 1)
         {
-            sortedPlayers = captains.OrderBy(c => c.ApprovedName);
+            return captains.OrderBy(c => c.ApprovedName).First();
         }
 
-        return sortedPlayers.First();
+        return actingPlayer;
     }
 }

@@ -1,9 +1,11 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System.Collections.Generic;
+using System;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Features.UnityGames;
@@ -13,6 +15,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -22,10 +25,12 @@ namespace Gameboard.Api.Controllers;
 [Authorize]
 public class UnityGameController : _Controller
 {
+    private readonly CoreOptions _appSettings;
     private readonly ConsoleActorMap _actorMap;
     private readonly GameService _gameService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IHubContext<AppHub, IAppHubEvent> _hub;
+    private readonly LinkGenerator _linkGenerator;
     private readonly IMapper _mapper;
     private readonly IUnityGameService _unityGameService;
 
@@ -36,19 +41,30 @@ public class UnityGameController : _Controller
         UnityGamesValidator validator,
         // other stuff
         ConsoleActorMap actorMap,
+        CoreOptions appSettings,
         GameService gameService,
         IHttpClientFactory httpClientFactory,
         IUnityGameService unityGameService,
         IHubContext<AppHub, IAppHubEvent> hub,
+        LinkGenerator link,
         IMapper mapper
     ) : base(logger, cache, validator)
     {
         _actorMap = actorMap;
+        _appSettings = appSettings;
         _gameService = gameService;
         _httpClientFactory = httpClientFactory;
         _hub = hub;
+        _linkGenerator = link;
         _mapper = mapper;
         _unityGameService = unityGameService;
+    }
+
+    [HttpGet("/api/unity")]
+    [AllowAnonymous]
+    public IActionResult Hi()
+    {
+        return Ok(_appSettings.GameEngineUrl + "    " + Request.GetTypedHeaders().Referer.ToString());
     }
 
     [HttpGet("/api/unity/{gid}/{tid}")]
@@ -113,7 +129,7 @@ public class UnityGameController : _Controller
     /// <param name="model">NewChallengeEvent</param>
     /// <returns>ChallengeEvent</returns>
     [Authorize]
-    [HttpPost("api/unity/challenges")]
+    [HttpPost("api/unity/challenge")]
     public async Task<Data.Challenge> CreateChallenge([FromBody] NewUnityChallenge model)
     {
         AuthorizeAny(
@@ -125,9 +141,37 @@ public class UnityGameController : _Controller
         await Validate(model);
         var result = await _unityGameService.AddChallenge(model, Actor);
 
-        await _hub.Clients
+        // now that we have challenge IDs, we can update gamebrain's console urls
+        var gamebrainClient = await CreateGamebrain();
+
+        var vmData = model.Vms.Select(vm =>
+        {
+            var consoleHost = new UriBuilder(Request.Scheme, Request.Host.Host, Request.Host.Port ?? -1, "test/gb/mks");
+            consoleHost.Query = $"f=1&s={result.Id}&v={vm.Name}";
+
+            return new UnityGameVm
+            {
+                Id = vm.Id,
+                Url = consoleHost.Uri.ToString(),
+                Name = vm.Name,
+            };
+        }).ToArray();
+
+        try
+        {
+            await gamebrainClient.PostAsync($"admin/update_console_urls/{model.TeamId}", JsonContent.Create<UnityGameVm[]>(vmData, mediaType: MediaTypeHeaderValue.Parse("application/json")));
+        }
+        catch (Exception ex)
+        {
+            Console.Write("Calling gamebrain failed with", ex);
+        }
+        finally
+        {
+            // notify the hub (if there is one)
+            await _hub.Clients
                 .Group(model.TeamId)
                 .ChallengeEvent(new HubEvent<Challenge>(_mapper.Map<Challenge>(result), EventAction.Updated));
+        }
 
         return result;
     }
@@ -137,9 +181,9 @@ public class UnityGameController : _Controller
     /// </summary>
     /// <param name="model">NewChallengeEvent</param>
     /// <returns>ChallengeEvent</returns>
-    [HttpPost("api/unity/challengeEvents")]
+    [HttpPost("api/unity/challengeEvent")]
     [Authorize]
-    public async Task<IEnumerable<Data.ChallengeEvent>> CreateChallengeEvent([FromBody] NewUnityChallengeEvent model)
+    public async Task<Data.ChallengeEvent> CreateChallengeEvent([FromBody] NewUnityChallengeEvent model)
     {
         AuthorizeAny(
             () => Actor.IsDirector,
@@ -151,8 +195,8 @@ public class UnityGameController : _Controller
         return await _unityGameService.AddChallengeEvent(model, Actor.Id);
     }
 
-    [Authorize]
     [HttpPost("api/unity/mission-update")]
+    [Authorize]
     public async Task CreateMissionEvent([FromBody] UnityMissionUpdate model)
     {
         AuthorizeAny(
