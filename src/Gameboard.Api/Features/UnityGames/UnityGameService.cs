@@ -122,7 +122,7 @@ internal class UnityGameService : _Service, IUnityGameService
 
         var newChallengeEntity = new Data.Challenge
         {
-            Id = Guid.NewGuid().ToString("n"),
+            Id = newChallenge.GamespaceId,
             Name = $"{teamCaptain.ApprovedName} vs. Cubespace",
             GameId = challengeSpec.GameId,
             TeamId = newChallenge.TeamId,
