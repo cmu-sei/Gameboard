@@ -1,18 +1,17 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-
-using Gameboard.Api.Services;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.AspNetCore.Authorization;
-using TopoMojo.Api.Client;
-using Gameboard.Api.Validators;
-using Microsoft.AspNetCore.SignalR;
-using Gameboard.Api.Hubs;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Gameboard.Api.Hubs;
+using Gameboard.Api.Services;
+using Gameboard.Api.Validators;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
+using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Controllers
 {
@@ -32,7 +31,7 @@ namespace Gameboard.Api.Controllers
             PlayerService playerService,
             IHubContext<AppHub, IAppHubEvent> hub,
             ConsoleActorMap actormap
-        ): base(logger, cache, validator)
+        ) : base(logger, cache, validator)
         {
             ChallengeService = challengeService;
             PlayerService = playerService;
@@ -83,14 +82,14 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("api/challenge/{id}")]
         [Authorize]
-        public async Task<Challenge> Retrieve([FromRoute]string id)
+        public async Task<Challenge> Retrieve([FromRoute] string id)
         {
             AuthorizeAny(
                 () => Actor.IsDirector,
                 () => ChallengeService.UserIsTeamPlayer(id, Actor.Id).Result
             );
 
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             return await ChallengeService.Retrieve(id);
         }
@@ -102,7 +101,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPost("api/challenge/preview")]
         [Authorize]
-        public async Task<Challenge> Preview([FromBody]NewChallenge model)
+        public async Task<Challenge> Preview([FromBody] NewChallenge model)
         {
             AuthorizeAny(
                 () => IsSelf(model.PlayerId).Result
@@ -133,14 +132,14 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpDelete("/api/challenge/{id}")]
         [Authorize]
-        public async Task Delete([FromRoute]string id)
+        public async Task Delete([FromRoute] string id)
         {
             AuthorizeAny(
                 () => Actor.IsDirector
                 // () => Actor.IsTester && ChallengeService.UserIsTeamPlayer(id, Actor.Id).Result
             );
 
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             await ChallengeService.Delete(id);
             return;
@@ -153,7 +152,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPut("/api/challenge/start")]
         [Authorize]
-        public async Task<Challenge> StartGamespace([FromBody]ChangedChallenge model)
+        public async Task<Challenge> StartGamespace([FromBody] ChangedChallenge model)
         {
             AuthorizeAny(
                 () => Actor.IsDirector,
@@ -178,14 +177,14 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPut("/api/challenge/stop")]
         [Authorize]
-        public async Task<Challenge> StopGamespace([FromBody]ChangedChallenge model)
+        public async Task<Challenge> StopGamespace([FromBody] ChangedChallenge model)
         {
             AuthorizeAny(
                 () => Actor.IsDirector,
                 () => ChallengeService.UserIsTeamPlayer(model.Id, Actor.Id).Result
             );
 
-            await Validate(new Entity{ Id = model.Id });
+            await Validate(new Entity { Id = model.Id });
 
             var result = await ChallengeService.StopGamespace(model.Id, Actor.Id);
 
@@ -203,7 +202,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPut("/api/challenge/grade")]
         [Authorize(AppConstants.GraderPolicy)]
-        public async Task<Challenge> Grade([FromBody]SectionSubmission model)
+        public async Task<Challenge> Grade([FromBody] SectionSubmission model)
         {
             AuthorizeAny(
                 () => Actor.IsDirector,
@@ -211,7 +210,7 @@ namespace Gameboard.Api.Controllers
                 () => ChallengeService.UserIsTeamPlayer(model.Id, Actor.Id).Result
             );
 
-            await Validate(new Entity{ Id = model.Id });
+            await Validate(new Entity { Id = model.Id });
 
             var result = await ChallengeService.Grade(model, Actor.Id);
 
@@ -229,7 +228,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPut("/api/challenge/regrade")]
         [Authorize]
-        public async Task<Challenge> Regrade([FromBody]Entity model)
+        public async Task<Challenge> Regrade([FromBody] Entity model)
         {
             AuthorizeAny(
                 () => Actor.IsDirector
@@ -253,7 +252,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("/api/challenge/{id}/audit")]
         [Authorize]
-        public async Task<SectionSubmission[]> Audit([FromRoute]string id)
+        public async Task<SectionSubmission[]> Audit([FromRoute] string id)
         {
             AuthorizeAny(
                 () => Actor.IsDirector
@@ -271,7 +270,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPost("/api/challenge/console")]
         [Authorize(AppConstants.ConsolePolicy)]
-        public async Task<ConsoleSummary> GetConsole([FromBody]ConsoleRequest model)
+        public async Task<ConsoleSummary> GetConsole([FromBody] ConsoleRequest model)
         {
             await Validate(new Entity { Id = model.SessionId });
 
@@ -301,7 +300,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPut("/api/challenge/console")]
         [Authorize(AppConstants.ConsolePolicy)]
-        public async Task SetConsoleActor([FromBody]ConsoleRequest model)
+        public async Task SetConsoleActor([FromBody] ConsoleRequest model)
         {
             await Validate(new Entity { Id = model.SessionId });
 
@@ -315,7 +314,7 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("/api/challenge/consoles")]
         [Authorize]
-        public async Task<List<ObserveChallenge>> FindConsoles([FromQuery]string gid)
+        public async Task<List<ObserveChallenge>> FindConsoles([FromQuery] string gid)
         {
             AuthorizeAny(
               () => Actor.IsDirector,
@@ -327,7 +326,7 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("/api/challenge/consoleactors")]
         [Authorize]
-        public ConsoleActor[] GetConsoleActors([FromQuery]string gid)
+        public ConsoleActor[] GetConsoleActors([FromQuery] string gid)
         {
             AuthorizeAny(
               () => Actor.IsDirector,
@@ -339,7 +338,7 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("/api/challenge/consoleactor")]
         [Authorize(AppConstants.ConsolePolicy)]
-        public ConsoleActor GetConsoleActor([FromQuery]string uid)
+        public ConsoleActor GetConsoleActor([FromQuery] string uid)
         {
             AuthorizeAny(
               () => Actor.IsDirector,
@@ -402,7 +401,7 @@ namespace Gameboard.Api.Controllers
 
         private async Task<bool> IsSelf(string playerId)
         {
-          return await PlayerService.MapId(playerId) == Actor.Id;
+            return await PlayerService.MapId(playerId) == Actor.Id;
         }
     }
 }
