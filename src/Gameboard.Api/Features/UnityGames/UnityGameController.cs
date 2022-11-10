@@ -25,7 +25,6 @@ namespace Gameboard.Api.Controllers;
 [Authorize]
 public class UnityGameController : _Controller
 {
-    private readonly CoreOptions _appSettings;
     private readonly ConsoleActorMap _actorMap;
     private readonly GameService _gameService;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -41,7 +40,6 @@ public class UnityGameController : _Controller
         UnityGamesValidator validator,
         // other stuff
         ConsoleActorMap actorMap,
-        CoreOptions appSettings,
         GameService gameService,
         IHttpClientFactory httpClientFactory,
         IUnityGameService unityGameService,
@@ -51,20 +49,12 @@ public class UnityGameController : _Controller
     ) : base(logger, cache, validator)
     {
         _actorMap = actorMap;
-        _appSettings = appSettings;
         _gameService = gameService;
         _httpClientFactory = httpClientFactory;
         _hub = hub;
         _linkGenerator = link;
         _mapper = mapper;
         _unityGameService = unityGameService;
-    }
-
-    [HttpGet("/api/unity")]
-    [AllowAnonymous]
-    public IActionResult Hi()
-    {
-        return Ok(_appSettings.GameEngineUrl + "    " + Request.GetTypedHeaders().Referer.ToString());
     }
 
     [HttpGet("/api/unity/{gid}/{tid}")]
@@ -146,7 +136,7 @@ public class UnityGameController : _Controller
 
         var vmData = model.Vms.Select(vm =>
         {
-            var consoleHost = new UriBuilder(Request.Scheme, Request.Host.Host, Request.Host.Port ?? -1, "test/gb/mks");
+            var consoleHost = new UriBuilder(Request.Scheme, Request.Host.Host, Request.Host.Port ?? -1, $"{Request.PathBase}/mks");
             consoleHost.Query = $"f=1&s={result.Id}&v={vm.Name}";
 
             return new UnityGameVm
