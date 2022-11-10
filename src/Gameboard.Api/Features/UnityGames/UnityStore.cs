@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.UnityGames;
 
@@ -13,12 +9,12 @@ public class UnityStore : Store<Data.ChallengeSpec>, IUnityStore
         : base(dbContext) { }
 
 
-    public async Task<IEnumerable<Data.ChallengeEvent>> AddUnityChallengeEvents(IEnumerable<Data.ChallengeEvent> challengeEvents)
+    public async Task<Data.ChallengeEvent> AddUnityChallengeEvent(Data.ChallengeEvent challengeEvent)
     {
-        this.DbContext.ChallengeEvents.AddRange(challengeEvents);
+        this.DbContext.ChallengeEvents.Add(challengeEvent);
         await this.DbContext.SaveChangesAsync();
 
-        return challengeEvents;
+        return challengeEvent;
     }
 
     // public async Task UpdateAvgDeployTime(string gameId)
