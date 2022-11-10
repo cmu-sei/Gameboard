@@ -123,9 +123,7 @@ public class UnityGameController : _Controller
     public async Task<Data.Challenge> CreateChallenge([FromBody] NewUnityChallenge model)
     {
         AuthorizeAny(
-            () => Actor.IsDirector,
-            () => Actor.IsAdmin,
-            () => Actor.IsDesigner
+            () => _gameService.UserIsTeamPlayer(Actor.Id, model.GameId, model.TeamId).Result
         );
 
         await Validate(model);
