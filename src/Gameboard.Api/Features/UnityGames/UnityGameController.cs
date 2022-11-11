@@ -88,7 +88,6 @@ public class UnityGameController : _Controller
     public async Task<string> DeployUnitySpace([FromRoute] string gid, [FromRoute] string tid)
     {
         AuthorizeAny(
-            () => Actor.IsDirector,
             () => _gameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
         );
 
@@ -103,6 +102,7 @@ public class UnityGameController : _Controller
     {
         AuthorizeAny(
             () => Actor.IsAdmin,
+            () => Actor.IsSupport,
             () => _gameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
         );
 
@@ -153,13 +153,11 @@ public class UnityGameController : _Controller
         {
             Console.Write("Calling gamebrain failed with", ex);
         }
-        finally
-        {
-            // notify the hub (if there is one)
-            await _hub.Clients
-                .Group(model.TeamId)
-                .ChallengeEvent(new HubEvent<Challenge>(_mapper.Map<Challenge>(result), EventAction.Updated));
-        }
+
+        // notify the hub (if there is one)
+        await _hub.Clients
+            .Group(model.TeamId)
+            .ChallengeEvent(new HubEvent<Challenge>(_mapper.Map<Challenge>(result), EventAction.Updated));
 
         return result;
     }
@@ -188,13 +186,10 @@ public class UnityGameController : _Controller
     public async Task CreateMissionEvent([FromBody] UnityMissionUpdate model)
     {
         AuthorizeAny(
-            () => Actor.IsDirector,
-            () => Actor.IsAdmin,
-            () => Actor.IsDesigner
+            () => Actor.IsAdmin
         );
 
         await Validate(model);
-
         await _unityGameService.CreateMissionEvent(model, Actor);
     }
 
