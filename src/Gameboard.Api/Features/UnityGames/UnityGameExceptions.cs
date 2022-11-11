@@ -7,7 +7,7 @@ public class TeamHasNoPlayersException : Exception { }
 
 internal class ChallengeResolutionFailure : GameboardException
 {
-    public ChallengeResolutionFailure(string teamId) : base($"Couldn't resolve the challenge for team ${teamId}.") { }
+    public ChallengeResolutionFailure(string teamId) : base($"Couldn't resolve a Unity challenge for team {teamId}") { }
 }
 
 internal class SemaphoreLockFailure : GameboardException
