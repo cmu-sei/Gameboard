@@ -194,30 +194,35 @@ internal class UnityGameService : _Service, IUnityGameService
 
     public async Task CreateMissionEvent(UnityMissionUpdate model, Api.User actor)
     {
-        var player = await Store.DbContext
-            .Players
-            .Include(p => p.Challenges)
-            // TODO: need to think about how we ensure, across this service, that
-            // we're loading the unity game (or the right one when we get more than one)
-            .Include(p => p.Game)
-            .FirstOrDefaultAsync(p => p.Game.Mode == "unity" && p.TeamId == model.TeamId);
+        var challenge = await Store.DbContext
+            .Challenges
+            .Include(c => c.Game)
+            .Include(c => c.Events)
+            .Include(c => c.Player)
+            .Where(c => c.TeamId == model.TeamId && c.Game.Mode.ToLower() == "unity")
+            .FirstOrDefaultAsync();
 
-        if (player.Challenges.Count() != 1)
+        if (challenge == null)
         {
             throw new ChallengeResolutionFailure(model.TeamId);
         }
 
-        var challengeEvent = new Data.ChallengeEvent()
+        // record an event for this challenge
+        challenge.Events.Add(new Data.ChallengeEvent
         {
-            ChallengeId = player.Challenges.First().Id,
+            Id = Guid.NewGuid().ToString("n"),
+            ChallengeId = challenge.Id,
             UserId = actor.Id,
             TeamId = model.TeamId,
-            Text = $"{player.ApprovedName} has found the codex for {model.MissionName}!",
+            Text = $"{challenge.Player} has found the codex for {model.MissionName}!",
             Type = ChallengeEventType.Submission,
             Timestamp = DateTimeOffset.UtcNow
-        };
+        });
 
-        await Store.DbContext.ChallengeEvents.AddAsync(challengeEvent);
+        // also update the score of the challenge
+        challenge.Score += model.PointsScored;
+
+        // save it up
         await Store.DbContext.SaveChangesAsync();
     }
 
