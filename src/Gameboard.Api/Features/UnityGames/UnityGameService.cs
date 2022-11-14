@@ -199,7 +199,7 @@ internal class UnityGameService : _Service, IUnityGameService
             .Include(c => c.Game)
             .Include(c => c.Events)
             .Include(c => c.Player)
-            .Where(c => c.TeamId == model.TeamId && c.Game.Mode.ToLowerInvariant() == "unity")
+            .Where(c => c.TeamId == model.TeamId && c.Game.Mode.ToLower() == "unity")
             .FirstOrDefaultAsync();
 
         if (challenge == null)
@@ -210,6 +210,7 @@ internal class UnityGameService : _Service, IUnityGameService
         // record an event for this challenge
         challenge.Events.Add(new Data.ChallengeEvent
         {
+            Id = Guid.NewGuid().ToString("n"),
             ChallengeId = challenge.Id,
             UserId = actor.Id,
             TeamId = model.TeamId,
