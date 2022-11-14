@@ -144,7 +144,7 @@ internal class UnityGameService : _Service, IUnityGameService
                     UserId = actor.Id,
                     TeamId = newChallenge.TeamId,
                     Timestamp = DateTimeOffset.UtcNow,
-                    Text = $"{teamCaptain.ApprovedName}'s journey into CubeSpace has begun...",
+                    Text = $"{teamCaptain.ApprovedName}'s has gathered their team and departed into CubeSpace...",
                     Type = ChallengeEventType.Started
                 }
             },
@@ -155,21 +155,6 @@ internal class UnityGameService : _Service, IUnityGameService
         await Store.DbContext.SaveChangesAsync();
 
         return newChallengeEntity;
-    }
-
-    public async Task<ChallengeEvent> AddChallengeEvent(NewUnityChallengeEvent model, string userId)
-    {
-        var challengeEvent = new Data.ChallengeEvent
-        {
-            ChallengeId = model.ChallengeId,
-            UserId = userId,
-            TeamId = model.TeamId,
-            Text = model.Text,
-            Type = model.Type,
-            Timestamp = model.Timestamp
-        };
-
-        return await Store.AddUnityChallengeEvent(challengeEvent);
     }
 
     public async Task DeleteChallengeData(string gameId)
@@ -192,39 +177,62 @@ internal class UnityGameService : _Service, IUnityGameService
         await Store.DbContext.SaveChangesAsync();
     }
 
-    public async Task CreateMissionEvent(UnityMissionUpdate model, Api.User actor)
+    public async Task<Data.ChallengeEvent> CreateMissionEvent(UnityMissionUpdate model, Api.User actor)
     {
-        var challenge = await Store.DbContext
+        var unityMode = GetUnityModeString();
+        var challengeCandidates = await Store.DbContext
             .Challenges
             .Include(c => c.Game)
             .Include(c => c.Events)
             .Include(c => c.Player)
-            .Where(c => c.TeamId == model.TeamId && c.Game.Mode.ToLower() == "unity")
-            .FirstOrDefaultAsync();
+            .Where(c => c.TeamId == model.TeamId && c.Game.Mode == unityMode)
+            .ToListAsync();
 
-        if (challenge == null)
+        if (challengeCandidates.Count() != 1)
         {
             throw new ChallengeResolutionFailure(model.TeamId);
         }
 
+        // if we return null to the controller above, it interprets this as an "ok cool, we already have this one"
+        // kind of thing
+        var challenge = challengeCandidates.First();
+        if (IsMissionComplete(challenge.Events, model.MissionId))
+        {
+            return null;
+        }
+
         // record an event for this challenge
-        challenge.Events.Add(new Data.ChallengeEvent
+        var challengeEvent = new Data.ChallengeEvent
         {
             Id = Guid.NewGuid().ToString("n"),
             ChallengeId = challenge.Id,
             UserId = actor.Id,
             TeamId = model.TeamId,
-            Text = $"{challenge.Player} has found the codex for {model.MissionName}!",
+            Text = $"{challenge.Player.ApprovedName}'s team has found the codex for {model.MissionName}! {GetMissionCompleteDefinitionString(model.MissionId)}",
             Type = ChallengeEventType.Submission,
             Timestamp = DateTimeOffset.UtcNow
-        });
+        };
+        challenge.Events.Add(challengeEvent);
 
         // also update the score of the challenge
         challenge.Score += model.PointsScored;
 
         // save it up
         await Store.DbContext.SaveChangesAsync();
+
+        // return (used to determine HTTP status code in an above controller)
+        return challengeEvent;
     }
+
+    public bool IsUnityGame(Data.Game game) => game.Mode == GetUnityModeString();
+    public bool IsUnityGame(Game game) => game.Mode == GetUnityModeString();
+    private string GetUnityModeString() => "unity";
+
+    private string GetMissionCompleteDefinitionString(string missionId)
+        => $"[complete:{missionId}]";
+
+    private bool IsMissionComplete(IEnumerable<Data.ChallengeEvent> events, string missionId)
+        => events.Any(e => e.Text.Contains(GetMissionCompleteDefinitionString(missionId)));
 
     private Data.Player ResolveTeamCaptain(IEnumerable<Data.Player> players, NewUnityChallenge newChallenge)
     {
