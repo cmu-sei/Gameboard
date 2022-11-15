@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Features.UnityGames;
@@ -25,6 +26,8 @@ namespace Gameboard.Api.Controllers;
 [Authorize]
 public class UnityGameController : _Controller
 {
+    private static SemaphoreSlim SP_CHALLENGE_DATA = new SemaphoreSlim(1, 1);
+
     private readonly ConsoleActorMap _actorMap;
     private readonly GameService _gameService;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -127,7 +130,35 @@ public class UnityGameController : _Controller
         );
 
         await Validate(model);
-        var result = await _unityGameService.AddChallenge(model, Actor);
+
+        // each _team_ will only get one copy of the challenge, and by rule, that challenge must have the id
+        // of the topo gamespace ID. If it's already in the DB, send them on their way with the challenge we've already got
+        // 
+        // semaphore locking because, if i don't, may not sleep during the competition
+        Data.Challenge challengeData = null;
+        try
+        {
+            Console.Write("Entering the Unity challenge data semaphore");
+            await SP_CHALLENGE_DATA.WaitAsync();
+
+            challengeData = await _unityGameService.HasChallengeData(model);
+            if (challengeData != null)
+            {
+                return challengeData;
+            }
+
+            // otherwise, add new challenge data and send gamebrain the ids of the consoles (which are based on the challenge id)
+            challengeData = await _unityGameService.AddChallenge(model, Actor);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error inside the Unity challenge data semaphore:", ex);
+            throw;
+        }
+        finally
+        {
+            SP_CHALLENGE_DATA.Release();
+        }
 
         // now that we have challenge IDs, we can update gamebrain's console urls
         var gamebrainClient = await CreateGamebrain();
@@ -135,7 +166,7 @@ public class UnityGameController : _Controller
         var vmData = model.Vms.Select(vm =>
         {
             var consoleHost = new UriBuilder(Request.Scheme, Request.Host.Host, Request.Host.Port ?? -1, $"{Request.PathBase}/mks");
-            consoleHost.Query = $"f=1&s={result.Id}&v={vm.Name}";
+            consoleHost.Query = $"f=1&s={challengeData.Id}&v={vm.Name}";
 
             return new UnityGameVm
             {
@@ -152,14 +183,15 @@ public class UnityGameController : _Controller
         catch (Exception ex)
         {
             Console.Write("Calling gamebrain failed with", ex);
+            throw;
         }
 
         // notify the hub (if there is one)
         await _hub.Clients
             .Group(model.TeamId)
-            .ChallengeEvent(new HubEvent<Challenge>(_mapper.Map<Challenge>(result), EventAction.Updated));
+            .ChallengeEvent(new HubEvent<Challenge>(_mapper.Map<Challenge>(challengeData), EventAction.Updated));
 
-        return result;
+        return challengeData;
     }
 
     [HttpPost("api/unity/mission-update")]

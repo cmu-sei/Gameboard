@@ -39,15 +39,13 @@ internal class UnityGameService : _Service, IUnityGameService
 
     public async Task<Data.Challenge> AddChallenge(NewUnityChallenge newChallenge, User actor)
     {
-        // each _team_ should only get one copy of the challenge. If anyone else tries, send them on their way
-        // each player should only create their challenge data once, so if they call again, just return what they've already
-        // got
+        // each _team_ should only get one copy of the challenge, and by rule, that challenge must have the id
+        // of the topo gamespace ID. If it's already in the DB, send them on their way with the challenge we've already got
         var existingChallenge = await Store.DbContext
             .Challenges
             .AsNoTracking()
             .Include(c => c.Events)
-            .Where(c => c.GameId == newChallenge.GameId && c.TeamId == newChallenge.TeamId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(c => c.Id == newChallenge.GamespaceId);
 
         if (existingChallenge != null)
         {
@@ -155,6 +153,15 @@ internal class UnityGameService : _Service, IUnityGameService
         await Store.DbContext.SaveChangesAsync();
 
         return newChallengeEntity;
+    }
+
+    public async Task<Data.Challenge> HasChallengeData(NewUnityChallenge model)
+    {
+        return await Store.DbContext
+            .Challenges
+            .AsNoTracking()
+            .Include(c => c.Events)
+            .FirstOrDefaultAsync(c => c.Id == model.GamespaceId);
     }
 
     public async Task DeleteChallengeData(string gameId)
