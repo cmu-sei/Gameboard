@@ -8,6 +8,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
@@ -15,7 +16,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -25,11 +25,11 @@ namespace Gameboard.Api.Controllers;
 [Authorize]
 public class UnityGameController : _Controller
 {
+    private readonly IChallengeStore _challengeStore;
     private readonly ConsoleActorMap _actorMap;
     private readonly GameService _gameService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IHubContext<AppHub, IAppHubEvent> _hub;
-    private readonly LinkGenerator _linkGenerator;
     private readonly IMapper _mapper;
     private readonly IUnityGameService _unityGameService;
 
@@ -41,18 +41,19 @@ public class UnityGameController : _Controller
         // other stuff
         ConsoleActorMap actorMap,
         GameService gameService,
+        PlayerService playerService,
+        IChallengeStore challengeStore,
         IHttpClientFactory httpClientFactory,
         IUnityGameService unityGameService,
         IHubContext<AppHub, IAppHubEvent> hub,
-        LinkGenerator link,
         IMapper mapper
     ) : base(logger, cache, validator)
     {
         _actorMap = actorMap;
+        _challengeStore = challengeStore;
         _gameService = gameService;
         _httpClientFactory = httpClientFactory;
         _hub = hub;
-        _linkGenerator = link;
         _mapper = mapper;
         _unityGameService = unityGameService;
     }
@@ -179,7 +180,10 @@ public class UnityGameController : _Controller
             return Accepted();
         }
 
-        // this means we actually created an event
+        // this means we actually created an event, so also update player scores
+        await _challengeStore.UpdateTeam(model.TeamId);
+
+        // call back with the event
         return Ok(challengeEvent);
     }
 
