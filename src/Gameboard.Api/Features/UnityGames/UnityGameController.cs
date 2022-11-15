@@ -162,35 +162,25 @@ public class UnityGameController : _Controller
         return result;
     }
 
-    /// <summary>
-    ///     Log a challenge event for all members of the specified team.
-    /// </summary>
-    /// <param name="model">NewChallengeEvent</param>
-    /// <returns>ChallengeEvent</returns>
-    [HttpPost("api/unity/challengeEvent")]
-    [Authorize]
-    public async Task<Data.ChallengeEvent> CreateChallengeEvent([FromBody] NewUnityChallengeEvent model)
-    {
-        AuthorizeAny(
-            () => Actor.IsDirector,
-            () => Actor.IsAdmin,
-            () => Actor.IsDesigner
-        );
-
-        await Validate(model);
-        return await _unityGameService.AddChallengeEvent(model, Actor.Id);
-    }
-
     [HttpPost("api/unity/mission-update")]
     [Authorize]
-    public async Task CreateMissionEvent([FromBody] UnityMissionUpdate model)
+    public async Task<IActionResult> CreateMissionEvent([FromBody] UnityMissionUpdate model)
     {
         AuthorizeAny(
             () => Actor.IsAdmin
         );
 
         await Validate(model);
-        await _unityGameService.CreateMissionEvent(model, Actor);
+        var challengeEvent = await _unityGameService.CreateMissionEvent(model, Actor);
+
+        if (challengeEvent == null)
+        {
+            // this means that everything went fine, but that we've already been told the team completed this challenge
+            return Accepted();
+        }
+
+        // this means we actually created an event
+        return Ok(challengeEvent);
     }
 
     [Authorize]
