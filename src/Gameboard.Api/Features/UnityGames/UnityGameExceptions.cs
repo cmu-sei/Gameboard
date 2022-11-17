@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Gameboard.Api.Features.UnityGames;
 
@@ -7,7 +9,7 @@ public class TeamHasNoPlayersException : Exception { }
 
 internal class ChallengeResolutionFailure : GameboardException
 {
-    public ChallengeResolutionFailure(string teamId) : base($"Couldn't resolve a Unity challenge for team {teamId}") { }
+    public ChallengeResolutionFailure(string teamId, IEnumerable<string> challengeIds) : base($"Couldn't resolve a Unity challenge for team {teamId}. They have {challengeIds.Count()} challenges ({String.Join(" | ", challengeIds)})") { }
 }
 
 internal class SemaphoreLockFailure : GameboardException

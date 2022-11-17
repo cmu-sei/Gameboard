@@ -197,7 +197,7 @@ internal class UnityGameService : _Service, IUnityGameService
 
         if (challengeCandidates.Count() != 1)
         {
-            throw new ChallengeResolutionFailure(model.TeamId);
+            throw new ChallengeResolutionFailure(model.TeamId, challengeCandidates.Select(c => c.Id));
         }
 
         // if we return null to the controller above, it interprets this as an "ok cool, we already have this one"
