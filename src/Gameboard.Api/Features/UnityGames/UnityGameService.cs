@@ -215,6 +215,7 @@ internal class UnityGameService : _Service, IUnityGameService
         challenge.Events.Add(challengeEvent);
 
         // also update the score of the challenge
+        challenge.LastScoreTime = DateTimeOffset.UtcNow;
         challenge.Score += model.PointsScored;
 
         // save it up
