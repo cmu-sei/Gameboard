@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
@@ -80,8 +81,6 @@ internal class UnityGameService : _Service, IUnityGameService
             throw new ResourceNotFound<Game>(newChallenge.GameId);
         }
 
-        // this is some guesswork on my part and omits some fields.
-        // we'll see how it goes - BS
         var state = new TopoMojo.Api.Client.GameState
         {
             Id = newChallenge.GameId,
@@ -234,8 +233,14 @@ internal class UnityGameService : _Service, IUnityGameService
 
     public bool IsUnityGame(Data.Game game) => game.Mode == GetUnityModeString();
     public bool IsUnityGame(Game game) => game.Mode == GetUnityModeString();
-    private string GetUnityModeString() => "unity";
+    public string GetUnityModeString() => "unity";
 
+    public Regex GetMissionCompleteEventRegex()
+    {
+        return new Regex(@"\[complete\:(?<codename>\S+)\]");
+    }
+
+    // if you change this, change `GetMissionCompleteEventRegex` above
     private string GetMissionCompleteDefinitionString(string missionId)
         => $"[complete:{missionId}]";
 

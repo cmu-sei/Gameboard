@@ -1,6 +1,6 @@
 # Example tests with REST Client (VSCode Extension)
 
-@url = http://localhost:5000/api
+@url = http://localhost:5002/api
 @json = content-type: application/json
 
 ###

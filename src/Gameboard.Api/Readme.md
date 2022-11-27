@@ -4,7 +4,7 @@ A web-api to serve games and challenges
 
 # Get Started
 
-Run the app and browse to `http://localhost:5000/api`.  Or see `Controllers/Tests` for REST Client tests.
+Run the app and browse to `http://localhost:5002/api`.  Or see `Controllers/Tests` for REST Client tests.
 
 # Configuration
 
