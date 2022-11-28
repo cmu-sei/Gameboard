@@ -22,12 +22,13 @@ namespace Gameboard.Api.Data
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
 
-        public async Task<Player[]> ListTeam(string id)
-        {
-            // things are exploding
-            var players = await this.DbContext.Players.ToListAsync();
-            return players.Where(p => p.TeamId == id).ToArray();
-        }
+        public async Task<Player[]> ListTeam(string id) =>
+            await base.List()
+                    .AsNoTracking()
+                    .Include(player => player.User)
+                    .Include(player => player.Game)
+                    .Where(p => p.TeamId == id)
+                    .ToArrayAsync();
 
         public async Task<Player[]> ListTeamByPlayer(string id)
         {
