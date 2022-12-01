@@ -544,7 +544,9 @@ namespace Gameboard.Api.Services
                 players.First(p => p.IsManager)
             );
 
-            team.Members = Mapper.Map<TeamMember[]>(players);
+            team.Members = Mapper.Map<TeamMember[]>(
+                players.Select(p => p.User)
+            );
 
             // TODO: consider display of challenge detail after game closed
             // if (sudo || !players.First().Game.IsLive)
