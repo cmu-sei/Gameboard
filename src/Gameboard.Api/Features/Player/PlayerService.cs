@@ -146,24 +146,18 @@ namespace Gameboard.Api.Services
             if (!sudo && !player.Game.RegistrationActive)
                 throw new RegistrationIsClosed(player.GameId, "Registration is inactive.");
 
-            var challenges = player.Challenges;
-            var players = new Data.Player[] { player };
+            var challenges = await Store.DbContext.Challenges
+                .Where(c => c.TeamId == player.TeamId)
+                .Include(c => c.Events)
+                .ToArrayAsync()
+            ;
 
-            if (player.IsManager && player.Game.AllowTeam)
-            {
-                challenges = await Store.DbContext.Challenges
-                    .Where(c => c.TeamId == player.TeamId)
-                    .Include(c => c.Events)
-                    .ToArrayAsync()
-                ;
+            var players = await Store.DbSet
+                .Where(p => p.TeamId == player.TeamId)
+                .ToArrayAsync()
+            ;
 
-                players = await Store.DbSet
-                    .Where(p => p.TeamId == player.TeamId)
-                    .ToArrayAsync()
-                ;
-            }
-
-            if (challenges.Count > 0)
+            if (challenges.Count() > 0)
             {
                 var toArchive = Mapper.Map<ArchivedChallenge[]>(challenges);
                 var teamMembers = players.Select(a => a.UserId).ToArray();
