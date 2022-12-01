@@ -214,6 +214,7 @@ namespace Gameboard.Api.Services
                 int sessionCount = await Store.DbSet
                     .CountAsync(p =>
                         p.GameId == game.Id &&
+                        p.IsManager &&
                         ts < p.SessionEnd
                     )
                 ;
