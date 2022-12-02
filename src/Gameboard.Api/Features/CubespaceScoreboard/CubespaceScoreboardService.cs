@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Gameboard.Api;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.CubespaceScoreboard;
 using Gameboard.Api.Features.UnityGames;
@@ -140,13 +139,11 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
                 if (cachedTeam.CubespaceChallenge == null)
                 {
                     t.CubespaceStartTime = DateTimeOffset.MinValue.ToUnixTimeMilliseconds();
-                    t.CubespaceScore = 0;
                     t.ScoredCodexes = new CubespaceScoreboardCodex[] { };
                 }
                 else
                 {
                     t.CubespaceStartTime = cachedTeam.CubespaceChallenge.StartTime;
-                    t.CubespaceScore = 0;
 
                     // build info about their scored codexes based on challenge events
                     // (do this every pull - these are codex events)
