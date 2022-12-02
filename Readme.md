@@ -10,7 +10,7 @@ The Gameboard API requires the .NET Core 6.0 framework.
 
 1. Install .Net Core SDK 6.0
 2. Start the application using the following command: `dotnet run`
-3. Browse to `http://localhost:5000/api`
+3. Browse to `http://localhost:5002/api`
 
 ## Development `appsettings`
 
