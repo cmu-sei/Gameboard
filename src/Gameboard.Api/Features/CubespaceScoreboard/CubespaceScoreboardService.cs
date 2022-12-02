@@ -200,7 +200,6 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
         var players = await _challengeStore
             .DbContext
             .Players
-            .AsNoTracking()
             .Include(p => p.User)
                 .ThenInclude(u => u.Enrollments)
             .Where(p => p.GameId == day1GameId)
