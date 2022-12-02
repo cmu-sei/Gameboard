@@ -26,7 +26,6 @@ public class CubespaceScoreboardTeam
     public IEnumerable<CubespaceScoreboardPlayer> Players { get; set; } = new List<CubespaceScoreboardPlayer>();
     public long Day1Playtime { get; set; }
     public int Day1Score { get; set; }
-    public int CubespaceScore { get; set; }
     public int Rank { get; set; }
     public IList<CubespaceScoreboardCodex> ScoredCodexes { get; set; } = new List<CubespaceScoreboardCodex>();
     // unix millis
