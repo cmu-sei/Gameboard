@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -11,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 public class CubespaceScoreboardService : ICubespaceScoreboardService
 {
-    private static CubespaceScoreboardCache _scoreboardCache = new CubespaceScoreboardCache();
+    public static CubespaceScoreboardCache _scoreboardCache = new CubespaceScoreboardCache();
     private readonly IChallengeStore _challengeStore;
     private readonly IUnityGameService _unityGameService;
 
@@ -58,25 +57,38 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
                 .DbContext
                 .Players
                 .Include(p => p.User)
+                .Include(p => p.Challenges)
                 .AsNoTracking()
-                .Where(p => p.GameId == payload.CubespaceGameId)
+                .Where(p => p.GameId == payload.Day1GameId)
                 .ToListAsync();
 
-            var teams = players.Select(p => new CubespaceScoreboardTeam
+            var day1Teams = players.Select(p => new CubespaceScoreboardTeam
             {
                 Id = p.TeamId,
-                Name = p.ApprovedName
+                Name = p.ApprovedName,
+                Day1Score = Math.Floor(p.Challenges.Sum(c => c.Score)),
+                Day1Playtime = p.Time
             })
-                .DistinctBy(p => p.Id)
+                .DistinctBy(team => team.Id)
                 .ToList();
-            var teamIds = teams.Select(t => t.Id);
 
-            foreach (var team in teams)
+            // LOAD a map between day 1 and cubespace team ids if needed
+            if (_scoreboardCache.Day1ToCubespaceTeamMap.Keys.Count() < day1Teams.Count())
+            {
+                _scoreboardCache.Day1ToCubespaceTeamMap = await GetTeamIdMap(players, payload.Day1GameId, payload.CubespaceGameId);
+            }
+
+            var day1TeamIds = day1Teams.Select(t => t.Id).ToList();
+
+            foreach (var team in day1Teams)
             {
                 // add the team to cache if they're not already there
                 if (!_scoreboardCache.Teams.ContainsKey(team.Id))
                 {
-                    _scoreboardCache.Teams.Add(team.Id, new CubespaceScoreboardCacheTeam());
+                    _scoreboardCache.Teams.Add(team.Id, new CubespaceScoreboardCacheTeam
+                    {
+                        Id = team.Id
+                    });
                 }
             }
 
@@ -85,31 +97,44 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
             //
             // RESOLVE a cubespace challenge for each team if we don't already have it
             var cachedTeamsWithCubespaceChallenge = _scoreboardCache.Teams.Values.Where(t => t.CubespaceChallenge != null).Count();
-            if (cachedTeamsWithCubespaceChallenge < teams.Count())
+            if (cachedTeamsWithCubespaceChallenge < day1Teams.Count())
             {
-                var teamCubespaceChallenges = await ResolveChallenges(payload.CubespaceGameId, teamIds);
+                Console.WriteLine("Retrieving cubespace challenge data for " + day1Teams.Count() + " teams.", LogFormat(day1TeamIds));
+                var cubespaceTeamIds = day1TeamIds.Select(day1Id =>
+                {
+                    if (_scoreboardCache.Day1ToCubespaceTeamMap.ContainsKey(day1Id))
+                    {
+                        return _scoreboardCache.Day1ToCubespaceTeamMap[day1Id];
+                    }
+
+                    return null;
+                });
+                cubespaceTeamIds = cubespaceTeamIds.Where(id => id != null);
+
+                Console.WriteLine("Their Cubespace team Ids are: ", LogFormat(cubespaceTeamIds));
+                var teamCubespaceChallenges = await ResolveChallenges(payload.CubespaceGameId, cubespaceTeamIds);
+                Console.WriteLine($"Found {teamCubespaceChallenges.Keys.Count()} cubespace challenges", teamCubespaceChallenges);
+
                 foreach (var key in teamCubespaceChallenges.Keys)
                 {
-                    _scoreboardCache.Teams[key].CubespaceChallenge = teamCubespaceChallenges[key];
+                    var day1TeamId = _scoreboardCache.Day1ToCubespaceTeamMap
+                        .Where(x => x.Value == key)
+                        .Select(x => (KeyValuePair<string, string>?)x)
+                        .FirstOrDefault();
+
+                    if (day1TeamId == null)
+                    {
+                        Console.WriteLine($"Cubespace team {key} didn't play on day 1.");
+                    }
+                    else
+                    {
+                        _scoreboardCache.Teams[day1TeamId.Value.Key].CubespaceChallenge = teamCubespaceChallenges[key];
+                    }
                 }
             }
-
-            var cachedTeamsWithDay1Challenge = _scoreboardCache.Teams.Values.Where(t => t.Day1Challenge != null).Count();
-            if (cachedTeamsWithDay1Challenge < teams.Count())
-            {
-                var teamDay1Challenges = await ResolveDay1Challenges(payload.Day1GameId, payload.CubespaceGameId, teamIds);
-
-                foreach (var key in teamDay1Challenges.Keys)
-                {
-                    _scoreboardCache.Teams[key].Day1Challenge = teamDay1Challenges[key];
-                }
-            }
-
-            // if they don't have a day 1 challenge, they don't belong here
-            teams = teams.Where(t => _scoreboardCache.Teams[t.Id].Day1Challenge != null).ToList();
 
             // ASSIGN players to teams
-            foreach (var t in teams)
+            foreach (var t in day1Teams)
             {
                 // load what we know about the team from cache to save calls
                 var cachedTeam = _scoreboardCache.Teams[t.Id];
@@ -127,14 +152,6 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
                 // SET properties based on this data
                 // all players are given the same rank by the scoring code in the challenge service
                 t.Rank = teamPlayers.First().Rank;
-
-                // if they don't have a day 1 challenge, that's not great, but let's keep going
-                if (_scoreboardCache.Teams[t.Id].Day1Challenge != null)
-                {
-                    Console.WriteLine("No day 1 challenge for team", t.Id);
-                    t.Day1Score = _scoreboardCache.Teams[t.Id].Day1Challenge.Score;
-                    t.Day1Playtime = _scoreboardCache.Teams[t.Id].Day1Challenge.GetDuration();
-                }
 
                 if (cachedTeam.CubespaceChallenge == null)
                 {
@@ -172,49 +189,24 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
                 }
             }
 
+            Console.WriteLine($"Scoreboard cache at return point:\n\n{JsonSerializer.Serialize(_scoreboardCache)}");
             return new CubespaceScoreboardState
             {
                 CubespaceGameId = payload.CubespaceGameId,
                 Day1GameId = payload.Day1GameId,
                 GameOverAt = _scoreboardCache.GameOverAt == null ? 0L : (long)_scoreboardCache.GameOverAt,
-                Teams = teams.OrderBy(t => t.Rank)
+                Teams = day1Teams.OrderBy(t => t.Rank).ToList()
             };
         }
         catch (Exception ex)
         {
-            var stackTrace = new StackTrace(ex, true);
-            var frame = stackTrace?.GetFrame(0);
-            var lineNo = frame?.GetFileLineNumber();
-
-            throw new Exception($"L{(lineNo != null ? lineNo : "NO LINE")} cache at this point:\n\n{JsonSerializer.Serialize(_scoreboardCache)}\n\n", ex);
+            throw new Exception($"Scoreboard cache at EXCEPTION point:\n\n{JsonSerializer.Serialize(_scoreboardCache)}", ex);
         }
     }
 
     public void InvalidateScoreboardCache()
     {
         _scoreboardCache = new CubespaceScoreboardCache();
-    }
-
-    private async Task<IDictionary<string, CubespaceScoreboardCacheChallenge>> ResolveDay1Challenges(string day1GameId, string cubespaceGameId, IEnumerable<string> teamIds)
-    {
-        var players = await _challengeStore
-            .DbContext
-            .Players
-            .Include(p => p.User)
-                .ThenInclude(u => u.Enrollments)
-            .Where(p => p.GameId == day1GameId)
-            .Where(p => p.User.Enrollments.Any(en => en.GameId == cubespaceGameId))
-            .ToListAsync();
-
-        var dict = new Dictionary<string, CubespaceScoreboardCacheChallenge>();
-
-        foreach (var player in players.DistinctBy(c => c.TeamId))
-        {
-            // note that not all teams may have a cubespace challenge
-            dict[player.TeamId] = CacheChallengeFromApiModel(player.Challenges.Single(c => c.GameId == day1GameId));
-        }
-
-        return dict;
     }
 
     private async Task<IDictionary<string, CubespaceScoreboardCacheChallenge>> ResolveChallenges(string gameId, IEnumerable<string> teamIds)
@@ -246,6 +238,40 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
             Score = (int)Math.Floor(model.Score)
         };
 
+    // ultimate returns a dict with the key  as a day 1 team id and the value as a cubespace team id
+    private async Task<IDictionary<string, string>> GetTeamIdMap(IEnumerable<Gameboard.Api.Data.Player> day1Players, string day1GameId, string cubespaceGameId)
+    {
+        var day1UserIdPlayers = day1Players
+            .Where(p => p.GameId == day1GameId)
+            .ToDictionary
+            (
+                p => p.UserId,
+                p => p
+            );
+
+        var cubespacePlayers = await _challengeStore
+            .DbContext
+            .Players
+            .AsNoTracking()
+            .Where(p => p.GameId == cubespaceGameId)
+            .ToListAsync();
+
+        var retVal = new Dictionary<string, string>();
+
+        foreach (var userId in day1UserIdPlayers.Keys)
+        {
+            var day1TeamId = day1UserIdPlayers[userId].TeamId;
+            var cubespaceTeamId = cubespacePlayers.SingleOrDefault(p => p.UserId == userId)?.TeamId;
+
+            if (cubespaceGameId != null && !retVal.ContainsKey(day1TeamId))
+            {
+                retVal.Add(day1TeamId, cubespaceTeamId);
+            }
+        }
+
+        return retVal;
+    }
+
     private async Task<Gameboard.Api.Data.Game> ResolveGame(string gameId)
     {
         var candidateGames = await _challengeStore
@@ -261,5 +287,10 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
         }
 
         return candidateGames.First();
+    }
+
+    private string LogFormat(object thing)
+    {
+        return JsonSerializer.Serialize(thing);
     }
 }
