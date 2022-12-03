@@ -25,7 +25,8 @@ public class CubespaceScoreboardTeam
     public string Name { get; set; }
     public IEnumerable<CubespaceScoreboardPlayer> Players { get; set; } = new List<CubespaceScoreboardPlayer>();
     public long Day1Playtime { get; set; }
-    public int Day1Score { get; set; }
+    public double Day1Score { get; set; }
+    public int CubespaceScore { get; set; }
     public int Rank { get; set; }
     public IList<CubespaceScoreboardCodex> ScoredCodexes { get; set; } = new List<CubespaceScoreboardCodex>();
     // unix millis
@@ -55,13 +56,16 @@ public class CubespaceScoreboardCache
     public long? GameOverAt { get; set; }
     public IEnumerable<CubespaceScoreboardSponsor> Sponsors { get; set; } = new List<CubespaceScoreboardSponsor>();
     public Dictionary<string, CubespaceScoreboardCacheTeam> Teams { get; } = new Dictionary<string, CubespaceScoreboardCacheTeam>();
+    public IDictionary<string, string> Day1ToCubespaceTeamMap { get; set; } = new Dictionary<string, string>();
 }
 
 public class CubespaceScoreboardCacheTeam
 {
     public string Id { get; set; }
+    // public long Day1PlayTime { get; set; }
+    // public int Day1Score { get; set; }
     public CubespaceScoreboardCacheChallenge CubespaceChallenge { get; set; }
-    public CubespaceScoreboardCacheChallenge Day1Challenge { get; set; }
+    // public CubespaceScoreboardCacheChallenge Day1Challenge { get; set; }
 }
 
 public class CubespaceScoreboardCacheChallenge
