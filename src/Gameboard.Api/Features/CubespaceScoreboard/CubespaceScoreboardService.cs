@@ -69,7 +69,7 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
                 Day1Score = Math.Floor(p.Challenges.Sum(c => c.Score)),
                 Day1Playtime = p.Time
             })
-                .DistinctBy(p => p.Id)
+                .DistinctBy(team => team.Id)
                 .ToList();
 
             // LOAD a map between day 1 and cubespace team ids if needed
