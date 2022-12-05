@@ -215,11 +215,13 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
             .DbSet
             .AsNoTracking()
             .Where(c => c.GameId == gameId)
+            .Where(c => c.StartTime > DateTimeOffset.MinValue)
             .ToListAsync();
 
         var dict = new Dictionary<string, CubespaceScoreboardCacheChallenge>();
         foreach (var challenge in challenges)
         {
+            Console.WriteLine($"Challenge for team {challenge.TeamId} has {challenge.StartTime.ToUnixTimeMilliseconds()}");
             // note that not all teams may have a cubespace challenge
             dict[challenge.TeamId] = CacheChallengeFromApiModel(challenge);
         }
