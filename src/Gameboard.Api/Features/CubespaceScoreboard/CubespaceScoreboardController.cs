@@ -17,12 +17,12 @@ public class CubespaceScoreboardController : _Controller
         ILogger<CubespaceScoreboardController> logger,
         UnityGamesValidator validator,
         ICubespaceScoreboardService cubespaceScoreboardService,
-        IUnityGameService unityGameService) : base (logger, cache, validator)
+        IUnityGameService unityGameService) : base(logger, cache, validator)
     {
         _cubespaceScoreboardService = cubespaceScoreboardService;
         _unityGameService = unityGameService;
     }
-    
+
     [HttpPost("/api/cubespace/scoreboard")]
     [AllowAnonymous]
     public async Task<JsonResult> GetScoreboard([FromBody] CubespaceScoreboardRequestPayload payload)
