@@ -65,7 +65,7 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
             var day1Teams = players.Select(p => new CubespaceScoreboardTeam
             {
                 Id = p.TeamId,
-                Name = p.User.ApprovedName,
+                // ignore name for now - we'll resolve it later
                 Day1Score = Math.Floor(p.Challenges.Sum(c => c.Score)),
                 Day1Playtime = p.Time
             })
@@ -112,7 +112,7 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
                 cubespaceTeamIds = cubespaceTeamIds.Where(id => id != null);
 
                 Console.WriteLine("Their Cubespace team Ids are: ", LogFormat(cubespaceTeamIds));
-                var teamCubespaceChallenges = await ResolveChallenges(payload.CubespaceGameId, cubespaceTeamIds);
+                var teamCubespaceChallenges = await ResolveCubespaceChallenges(payload.CubespaceGameId, cubespaceTeamIds);
                 Console.WriteLine($"Found {teamCubespaceChallenges.Keys.Count()} cubespace challenges", teamCubespaceChallenges);
 
                 foreach (var key in teamCubespaceChallenges.Keys)
@@ -149,9 +149,15 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
                         Sponsor = _scoreboardCache.Sponsors.First(sp => sp.LogoUri == p.Sponsor)
                     });
 
-                // SET properties based on this data
-                // all players are given the same rank by the scoring code in the challenge service
-                t.Rank = teamPlayers.First().Rank;
+                if (teamPlayers.Count() > 0)
+                {
+                    // default to a day 1 name 
+                    var teamManager = teamPlayers.SingleOrDefault(p => p.TeamId == t.Id && p.IsManager);
+                    t.Name = teamManager != null ? teamManager.ApprovedName : teamPlayers.First().ApprovedName;
+
+                    // all players are given the same rank by the scoring code in the challenge service
+                    t.Rank = teamPlayers.First().Rank;
+                }
 
                 if (cachedTeam.CubespaceChallenge == null)
                 {
@@ -161,6 +167,9 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
                 else
                 {
                     t.CubespaceStartTime = cachedTeam.CubespaceChallenge.StartTime;
+
+                    // if they have a challenge, they have a player name for cubespace
+                    t.Name = cachedTeam.CubespaceChallenge.TeamName;
 
                     // build info about their scored codexes based on challenge events
                     // (do this every pull - these are codex events)
@@ -209,11 +218,12 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
         _scoreboardCache = new CubespaceScoreboardCache();
     }
 
-    private async Task<IDictionary<string, CubespaceScoreboardCacheChallenge>> ResolveChallenges(string gameId, IEnumerable<string> teamIds)
+    private async Task<IDictionary<string, CubespaceScoreboardCacheChallenge>> ResolveCubespaceChallenges(string gameId, IEnumerable<string> teamIds)
     {
         var challenges = await _challengeStore
             .DbSet
             .AsNoTracking()
+            .Include(c => c.Player)
             .Where(c => c.GameId == gameId)
             .Where(c => c.StartTime > DateTimeOffset.MinValue)
             .ToListAsync();
@@ -235,6 +245,7 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
             Id = model.Id,
             GameId = model.GameId,
             TeamId = model.TeamId,
+            TeamName = model.Player.ApprovedName,
             StartTime = model.StartTime.ToUnixTimeMilliseconds(),
             EndTime = model.EndTime.ToUnixTimeMilliseconds(),
             Score = (int)Math.Floor(model.Score)

@@ -62,10 +62,7 @@ public class CubespaceScoreboardCache
 public class CubespaceScoreboardCacheTeam
 {
     public string Id { get; set; }
-    // public long Day1PlayTime { get; set; }
-    // public int Day1Score { get; set; }
     public CubespaceScoreboardCacheChallenge CubespaceChallenge { get; set; }
-    // public CubespaceScoreboardCacheChallenge Day1Challenge { get; set; }
 }
 
 public class CubespaceScoreboardCacheChallenge
@@ -73,6 +70,7 @@ public class CubespaceScoreboardCacheChallenge
     public string Id { get; set; }
     public string GameId { get; set; }
     public string TeamId { get; set; }
+    public string TeamName { get; set; }
     public long StartTime { get; set; }
     public long EndTime { get; set; }
     public int Score { get; set; }
