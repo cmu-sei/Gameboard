@@ -65,7 +65,7 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
             var day1Teams = players.Select(p => new CubespaceScoreboardTeam
             {
                 Id = p.TeamId,
-                Name = p.ApprovedName,
+                Name = p.User.ApprovedName,
                 Day1Score = Math.Floor(p.Challenges.Sum(c => c.Score)),
                 Day1Playtime = p.Time
             })
@@ -145,7 +145,7 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
                     .Select(p => new CubespaceScoreboardPlayer
                     {
                         Id = p.Id,
-                        Name = p.ApprovedName,
+                        Name = p.User.ApprovedName,
                         Sponsor = _scoreboardCache.Sponsors.First(sp => sp.LogoUri == p.Sponsor)
                     });
 
