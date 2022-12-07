@@ -66,7 +66,7 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
             {
                 Id = p.TeamId,
                 // ignore name for now - we'll resolve it later
-                Day1Score = Math.Floor(p.Challenges.Sum(c => c.Score)),
+                Day1Score = p.Score,
                 Day1Playtime = p.Time
             })
                 .DistinctBy(team => team.Id)

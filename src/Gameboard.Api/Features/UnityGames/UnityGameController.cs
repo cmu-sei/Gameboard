@@ -123,7 +123,7 @@ public class UnityGameController : _Controller
     /// <returns>ChallengeEvent</returns>
     [Authorize]
     [HttpPost("api/unity/challenge")]
-    public async Task<Data.Challenge> CreateChallenge([FromBody] NewUnityChallenge model)
+    public async Task<IActionResult> CreateChallenge([FromBody] NewUnityChallenge model)
     {
         AuthorizeAny(
             () => _gameService.UserIsTeamPlayer(Actor.Id, model.GameId, model.TeamId).Result
@@ -144,7 +144,7 @@ public class UnityGameController : _Controller
             challengeData = await _unityGameService.HasChallengeData(model);
             if (challengeData != null)
             {
-                return challengeData;
+                return Accepted();
             }
 
             // otherwise, add new challenge data and send gamebrain the ids of the consoles (which are based on the challenge id)
@@ -190,8 +190,8 @@ public class UnityGameController : _Controller
         await _hub.Clients
             .Group(model.TeamId)
             .ChallengeEvent(new HubEvent<Challenge>(_mapper.Map<Challenge>(challengeData), EventAction.Updated));
-
-        return challengeData;
+        
+        return Ok();
     }
 
     [HttpPost("api/unity/mission-update")]
