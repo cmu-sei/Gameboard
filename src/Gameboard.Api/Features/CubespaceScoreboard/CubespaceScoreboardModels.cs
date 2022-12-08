@@ -31,13 +31,14 @@ public class CubespaceScoreboardTeam
     public IList<CubespaceScoreboardCodex> ScoredCodexes { get; set; } = new List<CubespaceScoreboardCodex>();
     // unix millis
     public long? CubespaceStartTime { get; set; }
+    public long? GameOverAt { get; set; }
 }
 
 public class CubespaceScoreboardState
 {
     public string Day1GameId { get; set; }
     public string CubespaceGameId { get; set; }
-    public long GameOverAt { get; set; }
+    public long? GameClosesAt { get; set; }
     public IEnumerable<CubespaceScoreboardTeam> Teams { get; set; }
 }
 
@@ -53,7 +54,7 @@ public static class CubespaceCodexName
 
 public class CubespaceScoreboardCache
 {
-    public long? GameOverAt { get; set; }
+    public long? GameClosesAt { get; set; }
     public IEnumerable<CubespaceScoreboardSponsor> Sponsors { get; set; } = new List<CubespaceScoreboardSponsor>();
     public Dictionary<string, CubespaceScoreboardCacheTeam> Teams { get; } = new Dictionary<string, CubespaceScoreboardCacheTeam>();
     public IDictionary<string, string> Day1ToCubespaceTeamMap { get; set; } = new Dictionary<string, string>();
@@ -62,6 +63,7 @@ public class CubespaceScoreboardCache
 public class CubespaceScoreboardCacheTeam
 {
     public string Id { get; set; }
+    public long GameOverAt { get; set; }
     public CubespaceScoreboardCacheChallenge CubespaceChallenge { get; set; }
 }
 
