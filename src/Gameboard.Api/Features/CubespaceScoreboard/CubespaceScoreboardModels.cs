@@ -22,6 +22,7 @@ public class CubespaceScoreboardPlayer
 public class CubespaceScoreboardTeam
 {
     public string Id { get; set; }
+    public string CubespaceTeamId { get; set; }
     public string Name { get; set; }
     public IEnumerable<CubespaceScoreboardPlayer> Players { get; set; } = new List<CubespaceScoreboardPlayer>();
     public long Day1Playtime { get; set; }
