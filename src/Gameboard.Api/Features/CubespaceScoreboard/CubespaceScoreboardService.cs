@@ -68,7 +68,6 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
                 // ignore name for now - we'll resolve it later
                 Day1Score = Math.Floor(p.Challenges.Sum(c => c.Score)),
                 Day1Playtime = p.Time,
-                GameOverAt = p.SessionEnd.ToUnixTimeMilliseconds()
             })
                 .DistinctBy(team => team.Id)
                 .ToList();
@@ -168,7 +167,7 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
                 else
                 {
                     t.CubespaceStartTime = cachedTeam.CubespaceChallenge.StartTime;
-                    t.GameOverAt = cachedTeam.GameOverAt;
+                    t.GameOverAt = cachedTeam.CubespaceChallenge.SessionEnd;
                     // if they have a challenge, they have a player name for cubespace
                     t.Name = cachedTeam.CubespaceChallenge.TeamName;
 
@@ -249,6 +248,7 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
             TeamName = model.Player.ApprovedName,
             StartTime = model.StartTime.ToUnixTimeMilliseconds(),
             EndTime = model.EndTime.ToUnixTimeMilliseconds(),
+            SessionEnd = model.Player.SessionEnd.ToUnixTimeMilliseconds(),
             Score = (int)Math.Floor(model.Score)
         };
 
