@@ -66,9 +66,8 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
             {
                 Id = p.TeamId,
                 // ignore name for now - we'll resolve it later
-                Day1Score = Math.Floor(p.Challenges.Sum(c => c.Score)),
+                Day1Score = p.Score,
                 Day1Playtime = p.Time,
-                GameOverAt = p.SessionEnd.ToUnixTimeMilliseconds()
             })
                 .DistinctBy(team => team.Id)
                 .ToList();
@@ -134,7 +133,7 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
                 }
             }
 
-            // ASSIGN players to teams
+            // compute final scoreboard update by unifying cache with hot data
             foreach (var t in day1Teams)
             {
                 // load what we know about the team from cache to save calls
@@ -167,9 +166,9 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
                 }
                 else
                 {
+                    t.CubespaceTeamId = cachedTeam.CubespaceChallenge.TeamId;
                     t.CubespaceStartTime = cachedTeam.CubespaceChallenge.StartTime;
-                    t.GameOverAt = cachedTeam.GameOverAt;
-                    // if they have a challenge, they have a player name for cubespace
+                    t.GameOverAt = cachedTeam.CubespaceChallenge.SessionEnd;
                     t.Name = cachedTeam.CubespaceChallenge.TeamName;
 
                     // build info about their scored codexes based on challenge events
@@ -232,7 +231,6 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
         var dict = new Dictionary<string, CubespaceScoreboardCacheChallenge>();
         foreach (var challenge in challenges)
         {
-            Console.WriteLine($"Challenge for team {challenge.TeamId} has {challenge.StartTime.ToUnixTimeMilliseconds()}");
             // note that not all teams may have a cubespace challenge
             dict[challenge.TeamId] = CacheChallengeFromApiModel(challenge);
         }
@@ -249,6 +247,7 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
             TeamName = model.Player.ApprovedName,
             StartTime = model.StartTime.ToUnixTimeMilliseconds(),
             EndTime = model.EndTime.ToUnixTimeMilliseconds(),
+            SessionEnd = model.Player.SessionEnd.ToUnixTimeMilliseconds(),
             Score = (int)Math.Floor(model.Score)
         };
 

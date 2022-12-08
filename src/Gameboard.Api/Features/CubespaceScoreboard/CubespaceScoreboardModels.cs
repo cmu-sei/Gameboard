@@ -22,6 +22,7 @@ public class CubespaceScoreboardPlayer
 public class CubespaceScoreboardTeam
 {
     public string Id { get; set; }
+    public string CubespaceTeamId { get; set; }
     public string Name { get; set; }
     public IEnumerable<CubespaceScoreboardPlayer> Players { get; set; } = new List<CubespaceScoreboardPlayer>();
     public long Day1Playtime { get; set; }
@@ -75,6 +76,7 @@ public class CubespaceScoreboardCacheChallenge
     public string TeamName { get; set; }
     public long StartTime { get; set; }
     public long EndTime { get; set; }
+    public long SessionEnd { get; set; }
     public int Score { get; set; }
 
     public long GetDuration()
