@@ -75,6 +75,7 @@ public class CubespaceScoreboardCacheChallenge
     public string TeamName { get; set; }
     public long StartTime { get; set; }
     public long EndTime { get; set; }
+    public long SessionEnd { get; set; }
     public int Score { get; set; }
 
     public long GetDuration()
