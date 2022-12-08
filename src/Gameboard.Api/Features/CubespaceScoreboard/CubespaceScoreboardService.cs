@@ -40,7 +40,7 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
             }
 
             // LOAD game over time if needed
-            if (_scoreboardCache.GameOverAt == null)
+            if (_scoreboardCache.GameClosesAt == null)
             {
                 var cubespaceGame = await _challengeStore
                     .DbContext
@@ -48,7 +48,7 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
                     .AsNoTracking()
                     .FirstAsync(g => g.Id == payload.CubespaceGameId);
 
-                _scoreboardCache.GameOverAt = cubespaceGame.GameEnd.ToUnixTimeMilliseconds();
+                _scoreboardCache.GameClosesAt = cubespaceGame.GameEnd.ToUnixTimeMilliseconds();
             }
 
             // LOAD player data (do this every time in case new teams enter the game
@@ -66,8 +66,9 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
             {
                 Id = p.TeamId,
                 // ignore name for now - we'll resolve it later
-                Day1Score = p.Score,
-                Day1Playtime = p.Time
+                Day1Score = Math.Floor(p.Challenges.Sum(c => c.Score)),
+                Day1Playtime = p.Time,
+                GameOverAt = p.SessionEnd.ToUnixTimeMilliseconds()
             })
                 .DistinctBy(team => team.Id)
                 .ToList();
@@ -161,13 +162,13 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
 
                 if (cachedTeam.CubespaceChallenge == null)
                 {
-                    t.CubespaceStartTime = DateTimeOffset.MinValue.ToUnixTimeMilliseconds();
+                    t.CubespaceStartTime = null;
                     t.ScoredCodexes = new CubespaceScoreboardCodex[] { };
                 }
                 else
                 {
                     t.CubespaceStartTime = cachedTeam.CubespaceChallenge.StartTime;
-
+                    t.GameOverAt = cachedTeam.GameOverAt;
                     // if they have a challenge, they have a player name for cubespace
                     t.Name = cachedTeam.CubespaceChallenge.TeamName;
 
@@ -203,7 +204,7 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
             {
                 CubespaceGameId = payload.CubespaceGameId,
                 Day1GameId = payload.Day1GameId,
-                GameOverAt = _scoreboardCache.GameOverAt == null ? 0L : (long)_scoreboardCache.GameOverAt,
+                GameClosesAt = _scoreboardCache.GameClosesAt,
                 Teams = day1Teams.OrderBy(t => t.Rank).ToList()
             };
         }
@@ -251,7 +252,7 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
             Score = (int)Math.Floor(model.Score)
         };
 
-    // ultimate returns a dict with the key  as a day 1 team id and the value as a cubespace team id
+    // ultimately returns a dict with the key  as a day 1 team id and the value as a cubespace team id
     private async Task<IDictionary<string, string>> GetTeamIdMap(IEnumerable<Gameboard.Api.Data.Player> day1Players, string day1GameId, string cubespaceGameId)
     {
         var day1UserIdPlayers = day1Players
