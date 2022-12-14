@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-     <InternalsVisibleTo Include="Gameboard.Test" />
+     <InternalsVisibleTo Include="Gameboard.Tests.Unit" />
   </ItemGroup>
 
   <PropertyGroup>

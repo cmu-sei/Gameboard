@@ -7,7 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{C148F187-E60
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gameboard", "src\Gameboard.Api\Gameboard.Api.csproj", "{A2715FCD-D078-4E96-81C3-B833640921C5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gameboard.test", "src\Gameboard.Test\Gameboard.Test.csproj", "{BAEF960F-857E-4CDA-9D9D-D2F6F1C40E0C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gameboard.Tests.Unit", "src\Gameboard.Tests.Unit\Gameboard.Tests.Unit.csproj", "{BAEF960F-857E-4CDA-9D9D-D2F6F1C40E0C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
