@@ -6,15 +6,15 @@ namespace Gameboard.Api.Features.UnityGames;
 
 internal class HttpContextAccessTokenProvider : IAccessTokenProvider
 {
-    private readonly HttpContext _httpContext;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public HttpContextAccessTokenProvider(HttpContext httpContext)
+    public HttpContextAccessTokenProvider(IHttpContextAccessor httpContextAccessor)
     {
-        _httpContext = httpContext;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public Task<string> GetToken()
     {
-        return _httpContext.GetTokenAsync("access_token");
+        return _httpContextAccessor.HttpContext.GetTokenAsync("access_token");
     }
 }

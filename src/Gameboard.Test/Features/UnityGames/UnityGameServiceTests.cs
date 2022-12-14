@@ -12,12 +12,6 @@ namespace Gameboard.Test;
 public class UnityGameServiceTests
 {
     [Fact]
-    public void ThisTestShouldFailAndStopCI()
-    {
-        Assert.True(false);
-    }
-
-    [Fact]
     public void GetMissionCompleteDefinitionString_Matches_IsMissionComplete()
     {
         // arrange
