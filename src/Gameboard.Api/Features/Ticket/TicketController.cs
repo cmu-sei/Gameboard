@@ -1,22 +1,21 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-
-using Gameboard.Api.Services;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.AspNetCore.Authorization;
-using Gameboard.Api.Validators;
-using Microsoft.AspNetCore.Http;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Collections.Generic;
-using Microsoft.AspNetCore.SignalR;
-using Gameboard.Api.Hubs;
+using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Hubs;
+using Gameboard.Api.Services;
+using Gameboard.Api.Validators;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Controllers
 {
@@ -36,7 +35,7 @@ namespace Gameboard.Api.Controllers
             TicketService ticketService,
             IHubContext<AppHub, IAppHubEvent> hub,
             IMapper mapper
-        ): base(logger, cache, validator)
+        ) : base(logger, cache, validator)
         {
             TicketService = ticketService;
             Options = options;
@@ -58,13 +57,11 @@ namespace Gameboard.Api.Controllers
                 () => TicketService.IsOwnerOrTeamMember(id, Actor.Id).Result
             );
 
-        //    await Validate(new Entity { Id = id });
-
-            // Once authenticated, authorized, and validated, cache a file permit for this user id & ticket id
             await Cache.SetStringAsync(
                 $"{"file-permit:"}{Actor.Id}:{id}",
                 "true",
-                new DistributedCacheEntryOptions {
+                new DistributedCacheEntryOptions
+                {
                     AbsoluteExpirationRelativeToNow = new TimeSpan(0, 15, 0)
                 }
             );
@@ -80,7 +77,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPost("/api/ticket")]
         [Authorize]
-        public async Task<Ticket> Create([FromForm]NewTicket model)
+        public async Task<Ticket> Create([FromForm] NewTicket model)
         {
 
             await Validate(model);
@@ -107,7 +104,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPut("/api/ticket")]
         [Authorize]
-        public async Task<Ticket> Update([FromBody]ChangedTicket model)
+        public async Task<Ticket> Update([FromBody] ChangedTicket model)
         {
             AuthorizeAny(
                 () => Actor.IsSupport,
@@ -122,7 +119,8 @@ namespace Gameboard.Api.Controllers
             // Ignore labels being different
             if (result.Label != prevTicket.Label) prevTicket.LastUpdated = result.LastUpdated;
             // If the ticket hasn't been meaningfully updated, don't send a notification
-            if (prevTicket.LastUpdated != result.LastUpdated) {
+            if (prevTicket.LastUpdated != result.LastUpdated)
+            {
                 await Notify(Mapper.Map<TicketNotification>(result), EventAction.Updated);
             }
 
@@ -148,7 +146,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPost("/api/ticket/comment")]
         [Authorize]
-        public async Task<TicketActivity> AddComment([FromForm]NewTicketComment model)
+        public async Task<TicketActivity> AddComment([FromForm] NewTicketComment model)
         {
             AuthorizeAny(
                 () => Actor.IsObserver,
@@ -203,7 +201,7 @@ namespace Gameboard.Api.Controllers
                     string extension = Path.GetExtension(upload.FileName);
                     string filename = $"{nameOnly}_{fileNum}{extension}";
                     var sanitized = filename.SanitizeFilename().ToLower();
-                    result.Add(new UploadFile{ FileName = sanitized, File = upload});
+                    result.Add(new UploadFile { FileName = sanitized, File = upload });
                     fileNum += 1;
                 }
             }
@@ -236,7 +234,7 @@ namespace Gameboard.Api.Controllers
         }
 
         private Task Notify(TicketNotification notification, EventAction action)
-        {   
+        {
             var ev = new HubEvent<TicketNotification>(notification, action);
 
             var tasks = new List<Task>();
