@@ -22,8 +22,18 @@
     <PackageReference Include="YamlDotNet" Version="11.1.1" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.12" />
   </ItemGroup>
+
+  <ItemGroup>
+     <InternalsVisibleTo Include="Gameboard.Test" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+  </PropertyGroup>
+
   <PropertyGroup>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    <Title>Gameboard API</Title>
   </PropertyGroup>
 </Project>

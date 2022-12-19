@@ -29,6 +29,7 @@ public class UnityGameController : _Controller
     private static SemaphoreSlim SP_CHALLENGE_DATA = new SemaphoreSlim(1, 1);
     private readonly IChallengeStore _challengeStore;
     private readonly ConsoleActorMap _actorMap;
+    private readonly IGamebrainService _gamebrainService;
     private readonly GameService _gameService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IHubContext<AppHub, IAppHubEvent> _hub;
@@ -45,6 +46,7 @@ public class UnityGameController : _Controller
         GameService gameService,
         PlayerService playerService,
         IChallengeStore challengeStore,
+        IGamebrainService gamebrainService,
         IHttpClientFactory httpClientFactory,
         IUnityGameService unityGameService,
         IHubContext<AppHub, IAppHubEvent> hub,
@@ -53,6 +55,7 @@ public class UnityGameController : _Controller
     {
         _actorMap = actorMap;
         _challengeStore = challengeStore;
+        _gamebrainService = gamebrainService;
         _gameService = gameService;
         _httpClientFactory = httpClientFactory;
         _hub = hub;
@@ -68,22 +71,8 @@ public class UnityGameController : _Controller
             () => _gameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
         );
 
-        var gb = await CreateGamebrain();
-        var m = await gb.GetAsync($"admin/deploy/{gid}/{tid}");
-
-        if (m.IsSuccessStatusCode)
-        {
-            var stringContent = await m.Content.ReadAsStringAsync();
-
-            if (!stringContent.IsEmpty())
-            {
-                return new JsonResult(stringContent);
-            }
-
-            return Ok();
-        }
-
-        return BuildError(m, $"Bad response from Gamebrain: {m.Content} : {m.ReasonPhrase}");
+        var content = await _gamebrainService.GetGameState(gid, tid);
+        return new JsonResult(content);
     }
 
     [HttpPost("/api/unity/deploy/{gid}/{tid}")]
@@ -94,9 +83,7 @@ public class UnityGameController : _Controller
             () => _gameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
         );
 
-        var gb = await CreateGamebrain();
-        var m = await gb.PostAsync($"admin/deploy/{gid}/{tid}", null);
-        return await m.Content.ReadAsStringAsync();
+        return await _gamebrainService.DeployUnitySpace(gid, tid);
     }
 
     [HttpPost("/api/unity/undeploy/{gid}/{tid}")]
@@ -109,11 +96,7 @@ public class UnityGameController : _Controller
             () => _gameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
         );
 
-        var accessToken = await HttpContext.GetTokenAsync("access_token");
-        var gb = await CreateGamebrain();
-
-        var m = await gb.GetAsync($"admin/undeploy/{tid}");
-        return await m.Content.ReadAsStringAsync();
+        return await _gamebrainService.UndeployUnitySpace(gid, tid);
     }
 
     /// <summary>
@@ -123,7 +106,7 @@ public class UnityGameController : _Controller
     /// <returns>ChallengeEvent</returns>
     [Authorize]
     [HttpPost("api/unity/challenge")]
-    public async Task<IActionResult> CreateChallenge([FromBody] NewUnityChallenge model)
+    public async Task<Data.Challenge> CreateChallenge([FromBody] NewUnityChallenge model)
     {
         AuthorizeAny(
             () => _gameService.UserIsTeamPlayer(Actor.Id, model.GameId, model.TeamId).Result
@@ -133,7 +116,7 @@ public class UnityGameController : _Controller
 
         // each _team_ will only get one copy of the challenge, and by rule, that challenge must have the id
         // of the topo gamespace ID. If it's already in the DB, send them on their way with the challenge we've already got
-        // 
+        //
         // semaphore locking because, if i don't, may not sleep during the competition
         Data.Challenge challengeData = null;
         try
@@ -141,10 +124,11 @@ public class UnityGameController : _Controller
             Console.Write("Entering the Unity challenge data semaphore");
             await SP_CHALLENGE_DATA.WaitAsync();
 
-            challengeData = await _unityGameService.HasChallengeData(model);
+            challengeData = await _unityGameService.HasChallengeData(model.GamespaceId);
             if (challengeData != null)
             {
-                return Accepted();
+                return challengeData;
+                // return Accepted();
             }
 
             // otherwise, add new challenge data and send gamebrain the ids of the consoles (which are based on the challenge id)
@@ -161,8 +145,6 @@ public class UnityGameController : _Controller
         }
 
         // now that we have challenge IDs, we can update gamebrain's console urls
-        var gamebrainClient = await CreateGamebrain();
-
         var vmData = model.Vms.Select(vm =>
         {
             var consoleHost = new UriBuilder(Request.Scheme, Request.Host.Host, Request.Host.Port ?? -1, $"{Request.PathBase}/mks");
@@ -174,24 +156,17 @@ public class UnityGameController : _Controller
                 Url = consoleHost.Uri.ToString(),
                 Name = vm.Name,
             };
-        }).ToArray();
+        });
 
-        try
-        {
-            await gamebrainClient.PostAsync($"admin/update_console_urls/{model.TeamId}", JsonContent.Create<UnityGameVm[]>(vmData, mediaType: MediaTypeHeaderValue.Parse("application/json")));
-        }
-        catch (Exception ex)
-        {
-            Console.Write("Calling gamebrain failed with", ex);
-            throw;
-        }
+        await _gamebrainService.UpdateConsoleUrls(model.GameId, model.TeamId, vmData);
 
         // notify the hub (if there is one)
         await _hub.Clients
             .Group(model.TeamId)
             .ChallengeEvent(new HubEvent<Challenge>(_mapper.Map<Challenge>(challengeData), EventAction.Updated));
-        
-        return Ok();
+
+        return challengeData;
+        // return Ok();
     }
 
     [HttpPost("api/unity/mission-update")]
@@ -230,26 +205,5 @@ public class UnityGameController : _Controller
 
         await _unityGameService.DeleteChallengeData(gameId);
         return Ok();
-    }
-
-    private ActionResult<T> BuildError<T>(HttpResponse response, string message = null)
-    {
-        var result = new ObjectResult(message);
-        result.StatusCode = response.StatusCode;
-        return result;
-    }
-
-    private ActionResult BuildError(HttpResponseMessage response, string message)
-    {
-        var result = new ObjectResult(message);
-        result.StatusCode = (int)response.StatusCode;
-        return result;
-    }
-
-    private async Task<HttpClient> CreateGamebrain()
-    {
-        var gb = _httpClientFactory.CreateClient("Gamebrain");
-        gb.DefaultRequestHeaders.Add("Authorization", $"Bearer {await HttpContext.GetTokenAsync("access_token")}");
-        return gb;
     }
 }
