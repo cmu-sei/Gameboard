@@ -3,14 +3,14 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
+using Gameboard.Api.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Gameboard.Api.Data;
-using System.Linq;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -19,9 +19,7 @@ namespace Gameboard.Api.Extensions
     public static class DatabaseStartupExtensions
     {
 
-        public static IHost InitializeDatabase(
-            this IHost host
-        )
+        public static IHost InitializeDatabase(this IHost host)
         {
             using (var scope = host.Services.CreateScope())
             {
@@ -41,9 +39,9 @@ namespace Gameboard.Api.Extensions
                 );
 
                 var YamlDeserializer = new DeserializerBuilder()
-                .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                .IgnoreUnmatchedProperties()
-                .Build();
+                    .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                    .IgnoreUnmatchedProperties()
+                    .Build();
 
                 if (File.Exists(seedFile))
                 {

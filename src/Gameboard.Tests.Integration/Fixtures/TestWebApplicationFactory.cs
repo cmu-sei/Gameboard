@@ -1,10 +1,7 @@
-using System.Data.Common;
 using Gameboard.Api.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Gameboard.Tests.Integration.Fixtures;
 
@@ -16,29 +13,21 @@ public class TestWebApplicationFactory<TProgram> : WebApplicationFactory<TProgra
         builder.ConfigureServices(services =>
         {
             // remove configured db context
-            var dbContextDescriptor = services.SingleOrDefault(s => s.ServiceType == typeof(DbContextOptions<GameboardDbContext>));
-            if (dbContextDescriptor != null)
-                services.Remove(dbContextDescriptor);
+            // Remove AppDbContext
+            var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<GameboardDbContext>));
+            if (descriptor != null) services.Remove(descriptor);
 
-            // remove configured connection string
-            var dbConnectionString = services.SingleOrDefault(s => s.ServiceType == typeof(DbConnection));
-            if (dbConnectionString != null)
-                services.Remove(dbConnectionString);
+            // Add DB context pointing to test container
+            services.AddDbContext<GameboardDbContext>(options => options.UseNpgsql("Username=postgres;Password=testing;Database=Gameboard_db_TEST);"));
 
-            // create in-memory db provider/connection
-            services.AddSingleton<DbConnection>(container =>
+            // Ensure schema gets created
+            var serviceProvider = services.BuildServiceProvider();
+            using (var scope = serviceProvider.CreateScope())
             {
-                var connection = new SqliteConnection("DataSource=:memory:");
-                connection.Open();
-
-                return connection;
-            });
-
-            services.AddDbContext<GameboardDbContext>((container, options) =>
-            {
-                var connection = container.GetRequiredService<DbConnection>();
-                options.UseSqlite(connection);
-            });
+                var scopedServices = scope.ServiceProvider;
+                var context = scopedServices.GetRequiredService<GameboardDbContext>();
+                context.Database.EnsureCreated();
+            }
         });
     }
 }
