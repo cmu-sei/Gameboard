@@ -48,7 +48,7 @@ namespace Gameboard.Api
             CsvConfig<ChallengeStatsExport>.OmitHeaders = true;
             CsvConfig<ChallengeDetailsExport>.OmitHeaders = true;
 
-            if (env.IsDevelopment())
+            if (env.IsDevelopment() || env.IsEnvironment("test"))
                 Settings.Oidc.RequireHttpsMetadata = false;
         }
 
