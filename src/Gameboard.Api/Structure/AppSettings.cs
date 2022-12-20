@@ -1,10 +1,9 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System.Collections.Generic;
+using System;
 using System.Linq;
 using Microsoft.AspNetCore.Cors.Infrastructure;
-using System;
 
 namespace Gameboard.Api
 {
@@ -18,7 +17,6 @@ namespace Gameboard.Api
         public HeaderOptions Headers { get; set; } = new HeaderOptions();
         public OpenApiOptions OpenApi { get; set; } = new OpenApiOptions();
         public Defaults Defaults { get; set; } = new Defaults();
-
     }
 
     public class OidcOptions
@@ -34,7 +32,6 @@ namespace Gameboard.Api
         public string ClientId { get; set; }
         public string ClientName { get; set; }
         public string ClientSecret { get; set; }
-
     }
 
     public class OAuth2Client
@@ -98,9 +95,9 @@ namespace Gameboard.Api
     public class CorsPolicyOptions
     {
         public string Name { get; set; } = "default";
-        public string[] Origins { get; set; } = new string[]{};
-        public string[] Methods { get; set; } = new string[]{};
-        public string[] Headers { get; set; } = new string[]{};
+        public string[] Origins { get; set; } = new string[] { };
+        public string[] Methods { get; set; } = new string[] { };
+        public string[] Headers { get; set; } = new string[] { };
         public bool AllowCredentials { get; set; }
 
         public CorsPolicy Build()
@@ -108,18 +105,21 @@ namespace Gameboard.Api
             CorsPolicyBuilder policy = new CorsPolicyBuilder();
 
             var origins = Origins.Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
-            if (origins.Any()) {
+            if (origins.Any())
+            {
                 if (origins.First() == "*") policy.AllowAnyOrigin(); else policy.WithOrigins(origins);
                 if (AllowCredentials && origins.First() != "*") policy.AllowCredentials(); else policy.DisallowCredentials();
             }
 
             var methods = Methods.Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
-            if (methods.Any()) {
+            if (methods.Any())
+            {
                 if (methods.First() == "*") policy.AllowAnyMethod(); else policy.WithMethods(methods);
             }
 
             var headers = Headers.Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
-            if (headers.Any()) {
+            if (headers.Any())
+            {
                 if (headers.First() == "*") policy.AllowAnyHeader(); else policy.WithHeaders(headers);
             }
 
@@ -167,22 +167,23 @@ namespace Gameboard.Api
         public static DateTimeOffset[][] ShiftsFallback { get; set; } = GetShifts(ShiftStringsFallback);
 
         // Helper method to format shifts as DateTimeOffset objects
-        public static DateTimeOffset[][] GetShifts(string[][] shiftStrings) {
+        public static DateTimeOffset[][] GetShifts(string[][] shiftStrings)
+        {
             DateTimeOffset[][] offsets = new DateTimeOffset[shiftStrings.Length][];
             // Create a new DateTimeOffset representation for every string time given
             for (int i = 0; i < shiftStrings.Length; i++)
             {
-                offsets[i] = new DateTimeOffset[] { 
-                    ConvertTime(shiftStrings[i][0], ShiftTimezoneFallback), 
+                offsets[i] = new DateTimeOffset[] {
+                    ConvertTime(shiftStrings[i][0], ShiftTimezoneFallback),
                     ConvertTime(shiftStrings[i][1], ShiftTimezoneFallback) };
             }
             return offsets;
         }
 
         // Helper method to convert a given string time into a DateTimeOffset representation
-        public static DateTimeOffset ConvertTime(string time, string shiftTimezone) {
+        public static DateTimeOffset ConvertTime(string time, string shiftTimezone)
+        {
             return TimeZoneInfo.ConvertTime(DateTimeOffset.Parse(time), TimeZoneInfo.FindSystemTimeZoneById(shiftTimezone));
         }
     }
-
 }

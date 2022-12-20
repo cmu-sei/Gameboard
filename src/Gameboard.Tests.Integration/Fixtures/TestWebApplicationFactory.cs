@@ -1,4 +1,5 @@
 using Gameboard.Api.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -11,29 +12,19 @@ public class TestWebApplicationFactory<TProgram> : WebApplicationFactory<TProgra
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("test");
+        builder.UseEnvironment("Test");
         builder.ConfigureServices(services =>
         {
-            // remove configured db context
-            // Remove AppDbContext
-            var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<GameboardDbContext>));
-            if (descriptor != null) services.Remove(descriptor);
-
-            // Add DB context pointing to test container
+            // Add DB context (will ultimately be replaced by a testcontainer)
+            services.RemoveService<DbContext>();
             services.AddDbContext<GameboardDbContext>(options => options.UseNpgsql("Username=postgres;Password=testing;Database=Gameboard_db_TEST);"));
 
-            // configure authorization spoof
-            // services.AddAuthorization(_ =>
-            // {
-            //     _.AddPolicy("AutomatedTest", new AuthorizationPolicyBuilder()
-            //         .RequireAssertion(context => context.Succeed())
-            //     );
-            // });
-
+            // override authentication/authorization with dummies
             services.Configure<TestAuthenticationHandlerOptions>(options => options.DefaultUserId = _DefaultAuthenticationUserId);
-
-            services.AddAuthentication(TestAuthenticationHandlerOptions.AuthenticationSchemeName)
-                .AddScheme<TestAuthenticationHandlerOptions, TestAuthenticationHandler>(TestAuthenticationHandlerOptions.AuthenticationSchemeName, options => { });
+            services
+                .AddAuthentication(defaultScheme: TestAuthenticationHandler.AuthenticationSchemeName)
+                .AddScheme<TestAuthenticationHandlerOptions, TestAuthenticationHandler>(TestAuthenticationHandler.AuthenticationSchemeName, options => { });
+            services.ReplaceService<IAuthorizationService, TestAuthorizationService>();
 
             // Ensure schema gets created
             var serviceProvider = services.BuildServiceProvider();

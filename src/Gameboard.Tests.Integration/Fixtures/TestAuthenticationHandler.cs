@@ -11,6 +11,9 @@ internal class TestAuthenticationHandler : AuthenticationHandler<TestAuthenticat
 {
     private readonly string _defaultUserId;
 
+    public const string AuthenticationSchemeName = "Test";
+    public AuthenticationScheme AuthScheme { get; } = new AuthenticationScheme(name: AuthenticationSchemeName, displayName: AuthenticationSchemeName, handlerType: typeof(TestAuthenticationHandler));
+
     public TestAuthenticationHandler(IOptionsMonitor<TestAuthenticationHandlerOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock) :
         base(options, logger, encoder, clock)
     {
@@ -38,12 +41,14 @@ internal class TestAuthenticationHandler : AuthenticationHandler<TestAuthenticat
         {
             claims.Add(new Claim(ClaimTypes.NameIdentifier, _defaultUserId));
             claims.Add(new Claim(AppConstants.SubjectClaimName, _defaultUserId));
+            claims.Add(new Claim(AppConstants.ApprovedNameClaimName, "Integration Tester"));
+            claims.Add(new Claim(AppConstants.RoleListClaimName, "Integration Tester"));
         }
 
         // TODO: Add as many claims as you need here
-        var identity = new ClaimsIdentity(claims, Options.AuthScheme.Name);
+        var identity = new ClaimsIdentity(claims, AuthScheme.Name);
         var principal = new ClaimsPrincipal(identity);
-        var ticket = new AuthenticationTicket(principal, Options.AuthScheme.Name);
+        var ticket = new AuthenticationTicket(principal, AuthScheme.Name);
 
         var result = AuthenticateResult.Success(ticket);
 
