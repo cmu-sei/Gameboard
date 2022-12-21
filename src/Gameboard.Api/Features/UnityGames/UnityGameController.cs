@@ -4,8 +4,6 @@
 using System;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -13,9 +11,7 @@ using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Distributed;
@@ -26,7 +22,7 @@ namespace Gameboard.Api.Controllers;
 [Authorize]
 public class UnityGameController : _Controller
 {
-    private static SemaphoreSlim SP_CHALLENGE_DATA = new SemaphoreSlim(1, 1);
+    private static readonly SemaphoreSlim SP_CHALLENGE_DATA = new SemaphoreSlim(1, 1);
     private readonly IChallengeStore _challengeStore;
     private readonly ConsoleActorMap _actorMap;
     private readonly IGamebrainService _gamebrainService;
@@ -183,7 +179,7 @@ public class UnityGameController : _Controller
         if (challengeEvent == null)
         {
             // this means that everything went fine, but that we've already been told the team completed this challenge
-            return Accepted();
+            return Accepted(challengeEvent);
         }
 
         // this means we actually created an event, so also update player scores

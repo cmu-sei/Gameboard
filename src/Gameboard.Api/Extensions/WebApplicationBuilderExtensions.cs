@@ -4,7 +4,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ServiceStack.Text;
@@ -13,14 +12,6 @@ namespace Gameboard.Api.Extensions;
 
 internal static class WebApplicationBuilderExtensions
 {
-    // exposed internally to support integration testing
-    public static Action<JsonOptions> ConfigureJsonOptions { get; } = (options =>
-    {
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
-        options.JsonSerializerOptions.Converters.Add(new JsonDateTimeConverter());
-    });
-
     public static AppSettings BuildAppSettings(this WebApplicationBuilder builder)
     {
         var settings = builder.Configuration.Get<AppSettings>() ?? new AppSettings();
@@ -58,27 +49,21 @@ internal static class WebApplicationBuilderExtensions
     {
         var services = builder.Services;
 
-        services.AddMvc()
-            .AddJsonOptions(ConfigureJsonOptions);
+        services
+            .AddMvc()
+            .AddGameboardJsonOptions();
 
-        services.ConfigureForwarding(settings.Headers.Forwarding);
-
-        services.AddCors(
-            opt => opt.AddPolicy(
-                settings.Headers.Cors.Name,
-                settings.Headers.Cors.Build()
-            )
-        );
+        services
+            .ConfigureForwarding(settings.Headers.Forwarding)
+            .AddCors(opt => opt.AddPolicy(settings.Headers.Cors.Name, settings.Headers.Cors.Build()))
+            .AddCache(() => settings.Cache);
 
         if (settings.OpenApi.Enabled)
             services.AddSwagger(settings.Oidc, settings.OpenApi);
 
-        services.AddCache(() => settings.Cache);
-
         services.AddDataProtection()
             .SetApplicationName(AppConstants.DataProtectionPurpose)
-            .PersistKeys(() => settings.Cache)
-        ;
+            .PersistKeys(() => settings.Cache);
 
         services.AddSignalR()
             .AddJsonProtocol(options =>

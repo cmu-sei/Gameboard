@@ -1,30 +1,16 @@
-using System.Net.Http.Json;
-using System.Net.Mime;
-using System.Text;
-using System.Text.Json;
 using Gameboard.Api;
-using Gameboard.Tests.Integration.Extensions;
+using Gameboard.Api.Data;
 using Gameboard.Tests.Integration.Fixtures;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Options;
 
 namespace Gameboard.Tests.Integration;
 
-public class GameControllerTests : IClassFixture<TestWebApplicationFactory<Program>>
+public class GameControllerTests : IClassFixture<GameboardTestContext<Program, GameboardDbContextPostgreSQL>>
 {
-    private readonly HttpClient _http;
-    private readonly IOptions<JsonOptions> _jsonOptions;
-    private readonly TestWebApplicationFactory<Program> _appFactory;
+    private readonly GameboardTestContext<Program, GameboardDbContextPostgreSQL> _testContext;
 
-    public GameControllerTests(TestWebApplicationFactory<Program> appFactory)
+    public GameControllerTests(GameboardTestContext<Program, GameboardDbContextPostgreSQL> testContext)
     {
-        _appFactory = appFactory;
-        _jsonOptions = appFactory.Services.GetRequiredService<IOptions<JsonOptions>>();
-        _http = appFactory.CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false
-        });
+        _testContext = testContext;
     }
 
     [Fact]
@@ -46,12 +32,12 @@ public class GameControllerTests : IClassFixture<TestWebApplicationFactory<Progr
         };
 
         // act
-        var response = await _http.PostAsync("/api/game", game.ToStringContent());
+        var response = await _testContext.Http.PostAsync("/api/game", game.ToStringContent());
 
         // assert
         response.EnsureSuccessStatusCode();
 
-        var responseGame = await response.Content.ReadFromJsonAsync<Game>(options: _jsonOptions.Value.JsonSerializerOptions);
+        var responseGame = await response.Content.JsonDeserializeAsync<Api.Data.Game>(_testContext.GetJsonSerializerOptions());
         Assert.Equal(game.Name, responseGame?.Name);
     }
 }

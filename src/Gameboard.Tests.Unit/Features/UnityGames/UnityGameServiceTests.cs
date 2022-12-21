@@ -39,6 +39,6 @@ public class UnityGameServiceTests
         var match = regex.IsMatch(missionCompleteString);
 
         // assert
-        Assert.True(match);
+        match.ShouldBe(true);
     }
 }
