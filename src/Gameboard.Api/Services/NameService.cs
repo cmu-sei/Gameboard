@@ -9,7 +9,7 @@ using System.Text.Json;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 
-namespace Gameboard.Api
+namespace Gameboard.Api.Services
 {
     public interface INameService
     {
@@ -18,7 +18,7 @@ namespace Gameboard.Api
         void AppendList(List<string> list);
     }
 
-    public class NameService: INameService
+    public class NameService : INameService
     {
         private readonly ILogger<NameService> _logger;
         private readonly CoreOptions _options;

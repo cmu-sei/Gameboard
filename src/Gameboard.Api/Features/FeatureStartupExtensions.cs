@@ -41,6 +41,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddScoped<IUnityStore, UnityStore>();
             services.AddScoped<ICubespaceScoreboardService, CubespaceScoreboardService>();
             services.AddScoped<IGamebrainService, GamebrainService>();
+            services.AddSingleton<IGuidService, GuidService>();
 
             foreach (var t in Assembly
                 .GetExecutingAssembly()

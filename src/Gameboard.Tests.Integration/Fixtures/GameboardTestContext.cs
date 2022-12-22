@@ -2,20 +2,21 @@ using System.Text.Json;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Configurations;
 using DotNet.Testcontainers.Containers;
+using Gameboard.Api.Data;
 using Gameboard.Api.Extensions;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Tests.Integration.Fixtures;
 
-public class GameboardTestContext<TProgram, TDbContext> : WebApplicationFactory<TProgram>, IAsyncLifetime where TProgram : class where TDbContext : DbContext
+public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, IAsyncLifetime where TDbContext : GameboardDbContext
 {
-    private readonly string _DefaultAuthenticationUserId = "679b1757-8ca7-4816-ad1b-ae90dd1b3941";
+    private readonly string _DefaultAuthenticationUserId = "admin";
     private readonly TestcontainerDatabase _dbContainer;
-
-    public HttpClient Http { get; }
 
     public GameboardTestContext()
     {
@@ -31,29 +32,27 @@ public class GameboardTestContext<TProgram, TDbContext> : WebApplicationFactory<
 
         // start the container (see explanation below in InitializeAsync)
         _dbContainer.StartAsync().Wait();
-
-        // create an HttpClient with the desired defaults
-        Http = CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false
-        });
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Test");
-        builder.ConfigureServices(services =>
+        builder.ConfigureTestServices(services =>
         {
             // Add DB context with connection to the container
             services.RemoveService<TDbContext>();
             services.AddDbContext<TDbContext>(options => options.UseNpgsql(_dbContainer.ConnectionString));
 
-            // override authentication/authorization with dummies
-            services.Configure<TestAuthenticationHandlerOptions>(options => options.DefaultUserId = _DefaultAuthenticationUserId);
-            services
-                .AddAuthentication(defaultScheme: TestAuthenticationHandler.AuthenticationSchemeName)
-                .AddScheme<TestAuthenticationHandlerOptions, TestAuthenticationHandler>(TestAuthenticationHandler.AuthenticationSchemeName, options => { });
+            // Some services (like the stores) in Gameboard inject with GameboardDbContext rather than DbContext,
+            // so we need to add an additional binding for them
+            services.AddTransient<GameboardDbContext, TDbContext>();
+
+            // add user claims transformation that lets them all through
+            services.ReplaceService<IClaimsTransformation, TestClaimsTransformation>(allowMultipleReplace: true);
+
+            // dummy authorization service that lets everything through
             services.ReplaceService<IAuthorizationService, TestAuthorizationService>();
+
 
             // TODO: figure out why the json options registered in the main app's ConfigureServices aren't here
             // services.AddMvc().AddGameboardJsonOptions();

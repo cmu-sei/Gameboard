@@ -1,21 +1,19 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using Gameboard.Api.Data.Abstractions;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Gameboard.Api.Data.Abstractions;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data
 {
     public class Store<TEntity> : IStore<TEntity>
         where TEntity : class, IEntity
     {
-        public Store(
-            GameboardDbContext dbContext
-        )
+        public Store(GameboardDbContext dbContext)
         {
             DbContext = dbContext;
             DbSet = dbContext.Set<TEntity>();

@@ -1,14 +1,13 @@
 using Gameboard.Api;
 using Gameboard.Api.Data;
-using Gameboard.Tests.Integration.Fixtures;
 
 namespace Gameboard.Tests.Integration;
 
-public class GameControllerTests : IClassFixture<GameboardTestContext<Program, GameboardDbContextPostgreSQL>>
+public class GameControllerTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
 {
-    private readonly GameboardTestContext<Program, GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
 
-    public GameControllerTests(GameboardTestContext<Program, GameboardDbContextPostgreSQL> testContext)
+    public GameControllerTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
     {
         _testContext = testContext;
     }
@@ -31,8 +30,10 @@ public class GameControllerTests : IClassFixture<GameboardTestContext<Program, G
             RegistrationType = GameRegistrationType.Open
         };
 
+        var client = _testContext.CreateClient();
+
         // act
-        var response = await _testContext.Http.PostAsync("/api/game", game.ToStringContent());
+        var response = await client.PostAsync("/api/game", game.ToStringContent());
 
         // assert
         response.EnsureSuccessStatusCode();
