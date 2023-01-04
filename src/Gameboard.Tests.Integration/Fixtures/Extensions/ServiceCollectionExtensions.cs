@@ -1,4 +1,4 @@
-namespace Gameboard.Tests.Integration.Extensions;
+namespace Gameboard.Tests.Integration.Fixtures;
 
 internal static class ServiceCollectionExtensions
 {

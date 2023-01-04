@@ -3,7 +3,6 @@
 
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
-using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Validators
 {

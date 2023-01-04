@@ -33,12 +33,11 @@ public class GameControllerTests : IClassFixture<GameboardTestContext<GameboardD
         var client = _testContext.CreateClient();
 
         // act
-        var response = await client.PostAsync("/api/game", game.ToStringContent());
+        var response = await client.PostAsync("/api/game", game.ToJsonBody());
+        var responseGame = await client.PostAsync("/api/game", game.ToJsonBody()).WithContentDeserializedAs<Api.Data.Game>(_testContext.GetJsonSerializerOptions());
 
         // assert
         response.EnsureSuccessStatusCode();
-
-        var responseGame = await response.Content.JsonDeserializeAsync<Api.Data.Game>(_testContext.GetJsonSerializerOptions());
         Assert.Equal(game.Name, responseGame?.Name);
     }
 }

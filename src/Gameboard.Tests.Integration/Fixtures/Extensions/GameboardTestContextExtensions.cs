@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 
-namespace Gameboard.Tests.Integration.Extensions;
+namespace Gameboard.Tests.Integration.Fixtures;
 
 internal static class GameboardTestContextExtensions
 {

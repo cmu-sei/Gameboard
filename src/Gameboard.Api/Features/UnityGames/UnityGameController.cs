@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.UnityGames;
+using Gameboard.Api.Features.UnityGames.ViewModels;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -102,7 +103,7 @@ public class UnityGameController : _Controller
     /// <returns>ChallengeEvent</returns>
     [Authorize]
     [HttpPost("api/unity/challenge")]
-    public async Task<Data.Challenge> CreateChallenge([FromBody] NewUnityChallenge model)
+    public async Task<ActionResult<Data.Challenge>> CreateChallenge([FromBody] NewUnityChallenge model)
     {
         AuthorizeAny(
             () => _gameService.UserIsTeamPlayer(Actor.Id, model.GameId, model.TeamId).Result
@@ -161,8 +162,7 @@ public class UnityGameController : _Controller
             .Group(model.TeamId)
             .ChallengeEvent(new HubEvent<Challenge>(_mapper.Map<Challenge>(challengeData), EventAction.Updated));
 
-        return challengeData;
-        // return Ok();
+        return Ok(_mapper.Map<UnityGameChallengeViewModel>(challengeData));
     }
 
     [HttpPost("api/unity/mission-update")]

@@ -15,7 +15,6 @@ namespace Gameboard.Tests.Integration.Fixtures;
 
 public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, IAsyncLifetime where TDbContext : GameboardDbContext
 {
-    private readonly string _DefaultAuthenticationUserId = "admin";
     private readonly TestcontainerDatabase _dbContainer;
 
     public GameboardTestContext()
@@ -23,15 +22,13 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
         _dbContainer = new TestcontainersBuilder<PostgreSqlTestcontainer>()
             .WithDatabase(new PostgreSqlTestcontainerConfiguration
             {
-                Database = "GameboardTestDb",
+                Database = "GameboardIntegrationTestDb",
                 Username = "gameboard",
                 Password = "gameboard",
             })
+            .WithImage("postgres:latest")
             .WithCleanUp(true)
             .Build();
-
-        // start the container (see explanation below in InitializeAsync)
-        _dbContainer.StartAsync().Wait();
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -51,8 +48,8 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
             services.ReplaceService<IClaimsTransformation, TestClaimsTransformation>(allowMultipleReplace: true);
 
             // dummy authorization service that lets everything through
+            // TODO: we may need to make an easy way to configure this to enable tests which rely on authorization
             services.ReplaceService<IAuthorizationService, TestAuthorizationService>();
-
 
             // TODO: figure out why the json options registered in the main app's ConfigureServices aren't here
             // services.AddMvc().AddGameboardJsonOptions();
@@ -74,9 +71,8 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
 
     public async Task InitializeAsync()
     {
-        // Would really like to do this here, but this seems to happen after ConfigureWebhost, and I need the
-        // connection string before that
-        // await _dbContainer.StartAsync();
+        // start up our testcontainer with the db
+        await _dbContainer.StartAsync();
 
         // ensure database migration
         await Services.GetService<TDbContext>()!.Database.MigrateAsync();

@@ -237,7 +237,7 @@ internal class UnityGameService : _Service, IUnityGameService
     }
 
     // if you change this, change `GetMissionCompleteEventRegex` above
-    internal string GetMissionCompleteDefinitionString(string missionId)
+    public string GetMissionCompleteDefinitionString(string missionId)
         => $"[complete:{missionId}]";
 
     internal bool IsMissionComplete(IEnumerable<Data.ChallengeEvent> events, string missionId)

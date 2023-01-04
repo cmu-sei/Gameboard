@@ -86,12 +86,4 @@ namespace Gameboard.Api.Controllers
         }
 
     }
-
-    public enum AuthRequirement
-    {
-        None,
-        Self,
-        RegistrarOrSelf,
-        DirectorOrSelf
-    }
 }

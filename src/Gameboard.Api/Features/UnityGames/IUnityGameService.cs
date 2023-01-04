@@ -12,5 +12,6 @@ public interface IUnityGameService
     bool IsUnityGame(Game game);
     bool IsUnityGame(Data.Game game);
     Regex GetMissionCompleteEventRegex();
+    string GetMissionCompleteDefinitionString(string missionId);
     string GetUnityModeString();
 }
