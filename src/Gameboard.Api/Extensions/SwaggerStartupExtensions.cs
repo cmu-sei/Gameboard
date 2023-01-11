@@ -34,15 +34,18 @@ namespace Microsoft.Extensions.DependencyInjection
                 options.EnableAnnotations();
                 options.CustomSchemaIds(i => i.FullName);
 
-#if DEBUG
-                string[] files = Directory.GetFiles("bin", xmlDoc, SearchOption.AllDirectories);
-
-                if (files.Length > 0)
-                    options.IncludeXmlComments(files[0]);
-#else
                 if (File.Exists(xmlDoc))
                     options.IncludeXmlComments(xmlDoc);
-#endif
+
+                // #if DEBUG
+                //                 string[] files = Directory.GetFiles("bin", xmlDoc, SearchOption.AllDirectories);
+
+                //                 if (files.Length > 0)
+                //                     options.IncludeXmlComments(files[0]);
+                // #else
+                //                 if (File.Exists(xmlDoc))
+                //                     options.IncludeXmlComments(xmlDoc);
+                // #endif
 
                 // options.CustomSchemaIds(type => type.FullName.StartsWith("Gameboard")
                 //     ? type.Name

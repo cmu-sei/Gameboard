@@ -2,11 +2,10 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
-using Microsoft.EntityFrameworkCore;
-using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
-using System.Reflection;
 using System.Linq;
+using System.Reflection;
+using Gameboard.Api.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -22,25 +21,25 @@ namespace Microsoft.Extensions.DependencyInjection
             {
 
                 case "sqlserver":
-                // services.AddEntityFrameworkSqlServer();
-                services.AddDbContext<GameboardDbContext, GameboardDbContextSqlServer>(
-                    builder => builder.UseSqlServer(connstr)
-                );
-                break;
+                    // services.AddEntityFrameworkSqlServer();
+                    services.AddDbContext<GameboardDbContext, GameboardDbContextSqlServer>(
+                        builder => builder.UseSqlServer(connstr)
+                    );
+                    break;
 
                 case "postgresql":
-                // services.AddEntityFrameworkNpgsql();
-                services.AddDbContext<GameboardDbContext, GameboardDbContextPostgreSQL>(
-                    builder => builder.UseNpgsql(connstr)
-                );
-                break;
+                    // services.AddEntityFrameworkNpgsql();
+                    services.AddDbContext<GameboardDbContext, GameboardDbContextPostgreSQL>(
+                        builder => builder.UseNpgsql(connstr)
+                    );
+                    break;
 
                 default:
-                // services.AddEntityFrameworkInMemoryDatabase();
-                services.AddDbContext<GameboardDbContext, GameboardDbContextInMemory>(
-                    builder => builder.UseInMemoryDatabase("Gameboard_Db")
-                );
-                break;
+                    // services.AddEntityFrameworkInMemoryDatabase();
+                    services.AddDbContext<GameboardDbContext, GameboardDbContextInMemory>(
+                        builder => builder.UseInMemoryDatabase("Gameboard_Db")
+                    );
+                    break;
             }
 
             // Auto-discover from EntityStore and IEntityStore pattern

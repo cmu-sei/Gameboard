@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using AutoMapper;
+using Gameboard.Api.Features.Player;
 
 namespace Gameboard.Api.Services
 {
@@ -51,6 +52,10 @@ namespace Gameboard.Api.Services
             CreateMap<ChangedPlayer, SelfChangedPlayer>();
 
             CreateMap<SelfChangedPlayer, Data.Player>();
+
+            CreateMap<Player, PlayerUpdatedViewModel>()
+                .ForMember(vm => vm.PreUpdateName, opts => opts.MapFrom(p => p.ApprovedName))
+                .ForMember(vm => vm.PreUpdateName, opts => opts.Ignore());
         }
     }
 }

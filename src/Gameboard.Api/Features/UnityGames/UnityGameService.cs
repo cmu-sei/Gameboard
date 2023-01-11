@@ -17,7 +17,7 @@ namespace Gameboard.Api.Features.UnityGames;
 internal class UnityGameService : _Service, IUnityGameService
 {
     private readonly IChallengeStore _challengeStore;
-    IUnityStore Store { get; }
+    private readonly IUnityStore _store;
     ITopoMojoApiClient Mojo { get; }
 
     private readonly ConsoleActorMap _actorMap;
@@ -32,17 +32,17 @@ internal class UnityGameService : _Service, IUnityGameService
             ConsoleActorMap actorMap
         ) : base(logger, mapper, options)
     {
-        Store = store;
         Mojo = mojo;
         _actorMap = actorMap;
         _challengeStore = challengeStore;
+        _store = store;
     }
 
     public async Task<Data.Challenge> AddChallenge(NewUnityChallenge newChallenge, User actor)
     {
         // each _team_ should only get one copy of the challenge, and by rule, that challenge must have the id
         // of the topo gamespace ID. If it's already in the DB, send them on their way with the challenge we've already got
-        var existingChallenge = await Store.DbContext
+        var existingChallenge = await _store.DbContext
             .Challenges
             .AsNoTracking()
             .Include(c => c.Events)
@@ -55,7 +55,7 @@ internal class UnityGameService : _Service, IUnityGameService
 
         // otherwise, let's make some challenges
         // find the team's players
-        var teamPlayers = await Store.DbContext
+        var teamPlayers = await _store.DbContext
             .Players
             .Where(p => p.TeamId == newChallenge.TeamId)
             .ToListAsync();
@@ -64,14 +64,14 @@ internal class UnityGameService : _Service, IUnityGameService
         var challengeName = $"{teamCaptain.ApprovedName} vs. Cubespace";
 
         // load the spec associated with the game
-        var challengeSpec = await Store.DbContext.ChallengeSpecs.FirstOrDefaultAsync(c => c.GameId == newChallenge.GameId);
+        var challengeSpec = await _store.DbContext.ChallengeSpecs.FirstOrDefaultAsync(c => c.GameId == newChallenge.GameId);
         if (challengeSpec == null)
         {
             throw new SpecNotFound(newChallenge.GameId);
         }
 
         // we have to spoof topomojo data here. load the game and related data.
-        var game = await this.Store
+        var game = await this._store
             .DbContext
             .Games
             .FirstOrDefaultAsync(g => g.Id == newChallenge.GameId);
@@ -133,7 +133,7 @@ internal class UnityGameService : _Service, IUnityGameService
             Points = newChallenge.MaxPoints,
             Score = 0,
             Events = new List<Data.ChallengeEvent>
-            {  
+            {
                 // an initial event to start the party
                 new ChallengeEvent
                 {
@@ -148,24 +148,15 @@ internal class UnityGameService : _Service, IUnityGameService
             WhenCreated = DateTimeOffset.UtcNow,
         };
 
-        await Store.DbContext.Challenges.AddAsync(newChallengeEntity);
-        await Store.DbContext.SaveChangesAsync();
+        await _store.DbContext.Challenges.AddAsync(newChallengeEntity);
+        await _store.DbContext.SaveChangesAsync();
 
         return newChallengeEntity;
     }
 
-    public async Task<Data.Challenge> HasChallengeData(NewUnityChallenge model)
-    {
-        return await Store.DbContext
-            .Challenges
-            .AsNoTracking()
-            .Include(c => c.Events)
-            .FirstOrDefaultAsync(c => c.Id == model.GamespaceId);
-    }
-
     public async Task DeleteChallengeData(string gameId)
     {
-        var challenges = await Store
+        var challenges = await _store
             .DbContext
             .Challenges
             .Include(c => c.Events)
@@ -177,16 +168,21 @@ internal class UnityGameService : _Service, IUnityGameService
             return;
         }
 
-        Store.DbContext.Challenges.RemoveRange(challenges);
-        Store.DbContext.ChallengeEvents.RemoveRange(challenges.SelectMany(c => c.Events));
+        _store.DbContext.Challenges.RemoveRange(challenges);
+        _store.DbContext.ChallengeEvents.RemoveRange(challenges.SelectMany(c => c.Events));
 
-        await Store.DbContext.SaveChangesAsync();
+        await _store.DbContext.SaveChangesAsync();
+    }
+
+    public async Task<Data.Challenge> HasChallengeData(string gamespaceId)
+    {
+        return await _store.HasChallengeData(gamespaceId);
     }
 
     public async Task<Data.ChallengeEvent> CreateMissionEvent(UnityMissionUpdate model, Api.User actor)
     {
         var unityMode = GetUnityModeString();
-        var challengeCandidates = await Store.DbContext
+        var challengeCandidates = await _store.DbContext
             .Challenges
             .Include(c => c.Game)
             .Include(c => c.Events)
@@ -225,7 +221,7 @@ internal class UnityGameService : _Service, IUnityGameService
         challenge.Score += model.PointsScored;
 
         // save it up
-        await Store.DbContext.SaveChangesAsync();
+        await _store.DbContext.SaveChangesAsync();
 
         // return (used to determine HTTP status code in an above controller)
         return challengeEvent;
@@ -241,10 +237,10 @@ internal class UnityGameService : _Service, IUnityGameService
     }
 
     // if you change this, change `GetMissionCompleteEventRegex` above
-    private string GetMissionCompleteDefinitionString(string missionId)
+    public string GetMissionCompleteDefinitionString(string missionId)
         => $"[complete:{missionId}]";
 
-    private bool IsMissionComplete(IEnumerable<Data.ChallengeEvent> events, string missionId)
+    internal bool IsMissionComplete(IEnumerable<Data.ChallengeEvent> events, string missionId)
         => events.Any(e => e.Text.Contains(GetMissionCompleteDefinitionString(missionId)));
 
     private Data.Player ResolveTeamCaptain(IEnumerable<Data.Player> players, NewUnityChallenge newChallenge)

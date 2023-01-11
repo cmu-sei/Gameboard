@@ -1,0 +1,9 @@
+# app settings
+.git
+.github
+.vs
+.vscode
+
+# compiled
+bin
+obj

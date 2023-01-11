@@ -3,6 +3,7 @@
 
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Features.Player;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
@@ -79,7 +80,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPut("api/player")]
         [Authorize]
-        public async Task Update([FromBody] ChangedPlayer model)
+        public async Task<PlayerUpdatedViewModel> Update([FromBody] ChangedPlayer model)
         {
             await Validate(model);
 
@@ -93,6 +94,8 @@ namespace Gameboard.Api.Controllers
             await Hub.Clients.Group(result.TeamId).TeamEvent(
                 new HubEvent<TeamState>(Mapper.Map<TeamState>(result), EventAction.Updated)
             );
+
+            return Mapper.Map<PlayerUpdatedViewModel>(result);
         }
 
         /// <summary>
@@ -349,6 +352,5 @@ namespace Gameboard.Api.Controllers
         {
             return await PlayerService.MapId(playerId) == Actor.Id;
         }
-
     }
 }
