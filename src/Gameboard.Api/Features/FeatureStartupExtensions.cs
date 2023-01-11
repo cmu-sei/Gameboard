@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using AutoMapper;
 using Gameboard.Api.Features.CubespaceScoreboard;
+using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
@@ -37,11 +38,12 @@ namespace Microsoft.Extensions.DependencyInjection
             // TODO: Ben -> fix this
             services.AddHttpContextAccessor();
             services.AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>();
+            services.AddScoped<ITeamService, TeamService>();
             services.AddScoped<IUnityGameService, UnityGameService>();
             services.AddScoped<IUnityStore, UnityStore>();
             services.AddScoped<ICubespaceScoreboardService, CubespaceScoreboardService>();
             services.AddScoped<IGamebrainService, GamebrainService>();
-            services.AddSingleton<IGuidService, GuidService>();
+            services.AddTransient<IGuidService, GuidService>();
 
             foreach (var t in Assembly
                 .GetExecutingAssembly()

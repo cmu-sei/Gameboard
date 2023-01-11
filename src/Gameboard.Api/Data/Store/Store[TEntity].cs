@@ -53,7 +53,10 @@ namespace Gameboard.Api.Data
             return range;
         }
 
-        public virtual async Task<TEntity> Retrieve(string id, Func<IQueryable<TEntity>, IQueryable<TEntity>> includes = null)
+        public virtual Task<TEntity> Retrieve(string id)
+            => Retrieve(id, null);
+
+        public virtual async Task<TEntity> Retrieve(string id, Func<IQueryable<TEntity>, IQueryable<TEntity>> includes)
         {
             if (includes != null)
             {

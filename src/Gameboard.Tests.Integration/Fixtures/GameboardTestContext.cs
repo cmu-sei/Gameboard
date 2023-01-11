@@ -74,6 +74,13 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
         // start up our testcontainer with the db
         await _dbContainer.StartAsync();
 
+        // get the dbcontext type and use it to migrate (stand up) the database
+        var dbContext = Services.GetRequiredService<TDbContext>();
+        if (dbContext == null)
+        {
+            throw new MissingServiceException<TDbContext>("Attempting to stand up the testcontainers database.");
+        }
+
         // ensure database migration
         await Services.GetService<TDbContext>()!.Database.MigrateAsync();
     }

@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using Gameboard.Api.Data;
 using Gameboard.Api.Validators;
 
 namespace Gameboard.Api
@@ -19,7 +20,8 @@ namespace Gameboard.Api
 
     internal class CaptainResolutionFailure : GameboardException
     {
-        internal CaptainResolutionFailure(string teamId) : base($"Couldn't resolve a team captain for team {teamId}") { }
+        internal CaptainResolutionFailure(string teamId, string message = null)
+            : base($"Couldn't resolve a team captain for team {teamId}. {(message.IsEmpty() ? "" : message)}") { }
     }
 
     internal class InvalidInvitationCode : GameboardException
@@ -37,6 +39,13 @@ namespace Gameboard.Api
     {
         internal RegistrationIsClosed(string gameId, string addlMessage = null) :
             base($"Registration for game {gameId} is closed.${(addlMessage.HasValue() ? $" [{addlMessage}]" : string.Empty)}")
+        { }
+    }
+
+    internal class ResourceAlreadyExists<T> : GameboardException where T : class, IEntity
+    {
+        internal ResourceAlreadyExists(string id, string addlMessage = null) :
+            base($"Couldn't create resource '{id}' of type {typeof(T).Name} because it already exists.{(addlMessage.HasValue() ? $" {addlMessage}" : string.Empty)}")
         { }
     }
 
@@ -75,7 +84,6 @@ namespace Gameboard.Api
             base($"Validator type {typeof(TValidator)} was unable to validate an object of type {typeof(TObject).Name}")
         { }
     }
-
 
     public class ActionForbidden : Exception { }
     public class EntityNotFound : Exception { }

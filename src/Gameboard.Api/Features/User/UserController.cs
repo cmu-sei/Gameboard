@@ -33,7 +33,7 @@ namespace Gameboard.Api.Controllers
             UserService userService,
             CoreOptions options,
             IHubContext<AppHub, IAppHubEvent> hub
-        ): base(logger, cache, validator)
+        ) : base(logger, cache, validator)
         {
             UserService = userService;
             Options = options;
@@ -57,7 +57,7 @@ namespace Gameboard.Api.Controllers
 
             await Validate(model);
 
-            var user = await UserService.GetOrAdd(model);
+            var user = await UserService.Create(model);
 
             await HttpContext.SignInAsync(
                 AppConstants.MksCookie,
@@ -76,14 +76,14 @@ namespace Gameboard.Api.Controllers
         /// <returns>User</returns>
         [HttpGet("api/user/{id}")]
         [Authorize]
-        public async Task<User> Retrieve([FromRoute]string id)
+        public async Task<User> Retrieve([FromRoute] string id)
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
                 () => id == Actor.Id
             );
 
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             return await UserService.Retrieve(id);
         }
@@ -114,13 +114,13 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpDelete("/api/user/{id}")]
         [Authorize(AppConstants.RegistrarPolicy)]
-        public async Task Delete([FromRoute]string id)
+        public async Task Delete([FromRoute] string id)
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar
             );
 
-            await Validate(new Entity{ Id = id });
+            await Validate(new Entity { Id = id });
 
             await UserService.Delete(id);
         }
@@ -176,7 +176,8 @@ namespace Gameboard.Api.Controllers
 
                 $"{Actor.Id}#{Actor.Name}",
 
-                new DistributedCacheEntryOptions {
+                new DistributedCacheEntryOptions
+                {
                     AbsoluteExpirationRelativeToNow = new TimeSpan(0, 0, 20)
                 }
             );
@@ -241,7 +242,8 @@ namespace Gameboard.Api.Controllers
         [AllowAnonymous]
         public IActionResult Version()
         {
-            return Ok(new {
+            return Ok(new
+            {
                 Commit = Environment.GetEnvironmentVariable("COMMIT") ?? "no version info"
             });
         }
