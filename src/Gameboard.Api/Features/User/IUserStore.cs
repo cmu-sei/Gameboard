@@ -3,7 +3,5 @@
 
 namespace Gameboard.Api.Data.Abstractions
 {
-
-    public interface IUserStore: IStore<User> { }
-
+    public interface IUserStore : IStore<User> { }
 }

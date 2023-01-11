@@ -91,6 +91,5 @@ namespace Gameboard.Api.Data
                 await DbContext.SaveChangesAsync();
             }
         }
-
     }
 }
