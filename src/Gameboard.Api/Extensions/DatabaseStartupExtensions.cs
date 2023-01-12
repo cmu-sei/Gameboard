@@ -1,16 +1,15 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
+using Gameboard.Api.Data;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Gameboard.Api.Data;
-using System.Linq;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -19,15 +18,13 @@ namespace Gameboard.Api.Extensions
     public static class DatabaseStartupExtensions
     {
 
-        public static IHost InitializeDatabase(
-            this IHost host
-        )
+        public static WebApplication InitializeDatabase(this WebApplication app)
         {
-            using (var scope = host.Services.CreateScope())
+            using (var scope = app.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
-                IConfiguration config = services.GetRequiredService<IConfiguration>();
-                IWebHostEnvironment env = services.GetService<IWebHostEnvironment>();
+                var config = services.GetRequiredService<IConfiguration>();
+                var env = services.GetService<IWebHostEnvironment>();
                 var db = services.GetService<GameboardDbContext>();
 
                 if (!db.Database.IsInMemory())
@@ -41,9 +38,9 @@ namespace Gameboard.Api.Extensions
                 );
 
                 var YamlDeserializer = new DeserializerBuilder()
-                .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                .IgnoreUnmatchedProperties()
-                .Build();
+                    .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                    .IgnoreUnmatchedProperties()
+                    .Build();
 
                 if (File.Exists(seedFile))
                 {
@@ -116,7 +113,7 @@ namespace Gameboard.Api.Extensions
                     db.SaveChanges();
                 }
 
-                return host;
+                return app;
             }
         }
     }

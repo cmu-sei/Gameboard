@@ -34,11 +34,11 @@ namespace Gameboard.Api.Data
         public Game Game { get; set; }
         public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
         [NotMapped] public bool IsManager => Role == PlayerRole.Manager;
-        [NotMapped] public bool IsLive =>
+        [NotMapped]
+        public bool IsLive =>
             SessionBegin > DateTimeOffset.MinValue &&
             SessionBegin < DateTimeOffset.UtcNow &&
-            SessionEnd > DateTimeOffset.UtcNow
-        ;
+            SessionEnd > DateTimeOffset.UtcNow;
 
         // Control delete behavior with relationships
         public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();

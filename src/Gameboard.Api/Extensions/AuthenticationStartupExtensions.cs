@@ -16,7 +16,8 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddConfiguredAuthentication(
             this IServiceCollection services,
             OidcOptions options
-        ) {
+        )
+        {
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
             services
@@ -35,19 +36,21 @@ namespace Microsoft.Extensions.DependencyInjection
                     };
 
                     jwt.SaveToken = true;
-
                 })
-                .AddCookie(AppConstants.MksCookie, opt => {
+                .AddCookie(AppConstants.MksCookie, opt =>
+                {
                     opt.ExpireTimeSpan = new System.TimeSpan(0, options.MksCookieMinutes, 0);
                     opt.Cookie = new CookieBuilder
                     {
                         Name = AppConstants.MksCookie,
                     };
-                    opt.Events.OnRedirectToAccessDenied = ctx => {
+                    opt.Events.OnRedirectToAccessDenied = ctx =>
+                    {
                         ctx.HttpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
                         return System.Threading.Tasks.Task.CompletedTask;
                     };
-                    opt.Events.OnRedirectToLogin = ctx => {
+                    opt.Events.OnRedirectToLogin = ctx =>
+                    {
                         ctx.HttpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
                         return System.Threading.Tasks.Task.CompletedTask;
                     };

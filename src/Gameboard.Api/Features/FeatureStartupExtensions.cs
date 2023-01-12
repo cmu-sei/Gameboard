@@ -35,9 +35,13 @@ namespace Microsoft.Extensions.DependencyInjection
             }
 
             // TODO: Ben -> fix this
+            services.AddHttpContextAccessor();
+            services.AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>();
             services.AddScoped<IUnityGameService, UnityGameService>();
             services.AddScoped<IUnityStore, UnityStore>();
             services.AddScoped<ICubespaceScoreboardService, CubespaceScoreboardService>();
+            services.AddScoped<IGamebrainService, GamebrainService>();
+            services.AddSingleton<IGuidService, GuidService>();
 
             foreach (var t in Assembly
                 .GetExecutingAssembly()

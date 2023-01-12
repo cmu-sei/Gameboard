@@ -18,6 +18,7 @@ namespace Gameboard.Api.Data
         public DateTimeOffset LastScoreTime { get; set; }
         public DateTimeOffset LastSyncTime { get; set; }
         public bool HasGamespaceDeployed { get; set; }
+        public string State { get; set; }
         public int Points { get; set; }
         public int Score { get; set; }
         public long Duration { get; set; }

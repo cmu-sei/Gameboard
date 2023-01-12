@@ -3,18 +3,18 @@
 
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data
 {
 
-    public class TicketStore: Store<Ticket>, ITicketStore
+    public class TicketStore : Store<Ticket>, ITicketStore
     {
         public CoreOptions Options { get; }
 
         public TicketStore(GameboardDbContext dbContext, CoreOptions options)
-        :base(dbContext)
+        : base(dbContext)
         {
             Options = options;
         }
@@ -29,7 +29,7 @@ namespace Gameboard.Api.Data
         public async Task<Ticket> Load(int id)
         {
             return await DbSet
-                .FirstOrDefaultAsync(c => c.Key== id)
+                .FirstOrDefaultAsync(c => c.Key == id)
             ;
         }
 
@@ -54,7 +54,7 @@ namespace Gameboard.Api.Data
                     .ThenInclude(a => a.Assignee)
                 .Include(c => c.Challenge)
                 .Include(c => c.Player)
-                .Include(c => c.Player.Game)
+                    .ThenInclude(p => p.Game)
                 .FirstOrDefaultAsync(c => c.Id == id)
             ;
         }
@@ -71,7 +71,7 @@ namespace Gameboard.Api.Data
                     .ThenInclude(a => a.Assignee)
                 .Include(c => c.Challenge)
                 .Include(c => c.Player)
-                .Include(c => c.Player.Game)
+                    .ThenInclude(p => p.Game)
                 .FirstOrDefaultAsync(c => c.Key == id)
             ;
         }
@@ -96,7 +96,7 @@ namespace Gameboard.Api.Data
                     t.Challenge.Tag.ToLower().Contains(term)
                 );
             }
-            
+
             return q;
         }
 

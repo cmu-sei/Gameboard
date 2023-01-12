@@ -23,5 +23,4 @@ namespace Gameboard.Api.Data.Abstractions
         Task Update(IEnumerable<TEntity> range);
         Task Delete(string id);
     }
-
 }
