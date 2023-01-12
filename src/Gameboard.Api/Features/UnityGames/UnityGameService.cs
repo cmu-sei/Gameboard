@@ -123,7 +123,7 @@ internal class UnityGameService : _Service, IUnityGameService
             Name = $"{teamCaptain.ApprovedName} vs. Cubespace",
             GameId = challengeSpec.GameId,
             TeamId = newChallenge.TeamId,
-            PlayerId = newChallenge.PlayerId,
+            PlayerId = teamCaptain.Id,
             HasDeployedGamespace = true,
             SpecId = challengeSpec.Id,
             StartTime = DateTimeOffset.UtcNow,

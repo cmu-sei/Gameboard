@@ -581,44 +581,46 @@ namespace Gameboard.Api.Services
 
         }
 
-        public async Task<Team[]> ObserveTeams(string id)
+        public async Task<IEnumerable<Team>> ObserveTeams(string id)
         {
             var players = await Store.List()
                 .Where(p => p.GameId == id)
                 .Include(p => p.User)
-                .ToArrayAsync()
-            ;
+                .ToArrayAsync();
 
-            var teams = players
+            var captains = players
+                .Where(p => p.IsManager)
                 .Where(p => p.IsLive)
                 .GroupBy(p => p.TeamId)
-                .Select(g => new Team
+                .ToDictionary(g => g.Key, g => g.First());
+
+            var teams = captains
+                .Values
+                .Select(c => new Team
                 {
-                    TeamId = g.Key,
-                    ApprovedName = g.First().ApprovedName,
-                    Sponsor = g.First().Sponsor,
-                    GameId = g.First().GameId,
-                    SessionBegin = g.First().SessionBegin,
-                    SessionEnd = g.First().SessionEnd,
-                    Rank = g.First().Rank,
-                    Score = g.First().Score,
-                    Time = g.First().Time,
-                    CorrectCount = g.First().CorrectCount,
-                    PartialCount = g.First().PartialCount,
-                    Advanced = g.First().Advanced,
-                    Members = g.Select(i => new TeamMember
+                    TeamId = c.TeamId,
+                    ApprovedName = c.ApprovedName,
+                    Sponsor = c.Sponsor,
+                    GameId = c.GameId,
+                    SessionBegin = c.SessionBegin,
+                    SessionEnd = c.SessionEnd,
+                    Rank = c.Rank,
+                    Score = c.Score,
+                    Time = c.Time,
+                    CorrectCount = c.CorrectCount,
+                    PartialCount = c.PartialCount,
+                    Advanced = c.Advanced,
+                    Members = players.Where(p => p.TeamId == c.TeamId).Select(i => new TeamMember
                     {
                         Id = i.UserId,
                         ApprovedName = i.User.ApprovedName,
                         Role = i.Role
-                    }).OrderBy(t => t.ApprovedName).ToArray()
+                    }).OrderBy(p => p.ApprovedName).ToArray()
                 })
-                .OrderBy(g => g.ApprovedName)
-                .ToArray()
-            ;
+                .OrderBy(c => c.ApprovedName)
+                .ToArray();
 
             return teams;
-
         }
 
         public async Task AdvanceTeams(TeamAdvancement model)
