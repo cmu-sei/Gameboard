@@ -15,7 +15,7 @@ CMD ["dotnet", "run"]
 #
 #multi-stage target: prod
 #
-FROM mcr.microsoft.com/dotnet/runtime:7.0.1 AS prod
+FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS prod
 ARG commit
 ENV COMMIT=$commit
 COPY --from=dev /app/dist /app
