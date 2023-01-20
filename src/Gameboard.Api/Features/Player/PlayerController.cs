@@ -1,6 +1,7 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Features.Player;
@@ -243,7 +244,7 @@ namespace Gameboard.Api.Controllers
         /// <returns>Team[]</returns>
         [HttpGet("/api/teams/observe/{id}")]
         [Authorize]
-        public async Task<Team[]> ObserveTeams([FromRoute] string id)
+        public async Task<IEnumerable<Team>> ObserveTeams([FromRoute] string id)
         {
             AuthorizeAny(
                 () => Actor.IsDirector,
