@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Player;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TopoMojo.Api.Client;
@@ -200,11 +201,9 @@ namespace Gameboard.Api.Services
 
         public async Task<Player> Start(SessionStartRequest model, bool sudo)
         {
-
             var team = await Store.ListTeamByPlayer(model.Id);
 
             var player = team.First();
-
             var game = await Store.DbContext.Games.FindAsync(player.GameId);
 
             if (!sudo && game.SessionLimit > 0)
@@ -216,8 +215,7 @@ namespace Gameboard.Api.Services
                         p.GameId == game.Id &&
                         p.Role == PlayerRole.Manager &&
                         ts < p.SessionEnd
-                    )
-                ;
+                    );
 
                 if (sessionCount >= game.SessionLimit)
                     throw new SessionLimitReached();
@@ -278,7 +276,7 @@ namespace Gameboard.Api.Services
                 throw new SessionNotActive(team.First().Id);
 
             if (team.First().SessionEnd >= model.SessionEnd)
-                throw new InvalidSessionWindow();
+                throw new InvalidExtendSessionRequest(team.First().SessionEnd, model.SessionEnd);
 
             foreach (var player in team)
                 player.SessionEnd = model.SessionEnd;
