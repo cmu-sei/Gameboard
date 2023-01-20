@@ -3,19 +3,15 @@
 
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
 
 namespace Gameboard.Api.Data
 {
 
-    public class UserStore: Store<User>, IUserStore
+    public class UserStore : Store<User>, IUserStore
     {
         public UserStore(GameboardDbContext dbContext)
-        :base(dbContext)
-        {
-
-        }
+            : base(dbContext) { }
 
         public override Task<User> Create(User entity)
         {
@@ -25,23 +21,5 @@ namespace Gameboard.Api.Data
 
             return base.Create(entity);
         }
-
-        // If entity has searchable fields, use this:
-        // public override IQueryable<User> List(string term = null)
-        // {
-        //     var q = base.List();
-
-        //     if (!string.IsNullOrEmpty(term))
-        //     {
-        //         term = term.ToLower();
-
-        //         q = q.Where(t =>
-        //             t.Name.ToLower().Contains(term)
-        //         );
-        //     }
-
-        //     return q;
-        // }
-
     }
 }
