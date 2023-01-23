@@ -61,17 +61,6 @@ namespace Gameboard.Api
             : base($"Game {gameId} requires that all players have the same sponsor. The inviting player {managerPlayerId} has sponsor {managerSponsor}, while player {playerId} has sponsor {playerSponsor}.") { }
     }
 
-    internal class SessionNotActive : GameboardException
-    {
-        internal SessionNotActive(string playerId) : base($"Player {playerId} has an inactive session.") { }
-    }
-
-    internal class TeamIsFull : GameboardException
-    {
-        internal TeamIsFull(string invitingPlayerId, int teamSize, int maxTeamSize)
-            : base($"Inviting player {invitingPlayerId} has {teamSize} players on their team, and the max team size for this game is {maxTeamSize}.") { }
-    }
-
     internal class ValidationTypeFailure<TValidator> : GameboardException where TValidator : IModelValidator
     {
         internal ValidationTypeFailure(Type objectType)
@@ -88,7 +77,6 @@ namespace Gameboard.Api
     public class ActionForbidden : Exception { }
     public class EntityNotFound : Exception { }
     public class GameNotActive : Exception { }
-    public class InvalidSessionWindow : Exception { }
     public class SessionLimitReached : Exception { }
     public class InvalidTeamSize : Exception { }
     public class InvalidConsoleAction : Exception { }
