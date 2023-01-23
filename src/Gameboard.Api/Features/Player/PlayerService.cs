@@ -16,6 +16,7 @@ namespace Gameboard.Api.Services
 {
     public class PlayerService
     {
+        CoreOptions CoreOptions { get; }
         IPlayerStore Store { get; }
         IGameStore GameStore { get; }
         IUserStore UserStore { get; }
@@ -25,6 +26,7 @@ namespace Gameboard.Api.Services
         ITopoMojoApiClient Mojo { get; }
 
         public PlayerService(
+            CoreOptions coreOptions,
             IPlayerStore store,
             IUserStore userStore,
             IGameStore gameStore,
@@ -33,6 +35,7 @@ namespace Gameboard.Api.Services
             ITopoMojoApiClient mojo
         )
         {
+            CoreOptions = coreOptions;
             Store = store;
             GameStore = gameStore;
             UserStore = userStore;
@@ -418,9 +421,12 @@ namespace Gameboard.Api.Services
 
         public async Task<BoardPlayer> LoadBoard(string id)
         {
-            return Mapper.Map<BoardPlayer>(
+            var mapped = Mapper.Map<BoardPlayer>(
                 await Store.LoadBoard(id)
             );
+
+            mapped.ChallengeDocUrl = CoreOptions.ChallengeDocUrl;
+            return mapped;
         }
 
         public async Task<TeamInvitation> GenerateInvitation(string id)

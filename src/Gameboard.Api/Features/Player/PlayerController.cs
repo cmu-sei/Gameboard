@@ -23,6 +23,8 @@ namespace Gameboard.Api.Controllers
         IHubContext<AppHub, IAppHubEvent> Hub { get; }
         IMapper Mapper { get; }
 
+        private readonly CoreOptions _coreOptions;
+
         public PlayerController(
             ILogger<PlayerController> logger,
             IDistributedCache cache,
