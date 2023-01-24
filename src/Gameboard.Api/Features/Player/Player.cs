@@ -20,6 +20,7 @@ namespace Gameboard.Api
         public string Name { get; set; }
         public string NameStatus { get; set; }
         public string Sponsor { get; set; }
+        public string TeamSponsors { get; set; }
         public PlayerRole Role { get; set; }
         public DateTimeOffset SessionBegin { get; set; }
         public DateTimeOffset SessionEnd { get; set; }
@@ -31,6 +32,7 @@ namespace Gameboard.Api
         public int PartialCount { get; set; }
         public bool Advanced { get; set; }
         public bool IsManager { get; set; }
+        public string[] SponsorList => (TeamSponsors ?? Sponsor).Split("|");
     }
 
     public class NewPlayer
