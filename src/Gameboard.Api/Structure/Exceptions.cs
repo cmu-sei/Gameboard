@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using Gameboard.Api.Data;
 using Gameboard.Api.Validators;
 
 namespace Gameboard.Api
@@ -19,7 +20,8 @@ namespace Gameboard.Api
 
     internal class CaptainResolutionFailure : GameboardException
     {
-        internal CaptainResolutionFailure(string teamId) : base($"Couldn't resolve a team captain for team {teamId}") { }
+        internal CaptainResolutionFailure(string teamId, string message = null)
+            : base($"Couldn't resolve a team captain for team {teamId}. {(message.IsEmpty() ? "" : message)}") { }
     }
 
     internal class InvalidInvitationCode : GameboardException
@@ -40,6 +42,13 @@ namespace Gameboard.Api
         { }
     }
 
+    internal class ResourceAlreadyExists<T> : GameboardException where T : class, IEntity
+    {
+        internal ResourceAlreadyExists(string id, string addlMessage = null) :
+            base($"Couldn't create resource '{id}' of type {typeof(T).Name} because it already exists.{(addlMessage.HasValue() ? $" {addlMessage}" : string.Empty)}")
+        { }
+    }
+
     internal class ResourceNotFound<T> : GameboardException where T : class
     {
         internal ResourceNotFound(string id, string addlMessage = null)
@@ -50,17 +59,6 @@ namespace Gameboard.Api
     {
         internal RequiresSameSponsor(string gameId, string managerPlayerId, string managerSponsor, string playerId, string playerSponsor)
             : base($"Game {gameId} requires that all players have the same sponsor. The inviting player {managerPlayerId} has sponsor {managerSponsor}, while player {playerId} has sponsor {playerSponsor}.") { }
-    }
-
-    internal class SessionNotActive : GameboardException
-    {
-        internal SessionNotActive(string playerId) : base($"Player {playerId} has an inactive session.") { }
-    }
-
-    internal class TeamIsFull : GameboardException
-    {
-        internal TeamIsFull(string invitingPlayerId, int teamSize, int maxTeamSize)
-            : base($"Inviting player {invitingPlayerId} has {teamSize} players on their team, and the max team size for this game is {maxTeamSize}.") { }
     }
 
     internal class ValidationTypeFailure<TValidator> : GameboardException where TValidator : IModelValidator
@@ -76,11 +74,9 @@ namespace Gameboard.Api
         { }
     }
 
-
     public class ActionForbidden : Exception { }
     public class EntityNotFound : Exception { }
     public class GameNotActive : Exception { }
-    public class InvalidSessionWindow : Exception { }
     public class SessionLimitReached : Exception { }
     public class InvalidTeamSize : Exception { }
     public class InvalidConsoleAction : Exception { }

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Player;
 using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -18,6 +19,7 @@ internal class UnityGameService : _Service, IUnityGameService
 {
     private readonly IChallengeStore _challengeStore;
     private readonly IUnityStore _store;
+    private readonly ITeamService _teamService;
     ITopoMojoApiClient Mojo { get; }
 
     private readonly ConsoleActorMap _actorMap;
@@ -27,6 +29,7 @@ internal class UnityGameService : _Service, IUnityGameService
             IMapper mapper,
             CoreOptions options,
             IChallengeStore challengeStore,
+            ITeamService teamService,
             IUnityStore store,
             ITopoMojoApiClient mojo,
             ConsoleActorMap actorMap
@@ -36,6 +39,7 @@ internal class UnityGameService : _Service, IUnityGameService
         _actorMap = actorMap;
         _challengeStore = challengeStore;
         _store = store;
+        _teamService = teamService;
     }
 
     public async Task<Data.Challenge> AddChallenge(NewUnityChallenge newChallenge, User actor)
@@ -54,13 +58,7 @@ internal class UnityGameService : _Service, IUnityGameService
         }
 
         // otherwise, let's make some challenges
-        // find the team's players
-        var teamPlayers = await _store.DbContext
-            .Players
-            .Where(p => p.TeamId == newChallenge.TeamId)
-            .ToListAsync();
-
-        var teamCaptain = ResolveTeamCaptain(teamPlayers, newChallenge);
+        var teamCaptain = await _teamService.ResolveCaptain(newChallenge.TeamId);
         var challengeName = $"{teamCaptain.ApprovedName} vs. Cubespace";
 
         // load the spec associated with the game
@@ -70,7 +68,12 @@ internal class UnityGameService : _Service, IUnityGameService
             throw new SpecNotFound(newChallenge.GameId);
         }
 
-        // we have to spoof topomojo data here. load the game and related data.
+        // we have to spoof topomojo data here. load the players, game, and related data.
+        var teamPlayers = await _store.DbContext
+            .Players
+            .Where(p => p.TeamId == newChallenge.TeamId)
+            .ToListAsync();
+
         var game = await this._store
             .DbContext
             .Games
@@ -123,7 +126,7 @@ internal class UnityGameService : _Service, IUnityGameService
             Name = $"{teamCaptain.ApprovedName} vs. Cubespace",
             GameId = challengeSpec.GameId,
             TeamId = newChallenge.TeamId,
-            PlayerId = newChallenge.PlayerId,
+            PlayerId = teamCaptain.Id,
             HasDeployedGamespace = true,
             SpecId = challengeSpec.Id,
             StartTime = DateTimeOffset.UtcNow,
@@ -250,7 +253,7 @@ internal class UnityGameService : _Service, IUnityGameService
             throw new CaptainResolutionFailure(newChallenge.TeamId);
         }
 
-        // if the team has a captain (manager, yay)
+        // if the team has a captain (manager), yay
         // if they have too many, boo (pick one by name which is stupid but stupid things happen sometimes)
         // if they have none, congratulations to the player who called the API!
         var sortedPlayers = players.OrderBy(p => p.ApprovedName);

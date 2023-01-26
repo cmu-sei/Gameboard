@@ -5,6 +5,12 @@ internal class GameboardIntegrationTestException : Exception
     public GameboardIntegrationTestException(string message, Exception? innerException = null) : base(message, innerException) { }
 }
 
+internal class MissingServiceException<T> : GameboardIntegrationTestException where T : class
+{
+    public MissingServiceException(string? addlMessage)
+        : base($"Couldn't resolve a required service of type {typeof(T).Name}.{(string.IsNullOrWhiteSpace(addlMessage) ? string.Empty : addlMessage)}") { }
+}
+
 internal class ResponseContentDeserializationTypeFailure<T> : GameboardIntegrationTestException
 {
     public ResponseContentDeserializationTypeFailure(string responseContent)

@@ -8,7 +8,7 @@ namespace Gameboard.Tests.Integration.Fixtures;
 
 internal static class GameboardTestContextExtensions
 {
-    public static WebApplicationFactory<Program> WithAuthentication(this GameboardTestContext<GameboardDbContextPostgreSQL> testContext, string userId = "integrationtester")
+    private static WebApplicationFactory<Program> WithAuthentication(this GameboardTestContext<GameboardDbContextPostgreSQL> testContext, string userId = "integrationtester")
     {
         return testContext
             .WithWebHostBuilder(builder =>
@@ -43,5 +43,20 @@ internal static class GameboardTestContextExtensions
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthenticationHandler.AuthenticationSchemeName);
         return client;
+    }
+
+    // public static IDataStateBuilder WithDataState(this GameboardTestContext<GameboardDbContextPostgreSQL> context)
+    // {
+    //     return new DataStateBuilder<GameboardDbContextPostgreSQL>(context);
+    // }
+
+    public static async Task WithDataState(this GameboardTestContext<GameboardDbContextPostgreSQL> context, Action<IDataStateBuilder> builderAction)
+    {
+        var dbContext = context.GetDbContext();
+
+        var builderInstance = new DataStateBuilder<GameboardDbContextPostgreSQL>(dbContext);
+        builderAction.Invoke(builderInstance);
+
+        await dbContext.SaveChangesAsync();
     }
 }

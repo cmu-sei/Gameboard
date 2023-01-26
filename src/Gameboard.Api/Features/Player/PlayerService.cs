@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Player;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TopoMojo.Api.Client;
@@ -15,6 +16,7 @@ namespace Gameboard.Api.Services
 {
     public class PlayerService
     {
+        CoreOptions CoreOptions { get; }
         IPlayerStore Store { get; }
         IGameStore GameStore { get; }
         IUserStore UserStore { get; }
@@ -24,6 +26,7 @@ namespace Gameboard.Api.Services
         ITopoMojoApiClient Mojo { get; }
 
         public PlayerService(
+            CoreOptions coreOptions,
             IPlayerStore store,
             IUserStore userStore,
             IGameStore gameStore,
@@ -32,6 +35,7 @@ namespace Gameboard.Api.Services
             ITopoMojoApiClient mojo
         )
         {
+            CoreOptions = coreOptions;
             Store = store;
             GameStore = gameStore;
             UserStore = userStore;
@@ -200,11 +204,9 @@ namespace Gameboard.Api.Services
 
         public async Task<Player> Start(SessionStartRequest model, bool sudo)
         {
-
             var team = await Store.ListTeamByPlayer(model.Id);
 
             var player = team.First();
-
             var game = await Store.DbContext.Games.FindAsync(player.GameId);
 
             if (!sudo && game.SessionLimit > 0)
@@ -216,8 +218,7 @@ namespace Gameboard.Api.Services
                         p.GameId == game.Id &&
                         p.Role == PlayerRole.Manager &&
                         ts < p.SessionEnd
-                    )
-                ;
+                    );
 
                 if (sessionCount >= game.SessionLimit)
                     throw new SessionLimitReached();
@@ -278,7 +279,7 @@ namespace Gameboard.Api.Services
                 throw new SessionNotActive(team.First().Id);
 
             if (team.First().SessionEnd >= model.SessionEnd)
-                throw new InvalidSessionWindow();
+                throw new InvalidExtendSessionRequest(team.First().SessionEnd, model.SessionEnd);
 
             foreach (var player in team)
                 player.SessionEnd = model.SessionEnd;
@@ -420,9 +421,12 @@ namespace Gameboard.Api.Services
 
         public async Task<BoardPlayer> LoadBoard(string id)
         {
-            return Mapper.Map<BoardPlayer>(
+            var mapped = Mapper.Map<BoardPlayer>(
                 await Store.LoadBoard(id)
             );
+
+            mapped.ChallengeDocUrl = CoreOptions.ChallengeDocUrl;
+            return mapped;
         }
 
         public async Task<TeamInvitation> GenerateInvitation(string id)
@@ -581,44 +585,46 @@ namespace Gameboard.Api.Services
 
         }
 
-        public async Task<Team[]> ObserveTeams(string id)
+        public async Task<IEnumerable<Team>> ObserveTeams(string id)
         {
             var players = await Store.List()
                 .Where(p => p.GameId == id)
                 .Include(p => p.User)
-                .ToArrayAsync()
-            ;
+                .ToArrayAsync();
 
-            var teams = players
+            var captains = players
+                .Where(p => p.IsManager)
                 .Where(p => p.IsLive)
                 .GroupBy(p => p.TeamId)
-                .Select(g => new Team
+                .ToDictionary(g => g.Key, g => g.First());
+
+            var teams = captains
+                .Values
+                .Select(c => new Team
                 {
-                    TeamId = g.Key,
-                    ApprovedName = g.First().ApprovedName,
-                    Sponsor = g.First().Sponsor,
-                    GameId = g.First().GameId,
-                    SessionBegin = g.First().SessionBegin,
-                    SessionEnd = g.First().SessionEnd,
-                    Rank = g.First().Rank,
-                    Score = g.First().Score,
-                    Time = g.First().Time,
-                    CorrectCount = g.First().CorrectCount,
-                    PartialCount = g.First().PartialCount,
-                    Advanced = g.First().Advanced,
-                    Members = g.Select(i => new TeamMember
+                    TeamId = c.TeamId,
+                    ApprovedName = c.ApprovedName,
+                    Sponsor = c.Sponsor,
+                    GameId = c.GameId,
+                    SessionBegin = c.SessionBegin,
+                    SessionEnd = c.SessionEnd,
+                    Rank = c.Rank,
+                    Score = c.Score,
+                    Time = c.Time,
+                    CorrectCount = c.CorrectCount,
+                    PartialCount = c.PartialCount,
+                    Advanced = c.Advanced,
+                    Members = players.Where(p => p.TeamId == c.TeamId).Select(i => new TeamMember
                     {
                         Id = i.UserId,
                         ApprovedName = i.User.ApprovedName,
                         Role = i.Role
-                    }).OrderBy(t => t.ApprovedName).ToArray()
+                    }).OrderBy(p => p.ApprovedName).ToArray()
                 })
-                .OrderBy(g => g.ApprovedName)
-                .ToArray()
-            ;
+                .OrderBy(c => c.ApprovedName)
+                .ToArray();
 
             return teams;
-
         }
 
         public async Task AdvanceTeams(TeamAdvancement model)

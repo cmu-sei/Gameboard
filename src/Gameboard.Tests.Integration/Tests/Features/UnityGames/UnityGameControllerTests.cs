@@ -16,16 +16,26 @@ public class UnityGameControllerTests : IClassFixture<GameboardTestContext<Gameb
     public async Task UnityGameController_CreateChallenge_DoesntReturnGraderKey()
     {
         // arrange
-        var player = await _testContext.GetDbContext().CreatePlayer
-        (
-            gameBuilder: new GameBuilder { WithChallengeSpec = true }
-        );
+        await _testContext
+            .WithDataState(state =>
+            {
+                state.Add(state.BuildPlayer(), p =>
+                {
+                    p.Id = "playerId";
+                    p.Game = state.BuildGame(g =>
+                    {
+                        g.Id = "gameId";
+                        g.Specs = new List<ChallengeSpec> { state.BuildChallengeSpec() };
+                    });
+                    p.TeamId = "teamId";
+                });
+            });
 
         var newChallenge = new NewUnityChallenge()
         {
-            GameId = player.Game.Id,
-            PlayerId = player.Id,
-            TeamId = player.TeamId,
+            GameId = "gameId",
+            PlayerId = "playerId",
+            TeamId = "teamId",
             MaxPoints = 50,
             GamespaceId = "gamespace",
             Vms = new UnityGameVm[]
@@ -39,7 +49,7 @@ public class UnityGameControllerTests : IClassFixture<GameboardTestContext<Gameb
            }
         };
 
-        var httpClient = _testContext.WithAuthentication().CreateClient();
+        var httpClient = _testContext.CreateHttpClientWithAuth();
 
         // act
         var challenge = await httpClient

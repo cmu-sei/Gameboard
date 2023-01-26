@@ -30,14 +30,14 @@ public class GameControllerTests : IClassFixture<GameboardTestContext<GameboardD
             RegistrationType = GameRegistrationType.Open
         };
 
-        var client = _testContext.CreateClient();
+        var client = _testContext.CreateHttpClientWithAuth();
 
         // act
-        var response = await client.PostAsync("/api/game", game.ToJsonBody());
-        var responseGame = await client.PostAsync("/api/game", game.ToJsonBody()).WithContentDeserializedAs<Api.Data.Game>(_testContext.GetJsonSerializerOptions());
+        var responseGame = await client
+            .PostAsync("/api/game", game.ToJsonBody())
+            .WithContentDeserializedAs<Api.Data.Game>(_testContext.GetJsonSerializerOptions());
 
         // assert
-        response.EnsureSuccessStatusCode();
-        Assert.Equal(game.Name, responseGame?.Name);
+        responseGame.Name.ShouldBe(game.Name);
     }
 }

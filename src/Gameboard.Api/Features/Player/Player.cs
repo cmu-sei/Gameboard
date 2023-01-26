@@ -20,6 +20,7 @@ namespace Gameboard.Api
         public string Name { get; set; }
         public string NameStatus { get; set; }
         public string Sponsor { get; set; }
+        public string TeamSponsors { get; set; }
         public PlayerRole Role { get; set; }
         public DateTimeOffset SessionBegin { get; set; }
         public DateTimeOffset SessionEnd { get; set; }
@@ -31,6 +32,7 @@ namespace Gameboard.Api
         public int PartialCount { get; set; }
         public bool Advanced { get; set; }
         public bool IsManager { get; set; }
+        public string[] SponsorList => (TeamSponsors ?? Sponsor).Split("|");
     }
 
     public class NewPlayer
@@ -144,7 +146,7 @@ namespace Gameboard.Api
         public string ApprovedName { get; set; }
     }
 
-    public class PlayerDataFilter: SearchFilter
+    public class PlayerDataFilter : SearchFilter
     {
 
         public const string FilterActiveOnly = "active";
@@ -199,6 +201,7 @@ namespace Gameboard.Api
         public int CorrectCount { get; set; }
         public int PartialCount { get; set; }
         public BoardGame Game { get; set; }
+        public string ChallengeDocUrl { get; set; }
         public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
         public bool IsManager => Role == PlayerRole.Manager;
     }
@@ -227,7 +230,7 @@ namespace Gameboard.Api
         public DateTimeOffset SessionEnd { get; set; }
     }
 
-    public class PlayerCertificate 
+    public class PlayerCertificate
     {
         public Game Game { get; set; }
         public Player Player { get; set; }

@@ -16,34 +16,37 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext<Gameboar
     public async Task Update_WhenNameNotUniqueInGame_SetsNameNotUnique()
     {
         // given
-        var game = await _testContext.GetDbContext().CreateGame(GameBuilder.WithConfig(g => g.Id = "same game"));
-        var playerA = await _testContext.GetDbContext().CreatePlayer
-        (
-            p =>
+        await _testContext
+            .WithDataState(state =>
             {
-                p.Name = "A";
-                p.GameId = game.Id;
-                p.TeamId = "team A";
-            }
-        );
+                state.AddGame(g =>
+                {
+                    g.Players = new Api.Data.Player[]
+                    {
+                        state.BuildPlayer(p =>
+                        {
+                            p.Id = "PlayerA";
+                            p.Name = "A";
+                            p.TeamId = "team A";
+                        }),
 
-        var playerB = await _testContext.GetDbContext().CreatePlayer
-        (
-            p =>
-            {
-                p.Name = "B";
-                p.GameId = game.Id;
-                p.TeamId = "team B";
-            }
-        );
+                        state.BuildPlayer(p =>
+                        {
+                            p.Id = "PlayerB";
+                            p.Name = "B";
+                            p.TeamId = "team B";
+                        })
+                    };
+                });
+            });
 
-        var httpClient = _testContext.WithAuthentication().CreateClient();
+        var httpClient = _testContext.CreateHttpClientWithAuth();
         var sutParams = new ChangedPlayer
         {
-            Id = playerB.Id,
+            Id = "PlayerB",
             // tries to update `playerB` to have the same name as `playerA`
-            Name = playerA.Name,
-            ApprovedName = playerB.ApprovedName,
+            Name = "A",
+            ApprovedName = "B",
             Sponsor = "sponsor",
             Role = PlayerRole.Member
         };
