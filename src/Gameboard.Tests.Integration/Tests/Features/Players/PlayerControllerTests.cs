@@ -40,7 +40,7 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext<Gameboar
                 });
             });
 
-        var httpClient = _testContext.CreateHttpClientWithAuth();
+        var httpClient = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
         var sutParams = new ChangedPlayer
         {
             Id = "PlayerB",

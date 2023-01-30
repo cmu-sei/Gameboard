@@ -69,7 +69,7 @@ namespace Gameboard.Api.Controllers
             var result = await ChallengeService.GetOrAdd(model, Actor.Id, graderUrl);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
-                new HubEvent<Challenge>(result, EventAction.Updated)
+                new HubEvent<Challenge>(result, EventAction.Updated, HubEventActingUserDescription.FromUser(Actor))
             );
 
             return result;
@@ -164,7 +164,7 @@ namespace Gameboard.Api.Controllers
             var result = await ChallengeService.StartGamespace(model.Id, Actor.Id);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
-                new HubEvent<Challenge>(result, EventAction.Updated)
+                new HubEvent<Challenge>(result, EventAction.Updated, HubEventActingUserDescription.FromUser(Actor))
             );
 
             return result;
@@ -189,7 +189,7 @@ namespace Gameboard.Api.Controllers
             var result = await ChallengeService.StopGamespace(model.Id, Actor.Id);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
-                new HubEvent<Challenge>(result, EventAction.Updated)
+                new HubEvent<Challenge>(result, EventAction.Updated, HubEventActingUserDescription.FromUser(Actor))
             );
 
             return result;
@@ -215,7 +215,7 @@ namespace Gameboard.Api.Controllers
             var result = await ChallengeService.Grade(model, Actor.Id);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
-                new HubEvent<Challenge>(result, EventAction.Updated)
+                new HubEvent<Challenge>(result, EventAction.Updated, HubEventActingUserDescription.FromUser(Actor))
             );
 
             return result;
@@ -239,7 +239,7 @@ namespace Gameboard.Api.Controllers
             var result = await ChallengeService.Regrade(model.Id);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
-                new HubEvent<Challenge>(result, EventAction.Updated)
+                new HubEvent<Challenge>(result, EventAction.Updated, HubEventActingUserDescription.FromUser(Actor))
             );
 
             return result;

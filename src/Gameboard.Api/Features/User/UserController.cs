@@ -231,22 +231,7 @@ namespace Gameboard.Api.Controllers
                 : Hub.Clients.All
             ;
 
-            await audience.Announcement(new HubEvent<Announcement>(model, EventAction.Created));
+            await audience.Announcement(new HubEvent<Announcement>(model, EventAction.Created, HubEventActingUserDescription.FromUser(Actor)));
         }
-
-        /// <summary>
-        /// check version
-        /// </summary>
-        /// <returns></returns>
-        [HttpGet("/api/version")]
-        [AllowAnonymous]
-        public IActionResult Version()
-        {
-            return Ok(new
-            {
-                Commit = Environment.GetEnvironmentVariable("COMMIT") ?? "no version info"
-            });
-        }
-
     }
 }

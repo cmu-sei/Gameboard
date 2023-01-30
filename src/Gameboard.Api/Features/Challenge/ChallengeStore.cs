@@ -5,16 +5,24 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
+using TopoMojo.Api.Client;
+using AutoMapper;
+using System.Collections.Generic;
 
 namespace Gameboard.Api.Data
 {
-
-    public class ChallengeStore: Store<Challenge>, IChallengeStore
+    public class ChallengeStore : Store<Challenge>, IChallengeStore
     {
-        public ChallengeStore(GameboardDbContext dbContext)
-        :base(dbContext)
-        {
+        private readonly IMapper _mapper;
+        private readonly ITopoMojoApiClient _mojo;
 
+        public ChallengeStore(
+            GameboardDbContext dbContext,
+            IMapper mapper,
+            ITopoMojoApiClient mojo) : base(dbContext)
+        {
+            _mapper = mapper;
+            _mojo = mojo;
         }
 
         public override IQueryable<Challenge> List(string term)
@@ -36,8 +44,7 @@ namespace Gameboard.Api.Data
 
             return q
                 .Include(c => c.Game)
-                .Include(c => c.Player)
-            ;
+                .Include(c => c.Player);
         }
 
         public async Task<Challenge> Load(string id)
@@ -72,7 +79,7 @@ namespace Gameboard.Api.Data
                 .Take(20)
                 .ToArrayAsync();
 
-            int avg = (int) stats.Average(m =>
+            int avg = (int)stats.Average(m =>
                 m.Started.Subtract(m.Created).TotalSeconds
             );
 
@@ -87,9 +94,7 @@ namespace Gameboard.Api.Data
         {
             var challenges = await DbSet.Where(c => c.TeamId == id).ToArrayAsync();
 
-            // TODO: reconsider int vs double
             int score = (int)challenges.Sum(c => c.Score);
-
             long time = challenges.Sum(c => c.Duration);
             int complete = challenges.Count(c => c.Result == ChallengeResult.Success);
             int partial = challenges.Count(c => c.Result == ChallengeResult.Partial);
@@ -145,6 +150,41 @@ namespace Gameboard.Api.Data
             return await DbSet.FirstOrDefaultAsync(c =>
                 c.GraderKey == hash
             );
+        }
+
+        public async Task ArchiveChallenges(IEnumerable<Api.ArchivedChallenge> challenges)
+        {
+            if (challenges.Count() > 0)
+            {
+                var toArchive = _mapper.Map<Api.ArchivedChallenge[]>(challenges);
+                var toArchiveIds = toArchive.Select(c => c.Id).ToArray();
+
+                var teamMemberMap = await DbContext
+                    .Challenges
+                    .AsNoTracking()
+                    .Include(c => c.Player)
+                    .Where(c => toArchiveIds.Contains(c.Id))
+                    .GroupBy(c => c.Player.TeamId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Select(c => c.Player.Id).AsEnumerable());
+
+                foreach (var challenge in toArchive)
+                {
+                    // gamespace may be deleted in TopoMojo which would cause error and prevent reset
+                    try
+                    {
+                        challenge.Submissions = (await _mojo.AuditChallengeAsync(challenge.Id)).ToArray();
+                    }
+                    catch
+                    {
+                        challenge.Submissions = new SectionSubmission[] { };
+                    }
+
+                    challenge.TeamMembers = teamMemberMap[challenge.TeamId].ToArray();
+                }
+
+                DbContext.ArchivedChallenges.AddRange(_mapper.Map<Data.ArchivedChallenge[]>(toArchive));
+                await DbContext.SaveChangesAsync();
+            }
         }
     }
 }

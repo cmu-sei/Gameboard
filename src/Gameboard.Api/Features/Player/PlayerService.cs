@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.UnityGames;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TopoMojo.Api.Client;
@@ -17,38 +18,50 @@ namespace Gameboard.Api.Services
     public class PlayerService
     {
         CoreOptions CoreOptions { get; }
+        ChallengeService ChallengeService { get; set; }
         IPlayerStore Store { get; }
         IGameStore GameStore { get; }
+        IInternalHubBus HubBus { get; }
+        ITeamService TeamService { get; }
         IUserStore UserStore { get; }
         IMapper Mapper { get; }
         IMemoryCache LocalCache { get; }
         TimeSpan _idmapExpiration = new TimeSpan(0, 30, 0);
         ITopoMojoApiClient Mojo { get; }
+        private IUnityGameService UnityGameService { get; }
 
         public PlayerService(
             CoreOptions coreOptions,
+            ChallengeService challengeService,
             IPlayerStore store,
             IUserStore userStore,
             IGameStore gameStore,
+            IInternalHubBus hubBus,
+            ITeamService teamService,
             IMapper mapper,
             IMemoryCache localCache,
-            ITopoMojoApiClient mojo
+            ITopoMojoApiClient mojo,
+            IUnityGameService unityGameService
         )
         {
             CoreOptions = coreOptions;
+            ChallengeService = challengeService;
+            HubBus = hubBus;
             Store = store;
             GameStore = gameStore;
+            TeamService = teamService;
             UserStore = userStore;
             Mapper = mapper;
             LocalCache = localCache;
             Mojo = mojo;
+            UnityGameService = unityGameService;
         }
 
-        public async Task<Player> Register(NewPlayer model, bool sudo = false)
+        public async Task<Player> Enroll(NewPlayer model, User actor)
         {
             var game = await GameStore.Retrieve(model.GameId);
 
-            if (!sudo && !game.RegistrationActive)
+            if (!actor.IsRegistrar && !game.RegistrationActive)
                 throw new RegistrationIsClosed(model.GameId);
 
             var user = await Store.GetUserEnrollments(model.UserId);
@@ -65,6 +78,7 @@ namespace Gameboard.Api.Services
             entity.SessionMinutes = game.SessionMinutes;
 
             await Store.Create(entity);
+            await HubBus.SendPlayerEnrolled(Mapper.Map<Api.Player>(entity), actor);
 
             return Mapper.Map<Player>(entity);
         }
@@ -81,7 +95,6 @@ namespace Gameboard.Api.Services
                 return userId;
 
             userId = (await Store.Retrieve(playerId))?.UserId;
-
             LocalCache.Set(playerId, userId, _idmapExpiration);
 
             return userId;
@@ -92,7 +105,7 @@ namespace Gameboard.Api.Services
             return Mapper.Map<Player>(await Store.Retrieve(id));
         }
 
-        public async Task<Player> Update(ChangedPlayer model, bool sudo = false)
+        public async Task<Player> Update(ChangedPlayer model, User actor, bool sudo = false)
         {
             var entity = await Store.Retrieve(model.Id);
             var prev = Mapper.Map<Player>(entity);
@@ -104,10 +117,7 @@ namespace Gameboard.Api.Services
                     entity
                 );
 
-                entity.NameStatus = entity.Name != entity.ApprovedName
-                    ? "pending"
-                    : ""
-                ;
+                entity.NameStatus = entity.Name != entity.ApprovedName ? "pending" : string.Empty;
             }
             else
             {
@@ -125,86 +135,42 @@ namespace Gameboard.Api.Services
 
                 if (found)
                     entity.NameStatus = AppConstants.NameStatusNotUnique;
-
             }
 
             await Store.Update(entity);
-
+            await HubBus.SendTeamUpdated(Mapper.Map<Api.Player>(entity), actor);
             return Mapper.Map<Player>(entity);
         }
 
-        public async Task<Player> Delete(string id, bool sudo = false)
+        public async Task<Player> ResetSession(SessionResetRequest request)
         {
-            var player = await Store.List()
+            var player = await Store
+                .DbSet
+                .AsNoTracking()
                 .Include(p => p.Game)
-                .Include(p => p.Challenges)
-                .ThenInclude(c => c.Events)
-                .FirstOrDefaultAsync(
-                    p => p.Id == id
-                )
-            ;
+                .SingleAsync(p => p.Id == request.PlayerId);
 
-            if (!sudo && !player.Game.AllowReset && player.SessionBegin.Year > 1)
-                throw new ActionForbidden();
+            // unlike unenroll, we archive the entire team's challenges
+            await ChallengeService.ArchiveTeamChallenges(player.TeamId);
 
-            if (!sudo && !player.Game.RegistrationActive)
-                throw new RegistrationIsClosed(player.GameId, "Registration is inactive.");
+            // delete the entire team (this is the primary difference from "unenroll")
+            await Store.DeleteTeam(player.TeamId);
 
-            var challenges = await Store.DbContext.Challenges
-                .Where(c => c.TeamId == player.TeamId)
-                .Include(c => c.Events)
-                .ToArrayAsync()
-            ;
+            // notify hub that the team is deleted /players left so the client can respond
+            var playerModel = Mapper.Map<Player>(player);
+            await HubBus.SendPlayerLeft(playerModel, request.Actor);
+            await HubBus.SendTeamDeleted(playerModel, request.Actor);
 
-            var players = await Store.DbSet
-                .Where(p => p.TeamId == player.TeamId)
-                .ToArrayAsync()
-            ;
+            // try undeploy unity if necessary
+            if (UnityGameService.IsUnityGame(player.Game))
+                await UnityGameService.UndeployGame(player.GameId, player.TeamId);
 
-            if (challenges.Count() > 0)
-            {
-                var toArchive = Mapper.Map<ArchivedChallenge[]>(challenges);
-                var teamMembers = players.Select(a => a.UserId).ToArray();
-                foreach (var challenge in toArchive)
-                {
-                    // gamespace may be deleted in TopoMojo which would cause error and prevent reset
-                    try
-                    {
-                        challenge.Submissions = (await Mojo.AuditChallengeAsync(challenge.Id)).ToArray();
-                    }
-                    catch
-                    {
-                        challenge.Submissions = new SectionSubmission[] { };
-                    }
-                    challenge.TeamMembers = teamMembers;
-                }
-                Store.DbContext.ArchivedChallenges.AddRange(Mapper.Map<Data.ArchivedChallenge[]>(toArchive));
-                await Store.DbContext.SaveChangesAsync();
-            }
-
-            // courtesy call; ignore error (gamespace may have already been removed from backend)
-            try
-            {
-                foreach (var challenge in challenges)
-                {
-                    if (challenge.HasDeployedGamespace)
-                        await Mojo.CompleteGamespaceAsync(challenge.Id);
-                }
-            }
-            catch { }
-
-            foreach (var p in players)
-                await Store.Delete(p.Id);
-
-            if (!player.IsManager && !player.Game.RequireSponsoredTeam)
-                await UpdateTeamSponsors(player.TeamId);
-
-            return Mapper.Map<Player>(player);
+            return playerModel;
         }
 
-        public async Task<Player> Start(SessionStartRequest model, bool sudo)
+        public async Task<Player> StartSession(SessionStartRequest model, User actor, bool sudo)
         {
-            var team = await Store.ListTeamByPlayer(model.Id);
+            var team = await Store.ListTeamByPlayer(model.PlayerId);
 
             var player = team.First();
             var game = await Store.DbContext.Games.FindAsync(player.GameId);
@@ -248,7 +214,6 @@ namespace Gameboard.Api.Services
 
             if (player.Score > 0)
             {
-                // insert _initialscore_ "challenge"
                 var challenge = new Data.Challenge
                 {
                     Id = Guid.NewGuid().ToString("n"),
@@ -262,16 +227,16 @@ namespace Gameboard.Api.Services
                 };
 
                 Store.DbContext.Add(challenge);
-
                 await Store.DbContext.SaveChangesAsync();
             }
 
-            return Mapper.Map<Player>(
-                team.First(p => p.Id == model.Id)
-            );
+            var asViewModel = Mapper.Map<Api.Player>(player);
+            await HubBus.SendTeamStarted(asViewModel, actor);
+
+            return asViewModel;
         }
 
-        public async Task<Player> ExtendSession(SessionChangeRequest model)
+        public async Task<Player> ExtendSession(SessionChangeRequest model, User actor)
         {
             var team = await Store.ListTeam(model.TeamId);
 
@@ -290,8 +255,7 @@ namespace Gameboard.Api.Services
             var challenges = await Store.DbContext.Challenges
                 .Where(c => c.TeamId == team.First().TeamId)
                 .Select(c => c.Id)
-                .ToArrayAsync()
-            ;
+                .ToArrayAsync();
 
             foreach (string id in challenges)
                 await Mojo.UpdateGamespaceAsync(new ChangedGamespace
@@ -299,6 +263,9 @@ namespace Gameboard.Api.Services
                     Id = id,
                     ExpirationTime = model.SessionEnd
                 });
+
+            var captain = await TeamService.ResolveCaptain(model.TeamId);
+            await HubBus.SendTeamUpdated(Mapper.Map<Player>(captain), actor);
 
             return Mapper.Map<Player>(
                 team.FirstOrDefault(p =>
@@ -454,8 +421,9 @@ namespace Gameboard.Api.Services
             };
         }
 
-        public async Task<Player> Enlist(PlayerEnlistment model, bool sudo = false)
+        public async Task<Player> Enlist(PlayerEnlistment model, User actor)
         {
+            var sudo = actor.IsRegistrar;
             var manager = await Store.List()
                 .Include(p => p.Game)
                 .FirstOrDefaultAsync(
@@ -496,7 +464,6 @@ namespace Gameboard.Api.Services
 
             player.TeamId = manager.TeamId;
             player.Role = PlayerRole.Member;
-            // retain the code for future enlistees
             player.InviteCode = model.Code;
 
             await Store.Update(player);
@@ -504,21 +471,43 @@ namespace Gameboard.Api.Services
             if (manager.Game.AllowTeam && !manager.Game.RequireSponsoredTeam)
                 await UpdateTeamSponsors(manager.TeamId);
 
-            return Mapper.Map<Player>(player);
+            var mappedPlayer = Mapper.Map<Player>(player);
+            await HubBus.SendPlayerEnrolled(mappedPlayer, actor);
+            return mappedPlayer;
         }
 
-        private async Task UpdateTeamSponsors(string id)
+        public async Task Unenroll(PlayerUnenrollRequest request)
+        {
+            // they probably don't have challenge data on an unenroll, but in case an admin does this 
+            // or something, we'll clean up their challenges
+            var player = await Store.Retrieve(request.PlayerId);
+            await ChallengeService.ArchivePlayerChallenges(player);
+
+            // delete the player record
+            await Store.Delete(request.PlayerId);
+
+            // manage sponsor info about the team
+            await UpdateTeamSponsors(player.TeamId);
+
+            // notify listeners on SignalR (like the team)
+            var playerModel = Mapper.Map<Player>(player);
+            await HubBus.SendPlayerLeft(playerModel, request.Actor);
+        }
+
+        private async Task UpdateTeamSponsors(string teamId)
         {
             var members = await Store.DbSet
-                .Where(p => p.TeamId == id)
+                .Where(p => p.TeamId == teamId)
                 .Select(p => new
                 {
                     Id = p.Id,
                     Sponsor = p.Sponsor,
                     IsManager = p.IsManager
                 })
-                .ToArrayAsync()
-            ;
+                .ToArrayAsync();
+
+            if (members.Length == 0)
+                return;
 
             var sponsors = string.Join('|', members
                 .Select(p => p.Sponsor)
@@ -526,23 +515,21 @@ namespace Gameboard.Api.Services
                 .ToArray()
             );
 
-            var manager = members.FirstOrDefault(
-                p => p.IsManager
-            );
+            var manager = members.FirstOrDefault(p => p.IsManager);
 
-            if (manager is null || manager.Sponsor.Equals(sponsors))
-                return;
-
-            var m = await Store.Retrieve(manager.Id);
-
-            m.TeamSponsors = sponsors;
-
-            await Store.Update(m);
+            await Store
+                .DbContext
+                .Players
+                .Where(p => p.Id == manager.Id)
+                .ExecuteUpdateAsync(p => p
+                    .SetProperty(p => p.TeamSponsors, sponsors));
         }
 
         public async Task<Team> LoadTeam(string id, bool sudo)
         {
             var players = await Store.ListTeam(id);
+            if (players.Count() == 0)
+                return null;
 
             var team = Mapper.Map<Team>(
                 players.First(p => p.IsManager)
@@ -552,8 +539,8 @@ namespace Gameboard.Api.Services
                 players.Select(p => p.User)
             );
 
-            // TODO: consider display of challenge detail after game closed
-            // if (sudo || !players.First().Game.IsLive)
+            team.TeamSponsors = string.Join("|", players.Select(p => p.Sponsor));
+
             if (sudo)
                 team.Challenges = Mapper.Map<TeamChallenge[]>(
                     await Store.ListTeamChallenges(id)
@@ -566,8 +553,7 @@ namespace Gameboard.Api.Services
         {
             var players = await Store.List()
                 .Where(p => p.GameId == id)
-                .ToArrayAsync()
-            ;
+                .ToArrayAsync();
 
             var teams = players
                 .GroupBy(p => p.TeamId)
@@ -582,7 +568,6 @@ namespace Gameboard.Api.Services
             ;
 
             return teams;
-
         }
 
         public async Task<IEnumerable<Team>> ObserveTeams(string id)
@@ -753,6 +738,10 @@ namespace Gameboard.Api.Services
             };
         }
 
-    }
+        private Task ArchiveChallenges(IEnumerable<Challenge> challenges)
+        {
 
+            return Task.CompletedTask;
+        }
+    }
 }

@@ -8,8 +8,10 @@ using AutoMapper;
 using Gameboard.Api.Features.CubespaceScoreboard;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.UnityGames;
+using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -38,6 +40,8 @@ namespace Microsoft.Extensions.DependencyInjection
             // TODO: Ben -> fix this
             services.AddHttpContextAccessor();
             services.AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>();
+            services.AddScoped<Hub<IAppHubEvent>, AppHub>();
+            services.AddScoped<IInternalHubBus, InternalHubBus>();
             services.AddScoped<ITeamService, TeamService>();
             services.AddScoped<IUnityGameService, UnityGameService>();
             services.AddScoped<IUnityStore, UnityStore>();

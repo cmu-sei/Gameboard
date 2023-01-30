@@ -2,20 +2,17 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
-using System.Linq;
-using System.Reflection;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Gameboard.Api
 {
-        public static class TicketAuthentication
+    public static class TicketAuthentication
     {
         public const string AuthenticationScheme = "Ticket";
         public const string AltSchemeName = "Bearer";
@@ -63,7 +60,8 @@ namespace Gameboard.Api
                 if (authHeader.Length > 1
                     && (scheme.Equals(TicketAuthentication.AuthenticationScheme, StringComparison.OrdinalIgnoreCase)
                     || scheme.Equals(TicketAuthentication.AltSchemeName, StringComparison.OrdinalIgnoreCase))
-                ) {
+                )
+                {
                     key = authHeader[1];
                 }
             }

@@ -30,6 +30,17 @@ public static class GameboardTestContextDefaultEntityExtensions
             specBuilder
         );
 
+    public static Challenge BuildChallenge(this IDataStateBuilder dataStateBuilder, Action<Challenge>? challengeBuilder = null)
+        => BuildEntity
+        (
+            new Challenge
+            {
+                Id = TestIds.Generate(),
+                Name = "Integration Test Challenge",
+            },
+            challengeBuilder
+        );
+
     public static void AddGame(this IDataStateBuilder dataStateBuilder, Action<Game>? gameBuilder = null)
         => dataStateBuilder.Add(BuildGame(dataStateBuilder, gameBuilder));
 
@@ -71,6 +82,71 @@ public static class GameboardTestContextDefaultEntityExtensions
             },
             playerBuilder
         );
+
+    public static TeamBuilderResult AddTeam(this IDataStateBuilder dataStateBuilder, IFixture fixture, Action<TeamBuilderOptions> optsBuilder)
+    {
+        var options = new TeamBuilderOptions
+        {
+            Name = fixture.Create<string>(),
+            NumPlayers = 5,
+            GameBuilder = g => { },
+            TeamId = fixture.Create<string>()
+        };
+
+        optsBuilder.Invoke(options);
+
+        // fill out properties
+        var teamName = string.IsNullOrEmpty(options.Name) ? fixture.Create<string>() : options.Name;
+
+        var game = new Api.Data.Game
+        {
+            Id = fixture.Create<string>(),
+            // just to avoid obnoxious overconfig on the other end
+            RegistrationClose = DateTimeOffset.UtcNow.AddYears(1),
+            RegistrationOpen = DateTimeOffset.UtcNow.AddYears(-1),
+            RegistrationType = Api.GameRegistrationType.Open
+        };
+
+        options.GameBuilder?.Invoke(game);
+
+        var challenge = new Api.Data.Challenge
+        {
+            Id = fixture.Create<string>(),
+            Game = game,
+            TeamId = options.TeamId
+        };
+
+        // create players
+        var players = new List<Player>();
+
+        for (var i = 0; i < options.NumPlayers; i++)
+        {
+            var createManager = i == 0;
+            var player = new Player
+            {
+                Id = fixture.Create<string>(),
+                ApprovedName = teamName,
+                Name = teamName,
+                Role = createManager ? Api.PlayerRole.Manager : Api.PlayerRole.Member,
+                TeamId = options.TeamId,
+                User = new User { Id = fixture.Create<string>() },
+                Challenges = new List<Api.Data.Challenge> { challenge },
+                Game = game
+            };
+
+            players.Add(player);
+        }
+
+        // Add entities
+        dataStateBuilder.AddRange(players);
+
+        return new TeamBuilderResult
+        {
+            TeamId = options.TeamId,
+            Manager = players.Single(p => p.Role == Api.PlayerRole.Manager),
+            Players = players,
+        };
+    }
 
     public static void AddUser(this IDataStateBuilder dataStateBuilder, Action<User>? userBuilder = null)
         => dataStateBuilder.Add(BuildUser(dataStateBuilder, userBuilder));

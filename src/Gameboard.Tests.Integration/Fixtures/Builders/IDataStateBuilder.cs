@@ -6,7 +6,5 @@ namespace Gameboard.Tests.Integration.Fixtures;
 public interface IDataStateBuilder
 {
     IDataStateBuilder Add<TEntity>(TEntity entity, Action<TEntity>? entityBuilder = null) where TEntity : class, IEntity;
-    // IDataStateBuilder Add<TEntity>(Func<IDataStateBuilder, TEntity> addFunction) where TEntity : class, IEntity;
-
-    // Task Build();
+    IDataStateBuilder AddRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : class, IEntity;
 }
