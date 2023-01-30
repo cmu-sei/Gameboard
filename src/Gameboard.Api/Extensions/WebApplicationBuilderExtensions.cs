@@ -95,7 +95,7 @@ internal static class WebApplicationBuilderExtensions
         );
 
         // Configure Auth
-        services.AddConfiguredAuthentication(settings.Oidc);
+        services.AddConfiguredAuthentication(settings.Oidc, builder.Environment);
         services.AddConfiguredAuthorization();
     }
 }

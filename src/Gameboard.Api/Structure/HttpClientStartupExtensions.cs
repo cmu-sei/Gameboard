@@ -16,7 +16,6 @@ namespace Microsoft.Extensions.DependencyInjection
             CoreOptions config
         )
         {
-
             services
                 .AddHttpClient<ITopoMojoApiClient, TopoMojoApiClient>()
                     .ConfigureHttpClient(client =>

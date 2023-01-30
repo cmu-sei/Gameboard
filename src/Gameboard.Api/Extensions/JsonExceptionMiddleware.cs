@@ -50,13 +50,11 @@ namespace Gameboard.Api
                         || type.Namespace.StartsWith("Gameboard")
                     ) {
                         context.Response.StatusCode = 400;
-                        // message = ex.Message;
                         message = type.Name
                             .Split('.')
                             .Last()
                             .Replace("Exception", "");
 
-                        // message += $" {ex.Message}";
                     }
 
                     await context.Response.WriteAsync(JsonSerializer.Serialize(new { message = message }));
