@@ -23,8 +23,6 @@ namespace Gameboard.Api.Controllers
         IHubContext<AppHub, IAppHubEvent> Hub { get; }
         IMapper Mapper { get; }
 
-        private readonly CoreOptions _coreOptions;
-
         public PlayerController(
             ILogger<PlayerController> logger,
             IDistributedCache cache,
@@ -346,7 +344,7 @@ namespace Gameboard.Api.Controllers
         /// <returns> </returns>
         [HttpGet("/api/certificates")]
         [Authorize]
-        public async Task<PlayerCertificate[]> GetCertificates()
+        public async Task<IEnumerable<PlayerCertificate>> GetCertificates()
         {
             return await PlayerService.MakeCertificates(Actor.Id);
         }

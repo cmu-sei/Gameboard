@@ -16,12 +16,12 @@ namespace Gameboard.Api.Data
         public Store(GameboardDbContext dbContext)
         {
             DbContext = dbContext;
-            DbSet = dbContext.Set<TEntity>();
+            DbSet = dbContext.Set<TEntity>().AsQueryable();
         }
 
         public GameboardDbContext DbContext { get; private set; }
 
-        public DbSet<TEntity> DbSet { get; private set; }
+        public IQueryable<TEntity> DbSet { get; private set; }
 
         public virtual IQueryable<TEntity> List(string term = null)
         {
@@ -93,6 +93,18 @@ namespace Gameboard.Api.Data
 
                 await DbContext.SaveChangesAsync();
             }
+        }
+
+        public virtual async Task<int> CountAsync(Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder = null)
+        {
+            var query = DbContext.Set<TEntity>().AsNoTracking();
+
+            if (queryBuilder != null)
+            {
+                query = queryBuilder(query);
+            }
+
+            return await query.CountAsync();
         }
     }
 }
