@@ -77,6 +77,11 @@ namespace Gameboard.Api
         public string Code { get; set; }
     }
 
+    public class PlayerUnenrollRequest
+    {
+        public string PlayerId { get; set; }
+    }
+
     public class Standing
     {
         public string TeamId { get; set; }
@@ -228,6 +233,7 @@ namespace Gameboard.Api
         public string NameStatus { get; set; }
         public DateTimeOffset SessionBegin { get; set; }
         public DateTimeOffset SessionEnd { get; set; }
+        public User Actor { get; set; }
     }
 
     public class PlayerCertificate

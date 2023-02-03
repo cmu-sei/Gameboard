@@ -22,12 +22,15 @@ namespace Gameboard.Api.Services
 
         private IMemoryCache _localcache;
         private ConsoleActorMap _actorMap;
+        private readonly IMapper _mapper;
+        private readonly IPlayerStore _playerStore;
 
         public ChallengeService(
             ILogger<ChallengeService> logger,
             IMapper mapper,
             CoreOptions options,
             IChallengeStore store,
+            IPlayerStore playerStore,
             ITopoMojoApiClient mojo,
             IMemoryCache localcache,
             ConsoleActorMap actorMap
@@ -37,6 +40,8 @@ namespace Gameboard.Api.Services
             Mojo = mojo;
             _localcache = localcache;
             _actorMap = actorMap;
+            _mapper = mapper;
+            _playerStore = playerStore;
         }
 
         public async Task<Challenge> GetOrAdd(NewChallenge model, string actorId, string graderUrl)
@@ -51,8 +56,7 @@ namespace Gameboard.Api.Services
             var game = await Store.DbContext.Games
                 .Include(g => g.Prerequisites)
                 .Where(g => g.Id == player.GameId)
-                .FirstOrDefaultAsync()
-            ;
+                .FirstOrDefaultAsync();
 
             if ((await Store.ChallengeGamespaceCount(player.TeamId)) >= game.GamespaceLimitPerSession)
                 throw new GamespaceLimitReached();
@@ -83,13 +87,10 @@ namespace Gameboard.Api.Services
             ;
 
             entity = Mapper.Map<Data.Challenge>(model);
-
             Mapper.Map(spec, entity);
 
             entity.Player = player;
-
             entity.TeamId = player.TeamId;
-
             entity.GraderKey = graderKey.ToSha256();
 
             Exception error = null;
@@ -196,9 +197,7 @@ namespace Gameboard.Api.Services
 
             // filter out challenge records with no state used to give starting score to player
             q = q.Where(p => p.Name != "_initialscore_" && p.State != null);
-
             q = q.OrderByDescending(p => p.LastSyncTime);
-
             q = q.Skip(model.Skip);
 
             if (model.Take > 0)
@@ -218,14 +217,9 @@ namespace Gameboard.Api.Services
 
             q = q.Where(t => userTeams.Any(i => i == t.TeamId));
 
-            // Todo other filtering?
-
-            q = q.Include(c => c.Player).Include(c => c.Game);
-
             DateTimeOffset recent = DateTimeOffset.UtcNow.AddDays(-1);
-
+            q = q.Include(c => c.Player).Include(c => c.Game);
             q = q.Where(c => c.Game.GameEnd > recent);
-
             q = q.OrderByDescending(p => p.StartTime);
 
             return await Mapper.ProjectTo<ChallengeOverview>(q).ToArrayAsync();
@@ -273,6 +267,7 @@ namespace Gameboard.Api.Services
 
             // No matter what, retrieve the gamespace state, because we need to handle markdown changes
             var state = await Mojo.PreviewGamespaceAsync(spec.ExternalId);
+
             // Transform state markdown to become more readable
             Transform(state);
             cachestate = JsonSerializer.Serialize(state);
@@ -308,6 +303,72 @@ namespace Gameboard.Api.Services
 
             await Task.WhenAll(tasks);
         }
+
+        // public async Task ArchiveChallenges(string playerId, string teamId, IEnumerable<Challenge> challenges)
+        // {
+        //     if (challenges.Count() > 0)
+        //     {
+        //         // candidates are:
+        //         // - challenges that are owned by the player 
+        //         // - BUT not challenges that are owned by the player that other players have by virtue of having the same teamid
+
+        //         var candidateChallenges = await Store
+        //             .List()
+        //             .AsNoTracking()
+
+        //             .Where(c => c.PlayerId == playerId && )
+        //             .Select(c => c.Id)
+        //             .ToListAsync();
+
+        //         // archive all the challenges belonging to this player that do not also belong to other players by virtue of 
+        //         // being on the same team
+        //         var teamChallenges = await Store
+        //             .List()
+        //             .AsNoTracking()
+        //             .Where(c => c.TeamId == teamId && c.PlayerId != playerId)
+        //             .ToListAsync();
+
+
+        //         foreach (var challenge in new )
+        //             var playerRecords = await _playerStore
+        //                 .List()
+        //                 .Include(p => EF.Property<ICollection<Challenge>>(p, "Players"))
+        //                     .Where(p => p.TeamId != )
+        //                 .Where(p => p.UserId == userId)
+        //                 .ToListAsync();
+
+
+        //         var toArchive = _mapper.Map<ArchivedChallenge[]>(challenges);
+
+        //         foreach (var challenge in toArchive)
+        //         {
+        //             // gamespace may be deleted in TopoMojo which would cause error and prevent reset
+        //             try
+        //             {
+        //                 challenge.Submissions = (await Mojo.AuditChallengeAsync(challenge.Id)).ToArray();
+        //             }
+        //             catch
+        //             {
+        //                 challenge.Submissions = new SectionSubmission[] { };
+        //             }
+        //             challenge.TeamMembers = teamMembers;
+        //         }
+
+        //         Store.DbContext.ArchivedChallenges.AddRange(Mapper.Map<Data.ArchivedChallenge[]>(toArchive));
+        //         await Store.DbContext.SaveChangesAsync();
+        //     }
+
+        //             // courtesy call; ignore error (gamespace may have already been removed from backend)
+        //             try
+        //             {
+        //                 foreach (var challenge in challenges)
+        //                 {
+        //                     if (challenge.HasDeployedGamespace)
+        //                         await Mojo.CompleteGamespaceAsync(challenge.Id);
+        //                 }
+        // }
+        //             catch { }
+        //         }
 
         private async Task<Data.Challenge> Sync(Data.Challenge entity, Task<GameState> task = null)
         {
@@ -510,8 +571,7 @@ namespace Gameboard.Api.Services
         {
             var entity = await Store.DbSet
                 .Include(c => c.Player)
-                .FirstOrDefaultAsync(c => c.Id == model.SessionId)
-            ;
+                .FirstOrDefaultAsync(c => c.Id == model.SessionId);
 
             return new ConsoleActor
             {
@@ -525,7 +585,6 @@ namespace Gameboard.Api.Services
                 VmName = model.Name,
                 Timestamp = DateTimeOffset.UtcNow
             };
-
         }
 
         internal async Task<SectionSubmission[]> Audit(string id)

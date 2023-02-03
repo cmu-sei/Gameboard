@@ -3,6 +3,7 @@
 
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Validators
 {
@@ -43,7 +44,7 @@ namespace Gameboard.Api.Validators
             if (model is TeamAdvancement)
                 return _validate(model as TeamAdvancement);
 
-            throw new System.NotImplementedException();
+            throw new ValidationTypeFailure<PlayerValidator>(model.GetType());
         }
 
         private async Task _validate(PlayerDataFilter model)
@@ -115,9 +116,6 @@ namespace Gameboard.Api.Validators
 
         private async Task _validate(TeamAdvancement model)
         {
-            // if (model.TeamId.IsEmpty())
-            //     throw new ResourceNotFound();
-
             if ((await GameExists(model.GameId)).Equals(false))
                 throw new ResourceNotFound<Game>(model.GameId);
 
@@ -125,6 +123,32 @@ namespace Gameboard.Api.Validators
                 throw new ResourceNotFound<Game>(model.NextGameId, "The next game");
 
             await Task.CompletedTask;
+        }
+
+        public async Task Validate(PlayerUnenrollRequest request)
+        {
+            if (!(await Exists(request.PlayerId)))
+            {
+                throw new ResourceNotFound<Player>(request.PlayerId);
+            }
+
+            var player = await _store
+                .Retrieve
+                (
+                    request.PlayerId,
+                    q =>
+                        q.AsNoTracking()
+                        .Include(p => p.Game)
+                        .Include(p => p.User)
+                        .Include(p => p.Challenges)
+                            .ThenInclude(c => c.Events)
+                );
+
+            if (!player.Game.AllowReset && player.SessionBegin.Year > 1)
+                throw new ActionForbidden();
+
+            if (!player.Game.RegistrationActive)
+                throw new RegistrationIsClosed(player.GameId, "Registration is inactive.");
         }
 
         private async Task<bool> Exists(string id)

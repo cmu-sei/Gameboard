@@ -20,17 +20,15 @@ namespace Gameboard.Api.Controllers
     public class PlayerController : _Controller
     {
         PlayerService PlayerService { get; }
-        IHubContext<AppHub, IAppHubEvent> Hub { get; }
+        IInternalHubBus Hub { get; }
         IMapper Mapper { get; }
-
-        private readonly CoreOptions _coreOptions;
 
         public PlayerController(
             ILogger<PlayerController> logger,
             IDistributedCache cache,
             PlayerValidator validator,
             PlayerService playerService,
-            IHubContext<AppHub, IAppHubEvent> hub,
+            IInternalHubBus hub,
             IMapper mapper
         ) : base(logger, cache, validator)
         {
@@ -93,11 +91,7 @@ namespace Gameboard.Api.Controllers
             );
 
             var result = await PlayerService.Update(model, Actor.IsRegistrar);
-
-            await Hub.Clients.Group(result.TeamId).TeamEvent(
-                new HubEvent<TeamState>(Mapper.Map<TeamState>(result), EventAction.Updated)
-            );
-
+            await Hub.SendTeamUpdated(result, Actor);
             return Mapper.Map<PlayerUpdatedViewModel>(result);
         }
 
@@ -117,10 +111,7 @@ namespace Gameboard.Api.Controllers
             );
 
             var result = await PlayerService.ExtendSession(model);
-
-            await Hub.Clients.Group(result.TeamId).TeamEvent(
-                new HubEvent<TeamState>(Mapper.Map<TeamState>(result), EventAction.Updated)
-            );
+            await Hub.SendTeamUpdated(result, Actor);
         }
 
         /// <summary>
@@ -140,13 +131,21 @@ namespace Gameboard.Api.Controllers
             await Validate(model);
 
             var result = await PlayerService.Start(model, Actor.IsRegistrar);
-
-            await Hub.Clients.Group(result.TeamId).TeamEvent(
-                new HubEvent<TeamState>(Mapper.Map<TeamState>(result), EventAction.Started)
-            );
-
+            await Hub.SendTeamStarted(result, Actor);
             return result;
         }
+
+        // [HttpDelete("/api/player/{playerId}")]
+        // [Authorize]
+        // public async Task Unenroll([FromRoute] string playerId)
+        // {
+        //     AuthorizeAny(
+        //         () => Actor.IsRegistrar,
+        //         () => IsSelf(playerId).Result
+        //     );
+
+        //     await Validate(new PlayerUnenrollRequest { PlayerId = playerId });
+        // }
 
         /// <summary>
         /// Delete a player enrollment
@@ -163,22 +162,7 @@ namespace Gameboard.Api.Controllers
             );
 
             await Validate(new Entity { Id = id });
-
-            var player = await PlayerService.Delete(id, Actor.IsRegistrar);
-
-            await Hub.Clients.Group(player.TeamId).PresenceEvent(
-                new HubEvent<TeamPlayer>(Mapper.Map<TeamPlayer>(player), EventAction.Deleted)
-            );
-
-            if (player.IsManager)
-            {
-                await Hub.Clients.Group(player.TeamId).TeamEvent(
-                    new HubEvent<TeamState>(
-                        new TeamState { TeamId = player.TeamId },
-                        EventAction.Deleted
-                    )
-                );
-            }
+            await PlayerService.Delete(id, Actor, Actor.IsRegistrar);
         }
 
         /// <summary>

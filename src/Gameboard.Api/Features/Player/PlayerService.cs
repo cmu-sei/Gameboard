@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Hubs;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TopoMojo.Api.Client;
@@ -19,6 +21,7 @@ namespace Gameboard.Api.Services
         CoreOptions CoreOptions { get; }
         IPlayerStore Store { get; }
         IGameStore GameStore { get; }
+        IInternalHubBus HubBus { get; }
         IUserStore UserStore { get; }
         IMapper Mapper { get; }
         IMemoryCache LocalCache { get; }
@@ -30,12 +33,14 @@ namespace Gameboard.Api.Services
             IPlayerStore store,
             IUserStore userStore,
             IGameStore gameStore,
+            IInternalHubBus hubBus,
             IMapper mapper,
             IMemoryCache localCache,
             ITopoMojoApiClient mojo
         )
         {
             CoreOptions = coreOptions;
+            HubBus = hubBus;
             Store = store;
             GameStore = gameStore;
             UserStore = userStore;
@@ -133,16 +138,18 @@ namespace Gameboard.Api.Services
             return Mapper.Map<Player>(entity);
         }
 
-        public async Task<Player> Delete(string id, bool sudo = false)
+        public Task<Player> Unenroll(string playerId)
+        {
+            return Task.FromResult(new Api.Player { Id = playerId });
+        }
+
+        public async Task<Player> Delete(string id, User actor, bool sudo = false)
         {
             var player = await Store.List()
                 .Include(p => p.Game)
                 .Include(p => p.Challenges)
                 .ThenInclude(c => c.Events)
-                .FirstOrDefaultAsync(
-                    p => p.Id == id
-                )
-            ;
+                .FirstOrDefaultAsync(p => p.Id == id);
 
             if (!sudo && !player.Game.AllowReset && player.SessionBegin.Year > 1)
                 throw new ActionForbidden();
@@ -153,13 +160,11 @@ namespace Gameboard.Api.Services
             var challenges = await Store.DbContext.Challenges
                 .Where(c => c.TeamId == player.TeamId)
                 .Include(c => c.Events)
-                .ToArrayAsync()
-            ;
+                .ToArrayAsync();
 
             var players = await Store.DbSet
                 .Where(p => p.TeamId == player.TeamId)
-                .ToArrayAsync()
-            ;
+                .ToArrayAsync();
 
             if (challenges.Count() > 0)
             {
@@ -199,7 +204,12 @@ namespace Gameboard.Api.Services
             if (!player.IsManager && !player.Game.RequireSponsoredTeam)
                 await UpdateTeamSponsors(player.TeamId);
 
-            return Mapper.Map<Player>(player);
+            // notify hub that the team is deleted /players left so the client can respond
+            var playerModel = Mapper.Map<Player>(player);
+            await HubBus.SendPlayerLeft(playerModel);
+            await HubBus.SendTeamDeleted(playerModel, actor);
+
+            return playerModel;
         }
 
         public async Task<Player> Start(SessionStartRequest model, bool sudo)
@@ -248,7 +258,6 @@ namespace Gameboard.Api.Services
 
             if (player.Score > 0)
             {
-                // insert _initialscore_ "challenge"
                 var challenge = new Data.Challenge
                 {
                     Id = Guid.NewGuid().ToString("n"),
@@ -517,8 +526,12 @@ namespace Gameboard.Api.Services
                     Sponsor = p.Sponsor,
                     IsManager = p.IsManager
                 })
-                .ToArrayAsync()
-            ;
+                .ToArrayAsync();
+
+            if (members.Length == 0)
+            {
+                return;
+            }
 
             var sponsors = string.Join('|', members
                 .Select(p => p.Sponsor)
@@ -534,7 +547,6 @@ namespace Gameboard.Api.Services
                 return;
 
             var m = await Store.Retrieve(manager.Id);
-
             m.TeamSponsors = sponsors;
 
             await Store.Update(m);
@@ -552,8 +564,6 @@ namespace Gameboard.Api.Services
                 players.Select(p => p.User)
             );
 
-            // TODO: consider display of challenge detail after game closed
-            // if (sudo || !players.First().Game.IsLive)
             if (sudo)
                 team.Challenges = Mapper.Map<TeamChallenge[]>(
                     await Store.ListTeamChallenges(id)
@@ -566,8 +576,7 @@ namespace Gameboard.Api.Services
         {
             var players = await Store.List()
                 .Where(p => p.GameId == id)
-                .ToArrayAsync()
-            ;
+                .ToArrayAsync();
 
             var teams = players
                 .GroupBy(p => p.TeamId)
@@ -582,7 +591,6 @@ namespace Gameboard.Api.Services
             ;
 
             return teams;
-
         }
 
         public async Task<IEnumerable<Team>> ObserveTeams(string id)
@@ -753,6 +761,10 @@ namespace Gameboard.Api.Services
             };
         }
 
-    }
+        private Task ArchiveChallenges(IEnumerable<Challenge> challenges)
+        {
 
+            return Task.CompletedTask;
+        }
+    }
 }

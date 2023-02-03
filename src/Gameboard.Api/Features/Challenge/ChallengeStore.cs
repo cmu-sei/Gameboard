@@ -5,17 +5,14 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
+using TopoMojo.Api.Client;
+using AutoMapper;
 
 namespace Gameboard.Api.Data
 {
-
-    public class ChallengeStore: Store<Challenge>, IChallengeStore
+    public class ChallengeStore : Store<Challenge>, IChallengeStore
     {
-        public ChallengeStore(GameboardDbContext dbContext)
-        :base(dbContext)
-        {
-
-        }
+        public ChallengeStore(GameboardDbContext dbContext) : base(dbContext) { }
 
         public override IQueryable<Challenge> List(string term)
         {
@@ -72,7 +69,7 @@ namespace Gameboard.Api.Data
                 .Take(20)
                 .ToArrayAsync();
 
-            int avg = (int) stats.Average(m =>
+            int avg = (int)stats.Average(m =>
                 m.Started.Subtract(m.Created).TotalSeconds
             );
 
@@ -87,9 +84,7 @@ namespace Gameboard.Api.Data
         {
             var challenges = await DbSet.Where(c => c.TeamId == id).ToArrayAsync();
 
-            // TODO: reconsider int vs double
             int score = (int)challenges.Sum(c => c.Score);
-
             long time = challenges.Sum(c => c.Duration);
             int complete = challenges.Count(c => c.Result == ChallengeResult.Success);
             int partial = challenges.Count(c => c.Result == ChallengeResult.Partial);
