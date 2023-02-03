@@ -10,7 +10,6 @@ using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 
@@ -90,8 +89,7 @@ namespace Gameboard.Api.Controllers
                 () => PlayerService.MapId(model.Id).Result == Actor.Id
             );
 
-            var result = await PlayerService.Update(model, Actor.IsRegistrar);
-            await Hub.SendTeamUpdated(result, Actor);
+            var result = await PlayerService.Update(model, Actor, Actor.IsRegistrar);
             return Mapper.Map<PlayerUpdatedViewModel>(result);
         }
 
@@ -110,8 +108,7 @@ namespace Gameboard.Api.Controllers
                 () => Actor.IsRegistrar
             );
 
-            var result = await PlayerService.ExtendSession(model);
-            await Hub.SendTeamUpdated(result, Actor);
+            var result = await PlayerService.ExtendSession(model, Actor);
         }
 
         /// <summary>
@@ -134,18 +131,6 @@ namespace Gameboard.Api.Controllers
             await Hub.SendTeamStarted(result, Actor);
             return result;
         }
-
-        // [HttpDelete("/api/player/{playerId}")]
-        // [Authorize]
-        // public async Task Unenroll([FromRoute] string playerId)
-        // {
-        //     AuthorizeAny(
-        //         () => Actor.IsRegistrar,
-        //         () => IsSelf(playerId).Result
-        //     );
-
-        //     await Validate(new PlayerUnenrollRequest { PlayerId = playerId });
-        // }
 
         /// <summary>
         /// Delete a player enrollment
@@ -302,7 +287,6 @@ namespace Gameboard.Api.Controllers
             );
 
             await Validate(model);
-
             return await PlayerService.Enlist(model, Actor.IsRegistrar);
         }
 

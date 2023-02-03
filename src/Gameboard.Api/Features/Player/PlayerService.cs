@@ -8,8 +8,6 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Player;
-using Gameboard.Api.Hubs;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TopoMojo.Api.Client;
@@ -22,6 +20,7 @@ namespace Gameboard.Api.Services
         IPlayerStore Store { get; }
         IGameStore GameStore { get; }
         IInternalHubBus HubBus { get; }
+        ITeamService TeamService { get; }
         IUserStore UserStore { get; }
         IMapper Mapper { get; }
         IMemoryCache LocalCache { get; }
@@ -34,6 +33,7 @@ namespace Gameboard.Api.Services
             IUserStore userStore,
             IGameStore gameStore,
             IInternalHubBus hubBus,
+            ITeamService teamService,
             IMapper mapper,
             IMemoryCache localCache,
             ITopoMojoApiClient mojo
@@ -43,6 +43,7 @@ namespace Gameboard.Api.Services
             HubBus = hubBus;
             Store = store;
             GameStore = gameStore;
+            TeamService = teamService;
             UserStore = userStore;
             Mapper = mapper;
             LocalCache = localCache;
@@ -97,7 +98,7 @@ namespace Gameboard.Api.Services
             return Mapper.Map<Player>(await Store.Retrieve(id));
         }
 
-        public async Task<Player> Update(ChangedPlayer model, bool sudo = false)
+        public async Task<Player> Update(ChangedPlayer model, User actor, bool sudo = false)
         {
             var entity = await Store.Retrieve(model.Id);
             var prev = Mapper.Map<Player>(entity);
@@ -134,7 +135,7 @@ namespace Gameboard.Api.Services
             }
 
             await Store.Update(entity);
-
+            await HubBus.SendTeamUpdated(Mapper.Map<Api.Player>(entity), actor);
             return Mapper.Map<Player>(entity);
         }
 
@@ -280,7 +281,7 @@ namespace Gameboard.Api.Services
             );
         }
 
-        public async Task<Player> ExtendSession(SessionChangeRequest model)
+        public async Task<Player> ExtendSession(SessionChangeRequest model, User actor)
         {
             var team = await Store.ListTeam(model.TeamId);
 
@@ -299,8 +300,7 @@ namespace Gameboard.Api.Services
             var challenges = await Store.DbContext.Challenges
                 .Where(c => c.TeamId == team.First().TeamId)
                 .Select(c => c.Id)
-                .ToArrayAsync()
-            ;
+                .ToArrayAsync();
 
             foreach (string id in challenges)
                 await Mojo.UpdateGamespaceAsync(new ChangedGamespace
@@ -308,6 +308,9 @@ namespace Gameboard.Api.Services
                     Id = id,
                     ExpirationTime = model.SessionEnd
                 });
+
+            var captain = await TeamService.ResolveCaptain(model.TeamId);
+            await HubBus.SendTeamUpdated(Mapper.Map<Player>(captain), actor);
 
             return Mapper.Map<Player>(
                 team.FirstOrDefault(p =>
