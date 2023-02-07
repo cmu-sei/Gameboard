@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/src/Gameboard.Api/bin/Debug/net6.0/Gameboard.Api.dll",
+            "program": "${workspaceFolder}/src/Gameboard.Api/bin/Debug/net7.0/Gameboard.Api.dll",
             "args": [],
             "cwd": "${workspaceFolder}/src/Gameboard.Api",
             "stopAtEntry": false,
@@ -20,7 +20,8 @@
                 "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
             },
             "env": {
-                "ASPNETCORE_ENVIRONMENT": "Development"
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "http://localhost:5002"
             },
             "sourceFileMap": {
                 "/Views": "${workspaceFolder}/Views"
