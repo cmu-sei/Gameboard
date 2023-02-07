@@ -74,7 +74,7 @@ namespace Gameboard.Api.Hubs
             // add to group and broadcast
             await Groups.AddToGroupAsync(Context.ConnectionId, player.TeamId);
             await Clients.OthersInGroup(player.TeamId).PresenceEvent(
-                new HubEvent<TeamPlayer>(teamPlayer, EventAction.Arrived)
+                new HubEvent<TeamPlayer>(teamPlayer, EventAction.Arrived, player.UserId)
             );
         }
 
@@ -111,7 +111,7 @@ namespace Gameboard.Api.Hubs
                     Groups.RemoveFromGroupAsync(Context.ConnectionId, player.TeamId),
                     Groups.RemoveFromGroupAsync(Context.ConnectionId, AppConstants.InternalSupportChannel),
                     Clients.OthersInGroup(player.TeamId).PresenceEvent(
-                        new HubEvent<TeamPlayer>(player, EventAction.Departed)
+                        new HubEvent<TeamPlayer>(player, EventAction.Departed, string.Empty)
                     )
                 };
 
@@ -129,7 +129,7 @@ namespace Gameboard.Api.Hubs
                 return Task.CompletedTask;
 
             return Clients.OthersInGroup(player.TeamId).PresenceEvent(
-                new HubEvent<TeamPlayer>(player, EventAction.Greeted)
+                new HubEvent<TeamPlayer>(player, EventAction.Greeted, string.Empty)
             );
         }
     }

@@ -207,13 +207,13 @@ namespace Gameboard.Api.Services
 
             // notify hub that the team is deleted /players left so the client can respond
             var playerModel = Mapper.Map<Player>(player);
-            await HubBus.SendPlayerLeft(playerModel);
+            await HubBus.SendPlayerLeft(playerModel, actor);
             await HubBus.SendTeamDeleted(playerModel, actor);
 
             return playerModel;
         }
 
-        public async Task<Player> Start(SessionStartRequest model, bool sudo)
+        public async Task<Player> Start(SessionStartRequest model, User actor, bool sudo)
         {
             var team = await Store.ListTeamByPlayer(model.Id);
 

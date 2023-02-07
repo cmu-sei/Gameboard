@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.SignalR;
 
 public interface IInternalHubBus
 {
-    Task SendPlayerLeft(Player p);
+    Task SendPlayerLeft(Player p, User actor);
     Task SendTeamDeleted(Player p, User actor);
     Task SendTeamStarted(Player p, User actor);
     Task SendTeamUpdated(Player p, User actor);
@@ -25,12 +25,12 @@ internal class InternalHubBus : IInternalHubBus
         _mapper = mapper;
     }
 
-    public async Task SendPlayerLeft(Player p)
+    public async Task SendPlayerLeft(Player p, User actor)
     {
         await this._hub.Clients
             .Group(p.TeamId)
             .PresenceEvent(
-                new HubEvent<TeamPlayer>(_mapper.Map<TeamPlayer>(p), EventAction.Departed)
+                new HubEvent<TeamPlayer>(_mapper.Map<TeamPlayer>(p), EventAction.Departed, actor.Id)
             );
     }
 
@@ -41,7 +41,7 @@ internal class InternalHubBus : IInternalHubBus
             dest.Actor = actor;
         }));
 
-        await this._hub.Clients.Group(p.TeamId).TeamEvent(new HubEvent<TeamState>(teamState, EventAction.Deleted));
+        await this._hub.Clients.Group(p.TeamId).TeamEvent(new HubEvent<TeamState>(teamState, EventAction.Deleted, actor.Id));
     }
 
     public async Task SendTeamStarted(Player p, User actor)
@@ -54,7 +54,7 @@ internal class InternalHubBus : IInternalHubBus
         await this._hub.Clients
             .Group(p.TeamId)
             .TeamEvent(
-                new HubEvent<TeamState>(teamState, EventAction.Started)
+                new HubEvent<TeamState>(teamState, EventAction.Started, actor.Id)
             );
     }
 
@@ -68,7 +68,7 @@ internal class InternalHubBus : IInternalHubBus
         await this._hub.Clients
             .Group(p.TeamId)
             .TeamEvent(
-                new HubEvent<TeamState>(teamState, EventAction.Updated)
+                new HubEvent<TeamState>(teamState, EventAction.Updated, actor.Id)
             );
     }
 }

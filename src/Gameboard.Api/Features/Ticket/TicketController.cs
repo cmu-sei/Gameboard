@@ -235,7 +235,7 @@ namespace Gameboard.Api.Controllers
 
         private Task Notify(TicketNotification notification, EventAction action)
         {
-            var ev = new HubEvent<TicketNotification>(notification, action);
+            var ev = new HubEvent<TicketNotification>(notification, action, Actor.Id);
 
             var tasks = new List<Task>();
 

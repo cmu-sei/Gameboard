@@ -127,7 +127,7 @@ namespace Gameboard.Api.Controllers
 
             await Validate(model);
 
-            var result = await PlayerService.Start(model, Actor.IsRegistrar);
+            var result = await PlayerService.Start(model, Actor, Actor.IsRegistrar);
             await Hub.SendTeamStarted(result, Actor);
             return result;
         }

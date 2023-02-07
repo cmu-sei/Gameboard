@@ -7,12 +7,16 @@ namespace Gameboard.Api.Hubs
     {
         public HubEvent(
             T model,
-            EventAction action
-        ) {
+            EventAction action,
+            string actorUserId
+        )
+        {
             Action = action;
             Model = model;
+            ActorUserId = actorUserId;
         }
 
+        public string ActorUserId { get; set; }
         public EventAction Action { get; set; }
         public T Model { get; set; }
     }

@@ -231,7 +231,7 @@ namespace Gameboard.Api.Controllers
                 : Hub.Clients.All
             ;
 
-            await audience.Announcement(new HubEvent<Announcement>(model, EventAction.Created));
+            await audience.Announcement(new HubEvent<Announcement>(model, EventAction.Created, Actor.Id));
         }
     }
 }
