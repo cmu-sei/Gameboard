@@ -2,7 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
-using Gameboard.Api;
+using Gameboard.Api.Auth;
 using Microsoft.AspNetCore.Authentication;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -13,7 +13,8 @@ namespace Microsoft.Extensions.DependencyInjection
             this AuthenticationBuilder builder,
             string scheme,
             Action<TicketAuthenticationOptions> options
-        ) {
+        )
+        {
 
             builder.AddScheme<TicketAuthenticationOptions, TicketAuthenticationHandler>(
                 scheme ?? TicketAuthentication.AuthenticationScheme,

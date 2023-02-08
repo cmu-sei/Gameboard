@@ -16,6 +16,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.AspNetCore.SignalR;
 using Gameboard.Api.Hubs;
+using Gameboard.Api.Auth;
 
 namespace Gameboard.Api.Controllers
 {
@@ -171,9 +172,7 @@ namespace Gameboard.Api.Controllers
             string ticket = Guid.NewGuid().ToString("n");
 
             await Cache.SetStringAsync(
-
                 $"{TicketAuthentication.TicketCachePrefix}{ticket}",
-
                 $"{Actor.Id}#{Actor.Name}",
 
                 new DistributedCacheEntryOptions

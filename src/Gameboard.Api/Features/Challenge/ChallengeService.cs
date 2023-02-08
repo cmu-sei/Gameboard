@@ -83,15 +83,10 @@ namespace Gameboard.Api.Services
             ;
 
             entity = Mapper.Map<Data.Challenge>(model);
-
             Mapper.Map(spec, entity);
-
             entity.Player = player;
-
             entity.TeamId = player.TeamId;
-
             entity.GraderKey = graderKey.ToSha256();
-
             Exception error = null;
 
             try
@@ -510,8 +505,7 @@ namespace Gameboard.Api.Services
         {
             var entity = await Store.DbSet
                 .Include(c => c.Player)
-                .FirstOrDefaultAsync(c => c.Id == model.SessionId)
-            ;
+                .FirstOrDefaultAsync(c => c.Id == model.SessionId);
 
             return new ConsoleActor
             {
@@ -525,7 +519,6 @@ namespace Gameboard.Api.Services
                 VmName = model.Name,
                 Timestamp = DateTimeOffset.UtcNow
             };
-
         }
 
         internal async Task<SectionSubmission[]> Audit(string id)

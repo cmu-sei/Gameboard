@@ -45,7 +45,6 @@ namespace Gameboard.Api.Services
             return Transform(Mapper.Map<Ticket>(entity));
         }
 
-
         public async Task<Ticket> Create(NewTicket model, string actorId, bool sudo, List<UploadFile> uploads)
         {
             Data.Ticket entity;

@@ -2,21 +2,24 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using Gameboard.Api;
+using Gameboard.Api.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 
-namespace  Microsoft.Extensions.DependencyInjection
+namespace Microsoft.Extensions.DependencyInjection
 {
     public static class AuthorizationStartupExtensions
     {
         public static IServiceCollection AddConfiguredAuthorization(
             this IServiceCollection services
-        ) {
+        )
+        {
             services.AddAuthorization(_ =>
             {
                 _.DefaultPolicy = new AuthorizationPolicyBuilder()
                     .RequireAuthenticatedUser()
-                    .AddAuthenticationSchemes(
+                    .AddAuthenticationSchemes
+                    (
                         JwtBearerDefaults.AuthenticationScheme,
                         ApiKeyAuthentication.AuthenticationScheme
                     ).Build();
@@ -29,6 +32,7 @@ namespace  Microsoft.Extensions.DependencyInjection
                     .RequireClaim(AppConstants.RoleClaimName, UserRole.Registrar.ToString())
                     .Build()
                 );
+
                 _.AddPolicy(AppConstants.DesignerPolicy, new AuthorizationPolicyBuilder()
                     .RequireAuthenticatedUser()
                     .AddAuthenticationSchemes(
@@ -37,6 +41,7 @@ namespace  Microsoft.Extensions.DependencyInjection
                     .RequireClaim(AppConstants.RoleClaimName, UserRole.Designer.ToString())
                     .Build()
                 );
+
                 _.AddPolicy(AppConstants.AdminPolicy, new AuthorizationPolicyBuilder()
                     .RequireAuthenticatedUser()
                     .AddAuthenticationSchemes(
@@ -45,6 +50,7 @@ namespace  Microsoft.Extensions.DependencyInjection
                     .RequireClaim(AppConstants.RoleClaimName, UserRole.Admin.ToString())
                     .Build()
                 );
+
                 _.AddPolicy(AppConstants.TicketOnlyPolicy, new AuthorizationPolicyBuilder()
                     .RequireAuthenticatedUser()
                     .AddAuthenticationSchemes(
@@ -52,6 +58,7 @@ namespace  Microsoft.Extensions.DependencyInjection
                     )
                     .Build()
                 );
+
                 _.AddPolicy(AppConstants.ConsolePolicy, new AuthorizationPolicyBuilder()
                     .RequireAuthenticatedUser()
                     .AddAuthenticationSchemes(
@@ -59,6 +66,7 @@ namespace  Microsoft.Extensions.DependencyInjection
                     )
                     .Build()
                 );
+
                 _.AddPolicy(AppConstants.HubPolicy, new AuthorizationPolicyBuilder()
                     .RequireAuthenticatedUser()
                     .AddAuthenticationSchemes(
@@ -67,6 +75,7 @@ namespace  Microsoft.Extensions.DependencyInjection
                     )
                     .Build()
                 );
+
                 _.AddPolicy(AppConstants.GraderPolicy, new AuthorizationPolicyBuilder()
                     .RequireAuthenticatedUser()
                     .AddAuthenticationSchemes(
@@ -74,6 +83,11 @@ namespace  Microsoft.Extensions.DependencyInjection
                         ApiKeyAuthentication.AuthenticationScheme
                     ).Build()
                 );
+
+                _.AddPolicy(AppConstants.ApiKeyAuthPolicy, new AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .AddAuthenticationSchemes(ApiKeyAuthentication.AuthenticationScheme)
+                    .Build());
             });
 
             return services;

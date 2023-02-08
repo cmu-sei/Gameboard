@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -60,13 +59,13 @@ namespace Gameboard.Api
 
                 if (authHeader.Length > 1
                     && scheme.Equals(ApiKeyAuthentication.AuthenticationScheme, StringComparison.OrdinalIgnoreCase)
-                ) {
+                )
+                {
                     key = authHeader[1];
                 }
             }
 
             string subjectId = await _svc.ResolveApiKey(key);
-            // var client = Options.Clients.Where(c => c.Key == key).SingleOrDefault();
 
             if (string.IsNullOrEmpty(subjectId))
                 return AuthenticateResult.NoResult();
@@ -76,11 +75,6 @@ namespace Gameboard.Api
                     new Claim[] {
                         new Claim(AppConstants.SubjectClaimName, subjectId),
                         new Claim(AppConstants.NameClaimName, "AutoGrader"),
-                        // new Claim(AppConstants.SubjectClaimName, client.Id ?? "invalid"),
-                        // new Claim(AppConstants.NameClaimName, client.Name ?? "invalid"),
-                        // new Claim(ApiKeyAuthentication.ClaimNames.ClientId, client.Id ?? "invalid"),
-                        // new Claim(ApiKeyAuthentication.ClaimNames.ClientScope, client.Scope ?? "public"),
-                        // new Claim(ApiKeyAuthentication.ClaimNames.ClientUrl, client.Url ?? "")
                     },
                     Scheme.Name
                 )
