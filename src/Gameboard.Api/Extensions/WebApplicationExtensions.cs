@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Gameboard.Api.Hubs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,9 +24,8 @@ internal static class WebApplicationExtensions
             app.UseHsts();
 
         if (app.Environment.IsDev())
-        {
             app.UseDeveloperExceptionPage();
-        }
+
 
         app.UseRouting();
         app.UseCors(settings.Headers.Cors.Name);
