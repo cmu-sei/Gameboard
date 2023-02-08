@@ -11,21 +11,14 @@ namespace Gameboard.Api.Services
         public UserMapper()
         {
             CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
-
             CreateMap<Data.User, User>();
-
             CreateMap<Data.User, TeamMember>();
-
-            CreateMap<Data.User, UserSummary>();
-
+            CreateMap<Data.User, UserSimple>();
+            CreateMap<Data.User, UserOnly>();
             CreateMap<User, Data.User>();
-
             CreateMap<NewUser, Data.User>();
-
             CreateMap<ChangedUser, SelfChangedUser>();
-
             CreateMap<ChangedUser, Data.User>();
-
             CreateMap<SelfChangedUser, Data.User>();
         }
     }

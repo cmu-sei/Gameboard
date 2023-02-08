@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -135,7 +136,7 @@ public class UserService
 
     }
 
-    public async Task<User[]> List(UserSearch model)
+    public async Task<IEnumerable<TProject>> List<TProject>(UserSearch model) where TProject : class, IUserViewModel
     {
         var q = Store.List(model.Term);
 
@@ -165,10 +166,12 @@ public class UserService
         if (model.Take > 0)
             q = q.Take(model.Take);
 
-        return await Mapper.ProjectTo<User>(q).ToArrayAsync();
+        return await Mapper
+            .ProjectTo<TProject>(q)
+            .ToArrayAsync();
     }
 
-    public async Task<UserSummary[]> ListSupport(SearchFilter model)
+    public async Task<UserSimple[]> ListSupport(SearchFilter model)
     {
         var q = Store.List(model.Term);
 
@@ -185,7 +188,7 @@ public class UserService
             );
         }
 
-        return await Mapper.ProjectTo<UserSummary>(q).ToArrayAsync();
+        return await Mapper.ProjectTo<UserSimple>(q).ToArrayAsync();
     }
 
     internal string ResolveRandomName(IUserStore store, INameService nameSvc, User entity)
