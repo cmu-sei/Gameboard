@@ -5,6 +5,9 @@ using System;
 using System.Linq;
 using System.Reflection;
 using AutoMapper;
+using Gameboard.Api.Data;
+using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.ApiKeys;
 using Gameboard.Api.Features.CubespaceScoreboard;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.UnityGames;
@@ -17,7 +20,11 @@ namespace Microsoft.Extensions.DependencyInjection
     {
         public static IServiceCollection AddGameboardServices(this IServiceCollection services)
         {
-            services.AddSingleton<ConsoleActorMap>();
+            // add special case services
+            services
+                .AddSingleton<ConsoleActorMap>()
+                .AddHttpContextAccessor()
+                .AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>();
 
             // Auto-discover from EntityService pattern
             foreach (var t in Assembly
@@ -35,15 +42,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 services.AddScoped(t);
             }
 
-            // TODO: Ben -> fix this
+            services.AddUnboundServices();
             services.AddHttpContextAccessor();
-            services.AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>();
-            services.AddScoped<ITeamService, TeamService>();
-            services.AddScoped<IUnityGameService, UnityGameService>();
-            services.AddScoped<IUnityStore, UnityStore>();
-            services.AddScoped<ICubespaceScoreboardService, CubespaceScoreboardService>();
-            services.AddScoped<IGamebrainService, GamebrainService>();
-            services.AddTransient<IGuidService, GuidService>();
 
             foreach (var t in Assembly
                 .GetExecutingAssembly()
@@ -62,6 +62,20 @@ namespace Microsoft.Extensions.DependencyInjection
 
             return services;
         }
+
+        // TODO: Ben -> fix this (still on my list, but for now at least segregating into a method)
+        private static IServiceCollection AddUnboundServices(this IServiceCollection services)
+            => services
+                .AddScoped<IApiKeyService, ApiKeyService>()
+                .AddScoped<IApiKeyStore, ApiKeyStore>()
+                .AddScoped<IChallengeStore, ChallengeStore>()
+                .AddScoped<ITeamService, TeamService>()
+                .AddScoped<IUnityGameService, UnityGameService>()
+                .AddScoped<IUnityStore, UnityStore>()
+                .AddScoped<ICubespaceScoreboardService, CubespaceScoreboardService>()
+                .AddScoped<IGamebrainService, GamebrainService>()
+                .AddTransient<IRandomService, RandomService>()
+                .AddTransient<IGuidService, GuidService>();
 
         public static IMapperConfigurationExpression AddGameboardMaps(
             this IMapperConfigurationExpression cfg

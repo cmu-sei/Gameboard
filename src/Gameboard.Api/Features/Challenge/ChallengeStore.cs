@@ -3,16 +3,15 @@
 
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data
 {
-
-    public class ChallengeStore: Store<Challenge>, IChallengeStore
+    public class ChallengeStore : Store<Challenge>, IChallengeStore
     {
         public ChallengeStore(GameboardDbContext dbContext)
-        :base(dbContext)
+        : base(dbContext)
         {
 
         }
@@ -72,7 +71,7 @@ namespace Gameboard.Api.Data
                 .Take(20)
                 .ToArrayAsync();
 
-            int avg = (int) stats.Average(m =>
+            int avg = (int)stats.Average(m =>
                 m.Started.Subtract(m.Created).TotalSeconds
             );
 
@@ -137,13 +136,6 @@ namespace Gameboard.Api.Data
             return DbSet.CountAsync(c =>
                 c.TeamId == teamId &&
                 c.HasDeployedGamespace.Equals(true)
-            );
-        }
-
-        public async Task<Challenge> ResolveApiKey(string hash)
-        {
-            return await DbSet.FirstOrDefaultAsync(c =>
-                c.GraderKey == hash
             );
         }
     }

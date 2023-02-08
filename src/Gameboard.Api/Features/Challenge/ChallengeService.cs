@@ -15,7 +15,7 @@ using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {
-    public class ChallengeService : _Service, IApiKeyAuthenticationService
+    public class ChallengeService : _Service
     {
         IChallengeStore Store { get; }
         ITopoMojoApiClient Mojo { get; }
@@ -492,14 +492,14 @@ namespace Gameboard.Api.Services
             return _actorMap.FindActor(userId);
         }
 
-        public async Task<string> ResolveApiKey(string key)
-        {
-            if (key.IsEmpty())
-                return null;
+        // public async Task<string> ResolveApiKey(string key)
+        // {
+        //     if (key.IsEmpty())
+        //         return null;
 
-            var entity = await Store.ResolveApiKey(key.ToSha256());
-            return entity?.Id;
-        }
+        //     var entity = await Store.ResolveApiKey(key.ToSha256());
+        //     return entity?.Id;
+        // }
 
         internal async Task<ConsoleActor> SetConsoleActor(ConsoleRequest model, string id, string name)
         {

@@ -10,6 +10,7 @@ namespace Gameboard.Api
     public class AppSettings
     {
         public string PathBase { get; set; }
+        public ApiKeyOptions ApiKey { get; set; } = new ApiKeyOptions();
         public OidcOptions Oidc { get; set; } = new OidcOptions();
         public CacheOptions Cache { get; set; } = new CacheOptions();
         public CoreOptions Core { get; set; } = new CoreOptions();
@@ -17,6 +18,14 @@ namespace Gameboard.Api
         public HeaderOptions Headers { get; set; } = new HeaderOptions();
         public OpenApiOptions OpenApi { get; set; } = new OpenApiOptions();
         public Defaults Defaults { get; set; } = new Defaults();
+    }
+
+    public class ApiKeyOptions
+    {
+        public int BytesOfRandomness { get; set; } = 32;
+        public bool IsEnabled { get; set; } = false;
+        public string KeyPrefix { get; set; } = "GB";
+        public int RandomCharactersLength { get; set; } = 36;
     }
 
     public class OidcOptions

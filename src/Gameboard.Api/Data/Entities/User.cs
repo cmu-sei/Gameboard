@@ -15,10 +15,11 @@ namespace Gameboard.Api.Data
         public string ApprovedName { get; set; }
         public string Sponsor { get; set; }
         public UserRole Role { get; set; }
-        public ICollection<Player> Enrollments { get; set; } = new List<Player>();
+        public string ApiKeyOwnerId { get; set; }
 
-        // Control delete behavior with relationships
+        // relational properties
+        public ICollection<ApiKey> ApiKeys { get; set; } = new List<ApiKey>();
+        public ICollection<Player> Enrollments { get; set; } = new List<Player>();
         public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
     }
-
 }

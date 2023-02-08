@@ -188,6 +188,11 @@ public class UserService
         return await Mapper.ProjectTo<UserSummary>(q).ToArrayAsync();
     }
 
+    public Task<User> GetApiKeyOwner(string apiKey)
+    {
+        throw new NotImplementedException();
+    }
+
     internal string ResolveRandomName(IUserStore store, INameService nameSvc, User entity)
     {
         var randomName = nameSvc.GetRandomName();

@@ -7,13 +7,14 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ServiceStack.Text;
 
 namespace Gameboard.Api.Extensions;
 
 internal static class WebApplicationBuilderExtensions
 {
-    public static AppSettings BuildAppSettings(this WebApplicationBuilder builder)
+    public static AppSettings BuildAppSettings(this WebApplicationBuilder builder, ILogger logger)
     {
         var settings = builder.Configuration.Get<AppSettings>() ?? new AppSettings();
 
@@ -95,7 +96,7 @@ internal static class WebApplicationBuilderExtensions
         );
 
         // Configure Auth
-        services.AddConfiguredAuthentication(settings.Oidc);
+        services.AddConfiguredAuthentication(settings.Oidc, settings.ApiKey);
         services.AddConfiguredAuthorization();
     }
 }
