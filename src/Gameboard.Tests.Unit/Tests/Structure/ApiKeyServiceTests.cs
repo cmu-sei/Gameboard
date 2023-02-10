@@ -7,10 +7,11 @@ namespace Gameboard.Tests.Unit;
 
 public class ApiKeyServiceTests
 {
-    private ApiKeyService GetSut(AppSettings settings, IRandomService? random = null) => new ApiKeyService
+    private ApiKeyService GetSut(ApiKeyOptions options, IRandomService? random = null) => new ApiKeyService
         (
-            settings,
-            A.Fake<IPasswordHasher<Api.Data.User>>(),
+            options,
+            A.Fake<INowService>(),
+            A.Fake<IHashService>(),
             random ?? A.Fake<IRandomService>(),
             A.Fake<IApiKeyStore>()
         );
@@ -19,7 +20,7 @@ public class ApiKeyServiceTests
     public void GeneratePlainKey_WithPrefixSetting_RespectsPrefix(string prefix)
     {
         // arrange
-        var sut = GetSut(new AppSettings { ApiKey = new ApiKeyOptions { KeyPrefix = prefix } });
+        var sut = GetSut(new ApiKeyOptions { KeyPrefix = prefix });
 
         // act
         var result = sut.GeneratePlainKey();
@@ -32,19 +33,16 @@ public class ApiKeyServiceTests
     public void GeneratePlainKey_WithPrefixAndRandomnessLength_GeneratesExpectedLength(int prefixLength, int randomnessLength, string randomness, IFixture fixture)
     {
         // arrange
-        var appSettings = new AppSettings
+        var options = new ApiKeyOptions
         {
-            ApiKey = new ApiKeyOptions
-            {
-                KeyPrefix = fixture.Create<string>().Substring(0, prefixLength),
-                RandomCharactersLength = randomnessLength
-            }
+            KeyPrefix = fixture.Create<string>().Substring(0, prefixLength),
+            RandomCharactersLength = randomnessLength
         };
 
         var random = A.Fake<IRandomService>();
         A.CallTo(() => random.GetString(A<int>.Ignored, A<int>.Ignored)).Returns(randomness);
 
-        var sut = GetSut(appSettings, random: random);
+        var sut = GetSut(options, random: random);
 
         // act
         var result = sut.GeneratePlainKey();
@@ -57,19 +55,16 @@ public class ApiKeyServiceTests
     public void GeneratePlainKey_WithFixedValues_GeneratesExpectedKey(string prefix, string randomness)
     {
         // arrange
-        var appSettings = new AppSettings
+        var apiOptions = new ApiKeyOptions
         {
-            ApiKey = new ApiKeyOptions
-            {
-                KeyPrefix = prefix,
-                RandomCharactersLength = 10
-            }
+            KeyPrefix = prefix,
+            RandomCharactersLength = 10
         };
 
         var random = A.Fake<IRandomService>();
         A.CallTo(() => random.GetString(A<int>.Ignored, A<int>.Ignored)).Returns(randomness);
 
-        var sut = GetSut(appSettings, random: random);
+        var sut = GetSut(apiOptions, random: random);
 
         // act
         var result = sut.GeneratePlainKey();

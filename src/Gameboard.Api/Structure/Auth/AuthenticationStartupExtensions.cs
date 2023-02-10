@@ -56,12 +56,12 @@ namespace Microsoft.Extensions.DependencyInjection
                         return System.Threading.Tasks.Task.CompletedTask;
                     };
                 })
-                .AddApiKeyAuthentication(ApiKeyAuthentication.AuthenticationScheme, opt => new ApiKeyAuthenticationOptions
+                .AddApiKeyAuthentication(ApiKeyAuthentication.AuthenticationScheme, opt =>
                 {
-                    BytesOfRandomness = apiKeyOptions.BytesOfRandomness,
-                    KeyPrefix = apiKeyOptions.KeyPrefix,
-                    IsEnabled = apiKeyOptions.IsEnabled,
-                    RandomCharactersLength = apiKeyOptions.RandomCharactersLength
+                    opt.BytesOfRandomness = apiKeyOptions.BytesOfRandomness;
+                    opt.KeyPrefix = apiKeyOptions.KeyPrefix;
+                    opt.IsEnabled = apiKeyOptions.IsEnabled;
+                    opt.RandomCharactersLength = apiKeyOptions.RandomCharactersLength;
                 })
                 .AddTicketAuthentication(TicketAuthentication.AuthenticationScheme, opt => new TicketAuthenticationOptions())
             ;

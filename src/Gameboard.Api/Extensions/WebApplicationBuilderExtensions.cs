@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
@@ -79,10 +78,8 @@ internal static class WebApplicationBuilderExtensions
         services.AddSignalRHub();
 
         services
-            .AddSingleton<CoreOptions>(_ => settings.Core)
-            .AddSingleton<INameService, NameService>()
             .AddGameboardData(settings.Database.Provider, settings.Database.ConnectionString)
-            .AddGameboardServices()
+            .AddGameboardServices(settings)
             .AddConfiguredHttpClients(settings.Core)
             .AddHostedService<JobService>()
             .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath)

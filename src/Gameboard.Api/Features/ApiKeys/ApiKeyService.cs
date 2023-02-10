@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Gameboard.Api.Data;
 using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Identity;
 
@@ -15,20 +16,23 @@ public interface IApiKeyService
 
 internal class ApiKeyService : IApiKeyService
 {
-    private readonly IPasswordHasher<Data.User> _hasher;
+    private readonly INowService _now;
+    private readonly IHashService _hasher;
     private readonly IRandomService _rng;
     private readonly IApiKeyStore _store;
-    private readonly AppSettings _settings;
+    private readonly ApiKeyOptions _options;
 
     public ApiKeyService(
-        AppSettings settings,
-        IPasswordHasher<Data.User> hasher,
+        ApiKeyOptions options,
+        INowService now,
+        IHashService hasher,
         IRandomService rng,
         IApiKeyStore store)
     {
         _hasher = hasher;
+        _now = now;
         _rng = rng;
-        _settings = settings;
+        _options = options;
         _store = store;
     }
 
@@ -42,10 +46,12 @@ internal class ApiKeyService : IApiKeyService
         var plainKey = splits[1];
 
         var user = await _store.GetUserWithApiKeys(ownerId);
-        return user != null && user.ApiKeys.Any(k => k.Key == _hasher.HashPassword(user, plainKey)) ? user : null;
+        var hashedKey = _hasher.Hash(plainKey);
+
+        return user.ApiKeys.Any(k => IsValidKey(hashedKey, k)) ? user : null;
     }
 
-    public bool IsEnabled() => _settings.ApiKey.IsEnabled;
+    public bool IsEnabled() => _options.IsEnabled;
 
     public ApiKeyHash GenerateKey(Data.User user)
     {
@@ -54,15 +60,22 @@ internal class ApiKeyService : IApiKeyService
         return new ApiKeyHash
         {
             UserApiKey = plainKey,
-            HashedApiKey = _hasher.HashPassword(user, plainKey)
+            HashedApiKey = _hasher.Hash(plainKey)
         };
     }
 
     internal string GeneratePlainKey()
     {
-        var keyRandomness = _rng.GetString(generatedBytes: _settings.ApiKey.BytesOfRandomness);
-        var keyRaw = $"{_settings.ApiKey.KeyPrefix}{keyRandomness}";
+        var keyRandomness = _rng.GetString(generatedBytes: _options.BytesOfRandomness);
+        var keyRaw = $"{_options.KeyPrefix}{keyRandomness}";
 
-        return keyRaw.Substring(0, Math.Min(keyRaw.Length, _settings.ApiKey.KeyPrefix.Length + _settings.ApiKey.RandomCharactersLength));
+        return keyRaw.Substring(0, Math.Min(keyRaw.Length, _options.KeyPrefix.Length + _options.RandomCharactersLength));
     }
+
+    internal bool IsValidKey(string hashedKey, Data.ApiKey candidate)
+        => hashedKey == candidate.Key &&
+        (
+            candidate.ExpiresOn == null ||
+            DateTimeOffset.Compare(candidate.ExpiresOn.Value, _now.Now()) == 1
+        );
 }

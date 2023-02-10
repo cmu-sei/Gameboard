@@ -18,10 +18,44 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "6.0.0")
+                .HasAnnotation("ProductVersion", "7.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("Gameboard.Api.Data.ApiKey", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTimeOffset?>("ExpiresOn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("NULL");
+
+                    b.Property<DateTimeOffset>("GeneratedOn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Key")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("OwnerId")
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("ApiKeys");
+                });
 
             modelBuilder.Entity("Gameboard.Api.Data.ArchivedChallenge", b =>
                 {
@@ -706,6 +740,12 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<string>("ApiKeyOwnerId")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasDefaultValueSql("REPLACE(gen_random_uuid()::text, '-', '')");
+
                     b.Property<string>("ApprovedName")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
@@ -736,6 +776,16 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.HasKey("Id");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.ApiKey", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.User", "Owner")
+                        .WithMany("ApiKeys")
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Owner");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
@@ -939,6 +989,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.User", b =>
                 {
+                    b.Navigation("ApiKeys");
+
                     b.Navigation("Enrollments");
 
                     b.Navigation("Feedback");

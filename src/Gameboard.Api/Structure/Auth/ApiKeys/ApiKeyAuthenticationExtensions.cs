@@ -13,13 +13,9 @@ public static class ApiKeyAuthenticationExtensions
         this AuthenticationBuilder builder,
         string scheme,
         Action<ApiKeyAuthenticationOptions> options
-    )
-    {
-        builder.AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
+    ) => builder.AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>
+        (
             scheme ?? ApiKeyAuthentication.AuthenticationScheme,
             options
         );
-
-        return builder;
-    }
 }

@@ -25,6 +25,9 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.NameStatus).HasMaxLength(40);
                 b.Property(u => u.Email).HasMaxLength(64);
                 b.Property(u => u.Sponsor).HasMaxLength(40);
+
+                // NOTE: Must be edited manually in the MSSQL migration to 
+                // compatible syntax
                 b.Property(u => u.ApiKeyOwnerId)
                     .HasMaxLength(40)
                     .HasDefaultValueSql("REPLACE(gen_random_uuid()::text, '-', '')")
@@ -41,11 +44,13 @@ namespace Gameboard.Api.Data
                     .HasDefaultValueSql("NULL")
                     .ValueGeneratedOnAdd();
 
+                // NOTE: Must be edited manually in the MSSQL migration to 
+                // compatible syntax
                 k.Property(k => k.GeneratedOn)
                     .HasDefaultValueSql("NOW()")
                     .ValueGeneratedOnAdd();
 
-                k.HasOne(k => k.ApiKeyOwner)
+                k.HasOne(k => k.Owner)
                     .WithMany(u => u.ApiKeys)
                     .OnDelete(DeleteBehavior.Cascade);
             });
