@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -137,14 +138,14 @@ namespace Gameboard.Api.Controllers
         /// <returns>User[]</returns>
         [HttpGet("/api/users")]
         [Authorize]
-        public async Task<User[]> List([FromQuery] UserSearch model)
+        public async Task<IEnumerable<UserOnly>> List([FromQuery] UserSearch model)
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
                 () => Actor.IsObserver
             );
 
-            return await UserService.List(model);
+            return await UserService.List<UserOnly>(model);
         }
 
         /// <summary>
@@ -154,7 +155,7 @@ namespace Gameboard.Api.Controllers
         /// <returns>User[]</returns>
         [HttpGet("/api/users/support")]
         [Authorize]
-        public async Task<UserSummary[]> ListSupport([FromQuery] SearchFilter model)
+        public async Task<UserSimple[]> ListSupport([FromQuery] SearchFilter model)
         {
             AuthorizeAny(
                 () => Actor.IsObserver,
