@@ -1,7 +1,7 @@
+using AutoMapper;
 using Gameboard.Api;
 using Gameboard.Api.Features.ApiKeys;
 using Gameboard.Api.Services;
-using Microsoft.AspNetCore.Identity;
 
 namespace Gameboard.Tests.Unit;
 
@@ -10,6 +10,8 @@ public class ApiKeyServiceTests
     private ApiKeyService GetSut(ApiKeyOptions options, IRandomService? random = null) => new ApiKeyService
         (
             options,
+            A.Fake<IGuidService>(),
+            A.Fake<IMapper>(),
             A.Fake<INowService>(),
             A.Fake<IHashService>(),
             random ?? A.Fake<IRandomService>(),

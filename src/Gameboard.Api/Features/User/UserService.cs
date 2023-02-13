@@ -130,9 +130,7 @@ public class UserService
     public async Task Delete(string id)
     {
         await Store.Delete(id);
-
         _localcache.Remove(id);
-
     }
 
     public async Task<User[]> List(UserSearch model)
@@ -186,11 +184,6 @@ public class UserService
         }
 
         return await Mapper.ProjectTo<UserSummary>(q).ToArrayAsync();
-    }
-
-    public Task<User> GetApiKeyOwner(string apiKey)
-    {
-        throw new NotImplementedException();
     }
 
     internal string ResolveRandomName(IUserStore store, INameService nameSvc, User entity)

@@ -5,6 +5,7 @@ namespace Gameboard.Api.Features.ApiKeys;
 
 public class NewApiKey
 {
+    public string UserId { get; set; }
     public string Name { get; set; }
     public DateTimeOffset? ExpiryDate { get; set; }
 }
@@ -13,7 +14,7 @@ public class ApiKeyHash
 {
     public string UserApiKey { get; set; }
 
-    // ↓ this is just to ensure we never send this down to the web client
+    // ↓ this is just to ensure we never send this down to a client application
     [JsonIgnore]
     public string HashedApiKey { get; set; }
 }
@@ -25,11 +26,5 @@ public class CreateApiKeyResult
     public DateTimeOffset GeneratedOn { get; set; }
     public DateTimeOffset ExpiresOn { get; set; }
     public string UnhashedKey { get; set; }
-    public string UserId { get; set; }
-}
-
-public class ParsedApiKey
-{
     public string OwnerId { get; set; }
-    public string HashedKey { get; set; }
 }

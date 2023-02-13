@@ -70,6 +70,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 // global-style services
                 .AddSingleton<CoreOptions>(_ => settings.Core)
                 .AddSingleton<ApiKeyOptions>(_ => settings.ApiKey)
+                .AddTransient<IGuidService, GuidService>()
                 .AddTransient<IHashService, HashService>()
                 .AddTransient<INowService, NowService>()
                 .AddTransient<IRandomService, RandomService>()

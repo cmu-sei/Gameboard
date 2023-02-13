@@ -1,21 +1,23 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Services;
-using Microsoft.AspNetCore.Identity;
 
 namespace Gameboard.Api.Features.ApiKeys;
 
 public interface IApiKeyService
 {
     Task<Data.User> Authenticate(string headerValue);
+    Task<CreateApiKeyResult> CreateKey(NewApiKey newApiKey);
     bool IsEnabled();
-    ApiKeyHash GenerateKey(Data.User user);
 }
 
 internal class ApiKeyService : IApiKeyService
 {
+    private readonly IGuidService _guids;
+    private readonly IMapper _mapper;
     private readonly INowService _now;
     private readonly IHashService _hasher;
     private readonly IRandomService _rng;
@@ -24,12 +26,16 @@ internal class ApiKeyService : IApiKeyService
 
     public ApiKeyService(
         ApiKeyOptions options,
+        IGuidService guids,
+        IMapper mapper,
         INowService now,
         IHashService hasher,
         IRandomService rng,
         IApiKeyStore store)
     {
+        _guids = guids;
         _hasher = hasher;
+        _mapper = mapper;
         _now = now;
         _rng = rng;
         _options = options;
@@ -53,7 +59,29 @@ internal class ApiKeyService : IApiKeyService
 
     public bool IsEnabled() => _options.IsEnabled;
 
-    public ApiKeyHash GenerateKey(Data.User user)
+    public async Task<CreateApiKeyResult> CreateKey(NewApiKey newApiKey)
+    {
+        var generatedKey = GenerateKey();
+
+        var entity = new ApiKey
+        {
+            Id = _guids.GetGuid(),
+            Name = newApiKey.Name,
+            GeneratedOn = _now.Now(),
+            ExpiresOn = newApiKey.ExpiryDate,
+            Key = generatedKey.HashedApiKey,
+            OwnerId = newApiKey.UserId
+        };
+
+        await _store.Create(entity);
+
+        var result = _mapper.Map<CreateApiKeyResult>(entity);
+        result.UnhashedKey = generatedKey.UserApiKey;
+
+        return result;
+    }
+
+    internal ApiKeyHash GenerateKey()
     {
         var plainKey = GeneratePlainKey();
 

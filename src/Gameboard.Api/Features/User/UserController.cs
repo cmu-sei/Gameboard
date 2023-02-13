@@ -1,28 +1,30 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-
-using Gameboard.Api.Services;
-using Microsoft.AspNetCore.Authorization;
 using System;
-using Microsoft.Extensions.Caching.Distributed;
-using Gameboard.Api.Validators;
-using Microsoft.AspNetCore.Authentication;
-using System.Security.Claims;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using Gameboard.Api.Hubs;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 using Gameboard.Api.Auth;
+using Gameboard.Api.Hubs;
+using Gameboard.Api.Services;
+using Gameboard.Api.Validators;
+using Gameboard.Api.Features.ApiKeys;
 
 namespace Gameboard.Api.Controllers
 {
     [Authorize]
     public class UserController : _Controller
     {
+        private readonly IApiKeyService _apiKeyService;
+
         UserService UserService { get; }
         CoreOptions Options { get; }
         IHubContext<AppHub, IAppHubEvent> Hub { get; }
@@ -31,11 +33,13 @@ namespace Gameboard.Api.Controllers
             ILogger<UserController> logger,
             IDistributedCache cache,
             UserValidator validator,
+            IApiKeyService apiKeyService,
             UserService userService,
             CoreOptions options,
             IHubContext<AppHub, IAppHubEvent> hub
         ) : base(logger, cache, validator)
         {
+            _apiKeyService = apiKeyService;
             UserService = userService;
             Options = options;
             Hub = hub;
@@ -231,6 +235,21 @@ namespace Gameboard.Api.Controllers
             ;
 
             await audience.Announcement(new HubEvent<Announcement>(model, EventAction.Created));
+        }
+
+        [HttpPost("api/users/api-key")]
+        [Authorize]
+        public async Task<CreateApiKeyResult> CreateApiKey([FromBody] NewApiKey newApiKey)
+        {
+            AuthorizeAny
+            (
+                () => Actor.IsAdmin,
+                () => Actor.IsRegistrar
+            );
+
+            await Validate(newApiKey);
+
+            return await _apiKeyService.CreateKey(newApiKey);
         }
     }
 }

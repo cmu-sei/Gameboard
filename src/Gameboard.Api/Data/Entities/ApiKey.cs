@@ -12,5 +12,5 @@ public class ApiKey : IEntity
 
     // relational properties
     public required string OwnerId { get; set; }
-    public required User Owner { get; set; }
+    public User Owner { get; set; }
 }
