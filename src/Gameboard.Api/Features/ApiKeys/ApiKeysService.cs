@@ -1,37 +1,44 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
+using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.ApiKeys;
 
-public interface IApiKeyService
+public interface IApiKeysService
 {
     Task<Data.User> Authenticate(string headerValue);
-    Task<CreateApiKeyResult> CreateKey(NewApiKey newApiKey);
+    Task<CreateApiKeyResult> Create(NewApiKey newApiKey);
+    Task Delete(string apiKeyId);
+    Task<IEnumerable<ApiKeyViewModel>> ListKeys(string userId);
     bool IsEnabled();
 }
 
-internal class ApiKeyService : IApiKeyService
+internal class ApiKeysService : IApiKeysService
 {
     private readonly IGuidService _guids;
     private readonly IMapper _mapper;
     private readonly INowService _now;
     private readonly IHashService _hasher;
     private readonly IRandomService _rng;
-    private readonly IApiKeyStore _store;
+    private readonly IApiKeysStore _store;
     private readonly ApiKeyOptions _options;
+    private readonly IUserStore _userStore;
 
-    public ApiKeyService(
+    public ApiKeysService(
         ApiKeyOptions options,
         IGuidService guids,
         IMapper mapper,
         INowService now,
         IHashService hasher,
         IRandomService rng,
-        IApiKeyStore store)
+        IApiKeysStore store,
+        IUserStore userStore)
     {
         _guids = guids;
         _hasher = hasher;
@@ -40,6 +47,7 @@ internal class ApiKeyService : IApiKeyService
         _rng = rng;
         _options = options;
         _store = store;
+        _userStore = userStore;
     }
 
     public async Task<Data.User> Authenticate(string headerValue)
@@ -51,24 +59,31 @@ internal class ApiKeyService : IApiKeyService
         var ownerId = splits[0];
         var plainKey = splits[1];
 
-        var user = await _store.GetUserWithApiKeys(ownerId);
         var hashedKey = _hasher.Hash(plainKey);
+        var user = await _store.GetUserWithApiKeys(ownerId);
+
+        if (user == null)
+            return null;
 
         return user.ApiKeys.Any(k => IsValidKey(hashedKey, k)) ? user : null;
     }
 
     public bool IsEnabled() => _options.IsEnabled;
 
-    public async Task<CreateApiKeyResult> CreateKey(NewApiKey newApiKey)
+    public async Task<CreateApiKeyResult> Create(NewApiKey newApiKey)
     {
-        var generatedKey = GenerateKey();
+        var user = await _userStore.Retrieve(newApiKey.UserId);
+        if (user == null)
+            throw new ResourceNotFound<User>(newApiKey.UserId);
+
+        var generatedKey = GenerateKey(user.ApiKeyOwnerId);
 
         var entity = new ApiKey
         {
             Id = _guids.GetGuid(),
             Name = newApiKey.Name,
             GeneratedOn = _now.Now(),
-            ExpiresOn = newApiKey.ExpiryDate,
+            ExpiresOn = newApiKey.ExpiresOn,
             Key = generatedKey.HashedApiKey,
             OwnerId = newApiKey.UserId
         };
@@ -76,28 +91,36 @@ internal class ApiKeyService : IApiKeyService
         await _store.Create(entity);
 
         var result = _mapper.Map<CreateApiKeyResult>(entity);
-        result.UnhashedKey = generatedKey.UserApiKey;
+        result.PlainKey = generatedKey.UserApiKey;
 
         return result;
     }
 
-    internal ApiKeyHash GenerateKey()
+    public async Task Delete(string apiKeyId)
+        => await _store.Delete(apiKeyId);
+
+    public async Task<IEnumerable<ApiKeyViewModel>> ListKeys(string userId)
+    {
+        return await _mapper
+            .ProjectTo<ApiKeyViewModel>(_store.List(userId))
+            .ToArrayAsync();
+    }
+
+    internal ApiKeyHash GenerateKey(string keyOwnerUserId)
     {
         var plainKey = GeneratePlainKey();
 
         return new ApiKeyHash
         {
-            UserApiKey = plainKey,
+            UserApiKey = $"{keyOwnerUserId}.{plainKey}",
             HashedApiKey = _hasher.Hash(plainKey)
         };
     }
 
     internal string GeneratePlainKey()
     {
-        var keyRandomness = _rng.GetString(generatedBytes: _options.BytesOfRandomness);
-        var keyRaw = $"{_options.KeyPrefix}{keyRandomness}";
-
-        return keyRaw.Substring(0, Math.Min(keyRaw.Length, _options.KeyPrefix.Length + _options.RandomCharactersLength));
+        var keyRaw = _rng.GetString(_options.RandomCharactersLength, generatedBytes: _options.BytesOfRandomness);
+        return keyRaw.Substring(0, Math.Min(keyRaw.Length, _options.RandomCharactersLength));
     }
 
     internal bool IsValidKey(string hashedKey, Data.ApiKey candidate)

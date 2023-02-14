@@ -53,18 +53,6 @@ namespace Gameboard.Api.Validators
             await Task.CompletedTask;
         }
 
-        private async Task _validate(NewApiKey model)
-        {
-            if (string.IsNullOrWhiteSpace(model.Name))
-                throw new ApiKeyNoName();
-
-            if (model.ExpiryDate.HasValue && model.ExpiryDate < _now.Now())
-                throw new IllegalApiKeyExpirationDate(model.ExpiryDate.GetValueOrDefault(), _now.Now());
-
-            if ((await Exists(model.UserId)).Equals(false))
-                throw new ResourceNotFound<User>(model.UserId);
-        }
-
         private async Task _validate(NewUser model)
         {
             await Task.CompletedTask;

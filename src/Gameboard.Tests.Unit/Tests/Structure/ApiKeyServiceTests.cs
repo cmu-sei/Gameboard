@@ -1,5 +1,6 @@
 using AutoMapper;
 using Gameboard.Api;
+using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.ApiKeys;
 using Gameboard.Api.Services;
 
@@ -7,7 +8,7 @@ namespace Gameboard.Tests.Unit;
 
 public class ApiKeyServiceTests
 {
-    private ApiKeyService GetSut(ApiKeyOptions options, IRandomService? random = null) => new ApiKeyService
+    private ApiKeysService GetSut(ApiKeyOptions options, IRandomService? random = null) => new ApiKeysService
         (
             options,
             A.Fake<IGuidService>(),
@@ -15,29 +16,16 @@ public class ApiKeyServiceTests
             A.Fake<INowService>(),
             A.Fake<IHashService>(),
             random ?? A.Fake<IRandomService>(),
-            A.Fake<IApiKeyStore>()
+            A.Fake<IApiKeysStore>(),
+            A.Fake<IUserStore>()
         );
 
-    [Theory, GameboardAutoData]
-    public void GeneratePlainKey_WithPrefixSetting_RespectsPrefix(string prefix)
-    {
-        // arrange
-        var sut = GetSut(new ApiKeyOptions { KeyPrefix = prefix });
-
-        // act
-        var result = sut.GeneratePlainKey();
-
-        // assert
-        result.ShouldStartWith(prefix);
-    }
-
     [Theory, InlineAutoData(3, 15)]
-    public void GeneratePlainKey_WithPrefixAndRandomnessLength_GeneratesExpectedLength(int prefixLength, int randomnessLength, string randomness, IFixture fixture)
+    public void GeneratePlainKey_WithPrefixAndRandomnessLength_GeneratesExpectedLength(int randomnessLength, string randomness, IFixture fixture)
     {
         // arrange
         var options = new ApiKeyOptions
         {
-            KeyPrefix = fixture.Create<string>().Substring(0, prefixLength),
             RandomCharactersLength = randomnessLength
         };
 
@@ -50,16 +38,15 @@ public class ApiKeyServiceTests
         var result = sut.GeneratePlainKey();
 
         // assert
-        result?.Length.ShouldBe(prefixLength + randomnessLength);
+        result?.Length.ShouldBe(randomnessLength);
     }
 
-    [Theory, InlineData("GB", "1234567890")]
-    public void GeneratePlainKey_WithFixedValues_GeneratesExpectedKey(string prefix, string randomness)
+    [Theory, InlineData("1234567890")]
+    public void GeneratePlainKey_WithFixedValues_GeneratesExpectedKey(string randomness)
     {
         // arrange
         var apiOptions = new ApiKeyOptions
         {
-            KeyPrefix = prefix,
             RandomCharactersLength = 10
         };
 

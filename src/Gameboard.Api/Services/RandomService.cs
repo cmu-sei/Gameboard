@@ -5,12 +5,12 @@ namespace Gameboard.Api.Services;
 
 public interface IRandomService
 {
-    string GetString(int length = 16, int generatedBytes = 32);
+    string GetString(int length, int generatedBytes = 32);
 }
 
 public class RandomService : IRandomService
 {
-    public string GetString(int length = 16, int generatedBytes = 32)
+    public string GetString(int length, int generatedBytes = 32)
     {
         if (length == 0)
         {

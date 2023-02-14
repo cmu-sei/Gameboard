@@ -76,8 +76,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddTransient<IRandomService, RandomService>()
                 .AddTransient<IGuidService, GuidService>()
                 // feature services
-                .AddScoped<IApiKeyService, ApiKeyService>()
-                .AddScoped<IApiKeyStore, ApiKeyStore>()
+                .AddScoped<IApiKeysService, ApiKeysService>()
+                .AddScoped<IApiKeysStore, ApiKeysStore>()
                 .AddScoped<IChallengeStore, ChallengeStore>()
                 .AddScoped<ICubespaceScoreboardService, CubespaceScoreboardService>()
                 .AddScoped<IGamebrainService, GamebrainService>()

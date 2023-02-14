@@ -7,7 +7,7 @@ public class NewApiKey
 {
     public string UserId { get; set; }
     public string Name { get; set; }
-    public DateTimeOffset? ExpiryDate { get; set; }
+    public DateTimeOffset? ExpiresOn { get; set; }
 }
 
 public class ApiKeyHash
@@ -19,12 +19,26 @@ public class ApiKeyHash
     public string HashedApiKey { get; set; }
 }
 
-public class CreateApiKeyResult
+public class ApiKeyViewModel
 {
     public string Id { get; set; }
     public string Name { get; set; }
     public DateTimeOffset GeneratedOn { get; set; }
     public DateTimeOffset ExpiresOn { get; set; }
-    public string UnhashedKey { get; set; }
     public string OwnerId { get; set; }
+}
+
+public class CreateApiKeyResult : ApiKeyViewModel
+{
+    public string PlainKey { get; set; }
+}
+
+public class DeleteApiKeyRequest
+{
+    public string ApiKeyId { get; set; }
+}
+
+public class ListApiKeysRequest
+{
+    public string UserId { get; set; }
 }

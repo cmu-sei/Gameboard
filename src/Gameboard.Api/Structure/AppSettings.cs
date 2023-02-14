@@ -24,7 +24,6 @@ namespace Gameboard.Api
     {
         public int BytesOfRandomness { get; set; } = 32;
         public bool IsEnabled { get; set; } = false;
-        public string KeyPrefix { get; set; } = "GB";
         public int RandomCharactersLength { get; set; } = 36;
     }
 

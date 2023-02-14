@@ -20,7 +20,7 @@ public class ApiKeyAuthenticationHandlerTests
             A.Fake<ILoggerFactory>(),
             A.Fake<UrlEncoder>(),
             A.Fake<ISystemClock>(),
-            A.Fake<IApiKeyService>()
+            A.Fake<IApiKeysService>()
     );
 
     [Theory, GameboardAutoData]

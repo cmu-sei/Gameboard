@@ -25,14 +25,14 @@ public static class ApiKeyAuthentication
 
 public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthenticationOptions>
 {
-    private readonly IApiKeyService _apiKeyService;
+    private readonly IApiKeysService _apiKeyService;
 
     public ApiKeyAuthenticationHandler(
         IOptionsMonitor<ApiKeyAuthenticationOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
         ISystemClock clock,
-        IApiKeyService apiKeyService
+        IApiKeysService apiKeyService
     ) : base(options, logger, encoder, clock)
     {
         _apiKeyService = apiKeyService;

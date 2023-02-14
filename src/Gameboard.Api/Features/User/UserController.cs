@@ -24,8 +24,6 @@ namespace Gameboard.Api.Controllers
     [Authorize]
     public class UserController : _Controller
     {
-        private readonly IApiKeyService _apiKeyService;
-
         UserService UserService { get; }
         CoreOptions Options { get; }
         IHubContext<AppHub, IAppHubEvent> Hub { get; }
@@ -34,13 +32,11 @@ namespace Gameboard.Api.Controllers
             ILogger<UserController> logger,
             IDistributedCache cache,
             UserValidator validator,
-            IApiKeyService apiKeyService,
             UserService userService,
             CoreOptions options,
             IHubContext<AppHub, IAppHubEvent> hub
         ) : base(logger, cache, validator)
         {
-            _apiKeyService = apiKeyService;
             UserService = userService;
             Options = options;
             Hub = hub;
@@ -236,21 +232,6 @@ namespace Gameboard.Api.Controllers
             ;
 
             await audience.Announcement(new HubEvent<Announcement>(model, EventAction.Created));
-        }
-
-        [HttpPost("api/users/api-key")]
-        [Authorize]
-        public async Task<CreateApiKeyResult> CreateApiKey([FromBody] NewApiKey newApiKey)
-        {
-            AuthorizeAny
-            (
-                () => Actor.IsAdmin,
-                () => Actor.IsRegistrar
-            );
-
-            await Validate(newApiKey);
-
-            return await _apiKeyService.CreateKey(newApiKey);
         }
     }
 }
