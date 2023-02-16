@@ -45,6 +45,7 @@ namespace Gameboard.Api.Data
         public string CardText2 { get; set; }
         public string CardText3 { get; set; }
         public string Mode { get; set; }
+        public PlayerMode PlayerMode { get; set; }
 
         public ICollection<ChallengeSpec> Specs { get; set; } = new List<ChallengeSpec>();
         public ICollection<Player> Players { get; set; } = new List<Player>();
@@ -68,7 +69,8 @@ namespace Gameboard.Api.Data
             RegistrationOpen.CompareTo(DateTimeOffset.UtcNow) < 0 &&
             RegistrationClose.CompareTo(DateTimeOffset.UtcNow) > 0
         ;
-
+        [NotMapped] public bool IsPracticeMode => PlayerMode == PlayerMode.Practice;
+        [NotMapped] public bool IsCompetitionMode => PlayerMode == PlayerMode.Competition;
     }
 
 }

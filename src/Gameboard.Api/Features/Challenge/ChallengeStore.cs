@@ -113,7 +113,7 @@ namespace Gameboard.Api.Data
         public async Task UpdateRanks(string gameId)
         {
             var players = await DbContext.Players
-                .Where(p => p.GameId == gameId)
+                .Where(p => p.GameId == gameId && p.Mode == PlayerMode.Competition)
                 .OrderByDescending(p => p.Score)
                 .ThenBy(p => p.Time)
                 .ThenByDescending(p => p.CorrectCount)

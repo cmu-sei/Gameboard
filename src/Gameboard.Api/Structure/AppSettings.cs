@@ -144,6 +144,9 @@ namespace Gameboard.Api
         public string SafeNamesFile { get; set; } = "names.json";
         public string KeyPrefix { get; set; } = "GB";
         public string GamebrainApiKey { get; set; }
+        public int MaxPracticeSessions { get; set; } = 0;
+        public int PracticeSessionMinutes { get; set; } = 60;
+        public int MaxPracticeSessionMinutes { get; set; } = 0;
     }
 
     public class Defaults

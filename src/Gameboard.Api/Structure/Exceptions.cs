@@ -78,6 +78,7 @@ namespace Gameboard.Api
     public class EntityNotFound : Exception { }
     public class GameNotActive : Exception { }
     public class SessionLimitReached : Exception { }
+    public class SessionNotAdjustable : Exception { }
     public class InvalidTeamSize : Exception { }
     public class InvalidConsoleAction : Exception { }
     public class AlreadyExists : Exception { }
@@ -88,4 +89,5 @@ namespace Gameboard.Api
     public class InvalideFeedbackFormat : Exception { }
     public class MissingRequiredField : Exception { }
     public class PlayerIsntOnTeam : Exception { }
+    public class InvalidPlayerMode : Exception { }
 }

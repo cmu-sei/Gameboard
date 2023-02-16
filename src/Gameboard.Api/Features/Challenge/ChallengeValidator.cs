@@ -53,6 +53,7 @@ namespace Gameboard.Api.Validators
 
             var player = await _store.DbContext.Players.FindAsync(model.PlayerId);
 
+            // TODO: consider allowing after session for preview
             if (player.IsLive.Equals(false))
                 throw new SessionNotActive(player.Id);
 

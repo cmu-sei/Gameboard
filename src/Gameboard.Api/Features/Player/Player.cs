@@ -32,6 +32,7 @@ namespace Gameboard.Api
         public int PartialCount { get; set; }
         public bool Advanced { get; set; }
         public bool IsManager { get; set; }
+        public PlayerMode Mode { get; set; }
         public string[] SponsorList => (TeamSponsors ?? Sponsor).Split("|");
     }
 
@@ -164,6 +165,7 @@ namespace Gameboard.Api
         public string gid { get; set; }
         public string uid { get; set; }
         public string org { get; set; }
+        public string mode { get; set; }
         public bool WantsActive => Filter.Contains(FilterActiveOnly);
         public bool WantsComplete => Filter.Contains(FilterCompleteOnly);
         public bool WantsAdvanced => Filter.Contains(FilterAdvancedOnly);
@@ -179,6 +181,7 @@ namespace Gameboard.Api
         public bool WantsSortByTime => Sort == SortTime;
         public bool WantsSortByRank => Sort == SortRank || string.IsNullOrEmpty(Sort);
         public bool WantsSortByName => Sort == SortName;
+        public bool WantsMode => Enum.TryParse<PlayerMode>(mode, true, out _);
     }
 
     public class BoardPlayer

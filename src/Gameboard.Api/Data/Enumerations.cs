@@ -25,6 +25,12 @@ namespace Gameboard.Api
         Manager
     }
 
+    public enum PlayerMode
+    {
+        Competition,
+        Practice
+    }
+
     public enum GameRegistrationType
     {
         None,

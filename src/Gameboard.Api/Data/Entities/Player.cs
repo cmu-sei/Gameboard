@@ -29,10 +29,13 @@ namespace Gameboard.Api.Data
         public int CorrectCount { get; set; }
         public int PartialCount { get; set; }
         public bool Advanced { get; set; }
+        public PlayerMode Mode { get; set; }
         public User User { get; set; }
         public Game Game { get; set; }
         public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
         [NotMapped] public bool IsManager => Role == PlayerRole.Manager;
+        [NotMapped] public bool IsPractice => Mode == PlayerMode.Practice;
+        [NotMapped] public bool IsCompetition => Mode == PlayerMode.Competition;
         [NotMapped]
         public bool IsLive =>
             SessionBegin > DateTimeOffset.MinValue &&

@@ -54,7 +54,7 @@ namespace Gameboard.Api.Services
                 .FirstOrDefaultAsync()
             ;
 
-            if ((await Store.ChallengeGamespaceCount(player.TeamId)) >= game.GamespaceLimitPerSession)
+            if (await AtGamespaceLimit(game, player.TeamId))
                 throw new GamespaceLimitReached();
 
             if ((await IsUnlocked(player, game, model.SpecId)).Equals(false))
@@ -344,7 +344,7 @@ namespace Gameboard.Api.Services
 
             var game = await Store.DbContext.Games.FindAsync(entity.GameId);
 
-            if ((await Store.ChallengeGamespaceCount(entity.TeamId)) >= game.GamespaceLimitPerSession)
+            if (await AtGamespaceLimit(game, entity.TeamId))
                 throw new GamespaceLimitReached();
 
             entity.Events.Add(new Data.ChallengeEvent
@@ -540,6 +540,19 @@ namespace Gameboard.Api.Services
             if (state.Challenge is not null)
                 state.Challenge.Text = state.Challenge.Text.Replace("](/docs", $"]({Options.ChallengeDocUrl}docs");
         }
+
+        private async Task<bool> AtGamespaceLimit(Data.Game game, string teamId)
+        {
+            int gamespaceCount = await Store.ChallengeGamespaceCount(teamId);
+
+            int gamespaceLimit = game.IsCompetitionMode
+                ? game.GamespaceLimitPerSession
+                : 1
+            ;
+
+            return gamespaceCount >= gamespaceLimit;
+        }
+
     }
 
 }

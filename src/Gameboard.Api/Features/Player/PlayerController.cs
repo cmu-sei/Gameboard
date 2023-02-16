@@ -89,7 +89,7 @@ namespace Gameboard.Api.Controllers
 
             AuthorizeAny(
                 () => Actor.IsRegistrar,
-                () => PlayerService.MapId(model.Id).Result == Actor.Id
+                () => IsSelf(model.Id).Result
             );
 
             var result = await PlayerService.Update(model, Actor.IsRegistrar);
@@ -113,10 +113,11 @@ namespace Gameboard.Api.Controllers
             await Validate(model);
 
             AuthorizeAny(
-                () => Actor.IsRegistrar
+                () => Actor.IsRegistrar,
+                () => IsSelf(model.TeamId).Result
             );
 
-            var result = await PlayerService.ExtendSession(model);
+            var result = await PlayerService.AdjustSessionEnd(model);
 
             await Hub.Clients.Group(result.TeamId).TeamEvent(
                 new HubEvent<TeamState>(Mapper.Map<TeamState>(result), EventAction.Updated)
@@ -134,7 +135,7 @@ namespace Gameboard.Api.Controllers
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
-                () => PlayerService.MapId(model.Id).Result == Actor.Id
+                () => IsSelf(model.Id).Result
             );
 
             await Validate(model);

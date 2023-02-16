@@ -48,6 +48,9 @@ namespace Gameboard.Api.Services
         {
             var game = await GameStore.Retrieve(model.GameId);
 
+            if (game.IsPracticeMode)
+                return await RegisterPracticeSession(model);
+
             if (!sudo && !game.RegistrationActive)
                 throw new RegistrationIsClosed(model.GameId);
 
@@ -55,14 +58,7 @@ namespace Gameboard.Api.Services
             if (user.Enrollments.Any(p => p.GameId == model.GameId))
                 throw new AlreadyRegistered(model.UserId, model.GameId);
 
-            var entity = Mapper.Map<Data.Player>(model);
-
-            entity.TeamId = Guid.NewGuid().ToString("n");
-            entity.Role = PlayerRole.Manager;
-            entity.ApprovedName = user.ApprovedName;
-            entity.Name = user.ApprovedName;
-            entity.Sponsor = user.Sponsor;
-            entity.SessionMinutes = game.SessionMinutes;
+            var entity = await InitializePlayer(model, game.SessionMinutes);
 
             await Store.Create(entity);
 
@@ -271,15 +267,33 @@ namespace Gameboard.Api.Services
             );
         }
 
-        public async Task<Player> ExtendSession(SessionChangeRequest model)
+        public async Task<Player> AdjustSessionEnd(SessionChangeRequest model, bool sudo = false)
         {
-            var team = await Store.ListTeam(model.TeamId);
+            var team = await Store.ListTeam(model.TeamId).ToArrayAsync();
 
-            if (team.First().IsLive.Equals(false))
-                throw new SessionNotActive(team.First().Id);
+            var manager = team.FirstOrDefault(p =>
+                p.Role == PlayerRole.Manager
+            );
 
-            if (team.First().SessionEnd >= model.SessionEnd)
-                throw new InvalidExtendSessionRequest(team.First().SessionEnd, model.SessionEnd);
+            if (sudo.Equals(false) && manager.IsCompetition)
+                throw new ActionForbidden();
+
+            // auto increment for practice sessions
+            if (sudo.Equals(false) && manager.IsPractice)
+            {
+                DateTimeOffset now = DateTimeOffset.UtcNow;
+                // end session now or extend by configured amount
+                model.SessionEnd = model.SessionEnd.Year == 1
+                    ? DateTimeOffset.UtcNow
+                    : DateTimeOffset.UtcNow.AddMinutes(manager.SessionMinutes)
+                ;
+                if (CoreOptions.MaxPracticeSessionMinutes > 0)
+                {
+                    var maxTime = manager.SessionBegin.AddMinutes(CoreOptions.MaxPracticeSessionMinutes);
+                    if (model.SessionEnd > maxTime)
+                        model.SessionEnd = maxTime;
+                }
+            }
 
             foreach (var player in team)
                 player.SessionEnd = model.SessionEnd;
@@ -287,24 +301,17 @@ namespace Gameboard.Api.Services
             await Store.Update(team);
 
             // push gamespace extension
-            var challenges = await Store.DbContext.Challenges
-                .Where(c => c.TeamId == team.First().TeamId)
-                .Select(c => c.Id)
+            var changes = await Store.DbContext.Challenges
+                .Where(c => c.TeamId == manager.TeamId)
+                .Select(c => Mojo.UpdateGamespaceAsync(
+                    new ChangedGamespace { Id = c.Id, ExpirationTime = model.SessionEnd })
+                )
                 .ToArrayAsync()
             ;
 
-            foreach (string id in challenges)
-                await Mojo.UpdateGamespaceAsync(new ChangedGamespace
-                {
-                    Id = id,
-                    ExpirationTime = model.SessionEnd
-                });
+            await Task.WhenAll(changes);
 
-            return Mapper.Map<Player>(
-                team.FirstOrDefault(p =>
-                    p.Role == PlayerRole.Manager
-                )
-            );
+            return Mapper.Map<Player>(manager);
         }
 
         public async Task<Player[]> List(PlayerDataFilter model, bool sudo = false)
@@ -327,6 +334,8 @@ namespace Gameboard.Api.Services
                 .ToArray()
             ;
 
+            model.mode = PlayerMode.Competition.ToString();
+
             var q = _List(model);
 
             return await Mapper.ProjectTo<Standing>(q).ToArrayAsync();
@@ -339,6 +348,9 @@ namespace Gameboard.Api.Services
             var q = Store.List()
                 .Include(p => p.User)
                 .AsNoTracking();
+
+            if (model.WantsMode)
+                q = q.Where(p => p.Mode == Enum.Parse<PlayerMode>(model.mode, true));
 
             if (model.WantsGame)
             {
@@ -377,6 +389,8 @@ namespace Gameboard.Api.Services
 
             if (model.WantsScored)
                 q = q.Where(p => p.Score > 0);
+
+
 
             if (model.Term.NotEmpty())
             {
@@ -542,7 +556,7 @@ namespace Gameboard.Api.Services
 
         public async Task<Team> LoadTeam(string id, bool sudo)
         {
-            var players = await Store.ListTeam(id);
+            var players = await Store.ListTeam(id).ToArrayAsync();
 
             var team = Mapper.Map<Team>(
                 players.First(p => p.IsManager)
@@ -751,6 +765,70 @@ namespace Gameboard.Api.Services
                 Player = Mapper.Map<Player>(player),
                 Html = certificateHTML
             };
+        }
+
+        private async Task<Player> RegisterPracticeSession(NewPlayer model)
+        {
+            // check for existing sessions
+            var players = await Store.DbContext.Players.Where(p =>
+                p.UserId == model.UserId &&
+                p.Mode == PlayerMode.Practice &&
+                p.SessionEnd > DateTimeOffset.UtcNow
+            ).ToArrayAsync();
+
+            if (players.Any(p => p.GameId == model.GameId))
+                return Mapper.Map<Player>(players.First(p => p.GameId == model.GameId));
+
+            // find gamespaces across all practice sessions
+            var teamIds = players.Select(p => p.TeamId).ToArray();
+
+            bool hasGamespace = await Store.DbContext.Challenges.AnyAsync(c =>
+                teamIds.Contains(c.TeamId) &&
+                c.HasDeployedGamespace == true
+            );
+
+            // only 1 practice gamespace at a time
+            if (hasGamespace)
+                throw new GamespaceLimitReached();
+
+            // don't exceed global configured limit
+            if (CoreOptions.MaxPracticeSessions > 0)
+            {
+                int count = await Store.DbSet.CountAsync(p =>
+                    p.Mode == PlayerMode.Practice &&
+                    p.SessionEnd > DateTimeOffset.UtcNow
+                );
+
+                if (count >= CoreOptions.MaxPracticeSessions)
+                    throw new SessionLimitReached();
+            }
+
+            var entity = await InitializePlayer(model, CoreOptions.PracticeSessionMinutes);
+
+            // start session
+            entity.SessionBegin = DateTimeOffset.UtcNow;
+            entity.SessionEnd = entity.SessionBegin.AddMinutes(entity.SessionMinutes);
+            entity.Mode = PlayerMode.Practice;
+
+            await Store.Create(entity);
+
+            return Mapper.Map<Player>(entity);
+
+        }
+
+        private async Task<Data.Player> InitializePlayer(NewPlayer model, int duration)
+        {
+            var user = await Store.DbContext.Users.FindAsync(model.UserId);
+
+            var entity = Mapper.Map<Data.Player>(model);
+            entity.TeamId = Guid.NewGuid().ToString("n");
+            entity.Role = PlayerRole.Manager;
+            entity.ApprovedName = user.ApprovedName;
+            entity.Name = user.ApprovedName;
+            entity.Sponsor = user.Sponsor;
+            entity.SessionMinutes = duration;
+
+            return entity;
         }
 
     }

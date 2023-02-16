@@ -16,6 +16,8 @@ namespace Gameboard.Api.Services
 
             CreateMap<Data.ChallengeSpec, BoardSpec>();
 
+            CreateMap<Data.ChallengeSpec, ChallengeSpecSummary>();
+
             CreateMap<NewChallengeSpec, Data.ChallengeSpec>();
 
             CreateMap<ChangedChallengeSpec, Data.ChallengeSpec>();

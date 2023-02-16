@@ -56,7 +56,11 @@ namespace Gameboard.Api.Hubs
                 await Groups.AddToGroupAsync(Context.ConnectionId, AppConstants.InternalSupportChannel);
 
             // ensure the player is on the right team
-            var teamPlayers = await PlayerStore.ListTeam(teamId);
+            var teamPlayers = await PlayerStore.ListTeam(teamId)
+                .AsNoTracking()
+                .ToArrayAsync()
+            ;
+
             var player = teamPlayers.FirstOrDefault(p => p.UserId == Context.UserIdentifier);
 
             if (player == null)
