@@ -371,7 +371,7 @@ namespace Gameboard.Api.Services
                 q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus) && !u.NameStatus.Equals(AppConstants.NameStatusPending));
 
             if (model.WantsScored)
-                q = q.Where(p => p.Score > 0);
+                q = q.WhereIsScoringPlayer();
 
             if (model.Term.NotEmpty())
             {
@@ -694,18 +694,21 @@ namespace Gameboard.Api.Services
             return CertificateFromTemplate(player, playerCount, teamCount);
         }
 
-        public async Task<PlayerCertificate[]> MakeCertificates(string uid)
+        public async Task<IEnumerable<PlayerCertificate>> MakeCertificates(string uid)
         {
             DateTimeOffset now = DateTimeOffset.UtcNow;
 
             var completedSessions = await Store.List()
                 .Include(p => p.Game)
                 .Include(p => p.User)
-                .Where(p => p.UserId == uid &&
+                .Where(
+                    p => p.UserId == uid &&
                     p.SessionEnd > DateTimeOffset.MinValue &&
                     p.Game.GameEnd < now &&
                     p.Game.CertificateTemplate != null &&
-                    p.Game.CertificateTemplate.Length > 0)
+                    p.Game.CertificateTemplate.Length > 0
+                )
+                .WhereIsScoringPlayer()
                 .OrderByDescending(p => p.Game.GameEnd)
                 .ToArrayAsync();
 
@@ -713,17 +716,18 @@ namespace Gameboard.Api.Services
                 Store.DbSet
                     .Where(p => p.Game == c.Game &&
                         p.SessionEnd > DateTimeOffset.MinValue)
+                    .WhereIsScoringPlayer()
                     .Count(),
                 Store.DbSet
                     .Where(p => p.Game == c.Game &&
                         p.SessionEnd > DateTimeOffset.MinValue)
+                    .WhereIsScoringPlayer()
                     .GroupBy(p => p.TeamId).Count()
             )).ToArray();
         }
 
         private Api.PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount)
         {
-
             string certificateHTML = player.Game.CertificateTemplate;
             if (certificateHTML.IsEmpty())
                 return null;
@@ -747,7 +751,7 @@ namespace Gameboard.Api.Services
                 Html = certificateHTML
             };
         }
-
     }
 
 }
+
