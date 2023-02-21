@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -78,6 +79,8 @@ internal static class WebApplicationBuilderExtensions
         services.AddSignalRHub();
 
         services
+            .AddSingleton<CoreOptions>(_ => settings.Core)
+            .AddSingleton<CrucibleOptions>(_ => settings.Crucible)
             .AddGameboardData(settings.Database.Provider, settings.Database.ConnectionString)
             .AddGameboardServices(settings)
             .AddConfiguredHttpClients(settings.Core)
@@ -93,7 +96,22 @@ internal static class WebApplicationBuilderExtensions
         );
 
         // Configure Auth
-        services.AddConfiguredAuthentication(settings.Oidc, settings.ApiKey);
+        services.AddConfiguredAuthentication(settings.Oidc, settings.ApiKey, builder.Environment);
         services.AddConfiguredAuthorization();
+
+        if (settings.Logging.EnableHttpLogging)
+        {
+            services.AddHttpLogging(logging =>
+            {
+                logging.LoggingFields = HttpLoggingFields.ResponseStatusCode
+                    | HttpLoggingFields.ResponseBody
+                    | HttpLoggingFields.RequestPath
+                    | HttpLoggingFields.RequestQuery
+                    | HttpLoggingFields.RequestBody;
+                logging.RequestBodyLogLimit = settings.Logging.RequestBodyLogLimit;
+                logging.ResponseBodyLogLimit = settings.Logging.ResponseBodyLogLimit;
+                logging.MediaTypeOptions.AddText("application/json");
+            });
+        }
     }
 }

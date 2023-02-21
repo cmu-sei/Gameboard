@@ -23,7 +23,7 @@ namespace Gameboard.Api.Services
         IMapper Mapper { get; }
         IMemoryCache LocalCache { get; }
         TimeSpan _idmapExpiration = new TimeSpan(0, 30, 0);
-        ITopoMojoApiClient Mojo { get; }
+        GameEngineService GameEngine { get; }
 
         public PlayerService(
             CoreOptions coreOptions,
@@ -32,7 +32,7 @@ namespace Gameboard.Api.Services
             IGameStore gameStore,
             IMapper mapper,
             IMemoryCache localCache,
-            ITopoMojoApiClient mojo
+            GameEngineService gameEngine
         )
         {
             CoreOptions = coreOptions;
@@ -41,7 +41,7 @@ namespace Gameboard.Api.Services
             UserStore = userStore;
             Mapper = mapper;
             LocalCache = localCache;
-            Mojo = mojo;
+            GameEngine = gameEngine;
         }
 
         public async Task<Player> Register(NewPlayer model, bool sudo = false)
@@ -170,7 +170,7 @@ namespace Gameboard.Api.Services
                     // gamespace may be deleted in TopoMojo which would cause error and prevent reset
                     try
                     {
-                        challenge.Submissions = (await Mojo.AuditChallengeAsync(challenge.Id)).ToArray();
+                        challenge.Submissions = await GameEngine.AuditChallenge(challenges.Where(x => x.Id == challenge.Id).FirstOrDefault());
                     }
                     catch
                     {
@@ -188,7 +188,7 @@ namespace Gameboard.Api.Services
                 foreach (var challenge in challenges)
                 {
                     if (challenge.HasDeployedGamespace)
-                        await Mojo.CompleteGamespaceAsync(challenge.Id);
+                        await GameEngine.CompleteGamespace(challenge);
                 }
             }
             catch { }
@@ -289,16 +289,11 @@ namespace Gameboard.Api.Services
             // push gamespace extension
             var challenges = await Store.DbContext.Challenges
                 .Where(c => c.TeamId == team.First().TeamId)
-                .Select(c => c.Id)
                 .ToArrayAsync()
             ;
 
-            foreach (string id in challenges)
-                await Mojo.UpdateGamespaceAsync(new ChangedGamespace
-                {
-                    Id = id,
-                    ExpirationTime = model.SessionEnd
-                });
+            foreach (var challenge in challenges)
+                await GameEngine.ExtendSession(challenge, model.SessionEnd);
 
             return Mapper.Map<Player>(
                 team.FirstOrDefault(p =>
@@ -376,7 +371,7 @@ namespace Gameboard.Api.Services
                 q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus) && !u.NameStatus.Equals(AppConstants.NameStatusPending));
 
             if (model.WantsScored)
-                q = q.Where(p => p.Score > 0);
+                q = q.WhereIsScoringPlayer();
 
             if (model.Term.NotEmpty())
             {
@@ -540,7 +535,7 @@ namespace Gameboard.Api.Services
             await Store.Update(m);
         }
 
-        public async Task<Team> LoadTeam(string id, bool sudo)
+        public async Task<Team> LoadTeam(string id)
         {
             var players = await Store.ListTeam(id);
 
@@ -552,14 +547,12 @@ namespace Gameboard.Api.Services
                 players.Select(p => p.User)
             );
 
-            // TODO: consider display of challenge detail after game closed
-            // if (sudo || !players.First().Game.IsLive)
-            if (sudo)
-                team.Challenges = Mapper.Map<TeamChallenge[]>(
-                    await Store.ListTeamChallenges(id)
-                );
-
             return team;
+        }
+
+        public async Task<TeamChallenge[]> LoadChallengesForTeam(string teamId)
+        {
+            return Mapper.Map<TeamChallenge[]>(await Store.ListTeamChallenges(teamId));
         }
 
         public async Task<TeamSummary[]> LoadTeams(string id, bool sudo)
@@ -699,18 +692,21 @@ namespace Gameboard.Api.Services
             return CertificateFromTemplate(player, playerCount, teamCount);
         }
 
-        public async Task<PlayerCertificate[]> MakeCertificates(string uid)
+        public async Task<IEnumerable<PlayerCertificate>> MakeCertificates(string uid)
         {
             DateTimeOffset now = DateTimeOffset.UtcNow;
 
             var completedSessions = await Store.List()
                 .Include(p => p.Game)
                 .Include(p => p.User)
-                .Where(p => p.UserId == uid &&
+                .Where(
+                    p => p.UserId == uid &&
                     p.SessionEnd > DateTimeOffset.MinValue &&
                     p.Game.GameEnd < now &&
                     p.Game.CertificateTemplate != null &&
-                    p.Game.CertificateTemplate.Length > 0)
+                    p.Game.CertificateTemplate.Length > 0
+                )
+                .WhereIsScoringPlayer()
                 .OrderByDescending(p => p.Game.GameEnd)
                 .ToArrayAsync();
 
@@ -718,17 +714,18 @@ namespace Gameboard.Api.Services
                 Store.DbSet
                     .Where(p => p.Game == c.Game &&
                         p.SessionEnd > DateTimeOffset.MinValue)
+                    .WhereIsScoringPlayer()
                     .Count(),
                 Store.DbSet
                     .Where(p => p.Game == c.Game &&
                         p.SessionEnd > DateTimeOffset.MinValue)
+                    .WhereIsScoringPlayer()
                     .GroupBy(p => p.TeamId).Count()
             )).ToArray();
         }
 
         private Api.PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount)
         {
-
             string certificateHTML = player.Game.CertificateTemplate;
             if (certificateHTML.IsEmpty())
                 return null;
@@ -752,7 +749,7 @@ namespace Gameboard.Api.Services
                 Html = certificateHTML
             };
         }
-
     }
 
 }
+

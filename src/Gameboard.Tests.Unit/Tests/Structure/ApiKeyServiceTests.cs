@@ -20,8 +20,8 @@ public class ApiKeyServiceTests
             A.Fake<IUserStore>()
         );
 
-    [Theory, InlineAutoData(3, 15)]
-    public void GeneratePlainKey_WithPrefixAndRandomnessLength_GeneratesExpectedLength(int randomnessLength, string randomness, IFixture fixture)
+    [Theory, InlineAutoData(3)]
+    public void GeneratePlainKey_WithRandomnessLength_GeneratesExpectedLength(int randomnessLength, string randomness)
     {
         // arrange
         var options = new ApiKeyOptions
@@ -41,7 +41,7 @@ public class ApiKeyServiceTests
         result?.Length.ShouldBe(randomnessLength);
     }
 
-    [Theory, InlineData("1234567890")]
+    [Theory, InlineData("12345678900987654321")]
     public void GeneratePlainKey_WithFixedValues_GeneratesExpectedKey(string randomness)
     {
         // arrange
@@ -59,6 +59,6 @@ public class ApiKeyServiceTests
         var result = sut.GeneratePlainKey();
 
         // assert
-        result.ShouldBe("GB1234567890");
+        result.ShouldBe("1234567890");
     }
 }

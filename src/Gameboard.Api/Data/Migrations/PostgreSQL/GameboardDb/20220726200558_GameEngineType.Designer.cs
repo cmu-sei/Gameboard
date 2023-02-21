@@ -3,58 +3,23 @@ using System;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-
-#nullable disable
 
 namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 {
     [DbContext(typeof(GameboardDbContextPostgreSQL))]
-    partial class GameboardDbContextPostgreSQLModelSnapshot : ModelSnapshot
+    [Migration("20220726200558_GameEngineType")]
+    partial class GameEngineType
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.1")
-                .HasAnnotation("Relational:MaxIdentifierLength", 63);
-
-            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("Gameboard.Api.Data.ApiKey", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<DateTimeOffset?>("ExpiresOn")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NULL");
-
-                    b.Property<DateTimeOffset>("GeneratedOn")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.Property<string>("Key")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("OwnerId")
-                        .HasColumnType("character varying(40)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerId");
-
-                    b.ToTable("ApiKeys");
-                });
+                .UseIdentityByDefaultColumns()
+                .HasAnnotation("Relational:MaxIdentifierLength", 63)
+                .HasAnnotation("ProductVersion", "5.0.0");
 
             modelBuilder.Entity("Gameboard.Api.Data.ArchivedChallenge", b =>
                 {
@@ -110,9 +75,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
                     b.Property<DateTimeOffset>("StartTime")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("State")
-                        .HasColumnType("text");
 
                     b.Property<string>("Submissions")
                         .HasColumnType("text");
@@ -573,10 +535,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
-                    b.Property<string>("TeamSponsors")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
                     b.Property<long>("Time")
                         .HasColumnType("bigint");
 
@@ -645,9 +603,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
                     b.Property<int>("Key")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseSerialColumn(b.Property<int>("Key"));
+                        .HasColumnType("integer")
+                        .UseSerialColumn();
 
                     b.Property<string>("Label")
                         .HasColumnType("text");
@@ -686,9 +643,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.HasIndex("ChallengeId");
 
                     b.HasIndex("CreatorId");
-
-                    b.HasIndex("Key")
-                        .IsUnique();
 
                     b.HasIndex("PlayerId");
 
@@ -747,12 +701,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
-                    b.Property<string>("ApiKeyOwnerId")
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasDefaultValueSql("REPLACE(gen_random_uuid()::text, '-', '')");
-
                     b.Property<string>("ApprovedName")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -783,16 +731,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.HasKey("Id");
 
                     b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("Gameboard.Api.Data.ApiKey", b =>
-                {
-                    b.HasOne("Gameboard.Api.Data.User", "Owner")
-                        .WithMany("ApiKeys")
-                        .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("Owner");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
@@ -996,8 +934,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.User", b =>
                 {
-                    b.Navigation("ApiKeys");
-
                     b.Navigation("Enrollments");
 
                     b.Navigation("Feedback");

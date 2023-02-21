@@ -6,7 +6,9 @@ using Gameboard.Api;
 using Gameboard.Api.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -16,10 +18,16 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddConfiguredAuthentication(
             this IServiceCollection services,
             OidcOptions oidcOptions,
-            ApiKeyOptions apiKeyOptions
+            ApiKeyOptions apiKeyOptions,
+            IWebHostEnvironment environment
         )
         {
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
+            if (environment.IsDev())
+            {
+                IdentityModelEventSource.ShowPII = true;
+            }
 
             services
                 .AddScoped<IClaimsTransformation, UserClaimTransformation>()

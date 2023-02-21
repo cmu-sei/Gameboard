@@ -67,6 +67,9 @@ namespace Microsoft.Extensions.DependencyInjection
         // TODO: Ben -> fix this (still on my list, but for now at least segregating into a method)
         private static IServiceCollection AddUnboundServices(this IServiceCollection services, AppSettings settings)
             => services
+                // singletons
+                .AddSingleton<IAuthenticationService, AuthenticationService>()
+                .AddSingleton<ILockService, LockService>()
                 // global-style services
                 .AddSingleton<CoreOptions>(_ => settings.Core)
                 .AddSingleton<ApiKeyOptions>(_ => settings.ApiKey)

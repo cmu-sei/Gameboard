@@ -37,6 +37,8 @@ if (dbOnly)
     builder
         .Build()
         .InitializeDatabase();
+
+    return;
 }
 else
 {

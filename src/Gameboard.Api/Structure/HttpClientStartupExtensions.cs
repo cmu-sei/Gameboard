@@ -2,6 +2,9 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Net.Http;
+using System.Threading;
+using Alloy.Api.Client;
 using Gameboard.Api;
 using Polly;
 using Polly.Extensions.Http;
@@ -16,7 +19,6 @@ namespace Microsoft.Extensions.DependencyInjection
             CoreOptions config
         )
         {
-
             services
                 .AddHttpClient<ITopoMojoApiClient, TopoMojoApiClient>()
                     .ConfigureHttpClient(client =>
@@ -40,6 +42,46 @@ namespace Microsoft.Extensions.DependencyInjection
                 {
                     client.DefaultRequestHeaders.Add("x-api-key", config.GamebrainApiKey);
                 });
+
+            services.AddHttpClient("identity", client =>
+            {
+                // Workaround to avoid TaskCanceledException after several retries. TODO: find a better way to handle this.
+                client.Timeout = Timeout.InfiniteTimeSpan;
+            })
+            .AddPolicyHandler(
+                HttpPolicyExtensions.HandleTransientHttpError()
+                .OrResult(msg => msg.StatusCode == System.Net.HttpStatusCode.NotFound)
+                .WaitAndRetryAsync(config.GameEngineMaxRetries, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)))
+            );
+
+            services.AddHttpClient("alloy", client =>
+            {
+                // Workaround to avoid TaskCanceledException after several retries. TODO: find a better way to handle this.
+                client.Timeout = Timeout.InfiniteTimeSpan;
+            })
+            .AddHttpMessageHandler<AuthenticatingHandler>()
+            .AddPolicyHandler(
+                HttpPolicyExtensions.HandleTransientHttpError()
+                .OrResult(msg => msg.StatusCode == System.Net.HttpStatusCode.NotFound)
+                .WaitAndRetryAsync(config.GameEngineMaxRetries, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)))
+            );
+
+            services.AddScoped<IAlloyApiClient, AlloyApiClient>(p =>
+            {
+                var httpClientFactory = p.GetRequiredService<IHttpClientFactory>();
+                var settings = p.GetRequiredService<CrucibleOptions>();
+
+                var uri = new Uri(settings.ApiUrl);
+
+                var httpClient = httpClientFactory.CreateClient("alloy");
+                httpClient.BaseAddress = uri;
+
+                var alloyApiClient = new AlloyApiClient(httpClient);
+
+                return alloyApiClient;
+            });
+
+            services.AddTransient<AuthenticatingHandler>();
 
             return services;
         }
