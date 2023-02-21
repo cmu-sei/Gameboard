@@ -33,7 +33,7 @@ namespace Gameboard.Api
         public int PartialCount { get; set; }
         public bool Advanced { get; set; }
         public bool IsManager { get; set; }
-        public string[] SponsorList => (TeamSponsors ?? Sponsor).Split("|");
+        public string[] SponsorList => (TeamSponsors ?? Sponsor ?? "").Split("|");
     }
 
     public class NewPlayer

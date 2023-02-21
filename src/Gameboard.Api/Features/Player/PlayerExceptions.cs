@@ -18,7 +18,7 @@ internal class GameDoesntAllowSessionReset : GameboardException
 internal class ManagerCantUnenrollWhileTeammatesRemain : GameboardException
 {
     internal ManagerCantUnenrollWhileTeammatesRemain(string playerId, string teamId, IEnumerable<string> teammatePlayerIds) : base($"""
-        Player {playerId} is the manager of team {teamId}. There are currently {teammatePlayerIds.Count()} players remaining on the team ({string.Join(" | ", teammatePlayerIds)}.
+        Player {playerId} is the manager of team {teamId}. There are currently {teammatePlayerIds.Count()} players remaining on the team ({string.Join(" | ", teammatePlayerIds)}).
         In order to unenroll, this player must designate a teammate as the replacement manager (or wait until all other team memberes have unenrolled).
     """) { }
 }
