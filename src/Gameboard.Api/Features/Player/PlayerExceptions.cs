@@ -35,6 +35,11 @@ internal class NotManager : GameboardException
     internal NotManager(string playerId, string addlMessage) : base($"Player {playerId} isn't the team manager. {addlMessage}") { }
 }
 
+internal class PromotionFailed : GameboardException
+{
+    internal PromotionFailed(string teamId, string playerId, int recordsAffected) : base($"Failed to promote player {playerId} to manager of team {teamId}: Incorrect number of records affected ({recordsAffected}).") { }
+}
+
 internal class SessionAlreadyStarted : GameboardException
 {
     internal SessionAlreadyStarted(string playerId, string why) : base($"Player {playerId}'s session was started. {why}.") { }

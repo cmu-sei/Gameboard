@@ -46,10 +46,14 @@ internal class TeamService : ITeamService
                 .Where(p => p.TeamId == teamId)
                 .ExecuteUpdateAsync(p => p.SetProperty(p => p.Role, p => PlayerRole.Member));
 
-            await _store.DbContext
+            var affectedPlayers = await _store.DbContext
                 .Players
                 .Where(p => p.Id == newCaptainPlayerId)
                 .ExecuteUpdateAsync(p => p.SetProperty(p => p.Role, p => PlayerRole.Manager));
+
+            // this automatically rolls back the transaction
+            if (affectedPlayers != 1)
+                throw new PromotionFailed(teamId, newCaptainPlayerId, affectedPlayers);
 
             await transaction.CommitAsync();
         }
