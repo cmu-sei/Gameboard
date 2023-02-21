@@ -20,7 +20,6 @@ namespace Gameboard.Api.Data
         }
 
         public GameboardDbContext DbContext { get; private set; }
-
         public IQueryable<TEntity> DbSet { get; private set; }
 
         public virtual IQueryable<TEntity> List(string term = null)

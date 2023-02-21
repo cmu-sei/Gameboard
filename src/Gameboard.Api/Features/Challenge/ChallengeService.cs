@@ -15,7 +15,7 @@ using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {
-    public class ChallengeService : _Service, IApiKeyAuthenticationService
+    public class ChallengeService : _Service
     {
         IChallengeStore Store { get; }
         GameEngineService GameEngine { get; }
@@ -83,15 +83,10 @@ namespace Gameboard.Api.Services
             ;
 
             entity = Mapper.Map<Data.Challenge>(model);
-
             Mapper.Map(spec, entity);
-
             entity.Player = player;
-
             entity.TeamId = player.TeamId;
-
             entity.GraderKey = graderKey.ToSha256();
-
             Exception error = null;
             GameState state = null;
 
@@ -459,21 +454,20 @@ namespace Gameboard.Api.Services
             return _actorMap.FindActor(userId);
         }
 
-        public async Task<string> ResolveApiKey(string key)
-        {
-            if (key.IsEmpty())
-                return null;
+        // public async Task<string> ResolveApiKey(string key)
+        // {
+        //     if (key.IsEmpty())
+        //         return null;
 
-            var entity = await Store.ResolveApiKey(key.ToSha256());
-            return entity?.Id;
-        }
+        //     var entity = await Store.ResolveApiKey(key.ToSha256());
+        //     return entity?.Id;
+        // }
 
         internal async Task<ConsoleActor> SetConsoleActor(ConsoleRequest model, string id, string name)
         {
             var entity = await Store.DbSet
                 .Include(c => c.Player)
-                .FirstOrDefaultAsync(c => c.Id == model.SessionId)
-            ;
+                .FirstOrDefaultAsync(c => c.Id == model.SessionId);
 
             return new ConsoleActor
             {
@@ -487,7 +481,6 @@ namespace Gameboard.Api.Services
                 VmName = model.Name,
                 Timestamp = DateTimeOffset.UtcNow
             };
-
         }
 
         internal async Task<SectionSubmission[]> Audit(string id)

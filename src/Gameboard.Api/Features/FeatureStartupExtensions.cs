@@ -5,19 +5,28 @@ using System;
 using System.Linq;
 using System.Reflection;
 using AutoMapper;
+using Gameboard.Api;
+using Gameboard.Api.Data;
+using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.ApiKeys;
 using Gameboard.Api.Features.CubespaceScoreboard;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
+using Microsoft.AspNetCore.Identity;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
     public static class ServiceStartupExtensions
     {
-        public static IServiceCollection AddGameboardServices(this IServiceCollection services)
+        public static IServiceCollection AddGameboardServices(this IServiceCollection services, AppSettings settings)
         {
-            services.AddSingleton<ConsoleActorMap>();
+            // add special case services
+            services
+                .AddSingleton<ConsoleActorMap>()
+                .AddHttpContextAccessor()
+                .AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>();
 
             // Auto-discover from EntityService pattern
             foreach (var t in Assembly
@@ -35,15 +44,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 services.AddScoped(t);
             }
 
-            // TODO: Ben -> fix this
-            services.AddHttpContextAccessor();
-            services.AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>();
-            services.AddScoped<ITeamService, TeamService>();
-            services.AddScoped<IUnityGameService, UnityGameService>();
-            services.AddScoped<IUnityStore, UnityStore>();
-            services.AddScoped<ICubespaceScoreboardService, CubespaceScoreboardService>();
-            services.AddScoped<IGamebrainService, GamebrainService>();
-            services.AddTransient<IGuidService, GuidService>();
+            services.AddUnboundServices(settings);
 
             foreach (var t in Assembly
                 .GetExecutingAssembly()
@@ -62,6 +63,32 @@ namespace Microsoft.Extensions.DependencyInjection
 
             return services;
         }
+
+        // TODO: Ben -> fix this (still on my list, but for now at least segregating into a method)
+        private static IServiceCollection AddUnboundServices(this IServiceCollection services, AppSettings settings)
+            => services
+                // singletons
+                .AddSingleton<IAuthenticationService, AuthenticationService>()
+                .AddSingleton<ILockService, LockService>()
+                // global-style services
+                .AddSingleton<CoreOptions>(_ => settings.Core)
+                .AddSingleton<ApiKeyOptions>(_ => settings.ApiKey)
+                .AddTransient<IGuidService, GuidService>()
+                .AddTransient<IHashService, HashService>()
+                .AddTransient<INowService, NowService>()
+                .AddTransient<IRandomService, RandomService>()
+                .AddTransient<IGuidService, GuidService>()
+                // feature services
+                .AddScoped<IApiKeysService, ApiKeysService>()
+                .AddScoped<IApiKeysStore, ApiKeysStore>()
+                .AddScoped<IChallengeStore, ChallengeStore>()
+                .AddScoped<ICubespaceScoreboardService, CubespaceScoreboardService>()
+                .AddScoped<IGamebrainService, GamebrainService>()
+                .AddTransient<IPasswordHasher<Gameboard.Api.Data.User>, PasswordHasher<Gameboard.Api.Data.User>>()
+                .AddSingleton<INameService, NameService>()
+                .AddScoped<ITeamService, TeamService>()
+                .AddScoped<IUnityGameService, UnityGameService>()
+                .AddScoped<IUnityStore, UnityStore>();
 
         public static IMapperConfigurationExpression AddGameboardMaps(
             this IMapperConfigurationExpression cfg

@@ -11,6 +11,7 @@ namespace Gameboard.Api
     public class AppSettings
     {
         public string PathBase { get; set; }
+        public ApiKeyOptions ApiKey { get; set; } = new ApiKeyOptions();
         public OidcOptions Oidc { get; set; } = new OidcOptions();
         public CacheOptions Cache { get; set; } = new CacheOptions();
         public CoreOptions Core { get; set; } = new CoreOptions();
@@ -36,6 +37,13 @@ namespace Gameboard.Api
         /// The maximum number of bytes logged for the response body (in bytes).
         /// </summary>
         public int ResponseBodyLogLimit { get; set; } = 32000;
+    }
+
+    public class ApiKeyOptions
+    {
+        public int BytesOfRandomness { get; set; } = 32;
+        public bool IsEnabled { get; set; } = false;
+        public int RandomCharactersLength { get; set; } = 36;
     }
 
     public class OidcOptions

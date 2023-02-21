@@ -62,7 +62,8 @@
             "args": [
                 "test",
                 "${workspaceFolder}/src/Gameboard.Tests.Integration"
-            ]
+            ],
+            "problemMatcher": []
         }
     ]
 }

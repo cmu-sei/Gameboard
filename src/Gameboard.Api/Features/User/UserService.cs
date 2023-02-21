@@ -131,9 +131,7 @@ public class UserService
     public async Task Delete(string id)
     {
         await Store.Delete(id);
-
         _localcache.Remove(id);
-
     }
 
     public async Task<IEnumerable<TProject>> List<TProject>(UserSearch model) where TProject : class, IUserViewModel

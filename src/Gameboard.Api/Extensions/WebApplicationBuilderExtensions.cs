@@ -2,19 +2,19 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ServiceStack.Text;
 
 namespace Gameboard.Api.Extensions;
 
 internal static class WebApplicationBuilderExtensions
 {
-    public static AppSettings BuildAppSettings(this WebApplicationBuilder builder)
+    public static AppSettings BuildAppSettings(this WebApplicationBuilder builder, ILogger logger)
     {
         var settings = builder.Configuration.Get<AppSettings>() ?? new AppSettings();
 
@@ -81,11 +81,8 @@ internal static class WebApplicationBuilderExtensions
         services
             .AddSingleton<CoreOptions>(_ => settings.Core)
             .AddSingleton<CrucibleOptions>(_ => settings.Crucible)
-            .AddSingleton<INameService, NameService>()
-            .AddSingleton<ILockService, LockService>()
-            .AddSingleton<IAuthenticationService, AuthenticationService>()
             .AddGameboardData(settings.Database.Provider, settings.Database.ConnectionString)
-            .AddGameboardServices()
+            .AddGameboardServices(settings)
             .AddConfiguredHttpClients(settings.Core)
             .AddHostedService<JobService>()
             .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath)
@@ -99,7 +96,7 @@ internal static class WebApplicationBuilderExtensions
         );
 
         // Configure Auth
-        services.AddConfiguredAuthentication(settings.Oidc, builder.Environment);
+        services.AddConfiguredAuthentication(settings.Oidc, settings.ApiKey, builder.Environment);
         services.AddConfiguredAuthorization();
 
         if (settings.Logging.EnableHttpLogging)

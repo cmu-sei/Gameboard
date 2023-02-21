@@ -54,7 +54,7 @@ namespace Gameboard.Api
             {
                 int x = s.IndexOf("#");
                 if (x >= 0)
-                    return s.Substring(x+1).Split(' ').First();
+                    return s.Substring(x + 1).Split(' ').First();
             }
             return "";
         }
