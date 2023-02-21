@@ -3,6 +3,7 @@
 
 using System;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 
 namespace Gameboard.Api
@@ -15,9 +16,26 @@ namespace Gameboard.Api
         public CoreOptions Core { get; set; } = new CoreOptions();
         public DatabaseOptions Database { get; set; } = new DatabaseOptions();
         public HeaderOptions Headers { get; set; } = new HeaderOptions();
+        public LoggingSettings Logging { get; set; } = new LoggingSettings();
         public OpenApiOptions OpenApi { get; set; } = new OpenApiOptions();
         public Defaults Defaults { get; set; } = new Defaults();
         public CrucibleOptions Crucible { get; set; } = new CrucibleOptions();
+    }
+
+    public class LoggingSettings
+    {
+        public LogLevel LogLevel { get; set; } = LogLevel.Error;
+        public Boolean EnableHttpLogging { get; set; } = false;
+
+        /// <summary>
+        /// The maximum number of bytes logged for the request body (in bytes).
+        /// </summary>
+        public int RequestBodyLogLimit { get; set; } = 32000;
+
+        /// <summary>
+        /// The maximum number of bytes logged for the response body (in bytes).
+        /// </summary>
+        public int ResponseBodyLogLimit { get; set; } = 32000;
     }
 
     public class OidcOptions

@@ -33,24 +33,24 @@ if (dbOnly)
     builder
         .Build()
         .InitializeDatabase();
+
+    return;
 }
-else
-{
-    Console.WriteLine("Configuring Gameboard app...");
 
-    // load settings and configure services
-    var settings = builder.BuildAppSettings();
-    builder.ConfigureServices(settings);
+Console.WriteLine("Configuring Gameboard app...");
 
-    // build and configure app
-    var app = builder
-        .Build()
-        .InitializeDatabase()
-        .ConfigureGameboard(settings);
+// load settings and configure services
+var settings = builder.BuildAppSettings();
+builder.ConfigureServices(settings);
 
-    // start!
-    app.Run();
-}
+// build and configure app
+var app = builder
+    .Build()
+    .InitializeDatabase()
+    .ConfigureGameboard(settings);
+
+// start!
+app.Run();
 
 // required for integration tests
 public partial class Program { }

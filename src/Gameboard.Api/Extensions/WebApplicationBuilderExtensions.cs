@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ServiceStack.Text;
@@ -100,5 +101,20 @@ internal static class WebApplicationBuilderExtensions
         // Configure Auth
         services.AddConfiguredAuthentication(settings.Oidc, builder.Environment);
         services.AddConfiguredAuthorization();
+
+        if (settings.Logging.EnableHttpLogging)
+        {
+            services.AddHttpLogging(logging =>
+            {
+                logging.LoggingFields = HttpLoggingFields.ResponseStatusCode
+                    | HttpLoggingFields.ResponseBody
+                    | HttpLoggingFields.RequestPath
+                    | HttpLoggingFields.RequestQuery
+                    | HttpLoggingFields.RequestBody;
+                logging.RequestBodyLogLimit = settings.Logging.RequestBodyLogLimit;
+                logging.ResponseBodyLogLimit = settings.Logging.ResponseBodyLogLimit;
+                logging.MediaTypeOptions.AddText("application/json");
+            });
+        }
     }
 }
