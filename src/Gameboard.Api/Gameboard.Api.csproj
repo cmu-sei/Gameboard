@@ -18,10 +18,13 @@
     <PackageReference Include="TopoMojo.Api.Client" Version="2.0.6" />
     <PackageReference Include="YamlDotNet" Version="12.3.1" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="7.0.1" />
+    <PackageReference Include="Alloy.Api.Client" Version="1.1.1" />
+    <PackageReference Include="Nito.AsyncEx.Coordination" Version="5.1.2" />
+    <PackageReference Include="IdentityModel" Version="3.10.10" />
   </ItemGroup>
 
   <ItemGroup>
-     <InternalsVisibleTo Include="Gameboard.Tests.Unit" />
+    <InternalsVisibleTo Include="Gameboard.Tests.Unit" />
   </ItemGroup>
 
   <PropertyGroup>

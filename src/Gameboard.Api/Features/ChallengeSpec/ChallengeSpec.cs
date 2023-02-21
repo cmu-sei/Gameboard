@@ -8,6 +8,7 @@ namespace Gameboard.Api
         public string ExternalId { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
+        public GameEngineType GameEngineType { get; set; }
     }
 
     public class SpecDetail : ExternalSpec
@@ -21,13 +22,13 @@ namespace Gameboard.Api
         public float R { get; set; }
     }
 
-    public class ChallengeSpec: SpecDetail
+    public class ChallengeSpec : SpecDetail
     {
         public string Id { get; set; }
         public string GameId { get; set; }
     }
 
-    public class NewChallengeSpec: SpecDetail
+    public class NewChallengeSpec : SpecDetail
     {
         public string GameId { get; set; }
     }
