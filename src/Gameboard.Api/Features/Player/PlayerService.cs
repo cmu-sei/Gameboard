@@ -535,7 +535,7 @@ namespace Gameboard.Api.Services
             await Store.Update(m);
         }
 
-        public async Task<Team> LoadTeam(string id, bool sudo)
+        public async Task<Team> LoadTeam(string id)
         {
             var players = await Store.ListTeam(id);
 
@@ -547,14 +547,12 @@ namespace Gameboard.Api.Services
                 players.Select(p => p.User)
             );
 
-            // TODO: consider display of challenge detail after game closed
-            // if (sudo || !players.First().Game.IsLive)
-            if (sudo)
-                team.Challenges = Mapper.Map<TeamChallenge[]>(
-                    await Store.ListTeamChallenges(id)
-                );
-
             return team;
+        }
+
+        public async Task<TeamChallenge[]> LoadChallengesForTeam(string teamId)
+        {
+            return Mapper.Map<TeamChallenge[]>(await Store.ListTeamChallenges(teamId));
         }
 
         public async Task<TeamSummary[]> LoadTeams(string id, bool sudo)

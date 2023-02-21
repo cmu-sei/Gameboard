@@ -210,15 +210,33 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
-        /// Get Player Team
+        /// Get team data by id
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="id">The id of the team to be queried.</param>
         /// <returns>Team</returns>
         [HttpGet("/api/team/{id}")]
         [Authorize]
         public async Task<Team> GetTeam([FromRoute] string id)
         {
-            return await PlayerService.LoadTeam(id, Actor.IsObserver || Actor.IsDirector);
+            return await PlayerService.LoadTeam(id);
+        }
+
+        /// <summary>
+        /// Load active challenge data for a team.
+        /// </summary>
+        /// <param name="id">The id of the team who owns the challenges</param>
+        /// <returns>An array of challenge entries.</returns>
+        [HttpGet("/api/team/{id}/challenges")]
+        [Authorize]
+        public async Task<IEnumerable<TeamChallenge>> GetTeamChallenges([FromRoute] string id)
+        {
+            AuthorizeAny(
+                () => Actor.IsAdmin,
+                () => Actor.IsDirector,
+                () => Actor.IsObserver
+            );
+
+            return await PlayerService.LoadChallengesForTeam(id);
         }
 
         /// <summary>
