@@ -1,12 +1,13 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using Gameboard.Api;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -15,10 +16,16 @@ namespace Microsoft.Extensions.DependencyInjection
     {
         public static IServiceCollection AddConfiguredAuthentication(
             this IServiceCollection services,
-            OidcOptions options
+            OidcOptions options,
+            IWebHostEnvironment environment
         )
         {
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
+            if (environment.IsDev())
+            {
+                IdentityModelEventSource.ShowPII = true;
+            }
 
             services
                 .AddScoped<IClaimsTransformation, UserClaimTransformation>()

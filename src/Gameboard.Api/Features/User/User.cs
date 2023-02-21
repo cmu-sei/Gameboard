@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Gameboard.Api
 {
-    public class User
+    public class User : IUserViewModel
     {
         public string Id { get; set; }
         public string Name { get; set; }
@@ -28,8 +28,6 @@ namespace Gameboard.Api
         public string Id { get; set; }
         public string Name { get; set; }
         public string Sponsor { get; set; }
-        // public string Username { get; set; }
-        // public string Email { get; set; }
     }
 
     public class ChangedUser
@@ -56,7 +54,7 @@ namespace Gameboard.Api
         public PlayerRole Role { get; set; }
     }
 
-    public class UserSearch: SearchFilter
+    public class UserSearch : SearchFilter
     {
         public const string UserRoleFilter = "roles";
         public const string NamePendingFilter = "pending";
@@ -65,8 +63,8 @@ namespace Gameboard.Api
         public bool WantsPending => Filter.Contains(NamePendingFilter);
         public bool WantsDisallowed => Filter.Contains(NameDisallowedFilter);
     }
-    
-    public class UserSummary 
+
+    public class UserSimple : IUserViewModel
     {
         public string Id { get; set; }
         public string ApprovedName { get; set; }
@@ -76,5 +74,22 @@ namespace Gameboard.Api
     {
         public string TeamId { get; set; }
         public string Message { get; set; }
+    }
+
+    public class UserOnly : IUserViewModel
+    {
+        public string Id { get; set; }
+        public string Email { get; set; }
+        public string Name { get; set; }
+        public string NameStatus { get; set; }
+        public string ApprovedName { get; set; }
+        public string Sponsor { get; set; }
+        public UserRole Role { get; set; }
+    }
+
+    public interface IUserViewModel
+    {
+        public string Id { get; set; }
+        public string ApprovedName { get; set; }
     }
 }

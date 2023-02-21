@@ -32,23 +32,18 @@ internal static class GameboardTestContextExtensions
             });
     }
 
-    public static HttpClient CreateHttpClientWithAuth(this GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public static HttpClient CreateHttpClientWithAuth(this GameboardTestContext<GameboardDbContextPostgreSQL> testContext, string userId = "integrationtester")
     {
         var client = testContext
-            .WithAuthentication()
+            .WithAuthentication(userId)
             .CreateClient(new WebApplicationFactoryClientOptions
             {
-                AllowAutoRedirect = false
+                AllowAutoRedirect = false,
             });
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthenticationHandler.AuthenticationSchemeName);
         return client;
     }
-
-    // public static IDataStateBuilder WithDataState(this GameboardTestContext<GameboardDbContextPostgreSQL> context)
-    // {
-    //     return new DataStateBuilder<GameboardDbContextPostgreSQL>(context);
-    // }
 
     public static async Task WithDataState(this GameboardTestContext<GameboardDbContextPostgreSQL> context, Action<IDataStateBuilder> builderAction)
     {

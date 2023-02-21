@@ -16,6 +16,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.AspNetCore.SignalR;
 using Gameboard.Api.Hubs;
+using System.Collections.Generic;
 
 namespace Gameboard.Api.Controllers
 {
@@ -132,14 +133,14 @@ namespace Gameboard.Api.Controllers
         /// <returns>User[]</returns>
         [HttpGet("/api/users")]
         [Authorize]
-        public async Task<User[]> List([FromQuery] UserSearch model)
+        public async Task<IEnumerable<UserOnly>> List([FromQuery] UserSearch model)
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
                 () => Actor.IsObserver
             );
 
-            return await UserService.List(model);
+            return await UserService.List<UserOnly>(model);
         }
 
         /// <summary>
@@ -149,7 +150,7 @@ namespace Gameboard.Api.Controllers
         /// <returns>User[]</returns>
         [HttpGet("/api/users/support")]
         [Authorize]
-        public async Task<UserSummary[]> ListSupport([FromQuery] SearchFilter model)
+        public async Task<UserSimple[]> ListSupport([FromQuery] SearchFilter model)
         {
             AuthorizeAny(
                 () => Actor.IsObserver,
