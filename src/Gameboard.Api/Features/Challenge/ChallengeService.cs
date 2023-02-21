@@ -304,6 +304,72 @@ namespace Gameboard.Api.Services
             await Task.WhenAll(tasks);
         }
 
+        // public async Task ArchiveChallenges(string playerId, string teamId, IEnumerable<Challenge> challenges)
+        // {
+        //     if (challenges.Count() > 0)
+        //     {
+        //         // candidates are:
+        //         // - challenges that are owned by the player 
+        //         // - BUT not challenges that are owned by the player that other players have by virtue of having the same teamid
+
+        //         var candidateChallenges = await Store
+        //             .List()
+        //             .AsNoTracking()
+
+        //             .Where(c => c.PlayerId == playerId && )
+        //             .Select(c => c.Id)
+        //             .ToListAsync();
+
+        //         // archive all the challenges belonging to this player that do not also belong to other players by virtue of 
+        //         // being on the same team
+        //         var teamChallenges = await Store
+        //             .List()
+        //             .AsNoTracking()
+        //             .Where(c => c.TeamId == teamId && c.PlayerId != playerId)
+        //             .ToListAsync();
+
+
+        //         foreach (var challenge in new )
+        //             var playerRecords = await _playerStore
+        //                 .List()
+        //                 .Include(p => EF.Property<ICollection<Challenge>>(p, "Players"))
+        //                     .Where(p => p.TeamId != )
+        //                 .Where(p => p.UserId == userId)
+        //                 .ToListAsync();
+
+
+        //         var toArchive = _mapper.Map<ArchivedChallenge[]>(challenges);
+
+        //         foreach (var challenge in toArchive)
+        //         {
+        //             // gamespace may be deleted in TopoMojo which would cause error and prevent reset
+        //             try
+        //             {
+        //                 challenge.Submissions = (await Mojo.AuditChallengeAsync(challenge.Id)).ToArray();
+        //             }
+        //             catch
+        //             {
+        //                 challenge.Submissions = new SectionSubmission[] { };
+        //             }
+        //             challenge.TeamMembers = teamMembers;
+        //         }
+
+        //         Store.DbContext.ArchivedChallenges.AddRange(Mapper.Map<Data.ArchivedChallenge[]>(toArchive));
+        //         await Store.DbContext.SaveChangesAsync();
+        //     }
+
+        //             // courtesy call; ignore error (gamespace may have already been removed from backend)
+        //             try
+        //             {
+        //                 foreach (var challenge in challenges)
+        //                 {
+        //                     if (challenge.HasDeployedGamespace)
+        //                         await Mojo.CompleteGamespaceAsync(challenge.Id);
+        //                 }
+        // }
+        //             catch { }
+        //         }
+
         private async Task<Data.Challenge> Sync(Data.Challenge entity, Task<GameState> task = null)
         {
             if (task is null)

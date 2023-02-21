@@ -20,7 +20,7 @@ namespace Gameboard.Api.Controllers
     public class PlayerController : _Controller
     {
         PlayerService PlayerService { get; }
-        IHubContext<AppHub, IAppHubEvent> Hub { get; }
+        IInternalHubBus Hub { get; }
         IMapper Mapper { get; }
         ITeamService TeamService { get; set; }
 
@@ -29,7 +29,7 @@ namespace Gameboard.Api.Controllers
             IDistributedCache cache,
             PlayerValidator validator,
             PlayerService playerService,
-            IHubContext<AppHub, IAppHubEvent> hub,
+            IInternalHubBus hub,
             IMapper mapper,
             ITeamService teamService
         ) : base(logger, cache, validator)

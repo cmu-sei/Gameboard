@@ -169,6 +169,7 @@ namespace Gameboard.Api.Services
         }
 
         public async Task<Player> StartSession(SessionStartRequest model, User actor, bool sudo)
+
         {
             var team = await Store.ListTeamByPlayer(model.PlayerId);
 

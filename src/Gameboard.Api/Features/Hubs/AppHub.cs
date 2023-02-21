@@ -44,6 +44,7 @@ namespace Gameboard.Api.Hubs
         {
             Logger.LogDebug($"Session Disconnected: {Context.ConnectionId}");
 
+            await base.OnDisconnectedAsync(ex);
             await Leave();
             await base.OnDisconnectedAsync(ex);
         }
