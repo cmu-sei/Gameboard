@@ -3,89 +3,102 @@
 
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
-using Microsoft.EntityFrameworkCore;
+using Gameboard.Api.Validators;
 
-namespace Gameboard.Api.Validators
+namespace Gameboard.Api.ChallengeGates;
+
+public class ChallengeGateValidator : IModelValidator
 {
-    public class ChallengeGateValidator : IModelValidator
+    private readonly IChallengeGateStore _store;
+
+    public ChallengeGateValidator(IChallengeGateStore store)
     {
-        private readonly IChallengeGateStore _store;
+        _store = store;
+    }
 
-        public ChallengeGateValidator(
-            IChallengeGateStore store
-        )
+    public Task Validate(object model)
+    {
+        if (model is Entity)
+            return _validate(model as Entity);
+
+        if (model is NewChallengeGate)
+            return _validate(model as NewChallengeGate);
+
+        if (model is ChangedChallengeGate)
+            return _validate(model as ChangedChallengeGate);
+
+        throw new ValidationTypeFailure<ChallengeGateValidator>(model.GetType());
+    }
+
+    private async Task _validate(Entity model)
+    {
+        if ((await Exists(model.Id)).Equals(false))
+            throw new ResourceNotFound<ChallengeGate>(model.Id);
+
+        await Task.CompletedTask;
+    }
+
+    private async Task _validate(NewChallengeGate model)
+    {
+        if ((await GameExists(model.GameId)).Equals(false))
+            throw new ResourceNotFound<Game>(model.GameId);
+
+        if ((await SpecExists(model.TargetId)).Equals(false))
+            throw new ResourceNotFound<ChallengeSpec>(model.TargetId, "The target spec");
+
+        if ((await SpecExists(model.RequiredId)).Equals(false))
+            throw new ResourceNotFound<ChallengeSpec>(model.RequiredId, "The required spec");
+
+        string cycleDescription = DetectCycles(model.TargetId, model.RequiredId);
+        if (!string.IsNullOrWhiteSpace(cycleDescription))
         {
-            _store = store;
+            throw new CyclicalGateConfiguration(model.TargetId, model.RequiredId, cycleDescription);
         }
 
-        public Task Validate(object model)
+        await Task.CompletedTask;
+    }
+
+    private async Task _validate(ChangedChallengeGate model)
+    {
+        if ((await Exists(model.Id)).Equals(false))
+            throw new ResourceNotFound<ChallengeGate>(model.Id);
+
+        await Task.CompletedTask;
+    }
+
+    private async Task<bool> Exists(string id)
+    {
+        return
+            id.NotEmpty() &&
+            (await _store.Retrieve(id)) is Data.ChallengeGate
+        ;
+    }
+
+    private async Task<bool> GameExists(string id)
+    {
+        return
+            id.NotEmpty() &&
+            (await _store.DbContext.Games.FindAsync(id)) is Data.Game
+        ;
+    }
+
+    private async Task<bool> SpecExists(string id)
+    {
+        return
+            id.NotEmpty() &&
+            (await _store.DbContext.ChallengeSpecs.FindAsync(id)) is Data.ChallengeSpec
+        ;
+    }
+
+    // later, enhance with actual cycle detection
+    // https://github.com/cmu-sei/Gameboard/issues/114
+    internal string DetectCycles(string gameId, string targetId)
+    {
+        if (gameId == targetId)
         {
-            if (model is Entity)
-                return _validate(model as Entity);
-
-            if (model is NewChallengeGate)
-                return _validate(model as NewChallengeGate);
-
-            if (model is ChangedChallengeGate)
-                return _validate(model as ChangedChallengeGate);
-
-
-            throw new System.NotImplementedException();
+            return $"{gameId} => {targetId}";
         }
 
-        private async Task _validate(Entity model)
-        {
-            if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound<ChallengeGate>(model.Id);
-
-            await Task.CompletedTask;
-        }
-
-        private async Task _validate(NewChallengeGate model)
-        {
-            if ((await GameExists(model.GameId)).Equals(false))
-                throw new ResourceNotFound<Game>(model.GameId);
-
-            if ((await SpecExists(model.TargetId)).Equals(false))
-                throw new ResourceNotFound<ChallengeSpec>(model.TargetId, "The target spec");
-
-            if ((await SpecExists(model.RequiredId)).Equals(false))
-                throw new ResourceNotFound<ChallengeSpec>(model.RequiredId, "The required spec");
-
-            await Task.CompletedTask;
-        }
-
-        private async Task _validate(ChangedChallengeGate model)
-        {
-            if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound<ChallengeGate>(model.Id);
-
-            await Task.CompletedTask;
-        }
-
-        private async Task<bool> Exists(string id)
-        {
-            return
-                id.NotEmpty() &&
-                (await _store.Retrieve(id)) is Data.ChallengeGate
-            ;
-        }
-
-        private async Task<bool> GameExists(string id)
-        {
-            return
-                id.NotEmpty() &&
-                (await _store.DbContext.Games.FindAsync(id)) is Data.Game
-            ;
-        }
-
-        private async Task<bool> SpecExists(string id)
-        {
-            return
-                id.NotEmpty() &&
-                (await _store.DbContext.ChallengeSpecs.FindAsync(id)) is Data.ChallengeSpec
-            ;
-        }
-
+        return null;
     }
 }

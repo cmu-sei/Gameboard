@@ -9,6 +9,7 @@ using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Gameboard.Api.Validators;
 using Microsoft.Extensions.Caching.Distributed;
+using Gameboard.Api.ChallengeGates;
 
 namespace Gameboard.Api.Controllers
 {
@@ -22,7 +23,7 @@ namespace Gameboard.Api.Controllers
             IDistributedCache cache,
             ChallengeGateValidator validator,
             ChallengeGateService challengeGateService
-        ): base(logger, cache, validator)
+        ) : base(logger, cache, validator)
         {
             ChallengeGateService = challengeGateService;
         }
@@ -48,7 +49,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("api/challengegate/{id}")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task<ChallengeGate> Retrieve([FromRoute]string id)
+        public async Task<ChallengeGate> Retrieve([FromRoute] string id)
         {
             return await ChallengeGateService.Retrieve(id);
         }
@@ -73,7 +74,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpDelete("/api/challengegate/{id}")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task Delete([FromRoute]string id)
+        public async Task Delete([FromRoute] string id)
         {
             await ChallengeGateService.Delete(id);
             return;
@@ -86,7 +87,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("api/challengegates")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task<ChallengeGate[]> List([FromQuery]string g)
+        public async Task<ChallengeGate[]> List([FromQuery] string g)
         {
             return await ChallengeGateService.List(g);
         }

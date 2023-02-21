@@ -11,12 +11,12 @@ public class PlayerServiceTests
 {
     class PlayerServiceTestable : PlayerService
     {
-        private PlayerServiceTestable(CoreOptions coreOptions, IPlayerStore store, IUserStore userStore, IGameStore gameStore, IMapper mapper, IMemoryCache localCache, ITopoMojoApiClient mojo) : base(coreOptions, store, userStore, gameStore, mapper, localCache, mojo)
+        private PlayerServiceTestable(CoreOptions coreOptions, IPlayerStore store, IUserStore userStore, IGameStore gameStore, IMapper mapper, IMemoryCache localCache, GameEngineService gameEngine) : base(coreOptions, store, userStore, gameStore, mapper, localCache, gameEngine)
         {
         }
 
         // TODO: reflection helper
-        internal static PlayerService GetTestable(CoreOptions? coreOptions = null, IPlayerStore? store = null, IUserStore? userStore = null, IGameStore? gameStore = null, IMapper? mapper = null, IMemoryCache? localCache = null, ITopoMojoApiClient? mojo = null)
+        internal static PlayerService GetTestable(CoreOptions? coreOptions = null, IPlayerStore? store = null, IUserStore? userStore = null, IGameStore? gameStore = null, IMapper? mapper = null, IMemoryCache? localCache = null, GameEngineService? gameEngine = null)
         {
             return new PlayerService
             (
@@ -26,7 +26,7 @@ public class PlayerServiceTests
                 gameStore ?? A.Fake<IGameStore>(),
                 mapper ?? A.Fake<IMapper>(),
                 localCache ?? A.Fake<IMemoryCache>(),
-                mojo ?? A.Fake<ITopoMojoApiClient>()
+                gameEngine ?? A.Fake<GameEngineService>()
             );
         }
     }
