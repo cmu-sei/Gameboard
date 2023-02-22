@@ -2,21 +2,22 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using Gameboard.Api.Auth;
 using Microsoft.AspNetCore.Authentication;
-using Gameboard.Api;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
-    public static class ApiKeyAuthenticationExtensions
+    public static class TicketAuthenticationExtensions
     {
-        public static AuthenticationBuilder AddApiKeyAuthentication(
+        public static AuthenticationBuilder AddTicketAuthentication(
             this AuthenticationBuilder builder,
             string scheme,
-            Action<ApiKeyAuthenticationOptions> options
-        ) {
+            Action<TicketAuthenticationOptions> options
+        )
+        {
 
-            builder.AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
-                scheme ?? ApiKeyAuthentication.AuthenticationScheme,
+            builder.AddScheme<TicketAuthenticationOptions, TicketAuthenticationHandler>(
+                scheme ?? TicketAuthentication.AuthenticationScheme,
                 options
             );
 

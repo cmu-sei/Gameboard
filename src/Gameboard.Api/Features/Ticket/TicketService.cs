@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Services
 {
-    public class TicketService : _Service, IApiKeyAuthenticationService
+    public class TicketService : _Service
     {
         ITicketStore Store { get; }
 
@@ -44,7 +44,6 @@ namespace Gameboard.Api.Services
             entity.Activity = entity.Activity.OrderByDescending(a => a.Timestamp).ToList();
             return Transform(Mapper.Map<Ticket>(entity));
         }
-
 
         public async Task<Ticket> Create(NewTicket model, string actorId, bool sudo, List<UploadFile> uploads)
         {
@@ -297,16 +296,6 @@ namespace Gameboard.Api.Services
             return false;
         }
 
-        public async Task<string> ResolveApiKey(string key)
-        {
-            if (key.IsEmpty())
-                return null;
-
-            var entity = await Store.ResolveApiKey(key.ToSha256());
-
-            return entity?.Id;
-        }
-
         private async Task UpdatedSessionContext(Data.Ticket entity)
         {
             if (!entity.ChallengeId.IsEmpty())
@@ -383,7 +372,5 @@ namespace Gameboard.Api.Services
         {
             return Options.KeyPrefix + "-" + key.ToString();
         }
-
     }
-
 }

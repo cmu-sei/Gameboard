@@ -4,9 +4,10 @@ namespace Gameboard.Tests.Integration.Fixtures;
 
 public static class GameboardTestContextDefaultEntityExtensions
 {
-    private static T BuildEntity<T>(T entity, Action<T>? builder) where T : class, IEntity
+    private static T BuildEntity<T>(T entity, Action<T>? builder = null, Action<T>? cleanUp = null) where T : class, IEntity
     {
         builder?.Invoke(entity);
+        cleanUp?.Invoke(entity);
         return entity;
     }
 
@@ -28,6 +29,17 @@ public static class GameboardTestContextDefaultEntityExtensions
                 R = 1
             },
             specBuilder
+        );
+
+    public static Challenge BuildChallenge(this IDataStateBuilder dataStateBuilder, Action<Challenge>? challengeBuilder = null)
+        => BuildEntity
+        (
+            new Challenge
+            {
+                Id = TestIds.Generate(),
+                Name = "Integration Test Challenge",
+            },
+            challengeBuilder
         );
 
     public static void AddGame(this IDataStateBuilder dataStateBuilder, Action<Game>? gameBuilder = null)
@@ -57,7 +69,11 @@ public static class GameboardTestContextDefaultEntityExtensions
         => dataStateBuilder.Add(BuildPlayer(dataStateBuilder, playerBuilder));
 
     public static Player BuildPlayer(this IDataStateBuilder dataStateBuilder, Action<Player>? playerBuilder = null)
-        => BuildEntity
+    {
+        // TODO: this is potentially urky if the testing dev sets userid but not user's id
+        var userId = TestIds.Generate();
+
+        return BuildEntity
         (
             new Player
             {
@@ -66,11 +82,77 @@ public static class GameboardTestContextDefaultEntityExtensions
                 ApprovedName = "Integration Test Player",
                 Sponsor = "Integration Test Sponsor",
                 Role = Gameboard.Api.PlayerRole.Manager,
-                Game = BuildGame(dataStateBuilder),
-                User = BuildUser(dataStateBuilder)
+                User = new User { Id = userId },
+                UserId = userId
             },
             playerBuilder
         );
+    }
+
+    public static TeamBuilderResult AddTeam(this IDataStateBuilder dataStateBuilder, IFixture fixture, Action<TeamBuilderOptions> optsBuilder)
+    {
+        var options = new TeamBuilderOptions
+        {
+            Name = fixture.Create<string>(),
+            NumPlayers = 5,
+            GameBuilder = g => { },
+            TeamId = fixture.Create<string>()
+        };
+
+        optsBuilder.Invoke(options);
+
+        // fill out properties
+        var teamName = string.IsNullOrEmpty(options.Name) ? fixture.Create<string>() : options.Name;
+
+        var game = new Api.Data.Game
+        {
+            Id = fixture.Create<string>(),
+            // just to avoid obnoxious overconfig on the other end
+            RegistrationClose = DateTimeOffset.UtcNow.AddYears(1),
+            RegistrationOpen = DateTimeOffset.UtcNow.AddYears(-1),
+            RegistrationType = Api.GameRegistrationType.Open
+        };
+
+        options.GameBuilder?.Invoke(game);
+
+        var challenge = new Api.Data.Challenge
+        {
+            Id = fixture.Create<string>(),
+            Game = game,
+            TeamId = options.TeamId
+        };
+
+        // create players
+        var players = new List<Player>();
+
+        for (var i = 0; i < options.NumPlayers; i++)
+        {
+            var createManager = i == 0;
+            var player = new Player
+            {
+                Id = fixture.Create<string>(),
+                ApprovedName = teamName,
+                Name = teamName,
+                Role = createManager ? Api.PlayerRole.Manager : Api.PlayerRole.Member,
+                TeamId = options.TeamId,
+                User = new User { Id = fixture.Create<string>() },
+                Challenges = new List<Api.Data.Challenge> { challenge },
+                Game = game
+            };
+
+            players.Add(player);
+        }
+
+        // Add entities
+        dataStateBuilder.AddRange(players);
+
+        return new TeamBuilderResult
+        {
+            TeamId = options.TeamId,
+            Manager = players.Single(p => p.Role == Api.PlayerRole.Manager),
+            Players = players,
+        };
+    }
 
     public static void AddUser(this IDataStateBuilder dataStateBuilder, Action<User>? userBuilder = null)
         => dataStateBuilder.Add(BuildUser(dataStateBuilder, userBuilder));
@@ -90,4 +172,19 @@ public static class GameboardTestContextDefaultEntityExtensions
             },
             userBuilder
         );
+
+    public static IEnumerable<Player> BuildTeam(this IDataStateBuilder builder, int teamSize = 5, Action<Player>? playerBuilder = null)
+    {
+        var team = new List<Player>();
+        var teamId = TestIds.Generate();
+
+        for (var i = 0; i < teamSize; i++)
+        {
+            var player = BuildPlayer(builder, p => p.TeamId = teamId);
+            playerBuilder?.Invoke(player);
+            team.Add(player);
+        }
+
+        return team;
+    }
 }

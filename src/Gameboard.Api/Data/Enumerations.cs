@@ -60,4 +60,9 @@ namespace Gameboard.Api
         AssigneeChange
     }
 
+    public enum GameEngineType
+    {
+        TopoMojo,
+        Crucible
+    }
 }

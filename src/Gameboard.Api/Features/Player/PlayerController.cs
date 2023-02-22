@@ -5,12 +5,10 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Features.Player;
-using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 
@@ -20,33 +18,34 @@ namespace Gameboard.Api.Controllers
     public class PlayerController : _Controller
     {
         PlayerService PlayerService { get; }
-        IHubContext<AppHub, IAppHubEvent> Hub { get; }
+        IInternalHubBus Hub { get; }
         IMapper Mapper { get; }
-
-        private readonly CoreOptions _coreOptions;
+        ITeamService TeamService { get; set; }
 
         public PlayerController(
             ILogger<PlayerController> logger,
             IDistributedCache cache,
             PlayerValidator validator,
             PlayerService playerService,
-            IHubContext<AppHub, IAppHubEvent> hub,
-            IMapper mapper
+            IInternalHubBus hub,
+            IMapper mapper,
+            ITeamService teamService
         ) : base(logger, cache, validator)
         {
             PlayerService = playerService;
             Hub = hub;
             Mapper = mapper;
+            TeamService = teamService;
         }
 
         /// <summary>
-        /// Create new player
+        /// Enrolls a user in a game.
         /// </summary>
         /// <param name="model"></param>
-        /// <returns></returns>
+        /// <returns>A player record which represents an instance of the user playing a given game.</returns>
         [HttpPost("api/player")]
         [Authorize]
-        public async Task<Player> Register([FromBody] NewPlayer model)
+        public async Task<Player> Enroll([FromBody] NewPlayer model)
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
@@ -54,8 +53,7 @@ namespace Gameboard.Api.Controllers
             );
 
             await Validate(model);
-
-            return await PlayerService.Register(model, Actor.IsRegistrar);
+            return await PlayerService.Enroll(model, Actor);
         }
 
         /// <summary>
@@ -92,13 +90,22 @@ namespace Gameboard.Api.Controllers
                 () => IsSelf(model.Id).Result
             );
 
-            var result = await PlayerService.Update(model, Actor.IsRegistrar);
+            var result = await PlayerService.Update(model, Actor, Actor.IsRegistrar);
+            return Mapper.Map<PlayerUpdatedViewModel>(result);
+        }
 
-            await Hub.Clients.Group(result.TeamId).TeamEvent(
-                new HubEvent<TeamState>(Mapper.Map<TeamState>(result), EventAction.Updated)
+        [HttpDelete("api/player/{playerId}/session")]
+        [Authorize]
+        public async Task<Player> ResetSession([FromRoute] string playerId, [FromQuery] bool asAdmin = false)
+        {
+            AuthorizeAny(
+                () => Actor.IsAdmin,
+                () => PlayerService.MapId(playerId).Result == Actor.Id
             );
 
-            return Mapper.Map<PlayerUpdatedViewModel>(result);
+            var request = new SessionResetRequest { PlayerId = playerId, Actor = Actor, AsAdmin = asAdmin };
+            await Validate(request);
+            return await PlayerService.ResetSession(request);
         }
 
         /// <summary>
@@ -117,69 +124,52 @@ namespace Gameboard.Api.Controllers
                 () => IsSelf(model.TeamId).Result
             );
 
-            var result = await PlayerService.AdjustSessionEnd(model);
-
-            await Hub.Clients.Group(result.TeamId).TeamEvent(
-                new HubEvent<TeamState>(Mapper.Map<TeamState>(result), EventAction.Updated)
-            );
+            await PlayerService.AdjustSessionEnd(model, Actor);
         }
 
         /// <summary>
         /// Start player/team session
         /// </summary>
-        /// <param name="model"></param>
+        /// <param name="playerId"></param>
         /// <returns></returns>
-        [HttpPut("api/player/start")]
+        [HttpPut("api/player/{playerId}/start")]
         [Authorize]
-        public async Task<Player> Start([FromBody] SessionStartRequest model)
+        public async Task<Player> Start(string playerId)
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
-                () => IsSelf(model.Id).Result
+                () => IsSelf(playerId).Result
             );
 
-            await Validate(model);
-
-            var result = await PlayerService.Start(model, Actor.IsRegistrar);
-
-            await Hub.Clients.Group(result.TeamId).TeamEvent(
-                new HubEvent<TeamState>(Mapper.Map<TeamState>(result), EventAction.Started)
-            );
-
-            return result;
+            var sessionStartRequest = new SessionStartRequest { PlayerId = playerId };
+            await Validate(sessionStartRequest);
+            return await PlayerService.StartSession(sessionStartRequest, Actor, Actor.IsRegistrar);
         }
 
         /// <summary>
         /// Delete a player enrollment
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="playerId"></param>
+        /// <param name="asAdmin"></param>
         /// <returns></returns>
-        [HttpDelete("/api/player/{id}")]
+        [HttpDelete("/api/player/{playerId}")]
         [Authorize]
-        public async Task Delete([FromRoute] string id)
+        public async Task Unenroll([FromRoute] string playerId, [FromQuery] bool asAdmin = false)
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
-                () => IsSelf(id).Result
+                () => IsSelf(playerId).Result
             );
 
-            await Validate(new Entity { Id = id });
-
-            var player = await PlayerService.Delete(id, Actor.IsRegistrar);
-
-            await Hub.Clients.Group(player.TeamId).PresenceEvent(
-                new HubEvent<TeamPlayer>(Mapper.Map<TeamPlayer>(player), EventAction.Deleted)
-            );
-
-            if (player.IsManager)
+            var unenrollRequest = new PlayerUnenrollRequest
             {
-                await Hub.Clients.Group(player.TeamId).TeamEvent(
-                    new HubEvent<TeamState>(
-                        new TeamState { TeamId = player.TeamId },
-                        EventAction.Deleted
-                    )
-                );
-            }
+                Actor = Actor,
+                PlayerId = playerId,
+                AsAdmin = asAdmin
+            };
+
+            await Validate(unenrollRequest);
+            await PlayerService.Unenroll(unenrollRequest);
         }
 
         /// <summary>
@@ -213,15 +203,33 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
-        /// Get Player Team
+        /// Get team data by id
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="id">The id of the team to be queried.</param>
         /// <returns>Team</returns>
         [HttpGet("/api/team/{id}")]
         [Authorize]
         public async Task<Team> GetTeam([FromRoute] string id)
         {
-            return await PlayerService.LoadTeam(id, Actor.IsObserver || Actor.IsDirector);
+            return await PlayerService.LoadTeam(id);
+        }
+
+        /// <summary>
+        /// Load active challenge data for a team.
+        /// </summary>
+        /// <param name="id">The id of the team who owns the challenges</param>
+        /// <returns>An array of challenge entries.</returns>
+        [HttpGet("/api/team/{id}/challenges")]
+        [Authorize]
+        public async Task<IEnumerable<TeamChallenge>> GetTeamChallenges([FromRoute] string id)
+        {
+            AuthorizeAny(
+                () => Actor.IsAdmin,
+                () => Actor.IsDirector,
+                () => Actor.IsObserver
+            );
+
+            return await PlayerService.LoadChallengesForTeam(id);
         }
 
         /// <summary>
@@ -319,8 +327,31 @@ namespace Gameboard.Api.Controllers
             );
 
             await Validate(model);
+            return await PlayerService.Enlist(model, Actor);
+        }
 
-            return await PlayerService.Enlist(model, Actor.IsRegistrar);
+        [HttpPut("/api/team/{teamId}/manager/{playerId}")]
+        [Authorize]
+        public async Task PromoteToManager(string teamId, string playerId, [FromBody] PromoteToManagerRequest promoteRequest)
+        {
+            AuthorizeAny(
+                () => Actor.IsRegistrar,
+                () => PlayerService.Retrieve(promoteRequest.CurrentManagerPlayerId).Result.UserId == Actor.Id
+            );
+
+            // TODO: kinda yuck. we're only really counting on the caller for AsAdmin (which we're not using yet)
+            // and CurrentManagerPlayerId, and we're ignoring whatever else they pass, but still a bit iffy
+            var model = new PromoteToManagerRequest
+            {
+                Actor = Actor,
+                AsAdmin = promoteRequest.AsAdmin,
+                CurrentManagerPlayerId = promoteRequest.CurrentManagerPlayerId,
+                NewManagerPlayerId = playerId,
+                TeamId = teamId
+            };
+
+            await Validate(model);
+            await TeamService.PromoteCaptain(teamId, playerId, Actor);
         }
 
         /// <summary>
@@ -347,7 +378,7 @@ namespace Gameboard.Api.Controllers
         /// <returns> </returns>
         [HttpGet("/api/certificates")]
         [Authorize]
-        public async Task<PlayerCertificate[]> GetCertificates()
+        public async Task<IEnumerable<PlayerCertificate>> GetCertificates()
         {
             return await PlayerService.MakeCertificates(Actor.Id);
         }

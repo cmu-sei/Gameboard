@@ -13,6 +13,11 @@ namespace Gameboard.Api
         internal GameboardException(string message, Exception innerException) : base(message, innerException) { }
     }
 
+    internal class AdminImpersonationFail : GameboardException
+    {
+        internal AdminImpersonationFail(string userId, UserRole roles) : base($"Acting user {userId} attempted to execute this request as an admin but is not one (roles: {roles})") { }
+    }
+
     internal class AlreadyRegistered : GameboardException
     {
         internal AlreadyRegistered(string userId, string gameId) : base($"Player {userId} is already registered for game {gameId}.") { }
@@ -82,12 +87,11 @@ namespace Gameboard.Api
     public class InvalidTeamSize : Exception { }
     public class InvalidConsoleAction : Exception { }
     public class AlreadyExists : Exception { }
-    public class GamespaceLimitReached : Exception { }
     public class ChallengeLocked : Exception { }
     public class ChallengeStartPending : Exception { }
-    public class SessionAlreadyStarted : Exception { }
+    public class GamespaceLimitReached : Exception { }
     public class InvalideFeedbackFormat : Exception { }
-    public class MissingRequiredField : Exception { }
     public class PlayerIsntOnTeam : Exception { }
     public class InvalidPlayerMode : Exception { }
+    public class MissingRequiredField : Exception { }
 }
