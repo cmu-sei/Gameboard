@@ -93,7 +93,7 @@ public class UnityGameController : _Controller
             () => _gameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
         );
 
-        return await _gamebrainService.UndeployUnitySpace(gid, tid);
+        return await _unityGameService.UndeployGame(gid, tid);
     }
 
     /// <summary>
@@ -106,7 +106,8 @@ public class UnityGameController : _Controller
     public async Task<ActionResult<Data.Challenge>> CreateChallenge([FromBody] NewUnityChallenge model)
     {
         AuthorizeAny(
-            () => _gameService.UserIsTeamPlayer(Actor.Id, model.GameId, model.TeamId).Result
+            () => _gameService.UserIsTeamPlayer(Actor.Id, model.GameId, model.TeamId).Result,
+            () => Actor.IsAdmin
         );
 
         await Validate(model);
@@ -160,7 +161,7 @@ public class UnityGameController : _Controller
         // notify the hub (if there is one)
         await _hub.Clients
             .Group(model.TeamId)
-            .ChallengeEvent(new HubEvent<Challenge>(_mapper.Map<Challenge>(challengeData), EventAction.Updated));
+            .ChallengeEvent(new HubEvent<Challenge>(_mapper.Map<Challenge>(challengeData), EventAction.Updated, HubEventActingUserDescription.FromUser(Actor)));
 
         return Ok(_mapper.Map<UnityGameChallengeViewModel>(challengeData));
     }

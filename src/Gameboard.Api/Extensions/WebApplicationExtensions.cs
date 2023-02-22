@@ -34,6 +34,11 @@ internal static class WebApplicationExtensions
         app.UseFileProtection();
         app.UseStaticFiles();
 
+        if (settings.Logging.EnableHttpLogging)
+        {
+            app.UseHttpLogging();
+        }
+
         if (settings.OpenApi.Enabled)
             app.UseConfiguredSwagger(settings.OpenApi, settings.Oidc.Audience, settings.PathBase);
 

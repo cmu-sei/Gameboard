@@ -25,6 +25,12 @@ namespace Gameboard.Api
         Manager
     }
 
+    public enum PlayerMode
+    {
+        Competition,
+        Practice
+    }
+
     public enum GameRegistrationType
     {
         None,
@@ -54,4 +60,9 @@ namespace Gameboard.Api
         AssigneeChange
     }
 
+    public enum GameEngineType
+    {
+        TopoMojo,
+        Crucible
+    }
 }

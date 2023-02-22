@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data.Abstractions
 {
@@ -13,7 +12,7 @@ namespace Gameboard.Api.Data.Abstractions
         where TEntity : class, IEntity
     {
         GameboardDbContext DbContext { get; }
-        DbSet<TEntity> DbSet { get; }
+        IQueryable<TEntity> DbSet { get; }
 
         IQueryable<TEntity> List(string term = null);
         Task<TEntity> Create(TEntity entity);
@@ -23,5 +22,6 @@ namespace Gameboard.Api.Data.Abstractions
         Task Update(TEntity entity);
         Task Update(IEnumerable<TEntity> range);
         Task Delete(string id);
+        Task<int> CountAsync(Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder = null);
     }
 }

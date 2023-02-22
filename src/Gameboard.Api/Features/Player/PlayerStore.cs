@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data
 {
-
     public class PlayerStore : Store<Player>, IPlayerStore
     {
         public PlayerStore(GameboardDbContext dbContext)
@@ -22,13 +21,16 @@ namespace Gameboard.Api.Data
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
 
-        public async Task<Player[]> ListTeam(string id) =>
-            await base.List()
-                    .AsNoTracking()
-                    .Include(player => player.User)
-                    .Include(player => player.Game)
-                    .Where(p => p.TeamId == id)
-                    .ToArrayAsync();
+        public IQueryable<Player> ListTeam(string id) =>
+            base.List()
+                .Include(player => player.User)
+                .Include(player => player.Game)
+                .Where(p => p.TeamId == id);
+
+        public async Task DeleteTeam(string teamId) => await DbContext
+            .Players
+            .Where(p => p.TeamId == teamId)
+            .ExecuteDeleteAsync();
 
         public async Task<Player[]> ListTeamByPlayer(string id)
         {
@@ -36,25 +38,20 @@ namespace Gameboard.Api.Data
 
             return await base.List()
                 .Where(p => p.TeamId == player.TeamId)
-                .ToArrayAsync()
-            ;
+                .ToArrayAsync();
         }
 
         public async Task<Challenge[]> ListTeamChallenges(string id)
-        {
-            var challengeEvents = await DbContext.Challenges
+            => await DbContext.Challenges
                 .AsNoTracking()
                 .Include(c => c.Events)
-                .ToListAsync();
-
-            return challengeEvents.Where(c => c.TeamId == id).ToArray();
-        }
+                .Where(c => c.TeamId == id)
+                .ToArrayAsync();
 
         public async Task<User> GetUserEnrollments(string id)
             => await DbContext.Users
                 .Include(u => u.Enrollments)
                 .FirstOrDefaultAsync(u => u.Id == id);
-
 
         public async Task<Player> LoadBoard(string id)
         {
@@ -64,11 +61,12 @@ namespace Gameboard.Api.Data
                 .Include(p => p.Game)
                     .ThenInclude(g => g.Prerequisites)
                 .Include(p => p.Challenges).ThenInclude(c => c.Events)
-                .FirstOrDefaultAsync(p => p.Id == id)
-            ;
+                .FirstOrDefaultAsync(p => p.Id == id);
 
             if (result.Game.AllowTeam)
-                result.Challenges = await DbContext.Challenges.AsNoTracking()
+                result.Challenges = await DbContext
+                    .Challenges
+                    .AsNoTracking()
                     .Include(c => c.Events)
                     .Where(c => c.TeamId == result.TeamId)
                     .ToArrayAsync();

@@ -5,10 +5,9 @@ using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using Gameboard.Api.Extensions;
+using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 // expose internals for unit test mocking
@@ -16,8 +15,11 @@ using Microsoft.Extensions.Logging;
 
 // set logging properties
 Console.Title = "Gameboard";
+var startupLogger = new StartupLogger("Startup", () => new ColorConsoleLoggerConfiguration());
+startupLogger.LogInformation("Welcome to Gameboard!");
 
 // load and resolve settings
+startupLogger.LogInformation("Configuring Gameboard app...");
 var envname = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 var path = Environment.GetEnvironmentVariable("APPSETTINGS_PATH") ?? "./conf/appsettings.conf";
 ConfToEnv.Load("appsettings.conf");
@@ -28,7 +30,7 @@ ConfToEnv.Load(path);
 var builder = WebApplication.CreateBuilder(args);
 
 // load settings and configure services
-var settings = builder.BuildAppSettings();
+var settings = builder.BuildAppSettings(startupLogger);
 builder.ConfigureServices(settings);
 
 // launch db if db only
@@ -50,12 +52,12 @@ if (dbOnly)
 
 // build and configure app
 var app = builder.Build();
-app.Logger.LogInformation("Configuring Gameboard app...");
 app
     .InitializeDatabase(app.Logger)
     .ConfigureGameboard(settings);
 
 // start!
+startupLogger.LogInformation("Let the games begin!");
 app.Run();
 
 // required for integration tests

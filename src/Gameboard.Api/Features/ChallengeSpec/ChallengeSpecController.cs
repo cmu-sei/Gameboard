@@ -101,5 +101,17 @@ namespace Gameboard.Api.Controllers
         {
             await ChallengeSpecService.Sync(id);
         }
+
+        /// <summary>
+        /// Find challengespecs
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpGet("/api/practice")]
+        [AllowAnonymous]
+        public async Task<ChallengeSpecSummary[]> Browse([FromQuery] SearchFilter model)
+        {
+            return await ChallengeSpecService.Browse(model);
+        }
     }
 }

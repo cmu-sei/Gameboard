@@ -11,9 +11,7 @@ namespace Gameboard.Api.Validators
     {
         private readonly IChallengeStore _store;
 
-        public ChallengeValidator(
-            IChallengeStore store
-        )
+        public ChallengeValidator(IChallengeStore store)
         {
             _store = store;
         }
@@ -53,6 +51,7 @@ namespace Gameboard.Api.Validators
 
             var player = await _store.DbContext.Players.FindAsync(model.PlayerId);
 
+            // TODO: consider allowing after session for preview
             if (player.IsLive.Equals(false))
                 throw new SessionNotActive(player.Id);
 
@@ -62,7 +61,6 @@ namespace Gameboard.Api.Validators
                 throw new ActionForbidden();
 
             // Note: not checking "already exists" since this is used idempotently
-
             await Task.CompletedTask;
         }
 

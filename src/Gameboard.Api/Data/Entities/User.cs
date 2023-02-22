@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Gameboard.Api.Data
 {
@@ -15,10 +16,14 @@ namespace Gameboard.Api.Data
         public string ApprovedName { get; set; }
         public string Sponsor { get; set; }
         public UserRole Role { get; set; }
-        public ICollection<Player> Enrollments { get; set; } = new List<Player>();
 
-        // Control delete behavior with relationships
+        // this is really a public key, but no sense in sending it down
+        [JsonIgnore]
+        public string ApiKeyOwnerId { get; set; }
+
+        // relational properties
+        public ICollection<ApiKey> ApiKeys { get; set; } = new List<ApiKey>();
+        public ICollection<Player> Enrollments { get; set; } = new List<Player>();
         public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
     }
-
 }

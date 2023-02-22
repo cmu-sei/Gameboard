@@ -1,7 +1,5 @@
-# See http://help.github.com/ignore-files/ for more about ignoring files.
 zzz/
 appsettings.Development.*
-.vscode/
 .vs/
 
 # compiled output
@@ -26,14 +24,6 @@ chrome-profiler-events*.json
 .settings/
 *.sublime-workspace
 
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-.history/*
-
 # misc
 /.sass-cache
 /connect.lock
@@ -47,3 +37,6 @@ testem.log
 # System Files
 .DS_Store
 Thumbs.db
+
+# vs code launch (allow for end dev customization)
+.vscode/launch.json

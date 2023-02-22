@@ -11,9 +11,7 @@ namespace Gameboard.Api.Validators
     {
         private readonly IChallengeStore _store;
 
-        public ChallengeSpecValidator(
-            IChallengeStore store
-        )
+        public ChallengeSpecValidator(IChallengeStore store)
         {
             _store = store;
         }
@@ -29,7 +27,7 @@ namespace Gameboard.Api.Validators
             if (model is ChangedChallengeSpec)
                 return _validate(model as ChangedChallengeSpec);
 
-            throw new System.NotImplementedException();
+            throw new ValidationTypeFailure<ChallengeSpecValidator>(model.GetType());
         }
 
         private async Task _validate(Entity model)
