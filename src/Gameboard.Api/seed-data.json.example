@@ -1,0 +1,11 @@
+{
+    "Users": [
+        {
+            "id": "dad0b62b-4dc4-4763-a599-deff5211d897",
+            "username": "ben",
+            "email": "ben@seeded.com",
+            "approvedName": "Ben, a new admin",
+            "role": 127
+        }
+    ]
+}
