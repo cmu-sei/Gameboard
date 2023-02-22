@@ -61,8 +61,7 @@ namespace Gameboard.Api.Data
             {
                 var query = includes(DbContext.Set<TEntity>());
                 return await query
-                    .Where(e => e.Id == id)
-                    .SingleOrDefaultAsync();
+                    .FirstOrDefaultAsync(e => e.Id == id);
             }
 
             return await DbContext.Set<TEntity>().FindAsync(id);

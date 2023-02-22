@@ -8,7 +8,8 @@ namespace Gameboard.Api.Hubs
     public interface IAppHubEvent
     {
         Task Announcement(HubEvent<Announcement> ev);
-        Task PresenceEvent(HubEvent<TeamPlayer> ev);
+        Task PlayerEvent(HubEvent<TeamPlayer> ev);
+        // Task PresenceEvent(HubEvent<TeamPlayer> ev);
         Task TeamEvent(HubEvent<TeamState> ev);
         Task ChallengeEvent(HubEvent<Challenge> challenge);
         Task TicketEvent(HubEvent<TicketNotification> ev);
@@ -18,7 +19,5 @@ namespace Gameboard.Api.Hubs
     {
         Task Listen(string id);
         Task Leave();
-        Task Greet();
     }
-
 }

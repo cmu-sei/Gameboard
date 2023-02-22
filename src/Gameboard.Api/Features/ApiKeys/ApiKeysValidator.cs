@@ -35,8 +35,8 @@ public class ApiKeysValidator : IModelValidator
         if (string.IsNullOrWhiteSpace(model.Name))
             throw new ApiKeyNoName();
 
-        if (model.ExpiresOn.HasValue && model.ExpiresOn < _now.Now())
-            throw new IllegalApiKeyExpirationDate(model.ExpiresOn.GetValueOrDefault(), _now.Now());
+        if (model.ExpiresOn.HasValue && model.ExpiresOn < _now.Get())
+            throw new IllegalApiKeyExpirationDate(model.ExpiresOn.GetValueOrDefault(), _now.Get());
 
         await _userValidator.Validate(new Entity { Id = model.UserId });
     }

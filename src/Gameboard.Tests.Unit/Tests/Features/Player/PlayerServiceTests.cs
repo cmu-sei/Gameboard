@@ -1,6 +1,7 @@
 using AutoMapper;
 using Gameboard.Api;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Player;
 using Gameboard.Api.Services;
 using Microsoft.Extensions.Caching.Memory;
 using TopoMojo.Api.Client;
@@ -11,19 +12,42 @@ public class PlayerServiceTests
 {
     class PlayerServiceTestable : PlayerService
     {
-        private PlayerServiceTestable(CoreOptions coreOptions, IPlayerStore store, IUserStore userStore, IGameStore gameStore, IMapper mapper, IMemoryCache localCache, GameEngineService gameEngine) : base(coreOptions, store, userStore, gameStore, mapper, localCache, gameEngine)
+        private PlayerServiceTestable(
+            CoreOptions coreOptions,
+            ChallengeService challengeService,
+            IPlayerStore store,
+            IUserStore userStore,
+            IGameStore gameStore,
+            IInternalHubBus hubBus,
+            ITeamService teamService,
+            IMapper mapper,
+            IMemoryCache localCache,
+            GameEngineService gameEngine) : base(coreOptions, challengeService, store, userStore, gameStore, hubBus, teamService, mapper, localCache, gameEngine)
         {
         }
 
         // TODO: reflection helper
-        internal static PlayerService GetTestable(CoreOptions? coreOptions = null, IPlayerStore? store = null, IUserStore? userStore = null, IGameStore? gameStore = null, IMapper? mapper = null, IMemoryCache? localCache = null, GameEngineService? gameEngine = null)
+        internal static PlayerService GetTestable(
+            CoreOptions? coreOptions = null,
+            ChallengeService? challengeService = null,
+            IPlayerStore? store = null,
+            IUserStore? userStore = null,
+            IGameStore? gameStore = null,
+            IInternalHubBus? hubBus = null,
+            ITeamService? teamService = null,
+            IMapper? mapper = null,
+            IMemoryCache? localCache = null,
+            GameEngineService? gameEngine = null)
         {
             return new PlayerService
             (
                 coreOptions ?? A.Fake<CoreOptions>(),
+                challengeService ?? A.Fake<ChallengeService>(),
                 store ?? A.Fake<IPlayerStore>(),
                 userStore ?? A.Fake<IUserStore>(),
                 gameStore ?? A.Fake<IGameStore>(),
+                hubBus ?? A.Fake<IInternalHubBus>(),
+                teamService ?? A.Fake<ITeamService>(),
                 mapper ?? A.Fake<IMapper>(),
                 localCache ?? A.Fake<IMemoryCache>(),
                 gameEngine ?? A.Fake<GameEngineService>()

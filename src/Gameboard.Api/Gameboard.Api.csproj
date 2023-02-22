@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Gameboard.Tests.Integration" />
     <InternalsVisibleTo Include="Gameboard.Tests.Unit" />
   </ItemGroup>
 

@@ -2,10 +2,10 @@ using System;
 
 public interface INowService
 {
-    DateTimeOffset Now();
+    public DateTimeOffset Get();
 }
 
 internal class NowService : INowService
 {
-    public DateTimeOffset Now() => DateTimeOffset.UtcNow;
+    public DateTimeOffset Get() => DateTimeOffset.UtcNow;
 }

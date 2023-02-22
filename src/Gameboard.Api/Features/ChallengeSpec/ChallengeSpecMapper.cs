@@ -12,13 +12,9 @@ namespace Gameboard.Api.Services
         public ChallengeSpecMapper()
         {
             CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
-
             CreateMap<Data.ChallengeSpec, ChallengeSpec>();
-
             CreateMap<Data.ChallengeSpec, BoardSpec>();
-
             CreateMap<NewChallengeSpec, Data.ChallengeSpec>();
-
             CreateMap<ChangedChallengeSpec, Data.ChallengeSpec>();
 
             CreateMap<WorkspaceSummary, ExternalSpec>()

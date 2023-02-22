@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data
 {
-
     public class PlayerStore : Store<Player>, IPlayerStore
     {
         public PlayerStore(GameboardDbContext dbContext)
@@ -21,6 +20,11 @@ namespace Gameboard.Api.Data
                 .Include(p => p.User)
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
+
+        public async Task DeleteTeam(string teamId) => await DbContext
+            .Players
+            .Where(p => p.TeamId == teamId)
+            .ExecuteDeleteAsync();
 
         public async Task<Player[]> ListTeamByPlayer(string id)
         {

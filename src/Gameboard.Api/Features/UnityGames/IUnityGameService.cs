@@ -14,4 +14,5 @@ public interface IUnityGameService
     Regex GetMissionCompleteEventRegex();
     string GetMissionCompleteDefinitionString(string missionId);
     string GetUnityModeString();
+    Task<string> UndeployGame(string gameId, string teamId);
 }

@@ -19,8 +19,9 @@ namespace Gameboard.Api.Hubs
     {
         ILogger Logger { get; }
         IPlayerStore PlayerStore { get; }
-        IMapper Mapper { get; }
-        const string ContextPlayerKey = "player";
+        internal static string ContextPlayerKey = "player";
+
+        private readonly IMapper _mapper;
 
         public AppHub(
             ILogger<AppHub> logger,
@@ -30,7 +31,7 @@ namespace Gameboard.Api.Hubs
         {
             Logger = logger;
             PlayerStore = playerStore;
-            Mapper = mapper;
+            _mapper = mapper;
         }
 
         public override Task OnConnectedAsync()
@@ -44,38 +45,37 @@ namespace Gameboard.Api.Hubs
             Logger.LogDebug($"Session Disconnected: {Context.ConnectionId}");
 
             await base.OnDisconnectedAsync(ex);
-
             await Leave();
+            await base.OnDisconnectedAsync(ex);
         }
 
         public async Task Listen(string teamId)
         {
-            await Leave();
+            if (string.IsNullOrEmpty(teamId))
+                return;
 
             if (Context.User.IsInRole(UserRole.Support.ToString()))
                 await Groups.AddToGroupAsync(Context.ConnectionId, AppConstants.InternalSupportChannel);
 
             // ensure the player is on the right team
-            var teamPlayers = await PlayerStore.ListTeam(teamId);
-            var player = teamPlayers.FirstOrDefault(p => p.UserId == Context.UserIdentifier);
+            var players = await PlayerStore.ListTeam(teamId);
+            var player = players.FirstOrDefault(p => p.UserId == Context.UserIdentifier);
 
             if (player == null)
-            {
                 throw new PlayerIsntOnTeam();
-            }
 
             if (Context.Items[ContextPlayerKey] != null)
-            {
                 Context.Items.Remove(ContextPlayerKey);
-            }
 
-            var teamPlayer = Mapper.Map<TeamPlayer>(player);
             Context.Items.Add(ContextPlayerKey, player);
 
-            // add to group and broadcast
+            // project, add to group, and broadcast
+            var teamPlayer = _mapper.Map<TeamPlayer>(player);
+
             await Groups.AddToGroupAsync(Context.ConnectionId, player.TeamId);
-            await Clients.OthersInGroup(player.TeamId).PresenceEvent(
-                new HubEvent<TeamPlayer>(teamPlayer, EventAction.Arrived)
+
+            await Clients.OthersInGroup(player.TeamId).PlayerEvent(
+                new HubEvent<TeamPlayer>(teamPlayer, EventAction.Arrived, GetApiUser())
             );
         }
 
@@ -111,8 +111,8 @@ namespace Gameboard.Api.Hubs
                 tasks = new Task[] {
                     Groups.RemoveFromGroupAsync(Context.ConnectionId, player.TeamId),
                     Groups.RemoveFromGroupAsync(Context.ConnectionId, AppConstants.InternalSupportChannel),
-                    Clients.OthersInGroup(player.TeamId).PresenceEvent(
-                        new HubEvent<TeamPlayer>(player, EventAction.Departed)
+                    Clients.OthersInGroup(player.TeamId).PlayerEvent(
+                        new HubEvent<TeamPlayer>(player, EventAction.Departed, GetApiUser())
                     )
                 };
 
@@ -122,16 +122,15 @@ namespace Gameboard.Api.Hubs
             return Task.WhenAll(tasks);
         }
 
-        public Task Greet()
+        private HubEventActingUserDescription GetApiUser()
         {
-            var player = Context.Items[ContextPlayerKey] as TeamPlayer;
+            if (Context.Items.Keys.Contains(ContextPlayerKey))
+            {
+                var player = Context.Items[ContextPlayerKey] as Data.Player;
+                return _mapper.Map<HubEventActingUserDescription>(player.User);
+            }
 
-            if (player is null)
-                return Task.CompletedTask;
-
-            return Clients.OthersInGroup(player.TeamId).PresenceEvent(
-                new HubEvent<TeamPlayer>(player, EventAction.Greeted)
-            );
+            return null;
         }
     }
 }

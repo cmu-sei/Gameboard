@@ -13,6 +13,9 @@ namespace Gameboard.Api
 {
     public class JsonExceptionMiddleware
     {
+        private readonly RequestDelegate _next;
+        private readonly ILogger<JsonExceptionMiddleware> _logger;
+
         public JsonExceptionMiddleware(
             RequestDelegate next,
             ILogger<JsonExceptionMiddleware> logger
@@ -21,12 +24,11 @@ namespace Gameboard.Api
             _next = next;
             _logger = logger;
         }
-        private readonly RequestDelegate _next;
-        private readonly ILogger<JsonExceptionMiddleware> _logger;
 
         public async Task Invoke(HttpContext context)
         {
-            try {
+            try
+            {
                 await _next(context);
             }
             catch (Exception ex)
@@ -39,7 +41,7 @@ namespace Gameboard.Api
                     string message = "Error";
                     Type type = ex.GetType();
 
-                    if (ex.GetType().Name.EndsWith("ApiException"))
+                    if (ex.GetType().IsAssignableFrom(typeof(GameboardException)))
                     {
                         context.Response.StatusCode = 400;
                         message = ex.Message;
@@ -48,7 +50,8 @@ namespace Gameboard.Api
                     if (
                         ex is System.InvalidOperationException
                         || type.Namespace.StartsWith("Gameboard")
-                    ) {
+                    )
+                    {
                         context.Response.StatusCode = 400;
                         message = type.Name
                             .Split('.')
@@ -69,9 +72,7 @@ namespace Microsoft.AspNetCore.Builder
 {
     public static class JsonExceptionStartupExtensions
     {
-        public static IApplicationBuilder UseJsonExceptions (
-            this IApplicationBuilder builder
-        )
+        public static IApplicationBuilder UseJsonExceptions(this IApplicationBuilder builder)
         {
             return builder.UseMiddleware<JsonExceptionMiddleware>();
         }

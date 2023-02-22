@@ -12,9 +12,10 @@ using Gameboard.Api.Features.ApiKeys;
 using Gameboard.Api.Features.CubespaceScoreboard;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.UnityGames;
+using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -44,6 +45,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 services.AddScoped(t);
             }
 
+            // TODO: Ben -> fix this
+            services.AddHttpContextAccessor();
             services.AddUnboundServices(settings);
 
             foreach (var t in Assembly
@@ -70,22 +73,23 @@ namespace Microsoft.Extensions.DependencyInjection
                 // singletons
                 .AddSingleton<IAuthenticationService, AuthenticationService>()
                 .AddSingleton<ILockService, LockService>()
+                .AddSingleton<INameService, NameService>()
                 // global-style services
+                .AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>()
                 .AddSingleton<CoreOptions>(_ => settings.Core)
                 .AddSingleton<ApiKeyOptions>(_ => settings.ApiKey)
                 .AddTransient<IGuidService, GuidService>()
                 .AddTransient<IHashService, HashService>()
                 .AddTransient<INowService, NowService>()
                 .AddTransient<IRandomService, RandomService>()
-                .AddTransient<IGuidService, GuidService>()
                 // feature services
                 .AddScoped<IApiKeysService, ApiKeysService>()
                 .AddScoped<IApiKeysStore, ApiKeysStore>()
+                .AddScoped<Hub<IAppHubEvent>, AppHub>()
                 .AddScoped<IChallengeStore, ChallengeStore>()
                 .AddScoped<ICubespaceScoreboardService, CubespaceScoreboardService>()
                 .AddScoped<IGamebrainService, GamebrainService>()
-                .AddTransient<IPasswordHasher<Gameboard.Api.Data.User>, PasswordHasher<Gameboard.Api.Data.User>>()
-                .AddSingleton<INameService, NameService>()
+                .AddScoped<IInternalHubBus, InternalHubBus>()
                 .AddScoped<ITeamService, TeamService>()
                 .AddScoped<IUnityGameService, UnityGameService>()
                 .AddScoped<IUnityStore, UnityStore>();

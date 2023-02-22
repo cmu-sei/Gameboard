@@ -82,7 +82,7 @@ internal class ApiKeysService : IApiKeysService
         {
             Id = _guids.GetGuid(),
             Name = newApiKey.Name,
-            GeneratedOn = _now.Now(),
+            GeneratedOn = _now.Get(),
             ExpiresOn = newApiKey.ExpiresOn,
             Key = generatedKey.HashedApiKey,
             OwnerId = newApiKey.UserId
@@ -127,6 +127,6 @@ internal class ApiKeysService : IApiKeysService
         => hashedKey == candidate.Key &&
         (
             candidate.ExpiresOn == null ||
-            DateTimeOffset.Compare(candidate.ExpiresOn.Value, _now.Now()) == 1
+            DateTimeOffset.Compare(candidate.ExpiresOn.Value, _now.Get()) == 1
         );
 }

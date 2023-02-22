@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
-using Gameboard.Api.Data.Abstractions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using TopoMojo.Api.Client;
@@ -16,7 +15,6 @@ namespace Gameboard.Api.Services
 {
     public class GameEngineService : _Service
     {
-        IChallengeStore Store { get; }
         ITopoMojoApiClient Mojo { get; }
         CrucibleService Crucible { get; }
         IAlloyApiClient Alloy { get; }
@@ -28,7 +26,6 @@ namespace Gameboard.Api.Services
             ILogger<GameEngineService> logger,
             IMapper mapper,
             CoreOptions options,
-            IChallengeStore store,
             ITopoMojoApiClient mojo,
             IMemoryCache localcache,
             ConsoleActorMap actorMap,
@@ -36,7 +33,6 @@ namespace Gameboard.Api.Services
             CrucibleService crucible
         ) : base(logger, mapper, options)
         {
-            Store = store;
             Mojo = mojo;
             _localcache = localcache;
             _actorMap = actorMap;
@@ -55,11 +51,13 @@ namespace Gameboard.Api.Services
 
                     state = await Mojo.RegisterGamespaceAsync(new GamespaceRegistration
                     {
-                        Players = new RegistrationPlayer[] {
-                        new RegistrationPlayer {
-                            SubjectId = player.TeamId,
-                            SubjectName = player.Name
-                        }
+                        Players = new RegistrationPlayer[]
+                        {
+                            new RegistrationPlayer
+                            {
+                                SubjectId = player.TeamId,
+                                SubjectName = player.Name
+                            }
                         },
                         ResourceId = entity.ExternalId,
                         Variant = model.Variant,
@@ -192,7 +190,8 @@ namespace Gameboard.Api.Services
             switch (entity.GameEngineType)
             {
                 case GameEngineType.TopoMojo:
-                    return (await Mojo.AuditChallengeAsync(entity.Id)).ToArray();
+                    var result = await Mojo.AuditChallengeAsync(entity.Id);
+                    return result.ToArray();
 
                 default:
                     throw new NotImplementedException();

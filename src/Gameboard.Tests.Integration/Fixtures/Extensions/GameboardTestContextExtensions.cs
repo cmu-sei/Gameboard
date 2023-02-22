@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Headers;
+using Gameboard.Api;
 using Gameboard.Api.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -8,7 +9,7 @@ namespace Gameboard.Tests.Integration.Fixtures;
 
 internal static class GameboardTestContextExtensions
 {
-    private static WebApplicationFactory<Program> WithAuthentication(this GameboardTestContext<GameboardDbContextPostgreSQL> testContext, string userId = "integrationtester")
+    private static WebApplicationFactory<Program> WithAuthentication(this GameboardTestContext<GameboardDbContextPostgreSQL> testContext, TestAuthenticationUser? actingUser = null)
     {
         return testContext
             .WithWebHostBuilder(builder =>
@@ -17,7 +18,13 @@ internal static class GameboardTestContextExtensions
                 {
                     // spoof authentication
                     services
-                        .Configure<TestAuthenticationHandlerOptions>(options => options.DefaultUserId = userId)
+                        .Configure<TestAuthenticationHandlerOptions>(options =>
+                        {
+                            var finalActor = actingUser ?? new TestAuthenticationUser { };
+
+                            options.DefaultUserId = finalActor.Id;
+                            options.Actor = finalActor;
+                        })
                         .AddAuthentication(TestAuthenticationHandler.AuthenticationSchemeName)
                         .AddScheme<TestAuthenticationHandlerOptions, TestAuthenticationHandler>(TestAuthenticationHandler.AuthenticationSchemeName, options => { });
 
@@ -32,10 +39,13 @@ internal static class GameboardTestContextExtensions
             });
     }
 
-    public static HttpClient CreateHttpClientWithAuth(this GameboardTestContext<GameboardDbContextPostgreSQL> testContext, string userId = "integrationtester")
+    public static HttpClient CreateHttpClientWithAuth(this GameboardTestContext<GameboardDbContextPostgreSQL> testContext, Action<TestAuthenticationUser>? userBuilder = null)
     {
+        var user = new TestAuthenticationUser();
+        userBuilder?.Invoke(user);
+
         var client = testContext
-            .WithAuthentication(userId)
+            .WithAuthentication(user)
             .CreateClient(new WebApplicationFactoryClientOptions
             {
                 AllowAutoRedirect = false,
@@ -44,6 +54,9 @@ internal static class GameboardTestContextExtensions
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthenticationHandler.AuthenticationSchemeName);
         return client;
     }
+
+    public static HttpClient CreateHttpClientWithAuthRole(this GameboardTestContext<GameboardDbContextPostgreSQL> testContext, UserRole role)
+        => CreateHttpClientWithAuth(testContext, u => u.Role = role);
 
     public static async Task WithDataState(this GameboardTestContext<GameboardDbContextPostgreSQL> context, Action<IDataStateBuilder> builderAction)
     {

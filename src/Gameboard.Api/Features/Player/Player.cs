@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Gameboard.Api.Features.Player;
 
 namespace Gameboard.Api
 {
@@ -32,7 +33,7 @@ namespace Gameboard.Api
         public int PartialCount { get; set; }
         public bool Advanced { get; set; }
         public bool IsManager { get; set; }
-        public string[] SponsorList => (TeamSponsors ?? Sponsor).Split("|");
+        public string[] SponsorList => (TeamSponsors ?? Sponsor ?? "").Split("|");
     }
 
     public class NewPlayer
@@ -55,7 +56,7 @@ namespace Gameboard.Api
 
     public class SessionStartRequest
     {
-        public string Id { get; set; }
+        public string PlayerId { get; set; }
     }
 
     public class SessionChangeRequest
@@ -75,6 +76,29 @@ namespace Gameboard.Api
         public string UserId { get; set; }
         public string PlayerId { get; set; }
         public string Code { get; set; }
+    }
+
+    public class PlayerUnenrollRequest
+    {
+        public User Actor { get; set; }
+        public bool AsAdmin { get; set; } = false;
+        public required string PlayerId { get; set; }
+    }
+
+    public class PromoteToManagerRequest
+    {
+        public User Actor { get; set; }
+        public bool AsAdmin { get; set; }
+        public string CurrentManagerPlayerId { get; set; }
+        public string NewManagerPlayerId { get; set; }
+        public string TeamId { get; set; }
+    }
+
+    public class SessionResetRequest
+    {
+        public User Actor { get; set; }
+        public bool AsAdmin { get; set; } = false;
+        public required string PlayerId { get; set; }
     }
 
     public class Standing
@@ -212,6 +236,7 @@ namespace Gameboard.Api
         public string TeamId { get; set; }
         public string Name { get; set; }
         public string ApprovedName { get; set; }
+        public string UserId { get; set; }
         public string UserName { get; set; }
         public string UserApprovedName { get; set; }
         public string UserNameStatus { get; set; }
@@ -223,11 +248,13 @@ namespace Gameboard.Api
     public class TeamState
     {
         public string TeamId { get; set; }
+        public Player ActingPlayer { get; set; }
         public string ApprovedName { get; set; }
         public string Name { get; set; }
         public string NameStatus { get; set; }
         public DateTimeOffset SessionBegin { get; set; }
         public DateTimeOffset SessionEnd { get; set; }
+        public User Actor { get; set; }
     }
 
     public class PlayerCertificate

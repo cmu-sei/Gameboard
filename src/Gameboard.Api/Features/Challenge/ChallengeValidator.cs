@@ -11,9 +11,7 @@ namespace Gameboard.Api.Validators
     {
         private readonly IChallengeStore _store;
 
-        public ChallengeValidator(
-            IChallengeStore store
-        )
+        public ChallengeValidator(IChallengeStore store)
         {
             _store = store;
         }
@@ -62,7 +60,6 @@ namespace Gameboard.Api.Validators
                 throw new ActionForbidden();
 
             // Note: not checking "already exists" since this is used idempotently
-
             await Task.CompletedTask;
         }
 

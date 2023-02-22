@@ -228,10 +228,9 @@ namespace Gameboard.Api.Controllers
 
             var audience = string.IsNullOrEmpty(model.TeamId).Equals(false)
                 ? Hub.Clients.Group(model.TeamId)
-                : Hub.Clients.All
-            ;
+                : Hub.Clients.All;
 
-            await audience.Announcement(new HubEvent<Announcement>(model, EventAction.Created));
+            await audience.Announcement(new HubEvent<Announcement>(model, EventAction.Created, HubEventActingUserDescription.FromUser(Actor)));
         }
     }
 }
