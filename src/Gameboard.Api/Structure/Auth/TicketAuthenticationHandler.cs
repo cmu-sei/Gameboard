@@ -10,7 +10,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Gameboard.Api
+namespace Gameboard.Api.Auth
 {
     public static class TicketAuthentication
     {

@@ -3,18 +3,23 @@
 
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.ApiKeys;
+using Gameboard.Api.Features.Users;
 
 namespace Gameboard.Api.Validators
 {
 
     public class UserValidator : IModelValidator
     {
+        private readonly INowService _now;
         private readonly IUserStore _store;
 
         public UserValidator(
+            INowService now,
             IUserStore store
         )
         {
+            _now = now;
             _store = store;
         }
 
@@ -30,7 +35,6 @@ namespace Gameboard.Api.Validators
                 return _validate(model as ChangedUser);
 
             return Task.CompletedTask;
-
         }
 
         private async Task _validate(Entity model)

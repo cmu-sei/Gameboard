@@ -48,7 +48,7 @@ internal static class GameboardTestContextExtensions
             .WithAuthentication(user)
             .CreateClient(new WebApplicationFactoryClientOptions
             {
-                AllowAutoRedirect = false
+                AllowAutoRedirect = false,
             });
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthenticationHandler.AuthenticationSchemeName);

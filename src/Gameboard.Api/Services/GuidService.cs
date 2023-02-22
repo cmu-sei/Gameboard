@@ -2,7 +2,7 @@
 
 namespace Gameboard.Api.Services;
 
-internal interface IGuidService
+public interface IGuidService
 {
     string GetGuid();
 }

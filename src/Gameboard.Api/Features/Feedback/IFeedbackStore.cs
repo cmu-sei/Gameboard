@@ -9,7 +9,5 @@ namespace Gameboard.Api.Data.Abstractions
     public interface IFeedbackStore : IStore<Feedback>
     {
         Task<Data.Feedback> Load(Feedback model);
-        Task<Data.Feedback> ResolveApiKey(string key);
     }
-
 }

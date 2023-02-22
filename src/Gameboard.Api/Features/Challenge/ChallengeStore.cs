@@ -3,188 +3,143 @@
 
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
-using TopoMojo.Api.Client;
 using AutoMapper;
-using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
+using Gameboard.Api.Services;
 
-namespace Gameboard.Api.Data
+namespace Gameboard.Api.Data;
+
+public class ChallengeStore : Store<Challenge>, IChallengeStore
 {
-    public class ChallengeStore : Store<Challenge>, IChallengeStore
+    private readonly GameboardDbContext _dbContext;
+    private readonly IMapper _mapper;
+
+    public ChallengeStore(
+        GameboardDbContext dbContext,
+        IMapper mapper) : base(dbContext)
     {
-        private readonly IMapper _mapper;
-        private readonly ITopoMojoApiClient _mojo;
+        _dbContext = dbContext;
+        _mapper = mapper;
+    }
 
-        public ChallengeStore(
-            GameboardDbContext dbContext,
-            IMapper mapper,
-            ITopoMojoApiClient mojo) : base(dbContext)
+    public override IQueryable<Challenge> List(string term)
+    {
+        var q = base.List();
+
+        if (term.NotEmpty())
         {
-            _mapper = mapper;
-            _mojo = mojo;
+            term = term.ToLower();
+            q = q.Include(c => c.Player);
+            q = q.Where(c =>
+                c.Id.StartsWith(term) || // Challenge Id
+                c.Tag.ToLower().StartsWith(term) || // Challenge Tag
+                c.Player.UserId.StartsWith(term) || // User Id
+                c.Name.ToLower().Contains(term) || // Challenge Title
+                c.Player.ApprovedName.ToLower().Contains(term) // Team Name (or indiv. Player Name)
+            );
         }
 
-        public override IQueryable<Challenge> List(string term)
-        {
-            var q = base.List();
+        return q
+            .Include(c => c.Game)
+            .Include(c => c.Player);
+    }
 
-            if (term.NotEmpty())
-            {
-                term = term.ToLower();
-                q = q.Include(c => c.Player);
-                q = q.Where(c =>
-                    c.Id.StartsWith(term) || // Challenge Id
-                    c.Tag.ToLower().StartsWith(term) || // Challenge Tag
-                    c.Player.UserId.StartsWith(term) || // User Id
-                    c.Name.ToLower().Contains(term) || // Challenge Title
-                    c.Player.ApprovedName.ToLower().Contains(term) // Team Name (or indiv. Player Name)
-                );
-            }
+    public async Task<Challenge> Load(string id)
+    {
+        return await DbSet
+            .Include(c => c.Events)
+            .FirstOrDefaultAsync(c => c.Id == id)
+        ;
+    }
 
-            return q
-                .Include(c => c.Game)
-                .Include(c => c.Player);
-        }
+    public async Task<Challenge> Load(NewChallenge model)
+    {
+        var player = await DbContext.Players.FindAsync(model.PlayerId);
 
-        public async Task<Challenge> Load(string id)
-        {
-            return await DbSet
-                .Include(c => c.Events)
-                .FirstOrDefaultAsync(c => c.Id == id)
-            ;
-        }
-
-        public async Task<Challenge> Load(NewChallenge model)
-        {
-            var player = await DbContext.Players.FindAsync(model.PlayerId);
-
-            return await DbSet
-                .Include(c => c.Player)
-                .FirstOrDefaultAsync(c =>
-                    c.SpecId == model.SpecId &&
-                    (
-                        c.PlayerId == model.PlayerId ||
-                        c.TeamId == player.TeamId
-                    )
+        return await DbSet
+            .Include(c => c.Player)
+            .FirstOrDefaultAsync(c =>
+                c.SpecId == model.SpecId &&
+                (
+                    c.PlayerId == model.PlayerId ||
+                    c.TeamId == player.TeamId
                 )
-            ;
-        }
+            )
+        ;
+    }
 
-        public async Task UpdateEtd(string specId)
+    public async Task UpdateEtd(string specId)
+    {
+        var stats = await DbSet.Where(c => c.SpecId == specId)
+            .Select(c => new { Created = c.WhenCreated, Started = c.StartTime })
+            .OrderByDescending(m => m.Created)
+            .Take(20)
+            .ToArrayAsync();
+
+        int avg = (int)stats.Average(m =>
+            m.Started.Subtract(m.Created).TotalSeconds
+        );
+
+        var spec = await DbContext.ChallengeSpecs.FindAsync(specId);
+
+        spec.AverageDeploySeconds = avg;
+
+        await DbContext.SaveChangesAsync();
+    }
+
+    public async Task UpdateTeam(string id)
+    {
+        var challenges = await DbSet.Where(c => c.TeamId == id).ToArrayAsync();
+
+        int score = (int)challenges.Sum(c => c.Score);
+        long time = challenges.Sum(c => c.Duration);
+        int complete = challenges.Count(c => c.Result == ChallengeResult.Success);
+        int partial = challenges.Count(c => c.Result == ChallengeResult.Partial);
+
+        var players = await DbContext.Players.Where(p => p.TeamId == id).ToArrayAsync();
+
+        foreach (var p in players)
         {
-            var stats = await DbSet.Where(c => c.SpecId == specId)
-                .Select(c => new { Created = c.WhenCreated, Started = c.StartTime })
-                .OrderByDescending(m => m.Created)
-                .Take(20)
-                .ToArrayAsync();
-
-            int avg = (int)stats.Average(m =>
-                m.Started.Subtract(m.Created).TotalSeconds
-            );
-
-            var spec = await DbContext.ChallengeSpecs.FindAsync(specId);
-
-            spec.AverageDeploySeconds = avg;
-
-            await DbContext.SaveChangesAsync();
+            p.Score = score;
+            p.Time = time;
+            p.CorrectCount = complete;
+            p.PartialCount = partial;
         }
 
-        public async Task UpdateTeam(string id)
+        await DbContext.SaveChangesAsync();
+
+        // TODO: consider queuing this for a background process
+        await UpdateRanks(players.First().GameId);
+    }
+
+    public async Task UpdateRanks(string gameId)
+    {
+        var players = await DbContext.Players
+            .Where(p => p.GameId == gameId)
+            .OrderByDescending(p => p.Score)
+            .ThenBy(p => p.Time)
+            .ThenByDescending(p => p.CorrectCount)
+            .ThenByDescending(p => p.PartialCount)
+            .ToArrayAsync()
+        ;
+        int rank = 0;
+
+        foreach (var team in players.GroupBy(p => p.TeamId))
         {
-            var challenges = await DbSet.Where(c => c.TeamId == id).ToArrayAsync();
-
-            int score = (int)challenges.Sum(c => c.Score);
-            long time = challenges.Sum(c => c.Duration);
-            int complete = challenges.Count(c => c.Result == ChallengeResult.Success);
-            int partial = challenges.Count(c => c.Result == ChallengeResult.Partial);
-
-            var players = await DbContext.Players.Where(p => p.TeamId == id).ToArrayAsync();
-
-            foreach (var p in players)
-            {
-                p.Score = score;
-                p.Time = time;
-                p.CorrectCount = complete;
-                p.PartialCount = partial;
-            }
-
-            await DbContext.SaveChangesAsync();
-
-            // TODO: consider queuing this for a background process
-            await UpdateRanks(players.First().GameId);
+            rank += 1;
+            foreach (var player in team)
+                player.Rank = rank;
         }
 
-        public async Task UpdateRanks(string gameId)
-        {
-            var players = await DbContext.Players
-                .Where(p => p.GameId == gameId)
-                .OrderByDescending(p => p.Score)
-                .ThenBy(p => p.Time)
-                .ThenByDescending(p => p.CorrectCount)
-                .ThenByDescending(p => p.PartialCount)
-                .ToArrayAsync()
-            ;
-            int rank = 0;
+        await DbContext.SaveChangesAsync();
+    }
 
-            foreach (var team in players.GroupBy(p => p.TeamId))
-            {
-                rank += 1;
-                foreach (var player in team)
-                    player.Rank = rank;
-            }
-
-            await DbContext.SaveChangesAsync();
-        }
-
-        public Task<int> ChallengeGamespaceCount(string teamId)
-        {
-            return DbSet.CountAsync(c =>
-                c.TeamId == teamId &&
-                c.HasDeployedGamespace.Equals(true)
-            );
-        }
-
-        public async Task<Challenge> ResolveApiKey(string hash)
-        {
-            return await DbSet.FirstOrDefaultAsync(c =>
-                c.GraderKey == hash
-            );
-        }
-
-        public async Task ArchiveChallenges(IEnumerable<Api.ArchivedChallenge> challenges)
-        {
-            if (challenges.Count() > 0)
-            {
-                var toArchive = _mapper.Map<Api.ArchivedChallenge[]>(challenges);
-                var toArchiveIds = toArchive.Select(c => c.Id).ToArray();
-
-                var teamMemberMap = await DbContext
-                    .Challenges
-                    .AsNoTracking()
-                    .Include(c => c.Player)
-                    .Where(c => toArchiveIds.Contains(c.Id))
-                    .GroupBy(c => c.Player.TeamId)
-                    .ToDictionaryAsync(g => g.Key, g => g.Select(c => c.Player.Id).AsEnumerable());
-
-                foreach (var challenge in toArchive)
-                {
-                    // gamespace may be deleted in TopoMojo which would cause error and prevent reset
-                    try
-                    {
-                        challenge.Submissions = (await _mojo.AuditChallengeAsync(challenge.Id)).ToArray();
-                    }
-                    catch
-                    {
-                        challenge.Submissions = new SectionSubmission[] { };
-                    }
-
-                    challenge.TeamMembers = teamMemberMap[challenge.TeamId].ToArray();
-                }
-
-                DbContext.ArchivedChallenges.AddRange(_mapper.Map<Data.ArchivedChallenge[]>(toArchive));
-                await DbContext.SaveChangesAsync();
-            }
-        }
+    public Task<int> ChallengeGamespaceCount(string teamId)
+    {
+        return DbSet.CountAsync(c =>
+            c.TeamId == teamId &&
+            c.HasDeployedGamespace.Equals(true)
+        );
     }
 }

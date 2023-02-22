@@ -8,10 +8,8 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Player;
-using Gameboard.Api.Features.UnityGames;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {
@@ -27,8 +25,7 @@ namespace Gameboard.Api.Services
         IMapper Mapper { get; }
         IMemoryCache LocalCache { get; }
         TimeSpan _idmapExpiration = new TimeSpan(0, 30, 0);
-        ITopoMojoApiClient Mojo { get; }
-        private IUnityGameService UnityGameService { get; }
+        GameEngineService GameEngine { get; }
 
         public PlayerService(
             CoreOptions coreOptions,
@@ -40,8 +37,7 @@ namespace Gameboard.Api.Services
             ITeamService teamService,
             IMapper mapper,
             IMemoryCache localCache,
-            ITopoMojoApiClient mojo,
-            IUnityGameService unityGameService
+            GameEngineService gameEngine
         )
         {
             CoreOptions = coreOptions;
@@ -53,8 +49,7 @@ namespace Gameboard.Api.Services
             UserStore = userStore;
             Mapper = mapper;
             LocalCache = localCache;
-            Mojo = mojo;
-            UnityGameService = unityGameService;
+            GameEngine = gameEngine;
         }
 
         public async Task<Player> Enroll(NewPlayer model, User actor)
@@ -84,7 +79,7 @@ namespace Gameboard.Api.Services
         }
 
         /// <summary>
-        /// Maps a PlayerId to it's UserId
+        /// Maps a PlayerId to its UserId
         /// </summary>
         /// <remarks>This happens frequently for authorization, so cache the mapping.</remarks>
         /// <param name="playerId"></param>
@@ -158,14 +153,12 @@ namespace Gameboard.Api.Services
 
             // notify hub that the team is deleted /players left so the client can respond
             var playerModel = Mapper.Map<Player>(player);
-            await HubBus.SendPlayerLeft(playerModel, request.Actor);
             await HubBus.SendTeamDeleted(playerModel, request.Actor);
 
-            // try undeploy unity if necessary
-            if (UnityGameService.IsUnityGame(player.Game))
-                await UnityGameService.UndeployGame(player.GameId, player.TeamId);
+            if (!player.IsManager && !player.Game.RequireSponsoredTeam)
+                await UpdateTeamSponsors(player.TeamId);
 
-            return playerModel;
+            return Mapper.Map<Player>(player);
         }
 
         public async Task<Player> StartSession(SessionStartRequest model, User actor, bool sudo)
@@ -255,15 +248,10 @@ namespace Gameboard.Api.Services
             // push gamespace extension
             var challenges = await Store.DbContext.Challenges
                 .Where(c => c.TeamId == team.First().TeamId)
-                .Select(c => c.Id)
                 .ToArrayAsync();
 
-            foreach (string id in challenges)
-                await Mojo.UpdateGamespaceAsync(new ChangedGamespace
-                {
-                    Id = id,
-                    ExpirationTime = model.SessionEnd
-                });
+            foreach (var challenge in challenges)
+                await GameEngine.ExtendSession(challenge, model.SessionEnd);
 
             var captain = await TeamService.ResolveCaptain(model.TeamId);
             await HubBus.SendTeamUpdated(Mapper.Map<Player>(captain), actor);
@@ -344,7 +332,7 @@ namespace Gameboard.Api.Services
                 q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus) && !u.NameStatus.Equals(AppConstants.NameStatusPending));
 
             if (model.WantsScored)
-                q = q.Where(p => p.Score > 0);
+                q = q.WhereIsScoringPlayer();
 
             if (model.Term.NotEmpty())
             {
@@ -526,7 +514,7 @@ namespace Gameboard.Api.Services
                     .SetProperty(p => p.TeamSponsors, sponsors));
         }
 
-        public async Task<Team> LoadTeam(string id, bool sudo)
+        public async Task<Team> LoadTeam(string id)
         {
             var players = await Store.ListTeam(id);
             if (players.Count() == 0)
@@ -542,12 +530,12 @@ namespace Gameboard.Api.Services
 
             team.TeamSponsors = string.Join("|", players.Select(p => p.Sponsor));
 
-            if (sudo)
-                team.Challenges = Mapper.Map<TeamChallenge[]>(
-                    await Store.ListTeamChallenges(id)
-                );
-
             return team;
+        }
+
+        public async Task<TeamChallenge[]> LoadChallengesForTeam(string teamId)
+        {
+            return Mapper.Map<TeamChallenge[]>(await Store.ListTeamChallenges(teamId));
         }
 
         public async Task<TeamSummary[]> LoadTeams(string id, bool sudo)
@@ -685,18 +673,21 @@ namespace Gameboard.Api.Services
             return CertificateFromTemplate(player, playerCount, teamCount);
         }
 
-        public async Task<PlayerCertificate[]> MakeCertificates(string uid)
+        public async Task<IEnumerable<PlayerCertificate>> MakeCertificates(string uid)
         {
             DateTimeOffset now = DateTimeOffset.UtcNow;
 
             var completedSessions = await Store.List()
                 .Include(p => p.Game)
                 .Include(p => p.User)
-                .Where(p => p.UserId == uid &&
+                .Where(
+                    p => p.UserId == uid &&
                     p.SessionEnd > DateTimeOffset.MinValue &&
                     p.Game.GameEnd < now &&
                     p.Game.CertificateTemplate != null &&
-                    p.Game.CertificateTemplate.Length > 0)
+                    p.Game.CertificateTemplate.Length > 0
+                )
+                .WhereIsScoringPlayer()
                 .OrderByDescending(p => p.Game.GameEnd)
                 .ToArrayAsync();
 
@@ -704,17 +695,18 @@ namespace Gameboard.Api.Services
                 Store.DbSet
                     .Where(p => p.Game == c.Game &&
                         p.SessionEnd > DateTimeOffset.MinValue)
+                    .WhereIsScoringPlayer()
                     .Count(),
                 Store.DbSet
                     .Where(p => p.Game == c.Game &&
                         p.SessionEnd > DateTimeOffset.MinValue)
+                    .WhereIsScoringPlayer()
                     .GroupBy(p => p.TeamId).Count()
             )).ToArray();
         }
 
         private Api.PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount)
         {
-
             string certificateHTML = player.Game.CertificateTemplate;
             if (certificateHTML.IsEmpty())
                 return null;
@@ -738,11 +730,6 @@ namespace Gameboard.Api.Services
                 Html = certificateHTML
             };
         }
-
-        private Task ArchiveChallenges(IEnumerable<Challenge> challenges)
-        {
-
-            return Task.CompletedTask;
-        }
     }
 }
+

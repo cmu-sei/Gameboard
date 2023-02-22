@@ -5,7 +5,6 @@ namespace Gameboard.Tests.Integration.Fixtures;
 internal class DataStateBuilder<TDbContext> : IDataStateBuilder where TDbContext : GameboardDbContext
 {
     private readonly TDbContext _DbContext;
-    private readonly IList<IEntity> _ToBeAdded = new List<IEntity>();
 
     public DataStateBuilder(TDbContext dbContext)
     {

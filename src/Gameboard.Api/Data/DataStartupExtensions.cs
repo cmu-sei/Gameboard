@@ -21,28 +21,25 @@ namespace Microsoft.Extensions.DependencyInjection
             {
 
                 case "sqlserver":
-                    // services.AddEntityFrameworkSqlServer();
                     services.AddDbContext<GameboardDbContext, GameboardDbContextSqlServer>(
                         builder => builder.UseSqlServer(connstr)
                     );
                     break;
 
                 case "postgresql":
-                    // services.AddEntityFrameworkNpgsql();
                     services.AddDbContext<GameboardDbContext, GameboardDbContextPostgreSQL>(
                         builder => builder.UseNpgsql(connstr)
                     );
                     break;
 
                 default:
-                    // services.AddEntityFrameworkInMemoryDatabase();
                     services.AddDbContext<GameboardDbContext, GameboardDbContextInMemory>(
                         builder => builder.UseInMemoryDatabase("Gameboard_Db")
                     );
                     break;
             }
 
-            // Auto-discover from EntityStore and IEntityStore pattern
+            // load stores by reflection
             foreach (var t in Assembly
                 .GetExecutingAssembly()
                 .ExportedTypes

@@ -10,8 +10,8 @@ namespace Gameboard.Api
 {
     public class Ticket
     {
-        public string Id { get; set; } 
-        public int Key { get; set; } 
+        public string Id { get; set; }
+        public int Key { get; set; }
         public string FullKey { get; set; }
         public string RequesterId { get; set; }
         public string AssigneeId { get; set; }
@@ -29,11 +29,11 @@ namespace Gameboard.Api
         public DateTimeOffset LastUpdated { get; set; }
 
         public string[] Attachments { get; set; }
-        
-        public UserSummary Requester { get; set; }
-        public UserSummary Assignee { get; set; }
-        public UserSummary Creator { get; set; }
-        public ChallengeOverview Challenge { get; set; } 
+
+        public UserSimple Requester { get; set; }
+        public UserSimple Assignee { get; set; }
+        public UserSimple Creator { get; set; }
+        public ChallengeOverview Challenge { get; set; }
         public PlayerOverview Player { get; set; }
 
         public List<TicketActivity> Activity { get; set; } = new List<TicketActivity>();
@@ -41,9 +41,9 @@ namespace Gameboard.Api
 
     public class TicketSummary
     {
-        public string Id { get; set; } 
-        public int Key { get; set; } 
-        public string FullKey { get; set; } 
+        public string Id { get; set; }
+        public int Key { get; set; }
+        public string FullKey { get; set; }
         public string RequesterId { get; set; }
         public string AssigneeId { get; set; }
         public string CreatorId { get; set; }
@@ -57,15 +57,15 @@ namespace Gameboard.Api
 
         public DateTimeOffset Created { get; set; }
         public DateTimeOffset LastUpdated { get; set; }
-        
-        public UserSummary Requester { get; set; }
-        public UserSummary Assignee { get; set; }
-        public UserSummary Creator { get; set; }
+
+        public UserSimple Requester { get; set; }
+        public UserSimple Assignee { get; set; }
+        public UserSimple Creator { get; set; }
         public ChallengeSummary Challenge { get; set; }
 
     }
 
-    public class SelfTicketSubmission 
+    public class SelfTicketSubmission
     {
         public string ChallengeId { get; set; }
         public string Summary { get; set; }
@@ -94,7 +94,7 @@ namespace Gameboard.Api
     {
         public List<IFormFile> Uploads { get; set; }
     }
-    
+
     public class SelfChangedTicket : SelfTicketSubmission
     {
         public string Id { get; set; }
@@ -125,17 +125,17 @@ namespace Gameboard.Api
         public DateTimeOffset Timestamp { get; set; }
         public DateTimeOffset LastUpdated { get; set; }
         public string[] Attachments { get; set; }
-        public UserSummary User { get; set; }
-        public UserSummary Assignee { get; set; }
+        public UserSimple User { get; set; }
+        public UserSimple Assignee { get; set; }
     }
 
-    public class UploadFile 
+    public class UploadFile
     {
         public string FileName { get; set; }
         public IFormFile File { get; set; }
     }
 
-    public class TicketSearchFilter: SearchFilter
+    public class TicketSearchFilter : SearchFilter
     {
         public const string OpenFilter = "open";
         public const string InProgressFilter = "in progress";
@@ -157,7 +157,7 @@ namespace Gameboard.Api
         public const string StatusOrderString = "status";
         public const string CreatedOrderString = "created";
         public const string UpdatedOrderString = "updated";
-        
+
         // Ordering by column
         public bool WantsOrderingByKey => OrderItem.Equals(KeyOrderString);
         public bool WantsOrderingBySummary => OrderItem.Equals(SummaryOrderString);
@@ -170,7 +170,7 @@ namespace Gameboard.Api
         public bool WantsOrderingByAsc => IsDescending.Equals(false);
     }
 
-    public class TicketReportFilter: TicketSearchFilter
+    public class TicketReportFilter : TicketSearchFilter
     {
         public string GameId { get; set; }
         public bool WantsGame => !GameId.IsEmpty();

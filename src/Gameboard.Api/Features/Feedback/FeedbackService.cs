@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Services
 {
-    public class FeedbackService : _Service, IApiKeyAuthenticationService
+    public class FeedbackService : _Service
     {
         IFeedbackStore Store { get; }
 
@@ -197,17 +197,5 @@ namespace Gameboard.Api.Services
             }
             return true;
         }
-
-        public async Task<string> ResolveApiKey(string key)
-        {
-            if (key.IsEmpty())
-                return null;
-
-            var entity = await Store.ResolveApiKey(key.ToSha256());
-
-            return entity?.Id;
-        }
-
     }
-
 }

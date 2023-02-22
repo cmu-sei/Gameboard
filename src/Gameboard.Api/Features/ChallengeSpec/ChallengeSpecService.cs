@@ -7,25 +7,24 @@ using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {
     public class ChallengeSpecService : _Service
     {
         IChallengeSpecStore Store { get; }
-        ITopoMojoApiClient Mojo { get; }
+        GameEngineService GameEngine { get; }
 
         public ChallengeSpecService(
             ILogger<ChallengeSpecService> logger,
             IMapper mapper,
             CoreOptions options,
             IChallengeSpecStore store,
-            ITopoMojoApiClient mojo
+            GameEngineService gameEngine
         ) : base(logger, mapper, options)
         {
             Store = store;
-            Mojo = mojo;
+            GameEngine = gameEngine;
         }
 
         public async Task<ChallengeSpec> AddOrUpdate(NewChallengeSpec model)
@@ -69,16 +68,7 @@ namespace Gameboard.Api.Services
 
         public async Task<ExternalSpec[]> List(SearchFilter model)
         {
-
-            var results = await Mojo.ListWorkspacesAsync(
-                "", "", null, null,
-                model.Term, model.Skip, model.Take, model.Sort,
-                model.Filter
-            );
-
-            return Mapper.Map<ExternalSpec[]>(
-                results
-            );
+            return await GameEngine.ListSpecs(model);
         }
 
         public async Task Sync(string id)
