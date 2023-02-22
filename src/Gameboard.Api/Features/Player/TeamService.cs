@@ -11,6 +11,7 @@ public interface ITeamService
 {
     Task<Data.Player> ResolveCaptain(string teamId);
     Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser);
+    Task UpdateTeamSponsors(string teamId);
 }
 
 internal class TeamService : ITeamService
@@ -37,23 +38,31 @@ internal class TeamService : ITeamService
             .Where(p => p.TeamId == teamId)
             .ToListAsync();
 
+        var oldCaptain = teamPlayers.SingleOrDefault(p => p.Role == PlayerRole.Manager);
         var newCaptain = teamPlayers.Single(p => p.Id == newCaptainPlayerId);
 
         using (var transaction = await _store.DbContext.Database.BeginTransactionAsync())
         {
-            await _store.DbContext
-                .Players
+            await _store
+                .List()
                 .Where(p => p.TeamId == teamId)
                 .ExecuteUpdateAsync(p => p.SetProperty(p => p.Role, p => PlayerRole.Member));
 
-            var affectedPlayers = await _store.DbContext
-                .Players
+            var affectedPlayers = await _store
+                .List()
                 .Where(p => p.Id == newCaptainPlayerId)
-                .ExecuteUpdateAsync(p => p.SetProperty(p => p.Role, p => PlayerRole.Manager));
+                .ExecuteUpdateAsync
+                (
+                    p => p
+                        .SetProperty(p => p.Role, p => PlayerRole.Manager)
+                        .SetProperty(p => p.TeamSponsors, p => oldCaptain.TeamSponsors ?? p.TeamSponsors)
+                );
 
             // this automatically rolls back the transaction
             if (affectedPlayers != 1)
                 throw new PromotionFailed(teamId, newCaptainPlayerId, affectedPlayers);
+
+            await UpdateTeamSponsors(teamId);
 
             await transaction.CommitAsync();
         }
@@ -89,5 +98,37 @@ internal class TeamService : ITeamService
         }
 
         return players.OrderBy(p => p.ApprovedName).First();
+    }
+
+    public async Task UpdateTeamSponsors(string teamId)
+    {
+        var members = await _store
+            .List()
+            .AsNoTracking()
+            .Where(p => p.TeamId == teamId)
+            .Select(p => new
+            {
+                Id = p.Id,
+                Sponsor = p.Sponsor,
+                IsManager = p.IsManager
+            })
+            .ToArrayAsync();
+
+        if (members.Length == 0)
+            return;
+
+        var sponsors = string.Join('|', members
+            .Select(p => p.Sponsor)
+            .Distinct()
+            .ToArray()
+        );
+
+        var manager = members.FirstOrDefault(p => p.IsManager);
+
+        await _store
+            .List()
+            .Where(p => p.Id == manager.Id)
+            .ExecuteUpdateAsync(p => p
+                .SetProperty(p => p.TeamSponsors, sponsors));
     }
 }

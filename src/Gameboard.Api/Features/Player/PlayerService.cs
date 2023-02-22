@@ -156,7 +156,7 @@ namespace Gameboard.Api.Services
             await HubBus.SendTeamDeleted(playerModel, request.Actor);
 
             if (!player.IsManager && !player.Game.RequireSponsoredTeam)
-                await UpdateTeamSponsors(player.TeamId);
+                await TeamService.UpdateTeamSponsors(player.TeamId);
 
             return Mapper.Map<Player>(player);
         }
@@ -458,7 +458,7 @@ namespace Gameboard.Api.Services
             await Store.Update(player);
 
             if (manager.Game.AllowTeam && !manager.Game.RequireSponsoredTeam)
-                await UpdateTeamSponsors(manager.TeamId);
+                await TeamService.UpdateTeamSponsors(manager.TeamId);
 
             var mappedPlayer = Mapper.Map<Player>(player);
             await HubBus.SendPlayerEnrolled(mappedPlayer, actor);
@@ -476,42 +476,11 @@ namespace Gameboard.Api.Services
             await Store.Delete(request.PlayerId);
 
             // manage sponsor info about the team
-            await UpdateTeamSponsors(player.TeamId);
+            await TeamService.UpdateTeamSponsors(player.TeamId);
 
             // notify listeners on SignalR (like the team)
             var playerModel = Mapper.Map<Player>(player);
             await HubBus.SendPlayerLeft(playerModel, request.Actor);
-        }
-
-        private async Task UpdateTeamSponsors(string teamId)
-        {
-            var members = await Store.DbSet
-                .Where(p => p.TeamId == teamId)
-                .Select(p => new
-                {
-                    Id = p.Id,
-                    Sponsor = p.Sponsor,
-                    IsManager = p.IsManager
-                })
-                .ToArrayAsync();
-
-            if (members.Length == 0)
-                return;
-
-            var sponsors = string.Join('|', members
-                .Select(p => p.Sponsor)
-                .Distinct()
-                .ToArray()
-            );
-
-            var manager = members.FirstOrDefault(p => p.IsManager);
-
-            await Store
-                .DbContext
-                .Players
-                .Where(p => p.Id == manager.Id)
-                .ExecuteUpdateAsync(p => p
-                    .SetProperty(p => p.TeamSponsors, sponsors));
         }
 
         public async Task<Team> LoadTeam(string id)
