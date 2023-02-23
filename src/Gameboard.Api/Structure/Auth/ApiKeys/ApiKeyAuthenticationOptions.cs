@@ -8,7 +8,6 @@ public class ApiKeyAuthenticationOptions : AuthenticationSchemeOptions
     public static int MIN_RANDOMNESS_LENGTH = 10;
 
     public int BytesOfRandomness { get; set; } = 32;
-    public bool IsEnabled { get; set; } = false;
     public string KeyPrefix { get; set; } = "GB";
     public int RandomCharactersLength { get; set; } = 36;
 

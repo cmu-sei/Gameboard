@@ -40,11 +40,6 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!Options.IsEnabled)
-        {
-            return AuthenticateResult.NoResult();
-        }
-
         StringValues requestApiKey;
         if (!Request.Headers.TryGetValue(ApiKeyAuthentication.ApiKeyHeaderName, out requestApiKey))
         {

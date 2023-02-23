@@ -67,7 +67,6 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddApiKeyAuthentication(ApiKeyAuthentication.AuthenticationScheme, opt =>
                 {
                     opt.BytesOfRandomness = apiKeyOptions.BytesOfRandomness;
-                    opt.IsEnabled = apiKeyOptions.IsEnabled;
                     opt.RandomCharactersLength = apiKeyOptions.RandomCharactersLength;
                 })
                 .AddTicketAuthentication(TicketAuthentication.AuthenticationScheme, opt => new TicketAuthenticationOptions())
