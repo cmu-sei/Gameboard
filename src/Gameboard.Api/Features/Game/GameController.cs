@@ -163,7 +163,6 @@ namespace Gameboard.Api.Controllers
             await Validate(new Entity { Id = id });
 
             string filename = $"{type}_{(new Random()).Next().ToString("x8")}{Path.GetExtension(file.FileName)}".ToLower();
-
             string path = Path.Combine(Options.ImageFolder, filename);
 
             using (var stream = new FileStream(path, FileMode.Create))
@@ -187,13 +186,11 @@ namespace Gameboard.Api.Controllers
             await Validate(new Entity { Id = id });
 
             string target = $"{id}_{type}.*".ToLower();
-
             var file = Directory.GetFiles(Options.ImageFolder, target).FirstOrDefault();
 
             if (file.NotEmpty())
             {
                 System.IO.File.Delete(file);
-
                 await GameService.UpdateImage(id, type, "");
 
             }
