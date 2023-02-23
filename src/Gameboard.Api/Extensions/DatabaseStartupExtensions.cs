@@ -19,7 +19,7 @@ namespace Gameboard.Api.Extensions
 {
     public static class DatabaseStartupExtensions
     {
-        public static WebApplication InitializeDatabase(this WebApplication app, ILogger logger)
+        public static WebApplication InitializeDatabase(this WebApplication app, AppSettings settings, ILogger logger)
         {
             using (var scope = app.Services.CreateScope())
             {
@@ -34,7 +34,7 @@ namespace Gameboard.Api.Extensions
                         db.Database.Migrate();
                     }
 
-                    SeedDatabase(env, config, db, logger);
+                    SeedDatabase(env, config, db, settings, logger);
                 }
 
                 return app;
@@ -55,37 +55,67 @@ namespace Gameboard.Api.Extensions
             }
         }
 
-        private static void SeedDatabase(IWebHostEnvironment env, IConfiguration config, GameboardDbContext db, ILogger logger)
+        private static void SeedDatabase(IWebHostEnvironment env, IConfiguration config, GameboardDbContext db, AppSettings settings, ILogger logger)
         {
-            var configSeedFile = config.GetValue<string>("Database:SeedFile", null);
-            if (string.IsNullOrWhiteSpace(configSeedFile))
-                return;
-
-            string seedFile = Path.Combine(
-                env.ContentRootPath,
-                configSeedFile
-            );
-
-            if (!File.Exists(seedFile))
+            // first, seed the admin user configured in appsettings.config
+            if (!string.IsNullOrWhiteSpace(settings.Database.AdminId))
             {
-                logger.LogInformation(message: $"The current seed file ({seedFile}) doesn't exist, so no data will be seeded to this Gameboard installation.");
-                return;
+                logger.LogInformation($"Admin user '{settings.Database.AdminName}' found in configuration. Seeding now...");
+
+                if (db.Users.FirstOrDefault(u => u.Id == settings.Database.AdminId) != null)
+                {
+                    logger.LogInformation("This user is already seeded in the database. Skipping it this time.");
+                }
+                else
+                {
+                    db.Users.Add(new Data.User
+                    {
+                        Id = settings.Database.AdminId,
+                        Username = "gb-admin",
+                        ApprovedName = settings.Database.AdminName,
+                        Role = settings.Database.AdminRole
+                    });
+                }
             }
-            else { logger.LogInformation(message: $"Seeding data from {seedFile}..."); }
 
-            var seedModel = LoadSeedModel(seedFile);
+            var configSeedFile = config.GetValue<string>("Database:SeedFile", null);
+            var isSeedFileConfigured = !string.IsNullOrWhiteSpace(configSeedFile);
+            if (!isSeedFileConfigured)
+            {
+                logger.LogInformation("No seed file configured.");
+            }
 
-            db.SeedEnumerable(seedModel.Challenges, logger);
-            db.SeedEnumerable(seedModel.ChallengeSpecs, logger);
-            db.SeedEnumerable(seedModel.Feedback, logger);
-            db.SeedEnumerable(seedModel.Games, logger);
-            db.SeedEnumerable(seedModel.Players, logger);
-            db.SeedEnumerable(seedModel.Sponsors, logger);
-            db.SeedEnumerable(seedModel.Users, logger);
+            string seedFilePath = isSeedFileConfigured ? Path.Combine(env.ContentRootPath, configSeedFile) : "";
+            var seedFileExists = File.Exists(seedFilePath);
+            if (!seedFileExists)
+            {
+                logger.LogInformation(message: $"The current seed file ({seedFilePath}) doesn't exist.");
+            }
 
-            logger.LogInformation($"Prepared to seed. Summary of changes: {db.ChangeTracker.DebugView.ShortView.Trim()}");
-            db.SaveChanges();
-            logger.LogInformation("Seeding complete.");
+            if (isSeedFileConfigured && seedFileExists)
+            {
+                logger.LogInformation($"Seeding data from {seedFilePath}...");
+                var seedModel = LoadSeedModel(seedFilePath);
+
+                db.SeedEnumerable(seedModel.Challenges, logger);
+                db.SeedEnumerable(seedModel.ChallengeSpecs, logger);
+                db.SeedEnumerable(seedModel.Feedback, logger);
+                db.SeedEnumerable(seedModel.Games, logger);
+                db.SeedEnumerable(seedModel.Players, logger);
+                db.SeedEnumerable(seedModel.Sponsors, logger);
+                db.SeedEnumerable(seedModel.Users, logger);
+            }
+
+            if (db.ChangeTracker.HasChanges())
+            {
+                logger.LogInformation($"Prepared to seed. Summary of changes: {db.ChangeTracker.DebugView.ShortView.Trim()}");
+                db.SaveChanges();
+                logger.LogInformation("Seeding complete.");
+            }
+            else
+            {
+                logger.LogInformation("No data seeded.");
+            }
         }
 
         private static DbSeedModel LoadSeedModel(string seedFilePath)
