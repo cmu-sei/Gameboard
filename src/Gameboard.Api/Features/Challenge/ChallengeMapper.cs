@@ -60,8 +60,6 @@ namespace Gameboard.Api.Services
                 )
             ;
 
-
-
             CreateMap<Data.Challenge, ArchivedChallenge>()
                 .ForMember(d => d.PlayerName, opt => opt.MapFrom(s => s.Player.ApprovedName))
                 .ForMember(d => d.GameName, opt => opt.MapFrom(s => s.Game.Name))
@@ -79,8 +77,7 @@ namespace Gameboard.Api.Services
                 )
                 .ForMember(d => d.TeamMembers, opt => opt.MapFrom(s =>
                     JsonSerializer.Serialize(s.TeamMembers, JsonOptions))
-                )
-            ;
+                );
 
             CreateMap<Data.ArchivedChallenge, ArchivedChallenge>()
                 .ForMember(d => d.Events, opt => opt.MapFrom(s =>

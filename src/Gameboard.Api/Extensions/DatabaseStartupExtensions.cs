@@ -1,6 +1,7 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -10,6 +11,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -17,104 +19,104 @@ namespace Gameboard.Api.Extensions
 {
     public static class DatabaseStartupExtensions
     {
-
-        public static WebApplication InitializeDatabase(this WebApplication app)
+        public static WebApplication InitializeDatabase(this WebApplication app, ILogger logger)
         {
             using (var scope = app.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
                 var config = services.GetRequiredService<IConfiguration>();
                 var env = services.GetService<IWebHostEnvironment>();
-                var db = services.GetService<GameboardDbContext>();
 
-                if (!db.Database.IsInMemory())
+                using (var db = services.GetService<GameboardDbContext>())
                 {
-                    db.Database.Migrate();
-                }
-
-                string seedFile = Path.Combine(
-                    env.ContentRootPath,
-                    config.GetValue<string>("Database:SeedFile", "seed-data.yaml")
-                );
-
-                var YamlDeserializer = new DeserializerBuilder()
-                    .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                    .IgnoreUnmatchedProperties()
-                    .Build();
-
-                if (File.Exists(seedFile))
-                {
-
-                    DbSeedModel seedModel = Path.GetExtension(seedFile).ToLower() == "json"
-                        ? JsonSerializer.Deserialize<DbSeedModel>(File.ReadAllText(seedFile))
-                        : YamlDeserializer.Deserialize<DbSeedModel>(File.ReadAllText(seedFile));
-
-                    foreach (var user in seedModel.Users)
+                    if (!db.Database.IsInMemory())
                     {
-                        if (db.Users.Any(u => u.Id == user.Id))
-                            continue;
-
-                        db.Users.Add(user);
+                        db.Database.Migrate();
                     }
-                    db.SaveChanges();
 
-                    foreach (var game in seedModel.Games)
-                    {
-                        if (db.Games.Any(u => u.Id == game.Id))
-                            continue;
-
-                        db.Games.Add(game);
-                    }
-                    db.SaveChanges();
-
-                    foreach (var spec in seedModel.ChallengeSpecs)
-                    {
-                        if (db.ChallengeSpecs.Any(u => u.Id == spec.Id))
-                            continue;
-
-                        db.ChallengeSpecs.Add(spec);
-                    }
-                    db.SaveChanges();
-
-                    foreach (var player in seedModel.Players)
-                    {
-                        if (db.Players.Any(u => u.Id == player.Id))
-                            continue;
-
-                        db.Players.Add(player);
-                    }
-                    db.SaveChanges();
-
-                    foreach (var challenge in seedModel.Challenges)
-                    {
-                        if (db.Challenges.Any(u => u.Id == challenge.Id))
-                            continue;
-
-                        db.Challenges.Add(challenge);
-                    }
-                    db.SaveChanges();
-
-                    foreach (var sponsor in seedModel.Sponsors)
-                    {
-                        if (db.Sponsors.Any(u => u.Id == sponsor.Id))
-                            continue;
-
-                        db.Sponsors.Add(sponsor);
-                    }
-                    db.SaveChanges();
-
-                    foreach (var feedback in seedModel.Feedback)
-                    {
-                        if (db.Feedback.Any(u => u.Id == feedback.Id))
-                            continue;
-
-                        db.Feedback.Add(feedback);
-                    }
-                    db.SaveChanges();
+                    SeedDatabase(env, config, db, logger);
                 }
 
                 return app;
             }
+        }
+
+        private static void SeedEnumerable<T>(this GameboardDbContext db, IEnumerable<T> entities, ILogger logger) where T : class, IEntity
+        {
+            foreach (var seedEntity in entities)
+            {
+                if (db.Set<T>().Any(e => e.Id == seedEntity.Id))
+                {
+                    logger.LogInformation($"Seeded {typeof(T).Name} {seedEntity.Id} skipped - already exists in the database.");
+                    continue;
+                }
+
+                db.Set<T>().Add(seedEntity);
+            }
+        }
+
+        private static void SeedDatabase(IWebHostEnvironment env, IConfiguration config, GameboardDbContext db, ILogger logger)
+        {
+            var configSeedFile = config.GetValue<string>("Database:SeedFile", null);
+            if (string.IsNullOrWhiteSpace(configSeedFile))
+                return;
+
+            string seedFile = Path.Combine(
+                env.ContentRootPath,
+                configSeedFile
+            );
+
+            if (!File.Exists(seedFile))
+            {
+                logger.LogInformation(message: $"The current seed file ({seedFile}) doesn't exist, so no data will be seeded to this Gameboard installation.");
+                return;
+            }
+            else { logger.LogInformation(message: $"Seeding data from {seedFile}..."); }
+
+            var seedModel = LoadSeedModel(seedFile);
+
+            db.SeedEnumerable(seedModel.Challenges, logger);
+            db.SeedEnumerable(seedModel.ChallengeSpecs, logger);
+            db.SeedEnumerable(seedModel.Feedback, logger);
+            db.SeedEnumerable(seedModel.Games, logger);
+            db.SeedEnumerable(seedModel.Players, logger);
+            db.SeedEnumerable(seedModel.Sponsors, logger);
+            db.SeedEnumerable(seedModel.Users, logger);
+
+            logger.LogInformation($"Prepared to seed. Summary of changes: {db.ChangeTracker.DebugView.ShortView.Trim()}");
+            db.SaveChanges();
+            logger.LogInformation("Seeding complete.");
+        }
+
+        private static DbSeedModel LoadSeedModel(string seedFilePath)
+        {
+            var text = File.ReadAllText(seedFilePath);
+            var extension = Path.GetExtension(seedFilePath).ToLower();
+            DbSeedModel seedModel = null;
+
+            switch (extension)
+            {
+                case ".json":
+                    seedModel = JsonSerializer.Deserialize<DbSeedModel>(text, new JsonSerializerOptions()
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    break;
+                case ".yaml":
+                    var yamlDeserializer = new DeserializerBuilder()
+                        .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                        .IgnoreUnmatchedProperties()
+                        .Build();
+
+                    seedModel = yamlDeserializer.Deserialize<DbSeedModel>(File.ReadAllText(text));
+
+                    break;
+                default:
+                    throw new InvalidDataException("Gameboard can only seed data from files in .yaml or .json format. Supply your seed data in one of these.");
+            }
+
+            return seedModel;
         }
     }
 }

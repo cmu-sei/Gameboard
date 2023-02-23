@@ -49,7 +49,7 @@ public class UnityGameControllerTests : IClassFixture<GameboardTestContext<Gameb
            }
         };
 
-        var httpClient = _testContext.CreateHttpClientWithAuth();
+        var httpClient = _testContext.CreateHttpClientWithAuthRole(Api.UserRole.Admin);
 
         // act
         var challenge = await httpClient

@@ -14,6 +14,7 @@ namespace Gameboard.Api
         public string OrderItem { get; set; }
         // Whether the list is in descending or ascending order
         public bool IsDescending { get; set; }
+        public bool HasTerm => string.IsNullOrWhiteSpace(Term).Equals(false);
     }
 
     public class Entity {

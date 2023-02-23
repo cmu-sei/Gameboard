@@ -13,23 +13,5 @@ namespace Gameboard.Api.Data
         {
 
         }
-
-        // If entity has searchable fields, use this:
-        // public override IQueryable<ChallengeSpec> List(string term = null)
-        // {
-        //     var q = base.List();
-
-        //     if (!string.IsNullOrEmpty(term))
-        //     {
-        //         term = term.ToLower();
-
-        //         q = q.Where(t =>
-        //             t.Name.ToLower().Contains(term)
-        //         );
-        //     }
-
-        //     return q;
-        // }
-
     }
 }

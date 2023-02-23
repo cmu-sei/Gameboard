@@ -13,7 +13,5 @@ namespace Gameboard.Api.Data.Abstractions
         Task<Data.Ticket> Load(Api.Ticket model);
         Task<Data.Ticket> LoadDetails(string id);
         Task<Data.Ticket> LoadDetails(int id);
-        Task<Data.Ticket> ResolveApiKey(string key);
     }
-
 }

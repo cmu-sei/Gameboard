@@ -44,6 +44,7 @@ namespace Gameboard.Api
         public string CardText2 { get; set; }
         public string CardText3 { get; set; }
         public string Mode { get; set; }
+        public PlayerMode PlayerMode { get; set; }
     }
 
     public class Game: GameDetail
@@ -55,6 +56,7 @@ namespace Gameboard.Api
         public bool IsLive { get; set; }
         public bool HasEnded { get; set; }
         public bool RegistrationActive { get; set; }
+        public bool IsPracticeMode { get; set; }
     }
 
     public class NewGame: GameDetail
@@ -92,6 +94,7 @@ namespace Gameboard.Api
         public string Background { get; set; }
         public bool AllowPreview { get; set; }
         public bool AllowReset { get; set; }
+        public bool IsPracticeMode { get; set; }
         public ICollection<BoardSpec> Specs { get; set; } = new List<BoardSpec>();
         public ICollection<ChallengeGate> Prerequisites { get; set; } = new List<ChallengeGate>();
 

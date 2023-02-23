@@ -28,7 +28,7 @@ namespace Gameboard.Api.Services
         ): base(logger, mapper, options)
         {
             Store = store;
-            Defaults = defaults; 
+            Defaults = defaults;
         }
 
         public async Task<Game> Create(NewGame model)
@@ -39,8 +39,8 @@ namespace Gameboard.Api.Services
                     model.FeedbackConfig = Defaults.FeedbackTemplate;
                 if (Defaults.CertificateTemplate.NotEmpty())
                     model.CertificateTemplate = Defaults.CertificateTemplate;
-            }      
-            
+            }
+
             var entity = Mapper.Map<Data.Game>(model);
 
             await Store.Create(entity);
@@ -97,7 +97,7 @@ namespace Gameboard.Api.Services
 
             if (model.Take > 0)
                 q = q.Take(model.Take);
-            
+
             // Use Map instead of 'Mapper.ProjectTo<Game>' to support YAML parsing in automapper
             return Mapper.Map<Game[]>(await q.ToArrayAsync());
         }
@@ -121,7 +121,7 @@ namespace Gameboard.Api.Services
             var games = await q.ToArrayAsync();
 
             var b = games
-                .GroupBy(g => new 
+                .GroupBy(g => new
                 {
                     g.GameStart.Year,
                     g.GameStart.Month,
@@ -135,7 +135,7 @@ namespace Gameboard.Api.Services
                         .Select(c =>  Mapper.Map<Game>(c))
                         .ToArray()
                 });
-            
+
             if (model.WantsPast)
                 b = b.OrderByDescending(g => g.Year).ThenByDescending(g => g.Month);
             else
@@ -248,7 +248,7 @@ namespace Gameboard.Api.Services
         public async Task ReRank(string id)
         {
             var players = await Store.DbContext.Players
-                .Where(p => p.GameId == id)
+                .Where(p => p.GameId == id && p.Mode == PlayerMode.Competition)
                 .OrderByDescending(p => p.Score)
                 .ThenBy(p => p.Time)
                 .ThenByDescending(p => p.CorrectCount)

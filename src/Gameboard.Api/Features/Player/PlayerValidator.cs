@@ -1,8 +1,12 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Player;
 
 namespace Gameboard.Api.Validators
 {
@@ -10,9 +14,7 @@ namespace Gameboard.Api.Validators
     {
         private readonly IPlayerStore _store;
 
-        public PlayerValidator(
-            IPlayerStore store
-        )
+        public PlayerValidator(IPlayerStore store)
         {
             _store = store;
         }
@@ -34,6 +36,15 @@ namespace Gameboard.Api.Validators
             if (model is PlayerEnlistment)
                 return _validate(model as PlayerEnlistment);
 
+            if (model is PlayerUnenrollRequest)
+                return _validate(model as PlayerUnenrollRequest);
+
+            if (model is PromoteToManagerRequest)
+                return _validate(model as PromoteToManagerRequest);
+
+            if (model is SessionResetRequest)
+                return _validate(model as SessionResetRequest);
+
             if (model is SessionStartRequest)
                 return _validate(model as SessionStartRequest);
 
@@ -43,7 +54,7 @@ namespace Gameboard.Api.Validators
             if (model is TeamAdvancement)
                 return _validate(model as TeamAdvancement);
 
-            throw new System.NotImplementedException();
+            throw new ValidationTypeFailure<PlayerValidator>(model.GetType());
         }
 
         private async Task _validate(PlayerDataFilter model)
@@ -61,18 +72,24 @@ namespace Gameboard.Api.Validators
 
         private async Task _validate(SessionStartRequest model)
         {
-            if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound<SessionStartRequest>(model.Id);
+            if ((await Exists(model.PlayerId)).Equals(false))
+                throw new ResourceNotFound<Player>(model.PlayerId);
 
-            var player = await _store.Retrieve(model.Id);
+            var player = await _store.Retrieve(model.PlayerId);
+
             if (player.SessionBegin.Year > 1)
-                throw new SessionAlreadyStarted();
+                throw new SessionAlreadyStarted(model.PlayerId, $"Player {model.PlayerId}'s session has already started.");
 
             await Task.CompletedTask;
         }
 
         private async Task _validate(SessionChangeRequest model)
         {
+            DateTimeOffset ts = DateTimeOffset.UtcNow;
+            bool active = await _store.DbSet.AnyAsync(p => p.TeamId == model.TeamId && p.SessionEnd > ts);
+            if (active.Equals(false))
+                throw new SessionNotAdjustable();
+
             await Task.CompletedTask;
         }
 
@@ -113,11 +130,30 @@ namespace Gameboard.Api.Validators
             await Task.CompletedTask;
         }
 
+        private async Task _validate(PromoteToManagerRequest model)
+        {
+            // INDEPENDENT OF ADMIN
+            var currentManager = await _store.List().SingleOrDefaultAsync(p => p.Id == model.CurrentManagerPlayerId);
+
+            if (currentManager == null)
+                throw new ResourceNotFound<Player>(model.CurrentManagerPlayerId, $"Couldn't resolve the player record for current manager {model.CurrentManagerPlayerId}.");
+
+            if (!currentManager.IsManager)
+                throw new NotManager(model.CurrentManagerPlayerId, "Calls to this endpoint must supply the correct ID of the current manager.");
+
+            var newManager = await _store.List().SingleOrDefaultAsync(p => p.Id == model.NewManagerPlayerId);
+            if (newManager == null)
+                throw new ResourceNotFound<Player>(model.NewManagerPlayerId, $"Couldn't resolve the player record for new manager {model.NewManagerPlayerId}");
+
+            if (currentManager.TeamId != newManager.TeamId)
+                throw new NotOnSameTeam(currentManager.Id, currentManager.TeamId, newManager.Id, newManager.TeamId, "Players must be on the same team to promote a new manager.");
+
+            if (IsActingAsAdmin(model.AsAdmin, model.Actor))
+                return;
+        }
+
         private async Task _validate(TeamAdvancement model)
         {
-            // if (model.TeamId.IsEmpty())
-            //     throw new ResourceNotFound();
-
             if ((await GameExists(model.GameId)).Equals(false))
                 throw new ResourceNotFound<Game>(model.GameId);
 
@@ -126,6 +162,62 @@ namespace Gameboard.Api.Validators
 
             await Task.CompletedTask;
         }
+
+        public async Task _validate(SessionResetRequest request)
+        {
+            if (!(await Exists(request.PlayerId)))
+                throw new ResourceNotFound<Player>(request.PlayerId);
+
+            if (request.Actor.IsAdmin && request.AsAdmin)
+                return;
+
+            // non-admin validation
+            var player = await _store
+                .Retrieve
+                (
+                    request.PlayerId,
+                    q =>
+                        q.AsNoTracking()
+                        .Include(p => p.Game)
+                );
+
+            if (!request.AsAdmin && !player.Game.AllowReset && player.SessionBegin.Year > 1)
+                throw new GameDoesntAllowSessionReset(request.PlayerId, player.GameId, player.SessionBegin);
+
+            if (!request.AsAdmin && !player.Game.RegistrationActive)
+                throw new RegistrationIsClosed(player.GameId, "Registration is closed, and players can't reset their sessions after registration has closed.");
+
+        }
+
+        public async Task _validate(PlayerUnenrollRequest request)
+        {
+            if (!(await Exists(request.PlayerId)))
+                throw new ResourceNotFound<Player>(request.PlayerId);
+
+            var player = await _store.Retrieve(request.PlayerId);
+
+            if (!IsActingAsAdmin(request.AsAdmin, request.Actor) && player.SessionBegin > DateTimeOffset.MinValue)
+                throw new SessionAlreadyStarted(request.PlayerId, "Non-admins can't unenroll from a game once they've started a session.");
+
+            // this is order-sensitive - non-managers can unenroll as long as the session isn't started
+            if (!player.IsManager)
+                return;
+
+            var teammateIds = await _store
+                .List()
+                .Where(p =>
+                    p.TeamId == player.TeamId &&
+                    p.Id != request.PlayerId
+                )
+                .Select(p => p.Id)
+                .ToListAsync();
+
+            if (teammateIds.Count() > 0)
+                throw new ManagerCantUnenrollWhileTeammatesRemain(player.Id, player.TeamId, teammateIds);
+        }
+
+        private bool IsActingAsAdmin(bool asAdmin, User actor)
+            => asAdmin && actor.IsAdmin;
 
         private async Task<bool> Exists(string id)
         {

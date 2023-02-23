@@ -18,6 +18,7 @@ namespace Gameboard.Api.Features.UnityGames;
 internal class UnityGameService : _Service, IUnityGameService
 {
     private readonly IChallengeStore _challengeStore;
+    private readonly IGamebrainService _gamebrainService;
     private readonly IUnityStore _store;
     private readonly ITeamService _teamService;
     ITopoMojoApiClient Mojo { get; }
@@ -29,6 +30,7 @@ internal class UnityGameService : _Service, IUnityGameService
             IMapper mapper,
             CoreOptions options,
             IChallengeStore challengeStore,
+            IGamebrainService gamebrainService,
             ITeamService teamService,
             IUnityStore store,
             ITopoMojoApiClient mojo,
@@ -38,6 +40,7 @@ internal class UnityGameService : _Service, IUnityGameService
         Mojo = mojo;
         _actorMap = actorMap;
         _challengeStore = challengeStore;
+        _gamebrainService = gamebrainService;
         _store = store;
         _teamService = teamService;
     }
@@ -228,6 +231,11 @@ internal class UnityGameService : _Service, IUnityGameService
 
         // return (used to determine HTTP status code in an above controller)
         return challengeEvent;
+    }
+
+    public async Task<string> UndeployGame(string gameId, string teamId)
+    {
+        return await _gamebrainService.UndeployUnitySpace(gameId, teamId);
     }
 
     public bool IsUnityGame(Data.Game game) => game.Mode == GetUnityModeString();

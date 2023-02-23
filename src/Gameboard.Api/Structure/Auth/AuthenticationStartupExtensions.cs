@@ -1,12 +1,14 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using Gameboard.Api;
+using Gameboard.Api.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -15,19 +17,26 @@ namespace Microsoft.Extensions.DependencyInjection
     {
         public static IServiceCollection AddConfiguredAuthentication(
             this IServiceCollection services,
-            OidcOptions options
+            OidcOptions oidcOptions,
+            ApiKeyOptions apiKeyOptions,
+            IWebHostEnvironment environment
         )
         {
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
+            if (environment.IsDev())
+            {
+                IdentityModelEventSource.ShowPII = true;
+            }
 
             services
                 .AddScoped<IClaimsTransformation, UserClaimTransformation>()
                 .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(jwt =>
                 {
-                    jwt.Audience = options.Audience;
-                    jwt.Authority = options.Authority;
-                    jwt.RequireHttpsMetadata = options.RequireHttpsMetadata;
+                    jwt.Audience = oidcOptions.Audience;
+                    jwt.Authority = oidcOptions.Authority;
+                    jwt.RequireHttpsMetadata = oidcOptions.RequireHttpsMetadata;
 
                     jwt.TokenValidationParameters = new TokenValidationParameters
                     {
@@ -39,7 +48,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 })
                 .AddCookie(AppConstants.MksCookie, opt =>
                 {
-                    opt.ExpireTimeSpan = new System.TimeSpan(0, options.MksCookieMinutes, 0);
+                    opt.ExpireTimeSpan = new System.TimeSpan(0, oidcOptions.MksCookieMinutes, 0);
                     opt.Cookie = new CookieBuilder
                     {
                         Name = AppConstants.MksCookie,
@@ -55,7 +64,11 @@ namespace Microsoft.Extensions.DependencyInjection
                         return System.Threading.Tasks.Task.CompletedTask;
                     };
                 })
-                .AddApiKeyAuthentication(ApiKeyAuthentication.AuthenticationScheme, opt => new ApiKeyAuthenticationOptions())
+                .AddApiKeyAuthentication(ApiKeyAuthentication.AuthenticationScheme, opt =>
+                {
+                    opt.BytesOfRandomness = apiKeyOptions.BytesOfRandomness;
+                    opt.RandomCharactersLength = apiKeyOptions.RandomCharactersLength;
+                })
                 .AddTicketAuthentication(TicketAuthentication.AuthenticationScheme, opt => new TicketAuthenticationOptions())
             ;
 

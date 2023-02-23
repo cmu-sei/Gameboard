@@ -1,31 +1,31 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {
     public class ChallengeSpecService : _Service
     {
         IChallengeSpecStore Store { get; }
-        ITopoMojoApiClient Mojo { get; }
+        GameEngineService GameEngine { get; }
 
         public ChallengeSpecService(
             ILogger<ChallengeSpecService> logger,
             IMapper mapper,
             CoreOptions options,
             IChallengeSpecStore store,
-            ITopoMojoApiClient mojo
+            GameEngineService gameEngine
         ) : base(logger, mapper, options)
         {
             Store = store;
-            Mojo = mojo;
+            GameEngine = gameEngine;
         }
 
         public async Task<ChallengeSpec> AddOrUpdate(NewChallengeSpec model)
@@ -69,16 +69,7 @@ namespace Gameboard.Api.Services
 
         public async Task<ExternalSpec[]> List(SearchFilter model)
         {
-
-            var results = await Mojo.ListWorkspacesAsync(
-                "", "", null, null,
-                model.Term, model.Skip, model.Take, model.Sort,
-                model.Filter
-            );
-
-            return Mapper.Map<ExternalSpec[]>(
-                results
-            );
+            return await GameEngine.ListSpecs(model);
         }
 
         public async Task Sync(string id)
@@ -97,6 +88,34 @@ namespace Gameboard.Api.Services
             }
 
             await Store.DbContext.SaveChangesAsync();
+        }
+
+        internal async Task<ChallengeSpecSummary[]> Browse(SearchFilter model)
+        {
+            var q = Store.List()
+                .Include(s => s.Game)
+                .Where(s => s.Game.PlayerMode == PlayerMode.Practice)
+                .AsNoTracking()
+            ;
+
+            if (model.HasTerm)
+            {
+                string term = model.Term.ToLower();
+                q = q.Where(s =>
+                    s.Name.ToLower().Contains(term) ||
+                    s.Description.ToLower().Contains(term) ||
+                    s.Game.Name.ToLower().Contains(term)
+                );
+            }
+
+            q = q.OrderBy(s => s.Name);
+
+            q = q.Skip(model.Skip);
+
+            if (model.Take > 0)
+                q = q.Take(model.Take);
+
+            return await Mapper.ProjectTo<ChallengeSpecSummary>(q).ToArrayAsync();
         }
     }
 }

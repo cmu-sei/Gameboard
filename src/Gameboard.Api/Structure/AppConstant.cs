@@ -25,6 +25,7 @@ namespace Gameboard.Api
         public const string NameStatusPending = "pending";
         public const string NameStatusNotUnique = "not_unique";
         public const string InternalSupportChannel = "internal_support";
+        public const string ApiKeyAuthPolicy = "ApiKeyAuthPolicy";
 
         public const UserRole AllRoles =
             UserRole.Admin |

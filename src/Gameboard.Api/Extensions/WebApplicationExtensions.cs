@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Gameboard.Api.Hubs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,9 +24,8 @@ internal static class WebApplicationExtensions
             app.UseHsts();
 
         if (app.Environment.IsDev())
-        {
             app.UseDeveloperExceptionPage();
-        }
+
 
         app.UseRouting();
         app.UseCors(settings.Headers.Cors.Name);
@@ -33,6 +33,11 @@ internal static class WebApplicationExtensions
         app.UseAuthorization();
         app.UseFileProtection();
         app.UseStaticFiles();
+
+        if (settings.Logging.EnableHttpLogging)
+        {
+            app.UseHttpLogging();
+        }
 
         if (settings.OpenApi.Enabled)
             app.UseConfiguredSwagger(settings.OpenApi, settings.Oidc.Audience, settings.PathBase);

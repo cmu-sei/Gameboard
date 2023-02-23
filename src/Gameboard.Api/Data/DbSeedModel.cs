@@ -14,6 +14,5 @@ namespace Gameboard.Api.Data
         public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
         public ICollection<Sponsor> Sponsors { get; set; } = new List<Sponsor>();
         public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
-
     }
 }
