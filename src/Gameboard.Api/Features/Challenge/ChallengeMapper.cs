@@ -5,27 +5,37 @@ using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoMapper;
+using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api.Services
 {
     public class ChallengeMapper : Profile
     {
+        private JsonSerializerOptions JsonOptions { get; }
+
         public ChallengeMapper()
         {
+            JsonOptions = new JsonSerializerOptions
+            {
+                AllowTrailingCommas = true,
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+
+            JsonOptions.Converters.Add(
+                new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
+            );
+
             CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
 
             CreateMap<Data.Challenge, TeamChallenge>();
-
             CreateMap<Data.Challenge, ChallengeOverview>()
                 .ForMember(d => d.Score, opt => opt.MapFrom(s => (int)Math.Floor(s.Score)))
                 .ForMember(d => d.GameId, opt => opt.MapFrom(s => s.GameId))
-                .ForMember(d => d.AllowTeam, opt => opt.MapFrom(s => s.Game.AllowTeam))
-            ;
+                .ForMember(d => d.AllowTeam, opt => opt.MapFrom(s => s.Game.AllowTeam));
 
             CreateMap<Challenge, Data.Challenge>();
-
             CreateMap<NewChallenge, Data.Challenge>();
-
             CreateMap<ChangedChallenge, Data.Challenge>();
 
             CreateMap<Data.ChallengeSpec, Data.Challenge>()
@@ -48,7 +58,7 @@ namespace Gameboard.Api.Services
             CreateMap<Data.Challenge, Challenge>()
                 .ForMember(d => d.Score, opt => opt.MapFrom(s => (int)Math.Floor(s.Score)))
                 .ForMember(d => d.State, opt => opt.MapFrom(s =>
-                    JsonSerializer.Deserialize<TopoMojo.Api.Client.GameState>(s.State, JsonOptions))
+                    JsonSerializer.Deserialize<GameEngineGameState>(s.State, JsonOptions))
                 )
             ;
 
@@ -84,7 +94,7 @@ namespace Gameboard.Api.Services
                     JsonSerializer.Deserialize<ChallengeEventSummary[]>(s.Events, JsonOptions))
                 )
                 .ForMember(d => d.Submissions, opt => opt.MapFrom(s =>
-                    JsonSerializer.Deserialize<TopoMojo.Api.Client.SectionSubmission[]>(s.Submissions, JsonOptions))
+                    JsonSerializer.Deserialize<GameEngineSectionSubmission[]>(s.Submissions, JsonOptions))
                 )
                 .ForMember(d => d.TeamMembers, opt => opt.MapFrom(s =>
                     JsonSerializer.Deserialize<string[]>(s.TeamMembers, JsonOptions))
@@ -112,18 +122,6 @@ namespace Gameboard.Api.Services
             ;
 
             CreateMap<Data.ChallengeEvent, ChallengeEventSummary>();
-
-            JsonOptions = new JsonSerializerOptions
-            {
-                AllowTrailingCommas = true,
-                WriteIndented = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            };
-            JsonOptions.Converters.Add(
-                new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
-            );
         }
-
-        public JsonSerializerOptions JsonOptions { get; }
     }
 }

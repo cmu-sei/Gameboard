@@ -29,7 +29,7 @@ namespace Gameboard.Api.Controllers
         protected IDistributedCache Cache { get; private set; }
         private IModelValidator[] _validators;
 
-        public void OnActionExecuting(ActionExecutingContext context)
+        public virtual void OnActionExecuting(ActionExecutingContext context)
         {
             Actor = User.ToActor();
         }

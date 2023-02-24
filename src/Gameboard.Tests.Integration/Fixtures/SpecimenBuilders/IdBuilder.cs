@@ -1,15 +1,8 @@
 using System.Reflection;
 using AutoFixture.Kernel;
+using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Tests.Integration.Fixtures;
-
-public class GameboardCustomization : ICustomization
-{
-    public void Customize(IFixture fixture)
-    {
-        fixture.Customizations.Add(new IdBuilder());
-    }
-}
 
 public class IdBuilder : ISpecimenBuilder
 {
