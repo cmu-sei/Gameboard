@@ -73,6 +73,7 @@ namespace Microsoft.Extensions.DependencyInjection
             => services
                 // singletons
                 .AddSingleton<IAuthenticationService, AuthenticationService>()
+                .AddSingleton<IJsonService, JsonService>(f => JsonService.WithGameboardSerializerOptions())
                 .AddSingleton<ILockService, LockService>()
                 .AddSingleton<INameService, NameService>()
                 // global-style services

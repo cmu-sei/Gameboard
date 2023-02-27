@@ -35,7 +35,7 @@ public class GameControllerTests : IClassFixture<GameboardTestContext<GameboardD
         // act
         var responseGame = await client
             .PostAsync("/api/game", game.ToJsonBody())
-            .WithContentDeserializedAs<Api.Data.Game>(_testContext.GetJsonSerializerOptions());
+            .WithContentDeserializedAs<Api.Data.Game>();
 
         // assert
         responseGame.Name.ShouldBe(game.Name);

@@ -74,8 +74,7 @@ internal static class WebApplicationBuilderExtensions
                 options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter(
                     JsonNamingPolicy.CamelCase
                 ));
-            })
-        ;
+            });
         services.AddSignalRHub();
 
         services
@@ -85,8 +84,7 @@ internal static class WebApplicationBuilderExtensions
             .AddGameboardServices(settings)
             .AddConfiguredHttpClients(settings.Core)
             .AddHostedService<JobService>()
-            .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath)
-        ;
+            .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath);
 
         services.AddSingleton<AutoMapper.IMapper>(
             new AutoMapper.MapperConfiguration(cfg =>

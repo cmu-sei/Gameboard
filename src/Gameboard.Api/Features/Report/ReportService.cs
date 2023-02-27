@@ -219,14 +219,14 @@ namespace Gameboard.Api.Services
             {
                 var questions = challenges[0].State.Challenge.Questions.ToArray();
 
-                foreach (QuestionView questionView in questions)
+                foreach (var questionView in questions)
                 {
                     parts.Add(new Part { Text = questionView.Text, SolveCount = 0, AttemptCount = 0, Weight = questionView.Weight });
                 }
 
-                foreach (Challenge challenge in challenges)
+                foreach (var challenge in challenges)
                 {
-                    foreach (QuestionView questionView in challenge.State.Challenge.Questions)
+                    foreach (var questionView in challenge.State.Challenge.Questions)
                     {
                         if (questionView.IsGraded)
                         {

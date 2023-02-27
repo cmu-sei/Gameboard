@@ -294,7 +294,7 @@ namespace Gameboard.Api.Services
             await Task.WhenAll(tasks);
         }
 
-        private async Task<Data.Challenge> Sync(Data.Challenge entity, Task<IGameEngineGameState> task = null)
+        private async Task<Data.Challenge> Sync(Data.Challenge entity, Task<GameEngineGameState> task = null)
         {
             if (task is null)
                 task = GameEngine.LoadGamespace(entity);
@@ -314,7 +314,7 @@ namespace Gameboard.Api.Services
             return entity;
         }
 
-        private async Task<Data.Challenge> Sync(string id, Task<IGameEngineGameState> task = null)
+        private async Task<Data.Challenge> Sync(string id, Task<GameEngineGameState> task = null)
         {
             var entity = await Store.Retrieve(id);
 
@@ -368,7 +368,7 @@ namespace Gameboard.Api.Services
             return Mapper.Map<Challenge>(entity);
         }
 
-        public async Task<Challenge> Grade(IGameEngineSectionSubmission model, string actorId)
+        public async Task<Challenge> Grade(GameEngineSectionSubmission model, string actorId)
         {
             var entity = await Store.Retrieve(model.Id);
 
@@ -385,7 +385,7 @@ namespace Gameboard.Api.Services
 
             double currentScore = entity.Score;
 
-            Task<IGameEngineGameState> gradingTask = GameEngine.GradeChallenge(entity, model);
+            Task<GameEngineGameState> gradingTask = GameEngine.GradeChallenge(entity, model);
 
             var result = await Sync(
                 entity,
@@ -555,13 +555,13 @@ namespace Gameboard.Api.Services
             };
         }
 
-        internal async Task<IEnumerable<IGameEngineSectionSubmission>> Audit(string id)
+        internal async Task<IEnumerable<GameEngineSectionSubmission>> Audit(string id)
         {
             var entity = await Store.Load(id);
             return await GameEngine.AuditChallenge(entity);
         }
 
-        private void Transform(IGameEngineGameState state)
+        private void Transform(GameEngineGameState state)
         {
             state.Markdown = state.Markdown.Replace("](/docs", $"]({Options.ChallengeDocUrl}docs");
 

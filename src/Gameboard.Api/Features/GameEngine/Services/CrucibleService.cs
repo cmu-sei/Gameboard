@@ -37,7 +37,7 @@ public class CrucibleService : _Service
         LockService = lockService;
     }
 
-    public async Task<IGameEngineGameState> RegisterGamespace(Data.ChallengeSpec spec, Data.Game game, Data.Player player, Data.Challenge entity)
+    public async Task<GameEngineGameState> RegisterGamespace(Data.ChallengeSpec spec, Data.Game game, Data.Player player, Data.Challenge entity)
     {
         var whenCreated = DateTimeOffset.UtcNow;
         var additionalUserIds = new List<Guid>();
@@ -67,7 +67,7 @@ public class CrucibleService : _Service
         {
             Markdown = spec.Description,
             IsActive = true,
-            Players = new List<IGameEnginePlayer>
+            Players = new List<GameEnginePlayer>
             {
                 new GameEnginePlayer
                 {
@@ -76,7 +76,7 @@ public class CrucibleService : _Service
                     SubjectName = player.ApprovedName
                 }
             },
-            Vms = new List<IGameEngineVmState>(),
+            Vms = new List<GameEngineVmState>(),
             Name = spec.Name,
             Id = entity.Id,
             WhenCreated = whenCreated,
@@ -126,7 +126,7 @@ public class CrucibleService : _Service
         return state;
     }
 
-    public async Task<IGameEngineGameState> GradeChallenge(string challengeId, IGameEngineSectionSubmission model)
+    public async Task<GameEngineGameState> GradeChallenge(string challengeId, GameEngineSectionSubmission model)
     {
         // Ensure each challenge can only have one attempt graded at a time
         using (await LockService.GetChallengeLock(challengeId).LockAsync())

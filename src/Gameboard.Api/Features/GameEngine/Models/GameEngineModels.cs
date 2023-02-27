@@ -3,27 +3,27 @@ using System.Collections.Generic;
 
 namespace Gameboard.Api.Features.GameEngine;
 
-public class GameEngineGameState : IGameEngineGameState
+public class GameEngineGameState
 {
     public string Id { get; set; }
     public string Name { get; set; }
     public string ManagerId { get; set; }
     public string ManagerName { get; set; }
     public string Markdown { get; set; }
-    public string Audience { get; }
-    public string LaunchpointUrl { get; }
+    public string Audience { get; set; }
+    public string LaunchpointUrl { get; set; }
     public bool IsActive { get; set; }
 
-    public IEnumerable<IGameEnginePlayer> Players { get; set; }
+    public IEnumerable<GameEnginePlayer> Players { get; set; }
     public DateTimeOffset WhenCreated { get; set; }
     public DateTimeOffset StartTime { get; set; }
     public DateTimeOffset EndTime { get; set; }
     public DateTimeOffset ExpirationTime { get; set; }
-    public IEnumerable<IGameEngineVmState> Vms { get; set; }
-    public IGameEngineChallengeView Challenge { get; set; }
+    public IEnumerable<GameEngineVmState> Vms { get; set; }
+    public GameEngineChallengeView Challenge { get; set; }
 }
 
-public class GameEnginePlayer : IGameEnginePlayer
+public class GameEnginePlayer
 {
     public string GamespaceId { get; set; }
     public string SubjectId { get; set; }
@@ -32,7 +32,7 @@ public class GameEnginePlayer : IGameEnginePlayer
     public bool IsManager { get; set; }
 }
 
-public class GameEngineVmState : IGameEngineVmState
+public class GameEngineVmState
 {
     public string Id { get; set; }
     public string Name { get; set; }
@@ -41,7 +41,7 @@ public class GameEngineVmState : IGameEngineVmState
     public bool IsVisible { get; set; }
 }
 
-public class GameEngineChallengeView : IGameEngineChallengeView
+public class GameEngineChallengeView
 {
     public string Text { get; set; }
     public int MaxPoints { get; set; }
@@ -53,10 +53,10 @@ public class GameEngineChallengeView : IGameEngineChallengeView
     public double SectionScore { get; set; }
     public string SectionText { get; set; }
     public DateTimeOffset LastScoreTime { get; set; }
-    public IEnumerable<IGameEngineQuestionView> Questions { get; set; }
+    public IEnumerable<GameEngineQuestionView> Questions { get; set; }
 }
 
-public class GameEngineQuestionView : IGameEngineQuestionView
+public class GameEngineQuestionView
 {
     public string Answer { get; set; }
     public string Example { get; }
@@ -68,15 +68,15 @@ public class GameEngineQuestionView : IGameEngineQuestionView
     public float Weight { get; set; }
 }
 
-public class GameEngineSectionSubmission : IGameEngineSectionSubmission
+public class GameEngineSectionSubmission
 {
-    public string Id { get; }
-    public DateTimeOffset Timestamp { get; }
-    public int SectionIndex { get; }
-    public IEnumerable<IGameEngineAnswerSubmission> Questions { get; }
+    public string Id { get; set; }
+    public DateTimeOffset Timestamp { get; set; }
+    public int SectionIndex { get; set; }
+    public IEnumerable<GameEngineAnswerSubmission> Questions { get; set; }
 }
 
-public class GameEngineAnswerSubmission : IGameEngineAnswerSubmission
+public class GameEngineAnswerSubmission
 {
     public string Answer { get; set; }
 }

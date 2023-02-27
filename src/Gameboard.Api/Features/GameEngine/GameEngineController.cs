@@ -42,7 +42,7 @@ public class GameEngineController : _Controller
     }
 
     [HttpGet("state/team/{teamId:guid}")]
-    public async Task<IGameEngineGameState> GetGameState(string teamId)
+    public async Task<GameEngineGameState> GetGameState(string teamId)
     {
         AuthorizeAny(
             () => Actor.IsDesigner,
@@ -51,6 +51,7 @@ public class GameEngineController : _Controller
             () => Actor.IsAdmin
         );
 
-        return await _gameEngine.GetGameState(teamId);
+        var thingsd = await _gameEngine.GetGameState(teamId);
+        return thingsd;
     }
 }

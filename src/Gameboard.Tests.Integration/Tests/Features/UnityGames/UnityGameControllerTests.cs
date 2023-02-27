@@ -54,7 +54,7 @@ public class UnityGameControllerTests : IClassFixture<GameboardTestContext<Gameb
         // act
         var challenge = await httpClient
             .PostAsync("/api/unity/challenge", newChallenge.ToJsonBody())
-            .WithContentDeserializedAs<Api.Data.Challenge>(_testContext.GetJsonSerializerOptions());
+            .WithContentDeserializedAs<Api.Data.Challenge>();
 
         // assert
         challenge.ShouldNotBeNull();

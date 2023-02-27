@@ -1,6 +1,5 @@
 using System.Reflection;
 using AutoFixture.Kernel;
-using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Tests.Integration.Fixtures;
 

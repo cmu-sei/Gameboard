@@ -7,20 +7,13 @@ public class GameEngineMaps : Profile
 {
     public GameEngineMaps()
     {
-        CreateMap<TopoMojo.Api.Client.AnswerSubmission, IGameEngineAnswerSubmission>()
-            .ConstructUsing(c => new GameEngineAnswerSubmission());
+        CreateMap<TopoMojo.Api.Client.AnswerSubmission, GameEngineAnswerSubmission>();
         CreateMap<TopoMojo.Api.Client.Permission, GameEnginePlayerPermission>();
-        CreateMap<TopoMojo.Api.Client.Player, IGameEnginePlayer>()
-            .ConstructUsing(c => new GameEnginePlayer());
-        CreateMap<TopoMojo.Api.Client.QuestionView, IGameEngineQuestionView>()
-            .ConstructUsing(c => new GameEngineQuestionView());
-        CreateMap<TopoMojo.Api.Client.VmState, IGameEngineVmState>()
-            .ConstructUsing(c => new GameEngineVmState());
-        CreateMap<TopoMojo.Api.Client.ChallengeView, IGameEngineChallengeView>()
-            .ConstructUsing(c => new GameEngineChallengeView());
-        CreateMap<TopoMojo.Api.Client.GameState, IGameEngineGameState>()
-            .ConstructUsing(c => new GameEngineGameState());
-        CreateMap<TopoMojo.Api.Client.SectionSubmission, IGameEngineSectionSubmission>()
-            .ConstructUsing(c => new GameEngineSectionSubmission());
+        CreateMap<TopoMojo.Api.Client.Player, GameEnginePlayer>();
+        CreateMap<TopoMojo.Api.Client.QuestionView, GameEngineQuestionView>();
+        CreateMap<TopoMojo.Api.Client.VmState, GameEngineVmState>();
+        CreateMap<TopoMojo.Api.Client.ChallengeView, GameEngineChallengeView>();
+        CreateMap<TopoMojo.Api.Client.GameState, GameEngineGameState>();
+        CreateMap<TopoMojo.Api.Client.SectionSubmission, GameEngineSectionSubmission>();
     }
 }

@@ -37,7 +37,7 @@ public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestCont
         // when
         var result = await httpClient
             .GetAsync($"/api/gameEngine/topomojo/state/team/{teamId}")
-            .WithContentDeserializedAs<GameEngineGameState>(_testContext.GetJsonSerializerOptions());
+            .WithContentDeserializedAs<GameEngineGameState>();
 
         // then
         result.Audience.ShouldBe("gameboard");

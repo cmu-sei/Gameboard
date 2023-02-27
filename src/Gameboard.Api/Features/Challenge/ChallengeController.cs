@@ -202,7 +202,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPut("/api/challenge/grade")]
         [Authorize(AppConstants.GraderPolicy)]
-        public async Task<Challenge> Grade([FromBody] IGameEngineSectionSubmission model)
+        public async Task<Challenge> Grade([FromBody] GameEngineSectionSubmission model)
         {
             AuthorizeAny(
                 () => Actor.IsDirector,
@@ -252,7 +252,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("/api/challenge/{id}/audit")]
         [Authorize]
-        public async Task<IEnumerable<IGameEngineSectionSubmission>> Audit([FromRoute] string id)
+        public async Task<IEnumerable<GameEngineSectionSubmission>> Audit([FromRoute] string id)
         {
             AuthorizeAny(
                 () => Actor.IsDirector

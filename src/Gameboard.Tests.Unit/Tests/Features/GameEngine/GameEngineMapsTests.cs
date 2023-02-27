@@ -24,7 +24,7 @@ public class GameEngineMapsTests
 
         // when/then
         mapperConfig.AssertConfigurationIsValid();
-        Should.NotThrow(() => mapper.Map<IGameEngineGameState>(topoState));
+        Should.NotThrow(() => mapper.Map<GameEngineGameState>(topoState));
     }
 
     // given an explicit topo state, does it apparently map correctly?

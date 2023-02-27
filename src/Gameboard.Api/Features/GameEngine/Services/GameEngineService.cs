@@ -43,7 +43,7 @@ public class GameEngineService : _Service, IGameEngineService
         Crucible = crucible;
     }
 
-    public async Task<IGameEngineGameState> RegisterGamespace(Data.ChallengeSpec spec, NewChallenge model, Data.Game game,
+    public async Task<GameEngineGameState> RegisterGamespace(Data.ChallengeSpec spec, NewChallenge model, Data.Game game,
     Data.Player player, Data.Challenge entity, int playerCount, string graderKey, string graderUrl)
     {
         switch (spec.GameEngineType)
@@ -70,7 +70,7 @@ public class GameEngineService : _Service, IGameEngineService
                     PlayerCount = playerCount
                 });
 
-                return Mapper.Map<IGameEngineGameState>(topoState);
+                return Mapper.Map<GameEngineGameState>(topoState);
             case GameEngineType.Crucible:
                 return await Crucible.RegisterGamespace(spec, game, player, entity);
             default:
@@ -78,13 +78,13 @@ public class GameEngineService : _Service, IGameEngineService
         }
     }
 
-    public async Task<IGameEngineGameState> GetPreview(Data.ChallengeSpec spec)
+    public async Task<GameEngineGameState> GetPreview(Data.ChallengeSpec spec)
     {
         switch (spec.GameEngineType)
         {
             case GameEngineType.TopoMojo:
                 var topoState = await Mojo.PreviewGamespaceAsync(spec.ExternalId);
-                return Mapper.Map<IGameEngineGameState>(topoState);
+                return Mapper.Map<GameEngineGameState>(topoState);
             case GameEngineType.Crucible:
                 return await Crucible.PreviewGamespace(spec.ExternalId);
             default:
@@ -92,16 +92,16 @@ public class GameEngineService : _Service, IGameEngineService
         }
     }
 
-    public Task<IGameEngineGameState> GetGameState(string teamId)
+    public Task<GameEngineGameState> GetGameState(string teamId)
         => _store.GetGameStateByTeam(teamId);
 
-    public async Task<IGameEngineGameState> GradeChallenge(Data.Challenge entity, IGameEngineSectionSubmission model)
+    public async Task<GameEngineGameState> GradeChallenge(Data.Challenge entity, GameEngineSectionSubmission model)
     {
         switch (entity.GameEngineType)
         {
             case GameEngineType.TopoMojo:
                 var gradingResult = await Mojo.GradeChallengeAsync(Mapper.Map<TopoMojo.Api.Client.SectionSubmission>(model));
-                return Mapper.Map<IGameEngineGameState>(gradingResult);
+                return Mapper.Map<GameEngineGameState>(gradingResult);
             case GameEngineType.Crucible:
                 return await Crucible.GradeChallenge(entity.Id, model);
             default:
@@ -109,12 +109,12 @@ public class GameEngineService : _Service, IGameEngineService
         }
     }
 
-    public async Task<IGameEngineGameState> RegradeChallenge(Data.Challenge entity)
+    public async Task<GameEngineGameState> RegradeChallenge(Data.Challenge entity)
     {
         switch (entity.GameEngineType)
         {
             case GameEngineType.TopoMojo:
-                return Mapper.Map<IGameEngineGameState>(await Mojo.RegradeChallengeAsync(entity.Id));
+                return Mapper.Map<GameEngineGameState>(await Mojo.RegradeChallengeAsync(entity.Id));
 
             default:
                 throw new NotImplementedException();
@@ -170,13 +170,13 @@ public class GameEngineService : _Service, IGameEngineService
         return null;
     }
 
-    public async Task<IEnumerable<IGameEngineSectionSubmission>> AuditChallenge(Data.Challenge entity)
+    public async Task<IEnumerable<GameEngineSectionSubmission>> AuditChallenge(Data.Challenge entity)
     {
         switch (entity.GameEngineType)
         {
             case GameEngineType.TopoMojo:
                 var submissions = await Mojo.AuditChallengeAsync(entity.Id);
-                return Mapper.Map<IEnumerable<IGameEngineSectionSubmission>>(submissions);
+                return Mapper.Map<IEnumerable<GameEngineSectionSubmission>>(submissions);
             default:
                 throw new NotImplementedException();
         }
@@ -222,35 +222,35 @@ public class GameEngineService : _Service, IGameEngineService
         return resultsList.ToArray();
     }
 
-    public async Task<IGameEngineGameState> LoadGamespace(Data.Challenge entity)
+    public async Task<GameEngineGameState> LoadGamespace(Data.Challenge entity)
     {
         switch (entity.GameEngineType)
         {
             case GameEngineType.TopoMojo:
-                return Mapper.Map<IGameEngineGameState>(await Mojo.LoadGamespaceAsync(entity.Id));
+                return Mapper.Map<GameEngineGameState>(await Mojo.LoadGamespaceAsync(entity.Id));
             default:
                 throw new NotImplementedException();
         }
     }
 
-    public async Task<IGameEngineGameState> StartGamespace(Data.Challenge entity)
+    public async Task<GameEngineGameState> StartGamespace(Data.Challenge entity)
     {
         switch (entity.GameEngineType)
         {
             case GameEngineType.TopoMojo:
-                return Mapper.Map<IGameEngineGameState>(await Mojo.StartGamespaceAsync(entity.Id));
+                return Mapper.Map<GameEngineGameState>(await Mojo.StartGamespaceAsync(entity.Id));
 
             default:
                 throw new NotImplementedException();
         }
     }
 
-    public async Task<IGameEngineGameState> StopGamespace(Data.Challenge entity)
+    public async Task<GameEngineGameState> StopGamespace(Data.Challenge entity)
     {
         switch (entity.GameEngineType)
         {
             case GameEngineType.TopoMojo:
-                return Mapper.Map<IGameEngineGameState>(await Mojo.StopGamespaceAsync(entity.Id));
+                return Mapper.Map<GameEngineGameState>(await Mojo.StopGamespaceAsync(entity.Id));
 
             default:
                 throw new NotImplementedException();

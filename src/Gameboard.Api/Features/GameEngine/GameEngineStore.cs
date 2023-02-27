@@ -1,44 +1,47 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
+using Gameboard.Api.Services;
+using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.GameEngine;
 
 public interface IGameEngineStore
 {
-    Task<IGameEngineGameState> GetGameStateByChallenge(string challengeId);
-    Task<IGameEngineGameState> GetGameStateByChallengeSpec(string challengeSpecId);
-    Task<IGameEngineGameState> GetGameStateByPlayer(string playerId);
-    Task<IGameEngineGameState> GetGameStateByTeam(string teamId);
+    Task<GameEngineGameState> GetGameStateByChallenge(string challengeId);
+    Task<GameEngineGameState> GetGameStateByChallengeSpec(string challengeSpecId);
+    Task<GameEngineGameState> GetGameStateByPlayer(string playerId);
+    Task<GameEngineGameState> GetGameStateByTeam(string teamId);
 }
 
 public class GameEngineStore : IGameEngineStore
 {
     private readonly GameboardDbContext _db;
+    private readonly IJsonService _jsonService;
 
-    public GameEngineStore(GameboardDbContext db)
+    public GameEngineStore(GameboardDbContext db, IJsonService jsonService)
     {
         _db = db;
+        _jsonService = jsonService;
     }
 
-    public Task<IGameEngineGameState> GetGameStateByPlayer(string playerId)
+    public Task<GameEngineGameState> GetGameStateByPlayer(string playerId)
         => GetGameState(playerId: playerId);
 
-    public Task<IGameEngineGameState> GetGameStateByChallenge(string challengeId)
+    public Task<GameEngineGameState> GetGameStateByChallenge(string challengeId)
         => GetGameState(challengeId: challengeId);
 
-    public Task<IGameEngineGameState> GetGameStateByChallengeSpec(string challengeSpecId)
+    public Task<GameEngineGameState> GetGameStateByChallengeSpec(string challengeSpecId)
         => GetGameState(challengeSpecId: challengeSpecId);
 
-    public Task<IGameEngineGameState> GetGameStateByTeam(string teamId)
+    public Task<GameEngineGameState> GetGameStateByTeam(string teamId)
         => GetGameState(teamId: teamId);
 
-    private async Task<IGameEngineGameState> GetGameState(string playerId = "", string challengeId = "", string challengeSpecId = "", string teamId = "")
+    private async Task<GameEngineGameState> GetGameState(string playerId = "", string challengeId = "", string challengeSpecId = "", string teamId = "")
     {
         if (string.IsNullOrWhiteSpace(string.Concat(playerId, challengeId, challengeSpecId, teamId)))
         {
@@ -68,7 +71,6 @@ public class GameEngineStore : IGameEngineStore
         if (results.Length != 1)
             throw new ArgumentException($"Couldn't resolve game engine type for arguments player ({playerId}), challenge ({challengeId}), challengeSpec ({challengeSpecId}), team ({teamId}).");
 
-        var deserialized = JsonSerializer.Deserialize<GameEngineGameState>(results.First());
-        return deserialized;
+        return _jsonService.Deserialize<GameEngineGameState>(results[0]);
     }
 }
