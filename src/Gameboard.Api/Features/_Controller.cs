@@ -3,7 +3,6 @@
 
 using System;
 using System.Threading.Tasks;
-using Gameboard.Api.Validators;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Caching.Distributed;
@@ -13,6 +12,7 @@ namespace Gameboard.Api.Controllers
 {
     public class _Controller : ControllerBase, IActionFilter
     {
+
         public _Controller(
             ILogger logger,
             IDistributedCache cache,

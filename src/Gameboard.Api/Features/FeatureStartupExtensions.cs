@@ -15,7 +15,6 @@ using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
-using Gameboard.Api.Validators;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Microsoft.Extensions.DependencyInjection

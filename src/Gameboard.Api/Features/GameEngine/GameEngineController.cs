@@ -1,57 +1,52 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Gameboard.Api.Controllers;
+using Gameboard.Api.Structure;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.GameEngine;
 
 [Authorize]
-[Route("/api/gameEngine/{gameEngineId:alpha}")]
+[Route("/api/gameEngine")]
 public class GameEngineController : _Controller
 {
     private readonly GameEngineService _gameEngine;
+    private readonly IGameboardMediator<GetGameStateRequest, GameEngineGameState> _mediator;
+    private readonly GetGameStateValidator _getGameStateValidator;
 
     public GameEngineController
     (
         GameEngineService gameEngineService,
         IDistributedCache cache,
         ILogger<GameEngineController> logger,
-        GameEngineValidator validator
+        GameEngineValidator validator,
+        IGameboardMediator<GetGameStateRequest, GameEngineGameState> mediator,
+        GetGameStateValidator getGameStateValidator
     ) : base(logger, cache, validator)
     {
         _gameEngine = gameEngineService;
+        _getGameStateValidator = getGameStateValidator;
+        _mediator = mediator;
     }
 
-    private GameEngineType _gameEngineType;
-
-    public override void OnActionExecuting(ActionExecutingContext context)
-    {
-        base.OnActionExecuting(context);
-
-        var result = Enum.TryParse<GameEngineType>(context.RouteData.Values["gameEngineId"].ToString(), ignoreCase: true, out _gameEngineType);
-
-        if (!result)
-            context.Result = NotFound();
-
-        return;
-    }
-
-    [HttpGet("state/team/{teamId:guid}")]
+    [HttpGet("state")]
     public async Task<GameEngineGameState> GetGameState(string teamId)
     {
-        AuthorizeAny(
-            () => Actor.IsDesigner,
-            () => Actor.IsSupport,
-            () => Actor.IsObserver,
-            () => Actor.IsAdmin
-        );
+        return await _mediator.Send(new GetGameStateRequest(teamId), context =>
+        {
+            context.AuthorizationRules.AddAllowedRoles
+            (
+                UserRole.Designer,
+                UserRole.Support,
+                UserRole.Observer,
+                UserRole.Admin
+            );
 
-        var thingsd = await _gameEngine.GetGameState(teamId);
-        return thingsd;
+            context.Validators.Add(_getGameStateValidator);
+        });
     }
 }

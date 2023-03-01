@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpLogging;
@@ -84,7 +85,8 @@ internal static class WebApplicationBuilderExtensions
             .AddGameboardServices(settings)
             .AddConfiguredHttpClients(settings.Core)
             .AddHostedService<JobService>()
-            .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath);
+            .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath)
+            .AddGameboardMediatR();
 
         services.AddSingleton<AutoMapper.IMapper>(
             new AutoMapper.MapperConfiguration(cfg =>
