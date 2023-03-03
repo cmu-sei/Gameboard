@@ -16,7 +16,6 @@ public interface IApiKeysService
     Task<CreateApiKeyResult> Create(NewApiKey newApiKey);
     Task Delete(string apiKeyId);
     Task<IEnumerable<ApiKeyViewModel>> ListKeys(string userId);
-    bool IsEnabled();
 }
 
 internal class ApiKeysService : IApiKeysService
@@ -67,8 +66,6 @@ internal class ApiKeysService : IApiKeysService
 
         return user.ApiKeys.Any(k => IsValidKey(hashedKey, k)) ? user : null;
     }
-
-    public bool IsEnabled() => _options.IsEnabled;
 
     public async Task<CreateApiKeyResult> Create(NewApiKey newApiKey)
     {
