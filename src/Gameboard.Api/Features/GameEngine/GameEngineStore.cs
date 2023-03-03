@@ -62,8 +62,6 @@ public class GameEngineStore : IGameEngineStore
         if (!string.IsNullOrWhiteSpace(teamId))
             query = query.Where(c => c.TeamId == teamId);
 
-        var things = await _db.Challenges.Where(c => c.Id != "").ToListAsync();
-
         var results = await query.Select(c => c.State)
             .Distinct()
             .ToArrayAsync();

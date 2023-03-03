@@ -15,6 +15,7 @@ using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
+using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -27,7 +28,9 @@ namespace Microsoft.Extensions.DependencyInjection
             services
                 .AddSingleton<ConsoleActorMap>()
                 .AddHttpContextAccessor()
-                .AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>();
+                .AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>()
+                .AddConcretesFromNamespace("Gameboard.Api.Structure.Authorizers")
+                .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators");
 
             // Auto-discover from EntityService pattern
             foreach (var t in Assembly

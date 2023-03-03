@@ -14,9 +14,9 @@ namespace Gameboard.Api
         internal GameboardException(string message, Exception innerException) : base(message, innerException) { }
     }
 
-    internal class MissingRequiredInput : GameboardValidationException
+    internal class MissingRequiredInput<T> : GameboardValidationException
     {
-        internal MissingRequiredInput(string inputName, string input) : base($"Your input for ${inputName} was either missing or incorrectly formed (found \"{input}\").") { }
+        internal MissingRequiredInput(string inputName, T input) : base($"Your input for ${inputName} was either missing or incorrectly formed (found \"{input}\").") { }
     }
 
     internal class AdminImpersonationFail : GameboardException

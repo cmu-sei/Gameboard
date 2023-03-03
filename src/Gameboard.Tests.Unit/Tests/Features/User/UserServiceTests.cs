@@ -9,6 +9,39 @@ namespace Gameboard.Tests.Unit;
 
 public class UserServiceTests
 {
+    [Theory]
+    [InlineData(UserRole.Admin, UserRole.Admin)]
+    [InlineData(UserRole.Admin | UserRole.Registrar, UserRole.Registrar)]
+    public void HasRole_WithMatchingRole_ReturnsTrue(UserRole usersRoles, UserRole targetRole)
+    {
+        // given
+        var userService = new UserService(A.Fake<IUserStore>(), A.Fake<IMapper>(), A.Fake<IMemoryCache>(), A.Fake<INameService>(), A.Fake<Defaults>());
+        var user = new User() { Role = usersRoles };
+
+        // when
+        var result = userService.HasRole(user, targetRole);
+
+        // then
+        result.ShouldBeTrue();
+
+    }
+
+    [Theory]
+    [InlineData(UserRole.Admin, UserRole.Registrar)]
+    [InlineData(UserRole.Registrar | UserRole.Support, UserRole.Admin)]
+    public void HasRole_WithoutMatchingRole_ReturnsFalse(UserRole usersRoles, UserRole targetRole)
+    {
+        // given
+        var userService = new UserService(A.Fake<IUserStore>(), A.Fake<IMapper>(), A.Fake<IMemoryCache>(), A.Fake<INameService>(), A.Fake<Defaults>());
+        var user = new User() { Role = usersRoles };
+
+        // when
+        var result = userService.HasRole(user, targetRole);
+
+        // then
+        result.ShouldBeFalse();
+    }
+
     // [Theory, GameboardAutoData]
     // public async Task Create_WhenIsntInStore_SetsNameProperties(IFixture fixture)
     // {

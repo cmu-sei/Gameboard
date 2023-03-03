@@ -1,25 +1,41 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using Gameboard.Api.Features.Player;
 using Gameboard.Api.Structure;
+using Gameboard.Api.Structure.MediatR;
+using Gameboard.Api.Structure.MediatR.Validators;
 
-namespace Gameboard.Api.Features.GameEngine;
+namespace Gameboard.Api.Features.GameEngine.Requests;
 
-public class GetGameStateValidator : IGameboardValidator<GetGameStateRequest>
+internal class GetGameStateValidator : IGameboardRequestValidator<GetGameStateQuery>
 {
-    private readonly ITeamService _teamService;
+    private readonly RequiredStringValidator _requiredTeamId;
+    private readonly TeamExistsValidator _teamExists;
 
-    public GetGameStateValidator(ITeamService teamService)
+    public GetGameStateValidator(RequiredStringValidator requiredTeamId, TeamExistsValidator teamExists)
     {
-        _teamService = teamService;
+        _requiredTeamId = requiredTeamId;
+        _teamExists = teamExists;
+
+        _requiredTeamId.NameOfStringProperty = "teamId";
     }
 
-    public async Task<GameboardValidationException> Validate(GetGameStateRequest model)
+    public async Task<GameboardAggregatedValidationExceptions> ValidateRequest(GetGameStateQuery request)
     {
-        if (string.IsNullOrWhiteSpace(model.TeamId))
-            return new MissingRequiredInput(nameof(model.TeamId), model.TeamId);
+        _requiredTeamId.NameOfStringProperty = nameof(request.teamId);
+        var exceptions = new List<GameboardValidationException>();
 
-        if (!(await _teamService.GetExists(model.TeamId)))
-            return new ResourceNotFound<Team>(model.TeamId);
+        // TODO: why does this null ref?
+        // var missingTeamId = await _requiredTeamId.Validate(request.teamId);
+        // if (missingTeamId != null)
+        //     exceptions.Add(missingTeamId);
+
+        var teamDoesntExist = await _teamExists.Validate(request.teamId);
+        if (teamDoesntExist != null)
+            exceptions.Add(teamDoesntExist);
+
+        if (exceptions.Count() > 0)
+            return new GameboardAggregatedValidationExceptions(exceptions);
 
         return null;
     }

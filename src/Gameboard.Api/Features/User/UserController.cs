@@ -17,7 +17,6 @@ using Gameboard.Api.Auth;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
-using Gameboard.Api.Features.ApiKeys;
 
 namespace Gameboard.Api.Controllers
 {

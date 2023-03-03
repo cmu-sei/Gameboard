@@ -572,15 +572,10 @@ namespace Gameboard.Api.Services
         private async Task<bool> AtGamespaceLimit(Data.Game game, string teamId)
         {
             int gamespaceCount = await Store.ChallengeGamespaceCount(teamId);
-
-            int gamespaceLimit = game.IsCompetitionMode
-                ? game.GamespaceLimitPerSession
-                : 1
-            ;
+            int gamespaceLimit = game.IsCompetitionMode ? game.GamespaceLimitPerSession : 1;
 
             return gamespaceCount >= gamespaceLimit;
         }
 
     }
-
 }
