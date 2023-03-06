@@ -15,6 +15,7 @@ namespace Gameboard.Api
     {
         public string Tag { get; set; }
         public bool Disabled { get; set; }
+        public bool UseSharedResources { get; set; }
         public int AverageDeploySeconds { get; set; }
         public int Points { get; set; }
         public float X { get; set; }
@@ -46,6 +47,7 @@ namespace Gameboard.Api
         public string Name { get; set; }
         public string Description { get; set; }
         public bool Disabled { get; set; }
+        public bool UseSharedResources { get; set; }
         public int AverageDeploySeconds { get; set; }
         public int Points { get; set; }
         public float X { get; set; }
@@ -62,5 +64,4 @@ namespace Gameboard.Api
         public string GameName { get; set; }
         public string GameLogo { get; set; }
     }
-
 }

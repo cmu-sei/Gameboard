@@ -3,6 +3,7 @@ using System;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -157,6 +158,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<int>("GameEngineType")
+                        .HasColumnType("int");
+
                     b.Property<string>("GameId")
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
@@ -300,6 +304,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<int>("GameEngineType")
+                        .HasColumnType("int");
+
                     b.Property<string>("GameId")
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
@@ -315,6 +322,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.Property<string>("Tag")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("UseSharedResources")
+                        .HasColumnType("bit");
 
                     b.Property<float>("X")
                         .HasColumnType("real");
@@ -461,6 +471,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<int>("PlayerMode")
+                        .HasColumnType("int");
+
                     b.Property<DateTimeOffset>("RegistrationClose")
                         .HasColumnType("datetimeoffset");
 
@@ -529,6 +542,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<string>("InviteCode")
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .HasMaxLength(64)
