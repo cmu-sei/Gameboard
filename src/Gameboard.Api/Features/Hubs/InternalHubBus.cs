@@ -15,7 +15,7 @@ public interface IInternalHubBus
     Task SendPlayerLeft(Player p, User actor);
     Task SendTeamDeleted(Player p, User actor);
     Task SendPlayerRoleChanged(Player p, User actor);
-    Task SendTeamStarted(Player p, User actor);
+    Task SendTeamSessionStarted(Player p, User actor);
     Task SendTeamUpdated(Player p, User actor);
 }
 
@@ -72,7 +72,7 @@ internal class InternalHubBus : IInternalHubBus
             .PlayerEvent(new HubEvent<TeamPlayer>(mappedPlayer, EventAction.RoleChanged, BuildUserDescription(actor)));
     }
 
-    public async Task SendTeamStarted(Player p, User actor)
+    public async Task SendTeamSessionStarted(Player p, User actor)
     {
         var teamState = _mapper.Map<TeamState>(p, opts => opts.AfterMap((src, dest) =>
         {

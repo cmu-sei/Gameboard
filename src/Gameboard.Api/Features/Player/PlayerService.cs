@@ -162,7 +162,6 @@ public class PlayerService
     }
 
     public async Task<Player> StartSession(SessionStartRequest model, User actor, bool sudo)
-
     {
         var team = await Store.ListTeamByPlayer(model.PlayerId);
 
@@ -225,7 +224,7 @@ public class PlayerService
         }
 
         var asViewModel = Mapper.Map<Api.Player>(player);
-        await HubBus.SendTeamStarted(asViewModel, actor);
+        await HubBus.SendTeamSessionStarted(asViewModel, actor);
 
         return asViewModel;
     }
