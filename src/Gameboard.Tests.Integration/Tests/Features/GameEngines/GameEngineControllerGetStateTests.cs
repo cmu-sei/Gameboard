@@ -17,14 +17,21 @@ public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestCont
     public async Task GameEngineController_WithTopoStateAndEngine_ReturnsCompleteState(IFixture fixture)
     {
         // given 
-        // NOTE: this isn't random - it's handcrafted to allow for in-depth veriication
         var teamId = fixture.Create<string>();
+        var playerId = fixture.Create<string>();
         await _testContext.WithDataState(state =>
         {
+            state.AddPlayer(p =>
+            {
+                p.Id = playerId;
+                p.TeamId = teamId;
+            });
+
             state.AddChallenge(c =>
             {
                 c.Id = fixture.Create<string>();
                 c.GameEngineType = Api.GameEngineType.TopoMojo;
+                c.PlayerId = playerId;
                 // NOTE: this isn't random - it's handcrafted so we can verify the data "tree"
                 // See Fixtures/SpecimenBuilders/GameStateBuilder.cs
                 c.State = JsonSerializer.Serialize(fixture.Create<TopoMojo.Api.Client.GameState>());
