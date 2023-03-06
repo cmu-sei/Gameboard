@@ -4,10 +4,9 @@ namespace Gameboard.Tests.Integration.Fixtures;
 
 public static class GameboardTestContextDefaultEntityExtensions
 {
-    private static T BuildEntity<T>(T entity, Action<T>? builder = null, Action<T>? cleanUp = null) where T : class, IEntity
+    private static T BuildEntity<T>(T entity, Action<T>? builder = null) where T : class, IEntity
     {
         builder?.Invoke(entity);
-        cleanUp?.Invoke(entity);
         return entity;
     }
 
@@ -31,12 +30,14 @@ public static class GameboardTestContextDefaultEntityExtensions
             specBuilder
         );
 
+    public static void AddChallenge(this IDataStateBuilder dataStateBuilder, Action<Challenge>? challengeBuilder = null)
+        => dataStateBuilder.Add(BuildChallenge(dataStateBuilder, challengeBuilder));
+
     public static Challenge BuildChallenge(this IDataStateBuilder dataStateBuilder, Action<Challenge>? challengeBuilder = null)
         => BuildEntity
         (
             new Challenge
             {
-                Id = TestIds.Generate(),
                 Name = "Integration Test Challenge",
             },
             challengeBuilder

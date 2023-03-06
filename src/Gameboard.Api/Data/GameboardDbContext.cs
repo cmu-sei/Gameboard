@@ -7,10 +7,7 @@ namespace Gameboard.Api.Data
 {
     public class GameboardDbContext : DbContext
     {
-        public GameboardDbContext(DbContextOptions options)
-            : base(options)
-        {
-        }
+        public GameboardDbContext(DbContextOptions options) : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

@@ -17,6 +17,7 @@ namespace Gameboard.Api.Data.Abstractions
         IQueryable<TEntity> List(string term = null);
         Task<TEntity> Create(TEntity entity);
         Task<IEnumerable<TEntity>> Create(IEnumerable<TEntity> range);
+        Task<bool> Exists(string id);
         Task<TEntity> Retrieve(string id);
         Task<TEntity> Retrieve(string id, Func<IQueryable<TEntity>, IQueryable<TEntity>> includes);
         Task Update(TEntity entity);

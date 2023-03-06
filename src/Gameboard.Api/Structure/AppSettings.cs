@@ -25,7 +25,7 @@ namespace Gameboard.Api
 
     public class LoggingSettings
     {
-        public LogLevel LogLevel { get; set; } = LogLevel.Error;
+        public LogLevel EfCoreLogLevel { get; set; } = LogLevel.Warning;
         public Boolean EnableHttpLogging { get; set; } = false;
 
         /// <summary>

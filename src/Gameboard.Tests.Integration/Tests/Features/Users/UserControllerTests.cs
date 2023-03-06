@@ -22,7 +22,7 @@ public class UserControllerTests : IClassFixture<GameboardTestContext<GameboardD
         var client = _testContext.CreateHttpClientWithAuthRole(UserRole.Registrar);
         var result = await client
             .PostAsync("api/user", newUser.ToJsonBody())
-            .WithContentDeserializedAs<Gameboard.Api.User>(_testContext.GetJsonSerializerOptions());
+            .WithContentDeserializedAs<Gameboard.Api.User>();
 
         // then
         result?.Id.ShouldNotBeNullOrEmpty();
@@ -49,7 +49,7 @@ public class UserControllerTests : IClassFixture<GameboardTestContext<GameboardD
 
         var result = await client
             .PostAsync("api/user", newUser.ToJsonBody())
-            .WithContentDeserializedAs<Gameboard.Api.User>(_testContext.GetJsonSerializerOptions());
+            .WithContentDeserializedAs<Gameboard.Api.User>();
 
         // then
         // result

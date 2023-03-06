@@ -1,14 +1,11 @@
-using System.Text.Json;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Configurations;
 using DotNet.Testcontainers.Containers;
 using Gameboard.Api.Data;
-using Gameboard.Api.Extensions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Tests.Integration.Fixtures;
@@ -34,7 +31,8 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Test");
-        builder.ConfigureTestServices(services =>
+
+        builder.ConfigureServices(services =>
         {
             // Add DB context with connection to the container
             services.RemoveService<TDbContext>();
@@ -50,23 +48,12 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
             // dummy authorization service that lets everything through
             // TODO: we may need to make an easy way to configure this to enable tests which rely on authorization
             services.ReplaceService<IAuthorizationService, TestAuthorizationService>();
-
-            // TODO: figure out why the json options registered in the main app's ConfigureServices aren't here
-            // services.AddMvc().AddGameboardJsonOptions();
         });
     }
 
     public TDbContext GetDbContext()
     {
         return Services.GetRequiredService<TDbContext>();
-    }
-
-    public JsonSerializerOptions GetJsonSerializerOptions()
-    {
-        var defaultOptions = new Microsoft.AspNetCore.Mvc.JsonOptions();
-        IMvcBuilderExtensions.BuildJsonOptions()(defaultOptions);
-
-        return defaultOptions.JsonSerializerOptions;
     }
 
     public async Task InitializeAsync()
@@ -78,7 +65,7 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
         var dbContext = Services.GetRequiredService<TDbContext>();
         if (dbContext == null)
         {
-            throw new MissingServiceException<TDbContext>("Attempting to stand up the testcontainers database.");
+            throw new MissingServiceException<TDbContext>("Attempting to stand up the testcontainers database but hit a missing dbContext service.");
         }
 
         // ensure database migration

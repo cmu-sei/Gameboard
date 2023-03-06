@@ -33,7 +33,7 @@ var builder = WebApplication.CreateBuilder(args);
 var settings = builder.BuildAppSettings(startupLogger);
 builder.ConfigureServices(settings);
 
-// launch db if db only
+// launch db if db only 
 var dbOnly = args.ToList().Contains("--dbonly")
     || Environment.GetEnvironmentVariable("GAMEBOARD_DBONLY")?.ToLower() == "true";
 

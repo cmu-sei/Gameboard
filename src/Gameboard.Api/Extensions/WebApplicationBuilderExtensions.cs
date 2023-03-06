@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpLogging;
@@ -74,8 +75,7 @@ internal static class WebApplicationBuilderExtensions
                 options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter(
                     JsonNamingPolicy.CamelCase
                 ));
-            })
-        ;
+            });
         services.AddSignalRHub();
 
         services
@@ -86,7 +86,7 @@ internal static class WebApplicationBuilderExtensions
             .AddConfiguredHttpClients(settings.Core)
             .AddHostedService<JobService>()
             .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath)
-        ;
+            .AddGameboardMediatR();
 
         services.AddSingleton<AutoMapper.IMapper>(
             new AutoMapper.MapperConfiguration(cfg =>

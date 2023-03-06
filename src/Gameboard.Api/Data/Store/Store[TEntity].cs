@@ -52,6 +52,11 @@ namespace Gameboard.Api.Data
             return range;
         }
 
+        public virtual async Task<bool> Exists(string id)
+        {
+            return (await List().CountAsync(e => e.Id == id)) > 0;
+        }
+
         public virtual Task<TEntity> Retrieve(string id)
             => Retrieve(id, null);
 

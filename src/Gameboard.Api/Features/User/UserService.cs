@@ -201,4 +201,9 @@ public class UserService
 
         return randomName;
     }
+
+    internal bool HasRole(User user, UserRole role)
+    {
+        return user.Role.HasFlag(role);
+    }
 }

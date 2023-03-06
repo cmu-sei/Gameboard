@@ -3,6 +3,7 @@
 
 using System;
 using Gameboard.Api.Data;
+using Gameboard.Api.Structure;
 using Gameboard.Api.Validators;
 
 namespace Gameboard.Api
@@ -11,6 +12,11 @@ namespace Gameboard.Api
     {
         internal GameboardException(string message) : base(message) { }
         internal GameboardException(string message, Exception innerException) : base(message, innerException) { }
+    }
+
+    internal class MissingRequiredInput<T> : GameboardValidationException
+    {
+        internal MissingRequiredInput(string inputName, T input) : base($"Your input for ${inputName} was either missing or incorrectly formed (found \"{input}\").") { }
     }
 
     internal class AdminImpersonationFail : GameboardException
@@ -54,7 +60,7 @@ namespace Gameboard.Api
         { }
     }
 
-    internal class ResourceNotFound<T> : GameboardException where T : class
+    internal class ResourceNotFound<T> : GameboardValidationException where T : class
     {
         internal ResourceNotFound(string id, string addlMessage = null)
             : base($"Couldn't find resource {id} of type {typeof(T).Name}.{(addlMessage.HasValue() ? $" [{addlMessage}]" : string.Empty)}") { }
