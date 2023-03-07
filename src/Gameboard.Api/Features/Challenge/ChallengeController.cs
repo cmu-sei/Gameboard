@@ -66,7 +66,7 @@ namespace Gameboard.Api.Controllers
                 Url.Action("Grade")
             );
 
-            var result = await ChallengeService.GetOrAdd(model, Actor.Id, graderUrl);
+            var result = await ChallengeService.GetOrCreate(model, Actor.Id, graderUrl);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
                 new HubEvent<Challenge>(result, EventAction.Updated, HubEventActingUserDescription.FromUser(Actor))

@@ -57,7 +57,7 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext<Gameboar
             .WithContentDeserializedAs<Api.Player>();
 
         // assert
-        updatedPlayer.NameStatus.ShouldBe(AppConstants.NameStatusNotUnique);
+        updatedPlayer?.NameStatus.ShouldBe(AppConstants.NameStatusNotUnique);
     }
 
     [Theory]

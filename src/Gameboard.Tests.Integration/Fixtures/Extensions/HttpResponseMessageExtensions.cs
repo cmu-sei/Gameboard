@@ -5,7 +5,7 @@ namespace Gameboard.Tests.Integration.Fixtures;
 
 public static class HttpResponseMessageExtensions
 {
-    public static async Task<T> WithContentDeserializedAs<T>(this Task<HttpResponseMessage> responseTask) where T : class
+    public static async Task<T?> WithContentDeserializedAs<T>(this Task<HttpResponseMessage> responseTask) where T : class
     {
         var response = await responseTask;
         response.EnsureSuccessStatusCode();
@@ -15,13 +15,21 @@ public static class HttpResponseMessageExtensions
         JsonService.BuildJsonSerializerOptions()(serializerOptions);
 
         var rawResponse = await response.Content.ReadAsStringAsync();
-        var deserialized = JsonSerializer.Deserialize<T>(rawResponse, serializerOptions);
 
-        if (deserialized != null)
+        try
         {
-            return deserialized;
+            var deserialized = JsonSerializer.Deserialize<T>(rawResponse, serializerOptions);
+
+            if (deserialized != null)
+            {
+                return deserialized;
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new ResponseContentDeserializationTypeFailure<T>(rawResponse, ex);
         }
 
-        throw new ResponseContentDeserializationTypeFailure<T>(rawResponse);
+        return default(T);
     }
 }

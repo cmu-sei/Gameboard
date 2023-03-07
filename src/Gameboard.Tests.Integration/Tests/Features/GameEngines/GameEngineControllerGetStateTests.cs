@@ -47,7 +47,7 @@ public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestCont
             .WithContentDeserializedAs<GameEngineGameState>();
 
         // then
-        result.Audience.ShouldBe("gameboard");
-        result.Vms.ToArray()[1].IsVisible.ShouldBeFalse();
+        result?.Audience.ShouldBe("gameboard");
+        result?.Vms.ToArray()[1].IsVisible.ShouldBeFalse();
     }
 }

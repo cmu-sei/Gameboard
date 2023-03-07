@@ -38,6 +38,6 @@ public class GameControllerTests : IClassFixture<GameboardTestContext<GameboardD
             .WithContentDeserializedAs<Api.Data.Game>();
 
         // assert
-        responseGame.Name.ShouldBe(game.Name);
+        responseGame?.Name.ShouldBe(game.Name);
     }
 }

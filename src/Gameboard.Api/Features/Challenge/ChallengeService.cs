@@ -19,11 +19,12 @@ namespace Gameboard.Api.Services
     public class ChallengeService : _Service
     {
         IChallengeStore Store { get; }
-        GameEngineService GameEngine { get; }
+        IGameEngineService GameEngine { get; }
 
         private IMemoryCache _localcache;
         private ConsoleActorMap _actorMap;
         private readonly IGuidService _guids;
+        private readonly IJsonService _jsonService;
         private readonly IMapper _mapper;
 
         public ChallengeService(
@@ -31,9 +32,10 @@ namespace Gameboard.Api.Services
             IMapper mapper,
             CoreOptions options,
             IChallengeStore store,
-            GameEngineService gameEngine,
+            IGameEngineService gameEngine,
             IGuidService guids,
-            IMemoryCache localcache,
+            IJsonService jsonService,
+        IMemoryCache localcache,
             ConsoleActorMap actorMap
         ) : base(logger, mapper, options)
         {
@@ -43,15 +45,21 @@ namespace Gameboard.Api.Services
             _actorMap = actorMap;
             _guids = guids;
             _mapper = mapper;
+            _jsonService = jsonService;
         }
 
-        public async Task<Challenge> GetOrAdd(NewChallenge model, string actorId, string graderUrl)
+        public async Task<Challenge> GetOrCreate(NewChallenge model, string actorId, string graderUrl)
         {
             var entity = await Store.Load(model);
 
             if (entity is not null)
                 return Mapper.Map<Challenge>(entity);
 
+            return await Create(model, actorId, graderUrl);
+        }
+
+        public async Task<Challenge> Create(NewChallenge model, string actorId, string graderUrl)
+        {
             var player = await Store.DbContext.Players.FindAsync(model.PlayerId);
 
             var game = await Store.DbContext.Games
@@ -66,7 +74,7 @@ namespace Gameboard.Api.Services
                 throw new ChallengeLocked();
 
             var lockkey = $"{player.TeamId}{model.SpecId}";
-            var lockval = Guid.NewGuid();
+            var lockval = _guids.GetGuid();
             var locked = _localcache.GetOrCreate(lockkey, entry =>
             {
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
@@ -79,19 +87,17 @@ namespace Gameboard.Api.Services
             var spec = await Store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
             string graderKey = Guid.NewGuid().ToString("n");
 
-            int playerCount = (game.AllowTeam)
-                ? await Store.DbContext.Players.CountAsync(
-                    p => p.TeamId == player.TeamId
-                )
-                : 1
-            ;
+            int playerCount = 1;
+            if (game.AllowTeam)
+            {
+                playerCount = await Store.DbContext.Players.CountAsync(p => p.TeamId == player.TeamId);
+            }
 
-            entity = Mapper.Map<Data.Challenge>(model);
-            Mapper.Map(spec, entity);
-            entity.Player = player;
-            entity.TeamId = player.TeamId;
-            entity.GraderKey = graderKey.ToSha256();
-            Exception error = null;
+            var challenge = Mapper.Map<Data.Challenge>(model);
+            Mapper.Map(spec, challenge);
+            challenge.Player = player;
+            challenge.TeamId = player.TeamId;
+            challenge.GraderKey = graderKey.ToSha256();
 
             try
             {
@@ -101,40 +107,44 @@ namespace Gameboard.Api.Services
                     model,
                     game,
                     player,
-                    entity,
+                    challenge,
                     playerCount,
                     graderKey,
                     graderUrl
                 );
 
                 Transform(state);
-                Mapper.Map(state, entity);
 
-                entity.Events.Add(new Data.ChallengeEvent
+                // manually map here - we need the player object and other references to stay the same for
+                // db add
+                challenge.ExternalId = state.Id;
+                challenge.HasDeployedGamespace = state.IsActive;
+                challenge.State = _jsonService.Serialize(state);
+                challenge.StartTime = state.StartTime;
+                challenge.EndTime = state.EndTime;
+
+                challenge.Events.Add(new Data.ChallengeEvent
                 {
                     Id = _guids.GetGuid(),
                     UserId = actorId,
-                    TeamId = entity.TeamId,
+                    TeamId = challenge.TeamId,
                     Timestamp = DateTimeOffset.UtcNow,
                     Type = ChallengeEventType.Started
                 });
 
-                await Store.Create(entity);
-                await Store.UpdateEtd(entity.SpecId);
+                await Store.Create(challenge);
+                await Store.UpdateEtd(challenge.SpecId);
             }
-            catch (Exception ex)
+            catch
             {
-                error = ex;
+                throw;
             }
             finally
             {
                 _localcache.Remove(lockkey);
             }
 
-            if (error is Exception)
-                throw error;
-
-            return Mapper.Map<Challenge>(entity);
+            return Mapper.Map<Challenge>(challenge);
         }
 
         private async Task<bool> IsUnlocked(Data.Player player, Data.Game game, string specId)
@@ -563,9 +573,10 @@ namespace Gameboard.Api.Services
 
         private void Transform(GameEngineGameState state)
         {
-            state.Markdown = state.Markdown.Replace("](/docs", $"]({Options.ChallengeDocUrl}docs");
+            if (!string.IsNullOrWhiteSpace(state.Markdown))
+                state.Markdown = state.Markdown.Replace("](/docs", $"]({Options.ChallengeDocUrl}docs");
 
-            if (state.Challenge is not null)
+            if (state.Challenge is not null && !string.IsNullOrWhiteSpace(state.Challenge.Text))
                 state.Challenge.Text = state.Challenge.Text.Replace("](/docs", $"]({Options.ChallengeDocUrl}docs");
         }
 

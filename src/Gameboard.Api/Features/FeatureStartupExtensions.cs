@@ -16,6 +16,7 @@ using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -99,9 +100,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddScoped<IUnityGameService, UnityGameService>()
                 .AddScoped<IUnityStore, UnityStore>();
 
-        public static IMapperConfigurationExpression AddGameboardMaps(
-            this IMapperConfigurationExpression cfg
-        )
+        public static IMapperConfigurationExpression AddGameboardMaps(this IMapperConfigurationExpression cfg)
         {
             cfg.AddMaps(Assembly.GetExecutingAssembly());
             return cfg;

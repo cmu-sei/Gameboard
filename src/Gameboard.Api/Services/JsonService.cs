@@ -16,6 +16,7 @@ internal class JsonService : IJsonService
     {
         return options =>
         {
+            options.PropertyNameCaseInsensitive = true;
             options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             options.ReferenceHandler = ReferenceHandler.IgnoreCycles;
             options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
@@ -26,26 +27,26 @@ internal class JsonService : IJsonService
     internal static JsonService WithGameboardSerializerOptions()
         => new JsonService(BuildJsonSerializerOptions());
 
-    private readonly JsonSerializerOptions _options;
+    public JsonSerializerOptions Options { get; private set; }
 
     public JsonService(Action<JsonSerializerOptions> optionsBuilder)
     {
-        _options = new JsonSerializerOptions();
-        optionsBuilder(_options);
+        Options = new JsonSerializerOptions();
+        optionsBuilder(Options);
     }
 
     public JsonService(JsonSerializerOptions options)
     {
-        _options = options;
+        Options = options;
     }
 
     public T Deserialize<T>(string json) where T : class, new()
     {
-        return JsonSerializer.Deserialize<T>(json, _options);
+        return JsonSerializer.Deserialize<T>(json, Options);
     }
 
     public string Serialize<T>(T obj) where T : class
     {
-        return JsonSerializer.Serialize<T>(obj, _options);
+        return JsonSerializer.Serialize<T>(obj, Options);
     }
 }

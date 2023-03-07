@@ -2,6 +2,7 @@ using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Configurations;
 using DotNet.Testcontainers.Containers;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.GameEngine;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
@@ -45,8 +46,10 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
             // add user claims transformation that lets them all through
             services.ReplaceService<IClaimsTransformation, TestClaimsTransformation>(allowMultipleReplace: true);
 
+            // add a stand-in for the game engine service for now, because we don't have an instance for integration tests 
+            services.ReplaceService<IGameEngineService, TestGameEngineService>();
+
             // dummy authorization service that lets everything through
-            // TODO: we may need to make an easy way to configure this to enable tests which rely on authorization
             services.ReplaceService<IAuthorizationService, TestAuthorizationService>();
         });
     }

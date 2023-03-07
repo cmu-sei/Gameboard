@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AutoMapper;
 using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Services;
 
 namespace Gameboard.Tests.Unit;
 
@@ -18,7 +19,7 @@ public class GameEngineMapsTests
 
         var mapperConfig = new MapperConfiguration(cfg =>
         {
-            cfg.AddProfile<GameEngineMaps>();
+            cfg.AddProfile(new GameEngineMaps());
         });
         var mapper = new Mapper(mapperConfig);
 
@@ -108,7 +109,7 @@ public class GameEngineMapsTests
 
         var mapperConfig = new MapperConfiguration(cfg =>
         {
-            cfg.AddProfile<GameEngineMaps>();
+            cfg.AddProfile(new GameEngineMaps());
         });
         var mapper = new Mapper(mapperConfig);
 
