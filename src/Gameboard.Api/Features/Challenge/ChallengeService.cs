@@ -12,7 +12,6 @@ using Gameboard.Api.Features.GameEngine;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-// using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {
@@ -35,7 +34,7 @@ namespace Gameboard.Api.Services
             IGameEngineService gameEngine,
             IGuidService guids,
             IJsonService jsonService,
-        IMemoryCache localcache,
+            IMemoryCache localcache,
             ConsoleActorMap actorMap
         ) : base(logger, mapper, options)
         {
@@ -242,7 +241,6 @@ namespace Gameboard.Api.Services
             }
 
             q = q.OrderByDescending(p => p.LastSyncTime);
-
             q = q.Skip(model.Skip);
 
             if (model.Take > 0)
@@ -342,7 +340,7 @@ namespace Gameboard.Api.Services
 
             entity.Events.Add(new Data.ChallengeEvent
             {
-                Id = Guid.NewGuid().ToString("n"),
+                Id = _guids.GetGuid(),
                 UserId = actorId,
                 TeamId = entity.TeamId,
                 Timestamp = DateTimeOffset.UtcNow,
@@ -363,7 +361,7 @@ namespace Gameboard.Api.Services
 
             entity.Events.Add(new Data.ChallengeEvent
             {
-                Id = Guid.NewGuid().ToString("n"),
+                Id = _guids.GetGuid(),
                 UserId = actorId,
                 TeamId = entity.TeamId,
                 Timestamp = DateTimeOffset.UtcNow,
@@ -382,11 +380,9 @@ namespace Gameboard.Api.Services
         {
             var entity = await Store.Retrieve(model.Id);
 
-            // TODO: don't log auto-grader events
-            // if (model.Id != actorId)
             entity.Events.Add(new Data.ChallengeEvent
             {
-                Id = Guid.NewGuid().ToString("n"),
+                Id = _guids.GetGuid(),
                 UserId = actorId,
                 TeamId = entity.TeamId,
                 Timestamp = DateTimeOffset.UtcNow,
@@ -587,6 +583,5 @@ namespace Gameboard.Api.Services
 
             return gamespaceCount >= gamespaceLimit;
         }
-
     }
 }

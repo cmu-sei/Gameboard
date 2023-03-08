@@ -37,31 +37,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 if (File.Exists(xmlDoc))
                     options.IncludeXmlComments(xmlDoc);
 
-                // #if DEBUG
-                //                 string[] files = Directory.GetFiles("bin", xmlDoc, SearchOption.AllDirectories);
-
-                //                 if (files.Length > 0)
-                //                     options.IncludeXmlComments(files[0]);
-                // #else
-                //                 if (File.Exists(xmlDoc))
-                //                     options.IncludeXmlComments(xmlDoc);
-                // #endif
-
-                // options.CustomSchemaIds(type => type.FullName.StartsWith("Gameboard")
-                //     ? type.Name
-                //     : type.FullName.Replace(".", "")
-                // );
-
                 if (!string.IsNullOrEmpty(oidc.Authority))
                 {
-                    // this displays *all* flows allowed, which is a bit confusing at the ui
-                    // so not adding it at this point
-                    // options.AddSecurityDefinition("oidc", new OpenApiSecurityScheme
-                    // {
-                    //     Type = SecuritySchemeType.OpenIdConnect,
-                    //     OpenIdConnectUrl = new Uri($"{oidc.Authority}/.well-known/openid-configuration"),
-                    // });
-
                     options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
                     {
 
@@ -122,7 +99,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 cfg.OAuthClientId(openapi.Client.ClientId);
                 cfg.OAuthAppName(openapi.Client.ClientName ?? openapi.Client.ClientId);
                 cfg.OAuthScopes(audience);
-                cfg.OAuthUsePkce();                                                                  
+                cfg.OAuthUsePkce();
             });
 
             return app;

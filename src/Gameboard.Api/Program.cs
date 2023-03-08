@@ -26,6 +26,8 @@ ConfToEnv.Load("appsettings.conf");
 ConfToEnv.Load($"appsettings.{envname}.conf");
 ConfToEnv.Load(path);
 
+startupLogger.LogInformation($"Launching in {envname} configuration.");
+
 // create an application builder
 var builder = WebApplication.CreateBuilder(args);
 
