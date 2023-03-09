@@ -25,6 +25,7 @@ namespace Gameboard.Api.Services
         private readonly IGuidService _guids;
         private readonly IJsonService _jsonService;
         private readonly IMapper _mapper;
+        private readonly IPlayerStore _playerStore;
 
         public ChallengeService(
             ILogger<ChallengeService> logger,
@@ -35,6 +36,7 @@ namespace Gameboard.Api.Services
             IGuidService guids,
             IJsonService jsonService,
             IMemoryCache localcache,
+            IPlayerStore playerStore,
             ConsoleActorMap actorMap
         ) : base(logger, mapper, options)
         {
@@ -45,6 +47,7 @@ namespace Gameboard.Api.Services
             _guids = guids;
             _mapper = mapper;
             _jsonService = jsonService;
+            _playerStore = playerStore;
         }
 
         public async Task<Challenge> GetOrCreate(NewChallenge model, string actorId, string graderUrl)
@@ -202,7 +205,26 @@ namespace Gameboard.Api.Services
             if (model.Take > 0)
                 q = q.Take(model.Take);
 
-            return await Mapper.ProjectTo<ChallengeSummary>(q).ToArrayAsync();
+            // we have to resolve the query here, because we need to include player data as well
+            // (and there's no direct model relation between challenge and the players in a team)
+            var summaries = await Mapper.ProjectTo<ChallengeSummary>(q).ToArrayAsync();
+
+            // resolve the players of the challenges that are coming back
+            var teamIds = summaries.Select(s => s.TeamId);
+            var teamPlayerMap = await _playerStore
+                .List()
+                .AsNoTracking()
+                .Where(p => teamIds.Contains(p.TeamId))
+                .GroupBy(p => p.TeamId)
+                .ToDictionaryAsync(g => g.Key, g => g);
+
+            foreach (var summary in summaries)
+            {
+                var teamPlayers = teamPlayerMap[summary.TeamId];
+                summary.Players = teamPlayers.Select(p => _mapper.Map<ChallengePlayer>(p));
+            }
+
+            return summaries;
         }
 
         public async Task<ChallengeOverview[]> ListByUser(string uid)
