@@ -122,6 +122,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 cfg.OAuthClientId(openapi.Client.ClientId);
                 cfg.OAuthAppName(openapi.Client.ClientName ?? openapi.Client.ClientId);
                 cfg.OAuthScopes(audience);
+                cfg.OAuthUsePkce();                                                                  
             });
 
             return app;

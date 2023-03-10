@@ -8,20 +8,23 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.GameEngine;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using TopoMojo.Api.Client;
+// using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {
     public class ChallengeService : _Service
     {
         IChallengeStore Store { get; }
-        GameEngineService GameEngine { get; }
+        IGameEngineService GameEngine { get; }
 
         private IMemoryCache _localcache;
         private ConsoleActorMap _actorMap;
+        private readonly IGuidService _guids;
+        private readonly IJsonService _jsonService;
         private readonly IMapper _mapper;
 
         public ChallengeService(
@@ -29,8 +32,10 @@ namespace Gameboard.Api.Services
             IMapper mapper,
             CoreOptions options,
             IChallengeStore store,
-            GameEngineService gameEngine,
-            IMemoryCache localcache,
+            IGameEngineService gameEngine,
+            IGuidService guids,
+            IJsonService jsonService,
+        IMemoryCache localcache,
             ConsoleActorMap actorMap
         ) : base(logger, mapper, options)
         {
@@ -38,16 +43,23 @@ namespace Gameboard.Api.Services
             GameEngine = gameEngine;
             _localcache = localcache;
             _actorMap = actorMap;
+            _guids = guids;
             _mapper = mapper;
+            _jsonService = jsonService;
         }
 
-        public async Task<Challenge> GetOrAdd(NewChallenge model, string actorId, string graderUrl)
+        public async Task<Challenge> GetOrCreate(NewChallenge model, string actorId, string graderUrl)
         {
             var entity = await Store.Load(model);
 
             if (entity is not null)
                 return Mapper.Map<Challenge>(entity);
 
+            return await Create(model, actorId, graderUrl);
+        }
+
+        public async Task<Challenge> Create(NewChallenge model, string actorId, string graderUrl)
+        {
             var player = await Store.DbContext.Players.FindAsync(model.PlayerId);
 
             var game = await Store.DbContext.Games
@@ -62,7 +74,7 @@ namespace Gameboard.Api.Services
                 throw new ChallengeLocked();
 
             var lockkey = $"{player.TeamId}{model.SpecId}";
-            var lockval = Guid.NewGuid();
+            var lockval = _guids.GetGuid();
             var locked = _localcache.GetOrCreate(lockkey, entry =>
             {
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
@@ -75,55 +87,64 @@ namespace Gameboard.Api.Services
             var spec = await Store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
             string graderKey = Guid.NewGuid().ToString("n");
 
-            int playerCount = (game.AllowTeam)
-                ? await Store.DbContext.Players.CountAsync(
-                    p => p.TeamId == player.TeamId
-                )
-                : 1
-            ;
+            int playerCount = 1;
+            if (game.AllowTeam)
+            {
+                playerCount = await Store.DbContext.Players.CountAsync(p => p.TeamId == player.TeamId);
+            }
 
-            entity = Mapper.Map<Data.Challenge>(model);
-            Mapper.Map(spec, entity);
-            entity.Player = player;
-            entity.TeamId = player.TeamId;
-            entity.GraderKey = graderKey.ToSha256();
-            Exception error = null;
-            GameState state = null;
+            var challenge = Mapper.Map<Data.Challenge>(model);
+            Mapper.Map(spec, challenge);
+            challenge.Player = player;
+            challenge.TeamId = player.TeamId;
+            challenge.GraderKey = graderKey.ToSha256();
 
             try
             {
-                state = await GameEngine.RegisterGamespace(spec, model, game, player, entity, playerCount, graderKey, graderUrl);
+                var state = await GameEngine.RegisterGamespace
+                (
+                    spec,
+                    model,
+                    game,
+                    player,
+                    challenge,
+                    playerCount,
+                    graderKey,
+                    graderUrl
+                );
 
                 Transform(state);
 
-                Mapper.Map(state, entity);
+                // manually map here - we need the player object and other references to stay the same for
+                // db add
+                challenge.ExternalId = state.Id;
+                challenge.HasDeployedGamespace = state.IsActive;
+                challenge.State = _jsonService.Serialize(state);
+                challenge.StartTime = state.StartTime;
+                challenge.EndTime = state.EndTime;
 
-                entity.Events.Add(new Data.ChallengeEvent
+                challenge.Events.Add(new Data.ChallengeEvent
                 {
-                    Id = Guid.NewGuid().ToString("n"),
+                    Id = _guids.GetGuid(),
                     UserId = actorId,
-                    TeamId = entity.TeamId,
+                    TeamId = challenge.TeamId,
                     Timestamp = DateTimeOffset.UtcNow,
                     Type = ChallengeEventType.Started
                 });
 
-                await Store.Create(entity);
-
-                await Store.UpdateEtd(entity.SpecId);
+                await Store.Create(challenge);
+                await Store.UpdateEtd(challenge.SpecId);
             }
-            catch (Exception ex)
+            catch
             {
-                error = ex;
+                throw;
             }
             finally
             {
                 _localcache.Remove(lockkey);
             }
 
-            if (error is Exception)
-                throw error;
-
-            return Mapper.Map<Challenge>(entity);
+            return Mapper.Map<Challenge>(challenge);
         }
 
         private async Task<bool> IsUnlocked(Data.Player player, Data.Game game, string specId)
@@ -283,7 +304,7 @@ namespace Gameboard.Api.Services
             await Task.WhenAll(tasks);
         }
 
-        private async Task<Data.Challenge> Sync(Data.Challenge entity, Task<GameState> task = null)
+        private async Task<Data.Challenge> Sync(Data.Challenge entity, Task<GameEngineGameState> task = null)
         {
             if (task is null)
                 task = GameEngine.LoadGamespace(entity);
@@ -291,7 +312,6 @@ namespace Gameboard.Api.Services
             try
             {
                 var state = await task;
-
                 Mapper.Map(state, entity);
             }
             catch (Exception ex)
@@ -301,11 +321,10 @@ namespace Gameboard.Api.Services
             }
 
             await Store.Update(entity);
-
             return entity;
         }
 
-        private async Task<Data.Challenge> Sync(string id, Task<GameState> task = null)
+        private async Task<Data.Challenge> Sync(string id, Task<GameEngineGameState> task = null)
         {
             var entity = await Store.Retrieve(id);
 
@@ -359,7 +378,7 @@ namespace Gameboard.Api.Services
             return Mapper.Map<Challenge>(entity);
         }
 
-        public async Task<Challenge> Grade(SectionSubmission model, string actorId)
+        public async Task<Challenge> Grade(GameEngineSectionSubmission model, string actorId)
         {
             var entity = await Store.Retrieve(model.Id);
 
@@ -376,7 +395,7 @@ namespace Gameboard.Api.Services
 
             double currentScore = entity.Score;
 
-            Task<GameState> gradingTask = GameEngine.GradeChallenge(entity, model);
+            Task<GameEngineGameState> gradingTask = GameEngine.GradeChallenge(entity, model);
 
             var result = await Sync(
                 entity,
@@ -455,12 +474,12 @@ namespace Gameboard.Api.Services
 
                 var toArchiveTasks = challenges.Select(async challenge =>
                 {
-                    var submissions = new SectionSubmission[] { };
+                    var submissions = new GameEngineSectionSubmission[] { };
 
                     // gamespace may be deleted in TopoMojo which would cause error and prevent reset
                     try
                     {
-                        submissions = await GameEngine.AuditChallenge(challenge);
+                        submissions = Mapper.Map<GameEngineSectionSubmission[]>(await GameEngine.AuditChallenge(challenge));
                         if (challenge.HasDeployedGamespace)
                             await GameEngine.CompleteGamespace(challenge);
                     }
@@ -469,11 +488,11 @@ namespace Gameboard.Api.Services
                         // no-op - leave as empty array
                     }
 
-                    var mapped = _mapper.Map<Api.ArchivedChallenge>(challenge);
-                    mapped.Submissions = submissions;
-                    mapped.TeamMembers = teamMemberMap[challenge.TeamId].ToArray();
+                    var mappedChallenge = _mapper.Map<Api.ArchivedChallenge>(challenge);
+                    mappedChallenge.Submissions = submissions;
+                    mappedChallenge.TeamMembers = teamMemberMap[challenge.TeamId].ToArray();
 
-                    return mapped;
+                    return mappedChallenge;
                 }).ToArray();
 
                 var toArchive = await Task.WhenAll(toArchiveTasks);
@@ -488,8 +507,9 @@ namespace Gameboard.Api.Services
             var entity = await Store.Retrieve(model.SessionId);
             var challenge = Mapper.Map<Challenge>(entity);
 
+            var thing = challenge.State.Vms.First();
             if (!challenge.State.Vms.Any(v => v.Name == model.Name))
-                throw new ResourceNotFound<VmState>("n/a", $"VMS for challenge {model.Name}");
+                throw new ResourceNotFound<GameEngineVmState>("n/a", $"VMS for challenge {model.Name}");
 
             var console = await GameEngine.GetConsole(entity, model, observer);
             return console ?? throw new InvalidConsoleAction();
@@ -545,32 +565,28 @@ namespace Gameboard.Api.Services
             };
         }
 
-        internal async Task<SectionSubmission[]> Audit(string id)
+        internal async Task<IEnumerable<GameEngineSectionSubmission>> Audit(string id)
         {
             var entity = await Store.Load(id);
             return await GameEngine.AuditChallenge(entity);
         }
 
-        private void Transform(GameState state)
+        private void Transform(GameEngineGameState state)
         {
-            state.Markdown = state.Markdown.Replace("](/docs", $"]({Options.ChallengeDocUrl}docs");
+            if (!string.IsNullOrWhiteSpace(state.Markdown))
+                state.Markdown = state.Markdown.Replace("](/docs", $"]({Options.ChallengeDocUrl}docs");
 
-            if (state.Challenge is not null)
+            if (state.Challenge is not null && !string.IsNullOrWhiteSpace(state.Challenge.Text))
                 state.Challenge.Text = state.Challenge.Text.Replace("](/docs", $"]({Options.ChallengeDocUrl}docs");
         }
 
         private async Task<bool> AtGamespaceLimit(Data.Game game, string teamId)
         {
             int gamespaceCount = await Store.ChallengeGamespaceCount(teamId);
-
-            int gamespaceLimit = game.IsCompetitionMode
-                ? game.GamespaceLimitPerSession
-                : 1
-            ;
+            int gamespaceLimit = game.IsCompetitionMode ? game.GamespaceLimitPerSession : 1;
 
             return gamespaceCount >= gamespaceLimit;
         }
 
     }
-
 }

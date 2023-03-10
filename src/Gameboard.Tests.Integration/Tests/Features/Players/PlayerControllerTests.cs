@@ -54,10 +54,10 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext<Gameboar
         // when
         var updatedPlayer = await httpClient
             .PutAsync("/api/player", sutParams.ToJsonBody())
-            .WithContentDeserializedAs<Api.Player>(_testContext.GetJsonSerializerOptions());
+            .WithContentDeserializedAs<Api.Player>();
 
         // assert
-        updatedPlayer.NameStatus.ShouldBe(AppConstants.NameStatusNotUnique);
+        updatedPlayer?.NameStatus.ShouldBe(AppConstants.NameStatusNotUnique);
     }
 
     [Theory]
@@ -95,7 +95,7 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext<Gameboar
         // when
         var certs = await httpClient
             .GetAsync("/api/certificates")
-            .WithContentDeserializedAs<IEnumerable<PlayerCertificate>>(_testContext.GetJsonSerializerOptions());
+            .WithContentDeserializedAs<IEnumerable<PlayerCertificate>>();
 
         // then
         certs?.Count().ShouldBe(score == 0 ? 0 : 1);
@@ -148,7 +148,7 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext<Gameboar
         // when
         var certs = await httpClient
             .GetAsync("/api/certificates")
-            .WithContentDeserializedAs<IEnumerable<PlayerCertificate>>(_testContext.GetJsonSerializerOptions());
+            .WithContentDeserializedAs<IEnumerable<PlayerCertificate>>();
 
         // then
         certs?.Count().ShouldBe(1);

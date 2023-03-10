@@ -2,7 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
-using TopoMojo.Api.Client;
+using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api
 {
@@ -23,7 +23,7 @@ namespace Gameboard.Api
         public long Duration { get; set; }
         public ChallengeResult Result { get; set; }
         public ChallengeEventSummary[] Events { get; set; }
-        public TopoMojo.Api.Client.GameState State { get; set; }
+        public GameEngineGameState State { get; set; }
     }
 
     public class ChallengeSummary
@@ -174,7 +174,7 @@ namespace Gameboard.Api
         public ChallengeEventSummary[] Events { get; set; }
         public string[] TeamMembers { get; set; } // User Ids of all team members
         public bool IsActive { get; set; }
-        public SectionSubmission[] Submissions { get; set; }
+        public GameEngineSectionSubmission[] Submissions { get; set; }
     }
 
     public class ChallengeEventSummary

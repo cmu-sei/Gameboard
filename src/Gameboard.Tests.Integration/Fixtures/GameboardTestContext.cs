@@ -1,14 +1,12 @@
-using System.Text.Json;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Configurations;
 using DotNet.Testcontainers.Containers;
 using Gameboard.Api.Data;
-using Gameboard.Api.Extensions;
+using Gameboard.Api.Features.GameEngine;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Tests.Integration.Fixtures;
@@ -34,7 +32,8 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Test");
-        builder.ConfigureTestServices(services =>
+
+        builder.ConfigureServices(services =>
         {
             // Add DB context with connection to the container
             services.RemoveService<TDbContext>();
@@ -47,26 +46,17 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
             // add user claims transformation that lets them all through
             services.ReplaceService<IClaimsTransformation, TestClaimsTransformation>(allowMultipleReplace: true);
 
-            // dummy authorization service that lets everything through
-            // TODO: we may need to make an easy way to configure this to enable tests which rely on authorization
-            services.ReplaceService<IAuthorizationService, TestAuthorizationService>();
+            // add a stand-in for the game engine service for now, because we don't have an instance for integration tests 
+            services.ReplaceService<IGameEngineService, TestGameEngineService>();
 
-            // TODO: figure out why the json options registered in the main app's ConfigureServices aren't here
-            // services.AddMvc().AddGameboardJsonOptions();
+            // dummy authorization service that lets everything through
+            services.ReplaceService<IAuthorizationService, TestAuthorizationService>();
         });
     }
 
     public TDbContext GetDbContext()
     {
         return Services.GetRequiredService<TDbContext>();
-    }
-
-    public JsonSerializerOptions GetJsonSerializerOptions()
-    {
-        var defaultOptions = new Microsoft.AspNetCore.Mvc.JsonOptions();
-        IMvcBuilderExtensions.BuildJsonOptions()(defaultOptions);
-
-        return defaultOptions.JsonSerializerOptions;
     }
 
     public async Task InitializeAsync()
@@ -78,7 +68,7 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
         var dbContext = Services.GetRequiredService<TDbContext>();
         if (dbContext == null)
         {
-            throw new MissingServiceException<TDbContext>("Attempting to stand up the testcontainers database.");
+            throw new MissingServiceException<TDbContext>("Attempting to stand up the testcontainers database but hit a missing dbContext service.");
         }
 
         // ensure database migration

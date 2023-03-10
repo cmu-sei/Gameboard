@@ -9,6 +9,7 @@ namespace Gameboard.Api.Features.Player;
 
 public interface ITeamService
 {
+    Task<bool> GetExists(string teamId);
     Task<Data.Player> ResolveCaptain(string teamId);
     Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser);
     Task UpdateTeamSponsors(string teamId);
@@ -28,6 +29,11 @@ internal class TeamService : ITeamService
         _mapper = mapper;
         _store = store;
         _teamHubService = teamHubService;
+    }
+
+    public async Task<bool> GetExists(string teamId)
+    {
+        return (await _store.ListTeam(teamId).CountAsync()) > 0;
     }
 
     public async Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser)

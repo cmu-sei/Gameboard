@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
@@ -11,7 +12,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
-using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Controllers
 {
@@ -25,7 +25,7 @@ namespace Gameboard.Api.Controllers
 
         public ChallengeController(
             ILogger<ChallengeController> logger,
-            IDistributedCache cache,
+        IDistributedCache cache,
             ChallengeValidator validator,
             ChallengeService challengeService,
             PlayerService playerService,
@@ -66,7 +66,7 @@ namespace Gameboard.Api.Controllers
                 Url.Action("Grade")
             );
 
-            var result = await ChallengeService.GetOrAdd(model, Actor.Id, graderUrl);
+            var result = await ChallengeService.GetOrCreate(model, Actor.Id, graderUrl);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
                 new HubEvent<Challenge>(result, EventAction.Updated, HubEventActingUserDescription.FromUser(Actor))
@@ -202,7 +202,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPut("/api/challenge/grade")]
         [Authorize(AppConstants.GraderPolicy)]
-        public async Task<Challenge> Grade([FromBody] SectionSubmission model)
+        public async Task<Challenge> Grade([FromBody] GameEngineSectionSubmission model)
         {
             AuthorizeAny(
                 () => Actor.IsDirector,
@@ -252,7 +252,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("/api/challenge/{id}/audit")]
         [Authorize]
-        public async Task<SectionSubmission[]> Audit([FromRoute] string id)
+        public async Task<IEnumerable<GameEngineSectionSubmission>> Audit([FromRoute] string id)
         {
             AuthorizeAny(
                 () => Actor.IsDirector

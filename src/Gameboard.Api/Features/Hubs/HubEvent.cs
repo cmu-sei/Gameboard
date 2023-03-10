@@ -46,5 +46,3 @@ public enum EventAction
     Deleted,
     Started
 }
-
-

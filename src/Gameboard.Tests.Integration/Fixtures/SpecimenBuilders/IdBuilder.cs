@@ -3,14 +3,6 @@ using AutoFixture.Kernel;
 
 namespace Gameboard.Tests.Integration.Fixtures;
 
-public class GameboardCustomization : ICustomization
-{
-    public void Customize(IFixture fixture)
-    {
-        fixture.Customizations.Add(new IdBuilder());
-    }
-}
-
 public class IdBuilder : ISpecimenBuilder
 {
     public object Create(object request, ISpecimenContext context)

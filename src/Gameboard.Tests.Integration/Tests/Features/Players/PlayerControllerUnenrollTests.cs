@@ -1,7 +1,6 @@
 using System.Net;
 using Gameboard.Api;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Player;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Tests.Integration;

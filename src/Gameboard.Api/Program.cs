@@ -33,7 +33,7 @@ var builder = WebApplication.CreateBuilder(args);
 var settings = builder.BuildAppSettings(startupLogger);
 builder.ConfigureServices(settings);
 
-// launch db if db only
+// launch db if db only 
 var dbOnly = args.ToList().Contains("--dbonly")
     || Environment.GetEnvironmentVariable("GAMEBOARD_DBONLY")?.ToLower() == "true";
 
@@ -44,7 +44,7 @@ if (dbOnly)
 
     var dbOnlyApp = builder.Build();
     dbOnlyApp.Logger.LogInformation("Starting the app in dbonly mode...");
-    dbOnlyApp.InitializeDatabase(dbOnlyApp.Logger);
+    dbOnlyApp.InitializeDatabase(settings, dbOnlyApp.Logger);
     dbOnlyApp.Logger.LogInformation("DB initialized.");
 
     return;
@@ -53,7 +53,7 @@ if (dbOnly)
 // build and configure app
 var app = builder.Build();
 app
-    .InitializeDatabase(app.Logger)
+    .InitializeDatabase(settings, app.Logger)
     .ConfigureGameboard(settings);
 
 // start!

@@ -13,8 +13,8 @@ internal class MissingServiceException<T> : GameboardIntegrationTestException wh
 
 internal class ResponseContentDeserializationTypeFailure<T> : GameboardIntegrationTestException
 {
-    public ResponseContentDeserializationTypeFailure(string responseContent)
-        : base($"Attempted to deserialize a response body to type {typeof(T).Name} but failed. Response body: \"{responseContent}\"") { }
+    public ResponseContentDeserializationTypeFailure(string responseContent, Exception innerException)
+        : base($"Attempted to deserialize a response body to type {typeof(T).Name} but failed. \n\nResponse body: \"{responseContent}\"\nInner exception: {innerException.Message}") { }
 }
 
 internal class ResponseContentEmpty : GameboardIntegrationTestException

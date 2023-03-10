@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Player;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -161,7 +162,6 @@ public class PlayerService
     }
 
     public async Task<Player> StartSession(SessionStartRequest model, User actor, bool sudo)
-
     {
         var team = await Store.ListTeamByPlayer(model.PlayerId);
 
@@ -224,7 +224,7 @@ public class PlayerService
         }
 
         var asViewModel = Mapper.Map<Api.Player>(player);
-        await HubBus.SendTeamStarted(asViewModel, actor);
+        await HubBus.SendTeamSessionStarted(asViewModel, actor);
 
         return asViewModel;
     }

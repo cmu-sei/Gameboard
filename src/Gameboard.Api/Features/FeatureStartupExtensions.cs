@@ -10,11 +10,13 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.ApiKeys;
 using Gameboard.Api.Features.CubespaceScoreboard;
+using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
-using Gameboard.Api.Validators;
+using Gameboard.Api.Structure;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -27,7 +29,9 @@ namespace Microsoft.Extensions.DependencyInjection
             services
                 .AddSingleton<ConsoleActorMap>()
                 .AddHttpContextAccessor()
-                .AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>();
+                .AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>()
+                .AddConcretesFromNamespace("Gameboard.Api.Structure.Authorizers")
+                .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators");
 
             // Auto-discover from EntityService pattern
             foreach (var t in Assembly
@@ -72,6 +76,7 @@ namespace Microsoft.Extensions.DependencyInjection
             => services
                 // singletons
                 .AddSingleton<IAuthenticationService, AuthenticationService>()
+                .AddSingleton<IJsonService, JsonService>(f => JsonService.WithGameboardSerializerOptions())
                 .AddSingleton<ILockService, LockService>()
                 .AddSingleton<INameService, NameService>()
                 // global-style services
@@ -89,14 +94,13 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddScoped<IChallengeStore, ChallengeStore>()
                 .AddScoped<ICubespaceScoreboardService, CubespaceScoreboardService>()
                 .AddScoped<IGamebrainService, GamebrainService>()
+                .AddScoped<IGameEngineStore, GameEngineStore>()
                 .AddScoped<IInternalHubBus, InternalHubBus>()
                 .AddScoped<ITeamService, TeamService>()
                 .AddScoped<IUnityGameService, UnityGameService>()
                 .AddScoped<IUnityStore, UnityStore>();
 
-        public static IMapperConfigurationExpression AddGameboardMaps(
-            this IMapperConfigurationExpression cfg
-        )
+        public static IMapperConfigurationExpression AddGameboardMaps(this IMapperConfigurationExpression cfg)
         {
             cfg.AddMaps(Assembly.GetExecutingAssembly());
             return cfg;

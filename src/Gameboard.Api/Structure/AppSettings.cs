@@ -25,7 +25,7 @@ namespace Gameboard.Api
 
     public class LoggingSettings
     {
-        public LogLevel LogLevel { get; set; } = LogLevel.Error;
+        public LogLevel EfCoreLogLevel { get; set; } = LogLevel.Warning;
         public Boolean EnableHttpLogging { get; set; } = false;
 
         /// <summary>
@@ -87,11 +87,13 @@ namespace Gameboard.Api
 
     public class DatabaseOptions
     {
+        public string AdminId { get; set; }
+        public string AdminName { get; set; } = "Gameboard Admin";
+        public UserRole AdminRole { get; set; } = UserRole.Admin;
         public string Provider { get; set; } = "InMemory";
         public string ConnectionString { get; set; } = "gameboard_db";
         public string SeedFile { get; set; } = "seed-data.json";
     }
-
 
     public class HeaderOptions
     {
