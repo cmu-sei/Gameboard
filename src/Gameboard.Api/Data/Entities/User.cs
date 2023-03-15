@@ -24,6 +24,7 @@ namespace Gameboard.Api.Data
         // relational properties
         public ICollection<ApiKey> ApiKeys { get; set; } = new List<ApiKey>();
         public ICollection<Player> Enrollments { get; set; } = new List<Player>();
+        public ICollection<ManualChallengeBonus> EnteredManualChallengeBonuses { get; set; } = new List<ManualChallengeBonus>();
         public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
     }
 }

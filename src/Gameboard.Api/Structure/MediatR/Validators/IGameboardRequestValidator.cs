@@ -4,5 +4,5 @@ namespace Gameboard.Api.Structure.MediatR;
 
 internal interface IGameboardRequestValidator<T>
 {
-    Task<GameboardAggregatedValidationExceptions> ValidateRequest(T request);
+    Task<GameboardAggregatedValidationExceptions> Validate(T input);
 }

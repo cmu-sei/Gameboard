@@ -30,7 +30,7 @@ namespace Gameboard.Api.Data
         public GameEngineType GameEngineType { get; set; }
 
         [NotMapped]
-        public ChallengeResult Result => Score == Points
+        public ChallengeResult Result => Score >= Points
             ? ChallengeResult.Success
             : Score > 0
                 ? ChallengeResult.Partial
@@ -43,9 +43,11 @@ namespace Gameboard.Api.Data
 
         public Game Game { get; set; }
         public Player Player { get; set; }
-        public ICollection<ChallengeEvent> Events { get; set; } = new List<ChallengeEvent>();
 
         // Control delete behavior with relationships
+        public ICollection<AwardedChallengeBonus> AwardedBonuses { get; set; } = new List<AwardedChallengeBonus>();
+        public ICollection<ManualChallengeBonus> AwardedManualBonuses { get; set; } = new List<ManualChallengeBonus>();
+        public ICollection<ChallengeEvent> Events { get; set; } = new List<ChallengeEvent>();
         public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
         public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
     }

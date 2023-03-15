@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
@@ -42,7 +41,7 @@ internal class GetSubmissionsRequestHandler : IRequestHandler<GetSubmissionsQuer
         if (!_roleAuthorizer.Authorize(_actor))
             throw new ActionForbidden();
 
-        await _validator.ValidateRequest(request);
+        await _validator.Validate(request);
 
         var challenge = await _challengeStore.Retrieve(request.challengeId);
         return await _gameEngine.AuditChallenge(challenge);

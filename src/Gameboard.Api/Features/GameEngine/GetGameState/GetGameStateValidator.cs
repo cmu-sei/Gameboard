@@ -20,7 +20,7 @@ internal class GetGameStateValidator : IGameboardRequestValidator<GetGameStateQu
         _requiredTeamId.NameOfStringProperty = "teamId";
     }
 
-    public async Task<GameboardAggregatedValidationExceptions> ValidateRequest(GetGameStateQuery request)
+    public async Task<GameboardAggregatedValidationExceptions> Validate(GetGameStateQuery request)
     {
         _requiredTeamId.NameOfStringProperty = nameof(request.teamId);
         var exceptions = new List<GameboardValidationException>();
@@ -35,7 +35,7 @@ internal class GetGameStateValidator : IGameboardRequestValidator<GetGameStateQu
             exceptions.Add(teamDoesntExist);
 
         if (exceptions.Count() > 0)
-            return new GameboardAggregatedValidationExceptions(exceptions);
+            return GameboardAggregatedValidationExceptions.FromValidationExceptions(exceptions);
 
         return null;
     }

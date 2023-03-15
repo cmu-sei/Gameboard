@@ -34,7 +34,7 @@ internal class GetGameStateHandler : IRequestHandler<GetGameStateQuery, GameEngi
         if (!_roleAuthorizer.Authorize(_actor))
             throw new ActionForbidden();
 
-        var validationResult = await _validator.ValidateRequest(request);
+        var validationResult = await _validator.Validate(request);
         if (validationResult != null)
             throw validationResult;
 
