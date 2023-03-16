@@ -30,14 +30,21 @@ public class ChallengeBonusControllerManualTests : IClassFixture<GameboardTestCo
             });
         });
 
+        var challenge = await _testContext.GetDbContext()
+            .Challenges
+            .FirstOrDefaultAsync();
+
         var bonus = new CreateManualChallengeBonus
         {
-            ChallengeId = challengeId,
             Description = description,
             PointValue = pointsValue
         };
 
-        var httpClient = _testContext.CreateHttpClientWithAuth(u => u.Id = userId);
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u =>
+        {
+            u.Id = userId;
+            u.Role = Api.UserRole.Support;
+        });
 
         // when
         await httpClient.PostAsync($"api/challenge/{challengeId}/bonus/manual", bonus.ToJsonBody());

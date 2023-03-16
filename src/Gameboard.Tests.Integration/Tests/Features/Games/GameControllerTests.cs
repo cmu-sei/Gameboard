@@ -30,7 +30,7 @@ public class GameControllerTests : IClassFixture<GameboardTestContext<GameboardD
             RegistrationType = GameRegistrationType.Open
         };
 
-        var client = _testContext.CreateHttpClientWithAuth();
+        var client = _testContext.CreateHttpClientWithActingUser();
 
         // act
         var responseGame = await client

@@ -33,5 +33,5 @@ internal class GameboardAggregatedValidationExceptions : GameboardValidationExce
     }
 
     internal static GameboardAggregatedValidationExceptions FromValidationExceptions(params GameboardValidationException[] validationExceptions)
-        => FromValidationExceptions(validationExceptions);
+        => FromValidationExceptions(new List<GameboardValidationException>(validationExceptions));
 }

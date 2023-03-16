@@ -9,7 +9,7 @@ namespace Gameboard.Api.Features.ChallengeBonuses;
 
 public interface IChallengeBonusStore
 {
-    Task AddManualBonus(CreateManualChallengeBonus model, User actor);
+    Task AddManualBonus(string challengeId, CreateManualChallengeBonus model, User actor);
     Task DeleteManualBonus(string id);
     Task UpdateManualBonus(UpdateManualChallengeBonus model, User actor);
     Task<IEnumerable<ManualChallengeBonus>> ListManualBonuses(string challengeId);
@@ -26,7 +26,7 @@ internal class ChallengeBonusStore : IChallengeBonusStore
         _guids = guids;
     }
 
-    public async Task AddManualBonus(CreateManualChallengeBonus model, User actor)
+    public async Task AddManualBonus(string challengeId, CreateManualChallengeBonus model, User actor)
     {
         _db.ManualChallengeBonuses.Add(new ManualChallengeBonus
         {
@@ -34,7 +34,7 @@ internal class ChallengeBonusStore : IChallengeBonusStore
             Description = model.Description,
             PointValue = model.PointValue,
             EnteredByUserId = actor.Id,
-            ChallengeId = model.ChallengeId
+            ChallengeId = challengeId
         });
 
         await _db.SaveChangesAsync();

@@ -17,9 +17,9 @@ public class ChallengeBonusController : ControllerBase
     }
 
     [HttpPost("manual")]
-    public async Task<ActionResult> AddManualBonus(CreateManualChallengeBonus model)
+    public async Task<ActionResult> AddManualBonus([FromRoute] string challengeId, [FromBody] CreateManualChallengeBonus model)
     {
-        await _mediator.Send(new AddManualBonusCommand(model));
+        await _mediator.Send(new AddManualBonusCommand(challengeId, model));
         return Ok();
     }
 }

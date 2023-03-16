@@ -38,6 +38,6 @@ internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
             throw new ActionForbidden();
 
         await _validator.Validate(request);
-        await _challengeBonusStore.AddManualBonus(request.model, _actor);
+        await _challengeBonusStore.AddManualBonus(request.challengeId, request.model, _actor);
     }
 }

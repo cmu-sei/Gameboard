@@ -30,9 +30,13 @@ internal class AddManualBonusValidator : IGameboardRequestValidator<AddManualBon
         var pointsValidator = new SimpleValidator<double>(d => d > 0.0, $"{nameof(request.model.PointValue)} must be positive.");
 
         var validationExceptions = new List<GameboardValidationException>()
-            .AddIfNotNull(await _challengeExists.Validate(request.model.ChallengeId))
+            .AddIfNotNull(await _challengeExists.Validate(request.challengeId))
             .AddIfNotNull(await pointsValidator.Validate(request.model.PointValue))
-            .AddIfNotNull(await _descriptionRequired.Validate(request.model.Description));
+            .AddIfNotNull(await _descriptionRequired.Validate(new RequiredStringContext
+            {
+                PropertyName = nameof(request.model.Description),
+                Value = request.model.Description
+            }));
 
         return GameboardAggregatedValidationExceptions.FromValidationExceptions(validationExceptions);
     }
