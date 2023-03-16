@@ -30,10 +30,6 @@ public class ChallengeBonusControllerManualTests : IClassFixture<GameboardTestCo
             });
         });
 
-        var challenge = await _testContext.GetDbContext()
-            .Challenges
-            .FirstOrDefaultAsync();
-
         var bonus = new CreateManualChallengeBonus
         {
             Description = description,

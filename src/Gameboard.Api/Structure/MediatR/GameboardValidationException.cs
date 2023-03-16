@@ -10,7 +10,7 @@ abstract public class GameboardValidationException : ValidationException
     internal GameboardValidationException(string message, Exception ex = null) : base($"{message}", ex) { }
 }
 
-internal class GameboardAggregatedValidationExceptions : GameboardValidationException
+public class GameboardAggregatedValidationExceptions : GameboardValidationException
 {
     private GameboardAggregatedValidationExceptions(string message) : base(message) { }
 

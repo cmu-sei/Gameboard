@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -22,4 +23,8 @@ public class ChallengeBonusController : ControllerBase
         await _mediator.Send(new AddManualBonusCommand(challengeId, model));
         return Ok();
     }
+
+    [HttpGet("manual")]
+    public async Task<IEnumerable<ManualChallengeBonusViewModel>> List([FromRoute] string challengeId)
+        => await _mediator.Send(new ListManualBonusesQuery(challengeId));
 }

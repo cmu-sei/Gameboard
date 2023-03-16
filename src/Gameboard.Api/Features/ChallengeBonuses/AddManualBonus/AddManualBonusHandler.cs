@@ -34,9 +34,7 @@ internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
 
     public async Task Handle(AddManualBonusCommand request, CancellationToken cancellationToken)
     {
-        if (!_roleAuthorizer.Authorize(_actor))
-            throw new ActionForbidden();
-
+        _roleAuthorizer.Authorize();
         await _validator.Validate(request);
         await _challengeBonusStore.AddManualBonus(request.challengeId, request.model, _actor);
     }

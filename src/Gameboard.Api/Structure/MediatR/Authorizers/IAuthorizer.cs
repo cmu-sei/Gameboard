@@ -4,10 +4,10 @@ namespace Gameboard.Api.Structure.MediatR.Authorizers;
 
 internal interface IAuthorizer
 {
-    bool Authorize(User actor);
+    void Authorize();
 }
 
 internal interface IAsyncAuthorizer
 {
-    Task<bool> Authorize(User actor);
+    Task Authorize();
 }

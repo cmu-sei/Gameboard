@@ -1,22 +1,32 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Structure.MediatR.Authorizers;
 
 internal class UserRoleAuthorizer : IAuthorizer
 {
+    private User _actor;
     public IEnumerable<UserRole> AllowedRoles { get; set; } = new List<UserRole> { UserRole.Admin };
 
-    public bool Authorize(User actor)
+    public UserRoleAuthorizer(IHttpContextAccessor httpContextAccessor)
+    {
+        _actor = httpContextAccessor
+            .HttpContext
+            .User
+            .ToActor();
+    }
+
+    public void Authorize()
     {
         foreach (var role in AllowedRoles)
         {
-            if (actor.Role.HasFlag(role))
+            if (_actor.Role.HasFlag(role))
             {
-                return true;
+                return;
             }
         }
 
-        return false;
+        throw new ActionForbidden();
     }
 }

@@ -14,6 +14,7 @@ internal static class MediatRExtensionsToServiceCollection
             .AddImplementationsOf<IAuthorizer>()
             .AddImplementationsOf<IGameboardValidator>()
             .AddImplementationsOf(typeof(IGameboardValidator<,>))
-            .AddImplementationsOf(typeof(IGameboardRequestValidator<>));
+            .AddImplementationsOf(typeof(IGameboardRequestValidator<>))
+            .AddScoped<IValidatorService, ValidatorService>();
     }
 }
