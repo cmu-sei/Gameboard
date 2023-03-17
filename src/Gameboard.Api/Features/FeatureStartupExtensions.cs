@@ -13,6 +13,7 @@ using Gameboard.Api.Features.ChallengeBonuses;
 using Gameboard.Api.Features.CubespaceScoreboard;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
@@ -97,6 +98,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddScoped<IGamebrainService, GamebrainService>()
                 .AddScoped<IGameEngineStore, GameEngineStore>()
                 .AddScoped<IInternalHubBus, InternalHubBus>()
+                .AddScoped<IScoresService, ScoresService>()
                 .AddScoped<ITeamService, TeamService>()
                 .AddScoped<IUnityGameService, UnityGameService>()
                 .AddScoped<IUnityStore, UnityStore>();

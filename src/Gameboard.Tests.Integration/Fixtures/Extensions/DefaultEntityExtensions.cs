@@ -94,6 +94,7 @@ public static class GameboardTestContextDefaultEntityExtensions
     {
         var options = new TeamBuilderOptions
         {
+            ChallengeId = fixture.Create<string>(),
             Name = fixture.Create<string>(),
             NumPlayers = 5,
             GameBuilder = g => { },
@@ -103,7 +104,7 @@ public static class GameboardTestContextDefaultEntityExtensions
         optsBuilder.Invoke(options);
 
         // fill out properties
-        var teamName = string.IsNullOrEmpty(options.Name) ? fixture.Create<string>() : options.Name;
+        var teamName = string.IsNullOrWhiteSpace(options.Name) ? fixture.Create<string>() : options.Name;
 
         var game = new Api.Data.Game
         {
@@ -118,7 +119,7 @@ public static class GameboardTestContextDefaultEntityExtensions
 
         var challenge = new Api.Data.Challenge
         {
-            Id = fixture.Create<string>(),
+            Id = options.ChallengeId,
             Game = game,
             TeamId = options.TeamId
         };
@@ -149,13 +150,14 @@ public static class GameboardTestContextDefaultEntityExtensions
 
         return new TeamBuilderResult
         {
+            Challenge = challenge,
             TeamId = options.TeamId,
             Manager = players.Single(p => p.Role == Api.PlayerRole.Manager),
             Players = players,
         };
     }
 
-    public static void AddUser(this IDataStateBuilder dataStateBuilder, Action<User>? userBuilder = null)
+    public static IDataStateBuilder AddUser(this IDataStateBuilder dataStateBuilder, Action<User>? userBuilder = null)
         => dataStateBuilder.Add(BuildUser(dataStateBuilder, userBuilder));
 
     public static User BuildUser(this IDataStateBuilder dataStateBuilder, Action<User>? userBuilder = null)
