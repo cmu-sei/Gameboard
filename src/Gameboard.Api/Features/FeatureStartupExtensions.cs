@@ -98,7 +98,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddScoped<IGamebrainService, GamebrainService>()
                 .AddScoped<IGameEngineStore, GameEngineStore>()
                 .AddScoped<IInternalHubBus, InternalHubBus>()
-                .AddScoped<IScoresService, ScoresService>()
+                .AddScoped<IScoringService, ScoringService>()
                 .AddScoped<ITeamService, TeamService>()
                 .AddScoped<IUnityGameService, UnityGameService>()
                 .AddScoped<IUnityStore, UnityStore>();

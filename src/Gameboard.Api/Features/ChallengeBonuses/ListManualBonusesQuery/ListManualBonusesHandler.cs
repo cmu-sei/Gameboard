@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -33,7 +34,11 @@ internal class ListManualBonusesHandler : IRequestHandler<ListManualBonusesQuery
         await _validatorService.Validate(request.challengeId, _challengeExists);
 
         return await _mapper
-            .ProjectTo<ManualChallengeBonusViewModel>(_challengeBonusStore.ListManualBonuses(request.challengeId))
-            .ToListAsync();
+            .ProjectTo<ManualChallengeBonusViewModel>
+            (
+                _challengeBonusStore
+                .List()
+                .Where(b => b.ChallengeId == request.challengeId)
+            ).ToListAsync();
     }
 }

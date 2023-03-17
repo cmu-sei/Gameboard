@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Structure.MediatR;
@@ -10,12 +9,12 @@ namespace Gameboard.Api.Features.Scores;
 internal class TeamChallengeScoreQueryHandler : IRequestHandler<TeamChallengeScoreQuery, TeamChallengeScoreSummary>
 {
     private EntityExistsValidator<Data.Challenge> _challengeExists;
-    private IScoresService _scoresService;
+    private IScoringService _scoresService;
     private IValidatorService _validatorService;
 
     public TeamChallengeScoreQueryHandler(
         EntityExistsValidator<Data.Challenge> challengeExists,
-        IScoresService scoresService,
+        IScoringService scoresService,
         IValidatorService validatorService)
     {
         _challengeExists = challengeExists;

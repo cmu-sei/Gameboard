@@ -12,7 +12,7 @@ public interface IChallengeBonusStore
     Task AddManualBonus(string challengeId, CreateManualChallengeBonus model, User actor);
     Task DeleteManualBonus(string id);
     Task UpdateManualBonus(UpdateManualChallengeBonus model, User actor);
-    IQueryable<ManualChallengeBonus> ListManualBonuses(string challengeId);
+    IQueryable<ManualChallengeBonus> List();
 }
 
 internal class ChallengeBonusStore : IChallengeBonusStore
@@ -46,12 +46,11 @@ internal class ChallengeBonusStore : IChallengeBonusStore
             .Where(b => b.Id == id)
             .ExecuteDeleteAsync();
 
-    public IQueryable<ManualChallengeBonus> ListManualBonuses(string challengeId)
+    public IQueryable<ManualChallengeBonus> List()
         => _db
             .ManualChallengeBonuses
             .AsNoTracking()
-            .Include(c => c.EnteredBy)
-            .Where(b => b.ChallengeId == challengeId);
+            .Include(c => c.EnteredBy);
 
     public Task UpdateManualBonus(UpdateManualChallengeBonus model, User actor)
     {

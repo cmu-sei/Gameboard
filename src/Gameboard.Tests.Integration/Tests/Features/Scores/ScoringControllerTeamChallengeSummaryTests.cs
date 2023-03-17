@@ -2,11 +2,11 @@ using Gameboard.Api.Data;
 
 namespace Gameboard.Tests.Integration;
 
-public class ScoresControllerTeamSummaryTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+public class ScoringControllerTeamChallengeSummaryTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
 {
     private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
 
-    public ScoresControllerTeamSummaryTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public ScoringControllerTeamChallengeSummaryTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
     {
         _testContext = testContext;
     }

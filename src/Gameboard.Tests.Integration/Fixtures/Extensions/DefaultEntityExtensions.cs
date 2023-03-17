@@ -151,6 +151,7 @@ public static class GameboardTestContextDefaultEntityExtensions
         return new TeamBuilderResult
         {
             Challenge = challenge,
+            Game = game,
             TeamId = options.TeamId,
             Manager = players.Single(p => p.Role == Api.PlayerRole.Manager),
             Players = players,
