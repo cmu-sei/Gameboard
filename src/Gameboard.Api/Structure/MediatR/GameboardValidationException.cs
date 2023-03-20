@@ -10,9 +10,11 @@ abstract public class GameboardValidationException : ValidationException
     internal GameboardValidationException(string message, Exception ex = null) : base($"{message}", ex) { }
 }
 
-internal class GameboardAggregatedValidationExceptions : Exception
+public class GameboardAggregatedValidationExceptions : GameboardValidationException
 {
-    internal GameboardAggregatedValidationExceptions(IEnumerable<GameboardValidationException> failures)
+    private GameboardAggregatedValidationExceptions(string message) : base(message) { }
+
+    internal static GameboardAggregatedValidationExceptions FromValidationExceptions(IEnumerable<GameboardValidationException> failures)
     {
         var stringBuilder = new StringBuilder("GAMEBOARD VALIDATION EXCEPTION");
 
@@ -26,5 +28,10 @@ internal class GameboardAggregatedValidationExceptions : Exception
 
             stringBuilder.AppendLine($" - {failure.Message}{exceptionSummary ?? string.Empty}");
         }
+
+        return new GameboardAggregatedValidationExceptions(stringBuilder.ToString());
     }
+
+    internal static GameboardAggregatedValidationExceptions FromValidationExceptions(params GameboardValidationException[] validationExceptions)
+        => FromValidationExceptions(new List<GameboardValidationException>(validationExceptions));
 }

@@ -26,7 +26,7 @@ ConfToEnv.Load("appsettings.conf");
 ConfToEnv.Load($"appsettings.{envname}.conf");
 ConfToEnv.Load(path);
 
-startupLogger.LogInformation($"Launching in {envname} configuration.");
+startupLogger.LogInformation($"Starting Gameboard in {envname} configuration.");
 
 // create an application builder
 var builder = WebApplication.CreateBuilder(args);
@@ -46,6 +46,7 @@ if (dbOnly)
 
     var dbOnlyApp = builder.Build();
     dbOnlyApp.Logger.LogInformation("Starting the app in dbonly mode...");
+    dbOnlyApp.Logger.LogInformation($"Connection string: ", settings.Database.ConnectionString);
     dbOnlyApp.InitializeDatabase(settings, dbOnlyApp.Logger);
     dbOnlyApp.Logger.LogInformation("DB initialized.");
 

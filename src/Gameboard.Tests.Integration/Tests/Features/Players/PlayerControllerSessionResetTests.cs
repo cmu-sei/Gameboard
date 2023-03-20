@@ -29,7 +29,7 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
 
         // TODO: have withDataState give you stuff back so you don't have to query
         var somePlayer = await _testContext.GetDbContext().Players.FirstAsync(p => p.TeamId == teamId && p.Role == PlayerRole.Member);
-        var httpClient = _testContext.CreateHttpClientWithAuth(u => u.Id = somePlayer.UserId);
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = somePlayer.UserId);
 
         // when 
         var response = await httpClient.DeleteAsync($"api/player/{somePlayer.Id}/session");

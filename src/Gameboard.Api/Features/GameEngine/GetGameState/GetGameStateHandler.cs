@@ -31,10 +31,9 @@ internal class GetGameStateHandler : IRequestHandler<GetGameStateQuery, GameEngi
 
     public async Task<GameEngineGameState> Handle(GetGameStateQuery request, CancellationToken cancellationToken)
     {
-        if (!_roleAuthorizer.Authorize(_actor))
-            throw new ActionForbidden();
+        _roleAuthorizer.Authorize();
 
-        var validationResult = await _validator.ValidateRequest(request);
+        var validationResult = await _validator.Validate(request);
         if (validationResult != null)
             throw validationResult;
 

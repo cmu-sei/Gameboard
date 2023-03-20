@@ -9,7 +9,7 @@ namespace Gameboard.Tests.Integration.Fixtures;
 
 internal static class GameboardTestContextExtensions
 {
-    private static WebApplicationFactory<Program> WithAuthentication(this GameboardTestContext<GameboardDbContextPostgreSQL> testContext, TestAuthenticationUser? actingUser = null)
+    private static WebApplicationFactory<Program> BuildAuthentication(this GameboardTestContext<GameboardDbContextPostgreSQL> testContext, TestAuthenticationUser? actingUser = null)
     {
         return testContext
             .WithWebHostBuilder(builder =>
@@ -39,16 +39,26 @@ internal static class GameboardTestContextExtensions
             });
     }
 
-    public static HttpClient CreateHttpClientWithAuth(this GameboardTestContext<GameboardDbContextPostgreSQL> testContext, Action<TestAuthenticationUser>? userBuilder = null)
+    public static HttpClient CreateHttpClientWithActingUser(this GameboardTestContext<GameboardDbContextPostgreSQL> testContext, Action<TestAuthenticationUser>? userBuilder = null)
     {
         var user = new TestAuthenticationUser();
         userBuilder?.Invoke(user);
 
-        var client = testContext
-            .WithAuthentication(user)
+        return BuildAuthentication(testContext, user)
             .CreateClient(new WebApplicationFactoryClientOptions
             {
-                AllowAutoRedirect = false,
+                AllowAutoRedirect = false
+            });
+    }
+
+    public static HttpClient CreateHttpClientWithActingUser(this GameboardTestContext<GameboardDbContextPostgreSQL> testContext, Api.Data.User user)
+    {
+        var client = testContext
+            .CreateHttpClientWithActingUser(u =>
+            {
+                u.Id = user.Id;
+                u.Name = user.Name;
+                u.Role = user.Role;
             });
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthenticationHandler.AuthenticationSchemeName);
@@ -56,7 +66,7 @@ internal static class GameboardTestContextExtensions
     }
 
     public static HttpClient CreateHttpClientWithAuthRole(this GameboardTestContext<GameboardDbContextPostgreSQL> testContext, UserRole role)
-        => CreateHttpClientWithAuth(testContext, u => u.Role = role);
+        => CreateHttpClientWithActingUser(testContext, u => u.Role = role);
 
     public static async Task WithDataState(this GameboardTestContext<GameboardDbContextPostgreSQL> context, Action<IDataStateBuilder> builderAction)
     {

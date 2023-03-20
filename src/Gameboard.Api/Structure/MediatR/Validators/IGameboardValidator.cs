@@ -1,4 +1,6 @@
+using System;
 using System.Threading.Tasks;
+using MediatR;
 
 namespace Gameboard.Api.Structure.MediatR;
 

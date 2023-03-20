@@ -90,7 +90,7 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext<Gameboar
             });
         });
 
-        var httpClient = _testContext.CreateHttpClientWithAuth(u => u.Id = userId);
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = userId);
 
         // when
         var certs = await httpClient
@@ -143,7 +143,7 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext<Gameboar
             });
         });
 
-        var httpClient = _testContext.CreateHttpClientWithAuth(u => u.Id = userId);
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = userId);
 
         // when
         var certs = await httpClient

@@ -18,11 +18,13 @@ namespace Gameboard.Api.Data
         public float X { get; set; }
         public float Y { get; set; }
         public float R { get; set; }
+
         public GameEngineType GameEngineType { get; set; }
 
         // nav properties
         public string GameId { get; set; }
         public Game Game { get; set; }
         public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
+        // public ICollection<ChallengeBonus> Bonuses { get; set; } = new List<ChallengeBonus>();
     }
 }

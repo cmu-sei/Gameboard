@@ -60,7 +60,7 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext<
                 });
             });
 
-        var httpClient = _testContext.CreateHttpClientWithAuth(u => u.Id = memberUserId);
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = memberUserId);
         var reqParams = new PlayerUnenrollRequest
         {
             PlayerId = memberPlayerId
@@ -112,7 +112,7 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext<
                 });
             });
 
-        var httpClient = _testContext.CreateHttpClientWithAuth(u => u.Id = managerUserId);
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = managerUserId);
         var reqParams = new PlayerUnenrollRequest
         {
             PlayerId = managerPlayerId

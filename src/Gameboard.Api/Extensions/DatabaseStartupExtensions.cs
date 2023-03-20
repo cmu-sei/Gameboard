@@ -83,6 +83,7 @@ namespace Gameboard.Api.Extensions
             if (!isSeedFileConfigured)
             {
                 logger.LogInformation("No seed file configured.");
+                return;
             }
 
             string seedFilePath = isSeedFileConfigured ? Path.Combine(env.ContentRootPath, configSeedFile) : "";
@@ -90,21 +91,19 @@ namespace Gameboard.Api.Extensions
             if (!seedFileExists)
             {
                 logger.LogInformation(message: $"The current seed file ({seedFilePath}) doesn't exist.");
+                return;
             }
 
-            if (isSeedFileConfigured && seedFileExists)
-            {
-                logger.LogInformation($"Seeding data from {seedFilePath}...");
-                var seedModel = LoadSeedModel(seedFilePath);
+            logger.LogInformation($"Seeding data from {seedFilePath}...");
+            var seedModel = LoadSeedModel(seedFilePath);
 
-                db.SeedEnumerable(seedModel.Challenges, logger);
-                db.SeedEnumerable(seedModel.ChallengeSpecs, logger);
-                db.SeedEnumerable(seedModel.Feedback, logger);
-                db.SeedEnumerable(seedModel.Games, logger);
-                db.SeedEnumerable(seedModel.Players, logger);
-                db.SeedEnumerable(seedModel.Sponsors, logger);
-                db.SeedEnumerable(seedModel.Users, logger);
-            }
+            db.SeedEnumerable(seedModel.Challenges, logger);
+            db.SeedEnumerable(seedModel.ChallengeSpecs, logger);
+            db.SeedEnumerable(seedModel.Feedback, logger);
+            db.SeedEnumerable(seedModel.Games, logger);
+            db.SeedEnumerable(seedModel.Players, logger);
+            db.SeedEnumerable(seedModel.Sponsors, logger);
+            db.SeedEnumerable(seedModel.Users, logger);
 
             if (db.ChangeTracker.HasChanges())
             {
