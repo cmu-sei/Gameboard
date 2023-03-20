@@ -25,7 +25,7 @@ namespace Gameboard.Api.Controllers
 
         public ChallengeController(
             ILogger<ChallengeController> logger,
-        IDistributedCache cache,
+            IDistributedCache cache,
             ChallengeValidator validator,
             ChallengeService challengeService,
             PlayerService playerService,

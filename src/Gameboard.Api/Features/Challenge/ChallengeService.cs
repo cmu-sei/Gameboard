@@ -87,7 +87,7 @@ namespace Gameboard.Api.Services
                 throw new ChallengeStartPending();
 
             var spec = await Store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
-            string graderKey = Guid.NewGuid().ToString("n");
+            string graderKey = _guids.GetGuid();
 
             int playerCount = 1;
             if (game.AllowTeam)
@@ -119,7 +119,8 @@ namespace Gameboard.Api.Services
 
                 // manually map here - we need the player object and other references to stay the same for
                 // db add
-                challenge.ExternalId = state.Id;
+                challenge.Id = state.Id;
+                challenge.ExternalId = spec.ExternalId;
                 challenge.HasDeployedGamespace = state.IsActive;
                 challenge.State = _jsonService.Serialize(state);
                 challenge.StartTime = state.StartTime;
@@ -413,7 +414,7 @@ namespace Gameboard.Api.Services
 
             double currentScore = entity.Score;
 
-            Task<GameEngineGameState> gradingTask = GameEngine.GradeChallenge(entity, model);
+            var gradingTask = GameEngine.GradeChallenge(entity, model);
 
             var result = await Sync(
                 entity,

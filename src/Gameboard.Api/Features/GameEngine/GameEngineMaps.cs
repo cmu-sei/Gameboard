@@ -64,5 +64,7 @@ public class GameEngineMaps : Profile
         CreateMap<TopoMojo.Api.Client.GameState, GameEngineGameState>();
         CreateMap<TopoMojo.Api.Client.SectionSubmission, GameEngineSectionSubmission>();
 
+        CreateMap<GameEngineAnswerSubmission, TopoMojo.Api.Client.AnswerSubmission>();
+        CreateMap<GameEngineSectionSubmission, TopoMojo.Api.Client.SectionSubmission>();
     }
 }
