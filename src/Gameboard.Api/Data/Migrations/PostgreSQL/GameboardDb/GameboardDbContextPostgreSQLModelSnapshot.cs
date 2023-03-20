@@ -144,36 +144,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.ToTable("ArchivedChallenges");
                 });
 
-            modelBuilder.Entity("Gameboard.Api.Data.AwardedChallengeBonus", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<string>("ChallengeBonusId")
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<string>("ChallengeId")
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<DateTimeOffset>("EnteredOn")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.Property<string>("InternalSummary")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChallengeBonusId");
-
-                    b.HasIndex("ChallengeId");
-
-                    b.ToTable("AwardedChallengeBonuses");
-                });
-
             modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
                 {
                     b.Property<string>("Id")
@@ -249,32 +219,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.HasIndex("TeamId");
 
                     b.ToTable("Challenges");
-                });
-
-            modelBuilder.Entity("Gameboard.Api.Data.ChallengeBonus", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<int>("ChallengeBonusType")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ChallengeSpecId")
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<double>("PointValue")
-                        .HasColumnType("double precision");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChallengeSpecId");
-
-                    b.ToTable("ChallengeBonuses");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.ChallengeEvent", b =>
@@ -584,11 +528,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<string>("EnteredById")
-                        .HasColumnType("character varying(40)");
-
                     b.Property<string>("EnteredByUserId")
-                        .HasColumnType("text");
+                        .HasColumnType("character varying(40)");
 
                     b.Property<DateTimeOffset>("EnteredOn")
                         .ValueGeneratedOnAdd()
@@ -602,7 +543,7 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
                     b.HasIndex("ChallengeId");
 
-                    b.HasIndex("EnteredById");
+                    b.HasIndex("EnteredByUserId");
 
                     b.ToTable("ManualChallengeBonuses");
                 });
@@ -893,23 +834,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Owner");
                 });
 
-            modelBuilder.Entity("Gameboard.Api.Data.AwardedChallengeBonus", b =>
-                {
-                    b.HasOne("Gameboard.Api.Data.ChallengeBonus", "ChallengeBonus")
-                        .WithMany("AwardedTo")
-                        .HasForeignKey("ChallengeBonusId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Gameboard.Api.Data.Challenge", "Challenge")
-                        .WithMany("AwardedBonuses")
-                        .HasForeignKey("ChallengeId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("Challenge");
-
-                    b.Navigation("ChallengeBonus");
-                });
-
             modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
@@ -925,16 +849,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Game");
 
                     b.Navigation("Player");
-                });
-
-            modelBuilder.Entity("Gameboard.Api.Data.ChallengeBonus", b =>
-                {
-                    b.HasOne("Gameboard.Api.Data.ChallengeSpec", "ChallengeSpec")
-                        .WithMany("Bonuses")
-                        .HasForeignKey("ChallengeSpecId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("ChallengeSpec");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.ChallengeEvent", b =>
@@ -1012,14 +926,14 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasForeignKey("ChallengeId")
                         .OnDelete(DeleteBehavior.Cascade);
 
-                    b.HasOne("Gameboard.Api.Data.User", "EnteredBy")
+                    b.HasOne("Gameboard.Api.Data.User", "EnteredByUser")
                         .WithMany("EnteredManualChallengeBonuses")
-                        .HasForeignKey("EnteredById")
+                        .HasForeignKey("EnteredByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Challenge");
 
-                    b.Navigation("EnteredBy");
+                    b.Navigation("EnteredByUser");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
@@ -1097,8 +1011,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
                 {
-                    b.Navigation("AwardedBonuses");
-
                     b.Navigation("AwardedManualBonuses");
 
                     b.Navigation("Events");
@@ -1108,15 +1020,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Tickets");
                 });
 
-            modelBuilder.Entity("Gameboard.Api.Data.ChallengeBonus", b =>
-                {
-                    b.Navigation("AwardedTo");
-                });
-
             modelBuilder.Entity("Gameboard.Api.Data.ChallengeSpec", b =>
                 {
-                    b.Navigation("Bonuses");
-
                     b.Navigation("Feedback");
                 });
 

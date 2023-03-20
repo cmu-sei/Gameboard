@@ -50,7 +50,7 @@ internal class ChallengeBonusStore : IChallengeBonusStore
         => _db
             .ManualChallengeBonuses
             .AsNoTracking()
-            .Include(c => c.EnteredBy);
+            .Include(c => c.EnteredByUser);
 
     public Task UpdateManualBonus(UpdateManualChallengeBonus model, User actor)
     {

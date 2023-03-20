@@ -45,7 +45,7 @@ namespace Gameboard.Api.Data
         public Player Player { get; set; }
 
         // Control delete behavior with relationships
-        public ICollection<AwardedChallengeBonus> AwardedBonuses { get; set; } = new List<AwardedChallengeBonus>();
+        // public ICollection<AwardedChallengeBonus> AwardedBonuses { get; set; } = new List<AwardedChallengeBonus>();
         public ICollection<ManualChallengeBonus> AwardedManualBonuses { get; set; } = new List<ManualChallengeBonus>();
         public ICollection<ChallengeEvent> Events { get; set; } = new List<ChallengeEvent>();
         public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();

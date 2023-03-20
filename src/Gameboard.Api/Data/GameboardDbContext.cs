@@ -1,7 +1,6 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data
@@ -104,24 +103,24 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.GraderKey).HasMaxLength(64);
             });
 
-            builder.Entity<ChallengeBonus>(b =>
-            {
-                b.Property(b => b.Id).HasStandardGuidLength();
-                b.Property(b => b.Description).HasStandardNameLength();
-                b.HasOne(b => b.ChallengeSpec).WithMany(c => c.Bonuses).OnDelete(DeleteBehavior.Cascade);
-            });
+            // builder.Entity<ChallengeBonus>(b =>
+            // {
+            //     b.Property(b => b.Id).HasStandardGuidLength();
+            //     b.Property(b => b.Description).HasStandardNameLength();
+            //     b.HasOne(b => b.ChallengeSpec).WithMany(c => c.Bonuses).OnDelete(DeleteBehavior.Cascade);
+            // });
 
-            builder.Entity<AwardedChallengeBonus>(b =>
-            {
-                b.Property(a => a.Id).HasStandardGuidLength();
-                b.Property(a => a.InternalSummary).HasMaxLength(200);
-                b.Property(a => a.EnteredOn)
-                    .HasDefaultValueSql("NOW()")
-                    .ValueGeneratedOnAdd();
+            // builder.Entity<AwardedChallengeBonus>(b =>
+            // {
+            //     b.Property(a => a.Id).HasStandardGuidLength();
+            //     b.Property(a => a.InternalSummary).HasMaxLength(200);
+            //     b.Property(a => a.EnteredOn)
+            //         .HasDefaultValueSql("NOW()")
+            //         .ValueGeneratedOnAdd();
 
-                b.HasOne(a => a.ChallengeBonus).WithMany(c => c.AwardedTo).OnDelete(DeleteBehavior.Restrict);
-                b.HasOne(a => a.Challenge).WithMany(c => c.AwardedBonuses).OnDelete(DeleteBehavior.Cascade);
-            });
+            //     b.HasOne(a => a.ChallengeBonus).WithMany(c => c.AwardedTo).OnDelete(DeleteBehavior.Restrict);
+            //     b.HasOne(a => a.Challenge).WithMany(c => c.AwardedBonuses).OnDelete(DeleteBehavior.Cascade);
+            // });
 
             builder.Entity<ManualChallengeBonus>(b =>
             {
@@ -132,7 +131,7 @@ namespace Gameboard.Api.Data
                     .ValueGeneratedOnAdd();
 
                 b.HasOne(m => m.Challenge).WithMany(c => c.AwardedManualBonuses).OnDelete(DeleteBehavior.Cascade);
-                b.HasOne(m => m.EnteredBy).WithMany(u => u.EnteredManualChallengeBonuses).OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(m => m.EnteredByUser).WithMany(u => u.EnteredManualChallengeBonuses).OnDelete(DeleteBehavior.Restrict);
             });
 
             builder.Entity<ChallengeEvent>(b =>
@@ -229,9 +228,9 @@ namespace Gameboard.Api.Data
 
         public DbSet<ApiKey> ApiKeys { get; set; }
         public DbSet<ArchivedChallenge> ArchivedChallenges { get; set; }
-        public DbSet<AwardedChallengeBonus> AwardedChallengeBonuses { get; set; }
+        // public DbSet<AwardedChallengeBonus> AwardedChallengeBonuses { get; set; }
         public DbSet<Challenge> Challenges { get; set; }
-        public DbSet<ChallengeBonus> ChallengeBonuses { get; set; }
+        // public DbSet<ChallengeBonus> ChallengeBonuses { get; set; }
         public DbSet<ChallengeEvent> ChallengeEvents { get; set; }
         public DbSet<ChallengeSpec> ChallengeSpecs { get; set; }
         public DbSet<ChallengeGate> ChallengeGates { get; set; }

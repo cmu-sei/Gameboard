@@ -23,6 +23,6 @@ namespace Gameboard.Api.Data
         public Game Game { get; set; }
         public GameEngineType GameEngineType { get; set; }
         public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
-        public ICollection<ChallengeBonus> Bonuses { get; set; } = new List<ChallengeBonus>();
+        // public ICollection<ChallengeBonus> Bonuses { get; set; } = new List<ChallengeBonus>();
     }
 }

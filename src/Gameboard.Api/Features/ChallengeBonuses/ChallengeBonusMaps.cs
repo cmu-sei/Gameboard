@@ -11,7 +11,7 @@ public class ChallengeBonusMaps : Profile
             .ForMember(vm => vm.EnteredBy, o => o.MapFrom(m => new UserSimple
             {
                 Id = m.EnteredByUserId,
-                ApprovedName = m.EnteredBy.ApprovedName
+                ApprovedName = m.EnteredByUser.ApprovedName
             }));
     }
 }
