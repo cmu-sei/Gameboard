@@ -44,14 +44,15 @@ public class GameEngineMaps : Profile
             .ForMember(c => c.Game, o => o.Ignore())
             // game engine type will need to be resolved using an aftermap expression during mapping
             .ForMember(c => c.GameEngineType, o => o.Ignore())
-            // similarly, engines don't know about things like games or tickets
+            // similarly, engines don't know about things like games, tickets, and bonuses
             .ForMember(c => c.GameId, o => o.Ignore())
             .ForMember(c => c.GraderKey, o => o.Ignore())
             .ForMember(c => c.LastSyncTime, o => o.Ignore())
             .ForMember(c => c.SpecId, o => o.Ignore())
             .ForMember(c => c.Tag, o => o.Ignore())
             .ForMember(c => c.TeamId, o => o.Ignore())
-            .ForMember(c => c.Tickets, o => o.Ignore());
+            .ForMember(c => c.Tickets, o => o.Ignore())
+            .ForMember(c => c.AwardedManualBonuses, o => o.Ignore());
 
         // engine: topo
         CreateMap<TopoMojo.Api.Client.AnswerSubmission, GameEngineAnswerSubmission>();
