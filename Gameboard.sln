@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gameboard.Tests.Unit", "src
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gameboard.Tests.Integration", "src\Gameboard.Tests.Integration\Gameboard.Tests.Integration.csproj", "{7598696F-417B-4062-A69A-85CD50D067FE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gameboard.Api.Tests.Shared", "src\Gameboard.Api.Tests.Shared\Gameboard.Api.Tests.Shared.csproj", "{79462104-DCF9-4F9C-AC60-EA6E9F961EBF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -60,10 +62,23 @@ Global
 		{7598696F-417B-4062-A69A-85CD50D067FE}.Release|x64.Build.0 = Release|Any CPU
 		{7598696F-417B-4062-A69A-85CD50D067FE}.Release|x86.ActiveCfg = Release|Any CPU
 		{7598696F-417B-4062-A69A-85CD50D067FE}.Release|x86.Build.0 = Release|Any CPU
+		{79462104-DCF9-4F9C-AC60-EA6E9F961EBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79462104-DCF9-4F9C-AC60-EA6E9F961EBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79462104-DCF9-4F9C-AC60-EA6E9F961EBF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{79462104-DCF9-4F9C-AC60-EA6E9F961EBF}.Debug|x64.Build.0 = Debug|Any CPU
+		{79462104-DCF9-4F9C-AC60-EA6E9F961EBF}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{79462104-DCF9-4F9C-AC60-EA6E9F961EBF}.Debug|x86.Build.0 = Debug|Any CPU
+		{79462104-DCF9-4F9C-AC60-EA6E9F961EBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79462104-DCF9-4F9C-AC60-EA6E9F961EBF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{79462104-DCF9-4F9C-AC60-EA6E9F961EBF}.Release|x64.ActiveCfg = Release|Any CPU
+		{79462104-DCF9-4F9C-AC60-EA6E9F961EBF}.Release|x64.Build.0 = Release|Any CPU
+		{79462104-DCF9-4F9C-AC60-EA6E9F961EBF}.Release|x86.ActiveCfg = Release|Any CPU
+		{79462104-DCF9-4F9C-AC60-EA6E9F961EBF}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{A2715FCD-D078-4E96-81C3-B833640921C5} = {C148F187-E600-4044-8944-2E9E52575B07}
 		{BAEF960F-857E-4CDA-9D9D-D2F6F1C40E0C} = {C148F187-E600-4044-8944-2E9E52575B07}
 		{7598696F-417B-4062-A69A-85CD50D067FE} = {C148F187-E600-4044-8944-2E9E52575B07}
+		{79462104-DCF9-4F9C-AC60-EA6E9F961EBF} = {C148F187-E600-4044-8944-2E9E52575B07}
 	EndGlobalSection
 EndGlobal

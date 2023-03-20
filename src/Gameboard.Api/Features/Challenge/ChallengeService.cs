@@ -12,7 +12,6 @@ using Gameboard.Api.Features.GameEngine;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-// using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {
@@ -26,6 +25,7 @@ namespace Gameboard.Api.Services
         private readonly IGuidService _guids;
         private readonly IJsonService _jsonService;
         private readonly IMapper _mapper;
+        private readonly IPlayerStore _playerStore;
 
         public ChallengeService(
             ILogger<ChallengeService> logger,
@@ -35,7 +35,8 @@ namespace Gameboard.Api.Services
             IGameEngineService gameEngine,
             IGuidService guids,
             IJsonService jsonService,
-        IMemoryCache localcache,
+            IMemoryCache localcache,
+            IPlayerStore playerStore,
             ConsoleActorMap actorMap
         ) : base(logger, mapper, options)
         {
@@ -46,6 +47,7 @@ namespace Gameboard.Api.Services
             _guids = guids;
             _mapper = mapper;
             _jsonService = jsonService;
+            _playerStore = playerStore;
         }
 
         public async Task<Challenge> GetOrCreate(NewChallenge model, string actorId, string graderUrl)
@@ -203,7 +205,26 @@ namespace Gameboard.Api.Services
             if (model.Take > 0)
                 q = q.Take(model.Take);
 
-            return await Mapper.ProjectTo<ChallengeSummary>(q).ToArrayAsync();
+            // we have to resolve the query here, because we need to include player data as well
+            // (and there's no direct model relation between challenge and the players in a team)
+            var summaries = await Mapper.ProjectTo<ChallengeSummary>(q).ToArrayAsync();
+
+            // resolve the players of the challenges that are coming back
+            var teamIds = summaries.Select(s => s.TeamId);
+            var teamPlayerMap = await _playerStore
+                .List()
+                .AsNoTracking()
+                .Where(p => teamIds.Contains(p.TeamId))
+                .GroupBy(p => p.TeamId)
+                .ToDictionaryAsync(g => g.Key, g => g);
+
+            foreach (var summary in summaries)
+            {
+                var teamPlayers = teamPlayerMap[summary.TeamId];
+                summary.Players = teamPlayers.Select(p => _mapper.Map<ChallengePlayer>(p));
+            }
+
+            return summaries;
         }
 
         public async Task<ChallengeOverview[]> ListByUser(string uid)
@@ -242,7 +263,6 @@ namespace Gameboard.Api.Services
             }
 
             q = q.OrderByDescending(p => p.LastSyncTime);
-
             q = q.Skip(model.Skip);
 
             if (model.Take > 0)
@@ -342,7 +362,7 @@ namespace Gameboard.Api.Services
 
             entity.Events.Add(new Data.ChallengeEvent
             {
-                Id = Guid.NewGuid().ToString("n"),
+                Id = _guids.GetGuid(),
                 UserId = actorId,
                 TeamId = entity.TeamId,
                 Timestamp = DateTimeOffset.UtcNow,
@@ -363,7 +383,7 @@ namespace Gameboard.Api.Services
 
             entity.Events.Add(new Data.ChallengeEvent
             {
-                Id = Guid.NewGuid().ToString("n"),
+                Id = _guids.GetGuid(),
                 UserId = actorId,
                 TeamId = entity.TeamId,
                 Timestamp = DateTimeOffset.UtcNow,
@@ -382,11 +402,9 @@ namespace Gameboard.Api.Services
         {
             var entity = await Store.Retrieve(model.Id);
 
-            // TODO: don't log auto-grader events
-            // if (model.Id != actorId)
             entity.Events.Add(new Data.ChallengeEvent
             {
-                Id = Guid.NewGuid().ToString("n"),
+                Id = _guids.GetGuid(),
                 UserId = actorId,
                 TeamId = entity.TeamId,
                 Timestamp = DateTimeOffset.UtcNow,
@@ -587,6 +605,5 @@ namespace Gameboard.Api.Services
 
             return gamespaceCount >= gamespaceLimit;
         }
-
     }
 }

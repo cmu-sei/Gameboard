@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoMapper;
@@ -22,9 +23,7 @@ namespace Gameboard.Api.Services
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             };
 
-            JsonOptions.Converters.Add(
-                new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
-            );
+            JsonOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
 
             CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
 
@@ -62,11 +61,25 @@ namespace Gameboard.Api.Services
                 )
             ;
 
+            CreateMap<Data.Player, ChallengePlayer>()
+                .ForMember(cp => cp.IsManager, o => o.MapFrom(p => p.Role == PlayerRole.Manager));
+
             CreateMap<Data.Challenge, ChallengeSummary>()
                 .ForMember(d => d.Score, opt => opt.MapFrom(s => (int)Math.Floor(s.Score)))
-                .ForMember(d => d.UserId, opt => opt.MapFrom(s => s.Player.UserId))
-                .ForMember(d => d.IsActive, opt => opt.MapFrom(s =>
-                    JsonSerializer.Deserialize<TopoMojo.Api.Client.GameState>(s.State, JsonOptions).IsActive)
+                .ForMember(d => d.Events, o => o.MapFrom(c => c.Events.OrderBy(e => e.Timestamp)))
+                .ForMember(s => s.Players, o => o.MapFrom(d => new ChallengePlayer[]
+                {
+                    new ChallengePlayer
+                    {
+                        Id = d.PlayerId,
+                        Name = d.Player.Name,
+                        IsManager = d.Player.IsManager,
+                        UserId = d.Player.UserId
+                    }
+                }))
+                .ForMember(d => d.IsActive, opt => opt.MapFrom
+                (
+                    s => JsonSerializer.Deserialize<TopoMojo.Api.Client.GameState>(s.State, JsonOptions).IsActive)
                 )
             ;
 
