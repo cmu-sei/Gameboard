@@ -3,6 +3,10 @@
     "tasks": [
         {
             "label": "build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
             "command": "dotnet",
             "type": "process",
             "args": [
@@ -39,6 +43,10 @@
         },
         {
             "label": "Tests: All",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
             "type": "shell",
             "command": "dotnet",
             "args": [
@@ -64,6 +72,93 @@
                 "${workspaceFolder}/src/Gameboard.Tests.Integration"
             ],
             "problemMatcher": []
+        },
+        {
+            "label": "EF: Create Migration (PG)",
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "ef",
+                "migrations",
+                "add",
+                "${input:migrationName}",
+                "--project",
+                "${workspaceFolder}/src/Gameboard.Api",
+                "--context",
+                "GameboardDbContextPostgreSql"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "EF: Create Migration (MS)",
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "ef",
+                "migrations",
+                "add",
+                "${input:migrationName}",
+                "--project",
+                "${workspaceFolder}/src/Gameboard.Api",
+                "--context",
+                "GameboardDbContextSqlServer"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "EF: Create Migration",
+            "type": "shell",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "EF: Create Migration (PG)",
+                "EF: Create Migration (MS)"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "EF: Undo Migration (PG)",
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "ef",
+                "migrations",
+                "remove",
+                "--project",
+                "${workspaceFolder}/src/Gameboard.Api",
+                "--context",
+                "GameboardDbContextPostgreSql"
+            ]
+        },
+        {
+            "label": "EF: Undo Migration (MS)",
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "ef",
+                "migrations",
+                "remove",
+                "--project",
+                "${workspaceFolder}/src/Gameboard.Api",
+                "--context",
+                "GameboardDbContextSqlServer"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "EF: Undo Migration (All)",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "EF: Undo Migration (PG)",
+                "EF: Undo Migration (MS)"
+            ],
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "migrationName",
+            "type": "promptString",
+            "description": "Enter the name of your migration"
         }
     ]
 }

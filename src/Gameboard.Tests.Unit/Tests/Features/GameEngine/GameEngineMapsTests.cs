@@ -1,7 +1,5 @@
-using System.Text.Json;
 using AutoMapper;
 using Gameboard.Api.Features.GameEngine;
-using Gameboard.Api.Services;
 
 namespace Gameboard.Tests.Unit;
 

@@ -8,7 +8,6 @@ namespace Gameboard.Api.Data
     public class ChallengeSpec : IEntity
     {
         public string Id { get; set; }
-        public string GameId { get; set; }
         public string ExternalId { get; set; }
         public string Tag { get; set; }
         public string Name { get; set; }
@@ -20,8 +19,11 @@ namespace Gameboard.Api.Data
         public float Y { get; set; }
         public float R { get; set; }
 
-        public Game Game { get; set; }
         public GameEngineType GameEngineType { get; set; }
+
+        // nav properties
+        public string GameId { get; set; }
+        public Game Game { get; set; }
         public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
         // public ICollection<ChallengeBonus> Bonuses { get; set; } = new List<ChallengeBonus>();
     }

@@ -13,9 +13,7 @@ namespace Gameboard.Api.Data
         public string Name { get; set; }
         public string SpecId { get; set; }
         public string ExternalId { get; set; }
-        public string PlayerId { get; set; }
         public string TeamId { get; set; }
-        public string GameId { get; set; }
         public string Tag { get; set; }
         public string GraderKey { get; set; }
         public string State { get; set; }
@@ -41,7 +39,10 @@ namespace Gameboard.Api.Data
             ? (long)LastScoreTime.Subtract(StartTime).TotalMilliseconds
             : 0;
 
+        // nav properties
+        public string GameId { get; set; }
         public Game Game { get; set; }
+        public string PlayerId { get; set; }
         public Player Player { get; set; }
 
         // Control delete behavior with relationships
@@ -51,5 +52,4 @@ namespace Gameboard.Api.Data
         public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
         public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
     }
-
 }

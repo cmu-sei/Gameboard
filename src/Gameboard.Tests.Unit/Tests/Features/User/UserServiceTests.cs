@@ -1,5 +1,4 @@
 using AutoMapper;
-using FakeItEasy;
 using Gameboard.Api;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Services;
