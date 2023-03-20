@@ -3,6 +3,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Data;
+using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
@@ -12,13 +14,13 @@ namespace Gameboard.Api.Features.ChallengeBonuses;
 
 internal class ListManualBonusesHandler : IRequestHandler<ListManualBonusesQuery, IEnumerable<ManualChallengeBonusViewModel>>
 {
-    private readonly IChallengeBonusStore _challengeBonusStore;
+    private readonly IStore<ManualChallengeBonus> _challengeBonusStore;
     private readonly EntityExistsValidator<Data.Challenge> _challengeExists;
     private readonly IMapper _mapper;
     private readonly IValidatorService _validatorService;
 
     public ListManualBonusesHandler(
-        IChallengeBonusStore challengeBonusStore,
+        IStore<ManualChallengeBonus> challengeBonusStore,
         EntityExistsValidator<Data.Challenge> challengeExists,
         IMapper mapper,
         IValidatorService validatorService)
@@ -32,6 +34,7 @@ internal class ListManualBonusesHandler : IRequestHandler<ListManualBonusesQuery
     public async Task<IEnumerable<ManualChallengeBonusViewModel>> Handle(ListManualBonusesQuery request, CancellationToken cancellationToken)
     {
         await _validatorService.Validate(request.challengeId, _challengeExists);
+        var things = await _challengeBonusStore.List().Where(b => b.ChallengeId == request.challengeId).ToListAsync();
 
         return await _mapper
             .ProjectTo<ManualChallengeBonusViewModel>

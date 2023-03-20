@@ -1,5 +1,6 @@
 using System;
 using Gameboard.Api;
+using Gameboard.Api.Structure;
 
 public class CreateManualChallengeBonus
 {
@@ -20,6 +21,6 @@ public class ManualChallengeBonusViewModel
     public string Description { get; set; }
     public double PointValue { get; set; }
     public DateTimeOffset EnteredOn { get; set; }
-    public UserSimple EnteredBy { get; set; }
+    public SimpleEntity EnteredBy { get; set; }
     public string ChallengeId { get; set; }
 }

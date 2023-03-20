@@ -1,5 +1,6 @@
 using AutoMapper;
 using Gameboard.Api.Data;
+using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.ChallengeBonuses;
 
@@ -8,10 +9,10 @@ public class ChallengeBonusMaps : Profile
     public ChallengeBonusMaps()
     {
         CreateMap<ManualChallengeBonus, ManualChallengeBonusViewModel>()
-            .ForMember(vm => vm.EnteredBy, o => o.MapFrom(m => new UserSimple
+            .ForMember(vm => vm.EnteredBy, o => o.MapFrom(m => new SimpleEntity
             {
                 Id = m.EnteredByUserId,
-                ApprovedName = m.EnteredByUser.ApprovedName
+                Name = m.EnteredByUser.ApprovedName
             }));
     }
 }

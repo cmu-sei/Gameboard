@@ -4,46 +4,41 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.ChallengeBonuses;
 using Gameboard.Api.Structure.MediatR.Authorizers;
+using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Features.GameEngine.Requests;
 
-internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
+internal class DeleteManualBonusCommandHandler : IRequestHandler<DeleteManualBonusCommand>
 {
     private readonly IStore<ManualChallengeBonus> _challengeBonusStore;
     private readonly User _actor;
 
     // validators
-    private readonly AddManualBonusValidator _validator;
+    private readonly EntityExistsValidator<ManualChallengeBonus> _bonusExists;
 
     // authorizers 
     private readonly UserRoleAuthorizer _roleAuthorizer;
 
-    public AddManualBonusHandler(
+    public DeleteManualBonusCommandHandler(
         IStore<ManualChallengeBonus> challengeBonusStore,
+        EntityExistsValidator<ManualChallengeBonus> bonusExists,
         UserRoleAuthorizer roleAuthorizer,
-        AddManualBonusValidator validator,
         IHttpContextAccessor httpContextAccessor)
     {
         _actor = httpContextAccessor.HttpContext.User.ToActor();
+        _bonusExists = bonusExists;
         _challengeBonusStore = challengeBonusStore;
         _roleAuthorizer = roleAuthorizer;
-        _validator = validator;
 
         roleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Support, UserRole.Designer };
     }
 
-    public async Task Handle(AddManualBonusCommand request, CancellationToken cancellationToken)
+    public async Task Handle(DeleteManualBonusCommand request, CancellationToken cancellationToken)
     {
         _roleAuthorizer.Authorize();
-        await _validator.Validate(request);
-        await _challengeBonusStore.Create(new ManualChallengeBonus
-        {
-            ChallengeId = request.challengeId,
-            Description = request.model.Description,
-            EnteredByUserId = _actor.Id,
-            PointValue = request.model.PointValue,
-        });
+        await _bonusExists.Validate(request.manualBonusId);
+        await _challengeBonusStore.Delete(request.manualBonusId);
     }
 }

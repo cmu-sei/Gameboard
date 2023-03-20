@@ -36,7 +36,7 @@ namespace Gameboard.Api.Data;
 //     public Challenge Challenge { get; set; }
 // }
 
-public class ManualChallengeBonus
+public class ManualChallengeBonus : IEntity
 {
     public string Id { get; set; }
     public string Description { get; set; }

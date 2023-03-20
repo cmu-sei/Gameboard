@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.ChallengeBonuses;
 using Gameboard.Api.Features.Player;
@@ -20,14 +21,14 @@ public interface IScoringService
 
 internal class ScoringService : IScoringService
 {
-    private readonly IChallengeBonusStore _challengeBonusStore;
+    private readonly IStore<ManualChallengeBonus> _challengeBonusStore;
     private readonly IChallengeStore _challengeStore;
     private readonly IGameStore _gameStore;
     private readonly IMapper _mapper;
     private readonly ITeamService _teamService;
 
     public ScoringService(
-        IChallengeBonusStore challengeBonusStore,
+        IStore<ManualChallengeBonus> challengeBonusStore,
         IChallengeStore challengeStore,
         IGameStore gameStore,
         IMapper mapper,
@@ -52,9 +53,9 @@ internal class ScoringService : IScoringService
             .Include(c => c.Player)
             .FirstAsync(c => c.Id == challengeId);
 
-        var bonuses = await _challengeBonusStore
+        var bonuses = await _mapper.ProjectTo<ManualChallengeBonusViewModel>(_challengeBonusStore
             .List()
-            .Where(b => b.ChallengeId == challengeId)
+            .Where(b => b.ChallengeId == challengeId))
             .ToListAsync();
 
         var bonusScore = bonuses.Select(b => b.PointValue).Sum();
@@ -67,7 +68,7 @@ internal class ScoringService : IScoringService
             TotalScore = totalScore,
             ScoreFromChallenge = challenge.Points,
             ScoreFromManualBonuses = bonusScore,
-            ManualBonuses = _mapper.Map<IEnumerable<ManualChallengeBonusViewModel>>(bonuses)
+            ManualBonuses = bonuses
         };
     }
 
@@ -81,6 +82,7 @@ internal class ScoringService : IScoringService
         var challenges = await _challengeStore
             .List()
             .Include(c => c.AwardedManualBonuses)
+                .ThenInclude(b => b.EnteredByUser)
             .Where(c => c.GameId == captain.GameId)
             .ToListAsync();
 
