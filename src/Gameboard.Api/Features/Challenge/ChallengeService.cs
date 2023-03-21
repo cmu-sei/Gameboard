@@ -260,26 +260,15 @@ namespace Gameboard.Api.Services
 
             var spec = await Store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
 
-            var cachestate = _localcache.Get<string>(spec.ExternalId);
-
-            // Null cache state means this is a new challenge we haven't retrieved yet
-            // Non-null cache state means this challenge has been retrieved before
-
-            // No matter what, retrieve the gamespace state, because we need to handle markdown changes
-            var state = await GameEngine.GetPreview(spec);
-
-            // Transform state markdown to become more readable
-            Transform(state);
-            cachestate = JsonSerializer.Serialize(state);
-            // Set the local cache to use this cache state for this challenge
-            if (cachestate != null)
-                _localcache.Set(spec.ExternalId, cachestate, new TimeSpan(0, 60, 0));
-
             var challenge = Mapper.Map<Data.Challenge>(spec);
-
-            challenge.State = cachestate;
-
-            return Mapper.Map<Challenge>(challenge);
+            var result = Mapper.Map<Challenge>(challenge);
+            GameEngineGameState state = new()
+            {
+                Markdown = spec.Text
+            };
+            Transform(state);
+            result.State = state;
+            return result;
         }
 
         public async Task SyncExpired()

@@ -97,7 +97,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPost("/api/challengespecs/sync/{id}")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task Sync([FromQuery] string id)
+        public async Task Sync([FromRoute] string id)
         {
             await ChallengeSpecService.Sync(id);
         }

@@ -195,7 +195,7 @@ public class GameEngineService : _Service, IGameEngineService
             if (Options.MojoEnabled)
             {
                 mojoTask = Mojo.ListWorkspacesAsync(
-                "", "", null, null,
+                "", "", 1, null, null, null, null,
                 model.Term, model.Skip, model.Take, model.Sort,
                 model.Filter);
 
@@ -287,17 +287,16 @@ public class GameEngineService : _Service, IGameEngineService
         }
     }
 
-    public async Task ExtendSession(Data.Challenge entity, DateTimeOffset sessionEnd)
+    public Task ExtendSession(Data.Challenge entity, DateTimeOffset sessionEnd)
     {
         switch (entity.GameEngineType)
         {
             case GameEngineType.TopoMojo:
-                await Mojo.UpdateGamespaceAsync(new ChangedGamespace
+                return Mojo.UpdateGamespaceAsync(new ChangedGamespace
                 {
                     Id = entity.Id,
                     ExpirationTime = sessionEnd
                 });
-                break;
 
             default:
                 throw new NotImplementedException();

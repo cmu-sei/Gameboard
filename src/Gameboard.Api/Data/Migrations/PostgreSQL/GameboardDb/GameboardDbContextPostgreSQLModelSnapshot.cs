@@ -322,6 +322,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<string>("Tag")
                         .HasColumnType("text");
 
+                    b.Property<string>("Text")
+                        .HasColumnType("text");
+
                     b.Property<float>("X")
                         .HasColumnType("real");
 

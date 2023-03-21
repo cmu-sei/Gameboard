@@ -218,6 +218,7 @@ namespace Gameboard.Api
         public string NameStatus { get; set; }
         public string Sponsor { get; set; }
         public PlayerRole Role { get; set; }
+        public PlayerMode Mode { get; set; }
         public DateTimeOffset SessionBegin { get; set; }
         public DateTimeOffset SessionEnd { get; set; }
         public int SessionMinutes { get; set; }
@@ -230,6 +231,7 @@ namespace Gameboard.Api
         public string ChallengeDocUrl { get; set; }
         public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
         public bool IsManager => Role == PlayerRole.Manager;
+        public bool IsPractice => Mode == PlayerMode.Practice;
     }
 
     public class TeamPlayer

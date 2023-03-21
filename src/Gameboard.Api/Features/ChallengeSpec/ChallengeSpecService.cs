@@ -86,6 +86,7 @@ namespace Gameboard.Api.Services
 
                 spec.Name = externals[spec.ExternalId].Name;
                 spec.Description = externals[spec.ExternalId].Description;
+                spec.Text = externals[spec.ExternalId].Text;
             }
 
             await Store.DbContext.SaveChangesAsync();
@@ -103,9 +104,11 @@ namespace Gameboard.Api.Services
             {
                 string term = model.Term.ToLower();
                 q = q.Where(s =>
+                    s.Id.Equals(term) ||
                     s.Name.ToLower().Contains(term) ||
                     s.Description.ToLower().Contains(term) ||
-                    s.Game.Name.ToLower().Contains(term)
+                    s.Game.Name.ToLower().Contains(term) ||
+                    s.Text.ToLower().Contains(term)
                 );
             }
 
