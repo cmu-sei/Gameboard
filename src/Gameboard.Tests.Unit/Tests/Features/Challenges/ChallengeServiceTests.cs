@@ -109,7 +109,6 @@ public class ChallengeServiceTests
         );
 
         // when
-
         var result = await sut.BuildAndRegisterChallenge
         (
             newChallenge,
