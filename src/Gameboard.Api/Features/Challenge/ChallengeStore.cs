@@ -7,6 +7,7 @@ using Gameboard.Api.Data.Abstractions;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Services;
+using System;
 
 namespace Gameboard.Api.Data;
 
@@ -65,14 +66,14 @@ public class ChallengeStore : Store<Challenge>, IChallengeStore
                     c.PlayerId == model.PlayerId ||
                     c.TeamId == player.TeamId
                 )
-            )
-        ;
+            );
     }
 
     public async Task UpdateEtd(string specId)
     {
         var stats = await DbSet.Where(c => c.SpecId == specId)
             .Select(c => new { Created = c.WhenCreated, Started = c.StartTime })
+            .Where(c => c.Created > DateTimeOffset.MinValue)
             .OrderByDescending(m => m.Created)
             .Take(20)
             .ToArrayAsync();

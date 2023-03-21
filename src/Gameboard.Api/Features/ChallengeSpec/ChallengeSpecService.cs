@@ -96,8 +96,7 @@ namespace Gameboard.Api.Services
             var q = Store.List()
                 .Include(s => s.Game)
                 .Where(s => s.Game.PlayerMode == PlayerMode.Practice)
-                .AsNoTracking()
-            ;
+                .AsNoTracking();
 
             if (model.HasTerm)
             {

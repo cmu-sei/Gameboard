@@ -103,6 +103,7 @@ public class ChallengeServiceTests
             A.Fake<IGuidService>(),
             A.Fake<IJsonService>(),
             A.Fake<IMemoryCache>(),
+            A.Fake<INowService>(),
             A.Fake<IPlayerStore>(),
             A.Fake<ConsoleActorMap>()
         );

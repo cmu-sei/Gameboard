@@ -27,6 +27,7 @@ namespace Gameboard.Api.Services
         private readonly IGuidService _guids;
         private readonly IJsonService _jsonService;
         private readonly IMapper _mapper;
+        private readonly INowService _now;
         private readonly IPlayerStore _playerStore;
         private readonly IChallengeSpecStore _specStore;
 
@@ -41,6 +42,7 @@ namespace Gameboard.Api.Services
             IGuidService guids,
             IJsonService jsonService,
             IMemoryCache localcache,
+            INowService now,
             IPlayerStore playerStore,
             ConsoleActorMap actorMap
         ) : base(logger, mapper, options)
@@ -53,6 +55,7 @@ namespace Gameboard.Api.Services
             _guids = guids;
             _mapper = mapper;
             _jsonService = jsonService;
+            _now = now;
             _playerStore = playerStore;
             _specStore = specStore;
         }
@@ -585,6 +588,7 @@ namespace Gameboard.Api.Services
             challenge.PlayerId = player.Id;
             challenge.TeamId = player.TeamId;
             challenge.GraderKey = graderKey.ToSha256();
+            challenge.WhenCreated = _now.Get();
 
             var state = await GameEngine.RegisterGamespace(new GameEngineChallengeRegistration
             {
