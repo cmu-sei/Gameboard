@@ -60,5 +60,6 @@ public class ChallengeControllerCreateTests : IClassFixture<GameboardTestContext
 
         // assert
         challenge?.Name.ShouldBe(specName);
+        challenge?.State.ManagerId.ShouldBe(playerId);
     }
 }

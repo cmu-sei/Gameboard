@@ -9,9 +9,6 @@ namespace Gameboard.Api.Data
     public class ChallengeSpecStore : Store<ChallengeSpec>, IChallengeSpecStore
     {
         public ChallengeSpecStore(GameboardDbContext dbContext)
-        : base(dbContext)
-        {
-
-        }
+        : base(dbContext) { }
     }
 }
