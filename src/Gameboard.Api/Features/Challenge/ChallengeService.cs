@@ -273,6 +273,7 @@ namespace Gameboard.Api.Services
             // Transform state markdown to become more readable
             Transform(state);
             cachestate = JsonSerializer.Serialize(state);
+
             // Set the local cache to use this cache state for this challenge
             if (cachestate != null)
                 _localcache.Set(spec.ExternalId, cachestate, new TimeSpan(0, 60, 0));
@@ -314,7 +315,15 @@ namespace Gameboard.Api.Services
             try
             {
                 var state = await task;
+
+                // TODO
+                // this is currently awkward because the game state that comes back here has the team ID as the subjectId (because that's what we're passing to Topo - see 
+                // GameEngine.RegisterGamespace). it's unclear whether topo cares what we pass as the players argument there, but since we're passing team ID 
+                // there we need to NOT overwrite the playerId on the entity during the call to Map. Obviously, we could fix this by setting a rule on the map, 
+                // but I'm leaving it here because this is the anomalous case.
+                var playerId = entity.PlayerId;
                 Mapper.Map(state, entity);
+                entity.PlayerId = playerId;
             }
             catch (Exception ex)
             {
