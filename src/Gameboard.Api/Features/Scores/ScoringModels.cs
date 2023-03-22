@@ -3,7 +3,8 @@ using Gameboard.Api.Structure;
 
 public class TeamChallengeScoreSummary
 {
-    public required SimpleEntity Challenge { get; set; }
+    public SimpleEntity Challenge { get; set; }
+    public required SimpleEntity Spec { get; set; }
     public required SimpleEntity Team { get; set; }
     public required double TotalScore { get; set; }
     public required double ScoreFromChallenge { get; set; }

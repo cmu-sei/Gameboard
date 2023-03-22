@@ -23,6 +23,7 @@ internal class ScoringService : IScoringService
 {
     private readonly IStore<ManualChallengeBonus> _challengeBonusStore;
     private readonly IChallengeStore _challengeStore;
+    private readonly IChallengeSpecStore _challengeSpecStore;
     private readonly IGameStore _gameStore;
     private readonly IMapper _mapper;
     private readonly ITeamService _teamService;
@@ -30,12 +31,14 @@ internal class ScoringService : IScoringService
     public ScoringService(
         IStore<ManualChallengeBonus> challengeBonusStore,
         IChallengeStore challengeStore,
+        IChallengeSpecStore challengeSpecStore,
         IGameStore gameStore,
         IMapper mapper,
         ITeamService teamService)
     {
         _challengeBonusStore = challengeBonusStore;
         _challengeStore = challengeStore;
+        _challengeSpecStore = challengeSpecStore;
         _gameStore = gameStore;
         _mapper = mapper;
         _teamService = teamService;
@@ -51,8 +54,14 @@ internal class ScoringService : IScoringService
         var challenge = await _challengeStore
             .List()
             .Include(c => c.Player)
-            .FirstAsync(c => c.Id == challengeId);
+            .FirstOrDefaultAsync(c => c.Id == challengeId);
 
+        if (challenge == null)
+        {
+            return null;
+        }
+
+        var spec = await _challengeSpecStore.Retrieve(challenge.SpecId);
         var bonuses = await _mapper.ProjectTo<ManualChallengeBonusViewModel>(_challengeBonusStore
             .List()
             .Where(b => b.ChallengeId == challengeId))
@@ -64,6 +73,7 @@ internal class ScoringService : IScoringService
         return new TeamChallengeScoreSummary
         {
             Challenge = new SimpleEntity { Id = challenge.Id, Name = challenge.Name },
+            Spec = new SimpleEntity { Id = spec.Id, Name = spec.Name },
             Team = new SimpleEntity { Id = challenge.TeamId, Name = challenge.Player.ApprovedName },
             TotalScore = totalScore,
             ScoreFromChallenge = challenge.Points,
@@ -86,6 +96,11 @@ internal class ScoringService : IScoringService
             .Where(c => c.GameId == captain.GameId)
             .ToListAsync();
 
+        var specs = await _challengeSpecStore
+            .List()
+            .Where(spec => spec.GameId == captain.GameId)
+            .ToListAsync();
+
         var bonusPoints = challenges
             .SelectMany(c => c.AwardedManualBonuses.Select(b => b.PointValue))
             .Sum();
@@ -99,18 +114,22 @@ internal class ScoringService : IScoringService
             ChallengesScore = pointsFromChallengeScores,
             ManualBonusesScore = bonusPoints,
             TotalScore = pointsFromChallengeScores + bonusPoints,
-            ChallengeScoreSummaries = challenges.Select(c =>
+            ChallengeScoreSummaries = specs.Select(spec =>
             {
-                var bonusesSum = c.AwardedManualBonuses.Select(b => b.PointValue).Sum();
+                var challenge = challenges.FirstOrDefault(c => c.SpecId == spec.Id);
+                var bonuses = challenge == null ? new ManualChallengeBonus[] { } : challenge.AwardedManualBonuses;
+                var bonusesSum = challenge == null ? 0 : challenge.AwardedManualBonuses.Select(b => b.PointValue).Sum();
+                var points = challenge == null ? 0 : challenge.Points;
 
                 return new TeamChallengeScoreSummary
                 {
-                    Challenge = new SimpleEntity { Id = c.Id, Name = c.Name },
+                    Challenge = challenge == null ? null : new SimpleEntity { Id = challenge.Id, Name = challenge.Name },
+                    Spec = new SimpleEntity { Id = spec.Id, Name = spec.Name },
                     Team = new SimpleEntity { Id = captain.TeamId, Name = captain.ApprovedName },
-                    ScoreFromChallenge = c.Points,
+                    ScoreFromChallenge = points,
                     ScoreFromManualBonuses = bonusesSum,
-                    TotalScore = CalculateScore(c.Points, bonusesSum),
-                    ManualBonuses = _mapper.Map<IEnumerable<ManualChallengeBonusViewModel>>(c.AwardedManualBonuses)
+                    TotalScore = CalculateScore(points, bonusesSum),
+                    ManualBonuses = _mapper.Map<IEnumerable<ManualChallengeBonusViewModel>>(bonuses)
                 };
             })
         };
