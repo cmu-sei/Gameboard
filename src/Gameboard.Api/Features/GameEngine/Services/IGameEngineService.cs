@@ -15,7 +15,7 @@ public interface IGameEngineService
     Task<GameEngineGameState> GradeChallenge(Data.Challenge entity, GameEngineSectionSubmission model);
     Task<ExternalSpec[]> ListSpecs(SearchFilter model);
     Task<GameEngineGameState> LoadGamespace(Data.Challenge entity);
-    Task<GameEngineGameState> RegisterGamespace(Data.ChallengeSpec spec, NewChallenge model, Data.Game game, Data.Player player, Data.Challenge entity, int playerCount, string graderKey, string graderUrl);
+    Task<GameEngineGameState> RegisterGamespace(GameEngineChallengeRegistration registration);
     Task<GameEngineGameState> RegradeChallenge(Data.Challenge entity);
     Task<GameEngineGameState> StartGamespace(Data.Challenge entity);
     Task<GameEngineGameState> StopGamespace(Data.Challenge entity);

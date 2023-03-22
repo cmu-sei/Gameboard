@@ -4,7 +4,7 @@ using Gameboard.Api.Data.Abstractions;
 
 namespace Gameboard.Api.Structure.MediatR.Validators;
 
-internal class EntityExistsValidator<TEntity> : IGameboardValidator<string, ResourceNotFound<TEntity>> where TEntity : class, IEntity
+internal class EntityExistsValidator<TEntity> : IGameboardValidator where TEntity : class, IEntity
 {
     private readonly IStore<TEntity> _store;
 
@@ -13,7 +13,12 @@ internal class EntityExistsValidator<TEntity> : IGameboardValidator<string, Reso
         _store = store;
     }
 
-    public async Task<ResourceNotFound<TEntity>> Validate(string id)
+    public Task<GameboardValidationException> Validate<TModel>(TModel model)
+    {
+        return ValidateEntity(model.ToString());
+    }
+
+    private async Task<GameboardValidationException> ValidateEntity(string id)
     {
         if (!(await _store.Exists(id)))
             return new ResourceNotFound<TEntity>(id);

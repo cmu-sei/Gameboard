@@ -26,7 +26,6 @@ internal static class ServiceRegistrationExtensions
                     i => i.IsGenericType && i.GetGenericTypeDefinition() == type
                 )
             );
-        // .Where(t => type.IsAssignableFrom(t));
 
         return RegisterScoped(serviceCollection, types);
     }
@@ -46,6 +45,7 @@ internal static class ServiceRegistrationExtensions
             (t =>
                 t.IsClass &&
                 !t.IsAbstract &&
+                !t.IsNested &&
                 !string.IsNullOrWhiteSpace(t.Namespace)
             )
             .Where(matchCriterion)

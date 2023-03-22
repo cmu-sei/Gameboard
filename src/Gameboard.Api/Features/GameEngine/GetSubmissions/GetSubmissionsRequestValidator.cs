@@ -25,7 +25,7 @@ internal class GetSubmissionsRequestValidator : IGameboardRequestValidator<GetSu
         _teamExists = teamExists;
     }
 
-    public async Task<GameboardAggregatedValidationExceptions> ValidateRequest(GetSubmissionsQuery query)
+    public async Task<GameboardAggregatedValidationExceptions> Validate(GetSubmissionsQuery query)
     {
         var validationExceptions = new List<GameboardValidationException>();
 
@@ -37,6 +37,6 @@ internal class GetSubmissionsRequestValidator : IGameboardRequestValidator<GetSu
         if (challengeExistsREsult != null)
             validationExceptions.Add(challengeExistsREsult);
 
-        return new GameboardAggregatedValidationExceptions(validationExceptions);
+        return GameboardAggregatedValidationExceptions.FromValidationExceptions(validationExceptions);
     }
 }

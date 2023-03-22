@@ -13,8 +13,10 @@ namespace Microsoft.Extensions.DependencyInjection
             this IServiceCollection services,
             Defaults defaults,
             string contentRootPath
-        ) {
-            services.AddSingleton<Defaults>(_ => {
+        )
+        {
+            services.AddSingleton<Defaults>(_ =>
+            {
                 // if no filename specified, check for presence of 'feedback-template.yaml'
                 var feedbackFilename = defaults.FeedbackTemplateFile.NotEmpty() ? defaults.FeedbackTemplateFile : "feedback-template.yaml";
                 var feedbackFile = Path.Combine(contentRootPath, feedbackFilename);
@@ -31,13 +33,16 @@ namespace Microsoft.Extensions.DependencyInjection
                 var shiftTimezone = defaults.ShiftTimezone.NotEmpty() ? defaults.ShiftTimezone : Defaults.ShiftTimezoneFallback;
                 var shiftStrings = defaults.ShiftStrings != null ? defaults.ShiftStrings : Defaults.ShiftStringsFallback;
                 var shifts = defaults.ShiftStrings != null ? new System.DateTimeOffset[shiftStrings.Length][] : Defaults.ShiftsFallback;
-                if (defaults.ShiftStrings != null) {
-                    for (int i = 0; i < shiftStrings.Length; i++) {
+                if (defaults.ShiftStrings != null)
+                {
+                    for (int i = 0; i < shiftStrings.Length; i++)
+                    {
                         shifts[i] = new System.DateTimeOffset[] { Defaults.ConvertTime(shiftStrings[i][0], shiftTimezone), Defaults.ConvertTime(shiftStrings[i][1], shiftTimezone) };
                     }
                 }
 
-                return new Defaults {
+                return new Defaults
+                {
                     DefaultSponsor = defaults.DefaultSponsor,
                     FeedbackTemplate = feedbackTemplate,
                     FeedbackTemplateFile = defaults.FeedbackTemplateFile,
@@ -48,7 +53,7 @@ namespace Microsoft.Extensions.DependencyInjection
                     ShiftTimezone = shiftTimezone
                 };
             });
-            
+
             return services;
         }
     }
