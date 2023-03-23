@@ -22,13 +22,6 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.NameStatus).HasMaxLength(40);
                 b.Property(u => u.Email).HasMaxLength(64);
                 b.Property(u => u.Sponsor).HasMaxLength(40);
-
-                // NOTE: Must be edited manually in the MSSQL migration to 
-                // compatible syntax
-                b.Property(u => u.ApiKeyOwnerId)
-                    .HasMaxLength(40)
-                    .HasDefaultValueSql("REPLACE(gen_random_uuid()::text, '-', '')")
-                    .ValueGeneratedOnAdd();
             });
 
             builder.Entity<ApiKey>(k =>
@@ -103,6 +96,7 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.GraderKey).HasMaxLength(64);
             });
 
+            // we're not sure yet if we're doing automatic challenge bonuses
             // builder.Entity<ChallengeBonus>(b =>
             // {
             //     b.Property(b => b.Id).HasStandardGuidLength();

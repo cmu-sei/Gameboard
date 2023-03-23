@@ -16,8 +16,7 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 table: "Users",
                 type: "character varying(40)",
                 maxLength: 40,
-                nullable: true,
-                defaultValueSql: "REPLACE(gen_random_uuid()::text, '-', '')");
+                nullable: true);
 
             migrationBuilder.CreateTable(
                 name: "ApiKeys",
