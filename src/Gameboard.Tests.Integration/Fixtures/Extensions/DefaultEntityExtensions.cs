@@ -95,6 +95,7 @@ public static class GameboardTestContextDefaultEntityExtensions
         var options = new TeamBuilderOptions
         {
             ChallengeId = fixture.Create<string>(),
+            ChallengeName = fixture.Create<string>(),
             Name = fixture.Create<string>(),
             NumPlayers = 5,
             GameBuilder = g => { },
@@ -117,10 +118,13 @@ public static class GameboardTestContextDefaultEntityExtensions
 
         options.GameBuilder?.Invoke(game);
 
+        var specId = fixture.Create<string>();
         var challenge = new Api.Data.Challenge
         {
             Id = options.ChallengeId,
+            Name = options.Name,
             Game = game,
+            SpecId = specId,
             TeamId = options.TeamId
         };
 
@@ -146,6 +150,11 @@ public static class GameboardTestContextDefaultEntityExtensions
         }
 
         // Add entities
+        dataStateBuilder.AddChallengeSpec(spec =>
+        {
+            spec.Id = specId;
+            spec.Name = fixture.Create<string>();
+        });
         dataStateBuilder.AddRange(players);
 
         return new TeamBuilderResult

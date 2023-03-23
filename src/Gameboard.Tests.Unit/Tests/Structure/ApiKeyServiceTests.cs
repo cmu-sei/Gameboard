@@ -35,7 +35,7 @@ public class ApiKeyServiceTests
         var sut = GetSut(options, random: random);
 
         // act
-        var result = sut.GeneratePlainKey();
+        var result = sut.GenerateKey();
 
         // assert
         result?.Length.ShouldBe(randomnessLength);
@@ -56,7 +56,7 @@ public class ApiKeyServiceTests
         var sut = GetSut(apiOptions, random: random);
 
         // act
-        var result = sut.GeneratePlainKey();
+        var result = sut.GenerateKey();
 
         // assert
         result.ShouldBe("1234567890");

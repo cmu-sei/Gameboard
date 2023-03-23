@@ -51,20 +51,9 @@ internal class ApiKeysService : IApiKeysService
 
     public async Task<Data.User> Authenticate(string headerValue)
     {
-        var splits = headerValue.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (splits.Length != 2)
-            throw new InvalidApiKeyFormat(headerValue);
+        var apiKey = headerValue.Trim();
 
-        var ownerId = splits[0];
-        var plainKey = splits[1];
-
-        var hashedKey = _hasher.Hash(plainKey);
-        var user = await _store.GetUserWithApiKeys(ownerId);
-
-        if (user == null)
-            return null;
-
-        return user.ApiKeys.Any(k => IsValidKey(hashedKey, k)) ? user : null;
+        return await _store.GetFromApiKey(apiKey);
     }
 
     public async Task<CreateApiKeyResult> Create(NewApiKey newApiKey)
@@ -73,7 +62,7 @@ internal class ApiKeysService : IApiKeysService
         if (user == null)
             throw new ResourceNotFound<User>(newApiKey.UserId);
 
-        var generatedKey = GenerateKey(user.ApiKeyOwnerId);
+        var generatedKey = GenerateKey();
 
         var entity = new ApiKey
         {
@@ -81,14 +70,14 @@ internal class ApiKeysService : IApiKeysService
             Name = newApiKey.Name,
             GeneratedOn = _now.Get(),
             ExpiresOn = newApiKey.ExpiresOn,
-            Key = generatedKey.HashedApiKey,
+            Key = generatedKey.ToSha256(),
             OwnerId = newApiKey.UserId
         };
 
         await _store.Create(entity);
 
         var result = _mapper.Map<CreateApiKeyResult>(entity);
-        result.PlainKey = generatedKey.UserApiKey;
+        result.PlainKey = generatedKey;
 
         return result;
     }
@@ -103,18 +92,7 @@ internal class ApiKeysService : IApiKeysService
             .ToArrayAsync();
     }
 
-    internal ApiKeyHash GenerateKey(string keyOwnerUserId)
-    {
-        var plainKey = GeneratePlainKey();
-
-        return new ApiKeyHash
-        {
-            UserApiKey = $"{keyOwnerUserId}.{plainKey}",
-            HashedApiKey = _hasher.Hash(plainKey)
-        };
-    }
-
-    internal string GeneratePlainKey()
+    internal string GenerateKey()
     {
         var keyRaw = _rng.GetString(_options.RandomCharactersLength, generatedBytes: _options.BytesOfRandomness);
         return keyRaw.Substring(0, Math.Min(keyRaw.Length, _options.RandomCharactersLength));
