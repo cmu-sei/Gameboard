@@ -13,6 +13,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
             migrationBuilder.DropColumn(
                 name: "ApiKeyOwnerId",
                 table: "Users");
+
+            migrationBuilder.Sql("TRUNCATE TABLE \"ApiKeys\";");
         }
 
         /// <inheritdoc />
