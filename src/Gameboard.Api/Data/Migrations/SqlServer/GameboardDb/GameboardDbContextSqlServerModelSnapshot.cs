@@ -519,6 +519,39 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("Games");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.ManualChallengeBonus", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("ChallengeId")
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("EnteredByUserId")
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTimeOffset>("EnteredOn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<double>("PointValue")
+                        .HasColumnType("float");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChallengeId");
+
+                    b.HasIndex("EnteredByUserId");
+
+                    b.ToTable("ManualChallengeBonuses");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
                 {
                     b.Property<string>("Id")
@@ -888,6 +921,23 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.ManualChallengeBonus", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Challenge", "Challenge")
+                        .WithMany("AwardedManualBonuses")
+                        .HasForeignKey("ChallengeId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Gameboard.Api.Data.User", "EnteredByUser")
+                        .WithMany("EnteredManualChallengeBonuses")
+                        .HasForeignKey("EnteredByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Challenge");
+
+                    b.Navigation("EnteredByUser");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
@@ -963,6 +1013,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
                 {
+                    b.Navigation("AwardedManualBonuses");
+
                     b.Navigation("Events");
 
                     b.Navigation("Feedback");
@@ -1007,6 +1059,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("ApiKeys");
 
                     b.Navigation("Enrollments");
+
+                    b.Navigation("EnteredManualChallengeBonuses");
 
                     b.Navigation("Feedback");
                 });
