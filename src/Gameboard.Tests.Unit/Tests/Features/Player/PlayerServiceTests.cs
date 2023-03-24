@@ -4,6 +4,7 @@ using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Services;
+using MediatR;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Tests.Unit;
@@ -19,11 +20,26 @@ public class PlayerServiceTests
             IUserStore userStore,
             IGameStore gameStore,
             IGuidService guidService,
+            IMediator mediator,
             IInternalHubBus hubBus,
             ITeamService teamService,
             IMapper mapper,
             IMemoryCache localCache,
-            GameEngineService gameEngine) : base(coreOptions, challengeService, guidService, store, userStore, gameStore, hubBus, teamService, mapper, localCache, gameEngine)
+            GameEngineService gameEngine) : base
+            (
+                coreOptions,
+                challengeService,
+                guidService,
+                mediator,
+                store,
+                userStore,
+                gameStore,
+                hubBus,
+                teamService,
+                mapper,
+                localCache,
+                gameEngine
+            )
         {
         }
 
@@ -35,6 +51,7 @@ public class PlayerServiceTests
             IUserStore? userStore = null,
             IGameStore? gameStore = null,
             IGuidService? guidService = null,
+            IMediator? mediator = null,
             IInternalHubBus? hubBus = null,
             ITeamService? teamService = null,
             IMapper? mapper = null,
@@ -46,6 +63,7 @@ public class PlayerServiceTests
                 coreOptions ?? A.Fake<CoreOptions>(),
                 challengeService ?? A.Fake<ChallengeService>(),
                 guidService ?? A.Fake<IGuidService>(),
+                mediator ?? A.Fake<IMediator>(),
                 store ?? A.Fake<IPlayerStore>(),
                 userStore ?? A.Fake<IUserStore>(),
                 gameStore ?? A.Fake<IGameStore>(),

@@ -6,8 +6,10 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +26,7 @@ namespace Gameboard.Api.Controllers
         public CoreOptions Options { get; }
         public IHostEnvironment Env { get; }
         private readonly IHttpClientFactory HttpClientFactory;
+        private readonly IMediator _mediator;
 
         public GameController(
             ILogger<GameController> logger,
@@ -31,6 +34,7 @@ namespace Gameboard.Api.Controllers
             GameService gameService,
             GameValidator validator,
             CoreOptions options,
+            IMediator mediator,
             IHostEnvironment env,
             IHttpClientFactory factory
         ) : base(logger, cache, validator)
@@ -39,6 +43,7 @@ namespace Gameboard.Api.Controllers
             Options = options;
             Env = env;
             HttpClientFactory = factory;
+            _mediator = mediator;
         }
 
         /// <summary>
@@ -136,11 +141,17 @@ namespace Gameboard.Api.Controllers
             return await GameService.ListGrouped(model, Actor.IsDesigner || Actor.IsTester);
         }
 
+        [HttpGet("/api/game/{gameId}/ready")]
+        [Authorize]
+        public async Task<SyncStartState> IsGameReady(string gameId)
+        {
+            return await _mediator.Send(new IsSyncStartReadyQuery(gameId));
+        }
+
         [HttpPost("/api/game/import")]
         [Authorize(AppConstants.DesignerPolicy)]
         public async Task<Game> ImportGameSpec([FromBody] GameSpecImport model)
         {
-
             return await GameService.Import(model);
         }
 

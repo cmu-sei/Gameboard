@@ -38,6 +38,7 @@ namespace Gameboard.Api.Data
         public int GamespaceLimitPerSession { get; set; } = 1;
         public bool IsPublished { get; set; }
         public bool RequireSponsoredTeam { get; set; }
+        public bool RequireSynchronizedStart { get; set; } = false;
         public bool AllowPreview { get; set; }
         public bool AllowReset { get; set; }
         public string Key { get; set; }

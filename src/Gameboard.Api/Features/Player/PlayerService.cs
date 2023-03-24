@@ -8,7 +8,9 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -21,6 +23,7 @@ public class PlayerService
     IPlayerStore Store { get; }
     IGameStore GameStore { get; }
     IGuidService GuidService { get; }
+    IMediator MediatorBus { get; }
     IInternalHubBus HubBus { get; }
     ITeamService TeamService { get; }
     IUserStore UserStore { get; }
@@ -33,6 +36,7 @@ public class PlayerService
         CoreOptions coreOptions,
         ChallengeService challengeService,
         IGuidService guidService,
+        IMediator mediator,
         IPlayerStore store,
         IUserStore userStore,
         IGameStore gameStore,
@@ -46,6 +50,7 @@ public class PlayerService
         CoreOptions = coreOptions;
         ChallengeService = challengeService;
         GuidService = guidService;
+        MediatorBus = mediator;
         HubBus = hubBus;
         Store = store;
         GameStore = gameStore;
@@ -167,6 +172,13 @@ public class PlayerService
 
         var player = team.First();
         var game = await Store.DbContext.Games.FindAsync(player.GameId);
+
+        if (game.RequireSynchronizedStart)
+        {
+            var syncStartState = await MediatorBus.Send(new IsSyncStartReadyQuery(game.Id));
+            if (!syncStartState.IsSyncStartReady)
+                throw new SyncStartNotReady(player.Id, syncStartState);
+        }
 
         if (!sudo && game.SessionLimit > 0)
         {
