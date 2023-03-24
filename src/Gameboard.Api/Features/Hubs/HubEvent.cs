@@ -39,10 +39,11 @@ public class HubEventActingUserDescription
 public enum EventAction
 {
     Arrived,
-    Departed,
     Created,
-    RoleChanged,
-    Updated,
     Deleted,
-    Started
+    Departed,
+    ReadyStateChanged,
+    RoleChanged,
+    Started,
+    Updated
 }

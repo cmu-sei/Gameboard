@@ -54,6 +54,11 @@ namespace Gameboard.Api
         public PlayerRole Role { get; set; }
     }
 
+    public class PlayerReadyUpdate
+    {
+        public bool IsReady { get; set; }
+    }
+
     public class SessionStartRequest
     {
         public string PlayerId { get; set; }

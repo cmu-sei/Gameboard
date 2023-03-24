@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Hubs;
 using Microsoft.AspNetCore.SignalR;
 
@@ -13,6 +14,7 @@ public interface IInternalHubBus
     // Task Leave(Player p, User actor);
     Task SendPlayerEnrolled(Player p, User actor);
     Task SendPlayerLeft(Player p, User actor);
+    Task SendPlayerReadyChanged(SyncStartState syncStartState, User actor);
     Task SendTeamDeleted(Player p, User actor);
     Task SendPlayerRoleChanged(Player p, User actor);
     Task SendTeamSessionStarted(Player p, User actor);
@@ -60,6 +62,18 @@ internal class InternalHubBus : IInternalHubBus
             .Group(p.TeamId)
             .PlayerEvent(
                 new HubEvent<TeamPlayer>(mappedPlayer, EventAction.Created, BuildUserDescription(actor))
+            );
+    }
+
+    public async Task SendPlayerReadyChanged(SyncStartState syncStartState, User actor)
+    {
+        // TODO: we don't really need to know which player's status changed to send an updated sync start state,
+        // but it might be useful to pass the player here at some point
+        await _hubContext
+            .Clients
+            .Group(syncStartState.Game.Id)
+            .SyncStartEvent(
+                new HubEvent<SyncStartState>(syncStartState, EventAction.ReadyStateChanged, BuildUserDescription(actor))
             );
     }
 

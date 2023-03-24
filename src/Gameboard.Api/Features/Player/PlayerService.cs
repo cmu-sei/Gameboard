@@ -517,7 +517,6 @@ public class PlayerService
 
     public async Task<Team> LoadTeam(string id)
     {
-
         var players = await Store.ListTeam(id).ToArrayAsync();
         if (players.Count() == 0)
             return null;
@@ -654,6 +653,21 @@ public class PlayerService
         await Store.Update(allteams);
     }
 
+    public async Task UpdatePlayerReady(string playerId, bool isReady, User actor)
+    {
+        // grab the player so we can get the gameId
+        var player = Mapper.Map<Api.Player>(await Store.Retrieve(playerId));
+
+        // update with player ready
+        await Store
+            .List()
+            .Where(p => p.Id == playerId)
+            .ExecuteUpdateAsync(u => u.SetProperty(p => p.IsReady, isReady));
+
+        var syncStartState = await MediatorBus.Send(new IsSyncStartReadyQuery(player.GameId));
+        await HubBus.SendPlayerReadyChanged(syncStartState, actor);
+    }
+
     public async Task<PlayerCertificate> MakeCertificate(string id)
     {
         var player = await Store.List()
@@ -779,7 +793,6 @@ public class PlayerService
         await Store.Create(entity);
 
         return Mapper.Map<Player>(entity);
-
     }
 
     private async Task<Data.Player> InitializePlayer(NewPlayer model, int duration)

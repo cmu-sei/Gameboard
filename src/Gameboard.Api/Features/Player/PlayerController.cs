@@ -95,6 +95,15 @@ namespace Gameboard.Api.Controllers
             return Mapper.Map<PlayerUpdatedViewModel>(result);
         }
 
+        [HttpPut("api/player/{playerId}/ready")]
+        [Authorize]
+        public async Task UpdatePlayerReady([FromRoute] string playerId, [FromBody] PlayerReadyUpdate readyUpdate)
+        {
+            AuthorizeAll(() => IsSelf(playerId).Result);
+
+            await PlayerService.UpdatePlayerReady(playerId, readyUpdate.IsReady, Actor);
+        }
+
         [HttpDelete("api/player/{playerId}/session")]
         [Authorize]
         public async Task<Player> ResetSession([FromRoute] string playerId, [FromQuery] bool asAdmin = false)
