@@ -22,5 +22,5 @@ public class SyncStartState
 {
     public required SimpleEntity Game { get; set; }
     public required IEnumerable<SyncStartTeam> Teams { get; set; }
-    public required bool IsSyncStartReady { get; set; }
+    public required bool IsReady { get; set; }
 }

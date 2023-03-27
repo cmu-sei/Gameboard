@@ -4,7 +4,6 @@
 using System;
 using Gameboard.Api.Data;
 using Gameboard.Api.Structure;
-using Gameboard.Api.Validators;
 
 namespace Gameboard.Api
 {
@@ -98,6 +97,7 @@ namespace Gameboard.Api
     public class GamespaceLimitReached : Exception { }
     public class InvalideFeedbackFormat : Exception { }
     public class PlayerIsntOnTeam : Exception { }
+    public class PlayerIsntInGame : Exception { }
     public class InvalidPlayerMode : Exception { }
     public class MissingRequiredField : Exception { }
 }

@@ -176,7 +176,7 @@ public class PlayerService
         if (game.RequireSynchronizedStart)
         {
             var syncStartState = await MediatorBus.Send(new IsSyncStartReadyQuery(game.Id));
-            if (!syncStartState.IsSyncStartReady)
+            if (!syncStartState.IsReady)
                 throw new SyncStartNotReady(player.Id, syncStartState);
         }
 
@@ -651,21 +651,6 @@ public class PlayerService
 
         await Store.Create(enrollments);
         await Store.Update(allteams);
-    }
-
-    public async Task UpdatePlayerReady(string playerId, bool isReady, User actor)
-    {
-        // grab the player so we can get the gameId
-        var player = Mapper.Map<Api.Player>(await Store.Retrieve(playerId));
-
-        // update with player ready
-        await Store
-            .List()
-            .Where(p => p.Id == playerId)
-            .ExecuteUpdateAsync(u => u.SetProperty(p => p.IsReady, isReady));
-
-        var syncStartState = await MediatorBus.Send(new IsSyncStartReadyQuery(player.GameId));
-        await HubBus.SendPlayerReadyChanged(syncStartState, actor);
     }
 
     public async Task<PlayerCertificate> MakeCertificate(string id)

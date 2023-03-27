@@ -48,7 +48,7 @@ internal class IsSyncStartReadyQueryHandler : IRequestHandler<IsSyncStartReadyQu
             {
                 Game = new SimpleEntity { Id = game.Id, Name = game.Name },
                 Teams = new SyncStartTeam[] { },
-                IsSyncStartReady = true
+                IsReady = true
             };
         }
 
@@ -75,7 +75,7 @@ internal class IsSyncStartReadyQueryHandler : IRequestHandler<IsSyncStartReadyQu
                 }),
                 IsReady = teamPlayers[teamId].All(p => p.IsReady)
             }),
-            IsSyncStartReady = allTeamsReady
+            IsReady = allTeamsReady
         };
     }
 }

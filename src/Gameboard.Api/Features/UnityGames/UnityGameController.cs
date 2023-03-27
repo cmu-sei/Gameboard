@@ -161,7 +161,12 @@ public class UnityGameController : _Controller
         // notify the hub (if there is one)
         await _hub.Clients
             .Group(model.TeamId)
-            .ChallengeEvent(new HubEvent<Challenge>(_mapper.Map<Challenge>(challengeData), EventAction.Updated, HubEventActingUserDescription.FromUser(Actor)));
+            .ChallengeEvent(new HubEvent<Challenge>
+            {
+                Model = _mapper.Map<Challenge>(challengeData),
+                Action = EventAction.Updated,
+                ActingUser = HubEventActingUserDescription.FromUser(Actor)
+            });
 
         return Ok(_mapper.Map<UnityGameChallengeViewModel>(challengeData));
     }

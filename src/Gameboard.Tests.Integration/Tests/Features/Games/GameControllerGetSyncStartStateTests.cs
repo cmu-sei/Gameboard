@@ -46,7 +46,7 @@ public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestC
 
         // then
         result.ShouldNotBeNull();
-        result.IsSyncStartReady.ShouldBeTrue();
+        result.IsReady.ShouldBeTrue();
         result.Teams.Count().ShouldBe(2);
     }
 
@@ -85,7 +85,7 @@ public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestC
 
         // then
         result.ShouldNotBeNull();
-        result.IsSyncStartReady.ShouldBeFalse();
+        result.IsReady.ShouldBeFalse();
         result.Teams.Count().ShouldBe(2);
         result
             .Teams
@@ -124,7 +124,7 @@ public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestC
 
         // then
         result.ShouldNotBeNull();
-        result.IsSyncStartReady.ShouldBeTrue();
+        result.IsReady.ShouldBeTrue();
         result.Teams.Count().ShouldBe(0);
     }
 }

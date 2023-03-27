@@ -15,17 +15,18 @@ using System.Collections.Generic;
 
 namespace Gameboard.Api.Services
 {
-    public class GameService: _Service
+    public class GameService : _Service
     {
         IGameStore Store { get; }
         Defaults Defaults { get; }
-        public GameService (
+
+        public GameService(
             ILogger<GameService> logger,
             IMapper mapper,
             CoreOptions options,
             Defaults defaults,
             IGameStore store
-        ): base(logger, mapper, options)
+        ) : base(logger, mapper, options)
         {
             Store = store;
             Defaults = defaults;
@@ -35,7 +36,8 @@ namespace Gameboard.Api.Services
         {
             // for "New Game" only, set global defaults, if defined
             if (!model.IsClone)
-            {   if (Defaults.FeedbackTemplate.NotEmpty())
+            {
+                if (Defaults.FeedbackTemplate.NotEmpty())
                     model.FeedbackConfig = Defaults.FeedbackTemplate;
                 if (Defaults.CertificateTemplate.NotEmpty())
                     model.CertificateTemplate = Defaults.CertificateTemplate;
@@ -132,7 +134,7 @@ namespace Gameboard.Api.Services
                     Month = g.Key.Month,
                     Games = g
                         .OrderBy(c => c.GameStart)
-                        .Select(c =>  Mapper.Map<Game>(c))
+                        .Select(c => Mapper.Map<Game>(c))
                         .ToArray()
                 });
 
@@ -168,7 +170,7 @@ namespace Gameboard.Api.Services
             // foreach half hour, get count of available seats
             List<SessionForecast> result = new();
 
-            for (int i = 0; i < 480; i+=30)
+            for (int i = 0; i < 480; i += 30)
             {
                 step = ts.AddMinutes(i);
                 int reserved = expirations.Count(d => step.CompareTo(d) < 0);
@@ -234,12 +236,12 @@ namespace Gameboard.Api.Services
             switch (type)
             {
                 case AppConstants.ImageMapType:
-                entity.Background = filename;
-                break;
+                    entity.Background = filename;
+                    break;
 
                 case AppConstants.ImageCardType:
-                entity.Logo = filename;
-                break;
+                    entity.Logo = filename;
+                    break;
             }
 
             await Store.Update(entity);
@@ -280,24 +282,12 @@ namespace Gameboard.Api.Services
             );
 
             var players = Store.DbContext.Players.Where(p => p.UserId == uid);
-            foreach (var e in players) {
+            foreach (var e in players)
+            {
                 Console.WriteLine("game id: " + e.GameId + " | gid: " + gid);
             }
 
             return authd;
         }
-
-        /*
-        public async Task<bool> UserIsTeamPlayer(string id, string subjectId)
-        {
-            var entity = await Store.Retrieve(id);
-
-            return await Store.DbContext.Users.AnyAsync(u =>
-                u.Id == subjectId &&
-                u.Enrollments.Any(e => e.TeamId == entity.TeamId)
-            );
-        }
-        */
     }
-
 }

@@ -5,20 +5,9 @@ namespace Gameboard.Api.Hubs;
 
 public class HubEvent<T> where T : class
 {
-    public HubEventActingUserDescription ActingUser { get; set; }
-    public EventAction Action { get; set; }
-    public T Model { get; set; }
-
-    public HubEvent(
-        T model,
-        EventAction action,
-        HubEventActingUserDescription actingUser
-    )
-    {
-        Action = action;
-        Model = model;
-        ActingUser = actingUser;
-    }
+    public required HubEventActingUserDescription ActingUser { get; set; }
+    public required EventAction Action { get; set; }
+    public required T Model { get; set; }
 }
 
 public class HubEventActingUserDescription

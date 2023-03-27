@@ -7,6 +7,8 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Games;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -21,17 +23,23 @@ namespace Gameboard.Api.Hubs
         IPlayerStore PlayerStore { get; }
         internal static string ContextPlayerKey = "player";
 
+        private readonly IGameStore _gameStore;
         private readonly IMapper _mapper;
+        private readonly IMediator _mediator;
 
         public AppHub(
             ILogger<AppHub> logger,
             IMapper mapper,
+            IGameStore gameStore,
+            IMediator mediator,
             IPlayerStore playerStore
         )
         {
             Logger = logger;
             PlayerStore = playerStore;
+            _gameStore = gameStore;
             _mapper = mapper;
+            _mediator = mediator;
         }
 
         public override Task OnConnectedAsync()
@@ -74,12 +82,49 @@ namespace Gameboard.Api.Hubs
 
             // project, add to group, and broadcast
             var teamPlayer = _mapper.Map<TeamPlayer>(player);
-
             await Groups.AddToGroupAsync(Context.ConnectionId, player.TeamId);
-
             await Clients.OthersInGroup(player.TeamId).PlayerEvent(
-                new HubEvent<TeamPlayer>(teamPlayer, EventAction.Arrived, GetApiUser())
+                new HubEvent<TeamPlayer>
+                {
+                    Model = teamPlayer,
+                    Action = EventAction.Arrived,
+                    ActingUser = GetApiUser()
+                }
             );
+        }
+
+        public async Task<SyncStartState> JoinGame(string gameId)
+        {
+            if (string.IsNullOrWhiteSpace(gameId))
+                throw new ArgumentNullException();
+
+            var game = await _gameStore
+                .List()
+                .AsNoTracking()
+                .Include(g => g.Players)
+                .FirstOrDefaultAsync();
+
+            if (game == null)
+                throw new ResourceNotFound<Game>(gameId);
+
+            if (!game.Players.Any(p => p.UserId == Context.UserIdentifier))
+                throw new PlayerIsntInGame();
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
+
+            if (game.RequireSynchronizedStart)
+                return await _mediator.Send(new IsSyncStartReadyQuery(gameId));
+
+            // this isn't a failure, we just don't send anything down if sync start isn't needed
+            return null;
+        }
+
+        public async Task LeaveGame(string gameId)
+        {
+            if (string.IsNullOrWhiteSpace(gameId))
+                throw new ArgumentNullException();
+
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, gameId);
         }
 
         public async Task<Data.Player[]> ListTeam(string teamId)
@@ -115,7 +160,12 @@ namespace Gameboard.Api.Hubs
                     Groups.RemoveFromGroupAsync(Context.ConnectionId, player.TeamId),
                     Groups.RemoveFromGroupAsync(Context.ConnectionId, AppConstants.InternalSupportChannel),
                     Clients.OthersInGroup(player.TeamId).PlayerEvent(
-                        new HubEvent<TeamPlayer>(player, EventAction.Departed, GetApiUser())
+                        new HubEvent<TeamPlayer>
+                        {
+                            Model = player,
+                            Action = EventAction.Departed,
+                            ActingUser = GetApiUser()
+                        }
                     )
                 };
 

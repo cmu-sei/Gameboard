@@ -5,9 +5,11 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
@@ -21,12 +23,14 @@ namespace Gameboard.Api.Controllers
         PlayerService PlayerService { get; }
         IInternalHubBus Hub { get; }
         IMapper Mapper { get; }
+        IMediator Mediator { get; }
         ITeamService TeamService { get; set; }
 
         public PlayerController(
             ILogger<PlayerController> logger,
             IDistributedCache cache,
             PlayerValidator validator,
+            IMediator mediator,
             PlayerService playerService,
             IInternalHubBus hub,
             IMapper mapper,
@@ -36,6 +40,7 @@ namespace Gameboard.Api.Controllers
             PlayerService = playerService;
             Hub = hub;
             Mapper = mapper;
+            Mediator = mediator;
             TeamService = teamService;
         }
 
@@ -99,9 +104,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task UpdatePlayerReady([FromRoute] string playerId, [FromBody] PlayerReadyUpdate readyUpdate)
         {
-            AuthorizeAll(() => IsSelf(playerId).Result);
-
-            await PlayerService.UpdatePlayerReady(playerId, readyUpdate.IsReady, Actor);
+            await Mediator.Send(new UpdatePlayerReadyStateCommand(playerId, readyUpdate.IsReady, Actor));
         }
 
         [HttpDelete("api/player/{playerId}/session")]

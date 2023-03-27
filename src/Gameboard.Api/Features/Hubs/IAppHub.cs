@@ -10,7 +10,7 @@ namespace Gameboard.Api.Hubs
     {
         Task Announcement(HubEvent<Announcement> ev);
         Task PlayerEvent(HubEvent<TeamPlayer> ev);
-        Task SyncStartEvent(HubEvent<SyncStartState> ev);
+        Task SyncStartEvent(GameHubEvent<SyncStartState> ev);
         Task TeamEvent(HubEvent<TeamState> ev);
         Task ChallengeEvent(HubEvent<Challenge> challenge);
         Task TicketEvent(HubEvent<TicketNotification> ev);
