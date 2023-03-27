@@ -1,7 +1,6 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -76,8 +75,7 @@ namespace Gameboard.Api.Services
         public async Task Sync(string id)
         {
             var externals = (await List(new SearchFilter()))
-                .ToDictionary(o => o.ExternalId)
-            ;
+                .ToDictionary(o => o.ExternalId);
 
             foreach (var spec in Store.DbSet.Where(s => s.GameId == id))
             {
@@ -112,7 +110,6 @@ namespace Gameboard.Api.Services
             }
 
             q = q.OrderBy(s => s.Name);
-
             q = q.Skip(model.Skip);
 
             if (model.Take > 0)
