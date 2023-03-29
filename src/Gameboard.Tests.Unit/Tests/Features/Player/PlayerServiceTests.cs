@@ -2,6 +2,7 @@ using AutoMapper;
 using Gameboard.Api;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Services;
 using MediatR;
@@ -18,6 +19,7 @@ public class PlayerServiceTests
             ChallengeService challengeService,
             IPlayerStore store,
             IUserStore userStore,
+            IGameHubBus gameHubBus,
             IGameStore gameStore,
             IGuidService guidService,
             IMediator mediator,
@@ -33,6 +35,7 @@ public class PlayerServiceTests
                 mediator,
                 store,
                 userStore,
+                gameHubBus,
                 gameStore,
                 hubBus,
                 teamService,
@@ -49,6 +52,7 @@ public class PlayerServiceTests
             ChallengeService? challengeService = null,
             IPlayerStore? store = null,
             IUserStore? userStore = null,
+            IGameHubBus? gameHubBus = null,
             IGameStore? gameStore = null,
             IGuidService? guidService = null,
             IMediator? mediator = null,
@@ -66,6 +70,7 @@ public class PlayerServiceTests
                 mediator ?? A.Fake<IMediator>(),
                 store ?? A.Fake<IPlayerStore>(),
                 userStore ?? A.Fake<IUserStore>(),
+                gameHubBus ?? A.Fake<IGameHubBus>(),
                 gameStore ?? A.Fake<IGameStore>(),
                 hubBus ?? A.Fake<IInternalHubBus>(),
                 teamService ?? A.Fake<ITeamService>(),

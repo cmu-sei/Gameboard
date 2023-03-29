@@ -1,40 +1,39 @@
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using Gameboard.Api.Structure;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
-using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Features.ChallengeBonuses;
 
 internal class ListManualBonusesValidator : IGameboardRequestValidator<ListManualBonusesQuery>
 {
-    private readonly EntityExistsValidator<Data.Challenge> _challengeExists;
     private readonly UserRoleAuthorizer _authorizer;
+    private readonly EntityExistsValidator<ListManualBonusesQuery, Data.Challenge> _challengeExists;
+    private readonly EntityExistsValidator<ListManualBonusesQuery, Data.User> _userExists;
+    private readonly IValidatorService<ListManualBonusesQuery> _validatorService;
 
-    public ListManualBonusesValidator(
+    public ListManualBonusesValidator
+    (
         UserRoleAuthorizer authorizer,
-        EntityExistsValidator<Data.Challenge> challengeExists,
-        EntityExistsValidator<Data.User> userExists,
-        IHttpContextAccessor httpContextAccessor)
+        EntityExistsValidator<ListManualBonusesQuery, Data.Challenge> challengeExists,
+        EntityExistsValidator<ListManualBonusesQuery, Data.User> userExists,
+        IValidatorService<ListManualBonusesQuery> validatorService
+    )
     {
         _authorizer = authorizer;
         _challengeExists = challengeExists;
+        _userExists = userExists;
+        _validatorService = validatorService;
     }
 
-    public async Task<GameboardAggregatedValidationExceptions> Validate(ListManualBonusesQuery input)
+    public async Task Validate(ListManualBonusesQuery request)
     {
         _authorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Designer, UserRole.Support };
         _authorizer.Authorize();
 
-        var exceptions = new List<GameboardValidationException>()
-            .AddIfNotNull(await _challengeExists.Validate(input.challengeId));
-
-        if (exceptions.Count() > 0)
-            return GameboardAggregatedValidationExceptions.FromValidationExceptions(exceptions);
-
-        return null;
+        _validatorService
+            .AddValidator(_challengeExists)
+            .AddValidator(_userExists);
+        await _validatorService.Validate(request);
     }
 }

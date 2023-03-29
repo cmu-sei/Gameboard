@@ -38,12 +38,13 @@ internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
     {
         _roleAuthorizer.Authorize();
         await _validator.Validate(request);
+
         await _challengeBonusStore.Create(new ManualChallengeBonus
         {
-            ChallengeId = request.challengeId,
-            Description = request.model.Description,
+            ChallengeId = request.ChallengeId,
+            Description = request.Model.Description,
             EnteredByUserId = _actor.Id,
-            PointValue = request.model.PointValue,
+            PointValue = request.Model.PointValue,
         });
     }
 }

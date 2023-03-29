@@ -14,17 +14,17 @@ namespace Gameboard.Api.Features.Games;
 
 internal class IsSyncStartReadyQueryHandler : IRequestHandler<IsSyncStartReadyQuery, SyncStartState>
 {
-    private readonly EntityExistsValidator<Data.Game> _gameExists;
+    private readonly EntityExistsValidator<IsSyncStartReadyQuery, Data.Game> _gameExists;
     private readonly IGameStore _gameStore;
     private readonly IPlayerStore _playerStore;
-    private readonly IValidatorService _validatorService;
+    private readonly IValidatorService<IsSyncStartReadyQuery> _validatorService;
 
     public IsSyncStartReadyQueryHandler
     (
-        EntityExistsValidator<Data.Game> gameExists,
+        EntityExistsValidator<IsSyncStartReadyQuery, Data.Game> gameExists,
         IGameStore gameStore,
         IPlayerStore playerStore,
-        IValidatorService validatorService
+        IValidatorService<IsSyncStartReadyQuery> validatorService
     )
     {
         _gameExists = gameExists;
@@ -35,7 +35,8 @@ internal class IsSyncStartReadyQueryHandler : IRequestHandler<IsSyncStartReadyQu
 
     public async Task<SyncStartState> Handle(IsSyncStartReadyQuery request, CancellationToken cancellationToken)
     {
-        await _validatorService.Validate(request.gameId, _gameExists);
+        _validatorService.AddValidator(_gameExists.UseProperty(r => r.gameId));
+        await _validatorService.Validate(request);
 
         // a game and its challenges are "sync start ready" if either of the following are true:
         // - the game is NOT a sync-start game

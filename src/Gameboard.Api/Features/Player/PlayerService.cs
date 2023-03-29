@@ -22,6 +22,7 @@ public class PlayerService
     ChallengeService ChallengeService { get; set; }
     IPlayerStore Store { get; }
     IGameStore GameStore { get; }
+    IGameHubBus GameHubBus { get; set; }
     IGuidService GuidService { get; }
     IMediator MediatorBus { get; }
     IInternalHubBus HubBus { get; }
@@ -39,6 +40,7 @@ public class PlayerService
         IMediator mediator,
         IPlayerStore store,
         IUserStore userStore,
+        IGameHubBus gameHubBus,
         IGameStore gameStore,
         IInternalHubBus hubBus,
         ITeamService teamService,
@@ -51,6 +53,7 @@ public class PlayerService
         ChallengeService = challengeService;
         GuidService = guidService;
         MediatorBus = mediator;
+        GameHubBus = gameHubBus;
         HubBus = hubBus;
         Store = store;
         GameStore = gameStore;
@@ -79,6 +82,7 @@ public class PlayerService
 
         await Store.Create(entity);
         await HubBus.SendPlayerEnrolled(Mapper.Map<Api.Player>(entity), actor);
+        await MediatorBus.Send(new UpdatePlayerReadyStateCommand(entity.Id, false, actor));
 
         return Mapper.Map<Player>(entity);
     }
@@ -159,6 +163,13 @@ public class PlayerService
         // notify hub that the team is deleted /players left so the client can respond
         var playerModel = Mapper.Map<Player>(player);
         await HubBus.SendTeamDeleted(playerModel, request.Actor);
+
+        // update player ready state if game needs it
+        if (player.Game.RequireSynchronizedStart)
+        {
+            var syncStartState = await MediatorBus.Send(new IsSyncStartReadyQuery(player.GameId));
+            await GameHubBus.SendPlayerReadyStateChanged(syncStartState, request.Actor);
+        }
 
         if (!player.IsManager && !player.Game.RequireSponsoredTeam)
             await TeamService.UpdateTeamSponsors(player.TeamId);
@@ -501,11 +512,18 @@ public class PlayerService
     {
         // they probably don't have challenge data on an unenroll, but in case an admin does this
         // or something, we'll clean up their challenges
-        var player = await Store.Retrieve(request.PlayerId);
+        var player = await Store.Retrieve(request.PlayerId, players => players.Include(p => p.Game));
         await ChallengeService.ArchivePlayerChallenges(player);
 
         // delete the player record
         await Store.Delete(request.PlayerId);
+
+        // update sync start if needed
+        if (player.Game.RequireSynchronizedStart)
+        {
+            var syncStart = await MediatorBus.Send(new IsSyncStartReadyQuery(player.GameId));
+            await GameHubBus.SendPlayerReadyStateChanged(syncStart, request.Actor);
+        }
 
         // manage sponsor info about the team
         await TeamService.UpdateTeamSponsors(player.TeamId);

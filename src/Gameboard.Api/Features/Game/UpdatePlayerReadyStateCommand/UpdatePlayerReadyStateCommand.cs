@@ -5,7 +5,6 @@ using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games;
@@ -16,16 +15,16 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
 {
     private readonly IGameHubBus _gameHub;
     private readonly IMediator _mediator;
-    private readonly EntityExistsValidator<Data.Player> _playerExists;
+    private readonly EntityExistsValidator<UpdatePlayerReadyStateCommand, Data.Player> _playerExists;
     private readonly IPlayerStore _playerStore;
-    private readonly IValidatorService _validatorService;
+    private readonly IValidatorService<UpdatePlayerReadyStateCommand> _validatorService;
 
     public UpdatePlayerReadyStateCommandHandler(
         IGameHubBus gameHub,
         IMediator mediator,
-        EntityExistsValidator<Data.Player> playerExists,
+        EntityExistsValidator<UpdatePlayerReadyStateCommand, Data.Player> playerExists,
         IPlayerStore playerStore,
-        IValidatorService validatorService)
+        IValidatorService<UpdatePlayerReadyStateCommand> validatorService)
     {
         _gameHub = gameHub;
         _mediator = mediator;
@@ -36,7 +35,8 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
 
     public async Task Handle(UpdatePlayerReadyStateCommand request, CancellationToken cancellationToken)
     {
-        await _validatorService.Validate(request, _playerExists);
+        _validatorService.AddValidator(_playerExists.UseProperty(c => c.PlayerId));
+        await _validatorService.Validate(request);
 
         var player = await _playerStore.Retrieve(request.PlayerId);
         await _playerStore

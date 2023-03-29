@@ -8,13 +8,14 @@ internal class RequiredStringContext
     public string Value { get; set; }
 }
 
-internal class RequiredStringValidator : IGameboardValidator<RequiredStringContext, MissingRequiredInput<string>>
+internal class RequiredStringValidator : IGameboardValidator<RequiredStringContext>
 {
-    public Task<MissingRequiredInput<string>> Validate(RequiredStringContext model)
+
+    public Task<GameboardValidationException> Validate(RequiredStringContext model)
     {
         if (string.IsNullOrWhiteSpace(model.Value))
-            return Task.FromResult(new MissingRequiredInput<string>(model.PropertyName, model.Value));
+            return Task.FromResult<GameboardValidationException>(new MissingRequiredInput<string>(model.PropertyName, model.Value));
 
-        return Task.FromResult<MissingRequiredInput<string>>(null);
+        return Task.FromResult<GameboardValidationException>(null);
     }
 }

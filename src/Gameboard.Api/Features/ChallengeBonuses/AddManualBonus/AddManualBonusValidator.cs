@@ -9,35 +9,46 @@ using Microsoft.AspNetCore.Http;
 
 internal class AddManualBonusValidator : IGameboardRequestValidator<AddManualBonusCommand>
 {
-    private readonly EntityExistsValidator<Data.Challenge> _challengeExists;
+    private readonly EntityExistsValidator<AddManualBonusCommand, Data.Challenge> _challengeExists;
     private readonly RequiredStringValidator _descriptionRequired;
     private readonly User _actor;
+    private readonly IValidatorService<AddManualBonusCommand> _validatorService;
 
     public AddManualBonusValidator
     (
-        EntityExistsValidator<Data.Challenge> challengeExists,
+        EntityExistsValidator<AddManualBonusCommand, Data.Challenge> challengeExists,
         RequiredStringValidator descriptionRequired,
-        IHttpContextAccessor httpContextAccessor
+        IHttpContextAccessor httpContextAccessor,
+        IValidatorService<AddManualBonusCommand> validatorService
     )
     {
         _actor = httpContextAccessor.HttpContext.User.ToActor();
         _challengeExists = challengeExists;
         _descriptionRequired = descriptionRequired;
+        _validatorService = validatorService;
     }
 
-    public async Task<GameboardAggregatedValidationExceptions> Validate(AddManualBonusCommand request)
+    public async Task Validate(AddManualBonusCommand request)
     {
-        var pointsValidator = new SimpleValidator<double>(d => d > 0.0, $"{nameof(request.model.PointValue)} must be positive.");
+        var pointsValidator = new SimpleValidator<AddManualBonusCommand, double>
+        {
+            ValidationProperty = c => c.Model.PointValue,
+            IsValid = d => Task.FromResult(d > 0.0),
+            ValidationFailureMessage = $"{nameof(request.Model.PointValue)} must be positive."
+        };
 
-        var validationExceptions = new List<GameboardValidationException>()
-            .AddIfNotNull(await _challengeExists.Validate(request.challengeId))
-            .AddIfNotNull(await pointsValidator.Validate(request.model.PointValue))
-            .AddIfNotNull(await _descriptionRequired.Validate(new RequiredStringContext
-            {
-                PropertyName = nameof(request.model.Description),
-                Value = request.model.Description
-            }));
+        var descriptionRequired = new SimpleValidator<AddManualBonusCommand, string>
+        {
+            ValidationProperty = c => c.Model.Description,
+            IsValid = d => Task.FromResult(!string.IsNullOrWhiteSpace(d)),
+            ValidationFailureMessage = $"{nameof(request.Model.Description)} is required."
+        };
 
-        return GameboardAggregatedValidationExceptions.FromValidationExceptions(validationExceptions);
+        _validatorService
+            .AddValidator(pointsValidator)
+            .AddValidator(_challengeExists.UseProperty(r => r.ChallengeId))
+            .AddValidator(descriptionRequired);
+
+        await _validatorService.Validate(request);
     }
 }

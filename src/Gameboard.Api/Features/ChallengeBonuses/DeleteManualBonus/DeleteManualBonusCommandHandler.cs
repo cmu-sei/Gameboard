@@ -16,14 +16,14 @@ internal class DeleteManualBonusCommandHandler : IRequestHandler<DeleteManualBon
     private readonly User _actor;
 
     // validators
-    private readonly EntityExistsValidator<ManualChallengeBonus> _bonusExists;
+    private readonly EntityExistsValidator<DeleteManualBonusCommand, ManualChallengeBonus> _bonusExists;
 
     // authorizers 
     private readonly UserRoleAuthorizer _roleAuthorizer;
 
     public DeleteManualBonusCommandHandler(
         IStore<ManualChallengeBonus> challengeBonusStore,
-        EntityExistsValidator<ManualChallengeBonus> bonusExists,
+        EntityExistsValidator<DeleteManualBonusCommand, ManualChallengeBonus> bonusExists,
         UserRoleAuthorizer roleAuthorizer,
         IHttpContextAccessor httpContextAccessor)
     {
@@ -38,7 +38,7 @@ internal class DeleteManualBonusCommandHandler : IRequestHandler<DeleteManualBon
     public async Task Handle(DeleteManualBonusCommand request, CancellationToken cancellationToken)
     {
         _roleAuthorizer.Authorize();
-        await _bonusExists.Validate(request.manualBonusId);
-        await _challengeBonusStore.Delete(request.manualBonusId);
+        await _bonusExists.Validate(request);
+        await _challengeBonusStore.Delete(request.ManualBonusId);
     }
 }

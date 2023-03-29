@@ -3,24 +3,23 @@ using System.Threading.Tasks;
 
 namespace Gameboard.Api.Structure.MediatR.Validators;
 
-internal class SimpleValidator<TModel> : IGameboardRequestValidator<TModel>
+internal class SimpleValidator<TModel, TPropertyType> : IGameboardValidator<TModel>, IValidationPropertyProvider<TModel, TPropertyType>
 {
-    private readonly Func<TModel, bool> _isValid;
-    private readonly string _validationFailureMessage;
+    public required Func<TPropertyType, Task<bool>> IsValid { get; set; }
+    public required Func<TModel, TPropertyType> ValidationProperty { get; set; }
+    public required string ValidationFailureMessage { get; set; }
 
-    public SimpleValidator(Func<TModel, bool> isValid, string validationFailureMessage)
+    public async Task<GameboardValidationException> Validate(TModel model)
     {
-        _isValid = isValid;
-        _validationFailureMessage = validationFailureMessage;
-    }
+        var propertyValue = ValidationProperty.Invoke(model);
+        if (!(await IsValid(propertyValue)))
+            return new SimpleValidatorException(ValidationFailureMessage);
 
-    public Task<GameboardAggregatedValidationExceptions> Validate(TModel request)
-        => Task.FromResult(_isValid(request) ? null : GameboardAggregatedValidationExceptions.FromValidationExceptions(new SimpleValidatorException(_validationFailureMessage)));
-
-    private class SimpleValidatorException : GameboardValidationException
-    {
-        public SimpleValidatorException(string message, Exception ex = null) : base(message, ex)
-        {
-        }
+        return null;
     }
+}
+
+internal class SimpleValidatorException : GameboardValidationException
+{
+    public SimpleValidatorException(string message, Exception ex = null) : base(message, ex) { }
 }

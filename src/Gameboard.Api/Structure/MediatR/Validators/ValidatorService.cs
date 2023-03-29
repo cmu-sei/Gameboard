@@ -4,27 +4,40 @@ using System.Threading.Tasks;
 
 namespace Gameboard.Api.Structure.MediatR;
 
-public interface IValidatorService
+public interface IValidatorService<TModel>
 {
-    Task Validate<T>(T request, params IGameboardValidator[] validators);
-    Task Validate<T>(T request, IEnumerable<IGameboardValidator> validators);
+    IValidatorService<TModel> AddValidator(IGameboardValidator<TModel> validator);
+    Task Validate(TModel model);
 }
 
-internal class ValidatorService : IValidatorService
+internal class ValidatorService<TModel> : IValidatorService<TModel>
 {
-    public async Task Validate<T>(T request, IEnumerable<IGameboardValidator> validators)
+    private readonly IList<IGameboardValidator<TModel>> _validators = new List<IGameboardValidator<TModel>>();
+
+    public IValidatorService<TModel> AddValidator(IGameboardValidator<TModel> validator)
+    {
+        _validators.Add(validator);
+        return this;
+    }
+
+    // public IValidatorService<TModel, TProperty> AddValidator<TProperty>(IGameboardValidator<TModel> validator, )
+    // {
+
+    // }
+
+    public async Task Validate(TModel model)
     {
         var validationExceptions = new List<GameboardValidationException>();
 
-        foreach (var validator in validators)
-            validationExceptions.AddIfNotNull(await validator.Validate(request));
+        foreach (var validator in _validators)
+        {
+            var toValidate = model;
+            validationExceptions.AddIfNotNull(await validator.Validate(model));
+        }
 
         if (validationExceptions.Count() > 0)
         {
             throw GameboardAggregatedValidationExceptions.FromValidationExceptions(validationExceptions);
         }
     }
-
-    public Task Validate<T>(T request, params IGameboardValidator[] validators)
-        => Validate(request, new List<IGameboardValidator>(validators));
 }

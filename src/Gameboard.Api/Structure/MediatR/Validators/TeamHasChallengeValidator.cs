@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Structure.MediatR.Validators;
 
-internal class TeamHasChallengeValidator : IGameboardValidator<Player, TeamDoesntHaveChallenge>
+internal class TeamHasChallengeValidator : IGameboardValidator<Player>
 {
     private readonly IChallengeStore _store;
 
@@ -15,7 +15,7 @@ internal class TeamHasChallengeValidator : IGameboardValidator<Player, TeamDoesn
         _store = store;
     }
 
-    public async Task<TeamDoesntHaveChallenge> Validate(Player model)
+    public async Task<GameboardValidationException> Validate(Player model)
     {
         var result = await _store
             .List()
