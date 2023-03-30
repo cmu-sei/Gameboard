@@ -18,8 +18,3 @@ internal class SimpleValidator<TModel, TPropertyType> : IGameboardValidator<TMod
         return null;
     }
 }
-
-internal class SimpleValidatorException : GameboardValidationException
-{
-    public SimpleValidatorException(string message, Exception ex = null) : base(message, ex) { }
-}

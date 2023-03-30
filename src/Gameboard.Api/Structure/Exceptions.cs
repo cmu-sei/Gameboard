@@ -71,6 +71,11 @@ namespace Gameboard.Api
             : base($"Game {gameId} requires that all players have the same sponsor. The inviting player {managerPlayerId} has sponsor {managerSponsor}, while player {playerId} has sponsor {playerSponsor}.") { }
     }
 
+    internal class SimpleValidatorException : GameboardValidationException
+    {
+        public SimpleValidatorException(string message, Exception ex = null) : base(message, ex) { }
+    }
+
     internal class ValidationTypeFailure<TValidator> : GameboardException where TValidator : IModelValidator
     {
         internal ValidationTypeFailure(Type objectType)
