@@ -168,7 +168,7 @@ namespace Gameboard.Api.Validators
             if (!(await Exists(request.PlayerId)))
                 throw new ResourceNotFound<Player>(request.PlayerId);
 
-            if (request.Actor.IsAdmin && request.AsAdmin)
+            if (IsActingAsAdmin(request.AsAdmin, request.Actor))
                 return;
 
             // non-admin validation
@@ -217,7 +217,7 @@ namespace Gameboard.Api.Validators
         }
 
         private bool IsActingAsAdmin(bool asAdmin, User actor)
-            => asAdmin && actor.IsAdmin;
+            => asAdmin && (actor.IsAdmin || actor.IsRegistrar);
 
         private async Task<bool> Exists(string id)
         {
