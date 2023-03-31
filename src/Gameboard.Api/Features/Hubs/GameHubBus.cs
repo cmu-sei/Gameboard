@@ -14,12 +14,12 @@ public class GameHubEvent<TData> where TData : class
 
 public enum GameHubEventType
 {
-    PlayerReadyStateChanged
+    SyncStartStateChanged
 }
 
 public interface IGameHubBus
 {
-    Task SendPlayerReadyStateChanged(SyncStartState state, User actor);
+    Task SendSyncStartStateChanged(SyncStartState state, User actor);
 }
 
 internal class GameHubBus : IGameHubBus
@@ -33,15 +33,15 @@ internal class GameHubBus : IGameHubBus
         _mapper = mapper;
     }
 
-    public async Task SendPlayerReadyStateChanged(SyncStartState state, User actor)
+    public async Task SendSyncStartStateChanged(SyncStartState state, User actor)
     {
         await _hubContext
             .Clients
             .Group(state.Game.Id)
-            .SyncStartEvent(new GameHubEvent<SyncStartState>
+            .GameHubEvent(new GameHubEvent<SyncStartState>
             {
                 GameId = state.Game.Id,
-                EventType = GameHubEventType.PlayerReadyStateChanged,
+                EventType = GameHubEventType.SyncStartStateChanged,
                 Data = state
             });
     }

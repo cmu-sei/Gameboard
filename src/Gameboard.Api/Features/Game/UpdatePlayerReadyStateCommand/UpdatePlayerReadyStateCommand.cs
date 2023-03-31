@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
@@ -13,38 +14,37 @@ public record UpdatePlayerReadyStateCommand(string PlayerId, bool IsReady, User 
 
 internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlayerReadyStateCommand>
 {
-    private readonly IGameHubBus _gameHub;
+    private readonly IGameService _gameService;
     private readonly IMediator _mediator;
     private readonly EntityExistsValidator<UpdatePlayerReadyStateCommand, Data.Player> _playerExists;
-    private readonly IPlayerStore _playerStore;
+    private readonly PlayerService _playerService;
     private readonly IValidatorService<UpdatePlayerReadyStateCommand> _validatorService;
 
     public UpdatePlayerReadyStateCommandHandler(
-        IGameHubBus gameHub,
+        IGameService gameService,
         IMediator mediator,
         EntityExistsValidator<UpdatePlayerReadyStateCommand, Data.Player> playerExists,
-        IPlayerStore playerStore,
+        PlayerService playerService,
         IValidatorService<UpdatePlayerReadyStateCommand> validatorService)
     {
-        _gameHub = gameHub;
+        _gameService = gameService;
         _mediator = mediator;
         _playerExists = playerExists;
-        _playerStore = playerStore;
+        _playerService = playerService;
         _validatorService = validatorService;
     }
 
     public async Task Handle(UpdatePlayerReadyStateCommand request, CancellationToken cancellationToken)
     {
+        // validate
         _validatorService.AddValidator(_playerExists.UseProperty(c => c.PlayerId));
         await _validatorService.Validate(request);
 
-        var player = await _playerStore.Retrieve(request.PlayerId);
-        await _playerStore
-            .List()
-            .Where(p => p.Id == request.PlayerId)
-            .ExecuteUpdateAsync(p => p.SetProperty(p => p.IsReady, request.IsReady));
+        // update the player's db flag
+        await _playerService.UpdatePlayerReadyState(request.PlayerId, request.IsReady);
 
-        var syncStartState = await _mediator.Send(new IsSyncStartReadyQuery(player.GameId));
-        await _gameHub.SendPlayerReadyStateChanged(syncStartState, request.Actor);
+        // retrieve and tell the game that someone has readied/unreadied
+        var player = await _playerService.Retrieve(request.PlayerId);
+        await _gameService.HandleSyncStartStateChanged(player.GameId, request.Actor);
     }
 }

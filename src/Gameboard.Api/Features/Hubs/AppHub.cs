@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -23,21 +24,21 @@ namespace Gameboard.Api.Hubs
         IPlayerStore PlayerStore { get; }
         internal static string ContextPlayerKey = "player";
 
-        private readonly IGameStore _gameStore;
+        private readonly IGameService _gameService;
         private readonly IMapper _mapper;
         private readonly IMediator _mediator;
 
         public AppHub(
             ILogger<AppHub> logger,
             IMapper mapper,
-            IGameStore gameStore,
+            IGameService gameService,
             IMediator mediator,
             IPlayerStore playerStore
         )
         {
             Logger = logger;
             PlayerStore = playerStore;
-            _gameStore = gameStore;
+            _gameService = gameService;
             _mapper = mapper;
             _mediator = mediator;
         }
@@ -52,7 +53,6 @@ namespace Gameboard.Api.Hubs
         {
             Logger.LogDebug($"Session Disconnected: {Context.ConnectionId}");
 
-            await base.OnDisconnectedAsync(ex);
             await Leave();
             await base.OnDisconnectedAsync(ex);
         }
@@ -98,11 +98,11 @@ namespace Gameboard.Api.Hubs
             if (string.IsNullOrWhiteSpace(gameId))
                 throw new ArgumentNullException();
 
-            var game = await _gameStore
-                .List()
+            var game = await _gameService
+                .BuildQuery()
                 .AsNoTracking()
                 .Include(g => g.Players)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(g => g.Id == gameId);
 
             if (game == null)
                 throw new ResourceNotFound<Game>(gameId);
@@ -113,7 +113,9 @@ namespace Gameboard.Api.Hubs
             await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
 
             if (game.RequireSynchronizedStart)
-                return await _mediator.Send(new IsSyncStartReadyQuery(gameId));
+            {
+                return await _gameService.GetSyncStartState(game.Id);
+            }
 
             // this isn't a failure, we just don't send anything down if sync start isn't needed
             return null;

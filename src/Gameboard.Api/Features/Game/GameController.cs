@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -124,7 +125,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("/api/games")]
         [AllowAnonymous]
-        public async Task<Game[]> List([FromQuery] GameSearchFilter model)
+        public async Task<IEnumerable<Game>> List([FromQuery] GameSearchFilter model)
         {
             return await GameService.List(model, Actor.IsDesigner || Actor.IsTester);
         }

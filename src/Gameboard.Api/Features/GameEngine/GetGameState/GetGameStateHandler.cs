@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Features.GameEngine.Requests;
 
+public record GetGameStateQuery(string TeamId) : IRequest<GameEngineGameState>;
+
 internal class GetGameStateHandler : IRequestHandler<GetGameStateQuery, GameEngineGameState>
 {
     private readonly User _actor;

@@ -12,282 +12,371 @@ using YamlDotNet.Serialization.NamingConventions;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
+using Gameboard.Api.Features.Games;
+using Gameboard.Api.Structure;
 
-namespace Gameboard.Api.Services
+namespace Gameboard.Api.Services;
+
+public interface IGameService
 {
-    public class GameService : _Service
+    Task<Game> Create(NewGame model);
+    Task Delete(string id);
+    Task<string> Export(GameSpecExport model);
+    Task<SyncStartState> GetSyncStartState(string gameId);
+    Task HandleSyncStartStateChanged(string gameId, User actor);
+    Task<Game> Import(GameSpecImport model);
+    IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool sudo = false);
+    Task<IEnumerable<Game>> List(GameSearchFilter model, bool sudo);
+    Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo);
+    Task ReRank(string id);
+    Task<Game> Retrieve(string id, bool accessHidden = true);
+    Task<ChallengeSpec[]> RetrieveChallenges(string id);
+    Task<SessionForecast[]> SessionForecast(string id);
+    Task Update(ChangedGame account);
+    Task UpdateImage(string id, string type, string filename);
+    Task<bool> UserIsTeamPlayer(string uid, string gid, string tid);
+}
+
+public class GameService : _Service, IGameService
+{
+    IGameStore Store { get; }
+    Defaults Defaults { get; }
+
+    private readonly IGameHubBus _gameHub;
+    private readonly IPlayerStore _playerStore;
+
+    public GameService(
+        ILogger<GameService> logger,
+        IMapper mapper,
+        CoreOptions options,
+        Defaults defaults,
+        IGameHubBus gameHub,
+        IGameStore store,
+        IPlayerStore playerStore
+    ) : base(logger, mapper, options)
     {
-        IGameStore Store { get; }
-        Defaults Defaults { get; }
+        Store = store;
+        Defaults = defaults;
+        _gameHub = gameHub;
+        _playerStore = playerStore;
+    }
 
-        public GameService(
-            ILogger<GameService> logger,
-            IMapper mapper,
-            CoreOptions options,
-            Defaults defaults,
-            IGameStore store
-        ) : base(logger, mapper, options)
+    public async Task<Game> Create(NewGame model)
+    {
+        // for "New Game" only, set global defaults, if defined
+        if (!model.IsClone)
         {
-            Store = store;
-            Defaults = defaults;
+            if (Defaults.FeedbackTemplate.NotEmpty())
+                model.FeedbackConfig = Defaults.FeedbackTemplate;
+            if (Defaults.CertificateTemplate.NotEmpty())
+                model.CertificateTemplate = Defaults.CertificateTemplate;
         }
 
-        public async Task<Game> Create(NewGame model)
-        {
-            // for "New Game" only, set global defaults, if defined
-            if (!model.IsClone)
+        var entity = Mapper.Map<Data.Game>(model);
+
+        await Store.Create(entity);
+
+        return Mapper.Map<Game>(entity);
+    }
+
+    public async Task<Game> Retrieve(string id, bool accessHidden = true)
+    {
+        var game = await Store.Retrieve(id);
+        if (!accessHidden && !game.IsPublished)
+            throw new ActionForbidden();
+        return Mapper.Map<Game>(game);
+    }
+
+    public async Task Update(ChangedGame account)
+    {
+        var entity = await Store.Retrieve(account.Id);
+
+        Mapper.Map(account, entity);
+
+        await Store.Update(entity);
+    }
+
+    public async Task Delete(string id)
+    {
+        await Store.Delete(id);
+    }
+
+    public IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool sudo = false)
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+
+        var q = Store.List(model?.Term);
+
+        if (!sudo)
+            q = q.Where(g => g.IsPublished);
+
+        if (model == null)
+            return q;
+
+        if (model.WantsPresent)
+            q = q.Where(g => g.GameEnd > now && g.GameStart < now);
+
+        if (model.WantsFuture)
+            q = q.Where(g => g.GameStart > now);
+
+        if (model.WantsPast)
+            q = q.Where(g => g.GameEnd < now);
+
+        if (model.WantsFuture)
+            q = q.OrderBy(g => g.GameStart).ThenBy(g => g.Name);
+        else
+            q = q.OrderByDescending(g => g.GameStart).ThenBy(g => g.Name);
+
+        q = q.Skip(model.Skip);
+
+        if (model.Take > 0)
+            q = q.Take(model.Take);
+
+        return q;
+    }
+
+    public async Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false)
+    {
+        var games = await BuildQuery(model, sudo)
+            .ToArrayAsync();
+
+        // Use Map instead of 'Mapper.ProjectTo<Game>' to support YAML parsing in automapper
+        return Mapper.Map<IEnumerable<Game>>(games);
+    }
+
+    public async Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo)
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+
+        var q = Store.List(model.Term);
+
+        if (!sudo)
+            q = q.Where(g => g.IsPublished);
+
+        if (model.WantsPresent)
+            q = q.Where(g => g.GameEnd > now && g.GameStart < now);
+        if (model.WantsFuture)
+            q = q.Where(g => g.GameStart > now);
+        if (model.WantsPast)
+            q = q.Where(g => g.GameEnd < now);
+
+        var games = await q.ToArrayAsync();
+
+        var b = games
+            .GroupBy(g => new
             {
-                if (Defaults.FeedbackTemplate.NotEmpty())
-                    model.FeedbackConfig = Defaults.FeedbackTemplate;
-                if (Defaults.CertificateTemplate.NotEmpty())
-                    model.CertificateTemplate = Defaults.CertificateTemplate;
+                g.GameStart.Year,
+                g.GameStart.Month,
+            })
+            .Select(g => new GameGroup
+            {
+                Year = g.Key.Year,
+                Month = g.Key.Month,
+                Games = g
+                    .OrderBy(c => c.GameStart)
+                    .Select(c => Mapper.Map<Game>(c))
+                    .ToArray()
+            });
+
+        if (model.WantsPast)
+            b = b.OrderByDescending(g => g.Year).ThenByDescending(g => g.Month);
+        else
+            b = b.OrderBy(g => g.Year).ThenBy(g => g.Month);
+
+        return b.ToArray();
+    }
+
+    public async Task<ChallengeSpec[]> RetrieveChallenges(string id)
+    {
+        var entity = await Store.Load(id);
+
+        return Mapper.Map<ChallengeSpec[]>(
+            entity.Specs
+        );
+    }
+
+    public async Task<SessionForecast[]> SessionForecast(string id)
+    {
+        Data.Game entity = await Store.Retrieve(id);
+
+        var ts = DateTimeOffset.UtcNow;
+        var step = ts;
+
+        var expirations = await Store.DbContext.Players
+            .Where(p => p.GameId == id && p.Role == PlayerRole.Manager && p.SessionEnd.CompareTo(ts) > 0)
+            .Select(p => p.SessionEnd)
+            .ToArrayAsync();
+
+        // foreach half hour, get count of available seats
+        List<SessionForecast> result = new();
+
+        for (int i = 0; i < 480; i += 30)
+        {
+            step = ts.AddMinutes(i);
+            int reserved = expirations.Count(d => step.CompareTo(d) < 0);
+            result.Add(new SessionForecast
+            {
+                Time = step,
+                Reserved = reserved,
+                Available = entity.SessionLimit - reserved
+            });
+        }
+
+        return result.ToArray();
+    }
+
+    public async Task<string> Export(GameSpecExport model)
+    {
+        var yaml = new SerializerBuilder()
+            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .Build();
+
+        var entity = await Store.Retrieve(model.Id, q => q.Include(g => g.Specs));
+
+        if (entity is Data.Game)
+            return yaml.Serialize(entity);
+
+        entity = new Data.Game
+        {
+            Id = Guid.NewGuid().ToString("n")
+        };
+
+        for (int i = 0; i < model.GenerateSpecCount; i++)
+            entity.Specs.Add(new Data.ChallengeSpec
+            {
+                Id = Guid.NewGuid().ToString("n"),
+                GameId = entity.Id
+            });
+
+        return model.Format == ExportFormat.Yaml
+            ? yaml.Serialize(entity)
+            : JsonSerializer.Serialize(entity, JsonOptions)
+        ;
+
+    }
+
+    public async Task<Game> Import(GameSpecImport model)
+    {
+        var yaml = new DeserializerBuilder()
+            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .IgnoreUnmatchedProperties()
+            .Build();
+
+        var entity = yaml.Deserialize<Data.Game>(model.Data);
+
+        await Store.Create(entity);
+
+        return Mapper.Map<Game>(entity);
+    }
+
+    public async Task UpdateImage(string id, string type, string filename)
+    {
+        var entity = await Store.Retrieve(id);
+
+        switch (type)
+        {
+            case AppConstants.ImageMapType:
+                entity.Background = filename;
+                break;
+
+            case AppConstants.ImageCardType:
+                entity.Logo = filename;
+                break;
+        }
+
+        await Store.Update(entity);
+    }
+
+    public async Task ReRank(string id)
+    {
+        var players = await Store.DbContext.Players
+            .Where(p => p.GameId == id && p.Mode == PlayerMode.Competition)
+            .OrderByDescending(p => p.Score)
+            .ThenBy(p => p.Time)
+            .ThenByDescending(p => p.CorrectCount)
+            .ThenByDescending(p => p.PartialCount)
+            .ToArrayAsync()
+        ;
+
+        int rank = 0;
+        string last = "";
+        foreach (var player in players)
+        {
+            if (player.TeamId != last)
+            {
+                rank += 1;
+                last = player.TeamId;
             }
 
-            var entity = Mapper.Map<Data.Game>(model);
-
-            await Store.Create(entity);
-
-            return Mapper.Map<Game>(entity);
+            player.Rank = rank;
         }
 
-        public async Task<Game> Retrieve(string id, bool accessHidden = true)
+        await Store.DbContext.SaveChangesAsync();
+    }
+
+    public async Task<bool> UserIsTeamPlayer(string uid, string gid, string tid)
+    {
+        bool authd = await Store.DbContext.Users.AnyAsync(u =>
+            u.Id == uid &&
+            u.Enrollments.Any(e => e.TeamId == tid)
+        );
+
+        var players = Store.DbContext.Players.Where(p => p.UserId == uid);
+        foreach (var e in players)
         {
-            var game = await Store.Retrieve(id);
-            if (!accessHidden && !game.IsPublished)
-                throw new ActionForbidden();
-            return Mapper.Map<Game>(game);
+            Console.WriteLine("game id: " + e.GameId + " | gid: " + gid);
         }
 
-        public async Task Update(ChangedGame account)
+        return authd;
+    }
+
+    public async Task<SyncStartState> GetSyncStartState(string gameId)
+    {
+        var game = await Store.Retrieve(gameId);
+
+        // a game and its challenges are "sync start ready" if either of the following are true:
+        // - the game is NOT a sync-start game
+        // - the game is sync-start game, and all registered players have set their IsReady flag to true.
+        if (!game.RequireSynchronizedStart)
         {
-            var entity = await Store.Retrieve(account.Id);
-
-            Mapper.Map(account, entity);
-
-            await Store.Update(entity);
-        }
-
-        public async Task Delete(string id)
-        {
-            await Store.Delete(id);
-        }
-
-        public async Task<Game[]> List(GameSearchFilter model, bool sudo)
-        {
-            DateTimeOffset now = DateTimeOffset.UtcNow;
-
-            var q = Store.List(model.Term);
-
-            if (!sudo)
-                q = q.Where(g => g.IsPublished);
-
-            if (model.WantsPresent)
-                q = q.Where(g => g.GameEnd > now && g.GameStart < now);
-
-            if (model.WantsFuture)
-                q = q.Where(g => g.GameStart > now);
-
-            if (model.WantsPast)
-                q = q.Where(g => g.GameEnd < now);
-
-            if (model.WantsFuture)
-                q = q.OrderBy(g => g.GameStart).ThenBy(g => g.Name);
-            else
-                q = q.OrderByDescending(g => g.GameStart).ThenBy(g => g.Name);
-
-            q = q.Skip(model.Skip);
-
-            if (model.Take > 0)
-                q = q.Take(model.Take);
-
-            // Use Map instead of 'Mapper.ProjectTo<Game>' to support YAML parsing in automapper
-            return Mapper.Map<Game[]>(await q.ToArrayAsync());
-        }
-
-        public async Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo)
-        {
-            DateTimeOffset now = DateTimeOffset.UtcNow;
-
-            var q = Store.List(model.Term);
-
-            if (!sudo)
-                q = q.Where(g => g.IsPublished);
-
-            if (model.WantsPresent)
-                q = q.Where(g => g.GameEnd > now && g.GameStart < now);
-            if (model.WantsFuture)
-                q = q.Where(g => g.GameStart > now);
-            if (model.WantsPast)
-                q = q.Where(g => g.GameEnd < now);
-
-            var games = await q.ToArrayAsync();
-
-            var b = games
-                .GroupBy(g => new
-                {
-                    g.GameStart.Year,
-                    g.GameStart.Month,
-                })
-                .Select(g => new GameGroup
-                {
-                    Year = g.Key.Year,
-                    Month = g.Key.Month,
-                    Games = g
-                        .OrderBy(c => c.GameStart)
-                        .Select(c => Mapper.Map<Game>(c))
-                        .ToArray()
-                });
-
-            if (model.WantsPast)
-                b = b.OrderByDescending(g => g.Year).ThenByDescending(g => g.Month);
-            else
-                b = b.OrderBy(g => g.Year).ThenBy(g => g.Month);
-
-            return b.ToArray();
-        }
-
-        public async Task<ChallengeSpec[]> RetrieveChallenges(string id)
-        {
-            var entity = await Store.Load(id);
-
-            return Mapper.Map<ChallengeSpec[]>(
-                entity.Specs
-            );
-        }
-
-        public async Task<SessionForecast[]> SessionForecast(string id)
-        {
-            Data.Game entity = await Store.Retrieve(id);
-
-            var ts = DateTimeOffset.UtcNow;
-            var step = ts;
-
-            var expirations = await Store.DbContext.Players
-                .Where(p => p.GameId == id && p.Role == PlayerRole.Manager && p.SessionEnd.CompareTo(ts) > 0)
-                .Select(p => p.SessionEnd)
-                .ToArrayAsync();
-
-            // foreach half hour, get count of available seats
-            List<SessionForecast> result = new();
-
-            for (int i = 0; i < 480; i += 30)
+            return new SyncStartState
             {
-                step = ts.AddMinutes(i);
-                int reserved = expirations.Count(d => step.CompareTo(d) < 0);
-                result.Add(new SessionForecast
-                {
-                    Time = step,
-                    Reserved = reserved,
-                    Available = entity.SessionLimit - reserved
-                });
-            }
-
-            return result.ToArray();
-        }
-
-        public async Task<string> Export(GameSpecExport model)
-        {
-            var yaml = new SerializerBuilder()
-                .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                .Build();
-
-            var entity = await Store.Retrieve(model.Id, q => q.Include(g => g.Specs));
-
-            if (entity is Data.Game)
-                return yaml.Serialize(entity);
-
-            entity = new Data.Game
-            {
-                Id = Guid.NewGuid().ToString("n")
+                Game = new SimpleEntity { Id = game.Id, Name = game.Name },
+                Teams = new SyncStartTeam[] { },
+                IsReady = true
             };
+        }
 
-            for (int i = 0; i < model.GenerateSpecCount; i++)
-                entity.Specs.Add(new Data.ChallengeSpec
+        var teams = new List<SyncStartTeam>();
+        var teamPlayers = await _playerStore
+            .List()
+            .Where(p => p.GameId == gameId)
+            .GroupBy(p => p.TeamId)
+            .ToDictionaryAsync(tp => tp.Key);
+        var allTeamsReady = teamPlayers.All(team => team.Value.All(p => p.IsReady));
+
+        return new SyncStartState
+        {
+            Game = new SimpleEntity { Id = game.Id, Name = game.Name },
+            Teams = teamPlayers.Keys.Select(teamId => new SyncStartTeam
+            {
+                Id = teamId,
+                Name = teamPlayers[teamId].Single(p => p.IsManager).ApprovedName,
+                Players = teamPlayers[teamId].Select(p => new SyncStartPlayer
                 {
-                    Id = Guid.NewGuid().ToString("n"),
-                    GameId = entity.Id
-                });
+                    Id = p.Id,
+                    Name = p.ApprovedName,
+                    IsReady = p.IsReady
+                }),
+                IsReady = teamPlayers[teamId].All(p => p.IsReady)
+            }),
+            IsReady = allTeamsReady
+        };
+    }
 
-            return model.Format == ExportFormat.Yaml
-                ? yaml.Serialize(entity)
-                : JsonSerializer.Serialize(entity, JsonOptions)
-            ;
-
-        }
-
-        public async Task<Game> Import(GameSpecImport model)
-        {
-            var yaml = new DeserializerBuilder()
-                .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                .IgnoreUnmatchedProperties()
-                .Build();
-
-            var entity = yaml.Deserialize<Data.Game>(model.Data);
-
-            await Store.Create(entity);
-
-            return Mapper.Map<Game>(entity);
-        }
-
-        public async Task UpdateImage(string id, string type, string filename)
-        {
-            var entity = await Store.Retrieve(id);
-
-            switch (type)
-            {
-                case AppConstants.ImageMapType:
-                    entity.Background = filename;
-                    break;
-
-                case AppConstants.ImageCardType:
-                    entity.Logo = filename;
-                    break;
-            }
-
-            await Store.Update(entity);
-        }
-
-        public async Task ReRank(string id)
-        {
-            var players = await Store.DbContext.Players
-                .Where(p => p.GameId == id && p.Mode == PlayerMode.Competition)
-                .OrderByDescending(p => p.Score)
-                .ThenBy(p => p.Time)
-                .ThenByDescending(p => p.CorrectCount)
-                .ThenByDescending(p => p.PartialCount)
-                .ToArrayAsync()
-            ;
-
-            int rank = 0;
-            string last = "";
-            foreach (var player in players)
-            {
-                if (player.TeamId != last)
-                {
-                    rank += 1;
-                    last = player.TeamId;
-                }
-
-                player.Rank = rank;
-            }
-
-            await Store.DbContext.SaveChangesAsync();
-        }
-
-        public async Task<bool> UserIsTeamPlayer(string uid, string gid, string tid)
-        {
-            bool authd = await Store.DbContext.Users.AnyAsync(u =>
-                u.Id == uid &&
-                u.Enrollments.Any(e => e.TeamId == tid)
-            );
-
-            var players = Store.DbContext.Players.Where(p => p.UserId == uid);
-            foreach (var e in players)
-            {
-                Console.WriteLine("game id: " + e.GameId + " | gid: " + gid);
-            }
-
-            return authd;
-        }
+    public async Task HandleSyncStartStateChanged(string gameId, User actor)
+    {
+        var state = await GetSyncStartState(gameId);
+        await _gameHub.SendSyncStartStateChanged(state, actor);
     }
 }

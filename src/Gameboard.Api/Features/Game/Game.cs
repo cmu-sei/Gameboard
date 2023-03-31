@@ -65,10 +65,7 @@ namespace Gameboard.Api
         public bool IsClone { get; set; } = false;
     }
 
-    public class ChangedGame : Game
-    {
-
-    }
+    public class ChangedGame : Game { }
 
     public class GameSearchFilter : SearchFilter
     {
@@ -98,7 +95,6 @@ namespace Gameboard.Api
         public bool IsPracticeMode { get; set; }
         public ICollection<BoardSpec> Specs { get; set; } = new List<BoardSpec>();
         public ICollection<ChallengeGate> Prerequisites { get; set; } = new List<ChallengeGate>();
-
     }
 
     public class UploadedFile

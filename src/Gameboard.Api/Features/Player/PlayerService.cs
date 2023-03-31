@@ -21,6 +21,7 @@ public class PlayerService
     CoreOptions CoreOptions { get; }
     ChallengeService ChallengeService { get; set; }
     IPlayerStore Store { get; }
+    IGameService GameService { get; }
     IGameStore GameStore { get; }
     IGameHubBus GameHubBus { get; set; }
     IGuidService GuidService { get; }
@@ -41,6 +42,7 @@ public class PlayerService
         IPlayerStore store,
         IUserStore userStore,
         IGameHubBus gameHubBus,
+        IGameService gameService,
         IGameStore gameStore,
         IInternalHubBus hubBus,
         ITeamService teamService,
@@ -51,6 +53,7 @@ public class PlayerService
     {
         CoreOptions = coreOptions;
         ChallengeService = challengeService;
+        GameService = gameService;
         GuidService = guidService;
         MediatorBus = mediator;
         GameHubBus = gameHubBus;
@@ -82,7 +85,7 @@ public class PlayerService
 
         await Store.Create(entity);
         await HubBus.SendPlayerEnrolled(Mapper.Map<Api.Player>(entity), actor);
-        await MediatorBus.Send(new UpdatePlayerReadyStateCommand(entity.Id, false, actor));
+        await GameService.HandleSyncStartStateChanged(entity.GameId, actor);
 
         return Mapper.Map<Player>(entity);
     }
@@ -146,6 +149,15 @@ public class PlayerService
         return Mapper.Map<Player>(entity);
     }
 
+    public async Task UpdatePlayerReadyState(string playerId, bool isReady)
+    {
+        var player = await Store.Retrieve(playerId);
+        await Store
+            .List()
+            .Where(p => p.Id == playerId)
+            .ExecuteUpdateAsync(p => p.SetProperty(p => p.IsReady, isReady));
+    }
+
     public async Task<Player> ResetSession(SessionResetRequest request)
     {
         var player = await Store
@@ -167,8 +179,7 @@ public class PlayerService
         // update player ready state if game needs it
         if (player.Game.RequireSynchronizedStart)
         {
-            var syncStartState = await MediatorBus.Send(new IsSyncStartReadyQuery(player.GameId));
-            await GameHubBus.SendPlayerReadyStateChanged(syncStartState, request.Actor);
+            await GameService.HandleSyncStartStateChanged(player.GameId, request.Actor);
         }
 
         if (!player.IsManager && !player.Game.RequireSponsoredTeam)
@@ -184,9 +195,9 @@ public class PlayerService
         var player = team.First();
         var game = await Store.DbContext.Games.FindAsync(player.GameId);
 
-        if (game.RequireSynchronizedStart)
+        if (!sudo && game.RequireSynchronizedStart)
         {
-            var syncStartState = await MediatorBus.Send(new IsSyncStartReadyQuery(game.Id));
+            var syncStartState = await GameService.GetSyncStartState(game.Id);
             if (!syncStartState.IsReady)
                 throw new SyncStartNotReady(player.Id, syncStartState);
         }
@@ -521,8 +532,7 @@ public class PlayerService
         // update sync start if needed
         if (player.Game.RequireSynchronizedStart)
         {
-            var syncStart = await MediatorBus.Send(new IsSyncStartReadyQuery(player.GameId));
-            await GameHubBus.SendPlayerReadyStateChanged(syncStart, request.Actor);
+            await GameService.HandleSyncStartStateChanged(player.GameId, request.Actor);
         }
 
         // manage sponsor info about the team
@@ -531,6 +541,7 @@ public class PlayerService
         // notify listeners on SignalR (like the team)
         var playerModel = Mapper.Map<Player>(player);
         await HubBus.SendPlayerLeft(playerModel, request.Actor);
+        await GameService.HandleSyncStartStateChanged(player.GameId, request.Actor);
     }
 
     public async Task<Team> LoadTeam(string id)

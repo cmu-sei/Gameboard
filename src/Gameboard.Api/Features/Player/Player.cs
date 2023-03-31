@@ -32,6 +32,7 @@ namespace Gameboard.Api
         public int PartialCount { get; set; }
         public bool Advanced { get; set; }
         public bool IsManager { get; set; }
+        public bool IsReady { get; set; }
         public PlayerMode Mode { get; set; }
         public string[] SponsorList => (TeamSponsors ?? Sponsor ?? "").Split("|");
     }
