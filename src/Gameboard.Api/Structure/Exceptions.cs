@@ -49,7 +49,7 @@ namespace Gameboard.Api
     internal class RegistrationIsClosed : GameboardException
     {
         internal RegistrationIsClosed(string gameId, string addlMessage = null) :
-            base($"Registration for game {gameId} is closed.${(addlMessage.HasValue() ? $" [{addlMessage}]" : string.Empty)}")
+            base($"Registration for game {gameId} is closed.{(addlMessage.HasValue() ? $" [{addlMessage}]" : string.Empty)}")
         { }
     }
 
