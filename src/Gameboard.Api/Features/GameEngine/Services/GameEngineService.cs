@@ -91,8 +91,8 @@ public class GameEngineService : _Service, IGameEngineService
         }
     }
 
-    public Task<GameEngineGameState> GetGameState(string teamId)
-        => _store.GetGameStateByTeam(teamId);
+    public Task<IEnumerable<GameEngineGameState>> GetGameState(string teamId)
+        => _store.GetGameStatesByTeam(teamId);
 
     public async Task<GameEngineGameState> GradeChallenge(Data.Challenge entity, GameEngineSectionSubmission model)
     {
