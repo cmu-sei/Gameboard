@@ -105,6 +105,7 @@ namespace Gameboard.Api.Controllers
         public async Task UpdatePlayerReady([FromRoute] string playerId, [FromBody] PlayerReadyUpdate readyUpdate)
         {
             await Mediator.Send(new UpdatePlayerReadyStateCommand(playerId, readyUpdate.IsReady, Actor));
+            System.Console.WriteLine($"Player ready state set to {readyUpdate.IsReady}");
         }
 
         [HttpDelete("api/player/{playerId}/session")]

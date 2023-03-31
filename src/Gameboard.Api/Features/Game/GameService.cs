@@ -335,8 +335,8 @@ public class GameService : _Service, IGameService
         var game = await Store.Retrieve(gameId);
 
         // a game and its challenges are "sync start ready" if either of the following are true:
-        // - the game is NOT a sync-start game
-        // - the game is sync-start game, and all registered players have set their IsReady flag to true.
+        // - the game IS NOT a sync-start game
+        // - the game IS sync-start game, and all registered players have set their IsReady flag to true.
         if (!game.RequireSynchronizedStart)
         {
             return new SyncStartState
@@ -347,12 +347,37 @@ public class GameService : _Service, IGameService
             };
         }
 
-        var teams = new List<SyncStartTeam>();
-        var teamPlayers = await _playerStore
+        // TODO: for some reason, clever uses of groupby and todictionaryasync aren't working like i expect them to.
+        // they have stale properties. For example, compare the IsReady property of playersDebug here to the result of allTeamsReady
+        // var playersDebug = await _playerStore
+        //     .List()
+        //     .Where(p => p.GameId == gameId)
+        //     .Select(p => new
+        //     {
+        //         Id = p.Id,
+        //         IsReady = p.IsReady
+        //     })
+        //     .ToListAsync();
+
+        // var teams = new List<SyncStartTeam>();
+        // var teamPlayers = await _playerStore
+        //     .List()
+        //     .Where(p => p.GameId == gameId)
+        //     .GroupBy(p => p.TeamId)
+        //     .ToDictionaryAsync(tp => tp.Key, tp => tp.ToList());
+        // var allTeamsReady = teamPlayers.All(team => team.Value.All(p => p.IsReady));
+
+        // out of time, so for now, manually group on returned players
+        var players = await _playerStore
             .List()
+            .AsNoTracking()
             .Where(p => p.GameId == gameId)
+            .ToListAsync();
+
+        var teams = new List<SyncStartTeam>();
+        var teamPlayers = players
             .GroupBy(p => p.TeamId)
-            .ToDictionaryAsync(tp => tp.Key);
+            .ToDictionary(g => g.Key);
         var allTeamsReady = teamPlayers.All(team => team.Value.All(p => p.IsReady));
 
         return new SyncStartState
