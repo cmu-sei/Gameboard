@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Structure.MediatR.Authorizers;
@@ -6,9 +7,9 @@ using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Features.GameEngine.Requests;
 
-public record GetGameStateQuery(string TeamId) : IRequest<GameEngineGameState>;
+public record GetGameStateQuery(string TeamId) : IRequest<IEnumerable<GameEngineGameState>>;
 
-internal class GetGameStateHandler : IRequestHandler<GetGameStateQuery, GameEngineGameState>
+internal class GetGameStateHandler : IRequestHandler<GetGameStateQuery, IEnumerable<GameEngineGameState>>
 {
     private readonly User _actor;
     private readonly IGameEngineStore _gameEngineStore;
@@ -31,11 +32,13 @@ internal class GetGameStateHandler : IRequestHandler<GetGameStateQuery, GameEngi
         _roleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Designer, UserRole.Designer };
     }
 
-    public async Task<GameEngineGameState> Handle(GetGameStateQuery request, CancellationToken cancellationToken)
+    public async Task<IEnumerable<GameEngineGameState>> Handle(GetGameStateQuery request, CancellationToken cancellationToken)
     {
         _roleAuthorizer.Authorize();
         await _validator.Validate(request);
 
-        return await _gameEngineStore.GetGameStateByTeam(request.TeamId);
+        await _validator.Validate(request);
+
+        return await _gameEngineStore.GetGameStatesByTeam(request.TeamId);
     }
 }
