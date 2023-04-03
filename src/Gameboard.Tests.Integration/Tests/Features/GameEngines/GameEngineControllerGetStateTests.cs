@@ -14,11 +14,17 @@ public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestCont
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task GameEngineController_WithTopoStateAndEngine_ReturnsCompleteState(IFixture fixture)
+    public async Task GameEngineController_WithTwoTopoStatesAndEngine_ReturnsCompleteStates
+    (
+        string playerId,
+        string teamId,
+        string challenge1Id,
+        TopoMojo.Api.Client.GameState state1,
+        string challenge2Id,
+        TopoMojo.Api.Client.GameState state2
+    )
     {
         // given 
-        var teamId = fixture.Create<string>();
-        var playerId = fixture.Create<string>();
         await _testContext.WithDataState(state =>
         {
             state.AddPlayer(p =>
@@ -29,12 +35,21 @@ public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestCont
 
             state.AddChallenge(c =>
             {
-                c.Id = fixture.Create<string>();
+                c.Id = challenge1Id;
                 c.GameEngineType = Api.GameEngineType.TopoMojo;
                 c.PlayerId = playerId;
                 // NOTE: this isn't random - it's handcrafted so we can verify the data "tree"
                 // See Fixtures/SpecimenBuilders/GameStateBuilder.cs
-                c.State = JsonSerializer.Serialize(fixture.Create<TopoMojo.Api.Client.GameState>());
+                c.State = JsonSerializer.Serialize(state1);
+                c.TeamId = teamId;
+            });
+
+            state.AddChallenge(c =>
+            {
+                c.Id = challenge2Id;
+                c.GameEngineType = Api.GameEngineType.TopoMojo;
+                c.PlayerId = playerId;
+                c.State = JsonSerializer.Serialize(state2);
                 c.TeamId = teamId;
             });
         });
@@ -42,12 +57,13 @@ public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestCont
         var httpClient = _testContext.CreateHttpClientWithAuthRole(Api.UserRole.Admin);
 
         // when
-        var result = await httpClient
+        var results = await httpClient
             .GetAsync($"/api/gameEngine/state?teamId={teamId}")
-            .WithContentDeserializedAs<GameEngineGameState>();
+            .WithContentDeserializedAs<IEnumerable<GameEngineGameState>>();
 
         // then
-        result?.Audience.ShouldBe("gameboard");
-        result?.Vms.ToArray()[1].IsVisible.ShouldBeFalse();
+        results?.Count().ShouldBe(2);
+        results?.Select(r => r.Audience).All(a => a == "gameboard").ShouldBeTrue();
+        results?.First().Vms.ToArray()[1].IsVisible.ShouldBeFalse();
     }
 }

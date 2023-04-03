@@ -181,12 +181,13 @@ namespace Gameboard.Api.Validators
                         .Include(p => p.Game)
                 );
 
-            if (!request.AsAdmin && !player.Game.AllowReset && player.SessionBegin.Year > 1)
+            var actAsElevated = request.Actor.IsTester || request.Actor.IsAdmin;
+            if (!actAsElevated && !player.Game.AllowReset && player.SessionBegin.Year > 1)
                 throw new GameDoesntAllowSessionReset(request.PlayerId, player.GameId, player.SessionBegin);
 
-            if (!request.AsAdmin && !player.Game.RegistrationActive)
+            // TODO: rethink AsAdmin, see https://github.com/cmu-sei/Gameboard/issues/158
+            if (!actAsElevated && !player.Game.RegistrationActive)
                 throw new RegistrationIsClosed(player.GameId, "Registration is closed, and players can't reset their sessions after registration has closed.");
-
         }
 
         public async Task _validate(PlayerUnenrollRequest request)

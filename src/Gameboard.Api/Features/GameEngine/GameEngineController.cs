@@ -27,7 +27,7 @@ public class GameEngineController : ControllerBase
     }
 
     [HttpGet("state")]
-    public async Task<GameEngineGameState> GetGameState(string teamId)
+    public async Task<IEnumerable<GameEngineGameState>> GetGameState(string teamId)
         => await _mediator.Send(new GetGameStateQuery(teamId));
 
     [HttpGet("submissions")]
