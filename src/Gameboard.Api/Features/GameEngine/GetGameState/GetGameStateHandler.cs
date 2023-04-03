@@ -36,9 +36,6 @@ internal class GetGameStateHandler : IRequestHandler<GetGameStateQuery, IEnumera
     {
         _roleAuthorizer.Authorize();
         await _validator.Validate(request);
-
-        await _validator.Validate(request);
-
         return await _gameEngineStore.GetGameStatesByTeam(request.TeamId);
     }
 }
