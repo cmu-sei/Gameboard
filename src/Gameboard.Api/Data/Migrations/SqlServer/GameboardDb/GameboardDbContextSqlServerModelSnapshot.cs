@@ -3,6 +3,7 @@ using System;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -157,6 +158,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<int>("GameEngineType")
+                        .HasColumnType("int");
+
                     b.Property<string>("GameId")
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
@@ -300,6 +304,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<int>("GameEngineType")
+                        .HasColumnType("int");
+
                     b.Property<string>("GameId")
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
@@ -314,6 +321,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasColumnType("real");
 
                     b.Property<string>("Tag")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Text")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<float>("X")
@@ -461,6 +471,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<int>("PlayerMode")
+                        .HasColumnType("int");
+
                     b.Property<DateTimeOffset>("RegistrationClose")
                         .HasColumnType("datetimeoffset");
 
@@ -506,6 +519,39 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("Games");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.ManualChallengeBonus", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("ChallengeId")
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("EnteredByUserId")
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTimeOffset>("EnteredOn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<double>("PointValue")
+                        .HasColumnType("float");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChallengeId");
+
+                    b.HasIndex("EnteredByUserId");
+
+                    b.ToTable("ManualChallengeBonuses");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
                 {
                     b.Property<string>("Id")
@@ -529,6 +575,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<string>("InviteCode")
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .HasMaxLength(64)
@@ -739,12 +788,6 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
-                    b.Property<string>("ApiKeyOwnerId")
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)")
-                        .HasDefaultValueSql("REPLACE(gen_random_uuid()::text, '-', '')");
-
                     b.Property<string>("ApprovedName")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
@@ -872,6 +915,23 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.ManualChallengeBonus", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Challenge", "Challenge")
+                        .WithMany("AwardedManualBonuses")
+                        .HasForeignKey("ChallengeId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Gameboard.Api.Data.User", "EnteredByUser")
+                        .WithMany("EnteredManualChallengeBonuses")
+                        .HasForeignKey("EnteredByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Challenge");
+
+                    b.Navigation("EnteredByUser");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
@@ -947,6 +1007,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
                 {
+                    b.Navigation("AwardedManualBonuses");
+
                     b.Navigation("Events");
 
                     b.Navigation("Feedback");
@@ -991,6 +1053,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("ApiKeys");
 
                     b.Navigation("Enrollments");
+
+                    b.Navigation("EnteredManualChallengeBonuses");
 
                     b.Navigation("Feedback");
                 });

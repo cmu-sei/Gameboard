@@ -322,6 +322,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<string>("Tag")
                         .HasColumnType("text");
 
+                    b.Property<string>("Text")
+                        .HasColumnType("text");
+
                     b.Property<float>("X")
                         .HasColumnType("real");
 
@@ -513,6 +516,39 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.HasKey("Id");
 
                     b.ToTable("Games");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.ManualChallengeBonus", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ChallengeId")
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("EnteredByUserId")
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTimeOffset>("EnteredOn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<double>("PointValue")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChallengeId");
+
+                    b.HasIndex("EnteredByUserId");
+
+                    b.ToTable("ManualChallengeBonuses");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
@@ -753,12 +789,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
-                    b.Property<string>("ApiKeyOwnerId")
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasDefaultValueSql("REPLACE(gen_random_uuid()::text, '-', '')");
-
                     b.Property<string>("ApprovedName")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -886,6 +916,23 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.ManualChallengeBonus", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Challenge", "Challenge")
+                        .WithMany("AwardedManualBonuses")
+                        .HasForeignKey("ChallengeId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Gameboard.Api.Data.User", "EnteredByUser")
+                        .WithMany("EnteredManualChallengeBonuses")
+                        .HasForeignKey("EnteredByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Challenge");
+
+                    b.Navigation("EnteredByUser");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
@@ -961,6 +1008,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
                 {
+                    b.Navigation("AwardedManualBonuses");
+
                     b.Navigation("Events");
 
                     b.Navigation("Feedback");
@@ -1005,6 +1054,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("ApiKeys");
 
                     b.Navigation("Enrollments");
+
+                    b.Navigation("EnteredManualChallengeBonuses");
 
                     b.Navigation("Feedback");
                 });

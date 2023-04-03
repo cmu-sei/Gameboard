@@ -17,13 +17,10 @@ namespace Gameboard.Api.Data
         public string Sponsor { get; set; }
         public UserRole Role { get; set; }
 
-        // this is really a public key, but no sense in sending it down
-        [JsonIgnore]
-        public string ApiKeyOwnerId { get; set; }
-
         // relational properties
         public ICollection<ApiKey> ApiKeys { get; set; } = new List<ApiKey>();
         public ICollection<Player> Enrollments { get; set; } = new List<Player>();
+        public ICollection<ManualChallengeBonus> EnteredManualChallengeBonuses { get; set; } = new List<ManualChallengeBonus>();
         public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
     }
 }

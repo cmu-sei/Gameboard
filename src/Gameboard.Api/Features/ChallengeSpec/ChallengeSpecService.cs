@@ -1,7 +1,6 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -76,8 +75,7 @@ namespace Gameboard.Api.Services
         public async Task Sync(string id)
         {
             var externals = (await List(new SearchFilter()))
-                .ToDictionary(o => o.ExternalId)
-            ;
+                .ToDictionary(o => o.ExternalId);
 
             foreach (var spec in Store.DbSet.Where(s => s.GameId == id))
             {
@@ -86,6 +84,7 @@ namespace Gameboard.Api.Services
 
                 spec.Name = externals[spec.ExternalId].Name;
                 spec.Description = externals[spec.ExternalId].Description;
+                spec.Text = externals[spec.ExternalId].Text;
             }
 
             await Store.DbContext.SaveChangesAsync();
@@ -96,21 +95,21 @@ namespace Gameboard.Api.Services
             var q = Store.List()
                 .Include(s => s.Game)
                 .Where(s => s.Game.PlayerMode == PlayerMode.Practice)
-                .AsNoTracking()
-            ;
+                .AsNoTracking();
 
             if (model.HasTerm)
             {
                 string term = model.Term.ToLower();
                 q = q.Where(s =>
+                    s.Id.Equals(term) ||
                     s.Name.ToLower().Contains(term) ||
                     s.Description.ToLower().Contains(term) ||
-                    s.Game.Name.ToLower().Contains(term)
+                    s.Game.Name.ToLower().Contains(term) ||
+                    s.Text.ToLower().Contains(term)
                 );
             }
 
             q = q.OrderBy(s => s.Name);
-
             q = q.Skip(model.Skip);
 
             if (model.Take > 0)

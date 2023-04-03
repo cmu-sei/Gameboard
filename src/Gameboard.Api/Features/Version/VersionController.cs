@@ -11,7 +11,6 @@ public class VersionController : Controller
     /// </summary>
     /// <returns>The commit SHA of the current application version.</returns>
     [HttpGet("/api/version")]
-    [AllowAnonymous]
     public IActionResult Version()
     {
         return Ok(new

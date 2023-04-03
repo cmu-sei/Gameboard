@@ -43,10 +43,9 @@ public class GameEngineService : _Service, IGameEngineService
         Crucible = crucible;
     }
 
-    public async Task<GameEngineGameState> RegisterGamespace(Data.ChallengeSpec spec, NewChallenge model, Data.Game game,
-    Data.Player player, Data.Challenge entity, int playerCount, string graderKey, string graderUrl)
+    public async Task<GameEngineGameState> RegisterGamespace(GameEngineChallengeRegistration registration)
     {
-        switch (spec.GameEngineType)
+        switch (registration.ChallengeSpec.GameEngineType)
         {
             case GameEngineType.TopoMojo:
                 var topoState = await Mojo.RegisterGamespaceAsync(new GamespaceRegistration
@@ -55,24 +54,24 @@ public class GameEngineService : _Service, IGameEngineService
                     {
                             new RegistrationPlayer
                             {
-                                SubjectId = player.TeamId,
-                                SubjectName = player.Name
+                                SubjectId = registration.Player.TeamId,
+                                SubjectName = registration.Player.ApprovedName
                             }
                     },
-                    ResourceId = entity.ExternalId,
-                    Variant = model.Variant,
-                    Points = spec.Points,
-                    MaxAttempts = game.MaxAttempts,
+                    ResourceId = registration.ChallengeSpec.ExternalId,
+                    Variant = registration.Variant,
+                    Points = registration.ChallengeSpec.Points,
+                    MaxAttempts = registration.Game.MaxAttempts,
                     StartGamespace = true,
-                    ExpirationTime = entity.Player.SessionEnd,
-                    GraderKey = graderKey,
-                    GraderUrl = graderUrl,
-                    PlayerCount = playerCount
+                    ExpirationTime = registration.Player.SessionEnd,
+                    GraderKey = registration.GraderKey,
+                    GraderUrl = registration.GraderUrl,
+                    PlayerCount = registration.PlayerCount
                 });
 
                 return Mapper.Map<GameEngineGameState>(topoState);
             case GameEngineType.Crucible:
-                return await Crucible.RegisterGamespace(spec, game, player, entity);
+                return await Crucible.RegisterGamespace(registration.ChallengeSpec, registration.Game, registration.Player, registration.Challenge);
             default:
                 throw new NotImplementedException();
         }
@@ -92,8 +91,8 @@ public class GameEngineService : _Service, IGameEngineService
         }
     }
 
-    public Task<GameEngineGameState> GetGameState(string teamId)
-        => _store.GetGameStateByTeam(teamId);
+    public Task<IEnumerable<GameEngineGameState>> GetGameState(string teamId)
+        => _store.GetGameStatesByTeam(teamId);
 
     public async Task<GameEngineGameState> GradeChallenge(Data.Challenge entity, GameEngineSectionSubmission model)
     {
@@ -194,10 +193,21 @@ public class GameEngineService : _Service, IGameEngineService
         {
             if (Options.MojoEnabled)
             {
-                mojoTask = Mojo.ListWorkspacesAsync(
-                "", "", null, null,
-                model.Term, model.Skip, model.Take, model.Sort,
-                model.Filter);
+                mojoTask = Mojo.ListWorkspacesAsync
+                (
+                    "",             // audience
+                    "",             // scope
+                    1,              // doc
+                    null,           // wants audience?
+                    null,           // wants managed?
+                    null,           // wants doc?
+                    null,           // wants partial doc?
+                    model.Term,
+                    model.Skip,
+                    model.Take,
+                    model.Sort,
+                    model.Filter
+                );
 
                 tasks.Add(mojoTask);
             }
@@ -287,17 +297,16 @@ public class GameEngineService : _Service, IGameEngineService
         }
     }
 
-    public async Task ExtendSession(Data.Challenge entity, DateTimeOffset sessionEnd)
+    public Task ExtendSession(Data.Challenge entity, DateTimeOffset sessionEnd)
     {
         switch (entity.GameEngineType)
         {
             case GameEngineType.TopoMojo:
-                await Mojo.UpdateGamespaceAsync(new ChangedGamespace
+                return Mojo.UpdateGamespaceAsync(new ChangedGamespace
                 {
                     Id = entity.Id,
                     ExpirationTime = sessionEnd
                 });
-                break;
 
             default:
                 throw new NotImplementedException();

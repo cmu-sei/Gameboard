@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
@@ -39,10 +38,8 @@ internal class GetSubmissionsRequestHandler : IRequestHandler<GetSubmissionsQuer
 
     public async Task<IEnumerable<GameEngineSectionSubmission>> Handle(GetSubmissionsQuery request, CancellationToken cancellationToken)
     {
-        if (!_roleAuthorizer.Authorize(_actor))
-            throw new ActionForbidden();
-
-        await _validator.ValidateRequest(request);
+        _roleAuthorizer.Authorize();
+        await _validator.Validate(request);
 
         var challenge = await _challengeStore.Retrieve(request.challengeId);
         return await _gameEngine.AuditChallenge(challenge);

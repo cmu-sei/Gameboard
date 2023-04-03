@@ -63,16 +63,16 @@ internal class TestGameEngineService : IGameEngineService
         return Task.FromResult(new GameEngineGameState());
     }
 
-    public Task<GameEngineGameState> RegisterGamespace(Api.Data.ChallengeSpec spec, NewChallenge model, Api.Data.Game game, Api.Data.Player player, Api.Data.Challenge entity, int playerCount, string graderKey, string graderUrl)
+    public Task<GameEngineGameState> RegisterGamespace(GameEngineChallengeRegistration registration)
     {
         return Task.FromResult(new GameEngineGameState
         {
             Id = _guids.GetGuid(),
-            Name = entity.Name,
-            ManagerId = player.Id,
-            ManagerName = player.ApprovedName,
+            Name = registration.Challenge.Name,
+            ManagerId = registration.Player.Id,
+            ManagerName = registration.Player.ApprovedName,
             IsActive = true,
-            Players = new GameEnginePlayer[] { _mapper.Map<GameEnginePlayer>(player) },
+            Players = new GameEnginePlayer[] { _mapper.Map<GameEnginePlayer>(registration.Player) },
             WhenCreated = DateTimeOffset.UtcNow,
             StartTime = DateTimeOffset.UtcNow,
             EndTime = DateTimeOffset.UtcNow.AddHours(8),
@@ -83,7 +83,7 @@ internal class TestGameEngineService : IGameEngineService
                 {
                     Id = _guids.GetGuid(),
                     Name = "VM1",
-                    IsolationId = spec.Id,
+                    IsolationId = registration.ChallengeSpec.Id,
                     IsRunning = true,
                     IsVisible = true
                 }

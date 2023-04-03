@@ -22,13 +22,6 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.NameStatus).HasMaxLength(40);
                 b.Property(u => u.Email).HasMaxLength(64);
                 b.Property(u => u.Sponsor).HasMaxLength(40);
-
-                // NOTE: Must be edited manually in the MSSQL migration to 
-                // compatible syntax
-                b.Property(u => u.ApiKeyOwnerId)
-                    .HasMaxLength(40)
-                    .HasDefaultValueSql("REPLACE(gen_random_uuid()::text, '-', '')")
-                    .ValueGeneratedOnAdd();
             });
 
             builder.Entity<ApiKey>(k =>
@@ -103,6 +96,38 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.GraderKey).HasMaxLength(64);
             });
 
+            // we're not sure yet if we're doing automatic challenge bonuses
+            // builder.Entity<ChallengeBonus>(b =>
+            // {
+            //     b.Property(b => b.Id).HasStandardGuidLength();
+            //     b.Property(b => b.Description).HasStandardNameLength();
+            //     b.HasOne(b => b.ChallengeSpec).WithMany(c => c.Bonuses).OnDelete(DeleteBehavior.Cascade);
+            // });
+
+            // builder.Entity<AwardedChallengeBonus>(b =>
+            // {
+            //     b.Property(a => a.Id).HasStandardGuidLength();
+            //     b.Property(a => a.InternalSummary).HasMaxLength(200);
+            //     b.Property(a => a.EnteredOn)
+            //         .HasDefaultValueSql("NOW()")
+            //         .ValueGeneratedOnAdd();
+
+            //     b.HasOne(a => a.ChallengeBonus).WithMany(c => c.AwardedTo).OnDelete(DeleteBehavior.Restrict);
+            //     b.HasOne(a => a.Challenge).WithMany(c => c.AwardedBonuses).OnDelete(DeleteBehavior.Cascade);
+            // });
+
+            builder.Entity<ManualChallengeBonus>(b =>
+            {
+                b.Property(b => b.Id).HasStandardGuidLength();
+                b.Property(b => b.Description).HasMaxLength(200);
+                b.Property(b => b.EnteredOn)
+                    .HasDefaultValueSql("NOW()")
+                    .ValueGeneratedOnAdd();
+
+                b.HasOne(m => m.Challenge).WithMany(c => c.AwardedManualBonuses).OnDelete(DeleteBehavior.Cascade);
+                b.HasOne(m => m.EnteredByUser).WithMany(u => u.EnteredManualChallengeBonuses).OnDelete(DeleteBehavior.Restrict);
+            });
+
             builder.Entity<ChallengeEvent>(b =>
             {
                 b.HasOne(p => p.Challenge).WithMany(u => u.Events).OnDelete(DeleteBehavior.Cascade);
@@ -115,10 +140,11 @@ namespace Gameboard.Api.Data
 
             builder.Entity<ChallengeSpec>(b =>
             {
-                b.HasOne(p => p.Game).WithMany(u => u.Specs).OnDelete(DeleteBehavior.Cascade);
                 b.Property(u => u.Id).HasMaxLength(40);
                 b.Property(u => u.GameId).HasMaxLength(40);
                 b.Property(u => u.ExternalId).HasMaxLength(40);
+
+                b.HasOne(p => p.Game).WithMany(u => u.Specs).OnDelete(DeleteBehavior.Cascade);
             });
 
             builder.Entity<ChallengeGate>(b =>
@@ -196,12 +222,15 @@ namespace Gameboard.Api.Data
 
         public DbSet<ApiKey> ApiKeys { get; set; }
         public DbSet<ArchivedChallenge> ArchivedChallenges { get; set; }
+        // public DbSet<AwardedChallengeBonus> AwardedChallengeBonuses { get; set; }
         public DbSet<Challenge> Challenges { get; set; }
+        // public DbSet<ChallengeBonus> ChallengeBonuses { get; set; }
         public DbSet<ChallengeEvent> ChallengeEvents { get; set; }
         public DbSet<ChallengeSpec> ChallengeSpecs { get; set; }
         public DbSet<ChallengeGate> ChallengeGates { get; set; }
         public DbSet<Feedback> Feedback { get; set; }
         public DbSet<Game> Games { get; set; }
+        public DbSet<ManualChallengeBonus> ManualChallengeBonuses { get; set; }
         public DbSet<Player> Players { get; set; }
         public DbSet<Sponsor> Sponsors { get; set; }
         public DbSet<Ticket> Tickets { get; set; }

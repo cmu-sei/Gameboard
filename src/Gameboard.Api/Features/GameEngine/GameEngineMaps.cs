@@ -32,7 +32,6 @@ public class GameEngineMaps : Profile
         CreateMap<GameEngineGameState, Api.Data.Challenge>(MemberList.Destination)
             .ForMember(c => c.ExternalId, o => o.MapFrom(s => s.Id))
             .ForMember(c => c.PlayerId, o => o.MapFrom(p => p.Players.Where(p => p.IsManager).First().SubjectId))
-            .ForMember(c => c.Player, o => o.MapFrom(p => p.Players.Single(p => p.IsManager)))
             .ForMember(c => c.HasDeployedGamespace, o => o.MapFrom(s => s.IsActive))
             .ForMember(c => c.EndTime, o => o.MapFrom(s => s.ExpirationTime))
             .ForMember(c => c.Points, o => o.MapFrom(s => s.Challenge.MaxPoints))
@@ -42,26 +41,31 @@ public class GameEngineMaps : Profile
             .ForMember(c => c.Events, o => o.Ignore())
             .ForMember(c => c.Feedback, o => o.Ignore())
             .ForMember(c => c.Game, o => o.Ignore())
+            // ignore entity properties because we don't want EF to think that we're trying to insert new ones
+            .ForMember(c => c.Player, o => o.Ignore())
             // game engine type will need to be resolved using an aftermap expression during mapping
             .ForMember(c => c.GameEngineType, o => o.Ignore())
-            // similarly, engines don't know about things like games or tickets
+            // similarly, engines don't know about things like games, tickets, and bonuses
             .ForMember(c => c.GameId, o => o.Ignore())
             .ForMember(c => c.GraderKey, o => o.Ignore())
             .ForMember(c => c.LastSyncTime, o => o.Ignore())
             .ForMember(c => c.SpecId, o => o.Ignore())
             .ForMember(c => c.Tag, o => o.Ignore())
             .ForMember(c => c.TeamId, o => o.Ignore())
-            .ForMember(c => c.Tickets, o => o.Ignore());
+            .ForMember(c => c.Tickets, o => o.Ignore())
+            .ForMember(c => c.AwardedManualBonuses, o => o.Ignore());
 
         // engine: topo
         CreateMap<TopoMojo.Api.Client.AnswerSubmission, GameEngineAnswerSubmission>();
+        CreateMap<TopoMojo.Api.Client.GameState, GameEngineGameState>();
         CreateMap<TopoMojo.Api.Client.Permission, GameEnginePlayerPermission>();
         CreateMap<TopoMojo.Api.Client.Player, GameEnginePlayer>();
         CreateMap<TopoMojo.Api.Client.QuestionView, GameEngineQuestionView>();
         CreateMap<TopoMojo.Api.Client.VmState, GameEngineVmState>();
         CreateMap<TopoMojo.Api.Client.ChallengeView, GameEngineChallengeView>();
-        CreateMap<TopoMojo.Api.Client.GameState, GameEngineGameState>();
         CreateMap<TopoMojo.Api.Client.SectionSubmission, GameEngineSectionSubmission>();
 
+        CreateMap<GameEngineAnswerSubmission, TopoMojo.Api.Client.AnswerSubmission>();
+        CreateMap<GameEngineSectionSubmission, TopoMojo.Api.Client.SectionSubmission>();
     }
 }

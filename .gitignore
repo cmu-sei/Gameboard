@@ -1,6 +1,7 @@
 zzz/
 appsettings.Development.*
 .vs/
+*.csproj.user
 
 # compiled output
 /dist

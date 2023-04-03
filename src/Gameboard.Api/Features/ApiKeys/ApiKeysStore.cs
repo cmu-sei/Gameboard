@@ -9,7 +9,7 @@ public interface IApiKeysStore
 {
     Task Delete(string id);
     Task<bool> Exists(string id);
-    Task<Data.User> GetUserWithApiKeys(string apiKeyOwnerId);
+    Task<Data.User> GetFromApiKey(string apiKey);
     Task Create(ApiKey apiKey);
     IQueryable<ApiKey> List(string userId);
 }
@@ -28,11 +28,15 @@ public class ApiKeysStore : IApiKeysStore
             .ApiKeys
             .SingleOrDefaultAsync(k => k.Id == apiKeyId)) != null;
 
-    public async Task<Data.User> GetUserWithApiKeys(string apiKeyOwnerId)
-        => await _dbContext
+    public async Task<Data.User> GetFromApiKey(string apiKey)
+    {
+        var hashedKey = apiKey.ToSha256();
+
+        return await _dbContext
             .Users
                 .Include(u => u.ApiKeys)
-            .SingleOrDefaultAsync(u => u.ApiKeyOwnerId == apiKeyOwnerId);
+            .SingleOrDefaultAsync(u => u.ApiKeys.Any(k => k.Key == hashedKey));
+    }
 
     public async Task Create(ApiKey apiKey)
     {

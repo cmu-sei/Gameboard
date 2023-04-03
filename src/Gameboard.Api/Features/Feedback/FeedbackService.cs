@@ -173,7 +173,7 @@ namespace Gameboard.Api.Services
             if (feedbackTemplate.Length != feedback.Length)
                 throw new InvalideFeedbackFormat();
 
-            Dictionary<string, QuestionTemplate> templateMap = new Dictionary<string, QuestionTemplate>();
+            var templateMap = new Dictionary<string, QuestionTemplate>();
             foreach (QuestionTemplate q in feedbackTemplate) { templateMap.Add(q.Id, q); }
 
             foreach (var q in feedback)

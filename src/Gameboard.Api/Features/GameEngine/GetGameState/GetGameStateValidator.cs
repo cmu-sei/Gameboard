@@ -9,33 +9,27 @@ namespace Gameboard.Api.Features.GameEngine.Requests;
 
 internal class GetGameStateValidator : IGameboardRequestValidator<GetGameStateQuery>
 {
-    private readonly RequiredStringValidator _requiredTeamId;
+    private readonly RequiredStringValidator _teamIdRequired;
     private readonly TeamExistsValidator _teamExists;
 
     public GetGameStateValidator(RequiredStringValidator requiredTeamId, TeamExistsValidator teamExists)
     {
-        _requiredTeamId = requiredTeamId;
         _teamExists = teamExists;
-
-        _requiredTeamId.NameOfStringProperty = "teamId";
+        _teamIdRequired = requiredTeamId;
     }
 
-    public async Task<GameboardAggregatedValidationExceptions> ValidateRequest(GetGameStateQuery request)
+    public async Task<GameboardAggregatedValidationExceptions> Validate(GetGameStateQuery request)
     {
-        _requiredTeamId.NameOfStringProperty = nameof(request.teamId);
-        var exceptions = new List<GameboardValidationException>();
-
-        // TODO: why does this null ref?
-        // var missingTeamId = await _requiredTeamId.Validate(request.teamId);
-        // if (missingTeamId != null)
-        //     exceptions.Add(missingTeamId);
-
-        var teamDoesntExist = await _teamExists.Validate(request.teamId);
-        if (teamDoesntExist != null)
-            exceptions.Add(teamDoesntExist);
+        var exceptions = new List<GameboardValidationException>()
+            .AddIfNotNull(await _teamExists.Validate(request.teamId))
+            .AddIfNotNull(await _teamIdRequired.Validate(new RequiredStringContext
+            {
+                PropertyName = request.teamId,
+                Value = request.teamId
+            }));
 
         if (exceptions.Count() > 0)
-            return new GameboardAggregatedValidationExceptions(exceptions);
+            return GameboardAggregatedValidationExceptions.FromValidationExceptions(exceptions);
 
         return null;
     }

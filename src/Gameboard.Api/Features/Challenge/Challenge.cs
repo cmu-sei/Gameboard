@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api
@@ -33,9 +34,7 @@ namespace Gameboard.Api
         public string Name { get; set; }
         public string Tag { get; set; }
         public string GameName { get; set; }
-        public string PlayerId { get; set; }
-        public string PlayerName { get; set; }
-        public string UserId { get; set; }
+        public IEnumerable<ChallengePlayer> Players { get; set; }
         public DateTimeOffset StartTime { get; set; }
         public DateTimeOffset EndTime { get; set; }
         public DateTimeOffset LastScoreTime { get; set; }
@@ -47,6 +46,14 @@ namespace Gameboard.Api
         public ChallengeResult Result { get; set; }
         public ChallengeEventSummary[] Events { get; set; }
         public bool IsActive { get; set; }
+    }
+
+    public class ChallengePlayer
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public bool IsManager { get; set; }
+        public string UserId { get; set; }
     }
 
     public class NewChallenge

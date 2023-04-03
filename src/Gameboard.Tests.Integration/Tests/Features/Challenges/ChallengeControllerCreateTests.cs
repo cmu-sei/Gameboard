@@ -51,7 +51,7 @@ public class ChallengeControllerCreateTests : IClassFixture<GameboardTestContext
             Variant = 0
         };
 
-        var client = _testContext.CreateHttpClientWithAuth(u => u.Id = userId);
+        var client = _testContext.CreateHttpClientWithActingUser(u => u.Id = userId);
 
         // act
         var challenge = await client
@@ -60,5 +60,6 @@ public class ChallengeControllerCreateTests : IClassFixture<GameboardTestContext
 
         // assert
         challenge?.Name.ShouldBe(specName);
+        challenge?.State.ManagerId.ShouldBe(playerId);
     }
 }

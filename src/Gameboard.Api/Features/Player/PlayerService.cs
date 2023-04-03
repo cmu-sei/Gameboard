@@ -242,7 +242,7 @@ public class PlayerService
             throw new ActionForbidden();
 
         // auto increment for practice sessions
-        if (sudo.Equals(false) && manager.IsPractice)
+        if (manager.IsPractice)
         {
             DateTimeOffset now = DateTimeOffset.UtcNow;
             // end session now or extend by configured amount
@@ -487,7 +487,7 @@ public class PlayerService
 
     public async Task Unenroll(PlayerUnenrollRequest request)
     {
-        // they probably don't have challenge data on an unenroll, but in case an admin does this 
+        // they probably don't have challenge data on an unenroll, but in case an admin does this
         // or something, we'll clean up their challenges
         var player = await Store.Retrieve(request.PlayerId);
         await ChallengeService.ArchivePlayerChallenges(player);
