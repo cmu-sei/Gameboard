@@ -25,9 +25,9 @@ jobs:
       - name: Build
         run: dotnet build -c Release --no-restore
       - name: Run unit tests
-        run: dotnet test src/Gameboard.Tests.Unit --no-restore
+        run: dotnet test src/Gameboard.Api.Tests.Unit --no-restore
       - name: Run integration tests
-        run: dotnet test src/Gameboard.Tests.Integration --no-restore
+        run: dotnet test src/Gameboard.Api.Tests.Integration --no-restore
 
   build:
     runs-on: ubuntu-latest
