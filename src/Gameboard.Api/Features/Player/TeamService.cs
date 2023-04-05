@@ -10,6 +10,7 @@ namespace Gameboard.Api.Features.Player;
 public interface ITeamService
 {
     Task<bool> GetExists(string teamId);
+    Task<int> GetSessionCount(string teamId, string gameId);
     Task<Data.Player> ResolveCaptain(string teamId);
     Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser);
     Task UpdateTeamSponsors(string teamId);
@@ -18,15 +19,18 @@ public interface ITeamService
 internal class TeamService : ITeamService
 {
     private readonly IMapper _mapper;
+    private readonly INowService _now;
     private readonly IInternalHubBus _teamHubService;
     private readonly IPlayerStore _store;
 
     public TeamService(
         IMapper mapper,
+        INowService now,
         IInternalHubBus teamHubService,
         IPlayerStore store)
     {
         _mapper = mapper;
+        _now = now;
         _store = store;
         _teamHubService = teamHubService;
     }
@@ -34,6 +38,21 @@ internal class TeamService : ITeamService
     public async Task<bool> GetExists(string teamId)
     {
         return (await _store.ListTeam(teamId).CountAsync()) > 0;
+    }
+
+    public async Task<int> GetSessionCount(string teamId, string gameId)
+    {
+        var now = _now.Get();
+
+        return await _store
+            .List()
+            .CountAsync
+            (
+                p =>
+                    p.GameId == gameId &&
+                    p.Role == PlayerRole.Manager &&
+                    now < p.SessionEnd
+            );
     }
 
     public async Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser)

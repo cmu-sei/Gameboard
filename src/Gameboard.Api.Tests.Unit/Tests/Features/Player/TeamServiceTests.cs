@@ -13,7 +13,7 @@ public class TeamServiceTests
         // arrange
         var playerStore = A.Fake<IPlayerStore>();
         var mapper = A.Fake<IMapper>();
-        var sut = new TeamService(A.Fake<IMapper>(), A.Fake<IInternalHubBus>(), playerStore);
+        var sut = new TeamService(A.Fake<IMapper>(), A.Fake<INowService>(), A.Fake<IInternalHubBus>(), playerStore);
 
         var players = new Data.Player[]
         {

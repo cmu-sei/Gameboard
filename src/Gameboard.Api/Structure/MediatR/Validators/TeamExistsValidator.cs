@@ -5,28 +5,30 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Structure.MediatR.Validators;
 
-internal class TeamExistsValidator<TModel> : IGameboardValidator<string>, IValidationPropertyProvider<TModel, string>
+internal class TeamExistsValidator<TModel> : IGameboardValidator<TModel>
 {
     private readonly IPlayerStore _playerStore;
+    public required Func<TModel, string> TeamIdProperty { get; set; }
 
     public TeamExistsValidator(IPlayerStore playerStore)
     {
         _playerStore = playerStore;
     }
 
-    public Func<TModel, string> ValidationProperty => throw new NotImplementedException();
-
-    public async Task<GameboardValidationException> Validate(string teamId)
+    public Func<TModel, RequestValidationContext, Task> GetValidationTask()
     {
-        if (string.IsNullOrEmpty(teamId))
-            return new MissingRequiredInput<string>(nameof(teamId), teamId);
-
-        var count = await _playerStore.List().CountAsync(p => p.TeamId == teamId);
-        if (count == 0)
+        return async (model, context) =>
         {
-            return new ResourceNotFound<Team>(teamId);
-        }
+            var teamId = TeamIdProperty(model);
 
-        return null;
+            if (string.IsNullOrEmpty(teamId))
+                context.AddValidationException(new MissingRequiredInput<string>(nameof(teamId), teamId));
+
+            var count = await _playerStore.List().CountAsync(p => p.TeamId == teamId);
+            if (count == 0)
+            {
+                context.AddValidationException(new ResourceNotFound<Team>(teamId));
+            }
+        };
     }
 }

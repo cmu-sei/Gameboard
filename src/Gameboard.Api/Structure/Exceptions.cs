@@ -39,6 +39,11 @@ namespace Gameboard.Api
         internal InvalidInvitationCode(string code, string reason) : base(reason) { }
     }
 
+    internal class InvalidParameterValue<T> : GameboardValidationException
+    {
+        internal InvalidParameterValue(string parameterName, string ruleDescription, T value) : base($"""Parameter "{parameterName}" requires a value which complies with: "{ruleDescription}". Its value was "{value}". """) { }
+    }
+
     internal class NotYetRegistered : GameboardException
     {
         internal NotYetRegistered(string playerId, string gameId)
@@ -92,7 +97,6 @@ namespace Gameboard.Api
     public class ActionForbidden : Exception { }
     public class EntityNotFound : Exception { }
     public class GameNotActive : Exception { }
-    public class SessionLimitReached : Exception { }
     public class SessionNotAdjustable : Exception { }
     public class InvalidTeamSize : Exception { }
     public class InvalidConsoleAction : Exception { }

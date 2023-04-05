@@ -8,21 +8,21 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Games;
 
-public record IsSyncStartReadyQuery(string gameId) : IRequest<SyncStartState>;
+public record GetSyncStartStateQuery(string gameId) : IRequest<SyncStartState>;
 
-internal class IsSyncStartReadyQueryHandler : IRequestHandler<IsSyncStartReadyQuery, SyncStartState>
+internal class GetSyncStartStateQueryHandler : IRequestHandler<GetSyncStartStateQuery, SyncStartState>
 {
-    private readonly EntityExistsValidator<IsSyncStartReadyQuery, Data.Game> _gameExists;
+    private readonly EntityExistsValidator<GetSyncStartStateQuery, Data.Game> _gameExists;
     private readonly IGameService _gameService;
     private readonly IPlayerStore _playerStore;
-    private readonly IValidatorService<IsSyncStartReadyQuery> _validatorService;
+    private readonly IValidatorService<GetSyncStartStateQuery> _validatorService;
 
-    public IsSyncStartReadyQueryHandler
+    public GetSyncStartStateQueryHandler
     (
-        EntityExistsValidator<IsSyncStartReadyQuery, Data.Game> gameExists,
+        EntityExistsValidator<GetSyncStartStateQuery, Data.Game> gameExists,
         IGameService gameService,
         IPlayerStore playerStore,
-        IValidatorService<IsSyncStartReadyQuery> validatorService
+        IValidatorService<GetSyncStartStateQuery> validatorService
     )
     {
         _gameExists = gameExists;
@@ -31,7 +31,7 @@ internal class IsSyncStartReadyQueryHandler : IRequestHandler<IsSyncStartReadyQu
         _validatorService = validatorService;
     }
 
-    public async Task<SyncStartState> Handle(IsSyncStartReadyQuery request, CancellationToken cancellationToken)
+    public async Task<SyncStartState> Handle(GetSyncStartStateQuery request, CancellationToken cancellationToken)
     {
         _validatorService.AddValidator(_gameExists.UseProperty(r => r.gameId));
         await _validatorService.Validate(request);

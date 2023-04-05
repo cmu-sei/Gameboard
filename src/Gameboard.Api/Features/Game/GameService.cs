@@ -32,6 +32,7 @@ public interface IGameService
     Task<Game> Retrieve(string id, bool accessHidden = true);
     Task<ChallengeSpec[]> RetrieveChallenges(string id);
     Task<SessionForecast[]> SessionForecast(string id);
+    Task StartSynchronizedSession(string gameId);
     Task Update(ChangedGame account);
     Task UpdateImage(string id, string type, string filename);
     Task<bool> UserIsTeamPlayer(string uid, string gid, string tid);
@@ -43,6 +44,7 @@ public class GameService : _Service, IGameService
     Defaults Defaults { get; }
 
     private readonly IGameHubBus _gameHub;
+    private readonly ILockService _lockService;
     private readonly IPlayerStore _playerStore;
 
     public GameService(
@@ -52,12 +54,14 @@ public class GameService : _Service, IGameService
         Defaults defaults,
         IGameHubBus gameHub,
         IGameStore store,
+        ILockService lockService,
         IPlayerStore playerStore
     ) : base(logger, mapper, options)
     {
         Store = store;
         Defaults = defaults;
         _gameHub = gameHub;
+        _lockService = lockService;
         _playerStore = playerStore;
     }
 
@@ -403,5 +407,48 @@ public class GameService : _Service, IGameService
     {
         var state = await GetSyncStartState(gameId);
         await _gameHub.SendSyncStartStateChanged(state, actor);
+    }
+
+    public async Task StartSynchronizedSession(string gameId)
+    {
+        using (await _lockService.GetSyncStartGameLock(gameId).LockAsync())
+        {
+            // make sure we have a legal sync start game
+            var game = await Retrieve(gameId);
+
+            if (!game.RequireSynchronizedStart)
+                throw new CantSynchronizeNonSynchronizedGame(gameId);
+
+            var state = await GetSyncStartState(gameId);
+            if (!state.IsReady)
+                throw new CantStartNonReadySynchronizedGame(gameId, state.Teams.SelectMany(t => t.Players).Where(p => !p.IsReady));
+
+            // set the session times for all players
+            var players = await _playerStore
+                .List()
+                .AsNoTracking()
+                .Where(p => p.GameId == gameId)
+                .Select(p => new
+                {
+                    Id = p.Id,
+                    SessionBegin = p.SessionBegin
+                }).ToListAsync();
+
+            // currently, we don't have an authoritative "This is the session time of this game" kind of construct in the modeling layer
+            // instead, we look at the minimum session start already set. this should be null for new games.if it's null, set everyone's
+            // who doesn't have a session start to now plus something like 15 sec of lead time. 
+            var minSessionBegin = players.Min(p => p.SessionBegin);
+
+            var sessionBegin = DateTimeOffset.UtcNow.AddSeconds(15);
+            if (minSessionBegin > DateTimeOffset.MinValue)
+            {
+                sessionBegin = minSessionBegin;
+            }
+
+            await _playerStore
+                .List()
+                .Where(p => p.GameId == gameId && p.SessionBegin == DateTimeOffset.MinValue)
+                .ExecuteUpdateAsync(p => p.SetProperty(p => p.SessionBegin, minSessionBegin));
+        }
     }
 }

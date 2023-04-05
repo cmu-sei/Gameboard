@@ -1,12 +1,10 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games;
 
@@ -46,5 +44,12 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
         // retrieve and tell the game that someone has readied/unreadied
         var player = await _playerService.Retrieve(request.PlayerId);
         await _gameService.HandleSyncStartStateChanged(player.GameId, request.Actor);
+
+        // IFF everyone is ready, create sessions and set start time to be ~15 sec in the future (we may need to make this configurable)
+        var syncStartState = await _gameService.GetSyncStartState(player.GameId);
+        if (syncStartState.IsReady)
+        {
+
+        }
     }
 }

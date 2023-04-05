@@ -9,19 +9,22 @@ namespace Gameboard.Api.Services
     public interface ILockService
     {
         AsyncLock GetChallengeLock(string challengeId);
+        AsyncLock GetSyncStartGameLock(string gameId);
     }
 
     public class LockService : ILockService
     {
         ConcurrentDictionary<string, AsyncLock> ChallengeLocks = new ConcurrentDictionary<string, AsyncLock>();
-
-        public LockService()
-        {
-        }
+        ConcurrentDictionary<string, AsyncLock> SyncStartGameLocks = new ConcurrentDictionary<string, AsyncLock>();
 
         public AsyncLock GetChallengeLock(string challengeId)
         {
             return ChallengeLocks.GetOrAdd(challengeId, x => { return new AsyncLock(); });
+        }
+
+        public AsyncLock GetSyncStartGameLock(string gameId)
+        {
+            return SyncStartGameLocks.GetOrAdd(gameId, x => new AsyncLock());
         }
     }
 }

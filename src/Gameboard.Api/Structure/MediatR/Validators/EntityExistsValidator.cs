@@ -16,13 +16,14 @@ internal class EntityExistsValidator<TModel, TEntity> : IGameboardValidator<TMod
         _store = store;
     }
 
-    public async Task<GameboardValidationException> Validate(TModel model)
+    public Func<TModel, RequestValidationContext, Task> GetValidationTask()
     {
-        var id = _idProperty(model);
-        if (!(await _store.Exists(id)))
-            return new ResourceNotFound<TEntity>(id);
-
-        return null;
+        return async (model, context) =>
+        {
+            var id = _idProperty(model);
+            if (!(await _store.Exists(id)))
+                context.AddValidationException(new ResourceNotFound<TEntity>(id));
+        };
     }
 
     public EntityExistsValidator<TModel, TEntity> UseProperty(Func<TModel, string> idProperty)

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
@@ -15,18 +16,19 @@ internal class TeamHasChallengeValidator : IGameboardValidator<Player>
         _store = store;
     }
 
-    public async Task<GameboardValidationException> Validate(Player model)
+    public Func<Player, RequestValidationContext, Task> GetValidationTask()
     {
-        var result = await _store
-            .List()
-            .Where(c => c.TeamId == model.Id)
-            .FirstOrDefaultAsync();
-
-        if (result == default)
+        return async (player, context) =>
         {
-            return new TeamDoesntHaveChallenge(model.Id);
-        }
+            var result = await _store
+           .List()
+           .Where(c => c.TeamId == player.TeamId)
+           .FirstOrDefaultAsync();
 
-        return null;
+            if (result == default)
+            {
+                context.AddValidationException(new TeamDoesntHaveChallenge(player.TeamId));
+            }
+        };
     }
 }

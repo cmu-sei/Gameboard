@@ -214,7 +214,7 @@ public class PlayerService
                 );
 
             if (sessionCount >= game.SessionLimit)
-                throw new SessionLimitReached();
+                throw new SessionLimitReached(player.TeamId, game.Id, sessionCount, game.SessionLimit);
         }
 
         if (!sudo && game.IsLive.Equals(false))
@@ -794,7 +794,7 @@ public class PlayerService
             );
 
             if (count >= CoreOptions.MaxPracticeSessions)
-                throw new SessionLimitReached();
+                throw new PracticeSessionLimitReached(model.UserId, count, CoreOptions.MaxPracticeSessions);
         }
 
         var entity = await InitializePlayer(model, CoreOptions.PracticeSessionMinutes);
