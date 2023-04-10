@@ -28,7 +28,8 @@ namespace Gameboard.Api.Hubs
         private readonly IMapper _mapper;
         private readonly IMediator _mediator;
 
-        public AppHub(
+        public AppHub
+        (
             ILogger<AppHub> logger,
             IMapper mapper,
             IGameService gameService,
@@ -121,12 +122,12 @@ namespace Gameboard.Api.Hubs
             return null;
         }
 
-        public async Task LeaveGame(string gameId)
+        public async Task LeaveChannel(string channelId)
         {
-            if (string.IsNullOrWhiteSpace(gameId))
+            if (string.IsNullOrWhiteSpace(channelId))
                 throw new ArgumentNullException();
 
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, gameId);
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, channelId);
         }
 
         public async Task<Data.Player[]> ListTeam(string teamId)

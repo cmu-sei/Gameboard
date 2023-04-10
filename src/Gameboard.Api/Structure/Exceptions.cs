@@ -7,7 +7,7 @@ using Gameboard.Api.Structure;
 
 namespace Gameboard.Api
 {
-    internal class GameboardException : Exception
+    public class GameboardException : Exception
     {
         internal GameboardException(string message) : base(message) { }
         internal GameboardException(string message, Exception innerException) : base(message, innerException) { }

@@ -14,7 +14,6 @@ public record DeleteManualBonusCommand(string ManualBonusId) : IRequest;
 internal class DeleteManualBonusCommandHandler : IRequestHandler<DeleteManualBonusCommand>
 {
     private readonly IStore<ManualChallengeBonus> _challengeBonusStore;
-    private readonly User _actor;
     private readonly IValidatorService<DeleteManualBonusCommand> _validatorService;
 
     // validators

@@ -1,9 +1,8 @@
 using AutoMapper;
-using Gameboard.Api;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
-using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.Extensions.Caching.Memory;

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
 using MediatR;
@@ -105,7 +106,6 @@ namespace Gameboard.Api.Controllers
         public async Task UpdatePlayerReady([FromRoute] string playerId, [FromBody] PlayerReadyUpdate readyUpdate)
         {
             await Mediator.Send(new UpdatePlayerReadyStateCommand(playerId, readyUpdate.IsReady, Actor));
-            System.Console.WriteLine($"Player ready state set to {readyUpdate.IsReady}");
         }
 
         [HttpDelete("api/player/{playerId}/session")]
@@ -214,18 +214,6 @@ namespace Gameboard.Api.Controllers
         public async Task<Standing[]> Scores([FromQuery] PlayerDataFilter model)
         {
             return await PlayerService.Standings(model);
-        }
-
-        /// <summary>
-        /// Get team data by id
-        /// </summary>
-        /// <param name="id">The id of the team to be queried.</param>
-        /// <returns>Team</returns>
-        [HttpGet("/api/team/{id}")]
-        [Authorize]
-        public async Task<Team> GetTeam([FromRoute] string id)
-        {
-            return await PlayerService.LoadTeam(id);
         }
 
         /// <summary>

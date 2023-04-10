@@ -15,6 +15,7 @@ using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Scores;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
@@ -83,6 +84,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddSingleton<INameService, NameService>()
                 // global-style services
                 .AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>()
+                .AddScoped<IActingUserService, ActingUserService>()
                 .AddSingleton<CoreOptions>(_ => settings.Core)
                 .AddSingleton<ApiKeyOptions>(_ => settings.ApiKey)
                 .AddTransient<IGuidService, GuidService>()

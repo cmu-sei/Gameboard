@@ -1,41 +1,31 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Services;
-using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 
 namespace Gameboard.Api.Features.Games;
 
-public record GetSyncStartStateQuery(string gameId) : IRequest<SyncStartState>;
+public record GetSyncStartStateQuery(string gameId, User ActingUser) : IRequest<SyncStartState>;
 
 internal class GetSyncStartStateQueryHandler : IRequestHandler<GetSyncStartStateQuery, SyncStartState>
 {
-    private readonly EntityExistsValidator<GetSyncStartStateQuery, Data.Game> _gameExists;
     private readonly IGameService _gameService;
-    private readonly IPlayerStore _playerStore;
-    private readonly IValidatorService<GetSyncStartStateQuery> _validatorService;
+    private readonly GetSyncStartStateQueryValidator _validator;
 
     public GetSyncStartStateQueryHandler
     (
-        EntityExistsValidator<GetSyncStartStateQuery, Data.Game> gameExists,
         IGameService gameService,
-        IPlayerStore playerStore,
-        IValidatorService<GetSyncStartStateQuery> validatorService
+        GetSyncStartStateQueryValidator validator
     )
     {
-        _gameExists = gameExists;
         _gameService = gameService;
-        _playerStore = playerStore;
-        _validatorService = validatorService;
+        _validator = validator;
     }
 
     public async Task<SyncStartState> Handle(GetSyncStartStateQuery request, CancellationToken cancellationToken)
     {
-        _validatorService.AddValidator(_gameExists.UseProperty(r => r.gameId));
-        await _validatorService.Validate(request);
-
+        await _validator.Validate(request);
         return await _gameService.GetSyncStartState(request.gameId);
     }
 }

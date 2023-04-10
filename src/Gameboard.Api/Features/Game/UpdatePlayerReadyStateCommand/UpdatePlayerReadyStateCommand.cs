@@ -44,12 +44,5 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
         // retrieve and tell the game that someone has readied/unreadied
         var player = await _playerService.Retrieve(request.PlayerId);
         await _gameService.HandleSyncStartStateChanged(player.GameId, request.Actor);
-
-        // IFF everyone is ready, create sessions and set start time to be ~15 sec in the future (we may need to make this configurable)
-        var syncStartState = await _gameService.GetSyncStartState(player.GameId);
-        if (syncStartState.IsReady)
-        {
-
-        }
     }
 }

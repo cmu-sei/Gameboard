@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Structure.MediatR.Validators;
 
-internal class TeamHasChallengeValidator : IGameboardValidator<Player>
+internal class TeamHasChallengeValidator : IGameboardValidator<Data.Player>
 {
     private readonly IChallengeStore _store;
 
@@ -16,14 +16,14 @@ internal class TeamHasChallengeValidator : IGameboardValidator<Player>
         _store = store;
     }
 
-    public Func<Player, RequestValidationContext, Task> GetValidationTask()
+    public Func<Data.Player, RequestValidationContext, Task> GetValidationTask()
     {
         return async (player, context) =>
         {
             var result = await _store
-           .List()
-           .Where(c => c.TeamId == player.TeamId)
-           .FirstOrDefaultAsync();
+                .List()
+                .Where(c => c.TeamId == player.TeamId)
+                .FirstOrDefaultAsync();
 
             if (result == default)
             {

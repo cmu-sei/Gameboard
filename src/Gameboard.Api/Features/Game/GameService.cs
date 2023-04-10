@@ -32,7 +32,7 @@ public interface IGameService
     Task<Game> Retrieve(string id, bool accessHidden = true);
     Task<ChallengeSpec[]> RetrieveChallenges(string id);
     Task<SessionForecast[]> SessionForecast(string id);
-    Task StartSynchronizedSession(string gameId);
+    Task<SynchronizedGameStartedState> StartSynchronizedSession(string gameId);
     Task Update(ChangedGame account);
     Task UpdateImage(string id, string type, string filename);
     Task<bool> UserIsTeamPlayer(string uid, string gid, string tid);
@@ -381,7 +381,7 @@ public class GameService : _Service, IGameService
         var teams = new List<SyncStartTeam>();
         var teamPlayers = players
             .GroupBy(p => p.TeamId)
-            .ToDictionary(g => g.Key);
+            .ToDictionary(g => g.Key, g => g.ToList());
         var allTeamsReady = teamPlayers.All(team => team.Value.All(p => p.IsReady));
 
         return new SyncStartState
@@ -390,7 +390,7 @@ public class GameService : _Service, IGameService
             Teams = teamPlayers.Keys.Select(teamId => new SyncStartTeam
             {
                 Id = teamId,
-                Name = teamPlayers[teamId].Single(p => p.IsManager).ApprovedName,
+                Name = teamPlayers[teamId].Single(p => p.Role == PlayerRole.Manager).ApprovedName,
                 Players = teamPlayers[teamId].Select(p => new SyncStartPlayer
                 {
                     Id = p.Id,
@@ -407,9 +407,16 @@ public class GameService : _Service, IGameService
     {
         var state = await GetSyncStartState(gameId);
         await _gameHub.SendSyncStartStateChanged(state, actor);
+
+        // IFF everyone is ready, start all sessions and return info about them
+        if (!state.IsReady)
+            return;
+
+        var session = await StartSynchronizedSession(gameId); ;
+        await _gameHub.SendSyncStartGameStarting(session);
     }
 
-    public async Task StartSynchronizedSession(string gameId)
+    public async Task<SynchronizedGameStartedState> StartSynchronizedSession(string gameId)
     {
         using (await _lockService.GetSyncStartGameLock(gameId).LockAsync())
         {
@@ -431,24 +438,49 @@ public class GameService : _Service, IGameService
                 .Select(p => new
                 {
                     Id = p.Id,
-                    SessionBegin = p.SessionBegin
+                    Name = string.IsNullOrEmpty(p.ApprovedName) ? p.Name : p.ApprovedName,
+                    SessionBegin = p.SessionBegin,
+                    SessionEnd = p.SessionEnd,
+                    TeamId = p.TeamId
                 }).ToListAsync();
 
             // currently, we don't have an authoritative "This is the session time of this game" kind of construct in the modeling layer
             // instead, we look at the minimum session start already set. this should be null for new games.if it's null, set everyone's
             // who doesn't have a session start to now plus something like 15 sec of lead time. 
-            var minSessionBegin = players.Min(p => p.SessionBegin);
+            var playersWithSessions = players.Where(p => p.SessionBegin > DateTimeOffset.MinValue || p.SessionEnd > DateTimeOffset.MinValue);
+            if (playersWithSessions.Count() > 0)
+                throw new SynchronizedGameHasPlayersWithSessionsBeforeStart(game.Id, playersWithSessions.Select(p => p.Id));
 
             var sessionBegin = DateTimeOffset.UtcNow.AddSeconds(15);
-            if (minSessionBegin > DateTimeOffset.MinValue)
-            {
-                sessionBegin = minSessionBegin;
-            }
+            var sessionEnd = sessionBegin.AddMinutes(game.SessionMinutes);
 
             await _playerStore
                 .List()
                 .Where(p => p.GameId == gameId && p.SessionBegin == DateTimeOffset.MinValue)
-                .ExecuteUpdateAsync(p => p.SetProperty(p => p.SessionBegin, minSessionBegin));
+                .ExecuteUpdateAsync
+                (
+                    p => p
+                        .SetProperty(p => p.SessionBegin, sessionBegin)
+                        .SetProperty(p => p.SessionEnd, sessionEnd)
+                );
+
+
+            var startState = new SynchronizedGameStartedState
+            {
+                Game = new SimpleEntity { Id = game.Id },
+                SessionBegin = sessionBegin,
+                SessionEnd = sessionEnd,
+                Teams = players
+                    .GroupBy(p => p.TeamId)
+                    .ToDictionary(p => p.Key, p => p.Select(p => new SimpleEntity
+                    {
+                        Id = p.Id,
+                        Name = p.Name
+                    }))
+            };
+
+            await _gameHub.SendSyncStartGameStarting(startState);
+            return startState;
         }
     }
 }

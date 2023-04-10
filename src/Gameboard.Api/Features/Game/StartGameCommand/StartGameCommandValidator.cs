@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
@@ -48,7 +48,7 @@ internal class StartGameCommandValidator : IGameboardRequestValidator<StartGameC
         // or tester is acting)
         _validatorService.AddValidator
         (
-            async (StartGameCommand request, RequestValidationContext context) =>
+            async (request, context) =>
             {
                 var sessionCount = await _teamService.GetSessionCount(request.TeamId, request.GameId);
                 if (game.SessionLimit > 0 && sessionCount > game.SessionLimit)

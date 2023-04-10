@@ -13,8 +13,6 @@ public interface IValidatorService<TModel>
     Task Validate(TModel model);
 }
 
-public delegate Task ValidatorTask<TModel>(TModel model, RequestValidationContext context);
-
 internal class ValidatorService<TModel> : IValidatorService<TModel>
 {
     private readonly IList<Func<TModel, RequestValidationContext, Task>> _validationTasks = new List<Func<TModel, RequestValidationContext, Task>>();

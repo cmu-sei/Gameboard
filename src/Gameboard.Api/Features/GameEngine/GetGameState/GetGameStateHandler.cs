@@ -5,7 +5,7 @@ using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 
-namespace Gameboard.Api.Features.GameEngine.Requests;
+namespace Gameboard.Api.Features.GameEngine;
 
 public record GetGameStateQuery(string TeamId) : IRequest<IEnumerable<GameEngineGameState>>;
 

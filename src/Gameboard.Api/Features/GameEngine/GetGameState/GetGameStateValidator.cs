@@ -3,7 +3,7 @@ using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Structure.MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Gameboard.Api.Features.GameEngine.Requests;
+namespace Gameboard.Api.Features.GameEngine;
 
 internal class GetGameStateValidator : IGameboardRequestValidator<GetGameStateQuery>
 {

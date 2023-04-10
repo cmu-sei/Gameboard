@@ -10,6 +10,7 @@ using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Teams;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -85,7 +86,9 @@ public class PlayerService
 
         await Store.Create(entity);
         await HubBus.SendPlayerEnrolled(Mapper.Map<Api.Player>(entity), actor);
-        await GameService.HandleSyncStartStateChanged(entity.GameId, actor);
+
+        if (game.RequireSynchronizedStart)
+            await GameService.HandleSyncStartStateChanged(entity.GameId, actor);
 
         return Mapper.Map<Player>(entity);
     }
@@ -177,10 +180,8 @@ public class PlayerService
         await HubBus.SendTeamDeleted(playerModel, request.Actor);
 
         // update player ready state if game needs it
-        if (player.Game.RequireSynchronizedStart)
-        {
+        if (player.Game.RequireSynchronizedStart && player.SessionBegin == DateTimeOffset.MinValue)
             await GameService.HandleSyncStartStateChanged(player.GameId, request.Actor);
-        }
 
         if (!player.IsManager && !player.Game.RequireSponsoredTeam)
             await TeamService.UpdateTeamSponsors(player.TeamId);
@@ -529,38 +530,16 @@ public class PlayerService
         // delete the player record
         await Store.Delete(request.PlayerId);
 
-        // update sync start if needed
-        if (player.Game.RequireSynchronizedStart)
-        {
-            await GameService.HandleSyncStartStateChanged(player.GameId, request.Actor);
-        }
-
         // manage sponsor info about the team
         await TeamService.UpdateTeamSponsors(player.TeamId);
 
         // notify listeners on SignalR (like the team)
         var playerModel = Mapper.Map<Player>(player);
         await HubBus.SendPlayerLeft(playerModel, request.Actor);
-        await GameService.HandleSyncStartStateChanged(player.GameId, request.Actor);
-    }
 
-    public async Task<Team> LoadTeam(string id)
-    {
-        var players = await Store.ListTeam(id).ToArrayAsync();
-        if (players.Count() == 0)
-            return null;
-
-        var team = Mapper.Map<Team>(
-            players.First(p => p.IsManager)
-        );
-
-        team.Members = Mapper.Map<TeamMember[]>(
-            players.Select(p => p.User)
-        );
-
-        team.TeamSponsors = string.Join("|", players.Select(p => p.Sponsor));
-
-        return team;
+        // update sync start if needed
+        if (player.Game.RequireSynchronizedStart)
+            await GameService.HandleSyncStartStateChanged(player.GameId, request.Actor);
     }
 
     public async Task<TeamChallenge[]> LoadChallengesForTeam(string teamId)

@@ -17,6 +17,7 @@ namespace Gameboard.Api
         public string GameId { get; set; }
         public string GameName { get; set; }
         public string ApprovedName { get; set; }
+        public string TeamName { get; set; }
         public string Name { get; set; }
         public string NameStatus { get; set; }
         public string Sponsor { get; set; }

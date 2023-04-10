@@ -1,7 +1,8 @@
+using System.Net;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 
-namespace Gameboard.Tests.Integration;
+namespace Gameboard.Api.Tests.Integration;
 
 public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
 {
@@ -37,7 +38,7 @@ public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestC
             });
         });
 
-        var http = _testContext.CreateDefaultClient();
+        var http = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
 
         // when
         var result = await http
@@ -76,7 +77,7 @@ public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestC
             });
         });
 
-        var http = _testContext.CreateDefaultClient();
+        var http = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
 
         // when 
         var result = await http
@@ -115,16 +116,12 @@ public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestC
             });
         });
 
-        var http = _testContext.CreateDefaultClient();
+        var client = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
+        var response = await client.GetAsync($"/api/game/{gameId}/ready");
+        var isGbValidationException = await response.Content.IsGameboardValidationException();
 
-        // when
-        var result = await http
-            .GetAsync($"/api/game/{gameId}/ready")
-            .WithContentDeserializedAs<SyncStartState>();
-
-        // then
-        result.ShouldNotBeNull();
-        result.IsReady.ShouldBeTrue();
-        result.Teams.Count().ShouldBe(0);
+        // when / then
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        isGbValidationException.ShouldBeTrue();
     }
 }

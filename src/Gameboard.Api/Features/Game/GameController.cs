@@ -146,7 +146,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<SyncStartState> IsGameReady(string gameId)
         {
-            return await _mediator.Send(new GetSyncStartStateQuery(gameId));
+            return await _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
         }
 
         [HttpPost("/api/game/import")]
