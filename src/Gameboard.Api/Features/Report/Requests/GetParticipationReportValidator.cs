@@ -7,14 +7,14 @@ namespace Gameboard.Api.Features.Reports;
 
 internal class GetParticipationReportValidator : IGameboardRequestValidator<GetParticipationReportQuery>
 {
-    private readonly IValidatorService _validatorService;
+    private readonly IValidatorService<GetParticipationReportQuery> _validatorService;
 
-    public GetParticipationReportValidator(IValidatorService validatorService)
+    public GetParticipationReportValidator(IValidatorService<GetParticipationReportQuery> validatorService)
     {
         _validatorService = validatorService;
     }
 
-    public Task<GameboardAggregatedValidationExceptions> Validate(GetParticipationReportQuery input)
+    public Task Validate(GetParticipationReportQuery request)
     {
         throw new NotImplementedException();
     }

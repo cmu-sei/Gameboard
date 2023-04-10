@@ -1,7 +1,6 @@
 using AutoMapper;
-using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Teams;
 
 namespace Gameboard.Api.Tests.Unit;
 
@@ -13,7 +12,7 @@ public class TeamServiceTests
         // arrange
         var playerStore = A.Fake<IPlayerStore>();
         var mapper = A.Fake<IMapper>();
-        var sut = new TeamService(A.Fake<IMapper>(), A.Fake<IInternalHubBus>(), playerStore);
+        var sut = new TeamService(A.Fake<IMapper>(), A.Fake<INowService>(), A.Fake<IInternalHubBus>(), playerStore);
 
         var players = new Data.Player[]
         {

@@ -69,7 +69,7 @@ namespace Gameboard.Api.Services
                     s.GameId == model.GameId
                 );
                 if (player == null)
-                    throw new ResourceNotFound<Player>("Id from user/game", $"COuldn't find a player by game {model.GameId} and user {actorId}.");
+                    throw new ResourceNotFound<Data.Player>("Id from user/game", $"COuldn't find a player by game {model.GameId} and user {actorId}.");
 
                 entity = Mapper.Map<Data.Feedback>(model);
                 entity.UserId = actorId;

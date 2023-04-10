@@ -31,20 +31,23 @@ internal class StartEndDateValidator<TModel> : IGameboardValidator<TModel>
         return validator;
     }
 
-    public Task<GameboardValidationException> Validate(TModel model)
+    public Func<TModel, RequestValidationContext, Task> GetValidationTask()
     {
-        var startDateValue = StartDateProperty(model);
-        var endDateValue = EndDateProperty(model);
+        return (model, context) =>
+        {
+            var startDateValue = StartDateProperty(model);
+            var endDateValue = EndDateProperty(model);
 
-        if (StartDateRequired && startDateValue == DateTimeOffset.MinValue)
-            return Task.FromResult<GameboardValidationException>(new MissingRequiredDate("StartDate"));
+            if (StartDateRequired && startDateValue == DateTimeOffset.MinValue)
+                return Task.FromResult<GameboardValidationException>(new MissingRequiredDate("StartDate"));
 
-        if (EndDateRequired && endDateValue == DateTimeOffset.MinValue)
-            return Task.FromResult<GameboardValidationException>(new MissingRequiredDate("EndDate"));
+            if (EndDateRequired && endDateValue == DateTimeOffset.MinValue)
+                return Task.FromResult<GameboardValidationException>(new MissingRequiredDate("EndDate"));
 
-        if (startDateValue > DateTimeOffset.MinValue && endDateValue > DateTimeOffset.MinValue && startDateValue > endDateValue)
-            return Task.FromResult<GameboardValidationException>(new StartDateOccursAfterEndDate(startDateValue, endDateValue));
+            if (startDateValue > DateTimeOffset.MinValue && endDateValue > DateTimeOffset.MinValue && startDateValue > endDateValue)
+                return Task.FromResult<GameboardValidationException>(new StartDateOccursAfterEndDate(startDateValue, endDateValue));
 
-        return Task.FromResult<GameboardValidationException>(null);
+            return Task.FromResult<GameboardValidationException>(null);
+        };
     }
 }

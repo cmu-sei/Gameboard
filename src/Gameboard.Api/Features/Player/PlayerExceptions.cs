@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Gameboard.Api.Features.Games;
+using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.Player;
 
@@ -48,6 +50,21 @@ internal class SessionAlreadyStarted : GameboardException
 internal class SessionNotActive : GameboardException
 {
     internal SessionNotActive(string playerId) : base($"Player {playerId} has an inactive session.") { }
+}
+
+internal class SyncStartNotReady : GameboardValidationException
+{
+    public SyncStartNotReady(string playerId, SyncStartState state) : base($"Can't create a challenge for playerId '{playerId}'. The game requires synchronized start, and not all registered players are ready. Non-ready players: " + BuildPlayerSummary(state)) { }
+
+    private static string BuildPlayerSummary(SyncStartState state)
+    {
+        var nonReadyPlayers = state
+            .Teams
+            .SelectMany(t => t.Players).Where(p => !p.IsReady);
+
+        return string
+            .Join("\n- ", nonReadyPlayers.Select(p => $"{p.Name} (id: {p.Id})").ToArray());
+    }
 }
 
 internal class TeamIsFull : GameboardException

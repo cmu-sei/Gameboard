@@ -4,11 +4,10 @@
 using System;
 using Gameboard.Api.Data;
 using Gameboard.Api.Structure;
-using Gameboard.Api.Validators;
 
 namespace Gameboard.Api
 {
-    internal class GameboardException : Exception
+    public class GameboardException : Exception
     {
         internal GameboardException(string message) : base(message) { }
         internal GameboardException(string message, Exception innerException) : base(message, innerException) { }
@@ -38,6 +37,11 @@ namespace Gameboard.Api
     internal class InvalidInvitationCode : GameboardException
     {
         internal InvalidInvitationCode(string code, string reason) : base(reason) { }
+    }
+
+    internal class InvalidParameterValue<T> : GameboardValidationException
+    {
+        internal InvalidParameterValue(string parameterName, string ruleDescription, T value) : base($"""Parameter "{parameterName}" requires a value which complies with: "{ruleDescription}". Its value was "{value}". """) { }
     }
 
     internal class NotYetRegistered : GameboardException
@@ -72,6 +76,11 @@ namespace Gameboard.Api
             : base($"Game {gameId} requires that all players have the same sponsor. The inviting player {managerPlayerId} has sponsor {managerSponsor}, while player {playerId} has sponsor {playerSponsor}.") { }
     }
 
+    internal class SimpleValidatorException : GameboardValidationException
+    {
+        public SimpleValidatorException(string message, Exception ex = null) : base(message, ex) { }
+    }
+
     internal class ValidationTypeFailure<TValidator> : GameboardException where TValidator : IModelValidator
     {
         internal ValidationTypeFailure(Type objectType)
@@ -88,7 +97,6 @@ namespace Gameboard.Api
     public class ActionForbidden : Exception { }
     public class EntityNotFound : Exception { }
     public class GameNotActive : Exception { }
-    public class SessionLimitReached : Exception { }
     public class SessionNotAdjustable : Exception { }
     public class InvalidTeamSize : Exception { }
     public class InvalidConsoleAction : Exception { }
@@ -98,6 +106,7 @@ namespace Gameboard.Api
     public class GamespaceLimitReached : Exception { }
     public class InvalideFeedbackFormat : Exception { }
     public class PlayerIsntOnTeam : Exception { }
+    public class PlayerIsntInGame : Exception { }
     public class InvalidPlayerMode : Exception { }
     public class MissingRequiredField : Exception { }
 }

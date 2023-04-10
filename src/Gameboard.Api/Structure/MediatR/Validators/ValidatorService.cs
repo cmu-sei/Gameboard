@@ -1,30 +1,46 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Gameboard.Api.Structure.MediatR.Validators;
 
 namespace Gameboard.Api.Structure.MediatR;
 
-public interface IValidatorService
+public interface IValidatorService<TModel>
 {
-    Task Validate<T>(T request, params IGameboardValidator[] validators);
-    Task Validate<T>(T request, IEnumerable<IGameboardValidator> validators);
+    IValidatorService<TModel> AddValidator(Func<TModel, RequestValidationContext, Task> validationTask);
+    IValidatorService<TModel> AddValidator(IGameboardValidator<TModel> validator);
+    Task Validate(TModel model);
 }
 
-internal class ValidatorService : IValidatorService
+internal class ValidatorService<TModel> : IValidatorService<TModel>
 {
-    public async Task Validate<T>(T request, IEnumerable<IGameboardValidator> validators)
+    private readonly IList<Func<TModel, RequestValidationContext, Task>> _validationTasks = new List<Func<TModel, RequestValidationContext, Task>>();
+
+    public IValidatorService<TModel> AddValidator(IGameboardValidator<TModel> validator)
     {
-        var validationExceptions = new List<GameboardValidationException>();
-
-        foreach (var validator in validators)
-            validationExceptions.AddIfNotNull(await validator.Validate(request));
-
-        if (validationExceptions.Count() > 0)
-        {
-            throw GameboardAggregatedValidationExceptions.FromValidationExceptions(validationExceptions);
-        }
+        _validationTasks.Add(validator.GetValidationTask());
+        return this;
     }
 
-    public Task Validate<T>(T request, params IGameboardValidator[] validators)
-        => Validate(request, new List<IGameboardValidator>(validators));
+    public IValidatorService<TModel> AddValidator(Func<TModel, RequestValidationContext, Task> validationTask)
+    {
+        _validationTasks.Add(validationTask);
+        return this;
+    }
+
+    public async Task Validate(TModel model)
+    {
+        var context = new RequestValidationContext();
+
+        foreach (var task in _validationTasks)
+        {
+            await task(model, context);
+        }
+
+        if (context.ValidationExceptions.Count() > 0)
+        {
+            throw GameboardAggregatedValidationExceptions.FromValidationExceptions(context.ValidationExceptions);
+        }
+    }
 }

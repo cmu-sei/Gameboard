@@ -12,8 +12,10 @@ using Gameboard.Api.Features.ApiKeys;
 using Gameboard.Api.Features.ChallengeBonuses;
 using Gameboard.Api.Features.CubespaceScoreboard;
 using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Scores;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
@@ -82,6 +84,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddSingleton<INameService, NameService>()
                 // global-style services
                 .AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>()
+                .AddScoped<IActingUserService, ActingUserService>()
                 .AddSingleton<CoreOptions>(_ => settings.Core)
                 .AddSingleton<ApiKeyOptions>(_ => settings.ApiKey)
                 .AddTransient<IGuidService, GuidService>()
@@ -97,6 +100,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddScoped<ICubespaceScoreboardService, CubespaceScoreboardService>()
                 .AddScoped<IGamebrainService, GamebrainService>()
                 .AddScoped<IGameEngineStore, GameEngineStore>()
+                .AddScoped<IGameHubBus, GameHubBus>()
                 .AddScoped<IInternalHubBus, InternalHubBus>()
                 .AddScoped<IScoringService, ScoringService>()
                 .AddScoped<ITeamService, TeamService>()

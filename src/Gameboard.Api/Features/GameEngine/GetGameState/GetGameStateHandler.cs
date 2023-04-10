@@ -5,9 +5,9 @@ using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 
-namespace Gameboard.Api.Features.GameEngine.Requests;
+namespace Gameboard.Api.Features.GameEngine;
 
-public record GetGameStateQuery(string teamId) : IRequest<IEnumerable<GameEngineGameState>>;
+public record GetGameStateQuery(string TeamId) : IRequest<IEnumerable<GameEngineGameState>>;
 
 internal class GetGameStateHandler : IRequestHandler<GetGameStateQuery, IEnumerable<GameEngineGameState>>
 {
@@ -35,11 +35,7 @@ internal class GetGameStateHandler : IRequestHandler<GetGameStateQuery, IEnumera
     public async Task<IEnumerable<GameEngineGameState>> Handle(GetGameStateQuery request, CancellationToken cancellationToken)
     {
         _roleAuthorizer.Authorize();
-
-        var validationResult = await _validator.Validate(request);
-        if (validationResult != null)
-            throw validationResult;
-
-        return await _gameEngineStore.GetGameStatesByTeam(request.teamId);
+        await _validator.Validate(request);
+        return await _gameEngineStore.GetGameStatesByTeam(request.TeamId);
     }
 }

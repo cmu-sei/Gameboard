@@ -5,9 +5,12 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
@@ -21,12 +24,14 @@ namespace Gameboard.Api.Controllers
         PlayerService PlayerService { get; }
         IInternalHubBus Hub { get; }
         IMapper Mapper { get; }
+        IMediator Mediator { get; }
         ITeamService TeamService { get; set; }
 
         public PlayerController(
             ILogger<PlayerController> logger,
             IDistributedCache cache,
             PlayerValidator validator,
+            IMediator mediator,
             PlayerService playerService,
             IInternalHubBus hub,
             IMapper mapper,
@@ -36,6 +41,7 @@ namespace Gameboard.Api.Controllers
             PlayerService = playerService;
             Hub = hub;
             Mapper = mapper;
+            Mediator = mediator;
             TeamService = teamService;
         }
 
@@ -93,6 +99,13 @@ namespace Gameboard.Api.Controllers
 
             var result = await PlayerService.Update(model, Actor, Actor.IsRegistrar);
             return Mapper.Map<PlayerUpdatedViewModel>(result);
+        }
+
+        [HttpPut("api/player/{playerId}/ready")]
+        [Authorize]
+        public async Task UpdatePlayerReady([FromRoute] string playerId, [FromBody] PlayerReadyUpdate readyUpdate)
+        {
+            await Mediator.Send(new UpdatePlayerReadyStateCommand(playerId, readyUpdate.IsReady, Actor));
         }
 
         [HttpDelete("api/player/{playerId}/session")]
@@ -201,18 +214,6 @@ namespace Gameboard.Api.Controllers
         public async Task<Standing[]> Scores([FromQuery] PlayerDataFilter model)
         {
             return await PlayerService.Standings(model);
-        }
-
-        /// <summary>
-        /// Get team data by id
-        /// </summary>
-        /// <param name="id">The id of the team to be queried.</param>
-        /// <returns>Team</returns>
-        [HttpGet("/api/team/{id}")]
-        [Authorize]
-        public async Task<Team> GetTeam([FromRoute] string id)
-        {
-            return await PlayerService.LoadTeam(id);
         }
 
         /// <summary>
