@@ -12,12 +12,12 @@ namespace Gameboard.Api.Features.GameEngine;
 [Route("/api/gameEngine")]
 public class GameEngineController : ControllerBase
 {
-    private readonly GameEngineService _gameEngine;
+    private readonly IGameEngineService _gameEngine;
     private readonly IMediator _mediator;
 
     public GameEngineController
     (
-        GameEngineService gameEngineService,
+        IGameEngineService gameEngineService,
         ILogger<GameEngineController> logger,
         IMediator mediator
     )

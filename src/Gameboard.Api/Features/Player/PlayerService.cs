@@ -33,7 +33,7 @@ public class PlayerService
     IMapper Mapper { get; }
     IMemoryCache LocalCache { get; }
     TimeSpan _idmapExpiration = new TimeSpan(0, 30, 0);
-    GameEngineService GameEngine { get; }
+    IGameEngineService GameEngine { get; }
 
     public PlayerService(
         CoreOptions coreOptions,
@@ -49,7 +49,7 @@ public class PlayerService
         ITeamService teamService,
         IMapper mapper,
         IMemoryCache localCache,
-        GameEngineService gameEngine
+        IGameEngineService gameEngine
     )
     {
         CoreOptions = coreOptions;

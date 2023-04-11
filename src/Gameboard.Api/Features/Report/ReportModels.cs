@@ -234,7 +234,7 @@ public class TicketDetailsExport
     public string Status { get; set; }
 }
 
-public interface IReport
+public interface IReportResult
 {
     public ReportMetaData MetaData { get; set; }
 }
@@ -263,7 +263,7 @@ public class ParticipationReportRecord
     public double PartialCount { get; set; }
 }
 
-public class ParticipationReport : IReport
+public class ParticipationReport : IReportResult
 {
     public required ReportMetaData MetaData { get; set; }
     public required IEnumerable<ParticipationReportRecord> Records { get; set; }

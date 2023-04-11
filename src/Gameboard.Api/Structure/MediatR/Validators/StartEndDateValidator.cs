@@ -1,7 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.Validators;
 
 namespace Gameboard.Api.Structure.MediatR.Validators;
 

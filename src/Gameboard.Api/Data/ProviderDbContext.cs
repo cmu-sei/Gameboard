@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data
 {
-    public class GameboardDbContextInMemory: GameboardDbContext
+    public class GameboardDbContextInMemory : GameboardDbContext
     {
         public GameboardDbContextInMemory(DbContextOptions<GameboardDbContextInMemory> options)
             : base(options)
@@ -13,7 +13,7 @@ namespace Gameboard.Api.Data
         }
     }
 
-    public class GameboardDbContextSqlServer: GameboardDbContext
+    public class GameboardDbContextSqlServer : GameboardDbContext
     {
         public GameboardDbContextSqlServer(DbContextOptions<GameboardDbContextSqlServer> options)
             : base(options)
@@ -21,7 +21,7 @@ namespace Gameboard.Api.Data
         }
     }
 
-    public class GameboardDbContextPostgreSQL: GameboardDbContext
+    public class GameboardDbContextPostgreSQL : GameboardDbContext
     {
         public GameboardDbContextPostgreSQL(DbContextOptions<GameboardDbContextPostgreSQL> options)
             : base(options)

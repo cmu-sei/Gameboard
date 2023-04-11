@@ -30,6 +30,41 @@ internal static class ServiceRegistrationExtensions
         return RegisterScoped(serviceCollection, types);
     }
 
+    public static IServiceCollection AddInterfacesWithSingleImplementations(this IServiceCollection serviceCollection)
+    {
+        var interfaceTypes = Assembly
+            .GetExecutingAssembly()
+            .GetTypes()
+            .Where(t => t.IsInterface)
+            .ToArray();
+
+        var singleInterfaceTypes = GetRootTypeQuery()
+            .Where(t => t.GetInterfaces().Count() == 1)
+            .Where(t => t.GetConstructors().Where(c => c.IsPublic).Count() > 0)
+            .GroupBy(t => t.GetInterfaces()[0])
+            .ToDictionary(t => t.Key, t => t.ToList())
+            .Where(entry => entry.Value.Count() == 1);
+
+        var type = typeof(Gameboard.Api.Features.UnityGames.UnityStore);
+        var things = type.GetInterfaces();
+        var stuff = type.GetInterfaces().Where(i => i.IsInterface);
+        var omg = type.Name;
+
+        foreach (var entry in singleInterfaceTypes)
+        {
+            var intName = entry.Key.Name;
+            var implName = entry.Value[0].Name;
+
+            // if it's a type we want to register and it hasn't already been registered by other logic, add it
+            if (interfaceTypes.Contains(entry.Key) && serviceCollection.FirstOrDefault(s => s.ServiceType == entry.Key) == null)
+            {
+                serviceCollection.AddScoped(entry.Key, entry.Value[0]);
+            }
+        }
+
+        return serviceCollection;
+    }
+
     public static IServiceCollection AddConcretesFromNamespace(this IServiceCollection serviceCollection, string namespaceExact)
         => AddConcretesFromNamespaceCriterion(serviceCollection, t => t.Namespace == namespaceExact);
 
@@ -72,9 +107,6 @@ internal static class ServiceRegistrationExtensions
      => Assembly
             .GetExecutingAssembly()
             .GetTypes()
-            .Where
-            (t =>
-                t.IsClass & !t.IsAbstract
-            )
+            .Where(t => t.IsClass & !t.IsAbstract)
             .ToArray();
 }

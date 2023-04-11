@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using Gameboard.Api.Services;
 using System;
 
 namespace Gameboard.Api.Data;

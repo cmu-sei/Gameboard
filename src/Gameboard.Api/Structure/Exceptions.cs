@@ -44,6 +44,11 @@ namespace Gameboard.Api
         internal InvalidParameterValue(string parameterName, string ruleDescription, T value) : base($"""Parameter "{parameterName}" requires a value which complies with: "{ruleDescription}". Its value was "{value}". """) { }
     }
 
+    internal class MissingRequiredDate : GameboardValidationException
+    {
+        public MissingRequiredDate(string propertyName) : base($"The date property {propertyName} is required.") { }
+    }
+
     internal class NotYetRegistered : GameboardException
     {
         internal NotYetRegistered(string playerId, string gameId)
@@ -79,6 +84,11 @@ namespace Gameboard.Api
     internal class SimpleValidatorException : GameboardValidationException
     {
         public SimpleValidatorException(string message, Exception ex = null) : base(message, ex) { }
+    }
+
+    internal class StartDateOccursAfterEndDate : GameboardValidationException
+    {
+        public StartDateOccursAfterEndDate(DateTimeOffset start, DateTimeOffset end) : base($"Invalid start/end date values supplied. Start date {start} occurs after End date {end}.") { }
     }
 
     internal class ValidationTypeFailure<TValidator> : GameboardException where TValidator : IModelValidator
