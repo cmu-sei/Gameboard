@@ -107,12 +107,6 @@ public class TicketDetail
     public string Status { get; set; }
 }
 
-/*public class TicketDetailReport
-{
-    public string Title { get; set; } = "Ticket Detail Report";
-    public DateTime Timestamp { get; set; }
-    public TicketDetail[] Details { get; set; }
-}*/
 #endregion
 
 public class ParticipationReportV1
@@ -232,39 +226,4 @@ public class TicketDetailsExport
     public string LastUpdated { get; set; }
     public string Label { get; set; }
     public string Status { get; set; }
-}
-
-public interface IReportResult
-{
-    public ReportMetaData MetaData { get; set; }
-}
-
-public sealed class ReportMetaData
-{
-    public required string Id { get; set; }
-    public required string Title { get; set; }
-    public required DateTimeOffset RunAt { get; set; }
-}
-
-public class ParticipationReportArgs
-{
-    public DateTimeOffset StartDate { get; set; }
-    public DateTimeOffset EndDate { get; set; }
-    public string SponsorId { get; set; }
-}
-
-public class ParticipationReportRecord
-{
-    public Sponsor Sponsor { get; set; }
-    public SimpleEntity User { get; set; }
-    public SimpleEntity Game { get; set; }
-    public SimpleEntity Challenge { get; set; }
-    public double CorrectCount { get; set; }
-    public double PartialCount { get; set; }
-}
-
-public class ParticipationReport : IReportResult
-{
-    public required ReportMetaData MetaData { get; set; }
-    public required IEnumerable<ParticipationReportRecord> Records { get; set; }
 }

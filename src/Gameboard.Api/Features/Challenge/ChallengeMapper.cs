@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoMapper;
 using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Services
 {
@@ -27,6 +28,7 @@ namespace Gameboard.Api.Services
 
             CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
 
+            CreateMap<Data.Challenge, SimpleEntity>();
             CreateMap<Data.Challenge, TeamChallenge>();
             CreateMap<Data.Challenge, ChallengeOverview>()
                 .ForMember(d => d.Score, opt => opt.MapFrom(s => (int)Math.Floor(s.Score)))

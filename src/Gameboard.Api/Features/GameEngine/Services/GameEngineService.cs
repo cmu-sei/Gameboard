@@ -16,7 +16,7 @@ namespace Gameboard.Api.Features.GameEngine;
 public class GameEngineService : _Service, IGameEngineService
 {
     ITopoMojoApiClient Mojo { get; }
-    CrucibleService Crucible { get; }
+    ICrucibleService Crucible { get; }
     IAlloyApiClient Alloy { get; }
 
     private IMemoryCache _localcache;
@@ -32,7 +32,7 @@ public class GameEngineService : _Service, IGameEngineService
         IMemoryCache localcache,
         ConsoleActorMap actorMap,
         IAlloyApiClient alloy,
-        CrucibleService crucible
+        ICrucibleService crucible
     ) : base(logger, mapper, options)
     {
         Mojo = mojo;

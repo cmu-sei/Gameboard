@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using AutoMapper;
+using Gameboard.Api.Structure;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -21,29 +22,38 @@ namespace Gameboard.Api.Services
             // Use BeforeMap for custom mapping since Deserialize() could error and prevent Game from loading
             // Need to not throw error if format is invalid. If Deserialize() could default to null on error, that would be ideal
             CreateMap<Data.Game, Game>()
-                .BeforeMap((src, dest) => {
-                    try {
+                .BeforeMap((src, dest) =>
+                {
+                    try
+                    {
                         dest.FeedbackTemplate = yaml.Deserialize<GameFeedbackTemplate>(src.FeedbackConfig ?? "");
-                    } catch {
+                    }
+                    catch
+                    {
                         dest.FeedbackTemplate = null;
                     }
                 });
 
             CreateMap<Data.Game, BoardGame>()
-                .BeforeMap((src, dest) => {
-                    try {
+                .BeforeMap((src, dest) =>
+                {
+                    try
+                    {
                         dest.FeedbackTemplate = yaml.Deserialize<GameFeedbackTemplate>(src.FeedbackConfig ?? "");
-                    } catch {
+                    }
+                    catch
+                    {
                         dest.FeedbackTemplate = null;
                     }
                 });
 
             CreateMap<Game, Data.Game>();
-
             CreateMap<NewGame, Data.Game>();
-
             CreateMap<ChangedGame, Data.Game>();
 
+
+            // FROM Data.Game
+            CreateMap<Data.Game, SimpleEntity>();
         }
     }
 }

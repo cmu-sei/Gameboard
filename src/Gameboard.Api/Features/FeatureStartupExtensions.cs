@@ -8,18 +8,9 @@ using AutoMapper;
 using Gameboard.Api;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.ApiKeys;
-using Gameboard.Api.Features.ChallengeBonuses;
-using Gameboard.Api.Features.CubespaceScoreboard;
-using Gameboard.Api.Features.GameEngine;
-using Gameboard.Api.Features.Games;
-using Gameboard.Api.Features.Scores;
-using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.UnityGames;
-using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
-using Microsoft.AspNetCore.SignalR;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -27,6 +18,8 @@ namespace Microsoft.Extensions.DependencyInjection
     {
         public static IServiceCollection AddGameboardServices(this IServiceCollection services, AppSettings settings)
         {
+            var jsonService = JsonService.WithGameboardSerializerOptions();
+
             // add special case services
             services
                 .AddSingleton<ConsoleActorMap>()
@@ -34,7 +27,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>()
                 .AddSingleton<CoreOptions>(_ => settings.Core)
                 .AddSingleton<ApiKeyOptions>(_ => settings.ApiKey)
-                .AddSingleton<IJsonService, JsonService>(f => JsonService.WithGameboardSerializerOptions())
+                .AddSingleton<IJsonService, JsonService>(f => jsonService)
+                .AddSingleton<JsonService>(jsonService)
                 .AddConcretesFromNamespace("Gameboard.Api.Services")
                 .AddConcretesFromNamespace("Gameboard.Api.Structure.Authorizers")
                 .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators")

@@ -78,6 +78,9 @@ internal class ChallengeBonusStore : IStore<ManualChallengeBonus>
             .AsNoTracking()
             .Include(c => c.EnteredByUser);
 
+    public IQueryable<ManualChallengeBonus> ListWithNoTracking()
+        => List(null);
+
     public Task<ManualChallengeBonus> Retrieve(string id)
         => _db
             .ManualChallengeBonuses

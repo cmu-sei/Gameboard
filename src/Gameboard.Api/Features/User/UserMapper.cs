@@ -3,6 +3,7 @@
 
 using AutoMapper;
 using Gameboard.Api.Hubs;
+using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Services
 {
@@ -17,6 +18,8 @@ namespace Gameboard.Api.Services
             CreateMap<Data.User, TeamMember>();
             CreateMap<Data.User, UserSimple>();
             CreateMap<Data.User, UserOnly>();
+            CreateMap<Data.User, SimpleEntity>()
+                .ForMember(s => s.Name, opt => opt.MapFrom(u => u.ApprovedName));
             CreateMap<User, Data.User>();
             CreateMap<NewUser, Data.User>();
             CreateMap<ChangedUser, SelfChangedUser>();

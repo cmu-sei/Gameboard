@@ -12,7 +12,7 @@ public interface IJsonService
 
 internal class JsonService : IJsonService
 {
-    private JsonService() { }
+    public JsonService() { }
 
     internal static Action<JsonSerializerOptions> BuildJsonSerializerOptions()
     {

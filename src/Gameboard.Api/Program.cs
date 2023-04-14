@@ -4,8 +4,8 @@
 using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Gameboard.Api;
 using Gameboard.Api.Extensions;
-using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Logging;

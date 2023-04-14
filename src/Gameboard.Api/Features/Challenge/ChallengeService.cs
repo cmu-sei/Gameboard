@@ -174,17 +174,19 @@ namespace Gameboard.Api.Services
             );
         }
 
-        public async Task<ChallengeSummary[]> List(SearchFilter model)
+        public async Task<ChallengeSummary[]> List(SearchFilter model = null)
         {
-            var q = Store.List(model.Term);
+            var q = Store.List(model?.Term ?? null);
 
             // filter out challenge records with no state used to give starting score to player
             q = q.Where(p => p.Name != "_initialscore_" && p.State != null);
             q = q.OrderByDescending(p => p.LastSyncTime);
-            q = q.Skip(model.Skip);
+            q = q.Skip(model?.Skip ?? 0);
 
-            if (model.Take > 0)
+            if (model?.Take > 0)
+            {
                 q = q.Take(model.Take);
+            }
 
             // we have to resolve the query here, because we need to include player data as well
             // (and there's no direct model relation between challenge and the players in a team)

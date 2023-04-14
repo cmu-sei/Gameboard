@@ -3,6 +3,7 @@
 
 using Alloy.Api.Client;
 using AutoMapper;
+using Gameboard.Api.Structure;
 using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
@@ -15,6 +16,7 @@ namespace Gameboard.Api.Services
             CreateMap<Data.ChallengeSpec, ChallengeSpec>();
             CreateMap<Data.ChallengeSpec, BoardSpec>();
             CreateMap<Data.ChallengeSpec, ChallengeSpecSummary>();
+            CreateMap<Data.ChallengeSpec, SimpleEntity>();
 
             CreateMap<NewChallengeSpec, Data.ChallengeSpec>();
             CreateMap<ChangedChallengeSpec, Data.ChallengeSpec>();

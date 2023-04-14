@@ -15,6 +15,7 @@ namespace Gameboard.Api.Data.Abstractions
         IQueryable<TEntity> DbSet { get; }
 
         IQueryable<TEntity> List(string term = null);
+        IQueryable<TEntity> ListWithNoTracking();
         Task<TEntity> Create(TEntity entity);
         Task<IEnumerable<TEntity>> Create(IEnumerable<TEntity> range);
         Task<bool> Exists(string id);

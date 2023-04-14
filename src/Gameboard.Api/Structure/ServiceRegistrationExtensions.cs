@@ -45,17 +45,12 @@ internal static class ServiceRegistrationExtensions
             .ToDictionary(t => t.Key, t => t.ToList())
             .Where(entry => entry.Value.Count() == 1);
 
-        var type = typeof(Gameboard.Api.Features.UnityGames.UnityStore);
-        var things = type.GetInterfaces();
-        var stuff = type.GetInterfaces().Where(i => i.IsInterface);
-        var omg = type.Name;
-
         foreach (var entry in singleInterfaceTypes)
         {
-            var intName = entry.Key.Name;
-            var implName = entry.Value[0].Name;
-
             // if it's a type we want to register and it hasn't already been registered by other logic, add it
+            var theInterfaceName = entry.Key.Name;
+            var things = theInterfaceName;
+
             if (interfaceTypes.Contains(entry.Key) && serviceCollection.FirstOrDefault(s => s.ServiceType == entry.Key) == null)
             {
                 serviceCollection.AddScoped(entry.Key, entry.Value[0]);

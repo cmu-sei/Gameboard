@@ -26,7 +26,7 @@ public interface IGameService
     Task HandleSyncStartStateChanged(string gameId, User actor);
     Task<Game> Import(GameSpecImport model);
     IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool sudo = false);
-    Task<IEnumerable<Game>> List(GameSearchFilter model, bool sudo);
+    Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false);
     Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo);
     Task ReRank(string id);
     Task<Game> Retrieve(string id, bool accessHidden = true);
