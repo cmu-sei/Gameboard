@@ -1,9 +1,10 @@
 using AutoMapper;
-using Gameboard.Api;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
-using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
+using MediatR;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Api.Tests.Unit;
@@ -17,13 +18,32 @@ public class PlayerServiceTests
             ChallengeService challengeService,
             IPlayerStore store,
             IUserStore userStore,
+            IGameHubBus gameHubBus,
+            IGameService gameService,
             IGameStore gameStore,
             IGuidService guidService,
+            IMediator mediator,
             IInternalHubBus hubBus,
             ITeamService teamService,
             IMapper mapper,
             IMemoryCache localCache,
-            GameEngineService gameEngine) : base(coreOptions, challengeService, guidService, store, userStore, gameStore, hubBus, teamService, mapper, localCache, gameEngine)
+            GameEngineService gameEngine) : base
+            (
+                coreOptions,
+                challengeService,
+                guidService,
+                mediator,
+                store,
+                userStore,
+                gameHubBus,
+                gameService,
+                gameStore,
+                hubBus,
+                teamService,
+                mapper,
+                localCache,
+                gameEngine
+            )
         {
         }
 
@@ -33,8 +53,11 @@ public class PlayerServiceTests
             ChallengeService? challengeService = null,
             IPlayerStore? store = null,
             IUserStore? userStore = null,
+            IGameHubBus? gameHubBus = null,
+            IGameService? gameService = null,
             IGameStore? gameStore = null,
             IGuidService? guidService = null,
+            IMediator? mediator = null,
             IInternalHubBus? hubBus = null,
             ITeamService? teamService = null,
             IMapper? mapper = null,
@@ -46,8 +69,11 @@ public class PlayerServiceTests
                 coreOptions ?? A.Fake<CoreOptions>(),
                 challengeService ?? A.Fake<ChallengeService>(),
                 guidService ?? A.Fake<IGuidService>(),
+                mediator ?? A.Fake<IMediator>(),
                 store ?? A.Fake<IPlayerStore>(),
                 userStore ?? A.Fake<IUserStore>(),
+                gameHubBus ?? A.Fake<IGameHubBus>(),
+                gameService ?? A.Fake<GameService>(),
                 gameStore ?? A.Fake<IGameStore>(),
                 hubBus ?? A.Fake<IInternalHubBus>(),
                 teamService ?? A.Fake<ITeamService>(),

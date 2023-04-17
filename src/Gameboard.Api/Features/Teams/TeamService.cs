@@ -3,13 +3,16 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Player;
 using Microsoft.EntityFrameworkCore;
 
-namespace Gameboard.Api.Features.Player;
+namespace Gameboard.Api.Features.Teams;
 
 public interface ITeamService
 {
     Task<bool> GetExists(string teamId);
+    Task<int> GetSessionCount(string teamId, string gameId);
+    Task<Team> GetTeam(string id);
     Task<Data.Player> ResolveCaptain(string teamId);
     Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser);
     Task UpdateTeamSponsors(string teamId);
@@ -18,15 +21,18 @@ public interface ITeamService
 internal class TeamService : ITeamService
 {
     private readonly IMapper _mapper;
+    private readonly INowService _now;
     private readonly IInternalHubBus _teamHubService;
     private readonly IPlayerStore _store;
 
     public TeamService(
         IMapper mapper,
+        INowService now,
         IInternalHubBus teamHubService,
         IPlayerStore store)
     {
         _mapper = mapper;
+        _now = now;
         _store = store;
         _teamHubService = teamHubService;
     }
@@ -34,6 +40,40 @@ internal class TeamService : ITeamService
     public async Task<bool> GetExists(string teamId)
     {
         return (await _store.ListTeam(teamId).CountAsync()) > 0;
+    }
+
+    public async Task<int> GetSessionCount(string teamId, string gameId)
+    {
+        var now = _now.Get();
+
+        return await _store
+            .List()
+            .CountAsync
+            (
+                p =>
+                    p.GameId == gameId &&
+                    p.Role == PlayerRole.Manager &&
+                    now < p.SessionEnd
+            );
+    }
+
+    public async Task<Team> GetTeam(string id)
+    {
+        var players = await _store.ListTeam(id).ToArrayAsync();
+        if (players.Count() == 0)
+            return null;
+
+        var team = _mapper.Map<Team>(
+            players.First(p => p.IsManager)
+        );
+
+        team.Members = _mapper.Map<TeamMember[]>(
+            players.Select(p => p.User)
+        );
+
+        team.TeamSponsors = string.Join("|", players.Select(p => p.Sponsor));
+
+        return team;
     }
 
     public async Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser)

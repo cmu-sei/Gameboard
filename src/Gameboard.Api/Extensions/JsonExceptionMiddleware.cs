@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Gameboard.Api;
+using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
@@ -41,13 +42,18 @@ namespace Gameboard.Api
                     string message = "Error";
                     Type type = ex.GetType();
 
-                    if (ex.GetType().IsAssignableFrom(typeof(GameboardException)))
+                    if (typeof(GameboardException).IsAssignableFrom(type))
                     {
                         context.Response.StatusCode = 400;
                         message = ex.Message;
                     }
-
-                    if (
+                    else if (typeof(GameboardValidationException).IsAssignableFrom(type))
+                    {
+                        context.Response.StatusCode = 400;
+                        message = ex.Message;
+                    }
+                    else if
+                    (
                         ex is System.InvalidOperationException
                         || type.Namespace.StartsWith("Gameboard")
                     )

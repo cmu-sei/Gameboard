@@ -229,7 +229,12 @@ namespace Gameboard.Api.Controllers
                 ? Hub.Clients.Group(model.TeamId)
                 : Hub.Clients.All;
 
-            await audience.Announcement(new HubEvent<Announcement>(model, EventAction.Created, HubEventActingUserDescription.FromUser(Actor)));
+            await audience.Announcement(new HubEvent<Announcement>
+            {
+                Model = model,
+                Action = EventAction.Created,
+                ActingUser = HubEventActingUserDescription.FromUser(Actor)
+            });
         }
     }
 }

@@ -1,3 +1,6 @@
+using Gameboard.Api.Features.Games;
+using Gameboard.Api.Structure;
+
 namespace Gameboard.Api.Features.Challenges;
 
 internal class NoSession : GameboardException

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
@@ -6,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Structure.MediatR.Validators;
 
-internal class TeamHasChallengeValidator : IGameboardValidator<Player, TeamDoesntHaveChallenge>
+internal class TeamHasChallengeValidator : IGameboardValidator<Data.Player>
 {
     private readonly IChallengeStore _store;
 
@@ -15,18 +16,19 @@ internal class TeamHasChallengeValidator : IGameboardValidator<Player, TeamDoesn
         _store = store;
     }
 
-    public async Task<TeamDoesntHaveChallenge> Validate(Player model)
+    public Func<Data.Player, RequestValidationContext, Task> GetValidationTask()
     {
-        var result = await _store
-            .List()
-            .Where(c => c.TeamId == model.Id)
-            .FirstOrDefaultAsync();
-
-        if (result == default)
+        return async (player, context) =>
         {
-            return new TeamDoesntHaveChallenge(model.Id);
-        }
+            var result = await _store
+                .List()
+                .Where(c => c.TeamId == player.TeamId)
+                .FirstOrDefaultAsync();
 
-        return null;
+            if (result == default)
+            {
+                context.AddValidationException(new TeamDoesntHaveChallenge(player.TeamId));
+            }
+        };
     }
 }

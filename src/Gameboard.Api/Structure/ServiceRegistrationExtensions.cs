@@ -46,7 +46,8 @@ internal static class ServiceRegistrationExtensions
                 t.IsClass &&
                 !t.IsAbstract &&
                 !t.IsNested &&
-                !string.IsNullOrWhiteSpace(t.Namespace)
+                !string.IsNullOrWhiteSpace(t.Namespace) &&
+                t.GetConstructors().Any(c => c.IsPublic)
             )
             .Where(matchCriterion)
             .ToArray();

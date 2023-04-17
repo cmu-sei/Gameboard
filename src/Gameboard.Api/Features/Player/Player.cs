@@ -17,6 +17,7 @@ namespace Gameboard.Api
         public string GameId { get; set; }
         public string GameName { get; set; }
         public string ApprovedName { get; set; }
+        public string TeamName { get; set; }
         public string Name { get; set; }
         public string NameStatus { get; set; }
         public string Sponsor { get; set; }
@@ -32,6 +33,7 @@ namespace Gameboard.Api
         public int PartialCount { get; set; }
         public bool Advanced { get; set; }
         public bool IsManager { get; set; }
+        public bool IsReady { get; set; }
         public PlayerMode Mode { get; set; }
         public string[] SponsorList => (TeamSponsors ?? Sponsor ?? "").Split("|");
     }
@@ -52,6 +54,11 @@ namespace Gameboard.Api
         public string ApprovedName { get; set; }
         public string Sponsor { get; set; }
         public PlayerRole Role { get; set; }
+    }
+
+    public class PlayerReadyUpdate
+    {
+        public bool IsReady { get; set; }
     }
 
     public class SessionStartRequest

@@ -37,6 +37,7 @@ namespace Gameboard.Api
         public int GamespaceLimitPerSession { get; set; }
         public bool IsPublished { get; set; }
         public bool RequireSponsoredTeam { get; set; }
+        public bool RequireSynchronizedStart { get; set; }
         public bool AllowPreview { get; set; }
         public bool AllowReset { get; set; }
         public string Key { get; set; }
@@ -47,7 +48,7 @@ namespace Gameboard.Api
         public PlayerMode PlayerMode { get; set; }
     }
 
-    public class Game: GameDetail
+    public class Game : GameDetail
     {
         public string Id { get; set; }
         public bool RequireSession { get; set; }
@@ -59,17 +60,14 @@ namespace Gameboard.Api
         public bool IsPracticeMode { get; set; }
     }
 
-    public class NewGame: GameDetail
+    public class NewGame : GameDetail
     {
         public bool IsClone { get; set; } = false;
     }
 
-    public class ChangedGame: Game
-    {
+    public class ChangedGame : Game { }
 
-    }
-
-    public class GameSearchFilter: SearchFilter
+    public class GameSearchFilter : SearchFilter
     {
         public const string PastFilter = "past";
         public const string PresentFilter = "present";
@@ -97,7 +95,6 @@ namespace Gameboard.Api
         public bool IsPracticeMode { get; set; }
         public ICollection<BoardSpec> Specs { get; set; } = new List<BoardSpec>();
         public ICollection<ChallengeGate> Prerequisites { get; set; } = new List<ChallengeGate>();
-
     }
 
     public class UploadedFile

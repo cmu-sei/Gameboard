@@ -1,42 +1,38 @@
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using Gameboard.Api.Structure;
+using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Structure.MediatR;
+using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
-using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Features.GameEngine.Requests;
 
 internal class GetSubmissionsRequestValidator : IGameboardRequestValidator<GetSubmissionsQuery>
 {
-    private readonly EntityExistsValidator<Data.Challenge> _challengeExists;
-    private readonly TeamExistsValidator _teamExists;
-    private readonly User _actor;
+    private readonly EntityExistsValidator<GetSubmissionsQuery, Data.Challenge> _challengeExists;
+    private readonly IPlayerStore _playerStore;
+    private readonly UserRoleAuthorizer _roleAuthorizer;
+    private readonly IValidatorService<GetSubmissionsQuery> _validatorService;
 
     public GetSubmissionsRequestValidator
     (
-        EntityExistsValidator<Data.Challenge> challengeExists,
-        TeamExistsValidator teamExists,
-        IHttpContextAccessor httpContextAccessor
+        EntityExistsValidator<GetSubmissionsQuery, Data.Challenge> challengeExists,
+        IPlayerStore playerStore,
+        UserRoleAuthorizer roleAuthorizer,
+        IValidatorService<GetSubmissionsQuery> validatorService
     )
     {
-        _actor = httpContextAccessor.HttpContext.User.ToActor();
         _challengeExists = challengeExists;
-        _teamExists = teamExists;
+        _playerStore = playerStore;
+        _roleAuthorizer = roleAuthorizer;
+        _validatorService = validatorService;
     }
 
-    public async Task<GameboardAggregatedValidationExceptions> Validate(GetSubmissionsQuery query)
+    public async Task Validate(GetSubmissionsQuery query)
     {
-        var validationExceptions = new List<GameboardValidationException>();
+        _roleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Support, UserRole.Designer };
+        _roleAuthorizer.Authorize();
 
-        var teamExistsResult = await _teamExists.Validate(query.teamId);
-        if (teamExistsResult != null)
-            validationExceptions.Add(teamExistsResult);
-
-        var challengeExistsREsult = await _challengeExists.Validate(query.challengeId);
-        if (challengeExistsREsult != null)
-            validationExceptions.Add(challengeExistsREsult);
-
-        return GameboardAggregatedValidationExceptions.FromValidationExceptions(validationExceptions);
+        _validatorService.AddValidator(_challengeExists);
+        await _validatorService.Validate(query);
     }
 }

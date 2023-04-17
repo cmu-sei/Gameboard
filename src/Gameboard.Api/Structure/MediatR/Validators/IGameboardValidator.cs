@@ -1,15 +1,15 @@
 using System;
 using System.Threading.Tasks;
-using MediatR;
+using Gameboard.Api.Structure.MediatR.Validators;
 
 namespace Gameboard.Api.Structure.MediatR;
 
 public interface IGameboardValidator
 {
-    Task<GameboardValidationException> Validate<TModel>(TModel model);
+    Func<RequestValidationContext, Task> GetValidationTask();
 }
 
-public interface IGameboardValidator<TModel, TException> where TModel : class where TException : GameboardValidationException
+public interface IGameboardValidator<TModel>
 {
-    Task<TException> Validate(TModel model);
+    Func<TModel, RequestValidationContext, Task> GetValidationTask();
 }
