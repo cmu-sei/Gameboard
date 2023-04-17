@@ -52,6 +52,9 @@ namespace Microsoft.Extensions.DependencyInjection
                     opt.Cookie = new CookieBuilder
                     {
                         Name = AppConstants.MksCookie,
+                        HttpOnly = true,
+                        SecurePolicy = CookieSecurePolicy.SameAsRequest,
+                        SameSite = SameSiteMode.Strict
                     };
                     opt.Events.OnRedirectToAccessDenied = ctx =>
                     {
