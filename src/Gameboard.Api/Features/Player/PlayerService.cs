@@ -194,15 +194,31 @@ public class PlayerService
         var team = await Store.ListTeamByPlayer(model.PlayerId);
 
         var player = team.First();
-        var game = await Store.DbContext.Games.FindAsync(player.GameId);
+        var game = await Store.DbContext.Games.SingleOrDefaultAsync(g => g.Id == player.GameId);
 
+        // rule: game's execution period has to be open
+        if (!sudo && game.IsLive.Equals(false))
+            throw new GameNotActive();
+
+        // rule: players per team has to be within the game's constraint
+        if (
+            !sudo &&
+            game.RequireTeam &&
+            team.Length < game.MinTeamSize
+        )
+            throw new InvalidTeamSize();
+
+        // rule: for now, can't start a player's session in this code path.
+        // TODO: refactor for SOLIDness
         if (!sudo && game.RequireSynchronizedStart)
         {
-            var syncStartState = await GameService.GetSyncStartState(game.Id);
-            if (!syncStartState.IsReady)
-                throw new SyncStartNotReady(player.Id, syncStartState);
+            throw new InvalidOperationException("Can't start a player's session for a sync start game with PlayerService.StartSession (use GameService.StartSynchronizedSession).");
+            // var syncStartState = await GameService.GetSyncStartState(game.Id);
+            // if (!syncStartState.IsReady)
+            //     throw new SyncStartNotReady(player.Id, syncStartState);
         }
 
+        // rule: teams can't have a session limit exceeding the game's settings
         if (!sudo && game.SessionLimit > 0)
         {
             var ts = DateTimeOffset.UtcNow;
@@ -217,16 +233,6 @@ public class PlayerService
             if (sessionCount >= game.SessionLimit)
                 throw new SessionLimitReached(player.TeamId, game.Id, sessionCount, game.SessionLimit);
         }
-
-        if (!sudo && game.IsLive.Equals(false))
-            throw new GameNotActive();
-
-        if (
-            !sudo &&
-            game.RequireTeam &&
-            team.Length < game.MinTeamSize
-        )
-            throw new InvalidTeamSize();
 
         var st = DateTimeOffset.UtcNow;
         var et = st.AddMinutes(game.SessionMinutes);

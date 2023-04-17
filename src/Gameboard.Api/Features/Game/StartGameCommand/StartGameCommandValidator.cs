@@ -56,7 +56,6 @@ internal class StartGameCommandValidator : IGameboardRequestValidator<StartGameC
             }
         );
 
-
         // Rule: games can't start if the current date/time isn't in the "execution window"
         // _validatorService.AddValidator(new SimpleValidator<StartGameCommand, )
         await _validatorService.Validate(request);
