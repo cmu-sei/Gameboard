@@ -88,6 +88,7 @@ public class GameService : _Service, IGameService
         var game = await Store.Retrieve(id);
         if (!accessHidden && !game.IsPublished)
             throw new ActionForbidden();
+
         return Mapper.Map<Game>(game);
     }
 
