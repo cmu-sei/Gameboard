@@ -1,6 +1,6 @@
 using System.Net;
-using Gameboard.Api;
 using Gameboard.Api.Data;
+using Gameboard.Api.Tests.Shared;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
@@ -29,6 +29,37 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
 
         // TODO: have withDataState give you stuff back so you don't have to query
         var somePlayer = await _testContext.GetDbContext().Players.FirstAsync(p => p.TeamId == teamId && p.Role == PlayerRole.Member);
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = somePlayer.UserId);
+
+        // when 
+        var response = await httpClient.DeleteAsync($"api/player/{somePlayer.Id}/session");
+
+        // then
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var hasChallenge = await _testContext.GetDbContext().Challenges.AnyAsync(c => c.TeamId == teamId);
+        var hasPlayers = await _testContext.GetDbContext().Players.AnyAsync(p => p.TeamId == teamId);
+
+        hasChallenge.ShouldBeFalse();
+        hasPlayers.ShouldBeFalse();
+    }
+
+    [Theory, GbIntegrationAutoData]
+    public async Task ResetSession_WithTeam_ArchivesChallenges(IFixture fixture, string teamId)
+    {
+        // given
+        TeamBuilderResult result;
+        await _testContext.WithDataState(s =>
+        {
+            result = s.AddTeam(fixture, opts =>
+            {
+                opts.NumPlayers = 2;
+                opts.TeamId = teamId;
+            });
+        });
+
+        // TODO: have withDataState give you stuff back so you don't have to use the var
+        var somePlayer = result.Players.FirstAsync(p => p.TeamId == teamId && p.Role == PlayerRole.Member);
         var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = somePlayer.UserId);
 
         // when 

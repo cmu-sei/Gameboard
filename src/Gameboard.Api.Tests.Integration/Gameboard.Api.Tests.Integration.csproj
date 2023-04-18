@@ -39,6 +39,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Gameboard.Api\Gameboard.Api.csproj" />
+    <ProjectReference Include="..\Gameboard.Api.Tests.Shared\Gameboard.Api.Tests.Shared.csproj" />
   </ItemGroup>
 
 </Project>

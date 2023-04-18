@@ -88,6 +88,13 @@ public static class GameboardTestContextDefaultEntityExtensions
         );
     }
 
+    /// <summary>
+    /// Creates a team with a challenge, and players dictated by the options parameter.
+    /// </summary>
+    /// <param name="dataStateBuilder"></param>
+    /// <param name="fixture"></param>
+    /// <param name="optsBuilder"></param>
+    /// <returns></returns>
     public static TeamBuilderResult AddTeam(this IDataStateBuilder dataStateBuilder, IFixture fixture, Action<TeamBuilderOptions> optsBuilder)
     {
         var options = new TeamBuilderOptions
