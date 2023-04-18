@@ -1,4 +1,5 @@
 using Gameboard.Api.Data;
+using Gameboard.Api.Tests.Shared;
 
 namespace Gameboard.Api.Tests.Integration;
 
@@ -33,12 +34,12 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
             // build the team and give them one challenge
             var builtTeam = state.AddTeam(fixture, t =>
             {
-                t.ChallengeId = challenge1Id;
+                t.Challenge = new SimpleEntity { Id = challenge1Id, Name = fixture.Create<string>() };
                 t.TeamId = teamId;
             });
 
             // configure points and bonuses for first challenge
-            builtTeam.Challenge.Points = basePoints1;
+            builtTeam.Challenge!.Points = basePoints1;
             builtTeam.Challenge.AwardedManualBonuses = new ManualChallengeBonus[]
             {
                 new ManualChallengeBonus

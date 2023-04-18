@@ -15,24 +15,31 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ResetSession_WithTeam_DeletesExpectedData(IFixture fixture, string teamId)
+    public async Task ResetSession_WithManualReset_DeletesChallengeData(IFixture fixture, string teamId)
     {
         // given
+        TeamBuilderResult? result = null;
         await _testContext.WithDataState(s =>
         {
-            var teamCreateResult = s.AddTeam(fixture, opts =>
+            result = s.AddTeam(fixture, opts =>
             {
-                opts.NumPlayers = 2;
+                opts.NumPlayers = 1;
                 opts.TeamId = teamId;
             });
         });
 
-        // TODO: have withDataState give you stuff back so you don't have to query
-        var somePlayer = await _testContext.GetDbContext().Players.FirstAsync(p => p.TeamId == teamId && p.Role == PlayerRole.Member);
-        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = somePlayer.UserId);
+        if (result == null)
+            throw new GbAutomatedTestSetupException("AddTeam failed to return a result.");
+
+        var player = result.Players.First();
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = player.UserId);
 
         // when 
-        var response = await httpClient.DeleteAsync($"api/player/{somePlayer.Id}/session");
+        var response = await httpClient.SendDeleteWithJsonContent($"api/player/{player.Id}/session", new SessionResetRequest
+        {
+            IsManualReset = true,
+            UnenrollTeam = true
+        });
 
         // then
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -45,30 +52,112 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ResetSession_WithTeam_ArchivesChallenges(IFixture fixture, string teamId)
+    public async Task ResetSession_WithManualReset_ArchivesChallenges(IFixture fixture, string teamId)
     {
         // given
-        TeamBuilderResult result;
+        TeamBuilderResult? result = null;
         await _testContext.WithDataState(s =>
         {
             result = s.AddTeam(fixture, opts =>
             {
-                opts.NumPlayers = 2;
+                opts.NumPlayers = 1;
                 opts.TeamId = teamId;
             });
         });
 
-        // TODO: have withDataState give you stuff back so you don't have to use the var
-        var somePlayer = result.Players.FirstAsync(p => p.TeamId == teamId && p.Role == PlayerRole.Member);
-        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = somePlayer.UserId);
+        if (result == null)
+            throw new GbAutomatedTestSetupException("AddTeam failed to return a result.");
+
+        var player = result.Players.First();
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = player.UserId);
 
         // when 
-        var response = await httpClient.DeleteAsync($"api/player/{somePlayer.Id}/session");
+        var response = await httpClient.SendDeleteWithJsonContent($"api/player/{player.Id}/session", new SessionResetRequest
+        {
+            IsManualReset = true,
+            UnenrollTeam = true
+        });
 
         // then
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var hasChallenge = await _testContext.GetDbContext().Challenges.AnyAsync(c => c.TeamId == teamId);
-        var hasPlayers = await _testContext.GetDbContext().Players.AnyAsync(p => p.TeamId == teamId);
+        var hasArchivedChallenges = await _testContext.GetDbContext().ArchivedChallenges.AnyAsync(c => c.TeamId == teamId);
+    }
+
+    [Theory, GbIntegrationAutoData]
+    public async Task ResetSession_WithAutoResetAndPreserveTeam_PreservesChallenges(IFixture fixture, string teamId)
+    {
+        // given
+        TeamBuilderResult? result = null;
+        await _testContext.WithDataState(s =>
+        {
+            result = s.AddTeam(fixture, opts =>
+            {
+                opts.NumPlayers = 1;
+                opts.TeamId = teamId;
+            });
+        });
+
+        if (result == null)
+            throw new GbAutomatedTestSetupException("AddTeam failed to return a result.");
+
+        var player = result.Players.First();
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = player.UserId);
+
+        // when 
+        var response = await httpClient.SendDeleteWithJsonContent($"api/player/{player.Id}/session", new SessionResetRequest
+        {
+            IsManualReset = false,
+            UnenrollTeam = false
+        });
+
+        // then
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var hasChallenges = await _testContext.GetDbContext().Challenges.AnyAsync(c => c.TeamId == teamId);
+        var hasArchivedChallenges = await _testContext.GetDbContext().ArchivedChallenges.AnyAsync(c => c.TeamId == teamId);
+
+        hasArchivedChallenges.ShouldBeFalse();
+        hasChallenges.ShouldBeTrue();
+    }
+
+    [Theory, GbIntegrationAutoData]
+    public async Task ResetSession_WithAlreadyArchivedChallenges_DoesntChoke(IFixture fixture, string teamId)
+    {
+        // given
+        TeamBuilderResult? result = null;
+        await _testContext.WithDataState(s =>
+        {
+            result = s.AddTeam(fixture, opts =>
+            {
+                opts.NumPlayers = 1;
+                opts.TeamId = teamId;
+            });
+
+            s.Add(new Data.ArchivedChallenge
+            {
+                Id = result.Challenge!.Id,
+                TeamId = teamId
+            });
+        });
+
+        if (result == null)
+            throw new GbAutomatedTestSetupException("AddTeam failed to return a result.");
+
+        var realTHings = await _testContext.GetDbContext().Challenges.Where(c => c.TeamId == teamId).ToListAsync();
+        var things = await _testContext.GetDbContext().ArchivedChallenges.Where(c => c.TeamId == teamId).ToListAsync();
+
+        var player = result.Players.First();
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = player.UserId);
+
+        // when / then
+        await Should.NotThrowAsync(httpClient.SendDeleteWithJsonContent($"api/player/{player.Id}/session", new SessionResetRequest
+        {
+            IsManualReset = true,
+            UnenrollTeam = false
+        }));
+
+        var archivedChallengeCount = await _testContext.GetDbContext().ArchivedChallenges.Where(c => c.TeamId == teamId).CountAsync();
+        archivedChallengeCount.ShouldBe(1);
     }
 }

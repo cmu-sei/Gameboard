@@ -148,7 +148,7 @@ namespace Gameboard.Api.Validators
             if (currentManager.TeamId != newManager.TeamId)
                 throw new NotOnSameTeam(currentManager.Id, currentManager.TeamId, newManager.Id, newManager.TeamId, "Players must be on the same team to promote a new manager.");
 
-            if (IsActingAsAdmin(model.AsAdmin, model.Actor))
+            if (IsActingAsAdmin(model.Actor))
                 return;
         }
 
@@ -168,7 +168,7 @@ namespace Gameboard.Api.Validators
             if (!(await Exists(request.PlayerId)))
                 throw new ResourceNotFound<Player>(request.PlayerId);
 
-            if (IsActingAsAdmin(request.AsAdmin, request.Actor))
+            if (IsActingAsAdmin(request.ActingUser))
                 return;
 
             // non-admin validation
@@ -181,7 +181,7 @@ namespace Gameboard.Api.Validators
                         .Include(p => p.Game)
                 );
 
-            var actAsElevated = request.Actor.IsTester || request.Actor.IsAdmin;
+            var actAsElevated = request.ActingUser.IsTester || request.ActingUser.IsAdmin;
             if (!actAsElevated && !player.Game.AllowReset && player.SessionBegin.Year > 1)
                 throw new GameDoesntAllowSessionReset(request.PlayerId, player.GameId, player.SessionBegin);
 
@@ -197,7 +197,7 @@ namespace Gameboard.Api.Validators
 
             var player = await _store.Retrieve(request.PlayerId);
 
-            if (!IsActingAsAdmin(request.AsAdmin, request.Actor) && player.SessionBegin > DateTimeOffset.MinValue)
+            if (!IsActingAsAdmin(request.Actor) && player.SessionBegin > DateTimeOffset.MinValue)
                 throw new SessionAlreadyStarted(request.PlayerId, "Non-admins can't unenroll from a game once they've started a session.");
 
             // this is order-sensitive - non-managers can unenroll as long as the session isn't started
@@ -217,8 +217,8 @@ namespace Gameboard.Api.Validators
                 throw new ManagerCantUnenrollWhileTeammatesRemain(player.Id, player.TeamId, teammateIds);
         }
 
-        private bool IsActingAsAdmin(bool asAdmin, User actor)
-            => asAdmin && (actor.IsAdmin || actor.IsRegistrar);
+        private bool IsActingAsAdmin(User actor)
+            => (actor.IsAdmin || actor.IsRegistrar);
 
         private async Task<bool> Exists(string id)
         {

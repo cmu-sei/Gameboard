@@ -113,7 +113,6 @@ internal class TeamService : ITeamService
             await transaction.CommitAsync();
         }
 
-
         await _teamHubService.SendPlayerRoleChanged(_mapper.Map<Api.Player>(newCaptain), actingUser);
     }
 

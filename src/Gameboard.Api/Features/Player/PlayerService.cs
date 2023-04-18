@@ -169,22 +169,26 @@ public class PlayerService
             .Include(p => p.Game)
             .SingleAsync(p => p.Id == request.PlayerId);
 
-        // unlike unenroll, we archive the entire team's challenges
-        await ChallengeService.ArchiveTeamChallenges(player.TeamId);
+        // unlike unenroll, we archive the entire team's challenges, but only if this reset is manual and we're not unenrolling them
+        if (request.IsManualReset && !request.UnenrollTeam)
+            await ChallengeService.ArchiveTeamChallenges(player.TeamId);
 
-        // delete the entire team (this is the primary difference from "unenroll")
-        await Store.DeleteTeam(player.TeamId);
+        // delete the entire team if requested
+        if (request.UnenrollTeam)
+        {
+            await Store.DeleteTeam(player.TeamId);
 
-        // notify hub that the team is deleted /players left so the client can respond
-        var playerModel = Mapper.Map<Player>(player);
-        await HubBus.SendTeamDeleted(playerModel, request.Actor);
+            // notify hub that the team is deleted /players left so the client can respond
+            var playerModel = Mapper.Map<Player>(player);
+            await HubBus.SendTeamDeleted(playerModel, request.ActingUser);
+
+            if (!player.IsManager && !player.Game.RequireSponsoredTeam)
+                await TeamService.UpdateTeamSponsors(player.TeamId);
+        }
 
         // update player ready state if game needs it
         if (player.Game.RequireSynchronizedStart && player.SessionBegin == DateTimeOffset.MinValue)
-            await GameService.HandleSyncStartStateChanged(player.GameId, request.Actor);
-
-        if (!player.IsManager && !player.Game.RequireSponsoredTeam)
-            await TeamService.UpdateTeamSponsors(player.TeamId);
+            await GameService.HandleSyncStartStateChanged(player.GameId, request.ActingUser);
 
         return Mapper.Map<Player>(player);
     }
