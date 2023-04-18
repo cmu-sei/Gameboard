@@ -161,26 +161,26 @@ public class PlayerService
             .ExecuteUpdateAsync(p => p.SetProperty(p => p.IsReady, isReady));
     }
 
-    public async Task<Player> ResetSession(SessionResetRequest request)
+    public async Task<Player> ResetSession(SessionResetCommandArgs args)
     {
         var player = await Store
             .DbSet
             .AsNoTracking()
             .Include(p => p.Game)
-            .SingleAsync(p => p.Id == request.PlayerId);
+            .SingleAsync(p => p.Id == args.PlayerId);
 
         // unlike unenroll, we archive the entire team's challenges, but only if this reset is manual and we're not unenrolling them
-        if (request.IsManualReset && !request.UnenrollTeam)
+        if (args.IsManualReset && !args.UnenrollTeam)
             await ChallengeService.ArchiveTeamChallenges(player.TeamId);
 
         // delete the entire team if requested
-        if (request.UnenrollTeam)
+        if (args.UnenrollTeam)
         {
             await Store.DeleteTeam(player.TeamId);
 
             // notify hub that the team is deleted /players left so the client can respond
             var playerModel = Mapper.Map<Player>(player);
-            await HubBus.SendTeamDeleted(playerModel, request.ActingUser);
+            await HubBus.SendTeamDeleted(playerModel, args.ActingUser);
 
             if (!player.IsManager && !player.Game.RequireSponsoredTeam)
                 await TeamService.UpdateTeamSponsors(player.TeamId);
@@ -188,7 +188,7 @@ public class PlayerService
 
         // update player ready state if game needs it
         if (player.Game.RequireSynchronizedStart && player.SessionBegin == DateTimeOffset.MinValue)
-            await GameService.HandleSyncStartStateChanged(player.GameId, request.ActingUser);
+            await GameService.HandleSyncStartStateChanged(player.GameId, args.ActingUser);
 
         return Mapper.Map<Player>(player);
     }

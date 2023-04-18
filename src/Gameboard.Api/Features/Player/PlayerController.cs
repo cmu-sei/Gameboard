@@ -110,18 +110,23 @@ namespace Gameboard.Api.Controllers
 
         [HttpDelete("api/player/{playerId}/session")]
         [Authorize]
-        public async Task<Player> ResetSession([FromRoute] string playerId, [FromBody] SessionResetRequest args)
+        public async Task<Player> ResetSession([FromRoute] string playerId, [FromBody] SessionResetRequest request)
         {
             AuthorizeAny(
                 () => Actor.IsAdmin,
                 () => PlayerService.MapId(playerId).Result == Actor.Id
             );
 
-            args.PlayerId = playerId;
-            args.ActingUser = Actor;
+            var commandArgs = new SessionResetCommandArgs
+            {
+                ActingUser = Actor,
+                PlayerId = playerId,
+                IsManualReset = request.IsManualReset,
+                UnenrollTeam = request.UnenrollTeam
+            };
 
-            await Validate(args);
-            return await PlayerService.ResetSession(args);
+            await Validate(commandArgs);
+            return await PlayerService.ResetSession(commandArgs);
         }
 
         /// <summary>

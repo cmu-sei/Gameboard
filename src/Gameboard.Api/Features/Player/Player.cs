@@ -103,9 +103,15 @@ namespace Gameboard.Api
 
     public class SessionResetRequest
     {
-        public User ActingUser { get; set; }
         public required bool IsManualReset { get; set; } = false;
-        public string PlayerId { get; set; }
+        public required bool UnenrollTeam { get; set; } = true;
+    }
+
+    public class SessionResetCommandArgs
+    {
+        public required User ActingUser { get; set; }
+        public required bool IsManualReset { get; set; } = false;
+        public required string PlayerId { get; set; }
         public required bool UnenrollTeam { get; set; } = true;
     }
 
