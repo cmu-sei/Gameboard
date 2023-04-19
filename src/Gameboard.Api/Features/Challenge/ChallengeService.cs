@@ -119,7 +119,8 @@ namespace Gameboard.Api.Services
 #pragma warning disable CA2200
             catch (Exception ex)
             {
-                ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                Logger.LogWarning($"Challenge registration failure: {ex.GetType().Name} -- {ex.Message}");
+                ExceptionDispatchInfo.Capture(ex.InnerException == null ? ex : ex.InnerException).Throw();
                 throw;
             }
             finally
@@ -457,7 +458,7 @@ namespace Gameboard.Api.Services
 
         private async Task ArchiveChallenges(IEnumerable<Data.Challenge> challenges)
         {
-            if (challenges.Count() > 0)
+            if (challenges != null && challenges.Count() > 0)
             {
                 var toArchiveIds = challenges.Select(c => c.Id).ToArray();
 
@@ -493,6 +494,19 @@ namespace Gameboard.Api.Services
                 }).ToArray();
 
                 var toArchive = await Task.WhenAll(toArchiveTasks);
+
+                // this is a backstoppy kind of thing - we aren't quite sure about the conditions under which this happens, but we've had
+                // some stale challenges appear in the archive table and the real challenges table. if for whatever reason we're trying to
+                // archive something that's already in the archive table, instead, delete it, replace it with the updated object
+
+                var recordsAffected = await Store
+                    .DbContext
+                    .ArchivedChallenges
+                    .Where(c => toArchiveIds.Contains(c.Id))
+                    .ExecuteDeleteAsync();
+
+                if (recordsAffected > 0)
+                    Logger.LogWarning($"While attempting to archive challenges (Ids: {string.Join(",", toArchiveIds)}) resulted in the deletion of ${recordsAffected} stale archive records.");
 
                 Store.DbContext.ArchivedChallenges.AddRange(_mapper.Map<Data.ArchivedChallenge[]>(toArchive));
                 await Store.DbContext.SaveChangesAsync();

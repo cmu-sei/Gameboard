@@ -103,9 +103,16 @@ namespace Gameboard.Api
 
     public class SessionResetRequest
     {
-        public User Actor { get; set; }
-        public bool AsAdmin { get; set; } = false;
+        public required bool IsManualReset { get; set; } = false;
+        public required bool UnenrollTeam { get; set; } = true;
+    }
+
+    public class SessionResetCommandArgs
+    {
+        public required User ActingUser { get; set; }
+        public required bool IsManualReset { get; set; } = false;
         public required string PlayerId { get; set; }
+        public required bool UnenrollTeam { get; set; } = true;
     }
 
     public class Standing
@@ -274,4 +281,14 @@ namespace Gameboard.Api
         public Player Player { get; set; }
         public string Html { get; set; }
     }
+
+    public class PlayerUpdatedViewModel
+    {
+        public required string Id { get; set; }
+        public required string ApprovedName { get; set; }
+        public required string PreUpdateName { get; set; }
+        public required string Name { get; set; }
+        public required string NameStatus { get; set; }
+    }
+
 }

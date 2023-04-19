@@ -1,3 +1,5 @@
+using Gameboard.Api.Tests.Shared;
+
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
 public static class GameboardTestContextDefaultEntityExtensions
@@ -88,12 +90,18 @@ public static class GameboardTestContextDefaultEntityExtensions
         );
     }
 
+    /// <summary>
+    /// Creates a team with a challenge, and players dictated by the options parameter.
+    /// </summary>
+    /// <param name="dataStateBuilder"></param>
+    /// <param name="fixture"></param>
+    /// <param name="optsBuilder"></param>
+    /// <returns></returns>
     public static TeamBuilderResult AddTeam(this IDataStateBuilder dataStateBuilder, IFixture fixture, Action<TeamBuilderOptions> optsBuilder)
     {
         var options = new TeamBuilderOptions
         {
-            ChallengeId = fixture.Create<string>(),
-            ChallengeName = fixture.Create<string>(),
+            Challenge = new SimpleEntity { Id = fixture.Create<string>(), Name = fixture.Create<string>() },
             Name = fixture.Create<string>(),
             NumPlayers = 5,
             GameBuilder = g => { },
@@ -116,15 +124,25 @@ public static class GameboardTestContextDefaultEntityExtensions
 
         options.GameBuilder?.Invoke(game);
 
-        var specId = fixture.Create<string>();
-        var challenge = new Api.Data.Challenge
+        Data.Challenge? challenge = null;
+        if (options.Challenge != null)
         {
-            Id = options.ChallengeId,
-            Name = options.Name,
-            Game = game,
-            SpecId = specId,
-            TeamId = options.TeamId
-        };
+            var specId = fixture.Create<string>();
+            challenge = new Api.Data.Challenge
+            {
+                Id = options.Challenge.Id,
+                Name = options.Challenge.Name,
+                Game = game,
+                SpecId = specId,
+                TeamId = options.TeamId
+            };
+
+            dataStateBuilder.AddChallengeSpec(spec =>
+            {
+                spec.Id = specId;
+                spec.Name = fixture.Create<string>();
+            });
+        }
 
         // create players
         var players = new List<Data.Player>();
@@ -140,19 +158,12 @@ public static class GameboardTestContextDefaultEntityExtensions
                 Role = createManager ? Api.PlayerRole.Manager : Api.PlayerRole.Member,
                 TeamId = options.TeamId,
                 User = new Data.User { Id = fixture.Create<string>() },
-                Challenges = new List<Api.Data.Challenge> { challenge },
+                Challenges = challenge != null ? new List<Api.Data.Challenge> { challenge } : new Api.Data.Challenge[] { },
                 Game = game
             };
 
             players.Add(player);
         }
-
-        // Add entities
-        dataStateBuilder.AddChallengeSpec(spec =>
-        {
-            spec.Id = specId;
-            spec.Name = fixture.Create<string>();
-        });
         dataStateBuilder.AddRange(players);
 
         return new TeamBuilderResult

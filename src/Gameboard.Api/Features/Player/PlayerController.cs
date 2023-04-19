@@ -108,18 +108,25 @@ namespace Gameboard.Api.Controllers
             await Mediator.Send(new UpdatePlayerReadyStateCommand(playerId, readyUpdate.IsReady, Actor));
         }
 
-        [HttpDelete("api/player/{playerId}/session")]
+        [HttpPost("api/player/{playerId}/session")]
         [Authorize]
-        public async Task<Player> ResetSession([FromRoute] string playerId, [FromQuery] bool asAdmin = false)
+        public async Task<Player> ResetSession([FromRoute] string playerId, [FromBody] SessionResetRequest request)
         {
             AuthorizeAny(
                 () => Actor.IsAdmin,
                 () => PlayerService.MapId(playerId).Result == Actor.Id
             );
 
-            var request = new SessionResetRequest { PlayerId = playerId, Actor = Actor, AsAdmin = asAdmin };
-            await Validate(request);
-            return await PlayerService.ResetSession(request);
+            var commandArgs = new SessionResetCommandArgs
+            {
+                ActingUser = Actor,
+                PlayerId = playerId,
+                IsManualReset = request.IsManualReset,
+                UnenrollTeam = request.UnenrollTeam
+            };
+
+            await Validate(commandArgs);
+            return await PlayerService.ResetSession(commandArgs);
         }
 
         /// <summary>
