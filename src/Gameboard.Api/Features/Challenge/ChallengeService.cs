@@ -119,7 +119,8 @@ namespace Gameboard.Api.Services
 #pragma warning disable CA2200
             catch (Exception ex)
             {
-                ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                Logger.LogWarning($"Challenge registration failure: {ex.GetType().Name} -- {ex.Message}");
+                ExceptionDispatchInfo.Capture(ex.InnerException == null ? ex : ex.InnerException).Throw();
                 throw;
             }
             finally
