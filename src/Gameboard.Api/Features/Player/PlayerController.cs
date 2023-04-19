@@ -108,7 +108,7 @@ namespace Gameboard.Api.Controllers
             await Mediator.Send(new UpdatePlayerReadyStateCommand(playerId, readyUpdate.IsReady, Actor));
         }
 
-        [HttpDelete("api/player/{playerId}/session")]
+        [HttpPost("api/player/{playerId}/session")]
         [Authorize]
         public async Task<Player> ResetSession([FromRoute] string playerId, [FromBody] SessionResetRequest request)
         {

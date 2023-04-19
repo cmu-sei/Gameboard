@@ -35,11 +35,11 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
         var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = player.UserId);
 
         // when 
-        var response = await httpClient.SendDeleteWithJsonContent($"api/player/{player.Id}/session", new SessionResetRequest
+        var response = await httpClient.PostAsync($"api/player/{player.Id}/session", new SessionResetRequest
         {
             IsManualReset = true,
             UnenrollTeam = true
-        });
+        }.ToJsonBody());
 
         // then
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -72,11 +72,11 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
         var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = player.UserId);
 
         // when 
-        var response = await httpClient.SendDeleteWithJsonContent($"api/player/{player.Id}/session", new SessionResetRequest
+        var response = await httpClient.PostAsync($"api/player/{player.Id}/session", new SessionResetRequest
         {
             IsManualReset = true,
             UnenrollTeam = true
-        });
+        }.ToJsonBody());
 
         // then
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -105,11 +105,11 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
         var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = player.UserId);
 
         // when 
-        var response = await httpClient.SendDeleteWithJsonContent($"api/player/{player.Id}/session", new SessionResetRequest
+        var response = await httpClient.PostAsync($"api/player/{player.Id}/session", new SessionResetRequest
         {
             IsManualReset = false,
             UnenrollTeam = false
-        });
+        }.ToJsonBody());
 
         // then
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -151,11 +151,11 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
         var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = player.UserId);
 
         // when / then
-        await Should.NotThrowAsync(httpClient.SendDeleteWithJsonContent($"api/player/{player.Id}/session", new SessionResetRequest
+        await Should.NotThrowAsync(httpClient.PostAsync($"api/player/{player.Id}/session", new SessionResetRequest
         {
             IsManualReset = true,
             UnenrollTeam = false
-        }));
+        }.ToJsonBody()));
 
         var archivedChallengeCount = await _testContext.GetDbContext().ArchivedChallenges.Where(c => c.TeamId == teamId).CountAsync();
         archivedChallengeCount.ShouldBe(1);
