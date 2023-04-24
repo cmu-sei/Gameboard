@@ -491,6 +491,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<bool>("RequireSponsoredTeam")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("RequireSynchronizedStart")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Season")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -574,6 +577,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<string>("InviteCode")
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
+
+                    b.Property<bool>("IsReady")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Mode")
                         .HasColumnType("integer");

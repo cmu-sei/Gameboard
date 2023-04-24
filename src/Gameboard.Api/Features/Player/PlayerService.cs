@@ -8,7 +8,10 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Teams;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -19,8 +22,11 @@ public class PlayerService
     CoreOptions CoreOptions { get; }
     ChallengeService ChallengeService { get; set; }
     IPlayerStore Store { get; }
+    IGameService GameService { get; }
     IGameStore GameStore { get; }
+    IGameHubBus GameHubBus { get; set; }
     IGuidService GuidService { get; }
+    IMediator MediatorBus { get; }
     IInternalHubBus HubBus { get; }
     ITeamService TeamService { get; }
     IUserStore UserStore { get; }
@@ -33,8 +39,11 @@ public class PlayerService
         CoreOptions coreOptions,
         ChallengeService challengeService,
         IGuidService guidService,
+        IMediator mediator,
         IPlayerStore store,
         IUserStore userStore,
+        IGameHubBus gameHubBus,
+        IGameService gameService,
         IGameStore gameStore,
         IInternalHubBus hubBus,
         ITeamService teamService,
@@ -45,7 +54,10 @@ public class PlayerService
     {
         CoreOptions = coreOptions;
         ChallengeService = challengeService;
+        GameService = gameService;
         GuidService = guidService;
+        MediatorBus = mediator;
+        GameHubBus = gameHubBus;
         HubBus = hubBus;
         Store = store;
         GameStore = gameStore;
@@ -74,6 +86,9 @@ public class PlayerService
 
         await Store.Create(entity);
         await HubBus.SendPlayerEnrolled(Mapper.Map<Api.Player>(entity), actor);
+
+        if (game.RequireSynchronizedStart)
+            await GameService.HandleSyncStartStateChanged(entity.GameId, actor);
 
         return Mapper.Map<Player>(entity);
     }
@@ -137,26 +152,43 @@ public class PlayerService
         return Mapper.Map<Player>(entity);
     }
 
-    public async Task<Player> ResetSession(SessionResetRequest request)
+    public async Task UpdatePlayerReadyState(string playerId, bool isReady)
+    {
+        var player = await Store.Retrieve(playerId);
+        await Store
+            .List()
+            .Where(p => p.Id == playerId)
+            .ExecuteUpdateAsync(p => p.SetProperty(p => p.IsReady, isReady));
+    }
+
+    public async Task<Player> ResetSession(SessionResetCommandArgs args)
     {
         var player = await Store
             .DbSet
             .AsNoTracking()
             .Include(p => p.Game)
-            .SingleAsync(p => p.Id == request.PlayerId);
+            .SingleAsync(p => p.Id == args.PlayerId);
 
-        // unlike unenroll, we archive the entire team's challenges
-        await ChallengeService.ArchiveTeamChallenges(player.TeamId);
+        // unlike unenroll, we archive the entire team's challenges, but only if this reset is manual and we're not unenrolling them
+        if (args.IsManualReset && !args.UnenrollTeam)
+            await ChallengeService.ArchiveTeamChallenges(player.TeamId);
 
-        // delete the entire team (this is the primary difference from "unenroll")
-        await Store.DeleteTeam(player.TeamId);
+        // delete the entire team if requested
+        if (args.UnenrollTeam)
+        {
+            await Store.DeleteTeam(player.TeamId);
 
-        // notify hub that the team is deleted /players left so the client can respond
-        var playerModel = Mapper.Map<Player>(player);
-        await HubBus.SendTeamDeleted(playerModel, request.Actor);
+            // notify hub that the team is deleted /players left so the client can respond
+            var playerModel = Mapper.Map<Player>(player);
+            await HubBus.SendTeamDeleted(playerModel, args.ActingUser);
 
-        if (!player.IsManager && !player.Game.RequireSponsoredTeam)
-            await TeamService.UpdateTeamSponsors(player.TeamId);
+            if (!player.IsManager && !player.Game.RequireSponsoredTeam)
+                await TeamService.UpdateTeamSponsors(player.TeamId);
+        }
+
+        // update player ready state if game needs it
+        if (player.Game.RequireSynchronizedStart && player.SessionBegin == DateTimeOffset.MinValue)
+            await GameService.HandleSyncStartStateChanged(player.GameId, args.ActingUser);
 
         return Mapper.Map<Player>(player);
     }
@@ -166,8 +198,31 @@ public class PlayerService
         var team = await Store.ListTeamByPlayer(model.PlayerId);
 
         var player = team.First();
-        var game = await Store.DbContext.Games.FindAsync(player.GameId);
+        var game = await Store.DbContext.Games.SingleOrDefaultAsync(g => g.Id == player.GameId);
 
+        // rule: game's execution period has to be open
+        if (!sudo && game.IsLive.Equals(false))
+            throw new GameNotActive();
+
+        // rule: players per team has to be within the game's constraint
+        if (
+            !sudo &&
+            game.RequireTeam &&
+            team.Length < game.MinTeamSize
+        )
+            throw new InvalidTeamSize();
+
+        // rule: for now, can't start a player's session in this code path.
+        // TODO: refactor for SOLIDness
+        if (!sudo && game.RequireSynchronizedStart)
+        {
+            throw new InvalidOperationException("Can't start a player's session for a sync start game with PlayerService.StartSession (use GameService.StartSynchronizedSession).");
+            // var syncStartState = await GameService.GetSyncStartState(game.Id);
+            // if (!syncStartState.IsReady)
+            //     throw new SyncStartNotReady(player.Id, syncStartState);
+        }
+
+        // rule: teams can't have a session limit exceeding the game's settings
         if (!sudo && game.SessionLimit > 0)
         {
             var ts = DateTimeOffset.UtcNow;
@@ -180,18 +235,8 @@ public class PlayerService
                 );
 
             if (sessionCount >= game.SessionLimit)
-                throw new SessionLimitReached();
+                throw new SessionLimitReached(player.TeamId, game.Id, sessionCount, game.SessionLimit);
         }
-
-        if (!sudo && game.IsLive.Equals(false))
-            throw new GameNotActive();
-
-        if (
-            !sudo &&
-            game.RequireTeam &&
-            team.Length < game.MinTeamSize
-        )
-            throw new InvalidTeamSize();
 
         var st = DateTimeOffset.UtcNow;
         var et = st.AddMinutes(game.SessionMinutes);
@@ -489,7 +534,7 @@ public class PlayerService
     {
         // they probably don't have challenge data on an unenroll, but in case an admin does this
         // or something, we'll clean up their challenges
-        var player = await Store.Retrieve(request.PlayerId);
+        var player = await Store.Retrieve(request.PlayerId, players => players.Include(p => p.Game));
         await ChallengeService.ArchivePlayerChallenges(player);
 
         // delete the player record
@@ -501,26 +546,10 @@ public class PlayerService
         // notify listeners on SignalR (like the team)
         var playerModel = Mapper.Map<Player>(player);
         await HubBus.SendPlayerLeft(playerModel, request.Actor);
-    }
 
-    public async Task<Team> LoadTeam(string id)
-    {
-
-        var players = await Store.ListTeam(id).ToArrayAsync();
-        if (players.Count() == 0)
-            return null;
-
-        var team = Mapper.Map<Team>(
-            players.First(p => p.IsManager)
-        );
-
-        team.Members = Mapper.Map<TeamMember[]>(
-            players.Select(p => p.User)
-        );
-
-        team.TeamSponsors = string.Join("|", players.Select(p => p.Sponsor));
-
-        return team;
+        // update sync start if needed
+        if (player.Game.RequireSynchronizedStart)
+            await GameService.HandleSyncStartStateChanged(player.GameId, request.Actor);
     }
 
     public async Task<TeamChallenge[]> LoadChallengesForTeam(string teamId)
@@ -754,7 +783,7 @@ public class PlayerService
             );
 
             if (count >= CoreOptions.MaxPracticeSessions)
-                throw new SessionLimitReached();
+                throw new PracticeSessionLimitReached(model.UserId, count, CoreOptions.MaxPracticeSessions);
         }
 
         var entity = await InitializePlayer(model, CoreOptions.PracticeSessionMinutes);
@@ -767,7 +796,6 @@ public class PlayerService
         await Store.Create(entity);
 
         return Mapper.Map<Player>(entity);
-
     }
 
     private async Task<Data.Player> InitializePlayer(NewPlayer model, int duration)

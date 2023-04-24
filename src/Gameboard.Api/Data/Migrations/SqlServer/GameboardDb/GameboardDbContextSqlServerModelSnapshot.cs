@@ -492,6 +492,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<bool>("RequireSponsoredTeam")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("RequireSynchronizedStart")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Season")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
@@ -575,6 +578,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<string>("InviteCode")
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
+
+                    b.Property<bool>("IsReady")
+                        .HasColumnType("bit");
 
                     b.Property<int>("Mode")
                         .HasColumnType("int");

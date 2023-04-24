@@ -59,7 +59,7 @@
             "command": "dotnet",
             "args": [
                 "test",
-                "${workspaceFolder}/src/Gameboard.Tests.Unit"
+                "${workspaceFolder}/src/Gameboard.Api.Tests.Unit"
             ],
             "problemMatcher": []
         },
@@ -69,7 +69,7 @@
             "command": "dotnet",
             "args": [
                 "test",
-                "${workspaceFolder}/src/Gameboard.Tests.Integration"
+                "${workspaceFolder}/src/Gameboard.Api.Tests.Integration"
             ],
             "problemMatcher": []
         },

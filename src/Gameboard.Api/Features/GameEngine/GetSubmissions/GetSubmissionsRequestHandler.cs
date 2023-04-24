@@ -41,7 +41,7 @@ internal class GetSubmissionsRequestHandler : IRequestHandler<GetSubmissionsQuer
         _roleAuthorizer.Authorize();
         await _validator.Validate(request);
 
-        var challenge = await _challengeStore.Retrieve(request.challengeId);
+        var challenge = await _challengeStore.Retrieve(request.ChallengeId);
         return await _gameEngine.AuditChallenge(challenge);
     }
 }

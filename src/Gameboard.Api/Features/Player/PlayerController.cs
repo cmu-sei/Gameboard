@@ -5,9 +5,12 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
@@ -21,12 +24,14 @@ namespace Gameboard.Api.Controllers
         PlayerService PlayerService { get; }
         IInternalHubBus Hub { get; }
         IMapper Mapper { get; }
+        IMediator Mediator { get; }
         ITeamService TeamService { get; set; }
 
         public PlayerController(
             ILogger<PlayerController> logger,
             IDistributedCache cache,
             PlayerValidator validator,
+            IMediator mediator,
             PlayerService playerService,
             IInternalHubBus hub,
             IMapper mapper,
@@ -36,6 +41,7 @@ namespace Gameboard.Api.Controllers
             PlayerService = playerService;
             Hub = hub;
             Mapper = mapper;
+            Mediator = mediator;
             TeamService = teamService;
         }
 
@@ -95,18 +101,32 @@ namespace Gameboard.Api.Controllers
             return Mapper.Map<PlayerUpdatedViewModel>(result);
         }
 
-        [HttpDelete("api/player/{playerId}/session")]
+        [HttpPut("api/player/{playerId}/ready")]
         [Authorize]
-        public async Task<Player> ResetSession([FromRoute] string playerId, [FromQuery] bool asAdmin = false)
+        public async Task UpdatePlayerReady([FromRoute] string playerId, [FromBody] PlayerReadyUpdate readyUpdate)
+        {
+            await Mediator.Send(new UpdatePlayerReadyStateCommand(playerId, readyUpdate.IsReady, Actor));
+        }
+
+        [HttpPost("api/player/{playerId}/session")]
+        [Authorize]
+        public async Task<Player> ResetSession([FromRoute] string playerId, [FromBody] SessionResetRequest request)
         {
             AuthorizeAny(
                 () => Actor.IsAdmin,
                 () => PlayerService.MapId(playerId).Result == Actor.Id
             );
 
-            var request = new SessionResetRequest { PlayerId = playerId, Actor = Actor, AsAdmin = asAdmin };
-            await Validate(request);
-            return await PlayerService.ResetSession(request);
+            var commandArgs = new SessionResetCommandArgs
+            {
+                ActingUser = Actor,
+                PlayerId = playerId,
+                IsManualReset = request.IsManualReset,
+                UnenrollTeam = request.UnenrollTeam
+            };
+
+            await Validate(commandArgs);
+            return await PlayerService.ResetSession(commandArgs);
         }
 
         /// <summary>
@@ -201,18 +221,6 @@ namespace Gameboard.Api.Controllers
         public async Task<Standing[]> Scores([FromQuery] PlayerDataFilter model)
         {
             return await PlayerService.Standings(model);
-        }
-
-        /// <summary>
-        /// Get team data by id
-        /// </summary>
-        /// <param name="id">The id of the team to be queried.</param>
-        /// <returns>Team</returns>
-        [HttpGet("/api/team/{id}")]
-        [Authorize]
-        public async Task<Team> GetTeam([FromRoute] string id)
-        {
-            return await PlayerService.LoadTeam(id);
         }
 
         /// <summary>

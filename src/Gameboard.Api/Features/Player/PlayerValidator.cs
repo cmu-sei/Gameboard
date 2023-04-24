@@ -42,8 +42,8 @@ namespace Gameboard.Api.Validators
             if (model is PromoteToManagerRequest)
                 return _validate(model as PromoteToManagerRequest);
 
-            if (model is SessionResetRequest)
-                return _validate(model as SessionResetRequest);
+            if (model is SessionResetCommandArgs)
+                return _validate(model as SessionResetCommandArgs);
 
             if (model is SessionStartRequest)
                 return _validate(model as SessionStartRequest);
@@ -148,7 +148,7 @@ namespace Gameboard.Api.Validators
             if (currentManager.TeamId != newManager.TeamId)
                 throw new NotOnSameTeam(currentManager.Id, currentManager.TeamId, newManager.Id, newManager.TeamId, "Players must be on the same team to promote a new manager.");
 
-            if (IsActingAsAdmin(model.AsAdmin, model.Actor))
+            if (IsActingAsAdmin(model.Actor))
                 return;
         }
 
@@ -163,27 +163,27 @@ namespace Gameboard.Api.Validators
             await Task.CompletedTask;
         }
 
-        public async Task _validate(SessionResetRequest request)
+        public async Task _validate(SessionResetCommandArgs args)
         {
-            if (!(await Exists(request.PlayerId)))
-                throw new ResourceNotFound<Player>(request.PlayerId);
+            if (!(await Exists(args.PlayerId)))
+                throw new ResourceNotFound<Player>(args.PlayerId);
 
-            if (IsActingAsAdmin(request.AsAdmin, request.Actor))
+            if (IsActingAsAdmin(args.ActingUser))
                 return;
 
             // non-admin validation
             var player = await _store
                 .Retrieve
                 (
-                    request.PlayerId,
+                    args.PlayerId,
                     q =>
                         q.AsNoTracking()
                         .Include(p => p.Game)
                 );
 
-            var actAsElevated = request.Actor.IsTester || request.Actor.IsAdmin;
+            var actAsElevated = args.ActingUser.IsTester || args.ActingUser.IsAdmin;
             if (!actAsElevated && !player.Game.AllowReset && player.SessionBegin.Year > 1)
-                throw new GameDoesntAllowSessionReset(request.PlayerId, player.GameId, player.SessionBegin);
+                throw new GameDoesntAllowSessionReset(args.PlayerId, player.GameId, player.SessionBegin);
 
             // TODO: rethink AsAdmin, see https://github.com/cmu-sei/Gameboard/issues/158
             if (!actAsElevated && !player.Game.RegistrationActive)
@@ -197,7 +197,7 @@ namespace Gameboard.Api.Validators
 
             var player = await _store.Retrieve(request.PlayerId);
 
-            if (!IsActingAsAdmin(request.AsAdmin, request.Actor) && player.SessionBegin > DateTimeOffset.MinValue)
+            if (!IsActingAsAdmin(request.Actor) && player.SessionBegin > DateTimeOffset.MinValue)
                 throw new SessionAlreadyStarted(request.PlayerId, "Non-admins can't unenroll from a game once they've started a session.");
 
             // this is order-sensitive - non-managers can unenroll as long as the session isn't started
@@ -217,8 +217,8 @@ namespace Gameboard.Api.Validators
                 throw new ManagerCantUnenrollWhileTeammatesRemain(player.Id, player.TeamId, teammateIds);
         }
 
-        private bool IsActingAsAdmin(bool asAdmin, User actor)
-            => asAdmin && (actor.IsAdmin || actor.IsRegistrar);
+        private bool IsActingAsAdmin(User actor)
+            => (actor.IsAdmin || actor.IsRegistrar);
 
         private async Task<bool> Exists(string id)
         {

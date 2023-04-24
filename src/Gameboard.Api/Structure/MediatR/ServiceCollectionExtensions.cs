@@ -12,9 +12,8 @@ internal static class MediatRExtensionsToServiceCollection
             .AddConcretesFromNamespaceStartsWith("Gameboard.Api.Structure.MediatR")
             .AddConcretesFromNamespace("Gameboard.Api.Features.GameEngine.Queries")
             .AddImplementationsOf<IAuthorizer>()
-            .AddImplementationsOf<IGameboardValidator>()
-            .AddImplementationsOf(typeof(IGameboardValidator<,>))
+            .AddImplementationsOf(typeof(IGameboardValidator<>))
             .AddImplementationsOf(typeof(IGameboardRequestValidator<>))
-            .AddScoped<IValidatorService, ValidatorService>();
+            .AddScoped(typeof(IValidatorService<>), typeof(ValidatorService<>));
     }
 }

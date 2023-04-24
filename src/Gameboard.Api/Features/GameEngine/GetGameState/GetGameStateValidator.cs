@@ -1,36 +1,37 @@
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using Gameboard.Api.Structure;
+using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Validators;
+using Microsoft.EntityFrameworkCore;
 
-namespace Gameboard.Api.Features.GameEngine.Requests;
+namespace Gameboard.Api.Features.GameEngine;
 
 internal class GetGameStateValidator : IGameboardRequestValidator<GetGameStateQuery>
 {
-    private readonly RequiredStringValidator _teamIdRequired;
-    private readonly TeamExistsValidator _teamExists;
+    private readonly IPlayerStore _playerStore;
+    private readonly IValidatorService<GetGameStateQuery> _validatorService;
 
-    public GetGameStateValidator(RequiredStringValidator requiredTeamId, TeamExistsValidator teamExists)
+    public GetGameStateValidator
+    (
+        IPlayerStore playerStore,
+        IValidatorService<GetGameStateQuery> validatorService
+    )
     {
-        _teamExists = teamExists;
-        _teamIdRequired = requiredTeamId;
+        _playerStore = playerStore;
+        _validatorService = validatorService;
     }
 
-    public async Task<GameboardAggregatedValidationExceptions> Validate(GetGameStateQuery request)
+    public async Task Validate(GetGameStateQuery request)
     {
-        var exceptions = new List<GameboardValidationException>()
-            .AddIfNotNull(await _teamExists.Validate(request.teamId))
-            .AddIfNotNull(await _teamIdRequired.Validate(new RequiredStringContext
-            {
-                PropertyName = request.teamId,
-                Value = request.teamId
-            }));
+        _validatorService.AddValidator(async (request, context) =>
+        {
+            var count = await _playerStore
+                .ListTeam(request.TeamId)
+                .CountAsync();
 
-        if (exceptions.Count() > 0)
-            return GameboardAggregatedValidationExceptions.FromValidationExceptions(exceptions);
+            if (count == 0)
+                context.AddValidationException(new ResourceNotFound<Team>(request.TeamId));
+        });
 
-        return null;
+        await _validatorService.Validate(request);
     }
 }

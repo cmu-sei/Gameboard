@@ -15,15 +15,15 @@ namespace Gameboard.Api.Features.ChallengeBonuses;
 internal class ListManualBonusesHandler : IRequestHandler<ListManualBonusesQuery, IEnumerable<ManualChallengeBonusViewModel>>
 {
     private readonly IStore<ManualChallengeBonus> _challengeBonusStore;
-    private readonly EntityExistsValidator<Data.Challenge> _challengeExists;
+    private readonly EntityExistsValidator<ListManualBonusesQuery, Data.Challenge> _challengeExists;
     private readonly IMapper _mapper;
-    private readonly IValidatorService _validatorService;
+    private readonly IValidatorService<ListManualBonusesQuery> _validatorService;
 
     public ListManualBonusesHandler(
         IStore<ManualChallengeBonus> challengeBonusStore,
-        EntityExistsValidator<Data.Challenge> challengeExists,
+        EntityExistsValidator<ListManualBonusesQuery, Data.Challenge> challengeExists,
         IMapper mapper,
-        IValidatorService validatorService)
+        IValidatorService<ListManualBonusesQuery> validatorService)
     {
         _challengeBonusStore = challengeBonusStore;
         _challengeExists = challengeExists;
@@ -33,15 +33,15 @@ internal class ListManualBonusesHandler : IRequestHandler<ListManualBonusesQuery
 
     public async Task<IEnumerable<ManualChallengeBonusViewModel>> Handle(ListManualBonusesQuery request, CancellationToken cancellationToken)
     {
-        await _validatorService.Validate(request.challengeId, _challengeExists);
-        var things = await _challengeBonusStore.List().Where(b => b.ChallengeId == request.challengeId).ToListAsync();
+        _validatorService.AddValidator(_challengeExists.UseProperty(r => r.ChallengeId));
+        await _validatorService.Validate(request);
 
         return await _mapper
             .ProjectTo<ManualChallengeBonusViewModel>
             (
                 _challengeBonusStore
                 .List()
-                .Where(b => b.ChallengeId == request.challengeId)
+                .Where(b => b.ChallengeId == request.ChallengeId)
             ).ToListAsync();
     }
 }

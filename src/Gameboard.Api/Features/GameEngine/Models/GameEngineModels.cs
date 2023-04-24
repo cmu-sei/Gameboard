@@ -71,11 +71,11 @@ public class GameEngineChallengeView
 public class GameEngineQuestionView
 {
     public string Answer { get; set; }
-    public string Example { get; }
-    public string Hint { get; }
+    public string Example { get; set; }
+    public string Hint { get; set; }
     public bool IsCorrect { get; set; }
     public bool IsGraded { get; set; }
-    public float Penalty { get; }
+    public float Penalty { get; set; }
     public string Text { get; set; }
     public float Weight { get; set; }
 }

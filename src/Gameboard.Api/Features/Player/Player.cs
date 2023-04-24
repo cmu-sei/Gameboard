@@ -17,6 +17,7 @@ namespace Gameboard.Api
         public string GameId { get; set; }
         public string GameName { get; set; }
         public string ApprovedName { get; set; }
+        public string TeamName { get; set; }
         public string Name { get; set; }
         public string NameStatus { get; set; }
         public string Sponsor { get; set; }
@@ -32,6 +33,7 @@ namespace Gameboard.Api
         public int PartialCount { get; set; }
         public bool Advanced { get; set; }
         public bool IsManager { get; set; }
+        public bool IsReady { get; set; }
         public PlayerMode Mode { get; set; }
         public string[] SponsorList => (TeamSponsors ?? Sponsor ?? "").Split("|");
     }
@@ -52,6 +54,11 @@ namespace Gameboard.Api
         public string ApprovedName { get; set; }
         public string Sponsor { get; set; }
         public PlayerRole Role { get; set; }
+    }
+
+    public class PlayerReadyUpdate
+    {
+        public bool IsReady { get; set; }
     }
 
     public class SessionStartRequest
@@ -96,9 +103,16 @@ namespace Gameboard.Api
 
     public class SessionResetRequest
     {
-        public User Actor { get; set; }
-        public bool AsAdmin { get; set; } = false;
+        public required bool IsManualReset { get; set; } = false;
+        public required bool UnenrollTeam { get; set; } = true;
+    }
+
+    public class SessionResetCommandArgs
+    {
+        public required User ActingUser { get; set; }
+        public required bool IsManualReset { get; set; } = false;
         public required string PlayerId { get; set; }
+        public required bool UnenrollTeam { get; set; } = true;
     }
 
     public class Standing
@@ -267,4 +281,14 @@ namespace Gameboard.Api
         public Player Player { get; set; }
         public string Html { get; set; }
     }
+
+    public class PlayerUpdatedViewModel
+    {
+        public required string Id { get; set; }
+        public required string ApprovedName { get; set; }
+        public required string PreUpdateName { get; set; }
+        public required string Name { get; set; }
+        public required string NameStatus { get; set; }
+    }
+
 }
