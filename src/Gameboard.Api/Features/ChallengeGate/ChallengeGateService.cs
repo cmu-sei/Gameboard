@@ -11,16 +11,16 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Services
 {
-    public class ChallengeGateService: _Service
+    public class ChallengeGateService : _Service
     {
         IChallengeGateStore Store { get; }
 
-        public ChallengeGateService (
+        public ChallengeGateService(
             ILogger<ChallengeGateService> logger,
             IMapper mapper,
             CoreOptions options,
             IChallengeGateStore store
-        ): base(logger, mapper, options)
+        ) : base(logger, mapper, options)
         {
             Store = store;
         }
@@ -69,7 +69,7 @@ namespace Gameboard.Api.Services
         internal async Task<ChallengeGate[]> List(string id)
         {
             if (id.IsEmpty())
-                return new ChallengeGate[]{};
+                return new ChallengeGate[] { };
 
             return
                 await Mapper.ProjectTo<ChallengeGate>(

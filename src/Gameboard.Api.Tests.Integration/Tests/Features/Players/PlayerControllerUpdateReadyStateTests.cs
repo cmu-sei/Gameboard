@@ -1,6 +1,7 @@
 using System.Net;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration.Players;
 
@@ -61,9 +62,11 @@ public class PlayerControllerUpdatePlayerReadyTests : IClassFixture<GameboardTes
 
         // then
         // only way to validate is to check for an upcoming session for the game
-        var finalPlayer1 = await client
-            .GetAsync($"/api/player/{notReadyPlayer1Id}")
-            .WithContentDeserializedAs<Data.Player>();
+
+        var finalPlayer1 = await _testContext
+            .GetDbContext()
+            .Players
+            .SingleOrDefaultAsync(p => p.Id == notReadyPlayer1Id);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         finalPlayer1.ShouldNotBeNull();

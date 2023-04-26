@@ -87,7 +87,7 @@ namespace Gameboard.Api.Services
         {
             var q = Store.List(model.Term);
 
-            if (model.GameId.HasValue())
+            if (model.GameId.NotEmpty())
                 q = q.Where(u => u.GameId == model.GameId);
 
             if (model.WantsGame)

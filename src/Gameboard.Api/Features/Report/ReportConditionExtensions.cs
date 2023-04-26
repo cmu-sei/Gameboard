@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -16,12 +17,12 @@ internal static class ReportConditionExtensions
         return queryable;
     }
 
-    public static IQueryable<T> WithConditions<T>(this IQueryable<T> queryable, params Func<T, bool>[] conditions)
+    public static IQueryable<T> WithConditions<T>(this IQueryable<T> queryable, params Expression<Func<T, bool>>[] conditions)
     {
         return queryable.WithConditions(conditions.AsEnumerable());
     }
 
-    public static IQueryable<T> WithConditions<T>(this IQueryable<T> queryable, IEnumerable<Func<T, bool>> conditions)
+    public static IQueryable<T> WithConditions<T>(this IQueryable<T> queryable, IEnumerable<Expression<Func<T, bool>>> conditions)
     {
         foreach (var condition in conditions)
             queryable = queryable.Where(condition).AsQueryable();

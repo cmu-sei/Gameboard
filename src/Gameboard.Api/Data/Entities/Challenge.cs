@@ -35,7 +35,7 @@ namespace Gameboard.Api.Data
                 : ChallengeResult.None;
 
         [NotMapped]
-        public long Duration => StartTime.NotEmpty() && LastScoreTime.NotEmpty()
+        public long Duration => StartTime.HasValue() && LastScoreTime.HasValue()
             ? (long)LastScoreTime.Subtract(StartTime).TotalMilliseconds
             : 0;
 

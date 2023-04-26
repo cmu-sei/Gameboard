@@ -29,7 +29,10 @@ namespace Gameboard.Api.Data
 
         public IQueryable<TEntity> ListWithNoTracking()
         {
-            return DbContext.Set<TEntity>().AsNoTracking();
+            return DbContext.
+                Set<TEntity>()
+                .AsNoTracking()
+                .AsQueryable();
         }
 
         public virtual async Task<TEntity> Create(TEntity entity)
@@ -59,7 +62,7 @@ namespace Gameboard.Api.Data
 
         public virtual async Task<bool> Exists(string id)
         {
-            return (await List().CountAsync(e => e.Id == id)) > 0;
+            return id.NotEmpty() && (await List().CountAsync(e => e.Id == id)) > 0;
         }
 
         public virtual Task<TEntity> Retrieve(string id)

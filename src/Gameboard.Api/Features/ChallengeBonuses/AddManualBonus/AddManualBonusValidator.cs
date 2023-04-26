@@ -1,7 +1,7 @@
 namespace Gameboard.Api.Features.ChallengeBonuses;
 
-using System.Collections.Generic;
 using System.Threading.Tasks;
+using Gameboard.Api.Features.GameEngine.Requests;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using Microsoft.AspNetCore.Http;

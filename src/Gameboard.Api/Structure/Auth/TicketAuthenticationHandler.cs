@@ -74,7 +74,7 @@ namespace Gameboard.Api.Auth
 
             string value = await _cache.GetStringAsync(key);
 
-            if (!value.HasValue())
+            if (value.IsEmpty())
                 return AuthenticateResult.NoResult();
 
             await _cache.RemoveAsync(key);

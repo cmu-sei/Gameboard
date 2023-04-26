@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Features.GameEngine.Requests;
 
+public record AddManualBonusCommand(string ChallengeId, CreateManualChallengeBonus Model) : IRequest;
+
 internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
 {
     private readonly IStore<ManualChallengeBonus> _challengeBonusStore;

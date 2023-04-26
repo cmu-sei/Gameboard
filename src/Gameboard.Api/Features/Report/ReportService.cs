@@ -8,11 +8,10 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {
-    public class ReportService : _Service
+    public class ReportServiceLegacy : _Service
     {
         GameboardDbContext Store { get; }
         ITicketStore TicketStore { get; }
@@ -21,8 +20,8 @@ namespace Gameboard.Api.Services
 
         string blankName = "N/A";
 
-        public ReportService(
-            ILogger<ReportService> logger,
+        public ReportServiceLegacy(
+            ILogger<ReportServiceLegacy> logger,
             IMapper mapper,
             CoreOptions options,
             Defaults defaults,

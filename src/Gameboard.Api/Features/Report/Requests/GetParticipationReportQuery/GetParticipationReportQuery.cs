@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
 using MediatR;
 using Microsoft.EntityFrameworkCore;

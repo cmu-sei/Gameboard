@@ -39,18 +39,18 @@ namespace Gameboard.Api
             }
         }
 
-        public static bool NotEmpty(this DateTimeOffset ts)
+        public static bool HasValue(this DateTimeOffset ts)
         {
             return ts.Year > 1;
         }
-        public static bool Empty(this DateTimeOffset ts)
+        public static bool DoesntHaveValue(this DateTimeOffset ts)
         {
-            return ts.Year == 1;
+            return !HasValue(ts);
         }
 
         public static string Tag(this string s)
         {
-            if (s.HasValue())
+            if (s.NotEmpty())
             {
                 int x = s.IndexOf("#");
                 if (x >= 0)
@@ -62,7 +62,7 @@ namespace Gameboard.Api
         //strips hashtag+ from string
         public static string Untagged(this string s)
         {
-            if (s.HasValue())
+            if (s.NotEmpty())
             {
                 int x = s.IndexOf("#");
                 if (x >= 0)
@@ -71,17 +71,14 @@ namespace Gameboard.Api
             return s;
         }
 
-        public static bool HasValue(this string str)
-        {
-            return !string.IsNullOrEmpty(str);
-        }
         public static bool IsEmpty(this string str)
         {
-            return string.IsNullOrEmpty(str);
+            return string.IsNullOrWhiteSpace(str);
         }
+
         public static bool NotEmpty(this string str)
         {
-            return str.IsEmpty().Equals(false);
+            return !IsEmpty(str);
         }
 
         public static string Sanitize(this string target, char[] exclude)

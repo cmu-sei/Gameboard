@@ -58,21 +58,21 @@ namespace Gameboard.Api
     internal class RegistrationIsClosed : GameboardException
     {
         internal RegistrationIsClosed(string gameId, string addlMessage = null) :
-            base($"Registration for game {gameId} is closed.{(addlMessage.HasValue() ? $" [{addlMessage}]" : string.Empty)}")
+            base($"Registration for game {gameId} is closed.{(addlMessage.NotEmpty() ? $" [{addlMessage}]" : string.Empty)}")
         { }
     }
 
     internal class ResourceAlreadyExists<T> : GameboardException where T : class, IEntity
     {
         internal ResourceAlreadyExists(string id, string addlMessage = null) :
-            base($"Couldn't create resource '{id}' of type {typeof(T).Name} because it already exists.{(addlMessage.HasValue() ? $" {addlMessage}" : string.Empty)}")
+            base($"Couldn't create resource '{id}' of type {typeof(T).Name} because it already exists.{(addlMessage.NotEmpty() ? $" {addlMessage}" : string.Empty)}")
         { }
     }
 
     internal class ResourceNotFound<T> : GameboardValidationException where T : class
     {
         internal ResourceNotFound(string id, string addlMessage = null)
-            : base($"Couldn't find resource {id} of type {typeof(T).Name}.{(addlMessage.HasValue() ? $" [{addlMessage}]" : string.Empty)}") { }
+            : base($"Couldn't find resource {id} of type {typeof(T).Name}.{(addlMessage.NotEmpty() ? $" [{addlMessage}]" : string.Empty)}") { }
     }
 
     internal class RequiresSameSponsor : GameboardException

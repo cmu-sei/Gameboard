@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
+using Gameboard.Api.Data;
 using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.Reports;
@@ -14,13 +16,43 @@ public sealed class ReportMetaData
 {
     public required string Id { get; set; }
     public required string Title { get; set; }
+    public string ParamtersSummary { get; set; }
     public required DateTimeOffset RunAt { get; set; }
 }
 
-public sealed class ReportDateRange
+public interface IReportPredicateProvider<TProperty>
 {
-    public DateTimeOffset DateStart { get; set; }
-    public DateTimeOffset DateEnd { get; set; }
+    IEnumerable<Expression<Func<TProperty, bool>>> GetPredicates<TData>(TProperty entityExpression) where TData : IEntity;
+}
+
+public sealed class ReportDateRange // : IReportPredicateProvider<DateTimeOffset>
+{
+    public DateTimeOffset? DateStart { get; set; } = null;
+    public DateTimeOffset? DateEnd { get; set; } = null;
+
+    // public IEnumerable<Expression<Func<DateTimeOffset, bool>>> GetPredicates<TData>(Func<TData, DateTimeOffset> value) where TData : IEntity
+    // {
+    //     if (DateStart != null)
+    //         yield return d => new Expression<Func<TData, DateTimeOffset>>(d => value(d) >= DateStart.Value);
+
+    //     if (DateEnd != null)
+    //         yield return d => d <= DateEnd.Value;
+    // }
+}
+
+public sealed class ReportScoreRange : IReportPredicateProvider<double>
+{
+    public double? Min { get; set; } = null;
+    public double? Max { get; set; } = null;
+
+    public IEnumerable<Expression<Func<double, bool>>> GetPredicates<TData>(double entityExpression) where TData : IEntity
+    {
+        if (Min != null)
+            yield return v => v >= Min.Value;
+
+        if (Max != null)
+            yield return v => v <= Max.Value;
+    }
 }
 
 public class ParticipationReportArgs

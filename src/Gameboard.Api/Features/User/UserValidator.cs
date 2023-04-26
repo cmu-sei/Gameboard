@@ -3,8 +3,7 @@
 
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.ApiKeys;
-using Gameboard.Api.Features.Users;
+using Gameboard.Api.Services;
 
 namespace Gameboard.Api.Validators
 {

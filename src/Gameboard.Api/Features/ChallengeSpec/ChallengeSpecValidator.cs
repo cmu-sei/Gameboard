@@ -3,17 +3,20 @@
 
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
-using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Validators
 {
     public class ChallengeSpecValidator : IModelValidator
     {
-        private readonly IChallengeStore _store;
+        private readonly IChallengeStore _challengeStore;
+        private readonly IGameStore _gameStore;
+        private readonly IChallengeSpecStore _specStore;
 
-        public ChallengeSpecValidator(IChallengeStore store)
+        public ChallengeSpecValidator(IChallengeStore challengeStore, IChallengeSpecStore specStore, IGameStore gameStore)
         {
-            _store = store;
+            _challengeStore = challengeStore;
+            _gameStore = gameStore;
+            _specStore = specStore;
         }
 
         public Task Validate(object model)
@@ -32,7 +35,7 @@ namespace Gameboard.Api.Validators
 
         private async Task _validate(Entity model)
         {
-            if ((await Exists(model.Id)).Equals(false))
+            if ((await _specStore.Exists(model.Id)).Equals(false))
                 throw new ResourceNotFound<ChallengeSpec>(model.Id);
 
             await Task.CompletedTask;
@@ -40,34 +43,17 @@ namespace Gameboard.Api.Validators
 
         private async Task _validate(NewChallengeSpec model)
         {
-            if ((await GameExists(model.GameId)).Equals(false))
+            if ((await _gameStore.Exists(model.GameId)).Equals(false))
                 throw new ResourceNotFound<Game>(model.GameId);
 
             await Task.CompletedTask;
         }
         private async Task _validate(ChangedChallengeSpec model)
         {
-            if ((await Exists(model.Id)).Equals(false))
+            if ((await _specStore.Exists(model.Id)).Equals(false))
                 throw new ResourceNotFound<ChallengeSpec>(model.Id);
 
             await Task.CompletedTask;
         }
-
-        private async Task<bool> Exists(string id)
-        {
-            return
-                id.NotEmpty() &&
-                (await _store.Retrieve(id)) is Data.Challenge
-            ;
-        }
-
-        private async Task<bool> GameExists(string id)
-        {
-            return
-                id.NotEmpty() &&
-                (await _store.DbContext.Games.FindAsync(id)) is Data.Game
-            ;
-        }
-
     }
 }

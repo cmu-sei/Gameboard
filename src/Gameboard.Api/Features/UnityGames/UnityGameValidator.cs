@@ -1,17 +1,33 @@
 using System.Linq;
 using System.Threading.Tasks;
-using Gameboard.Api.Validators;
+using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.UnityGames;
 
 public class UnityGamesValidator : IModelValidator
 {
+    private readonly IChallengeStore _challengeStore;
+    private readonly IGameStore _gameStore;
     private readonly IUnityStore _store;
+    private readonly ITeamService _teamService;
+    private readonly IUserStore _userStore;
 
-    public UnityGamesValidator(IUnityStore store)
+    public UnityGamesValidator
+    (
+        IChallengeStore challengeStore,
+        IGameStore gameStore,
+        IUnityStore store,
+        ITeamService teamService,
+        IUserStore userStore
+    )
     {
+        _challengeStore = challengeStore;
+        _gameStore = gameStore;
         _store = store;
+        _teamService = teamService;
+        _userStore = userStore;
     }
 
     public async Task Validate(object model)
@@ -20,12 +36,12 @@ public class UnityGamesValidator : IModelValidator
         {
             var typedModel = model as NewUnityChallenge;
 
-            if (!(await GameExists(typedModel.GameId)))
+            if (!(await _gameStore.Exists(typedModel.GameId)))
             {
                 throw new ResourceNotFound<Game>(typedModel.GameId);
             }
 
-            if (!(await TeamExists(typedModel.TeamId)))
+            if (!(await _teamService.GetExists(typedModel.TeamId)))
             {
                 throw new ResourceNotFound<Team>(typedModel.TeamId);
             }
@@ -49,12 +65,12 @@ public class UnityGamesValidator : IModelValidator
         {
             var typedModel = model as NewUnityChallengeEvent;
 
-            if (!(await ChallengeExists(typedModel.ChallengeId)))
+            if (!(await _challengeStore.Exists(typedModel.ChallengeId)))
             {
                 throw new ResourceNotFound<Challenge>(typedModel.ChallengeId);
             }
 
-            if (!(await TeamExists(typedModel.TeamId)))
+            if (!(await _teamService.GetExists(typedModel.TeamId)))
             {
                 throw new ResourceNotFound<Team>(typedModel.TeamId);
             }
@@ -63,7 +79,7 @@ public class UnityGamesValidator : IModelValidator
         {
             var typedModel = model as UnityMissionUpdate;
 
-            if (!(await TeamExists(typedModel.TeamId)))
+            if (!(await _teamService.GetExists(typedModel.TeamId)))
             {
                 throw new ResourceNotFound<Team>(typedModel.TeamId);
             }
@@ -73,21 +89,4 @@ public class UnityGamesValidator : IModelValidator
             throw new ValidationTypeFailure<UnityGamesValidator>(model.GetType());
         }
     }
-
-    private async Task<bool> ChallengeExists(string id)
-        => id.HasValue() && (await _store.DbContext.Challenges.FindAsync(id)) is Data.Challenge;
-
-    private async Task<bool> GameExists(string id)
-        => !string.IsNullOrEmpty(id) && (await _store.DbContext.Games.FindAsync(id)) is Data.Game;
-
-    private async Task<bool> TeamExists(string teamId)
-        => !string.IsNullOrWhiteSpace(teamId) && (
-            await _store
-                .DbContext.Players
-                .Where(p => p.TeamId == teamId)
-                .FirstOrDefaultAsync()
-            ) != null;
-
-    private async Task<bool> UserExists(string id)
-        => id.NotEmpty() && (await _store.DbContext.Users.FindAsync(id)) is Data.User;
 }

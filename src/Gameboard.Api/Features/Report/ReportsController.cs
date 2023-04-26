@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Gameboard.Features.Api.Reports;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,13 +11,17 @@ namespace Gameboard.Api.Features.Reports;
 public class ReportsController : ControllerBase
 {
     private readonly IMediator _mediator;
-    private readonly IReportStore _store;
+    private readonly IReportsService _service;
 
-    public ReportsController(IMediator mediator, IReportStore store)
+    public ReportsController(IMediator mediator, IReportsService service)
     {
         _mediator = mediator;
-        _store = store;
+        _service = service;
     }
+
+    [HttpGet]
+    public async Task<IEnumerable<Report>> List()
+        => await _service.List();
 
     [HttpGet("{reportKey}/parameter-options")]
     public async Task<ReportParameterOptions> GetOptions([FromRoute] string reportKey, [FromQuery] ReportParameters reportParams)
@@ -40,9 +43,9 @@ public class ReportsController : ControllerBase
 
     [HttpGet("parameter/competitions")]
     public Task<IEnumerable<string>> GetCompetitions()
-        => _store.GetCompetitions();
+        => _service.ListParameterOptionsCompetitions();
 
     [HttpGet("parameter/tracks")]
     public Task<IEnumerable<string>> GetTracks()
-        => _store.GetTracks();
+        => _service.ListParameterOptionsTracks();
 }

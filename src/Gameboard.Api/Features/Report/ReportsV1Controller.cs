@@ -19,7 +19,7 @@ namespace Gameboard.Api.Controllers
         public ReportsV1Controller(
             ILogger<ReportsV1Controller> logger,
             IDistributedCache cache,
-            ReportService service,
+            ReportServiceLegacy service,
             GameService gameService,
             ChallengeSpecService challengeSpecService,
             FeedbackService feedbackService,
@@ -35,7 +35,7 @@ namespace Gameboard.Api.Controllers
             Defaults = defaults;
         }
 
-        ReportService Service { get; }
+        ReportServiceLegacy Service { get; }
         GameService GameService { get; }
         FeedbackService FeedbackService { get; }
         ChallengeSpecService ChallengeSpecService { get; }

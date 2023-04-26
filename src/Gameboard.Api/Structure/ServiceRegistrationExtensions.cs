@@ -49,7 +49,9 @@ internal static class ServiceRegistrationExtensions
         {
             // if it's a type we want to register and it hasn't already been registered by other logic, add it
             var theInterfaceName = entry.Key.Name;
-            var things = theInterfaceName;
+            var fargle = theInterfaceName;
+            var hasInterface = interfaceTypes.Contains(entry.Key);
+            var isUnRegistered = serviceCollection.FirstOrDefault(s => s.ServiceType == entry.Key) == null;
 
             if (interfaceTypes.Contains(entry.Key) && serviceCollection.FirstOrDefault(s => s.ServiceType == entry.Key) == null)
             {
@@ -103,5 +105,6 @@ internal static class ServiceRegistrationExtensions
             .GetExecutingAssembly()
             .GetTypes()
             .Where(t => t.IsClass & !t.IsAbstract)
+            .Where(t => t.AssemblyQualifiedName.StartsWith("Gameboard"))
             .ToArray();
 }

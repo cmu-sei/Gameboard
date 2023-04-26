@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -41,10 +42,10 @@ public class GetChallengeReportHandler : IRequestHandler<GetChallengeReportQuery
     public async Task<ChallengesReportResults> Handle(GetChallengeReportQuery request, CancellationToken cancellationToken)
     {
         // TODO: validation
-        var hasCompetition = request.Args.Competition.HasValue();
-        var hasGameId = request.Args.GameId.HasValue();
-        var hasSpecId = request.Args.ChallengeSpecId.HasValue();
-        var hasTrack = request.Args.Track.HasValue();
+        var hasCompetition = request.Args.Competition.NotEmpty();
+        var hasGameId = request.Args.GameId.NotEmpty();
+        var hasSpecId = request.Args.ChallengeSpecId.NotEmpty();
+        var hasTrack = request.Args.Track.NotEmpty();
 
         // parameters resolve to challenge specs
         var specs = await _challengeSpecStore

@@ -45,7 +45,7 @@ public class UserService
     {
         var entity = await Store.Retrieve(model.Id);
 
-        if (entity is Data.User && entity.Id.HasValue())
+        if (entity is Data.User && entity.Id.NotEmpty())
         {
             // entity.Name = model.Name;
             // // entity.Email = model.Email;
@@ -138,7 +138,7 @@ public class UserService
     {
         var q = Store.List(model.Term);
 
-        if (model.Term.HasValue())
+        if (model.Term.NotEmpty())
         {
             model.Term = model.Term.ToLower();
             q = q.Where(u =>
@@ -176,7 +176,7 @@ public class UserService
         // Might want to also include observers if they can be assigned. Or just make possible assignees "Support" roles
         q = q.Where(u => u.Role.HasFlag(UserRole.Support));
 
-        if (model.Term.HasValue())
+        if (model.Term.NotEmpty())
         {
             model.Term = model.Term.ToLower();
             q = q.Where(u =>

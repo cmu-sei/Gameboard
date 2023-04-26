@@ -8,24 +8,18 @@ namespace Gameboard.Api.Data
     public class GameboardDbContextInMemory : GameboardDbContext
     {
         public GameboardDbContextInMemory(DbContextOptions<GameboardDbContextInMemory> options)
-            : base(options)
-        {
-        }
+            : base(options) { }
     }
 
     public class GameboardDbContextSqlServer : GameboardDbContext
     {
         public GameboardDbContextSqlServer(DbContextOptions<GameboardDbContextSqlServer> options)
-            : base(options)
-        {
-        }
+            : base(options) { }
     }
 
     public class GameboardDbContextPostgreSQL : GameboardDbContext
     {
         public GameboardDbContextPostgreSQL(DbContextOptions<GameboardDbContextPostgreSQL> options)
-            : base(options)
-        {
-        }
+            : base(options) { }
     }
 }

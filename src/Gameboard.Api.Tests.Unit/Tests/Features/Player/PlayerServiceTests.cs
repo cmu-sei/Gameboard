@@ -3,6 +3,7 @@ using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.Extensions.Caching.Memory;
