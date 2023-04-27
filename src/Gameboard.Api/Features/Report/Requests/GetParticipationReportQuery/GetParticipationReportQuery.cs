@@ -35,21 +35,15 @@ public class GetParticipationReportQueryHandler : IRequestHandler<GetParticipati
     {
         // need to double-check whether or not stuff like this forces client eval if you move it into the query
         var args = request.Args;
-        var hasChallenge = !string.IsNullOrWhiteSpace(args.ChallengeId);
-        var hasCompetition = !string.IsNullOrWhiteSpace(args.Competition);
         var hasDateEnd = args.DateRange?.DateEnd != null;
         var hasDateStart = args.DateRange?.DateStart != null;
-        var hasGame = !string.IsNullOrWhiteSpace(args.GameId);
-        var hasSponsor = !string.IsNullOrWhiteSpace(args.SponsorId);
-        var hasTeamId = !string.IsNullOrWhiteSpace(args.TeamId);
-        var hasTrack = !string.IsNullOrWhiteSpace(args.Track);
 
         var filters = new List<Func<Data.Player, bool>>();
 
-        if (hasChallenge)
+        if (args.ChallengeId.NotEmpty())
             filters.Add(p => p.Challenges.Any(c => c.Id == args.ChallengeId));
 
-        if (hasCompetition)
+        if (args.Competition.NotEmpty())
             filters.Add(p => p.Game.Competition == args.Competition);
 
         if (args.DateRange?.DateEnd != null)
@@ -58,16 +52,16 @@ public class GetParticipationReportQueryHandler : IRequestHandler<GetParticipati
         if (args.DateRange?.DateStart != null)
             filters.Add(p => p.SessionBegin >= args.DateRange.DateStart);
 
-        if (!string.IsNullOrWhiteSpace(args.GameId))
+        if (args.GameId.NotEmpty())
             filters.Add(p => p.GameId == args.GameId);
 
-        if (hasSponsor)
+        if (args.SponsorId.NotEmpty())
             filters.Add(p => p.Sponsor == args.SponsorId);
 
-        if (!string.IsNullOrWhiteSpace(args.TeamId))
+        if (args.TeamId.NotEmpty())
             filters.Add(p => p.TeamId == args.TeamId);
 
-        if (hasTrack)
+        if (args.Track.NotEmpty())
             filters.Add(p => p.Game.Track == args.Track);
 
         var baseQuery = _playerStore
@@ -93,12 +87,10 @@ public class GetParticipationReportQueryHandler : IRequestHandler<GetParticipati
             },
             Records = results.Select(r => new ParticipationReportRecord
             {
-
                 // Challenge = _mapper.Map<SimpleEntity[]>(r.Challenges)
                 Game = _mapper.Map<SimpleEntity>(r.Game),
                 Player = _mapper.Map<SimpleEntity>(r),
                 User = _mapper.Map<SimpleEntity>(r.User),
-
             })
         };
     }

@@ -10,6 +10,9 @@ public static class MigrationExtensions
 {
     public static OperationBuilder<InsertDataOperation> InsertReport(this MigrationBuilder builder, Report report)
     {
+        if (report.Id.NotEmpty())
+            throw new GameboardException("Don't pass an ID when inserting a report - we do that for you 👍");
+
         return builder.InsertData
         (
             "Reports",

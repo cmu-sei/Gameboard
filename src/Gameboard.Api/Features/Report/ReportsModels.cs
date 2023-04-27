@@ -6,6 +6,22 @@ using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.Reports;
 
+public static class ReportKey
+{
+    public static string ChallengesReport { get; } = "challenges-report";
+    public static string PlayersReport { get; } = "players-report";
+}
+
+public class ReportViewModel
+{
+    public required string Id { get; set; }
+    public required string Key { get; set; }
+    public required string Name { get; set; }
+    public required string Description { get; set; }
+    public required IEnumerable<string> ExampleFields { get; set; }
+    public required IEnumerable<string> ExampleParameters { get; set; }
+}
+
 public interface IReportResult<T>
 {
     public ReportMetaData MetaData { get; set; }
@@ -16,7 +32,7 @@ public sealed class ReportMetaData
 {
     public required string Id { get; set; }
     public required string Title { get; set; }
-    public string ParamtersSummary { get; set; }
+    public string ParametersSummary { get; set; }
     public required DateTimeOffset RunAt { get; set; }
 }
 

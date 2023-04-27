@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Gameboard.Api.Features.Reports;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -25,6 +26,24 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 {
                     table.PrimaryKey("PK_Reports", x => x.Id);
                 });
+
+            migrationBuilder.InsertReport(new Report
+            {
+                Key = ReportKey.ChallengesReport,
+                Name = "Challenges Report",
+                Description = "Understand the role a challenge played in its games and competitions, how attainable a full solve was, and more.",
+                ExampleFields = "Scores|Solve Times|Deploy vs. Solve Counts",
+                ExampleParameters = "Session Date Range|Competition|Track|Game|Challenge"
+            });
+
+            migrationBuilder.InsertReport(new Report
+            {
+                Key = ReportKey.PlayersReport,
+                Name = "Players Report",
+                Description = "View a player-based perspective of your games and challenge. See who's scoring highly, logging in regularly, and more.",
+                ExampleFields = "Scores|Solve Times|Participation Across Games",
+                ExampleParameters = "Session Date Range|Competition|Track|Game|Challenge"
+            });
         }
 
         /// <inheritdoc />

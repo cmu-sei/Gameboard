@@ -27,4 +27,10 @@ namespace Gameboard.Api
         public bool Approved { get; set; }
     }
 
+    public class SponsorViewModel
+    {
+        public required string Id { get; set; }
+        public required string Name { get; set; }
+        public required string Logo { get; set; }
+    }
 }
