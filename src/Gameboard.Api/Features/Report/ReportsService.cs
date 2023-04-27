@@ -11,7 +11,7 @@ namespace Gameboard.Api.Features.Reports;
 public interface IReportsService
 {
     Task<IEnumerable<ReportViewModel>> List();
-    Task<IEnumerable<SimpleEntity>> ListParameterOptionsChallenges(string gameId = null);
+    Task<IEnumerable<SimpleEntity>> ListParameterOptionsChallengeSpecs(string gameId = null);
     Task<IEnumerable<string>> ListParameterOptionsCompetitions();
     Task<IEnumerable<SimpleEntity>> ListParameterOptionsGames();
     Task<IEnumerable<string>> ListParameterOptionsTracks();
@@ -19,20 +19,20 @@ public interface IReportsService
 
 public class ReportsService : IReportsService
 {
-    private readonly IChallengeStore _challengeStore;
+    private readonly IChallengeSpecStore _challengeSpecStore;
     private readonly IMapper _mapper;
     private readonly IGameStore _gameStore;
     private readonly IReportStore _store;
 
     public ReportsService
     (
-        IChallengeStore challengeStore,
+        IChallengeSpecStore challengeSpecStore,
         IGameStore gameStore,
         IMapper mapper,
         IReportStore store
     )
     {
-        _challengeStore = challengeStore;
+        _challengeSpecStore = challengeSpecStore;
         _gameStore = gameStore;
         _mapper = mapper;
         _store = store;
@@ -41,9 +41,9 @@ public class ReportsService : IReportsService
     public async Task<IEnumerable<ReportViewModel>> List()
         => await _mapper.ProjectTo<ReportViewModel>(_store.List()).ToArrayAsync();
 
-    public async Task<IEnumerable<SimpleEntity>> ListParameterOptionsChallenges(string gameId)
+    public async Task<IEnumerable<SimpleEntity>> ListParameterOptionsChallengeSpecs(string gameId)
     {
-        var query = _challengeStore.ListWithNoTracking();
+        var query = _challengeSpecStore.ListWithNoTracking();
 
         if (gameId.NotEmpty())
             query = query.Where(c => c.GameId == gameId);

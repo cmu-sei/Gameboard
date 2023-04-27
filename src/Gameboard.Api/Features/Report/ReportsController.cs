@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Structure;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -51,9 +50,9 @@ public class ReportsController : ControllerBase
     public async Task<PlayersReportResults> GetPlayersReport([FromQuery] PlayersReportQueryParameters reportParams)
         => await _mediator.Send(new GetPlayersReportQuery(reportParams));
 
-    [HttpGet("parameter/challenges/{gameId?}")]
-    public Task<IEnumerable<SimpleEntity>> GetChallenges(string gameId = null)
-        => _service.ListParameterOptionsChallenges(gameId);
+    [HttpGet("parameter/challenge-specs/{gameId?}")]
+    public Task<IEnumerable<SimpleEntity>> GetChallengeSpecs(string gameId = null)
+        => _service.ListParameterOptionsChallengeSpecs(gameId);
 
     [HttpGet("parameter/competitions")]
     public Task<IEnumerable<string>> GetCompetitions()
