@@ -28,12 +28,6 @@ public class ReportsController : ControllerBase
     public async Task<IEnumerable<ReportViewModel>> List()
         => await _service.List();
 
-    [HttpGet("{reportKey}/parameter-options")]
-    public async Task<ReportParameterOptions> GetOptions([FromRoute] string reportKey, [FromQuery] ReportParameters reportParams)
-    {
-        return await _mediator.Send(new GetReportParameterOptionsQuery(reportKey, reportParams));
-    }
-
     [HttpGet("participation-report")]
     public Task<ParticipationReport> GetParticipationReport()
     {
