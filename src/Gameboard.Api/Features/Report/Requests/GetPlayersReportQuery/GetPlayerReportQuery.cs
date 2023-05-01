@@ -100,7 +100,7 @@ internal class GetPlayersReportQueryHandler : IRequestHandler<GetPlayersReportQu
         {
             MetaData = new ReportMetaData
             {
-                Id = (await _reportStore.List().SingleAsync(r => r.Key == ReportKey.PlayersReport)).Id,
+                Key = ReportKey.PlayersReport,
                 Title = "Players Report",
                 RunAt = _nowService.Get(),
             },

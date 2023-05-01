@@ -28,12 +28,6 @@ public class ReportsController : ControllerBase
     public async Task<IEnumerable<ReportViewModel>> List()
         => await _service.List();
 
-    [HttpGet("participation-report")]
-    public Task<ParticipationReport> GetParticipationReport()
-    {
-        return Task.FromResult<ParticipationReport>(null);
-    }
-
     [HttpGet("challenges-report")]
     public async Task<ChallengesReportResults> GetChallengeReport([FromQuery] GetChallengesReportQueryArgs args)
     {

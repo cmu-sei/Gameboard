@@ -20,5 +20,14 @@ public class ReportsMaps : Profile
                 r => r.ExampleParameters,
                 opt => opt.MapFrom(s => s.ExampleParameters.Split(ReportsMaps.LIST_FIELD_DELIMITER, StringSplitOptions.RemoveEmptyEntries))
             );
+
+        CreateMap<ChallengeReportRecord, ChallengesReportCsvRecord>()
+            .ForMember(d => d.ChallengeSpecId, opt => opt.MapFrom(s => s.ChallengeSpec.Id))
+            .ForMember(d => d.ChallengeSpecName, opt => opt.MapFrom(s => s.ChallengeSpec.Name))
+            .ForMember(d => d.GameId, opt => opt.MapFrom(s => s.Game.Id))
+            .ForMember(d => d.GameName, opt => opt.MapFrom(s => s.Game.Name))
+            .ForMember(d => d.FastestSolvePlayerId, opt => opt.MapFrom(s => s.FastestSolve.Player.Id))
+            .ForMember(d => d.FastestSolvePlayerName, opt => opt.MapFrom(s => s.FastestSolve.Player.Name))
+            .ForMember(d => d.FastestSolveTimeMs, opt => opt.MapFrom(s => s.FastestSolve.SolveTimeMs));
     }
 }

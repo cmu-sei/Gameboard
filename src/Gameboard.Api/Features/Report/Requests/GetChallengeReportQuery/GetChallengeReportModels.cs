@@ -81,6 +81,24 @@ public class ChallengeReportRecord
     public required double? MeanCompleteSolveTimeMs { get; set; }
 }
 
+public class ChallengesReportCsvRecord
+{
+    public required string ChallengeSpecId { get; set; }
+    public required string ChallengeSpecName { get; set; }
+    public required string GameId { get; set; }
+    public required string GameName { get; set; }
+    public required int PlayersEligible { get; set; }
+    public required int PlayersStarted { get; set; }
+    public required int PlayersWithPartialSolve { get; set; }
+    public required int PlayersWithCompleteSolve { get; set; }
+    public required string FastestSolvePlayerId { get; set; }
+    public required string FastestSolvePlayerName { get; set; }
+    public required string FastestSolveTimeMs { get; set; }
+    public required double MaxPossibleScore { get; set; }
+    public required double? MeanScore { get; set; }
+    public required double? MeanCompleteSolveTimeMs { get; set; }
+}
+
 public class ChallengesReportResults : IReportResult<ChallengeReportRecord>
 {
     public required ReportMetaData MetaData { get; set; }

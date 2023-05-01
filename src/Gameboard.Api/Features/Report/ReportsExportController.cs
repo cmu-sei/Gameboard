@@ -1,11 +1,9 @@
 using System.Collections.Generic;
-using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -20,6 +18,14 @@ public class ReportsExportController : ControllerBase
     {
         _mediator = mediator;
         _reportsService = reportsService;
+    }
+
+    [HttpGet("challenges-report")]
+    [ProducesResponseType(typeof(FileContentResult), 200)]
+    public async Task<IActionResult> GetChallengesReport(GetChallengesReportQueryArgs parameters)
+    {
+        var results = await _mediator.Send(new GetChallengesReportExportQuery(parameters));
+        return new FileContentResult(GetReportExport(results), "text/csv");
     }
 
     [HttpGet("players-report")]
