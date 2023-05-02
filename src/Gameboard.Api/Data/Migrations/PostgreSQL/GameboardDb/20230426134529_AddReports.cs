@@ -44,6 +44,15 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 ExampleFields = "Scores|Solve Times|Participation Across Games",
                 ExampleParameters = "Session Date Range|Competition|Track|Game|Challenge"
             });
+
+            migrationBuilder.InsertReport(new Report
+            {
+                Key = ReportKey.SupportReport,
+                Name = "Support Report",
+                Description = "View a summary of the support tickets that have been created in Gameboard, including closer looks at submission times, ticket categories, and associated challenges.",
+                ExampleFields = "Ticket Category|Challenge|Time Windows|Assignments",
+                ExampleParameters = "Creation Date|Ticket Category|Time Window|Challenge"
+            });
         }
 
         /// <inheritdoc />

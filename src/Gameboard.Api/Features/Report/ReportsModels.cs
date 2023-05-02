@@ -9,6 +9,7 @@ public static class ReportKey
 {
     public static string ChallengesReport { get; } = "challenges-report";
     public static string PlayersReport { get; } = "players-report";
+    public static string SupportReport { get; } = "support-report";
 }
 
 public class ReportViewModel
