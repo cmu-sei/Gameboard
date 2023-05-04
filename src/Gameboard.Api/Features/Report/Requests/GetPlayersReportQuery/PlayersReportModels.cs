@@ -60,9 +60,3 @@ public sealed class PlayersReportCsvRecord
     public required double MaxPossibleScore { get; set; }
     public required double Score { get; set; }
 }
-
-public sealed class PlayersReportResults : IReportResult<PlayersReportRecord>
-{
-    public required ReportMetaData MetaData { get; set; }
-    public required IEnumerable<PlayersReportRecord> Records { get; set; }
-}

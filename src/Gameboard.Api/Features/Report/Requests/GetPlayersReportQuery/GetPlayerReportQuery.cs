@@ -9,9 +9,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record GetPlayersReportQuery(PlayersReportQueryParameters Parameters) : IRequest<PlayersReportResults>;
+public record GetPlayersReportQuery(PlayersReportQueryParameters Parameters) : IRequest<ReportResults<PlayersReportRecord>>;
 
-internal class GetPlayersReportQueryHandler : IRequestHandler<GetPlayersReportQuery, PlayersReportResults>, IReportRequestHandler<PlayersReportQueryParameters, Data.Player, PlayersReportResults>
+internal class GetPlayersReportQueryHandler : IRequestHandler<GetPlayersReportQuery, ReportResults<PlayersReportRecord>>
 {
     private readonly INowService _nowService;
     private readonly IPlayerStore _playerStore;
@@ -35,13 +35,13 @@ internal class GetPlayersReportQueryHandler : IRequestHandler<GetPlayersReportQu
         _sponsorStore = sponsorStore;
     }
 
-    public async Task<PlayersReportResults> Handle(GetPlayersReportQuery request, CancellationToken cancellationToken)
+    public async Task<ReportResults<PlayersReportRecord>> Handle(GetPlayersReportQuery request, CancellationToken cancellationToken)
     {
         var query = _reportsService.GetPlayersReportBaseQuery(request.Parameters);
         return await TransformQueryToResults(query);
     }
 
-    public async Task<PlayersReportResults> TransformQueryToResults(IQueryable<Data.Player> query)
+    internal async Task<ReportResults<PlayersReportRecord>> TransformQueryToResults(IQueryable<Data.Player> query)
     {
         var users = await query
             .GroupBy(p => p.UserId)
@@ -96,7 +96,7 @@ internal class GetPlayersReportQueryHandler : IRequestHandler<GetPlayersReportQu
             };
         });
 
-        return new PlayersReportResults
+        return new ReportResults<PlayersReportRecord>
         {
             MetaData = new ReportMetaData
             {

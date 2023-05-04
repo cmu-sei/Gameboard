@@ -18,6 +18,7 @@ namespace Gameboard.Api.Services
         ITicketStore Store { get; }
 
         private IMemoryCache _localcache;
+        internal static char LABELS_DELIMITER = ' ';
 
         public TicketService(
             ILogger<TicketService> logger,
@@ -228,7 +229,7 @@ namespace Gameboard.Api.Services
 
             var b = tickets
                 .Where(t => !t.Label.IsEmpty())
-                .SelectMany(t => t.Label.Split(" "))
+                .SelectMany(t => TransformTicketLabels(t.Label))
                 .OrderBy(t => t)
                 .ToHashSet().ToArray();
 
@@ -296,6 +297,19 @@ namespace Gameboard.Api.Services
             return false;
         }
 
+        internal IEnumerable<string> TransformTicketLabels(string labels)
+        {
+            if (labels.IsEmpty())
+                return new string[] { };
+
+            return labels.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        internal string TransformTicketKey(int key)
+        {
+            return Options.KeyPrefix + "-" + key.ToString();
+        }
+
         private async Task UpdatedSessionContext(Data.Ticket entity)
         {
             if (!entity.ChallengeId.IsEmpty())
@@ -359,18 +373,13 @@ namespace Gameboard.Api.Services
         // Transform functions to create full ticket key with configurable key prefix
         private TicketSummary[] Transform(TicketSummary[] tickets)
         {
-            return tickets.Select(x => { x.FullKey = FullKey(x.Key); return x; }).ToArray();
+            return tickets.Select(x => { x.FullKey = TransformTicketKey(x.Key); return x; }).ToArray();
         }
 
         private Ticket Transform(Ticket ticket)
         {
-            ticket.FullKey = FullKey(ticket.Key);
+            ticket.FullKey = TransformTicketKey(ticket.Key);
             return ticket;
-        }
-
-        private string FullKey(int key)
-        {
-            return Options.KeyPrefix + "-" + key.ToString();
         }
     }
 }

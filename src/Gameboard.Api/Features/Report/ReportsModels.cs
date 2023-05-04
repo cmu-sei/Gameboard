@@ -22,12 +22,6 @@ public class ReportViewModel
     public required IEnumerable<string> ExampleParameters { get; set; }
 }
 
-public interface IReportResult<T>
-{
-    public ReportMetaData MetaData { get; set; }
-    public IEnumerable<T> Records { get; set; }
-}
-
 public sealed class ReportMetaData
 {
     public required string Key { get; set; }
@@ -71,14 +65,8 @@ public sealed class ReportScoreRange : IReportPredicateProvider<double>
     }
 }
 
-public class ParticipationReportArgs
+public sealed class ReportResults<TRecord>
 {
-    public string ChallengeId { get; set; }
-    public string Competition { get; set; }
-    public ReportDateRange DateRange { get; set; }
-    public string GameId { get; set; }
-    public string PlayerId { get; set; }
-    public string SponsorId { get; set; }
-    public string TeamId { get; set; }
-    public string Track { get; set; }
+    public required ReportMetaData MetaData { get; set; }
+    public required IEnumerable<TRecord> Records { get; set; }
 }

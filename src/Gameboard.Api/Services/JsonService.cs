@@ -7,7 +7,7 @@ namespace Gameboard.Api.Services;
 public interface IJsonService
 {
     string Serialize<T>(T obj) where T : class;
-    T Deserialize<T>(string json) where T : class, new();
+    T Deserialize<T>(string json) where T : new();
 }
 
 internal class JsonService : IJsonService
@@ -42,8 +42,11 @@ internal class JsonService : IJsonService
         Options = options;
     }
 
-    public T Deserialize<T>(string json) where T : class, new()
+    public T Deserialize<T>(string json) where T : new()
     {
+        if (json.IsEmpty())
+            return default(T);
+
         return JsonSerializer.Deserialize<T>(json, Options);
     }
 

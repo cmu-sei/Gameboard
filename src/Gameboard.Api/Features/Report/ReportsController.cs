@@ -29,14 +29,18 @@ public class ReportsController : ControllerBase
         => await _service.List();
 
     [HttpGet("challenges-report")]
-    public async Task<ChallengesReportResults> GetChallengeReport([FromQuery] GetChallengesReportQueryArgs args)
+    public async Task<ReportResults<ChallengeReportRecord>> GetChallengeReport([FromQuery] GetChallengesReportQueryArgs args)
     {
         return await _mediator.Send(new GetChallengeReportQuery(args));
     }
 
     [HttpGet("players-report")]
-    public async Task<PlayersReportResults> GetPlayersReport([FromQuery] PlayersReportQueryParameters reportParams)
+    public async Task<ReportResults<PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportQueryParameters reportParams)
         => await _mediator.Send(new GetPlayersReportQuery(reportParams));
+
+    [HttpGet("support-report")]
+    public async Task<ReportResults<SupportReportRecord>> GetSupportReport([FromQuery] SupportReportQueryParameters reportParams)
+        => await _mediator.Send(new SupportReportQuery(reportParams));
 
     [HttpGet("parameter/challenge-specs/{gameId?}")]
     public Task<IEnumerable<SimpleEntity>> GetChallengeSpecs(string gameId = null)

@@ -99,10 +99,3 @@ public class ChallengesReportCsvRecord
     public required double? MeanCompleteSolveTimeMs { get; set; }
 }
 
-public class ChallengesReportResults : IReportResult<ChallengeReportRecord>
-{
-    public required ReportMetaData MetaData { get; set; }
-    public required IEnumerable<ChallengeReportRecord> Records { get; set; }
-}
-
-public record GetChallengeReportQuery(GetChallengesReportQueryArgs Args) : IRequest<ChallengesReportResults>;
