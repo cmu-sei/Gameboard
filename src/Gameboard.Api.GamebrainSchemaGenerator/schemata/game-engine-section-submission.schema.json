@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "GameEngineSectionSubmission",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "timestamp",
+    "sectionIndex",
+    "answers"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "minLength": 1
+    },
+    "sectionIndex": {
+      "type": "integer",
+      "format": "int32"
+    },
+    "answers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/GameEngineAnswerSubmission"
+      }
+    }
+  },
+  "definitions": {
+    "GameEngineAnswerSubmission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "answer"
+      ],
+      "properties": {
+        "answer": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
