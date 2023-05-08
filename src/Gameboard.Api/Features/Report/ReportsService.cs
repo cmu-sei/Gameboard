@@ -118,6 +118,7 @@ public class ReportsService : IReportsService
             .AsNoTracking()
             .Include(c => c.Game)
             .Include(c => c.Player)
+            .Include(c => c.Tickets)
             .Where(c => specIds.Contains(c.SpecId))
             .Select(c => new ChallengeReportChallenge
             {
@@ -138,6 +139,7 @@ public class ReportsService : IReportsService
                     Score = c.Player.Score
                 },
                 SpecId = c.SpecId,
+                TicketCount = c.Tickets.Count()
             }).ToArrayAsync();
 
         var challengesBySpec = challenges
@@ -193,7 +195,8 @@ public class ReportsService : IReportsService
         Dictionary<string, ChallengeReportMeanChallengeStats> meanStats
     )
     {
-        var hasPlayers = challengesBySpec.Keys.Contains(spec.Id);
+        var hasChallenges = challengesBySpec.Keys.Contains(spec.Id);
+        var challenge = hasChallenges ? challengesBySpec[spec.Id].Where(s => s.Game.Id == spec.Game.Id).FirstOrDefault() : null;
         var hasSolves = fastestSolves.Keys.Contains(spec.Id);
         var hasStats = meanStats.Keys.Contains(spec.Id);
 
@@ -201,22 +204,24 @@ public class ReportsService : IReportsService
         {
             ChallengeSpec = new SimpleEntity { Id = spec.Id, Name = spec.Name },
             Game = new SimpleEntity { Id = spec.Game.Id, Name = spec.Game.Name },
+            Challenge = challenge == null ? null : new SimpleEntity { Id = challenge.Challenge.Id, Name = challenge.Challenge.Name },
             PlayersEligible = allPlayers
                 .Where(p => p.GameId == spec.Game.Id)
                 .Count(),
-            PlayersStarted = !hasPlayers ? 0 : challengesBySpec[spec.Id]
+            PlayersStarted = !hasChallenges ? 0 : challengesBySpec[spec.Id]
                 .Where(c => c.Player.StartTime > DateTimeOffset.MinValue)
                 .Count(),
-            PlayersWithCompleteSolve = !hasPlayers ? 0 : challengesBySpec[spec.Id]
+            PlayersWithCompleteSolve = !hasChallenges ? 0 : challengesBySpec[spec.Id]
                 .Where(p => p.Player.Result == ChallengeResult.Success)
                 .Count(),
-            PlayersWithPartialSolve = !hasPlayers ? 0 : challengesBySpec[spec.Id]
+            PlayersWithPartialSolve = !hasChallenges ? 0 : challengesBySpec[spec.Id]
                 .Where(p => p.Player.Result == ChallengeResult.Partial)
                 .Count(),
             FastestSolve = !hasSolves ? null : fastestSolves[spec.Id],
             MaxPossibleScore = spec.MaxPoints,
             MeanCompleteSolveTimeMs = !hasStats ? null : meanStats[spec.Id].MeanCompleteSolveTimeMs,
-            MeanScore = !hasStats ? null : meanStats[spec.Id].MeanScore
+            MeanScore = !hasStats ? null : meanStats[spec.Id].MeanScore,
+            TicketCount = hasChallenges ? challengesBySpec[spec.Id].Select(c => c.TicketCount).Sum() : 0
         };
     }
 

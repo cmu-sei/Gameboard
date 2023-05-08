@@ -17,20 +17,16 @@ public enum SupportReportLabelsModifier
     HasAny
 }
 
-public class SupportReportLabelsParameter
-{
-    public IEnumerable<string> Labels { get; set; }
-    public SupportReportLabelsModifier? Modifier { get; set; }
-}
-
-public class SupportReportQueryParameters
+public class SupportReportParameters
 {
     public string ChallengeSpecId { get; set; }
     public string GameId { get; set; }
-    public SupportReportLabelsParameter Labels { get; set; }
+    public IEnumerable<string> Labels { get; set; }
+    public Nullable<SupportReportLabelsModifier> LabelsModifier { get; set; }
     public Nullable<double> HoursSinceOpen { get; set; }
     public Nullable<double> HoursSinceStatusChange { get; set; }
-    public ReportDateRange OpenedDateRange { get; set; }
+    public DateTimeOffset? OpenedDateStart { get; set; }
+    public DateTimeOffset? OpenedDateEnd { get; set; }
     public Nullable<SupportReportTicketWindow> OpenedWindow { get; set; }
     public string Status { get; set; }
 }
@@ -43,6 +39,7 @@ public class SupportReportRecord
     public required DateTimeOffset UpdatedOn { get; set; }
     public required SimpleEntity AssignedTo { get; set; }
     public required SimpleEntity CreatedBy { get; set; }
+    public required SimpleEntity UpdatedBy { get; set; }
     public required SimpleEntity RequestedBy { get; set; }
     public required SimpleEntity Game { get; set; }
     public required SimpleEntity Challenge { get; set; }

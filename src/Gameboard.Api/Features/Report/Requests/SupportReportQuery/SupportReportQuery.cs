@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record SupportReportQuery(SupportReportQueryParameters Parameters) : IRequest<ReportResults<SupportReportRecord>>;
+public record SupportReportQuery(SupportReportParameters Parameters) : IRequest<ReportResults<SupportReportRecord>>;
 
 internal class SupportReportQueryHandler : IRequestHandler<SupportReportQuery, ReportResults<SupportReportRecord>>
 {
@@ -55,7 +55,7 @@ internal class SupportReportQueryHandler : IRequestHandler<SupportReportQuery, R
         };
     }
 
-    internal async Task<IEnumerable<SupportReportRecord>> QueryRecords(SupportReportQueryParameters parameters)
+    internal async Task<IEnumerable<SupportReportRecord>> QueryRecords(SupportReportParameters parameters)
     {
         var query = _ticketStore
             .ListWithNoTracking()
@@ -65,7 +65,7 @@ internal class SupportReportQueryHandler : IRequestHandler<SupportReportQuery, R
             .Include(t => t.Player)
                 .ThenInclude(p => p.Game)
             .Include(t => t.Requester)
-            .Include(t => t.Activity)
+            .Include(t => t.Activity.OrderBy(a => a.Timestamp))
             .Where(t => true);
 
         if (parameters.ChallengeSpecId.NotEmpty())
@@ -74,11 +74,11 @@ internal class SupportReportQueryHandler : IRequestHandler<SupportReportQuery, R
         if (parameters.GameId.NotEmpty())
             query = query.Where(t => t.Player.GameId == parameters.GameId);
 
-        if (parameters.OpenedDateRange?.DateStart != null)
-            query = query.Where(t => t.Created >= parameters.OpenedDateRange.DateStart);
+        if (parameters.OpenedDateStart != null)
+            query = query.Where(t => t.Created >= parameters.OpenedDateStart);
 
-        if (parameters.OpenedDateRange?.DateEnd != null)
-            query = query.Where(t => t.Created >= parameters.OpenedDateRange.DateEnd);
+        if (parameters.OpenedDateEnd != null)
+            query = query.Where(t => t.Created >= parameters.OpenedDateEnd);
 
         if (parameters.Status.NotEmpty())
             query = query.Where(t => t.Status == parameters.Status);
@@ -94,6 +94,7 @@ internal class SupportReportQueryHandler : IRequestHandler<SupportReportQuery, R
             Status = t.Status,
             AssignedTo = _mapper.Map<SimpleEntity>(t.Assignee),
             CreatedBy = _mapper.Map<SimpleEntity>(t.Creator),
+            UpdatedBy = t.Activity.Count() > 0 ? _mapper.Map<SimpleEntity>(t.Activity.OrderBy(a => a.Timestamp).Last().User) : null,
             RequestedBy = _mapper.Map<SimpleEntity>(t.Requester),
             Game = _mapper.Map<SimpleEntity>(t.Player.Game),
             Challenge = _mapper.Map<SimpleEntity>(t.Challenge),
@@ -102,13 +103,13 @@ internal class SupportReportQueryHandler : IRequestHandler<SupportReportQuery, R
             ActivityCount = t.Activity.Count()
         }).ToArrayAsync();
 
-        if (parameters.Labels != null && parameters.Labels.Labels?.Count() > 0)
+        if (parameters.Labels != null && parameters.Labels?.Count() > 0)
         {
-            if (parameters.Labels.Modifier == SupportReportLabelsModifier.HasAny)
-                records = records.Where(r => r.Labels.Any(l => parameters.Labels.Labels.Contains(l)));
+            if (parameters.LabelsModifier == null || parameters.LabelsModifier == SupportReportLabelsModifier.HasAny)
+                records = records.Where(r => r.Labels.Any(l => parameters.Labels.Contains(l)));
 
-            if (parameters.Labels.Modifier == SupportReportLabelsModifier.HasAll)
-                records = records.Where(r => r.Labels.All(l => parameters.Labels.Labels.Contains(l)));
+            if (parameters.LabelsModifier == SupportReportLabelsModifier.HasAll)
+                records = records.Where(r => r.Labels.All(l => parameters.Labels.Contains(l)));
         }
 
         if (parameters.HoursSinceOpen != null)

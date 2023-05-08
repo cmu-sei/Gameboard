@@ -39,7 +39,7 @@ public class ReportsController : ControllerBase
         => await _mediator.Send(new GetPlayersReportQuery(reportParams));
 
     [HttpGet("support-report")]
-    public async Task<ReportResults<SupportReportRecord>> GetSupportReport([FromQuery] SupportReportQueryParameters reportParams)
+    public async Task<ReportResults<SupportReportRecord>> GetSupportReport([FromQuery] SupportReportParameters reportParams)
         => await _mediator.Send(new SupportReportQuery(reportParams));
 
     [HttpGet("parameter/challenge-specs/{gameId?}")]

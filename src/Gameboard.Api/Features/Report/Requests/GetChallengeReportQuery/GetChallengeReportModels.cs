@@ -51,6 +51,7 @@ internal class ChallengeReportChallenge
     public required SimpleEntity Game { get; set; }
     public required string SpecId { get; set; }
     public required ChallengeReportPlayer Player { get; set; }
+    public required int TicketCount { get; set; }
 }
 
 internal class ChallengeReportSpec
@@ -70,6 +71,7 @@ public class ChallengeReportPlayerSolve
 public class ChallengeReportRecord
 {
     public required SimpleEntity ChallengeSpec { get; set; }
+    public required SimpleEntity Challenge { get; set; }
     public required SimpleEntity Game { get; set; }
     public required int PlayersEligible { get; set; }
     public required int PlayersStarted { get; set; }
@@ -79,6 +81,7 @@ public class ChallengeReportRecord
     public required double MaxPossibleScore { get; set; }
     public required double? MeanScore { get; set; }
     public required double? MeanCompleteSolveTimeMs { get; set; }
+    public required int TicketCount { get; set; }
 }
 
 public class ChallengesReportCsvRecord
@@ -97,5 +100,6 @@ public class ChallengesReportCsvRecord
     public required double MaxPossibleScore { get; set; }
     public required double? MeanScore { get; set; }
     public required double? MeanCompleteSolveTimeMs { get; set; }
+    public required int TicketCount { get; set; }
 }
 
