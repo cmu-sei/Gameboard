@@ -16,6 +16,14 @@ public class ScoringController : ControllerBase
         _mediator = mediator;
     }
 
+    [HttpGet("game/{gameId}/scoring-config")]
+    public async Task<GameScoringConfig> GetGameScoringConfig([FromRoute] string gameId)
+        => await _mediator.Send(new GameScoringConfigQuery(gameId));
+
+    [HttpGet("game/{gameId}/score")]
+    public async Task<GameScore> GetGameScore([FromRoute] string gameId)
+        => await _mediator.Send(new GameScoreQuery(gameId));
+
     // TODO: more rest-correct url? [HttpGet("team/{teamId}/score/{challengeId}")]
     [HttpGet("challenge/{challengeId}/score")]
     public async Task<TeamChallengeScoreSummary> GetTeamChallengeScoreSummary([FromRoute] string challengeId)

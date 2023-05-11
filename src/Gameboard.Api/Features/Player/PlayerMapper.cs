@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using AutoMapper;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Services;
 
@@ -14,6 +15,8 @@ public class PlayerMapper : Profile
         CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
         CreateMap<Data.Player, Player>();
         CreateMap<Data.Player, BoardPlayer>();
+        CreateMap<Data.Player, SimpleEntity>()
+            .ForMember(d => d.Name, o => o.MapFrom(p => p.ApprovedName));
         CreateMap<Data.Player, Standing>();
         CreateMap<Data.Player, TeamPlayer>();
         CreateMap<Data.Player, TeamMember>();

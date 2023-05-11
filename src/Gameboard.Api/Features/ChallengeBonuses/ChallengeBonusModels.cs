@@ -1,5 +1,4 @@
 using System;
-using Gameboard.Api;
 using Gameboard.Api.Structure;
 
 public class CreateManualChallengeBonus

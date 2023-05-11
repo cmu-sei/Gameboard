@@ -26,6 +26,6 @@ namespace Gameboard.Api.Data
         public string GameId { get; set; }
         public Game Game { get; set; }
         public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
-        // public ICollection<ChallengeBonus> Bonuses { get; set; } = new List<ChallengeBonus>();
+        public ICollection<ChallengeBonus> Bonuses { get; set; } = new List<ChallengeBonus>();
     }
 }

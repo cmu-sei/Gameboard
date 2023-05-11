@@ -89,6 +89,6 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
 
         // then
         result.ShouldNotBeNull();
-        result.TotalScore.ShouldBe(basePoints1 + basePoints2 + bonus1Points + bonus2Points + bonus3points);
+        result.Score.TotalScore.ShouldBe(basePoints1 + basePoints2 + bonus1Points + bonus2Points + bonus3points);
     }
 }

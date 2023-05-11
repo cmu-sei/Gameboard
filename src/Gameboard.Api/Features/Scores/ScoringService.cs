@@ -1,4 +1,5 @@
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,12 +16,12 @@ public interface IScoringService
 {
     Task<TeamChallengeScoreSummary> GetTeamChallengeScore(string challengeId);
     Task<TeamGameScoreSummary> GetTeamGameScore(string teamId);
-    Task<ChallengeScoreSummary> GetChallengeScores(string challengeId);
+    Dictionary<string, int> ComputeTeamRanks(IEnumerable<TeamGameScoreSummary> teamScores);
 }
 
 internal class ScoringService : IScoringService
 {
-    private readonly IStore<ManualChallengeBonus> _challengeBonusStore;
+    private readonly IStore<ManualChallengeBonus> _challengeManualBonusStore;
     private readonly IChallengeStore _challengeStore;
     private readonly IChallengeSpecStore _challengeSpecStore;
     private readonly IGameStore _gameStore;
@@ -28,14 +29,14 @@ internal class ScoringService : IScoringService
     private readonly ITeamService _teamService;
 
     public ScoringService(
-        IStore<ManualChallengeBonus> challengeBonusStore,
+        IStore<ManualChallengeBonus> challengeManualBonusStore,
         IChallengeStore challengeStore,
         IChallengeSpecStore challengeSpecStore,
         IGameStore gameStore,
         IMapper mapper,
         ITeamService teamService)
     {
-        _challengeBonusStore = challengeBonusStore;
+        _challengeManualBonusStore = challengeManualBonusStore;
         _challengeStore = challengeStore;
         _challengeSpecStore = challengeSpecStore;
         _gameStore = gameStore;
@@ -43,16 +44,14 @@ internal class ScoringService : IScoringService
         _teamService = teamService;
     }
 
-    public Task<ChallengeScoreSummary> GetChallengeScores(string challengeId)
-    {
-        throw new System.NotImplementedException();
-    }
-
     public async Task<TeamChallengeScoreSummary> GetTeamChallengeScore(string challengeId)
     {
         var challenge = await _challengeStore
             .List()
             .Include(c => c.Player)
+            .Include(c => c.AwardedBonuses)
+                .ThenInclude(b => b.ChallengeBonus)
+            .Include(c => c.AwardedManualBonuses)
             .FirstOrDefaultAsync(c => c.Id == challengeId);
 
         if (challenge == null)
@@ -61,24 +60,8 @@ internal class ScoringService : IScoringService
         }
 
         var spec = await _challengeSpecStore.Retrieve(challenge.SpecId);
-        var bonuses = await _mapper.ProjectTo<ManualChallengeBonusViewModel>(_challengeBonusStore
-            .List()
-            .Where(b => b.ChallengeId == challengeId))
-            .ToListAsync();
 
-        var bonusScore = bonuses.Select(b => b.PointValue).Sum();
-        var totalScore = CalculateScore(challenge.Points, bonuses.Select(b => b.PointValue));
-
-        return new TeamChallengeScoreSummary
-        {
-            Challenge = new SimpleEntity { Id = challenge.Id, Name = challenge.Name },
-            Spec = new SimpleEntity { Id = spec.Id, Name = spec.Name },
-            Team = new SimpleEntity { Id = challenge.TeamId, Name = challenge.Player.ApprovedName },
-            TotalScore = totalScore,
-            ScoreFromChallenge = challenge.Points,
-            ScoreFromManualBonuses = bonusScore,
-            ManualBonuses = bonuses
-        };
+        return BuildTeamChallengeScoreSummary(challenge, spec);
     }
 
     public async Task<TeamGameScoreSummary> GetTeamGameScore(string teamId)
@@ -90,6 +73,8 @@ internal class ScoringService : IScoringService
 
         var challenges = await _challengeStore
             .List()
+            .Include(c => c.AwardedBonuses)
+                .ThenInclude(b => b.ChallengeBonus)
             .Include(c => c.AwardedManualBonuses)
                 .ThenInclude(b => b.EnteredByUser)
             .Where(c => c.GameId == captain.GameId)
@@ -100,52 +85,88 @@ internal class ScoringService : IScoringService
             .Where(spec => spec.GameId == captain.GameId)
             .ToListAsync();
 
-        var bonusPoints = challenges
-            .SelectMany(c => c.AwardedManualBonuses.Select(b => b.PointValue))
-            .Sum();
-
-        var pointsFromChallengeScores = challenges.Select(c => c.Points).Sum();
+        var manualBonusPoints = challenges.SelectMany(c => c.AwardedManualBonuses.Select(b => b.PointValue));
+        var bonusPoints = challenges.SelectMany(c => c.AwardedBonuses.Select(b => b.ChallengeBonus.PointValue));
+        var pointsFromChallenges = challenges.Select(c => (double)c.Points);
 
         return new TeamGameScoreSummary
         {
             Game = new SimpleEntity { Id = game.Id, Name = game.Name },
             Team = new SimpleEntity { Id = captain.TeamId, Name = captain.ApprovedName },
-            ChallengesScore = pointsFromChallengeScores,
-            ManualBonusesScore = bonusPoints,
-            TotalScore = pointsFromChallengeScores + bonusPoints,
+            Score = CalculateScore(pointsFromChallenges, bonusPoints, manualBonusPoints),
             ChallengeScoreSummaries = specs.Select(spec =>
             {
                 var challenge = challenges.FirstOrDefault(c => c.SpecId == spec.Id);
-                var bonuses = challenge == null ? new ManualChallengeBonus[] { } : challenge.AwardedManualBonuses;
-                var bonusesSum = challenge == null ? 0 : challenge.AwardedManualBonuses.Select(b => b.PointValue).Sum();
-                var points = challenge == null ? 0 : challenge.Points;
 
-                return new TeamChallengeScoreSummary
-                {
-                    Challenge = challenge == null ? null : new SimpleEntity { Id = challenge.Id, Name = challenge.Name },
-                    Spec = new SimpleEntity { Id = spec.Id, Name = spec.Name },
-                    Team = new SimpleEntity { Id = captain.TeamId, Name = captain.ApprovedName },
-                    ScoreFromChallenge = points,
-                    ScoreFromManualBonuses = bonusesSum,
-                    TotalScore = CalculateScore(points, bonusesSum),
-                    ManualBonuses = _mapper.Map<IEnumerable<ManualChallengeBonusViewModel>>(bonuses)
-                };
+                return BuildTeamChallengeScoreSummary(challenge, spec);
             })
         };
     }
 
-    internal double CalculateScore(double challengePoints, double manualPoints)
+    internal TeamChallengeScoreSummary BuildTeamChallengeScoreSummary(Data.Challenge challenge, Data.ChallengeSpec spec)
     {
-        return CalculateScore(new double[] { challengePoints }, new double[] { manualPoints });
+        var manualBonuses = challenge == null ? new double[] { 0 } : challenge.AwardedManualBonuses.Select(b => b.PointValue);
+        var autoBonuses = challenge == null ? new double[] { 0 } : challenge.AwardedBonuses.Select(b => b.ChallengeBonus.PointValue);
+        var score = CalculateScore(challenge.Points, autoBonuses, manualBonuses);
+
+        return new TeamChallengeScoreSummary
+        {
+            Challenge = challenge == null ? null : new SimpleEntity { Id = challenge.Id, Name = challenge.Name },
+            Team = new SimpleEntity { Id = challenge.TeamId, Name = challenge.Player.ApprovedName },
+            Spec = new SimpleEntity { Id = spec.Id, Name = spec.Name },
+            Score = score,
+            TimeElapsed = BuildChallengeTimeElapsed(challenge),
+            Bonuses = _mapper.Map<IEnumerable<GameScoreAwardedChallengeBonus>>(challenge.AwardedBonuses),
+            ManualBonuses = _mapper.Map<ManualChallengeBonusViewModel[]>(challenge.AwardedManualBonuses)
+        };
     }
 
-    internal double CalculateScore(double challengePoints, IEnumerable<double> manualPoints)
+    internal Nullable<TimeSpan> BuildChallengeTimeElapsed(Data.Challenge c)
     {
-        return CalculateScore(new double[] { challengePoints }, manualPoints);
+        if (c == null || c.EndTime == DateTimeOffset.MinValue || c.StartTime == DateTimeOffset.MinValue)
+            return null;
+
+        return c.EndTime - c.StartTime;
     }
 
-    internal double CalculateScore(IEnumerable<double> challengesPoints, IEnumerable<double> manualPoints)
+    internal Score CalculateScore(double challengePoints, IEnumerable<double> bonusPoints, IEnumerable<double> manualBonusPoints)
     {
-        return challengesPoints.Sum() + manualPoints.Sum();
+        return CalculateScore(new double[] { challengePoints }, bonusPoints, manualBonusPoints);
+    }
+
+    internal Score CalculateScore(IEnumerable<double> challengesPoints, IEnumerable<double> bonusPoints, IEnumerable<double> manualBonusPoints)
+    {
+        var solveScore = challengesPoints.Sum();
+        var bonusScore = bonusPoints.Sum();
+        var manualBonusScore = manualBonusPoints.Sum();
+
+        return new Score
+        {
+            CompletionScore = solveScore,
+            BonusScore = bonusScore,
+            ManualBonusScore = manualBonusScore,
+            TotalScore = solveScore + bonusScore + manualBonusScore
+        };
+    }
+
+    public Dictionary<string, int> ComputeTeamRanks(IEnumerable<TeamGameScoreSummary> teamScores)
+    {
+        // have to do these synchronously because we can't reuse the dbcontext
+        // TODO: maybe a scoring service function that retrieves all at once and composes
+        var scoreRank = 0;
+        var lastScore = 0;
+        var rankedTeamScores = teamScores.OrderBy(s => s.Score.TotalScore).ToArray();
+        var teamRanks = new Dictionary<string, int>();
+
+        foreach (var teamScore in rankedTeamScores)
+        {
+            if (teamScore.Score.TotalScore != lastScore)
+            {
+                scoreRank += 1;
+            }
+            teamRanks.Add(teamScore.Team.Id, scoreRank);
+        }
+
+        return teamRanks;
     }
 }

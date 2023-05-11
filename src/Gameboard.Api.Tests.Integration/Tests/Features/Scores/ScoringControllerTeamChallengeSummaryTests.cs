@@ -56,6 +56,6 @@ public class ScoringControllerTeamChallengeSummaryTests : IClassFixture<Gameboar
 
         // then
         result.ShouldNotBeNull();
-        result.TotalScore.ShouldBe(basePoints + bonus1Points + bonus2Points);
+        result.Score.TotalScore.ShouldBe(basePoints + bonus1Points + bonus2Points);
     }
 }
