@@ -7,9 +7,9 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record GetChallengeReportQuery(GetChallengesReportQueryArgs Args) : IRequest<ReportResults<ChallengeReportRecord>>;
+public record ChallengesReportQuery(GetChallengesReportQueryArgs Args) : IRequest<ReportResults<ChallengesReportRecord>>;
 
-public class GetChallengeReportHandler : IRequestHandler<GetChallengeReportQuery, ReportResults<ChallengeReportRecord>>
+public class ChallengeReportQueryHandler : IRequestHandler<ChallengesReportQuery, ReportResults<ChallengesReportRecord>>
 {
     private readonly IChallengeStore _challengeStore;
     private readonly IChallengeSpecStore _challengeSpecStore;
@@ -19,7 +19,7 @@ public class GetChallengeReportHandler : IRequestHandler<GetChallengeReportQuery
     private readonly IPlayerStore _playerStore;
     private readonly IReportsService _reportsService;
 
-    public GetChallengeReportHandler
+    public ChallengeReportQueryHandler
     (
         IChallengeStore challengeStore,
         IChallengeSpecStore challengeSpecStore,
@@ -39,11 +39,11 @@ public class GetChallengeReportHandler : IRequestHandler<GetChallengeReportQuery
         _reportsService = reportsService;
     }
 
-    public async Task<ReportResults<ChallengeReportRecord>> Handle(GetChallengeReportQuery request, CancellationToken cancellationToken)
+    public async Task<ReportResults<ChallengesReportRecord>> Handle(ChallengesReportQuery request, CancellationToken cancellationToken)
     {
         var results = await _reportsService.GetChallengesReportRecords(request.Args);
 
-        return new ReportResults<ChallengeReportRecord>
+        return new ReportResults<ChallengesReportRecord>
         {
             MetaData = new ReportMetaData
             {

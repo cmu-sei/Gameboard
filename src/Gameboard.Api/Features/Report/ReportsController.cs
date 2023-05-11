@@ -29,14 +29,14 @@ public class ReportsController : ControllerBase
         => await _service.List();
 
     [HttpGet("challenges-report")]
-    public async Task<ReportResults<ChallengeReportRecord>> GetChallengeReport([FromQuery] GetChallengesReportQueryArgs args)
+    public async Task<ReportResults<ChallengesReportRecord>> GetChallengeReport([FromQuery] GetChallengesReportQueryArgs args)
     {
-        return await _mediator.Send(new GetChallengeReportQuery(args));
+        return await _mediator.Send(new ChallengesReportQuery(args));
     }
 
     [HttpGet("players-report")]
     public async Task<ReportResults<PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportQueryParameters reportParams)
-        => await _mediator.Send(new GetPlayersReportQuery(reportParams));
+        => await _mediator.Send(new PlayersReportQuery(reportParams));
 
     [HttpGet("support-report")]
     public async Task<ReportResults<SupportReportRecord>> GetSupportReport([FromQuery] SupportReportParameters reportParams)
@@ -53,6 +53,10 @@ public class ReportsController : ControllerBase
     [HttpGet("parameter/games")]
     public Task<IEnumerable<SimpleEntity>> GetGames()
         => _service.ListParameterOptionsGames();
+
+    [HttpGet("parameter/ticket-statuses")]
+    public Task<IEnumerable<string>> GetTicketStatuses()
+        => _service.ListTicketStatuses();
 
     [HttpGet("parameter/tracks")]
     public Task<IEnumerable<string>> GetTracks()

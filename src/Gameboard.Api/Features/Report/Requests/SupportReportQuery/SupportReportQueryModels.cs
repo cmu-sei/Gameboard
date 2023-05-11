@@ -21,10 +21,11 @@ public class SupportReportParameters
 {
     public string ChallengeSpecId { get; set; }
     public string GameId { get; set; }
-    public IEnumerable<string> Labels { get; set; }
-    public Nullable<SupportReportLabelsModifier> LabelsModifier { get; set; }
-    public Nullable<double> HoursSinceOpen { get; set; }
-    public Nullable<double> HoursSinceStatusChange { get; set; }
+    // public IEnumerable<string> Labels { get; set; }
+    public string Labels { get; set; }
+    public Nullable<SupportReportLabelsModifier> LabelsModifier { get; set; } = SupportReportLabelsModifier.HasAll;
+    public Nullable<double> MinutesSinceOpen { get; set; }
+    public Nullable<double> MinutesSinceUpdate { get; set; }
     public DateTimeOffset? OpenedDateStart { get; set; }
     public DateTimeOffset? OpenedDateEnd { get; set; }
     public Nullable<SupportReportTicketWindow> OpenedWindow { get; set; }
@@ -48,4 +49,21 @@ public class SupportReportRecord
     public required string Summary { get; set; }
     public required string Status { get; set; }
     public required int ActivityCount { get; set; }
+}
+
+public class SupportReportExportRecord
+{
+    public required string PrefixedKey { get; set; }
+    public DateTimeOffset CreatedOn { get; set; }
+    public DateTimeOffset UpdatedOn { get; set; }
+    public string AssignedTo { get; set; }
+    public string CreatedBy { get; set; }
+    public string UpdatedBy { get; set; }
+    public string RequestedBy { get; set; }
+    public string Game { get; set; }
+    public string Attachments { get; set; }
+    public string Labels { get; set; }
+    public string Summary { get; set; }
+    public string Status { get; set; }
+    public int ActivityCount { get; set; }
 }

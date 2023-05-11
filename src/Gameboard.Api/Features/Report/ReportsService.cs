@@ -12,13 +12,14 @@ namespace Gameboard.Api.Features.Reports;
 
 public interface IReportsService
 {
+    Task<IEnumerable<ChallengesReportRecord>> GetChallengesReportRecords(GetChallengesReportQueryArgs parameters);
+    IQueryable<Data.Player> GetPlayersReportBaseQuery(PlayersReportQueryParameters parameters);
     Task<IEnumerable<ReportViewModel>> List();
     Task<IEnumerable<SimpleEntity>> ListParameterOptionsChallengeSpecs(string gameId = null);
     Task<IEnumerable<string>> ListParameterOptionsCompetitions();
     Task<IEnumerable<SimpleEntity>> ListParameterOptionsGames();
     Task<IEnumerable<string>> ListParameterOptionsTracks();
-    Task<IEnumerable<ChallengeReportRecord>> GetChallengesReportRecords(GetChallengesReportQueryArgs parameters);
-    IQueryable<Data.Player> GetPlayersReportBaseQuery(PlayersReportQueryParameters parameters);
+    Task<IEnumerable<string>> ListTicketStatuses();
 }
 
 public class ReportsService : IReportsService
@@ -30,6 +31,7 @@ public class ReportsService : IReportsService
     private readonly INowService _now;
     private readonly IPlayerStore _playerStore;
     private readonly IReportStore _store;
+    private readonly ITicketStore _ticketStore;
 
     public ReportsService
     (
@@ -39,7 +41,8 @@ public class ReportsService : IReportsService
         IMapper mapper,
         INowService now,
         IPlayerStore playerStore,
-        IReportStore store
+        IReportStore store,
+        ITicketStore ticketStore
     )
     {
         _challengeStore = challengeStore;
@@ -49,6 +52,7 @@ public class ReportsService : IReportsService
         _now = now;
         _playerStore = playerStore;
         _store = store;
+        _ticketStore = ticketStore;
     }
 
     public async Task<IEnumerable<ReportViewModel>> List()
@@ -76,7 +80,7 @@ public class ReportsService : IReportsService
     public async Task<IEnumerable<string>> ListParameterOptionsTracks()
         => await _store.GetTracks();
 
-    public async Task<IEnumerable<ChallengeReportRecord>> GetChallengesReportRecords(GetChallengesReportQueryArgs args)
+    public async Task<IEnumerable<ChallengesReportRecord>> GetChallengesReportRecords(GetChallengesReportQueryArgs args)
     {
         // TODO: validation
         var hasCompetition = args.Competition.NotEmpty();
@@ -95,7 +99,7 @@ public class ReportsService : IReportsService
             .ToDictionaryAsync
             (
                 s => s.Id,
-                s => new ChallengeReportSpec
+                s => new ChallengesReportSpec
                 {
                     Id = s.Id,
                     Game = new SimpleEntity { Id = s.GameId, Name = s.Game.Name },
@@ -120,11 +124,11 @@ public class ReportsService : IReportsService
             .Include(c => c.Player)
             .Include(c => c.Tickets)
             .Where(c => specIds.Contains(c.SpecId))
-            .Select(c => new ChallengeReportChallenge
+            .Select(c => new ChallengesReportChallenge
             {
                 Challenge = _mapper.Map<SimpleEntity>(c),
                 Game = _mapper.Map<SimpleEntity>(c.Game),
-                Player = new ChallengeReportPlayer
+                Player = new ChallengesReportPlayer
                 {
                     Player = new SimpleEntity { Id = c.PlayerId, Name = c.Player.ApprovedName },
                     StartTime = c.Player.SessionBegin,
@@ -160,7 +164,7 @@ public class ReportsService : IReportsService
                     var meanCompleteSolveTime = playersCompleteSolved.Count() > 0 ? playersCompleteSolved.Average(p => p.Player.SolveTimeMs.Value) : null as Nullable<double>;
                     var meanScore = c.Count() > 0 ? c.Average(c => c.Player.Score) : null as Nullable<double>;
 
-                    return new ChallengeReportMeanChallengeStats
+                    return new ChallengesReportMeanChallengeStats
                     {
                         MeanCompleteSolveTimeMs = meanCompleteSolveTime,
                         MeanScore = meanScore
@@ -177,7 +181,7 @@ public class ReportsService : IReportsService
                 SolveTime = c.Player.SolveTimeMs.Value
             })
             .GroupBy(specPlayerSolve => specPlayerSolve.SpecId)
-            .ToDictionary(c => c.Key, c => c.Select(c => new ChallengeReportPlayerSolve
+            .ToDictionary(c => c.Key, c => c.Select(c => new ChallengesReportPlayerSolve
             {
                 Player = c.Player,
                 SolveTimeMs = c.SolveTime
@@ -186,13 +190,13 @@ public class ReportsService : IReportsService
         return specs.Values.Select(spec => BuildRecord(spec, allPlayers, challengesBySpec, fastestSolves, meanStats));
     }
 
-    private ChallengeReportRecord BuildRecord
+    private ChallengesReportRecord BuildRecord
     (
-        ChallengeReportSpec spec,
+        ChallengesReportSpec spec,
         Data.Player[] allPlayers,
-        Dictionary<string, List<ChallengeReportChallenge>> challengesBySpec,
-        Dictionary<string, ChallengeReportPlayerSolve> fastestSolves,
-        Dictionary<string, ChallengeReportMeanChallengeStats> meanStats
+        Dictionary<string, List<ChallengesReportChallenge>> challengesBySpec,
+        Dictionary<string, ChallengesReportPlayerSolve> fastestSolves,
+        Dictionary<string, ChallengesReportMeanChallengeStats> meanStats
     )
     {
         var hasChallenges = challengesBySpec.Keys.Contains(spec.Id);
@@ -200,7 +204,7 @@ public class ReportsService : IReportsService
         var hasSolves = fastestSolves.Keys.Contains(spec.Id);
         var hasStats = meanStats.Keys.Contains(spec.Id);
 
-        return new ChallengeReportRecord
+        return new ChallengesReportRecord
         {
             ChallengeSpec = new SimpleEntity { Id = spec.Id, Name = spec.Name },
             Game = new SimpleEntity { Id = spec.Game.Id, Name = spec.Game.Name },
@@ -251,10 +255,10 @@ public class ReportsService : IReportsService
                 .Where(p => p.Game.Competition == parameters.Competition);
         }
 
-        if (parameters.Track.NotEmpty())
+        if (parameters.TrackName.NotEmpty())
         {
             baseQuery = baseQuery
-                .Where(p => p.Game.Track == parameters.Track);
+                .Where(p => p.Game.Track == parameters.TrackName);
         }
 
         if (parameters.ChallengeSpecId.NotEmpty())
@@ -267,6 +271,21 @@ public class ReportsService : IReportsService
             baseQuery = baseQuery
                 .Where(p => p.GameId == parameters.GameId);
 
+        if (parameters.TrackName.NotEmpty())
+            if (parameters.TrackModifier == PlayersReportTrackModifier.CompetedInOnlyThisTrack)
+            {
+                //baseQuery = baseQuery.GroupBy(p => new { Id = p.Id, TrackName = p.Game.Track }).Where
+            }
+
         return baseQuery;
+    }
+
+    public async Task<IEnumerable<string>> ListTicketStatuses()
+    {
+        return await _ticketStore
+            .ListWithNoTracking()
+            .Select(t => t.Status)
+            .Distinct()
+            .ToArrayAsync();
     }
 }

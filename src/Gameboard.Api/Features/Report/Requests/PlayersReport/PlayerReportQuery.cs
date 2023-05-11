@@ -9,9 +9,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record GetPlayersReportQuery(PlayersReportQueryParameters Parameters) : IRequest<ReportResults<PlayersReportRecord>>;
+public record PlayersReportQuery(PlayersReportQueryParameters Parameters) : IRequest<ReportResults<PlayersReportRecord>>;
 
-internal class GetPlayersReportQueryHandler : IRequestHandler<GetPlayersReportQuery, ReportResults<PlayersReportRecord>>
+internal class GetPlayersReportQueryHandler : IRequestHandler<PlayersReportQuery, ReportResults<PlayersReportRecord>>
 {
     private readonly INowService _nowService;
     private readonly IPlayerStore _playerStore;
@@ -35,7 +35,7 @@ internal class GetPlayersReportQueryHandler : IRequestHandler<GetPlayersReportQu
         _sponsorStore = sponsorStore;
     }
 
-    public async Task<ReportResults<PlayersReportRecord>> Handle(GetPlayersReportQuery request, CancellationToken cancellationToken)
+    public async Task<ReportResults<PlayersReportRecord>> Handle(PlayersReportQuery request, CancellationToken cancellationToken)
     {
         var query = _reportsService.GetPlayersReportBaseQuery(request.Parameters);
         return await TransformQueryToResults(query);

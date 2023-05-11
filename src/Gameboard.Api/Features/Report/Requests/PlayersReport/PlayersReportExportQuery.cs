@@ -7,22 +7,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record GetPlayersReportExportQuery(PlayersReportQueryParameters Parameters) : IRequest<IEnumerable<PlayersReportCsvRecord>>;
+public record PlayersReportExportQuery(PlayersReportQueryParameters Parameters) : IRequest<IEnumerable<PlayersReportExportRecord>>;
 
-public class GetPlayersReportExportHandler : IRequestHandler<GetPlayersReportExportQuery, IEnumerable<PlayersReportCsvRecord>>
+public class PlayersReportExportHandler : IRequestHandler<PlayersReportExportQuery, IEnumerable<PlayersReportExportRecord>>
 {
     private readonly IReportsService _reportsService;
 
-    public GetPlayersReportExportHandler(IReportsService reportsService)
+    public PlayersReportExportHandler(IReportsService reportsService)
     {
         _reportsService = reportsService;
     }
 
-    public async Task<IEnumerable<PlayersReportCsvRecord>> Handle(GetPlayersReportExportQuery request, CancellationToken cancellationToken)
+    public async Task<IEnumerable<PlayersReportExportRecord>> Handle(PlayersReportExportQuery request, CancellationToken cancellationToken)
     {
         var query = _reportsService.GetPlayersReportBaseQuery(request.Parameters);
 
-        return await query.Select(p => new PlayersReportCsvRecord
+        return await query.Select(p => new PlayersReportExportRecord
         {
             Id = p.User.Id,
             Name = p.User.ApprovedName,

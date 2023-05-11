@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using Gameboard.Api.Structure;
-using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -19,7 +17,7 @@ public class PlayerTime
     public TimeSpan Time { get; set; }
 }
 
-internal class ChallengeReportPlayerEngagement
+internal class ChallengesReportPlayerEngagement
 {
     public required SimpleEntity Player { get; set; }
     public required SimpleEntity Game { get; set; }
@@ -29,13 +27,13 @@ internal class ChallengeReportPlayerEngagement
     public required bool IsChallengeDeployed { get; set; }
 }
 
-internal class ChallengeReportMeanChallengeStats
+internal class ChallengesReportMeanChallengeStats
 {
     public required Nullable<double> MeanCompleteSolveTimeMs { get; set; }
     public required Nullable<double> MeanScore { get; set; }
 }
 
-internal class ChallengeReportPlayer
+internal class ChallengesReportPlayer
 {
     public required SimpleEntity Player { get; set; }
     public required Nullable<double> SolveTimeMs { get; set; }
@@ -45,16 +43,16 @@ internal class ChallengeReportPlayer
     public required int Score { get; set; }
 }
 
-internal class ChallengeReportChallenge
+internal class ChallengesReportChallenge
 {
     public required SimpleEntity Challenge { get; set; }
     public required SimpleEntity Game { get; set; }
     public required string SpecId { get; set; }
-    public required ChallengeReportPlayer Player { get; set; }
+    public required ChallengesReportPlayer Player { get; set; }
     public required int TicketCount { get; set; }
 }
 
-internal class ChallengeReportSpec
+internal class ChallengesReportSpec
 {
     public required string Id { get; set; }
     public required SimpleEntity Game { get; set; }
@@ -62,13 +60,13 @@ internal class ChallengeReportSpec
     public required double MaxPoints { get; set; }
 }
 
-public class ChallengeReportPlayerSolve
+public class ChallengesReportPlayerSolve
 {
     public required SimpleEntity Player { get; set; }
     public required double SolveTimeMs { get; set; }
 }
 
-public class ChallengeReportRecord
+public class ChallengesReportRecord
 {
     public required SimpleEntity ChallengeSpec { get; set; }
     public required SimpleEntity Challenge { get; set; }
@@ -77,7 +75,7 @@ public class ChallengeReportRecord
     public required int PlayersStarted { get; set; }
     public required int PlayersWithPartialSolve { get; set; }
     public required int PlayersWithCompleteSolve { get; set; }
-    public required ChallengeReportPlayerSolve FastestSolve { get; set; }
+    public required ChallengesReportPlayerSolve FastestSolve { get; set; }
     public required double MaxPossibleScore { get; set; }
     public required double? MeanScore { get; set; }
     public required double? MeanCompleteSolveTimeMs { get; set; }

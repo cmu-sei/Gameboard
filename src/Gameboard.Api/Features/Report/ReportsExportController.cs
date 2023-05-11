@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using Gameboard.Api.Structure;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,16 +25,24 @@ public class ReportsExportController : ControllerBase
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> GetChallengesReport(GetChallengesReportQueryArgs parameters)
     {
-        var results = await _mediator.Send(new GetChallengesReportExportQuery(parameters));
-        return new FileContentResult(GetReportExport(results), "text/csv");
+        var results = await _mediator.Send(new ChallengesReportExportQuery(parameters));
+        return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
     }
 
     [HttpGet("players-report")]
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> GetPlayersReport(PlayersReportQueryParameters parameters)
     {
-        var results = await _mediator.Send(new GetPlayersReportExportQuery(parameters));
-        return new FileContentResult(GetReportExport(results), "text/csv");
+        var results = await _mediator.Send(new PlayersReportExportQuery(parameters));
+        return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
+    }
+
+    [HttpGet("support-report")]
+    [ProducesResponseType(typeof(FileContentResult), 200)]
+    public async Task<IActionResult> GetSupportReport(SupportReportParameters parameters)
+    {
+        var results = await _mediator.Send(new SupportReportExportQuery(parameters));
+        return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
     }
 
     private byte[] GetReportExport<T>(IEnumerable<T> records)

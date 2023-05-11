@@ -30,7 +30,7 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
             migrationBuilder.InsertReport(new Report
             {
                 Key = ReportKey.ChallengesReport,
-                Name = "Challenges Report",
+                Name = "Challenges",
                 Description = "Understand the role a challenge played in its games and competitions, how attainable a full solve was, and more.",
                 ExampleFields = "Scores|Solve Times|Deploy vs. Solve Counts",
                 ExampleParameters = "Session Date Range|Competition|Track|Game|Challenge"
@@ -39,7 +39,7 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
             migrationBuilder.InsertReport(new Report
             {
                 Key = ReportKey.PlayersReport,
-                Name = "Players Report",
+                Name = "Players",
                 Description = "View a player-based perspective of your games and challenge. See who's scoring highly, logging in regularly, and more.",
                 ExampleFields = "Scores|Solve Times|Participation Across Games",
                 ExampleParameters = "Session Date Range|Competition|Track|Game|Challenge"
@@ -48,7 +48,7 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
             migrationBuilder.InsertReport(new Report
             {
                 Key = ReportKey.SupportReport,
-                Name = "Support Report",
+                Name = "Support",
                 Description = "View a summary of the support tickets that have been created in Gameboard, including closer looks at submission times, ticket categories, and associated challenges.",
                 ExampleFields = "Ticket Category|Challenge|Time Windows|Assignments",
                 ExampleParameters = "Creation Date|Ticket Category|Time Window|Challenge"
