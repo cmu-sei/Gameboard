@@ -13,7 +13,7 @@ public sealed class PlayersReportTrackModifier
 public sealed class PlayersReportQueryParameters
 {
     public string ChallengeSpecId { get; set; }
-    public string Competition { get; set; }
+    public string Series { get; set; }
     public string GameId { get; set; }
     public string SponsorId { get; set; }
     public ReportDateRange SessionStartWindow { get; set; }
@@ -30,10 +30,10 @@ public sealed class PlayersReportSponsor
 
 public sealed class PlayersReportGamesAndChallengesSummary
 {
-    public required int CountEnrolled { get; set; }
-    public required int CountDeployed { get; set; }
-    public required int CountScoredPartial { get; set; }
-    public required int CountScoredComplete { get; set; }
+    public required IEnumerable<SimpleEntity> Deployed { get; set; }
+    public required IEnumerable<SimpleEntity> Enrolled { get; set; }
+    public required IEnumerable<SimpleEntity> ScoredPartial { get; set; }
+    public required IEnumerable<SimpleEntity> ScoredComplete { get; set; }
 }
 
 public sealed class PlayersReportRecord
@@ -62,7 +62,7 @@ public sealed class PlayersReportExportRecord
     public required string Track { get; set; }
     public required string GameId { get; set; }
     public required string GameName { get; set; }
-    public required IEnumerable<PlayersReportCsvRecordChallenge> Challenges { get; set; }
+    public required string ChallengeSummary { get; set; }
     public required string PlayerId { get; set; }
     public required string PlayerName { get; set; }
     public required double MaxPossibleScore { get; set; }

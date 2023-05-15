@@ -40,6 +40,12 @@ public sealed class ReportDateRange // : IReportPredicateProvider<DateTimeOffset
     public DateTimeOffset? DateStart { get; set; } = null;
     public DateTimeOffset? DateEnd { get; set; } = null;
 
+    public bool HasDateStartValue()
+        => DateStart != null && ((DateTimeOffset)DateStart).HasValue();
+
+    public bool HasDateEndValue()
+        => DateEnd != null && ((DateTimeOffset)DateEnd).HasValue();
+
     // public IEnumerable<Expression<Func<DateTimeOffset, bool>>> GetPredicates<TData>(Func<TData, DateTimeOffset> value) where TData : IEntity
     // {
     //     if (DateStart != null)

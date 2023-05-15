@@ -7,6 +7,6 @@ internal class StructureModelMaps : Profile
     public StructureModelMaps()
     {
         CreateMap<SimpleEntity, string>()
-            .ForAllMembers(d => d.MapFrom(s => s.Name));
+            .ConvertUsing(se => se != null ? se.Name : string.Empty);
     }
 }

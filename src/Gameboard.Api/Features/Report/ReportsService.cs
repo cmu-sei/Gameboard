@@ -13,7 +13,6 @@ namespace Gameboard.Api.Features.Reports;
 public interface IReportsService
 {
     Task<IEnumerable<ChallengesReportRecord>> GetChallengesReportRecords(GetChallengesReportQueryArgs parameters);
-    IQueryable<Data.Player> GetPlayersReportBaseQuery(PlayersReportQueryParameters parameters);
     Task<IEnumerable<ReportViewModel>> List();
     Task<IEnumerable<SimpleEntity>> ListParameterOptionsChallengeSpecs(string gameId = null);
     Task<IEnumerable<string>> ListParameterOptionsCompetitions();
@@ -227,57 +226,6 @@ public class ReportsService : IReportsService
             MeanScore = !hasStats ? null : meanStats[spec.Id].MeanScore,
             TicketCount = hasChallenges ? challengesBySpec[spec.Id].Select(c => c.TicketCount).Sum() : 0
         };
-    }
-
-    public IQueryable<Data.Player> GetPlayersReportBaseQuery(PlayersReportQueryParameters parameters)
-    {
-        var baseQuery = _playerStore
-            .ListWithNoTracking()
-            .Include(p => p.Game)
-            .Include(p => p.Challenges)
-            .Include(p => p.User)
-            .Where(p => p.Game.PlayerMode == PlayerMode.Competition)
-            .AsQueryable();
-
-        if (parameters.SessionStartWindow?.DateStart != null)
-        {
-            baseQuery = baseQuery.Where(p => p.SessionBegin >= parameters.SessionStartWindow.DateStart);
-        }
-
-        if (parameters.SessionStartWindow?.DateEnd != null)
-        {
-            baseQuery = baseQuery.Where(p => p.SessionBegin >= parameters.SessionStartWindow.DateEnd);
-        }
-
-        if (parameters.Competition.NotEmpty())
-        {
-            baseQuery = baseQuery
-                .Where(p => p.Game.Competition == parameters.Competition);
-        }
-
-        if (parameters.TrackName.NotEmpty())
-        {
-            baseQuery = baseQuery
-                .Where(p => p.Game.Track == parameters.TrackName);
-        }
-
-        if (parameters.ChallengeSpecId.NotEmpty())
-        {
-            baseQuery = baseQuery
-                .Include(p => p.Challenges.Where(c => c.SpecId == parameters.ChallengeSpecId));
-        }
-
-        if (parameters.GameId.NotEmpty())
-            baseQuery = baseQuery
-                .Where(p => p.GameId == parameters.GameId);
-
-        if (parameters.TrackName.NotEmpty())
-            if (parameters.TrackModifier == PlayersReportTrackModifier.CompetedInOnlyThisTrack)
-            {
-                //baseQuery = baseQuery.GroupBy(p => new { Id = p.Id, TrackName = p.Game.Track }).Where
-            }
-
-        return baseQuery;
     }
 
     public async Task<IEnumerable<string>> ListTicketStatuses()

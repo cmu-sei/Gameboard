@@ -11,9 +11,9 @@ public record PlayersReportExportQuery(PlayersReportQueryParameters Parameters) 
 
 public class PlayersReportExportHandler : IRequestHandler<PlayersReportExportQuery, IEnumerable<PlayersReportExportRecord>>
 {
-    private readonly IReportsService _reportsService;
+    private readonly IPlayersReportService _reportsService;
 
-    public PlayersReportExportHandler(IReportsService reportsService)
+    public PlayersReportExportHandler(IPlayersReportService reportsService)
     {
         _reportsService = reportsService;
     }
@@ -31,12 +31,7 @@ public class PlayersReportExportHandler : IRequestHandler<PlayersReportExportQue
             Track = p.Game.Track,
             GameId = p.GameId,
             GameName = p.Game.Name,
-            Challenges = p.Challenges.Select(c => new PlayersReportCsvRecordChallenge
-            {
-                ChallengeId = c.Id,
-                ChallengeName = c.Name,
-                ChallengeScore = c.Score
-            }),
+            ChallengeSummary = string.Join(", ", p.Challenges.Select(c => $"{c.Name} ({c.Score}/{c.Points})")),
             PlayerId = p.Id,
             PlayerName = p.ApprovedName,
             MaxPossibleScore = p.Game.Specs.Sum(s => s.Points),
