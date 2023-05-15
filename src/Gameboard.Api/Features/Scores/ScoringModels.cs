@@ -45,7 +45,7 @@ public sealed class GameScoreTeam
     public IEnumerable<TeamChallengeScoreSummary> Challenges { get; set; }
 }
 
-public sealed class GameScoreAwardedChallengeBonus
+public sealed class GameScoreAutoChallengeBonus
 {
     public string Id { get; set; }
     public string Description { get; set; }
@@ -60,8 +60,9 @@ public class TeamChallengeScoreSummary
     public required Score Score { get; set; }
     public required Nullable<TimeSpan> TimeElapsed { get; set; }
 
-    public required IEnumerable<GameScoreAwardedChallengeBonus> Bonuses { get; set; }
+    public required IEnumerable<GameScoreAutoChallengeBonus> Bonuses { get; set; }
     public required IEnumerable<ManualChallengeBonusViewModel> ManualBonuses { get; set; }
+    public required IEnumerable<GameScoreAutoChallengeBonus> UnclaimedBonuses { get; set; }
 }
 
 public class TeamGameScoreSummary

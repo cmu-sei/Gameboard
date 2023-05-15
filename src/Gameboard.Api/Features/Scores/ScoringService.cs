@@ -46,6 +46,7 @@ internal class ScoringService : IScoringService
 
     public async Task<TeamChallengeScoreSummary> GetTeamChallengeScore(string challengeId)
     {
+
         var challenge = await _challengeStore
             .List()
             .Include(c => c.Player)
@@ -55,13 +56,18 @@ internal class ScoringService : IScoringService
             .FirstOrDefaultAsync(c => c.Id == challengeId);
 
         if (challenge == null)
-        {
             return null;
-        }
+
+        // get the specId so we can pull other competing challenges if there are bonuses
+        var allChallenges = await _challengeStore
+            .List()
+            .Where(c => c.SpecId == challenge.SpecId)
+            .ToArrayAsync();
 
         var spec = await _challengeSpecStore.Retrieve(challenge.SpecId);
+        var unawardedBonuses = ResolveUnawardedBonuses(new Data.ChallengeSpec[] { spec }, allChallenges);
 
-        return BuildTeamChallengeScoreSummary(challenge, spec);
+        return BuildTeamChallengeScoreSummary(challenge, spec, unawardedBonuses);
     }
 
     public async Task<TeamGameScoreSummary> GetTeamGameScore(string teamId)
@@ -82,9 +88,11 @@ internal class ScoringService : IScoringService
 
         var specs = await _challengeSpecStore
             .List()
+            .Include(s => s.Bonuses)
             .Where(spec => spec.GameId == captain.GameId)
             .ToListAsync();
 
+        var unawardedBonuses = ResolveUnawardedBonuses(specs, challenges);
         var manualBonusPoints = challenges.SelectMany(c => c.AwardedManualBonuses.Select(b => b.PointValue));
         var bonusPoints = challenges.SelectMany(c => c.AwardedBonuses.Select(b => b.ChallengeBonus.PointValue));
         var pointsFromChallenges = challenges.Select(c => (double)c.Points);
@@ -98,12 +106,12 @@ internal class ScoringService : IScoringService
             {
                 var challenge = challenges.FirstOrDefault(c => c.SpecId == spec.Id);
 
-                return BuildTeamChallengeScoreSummary(challenge, spec);
+                return BuildTeamChallengeScoreSummary(challenge, spec, unawardedBonuses);
             })
         };
     }
 
-    internal TeamChallengeScoreSummary BuildTeamChallengeScoreSummary(Data.Challenge challenge, Data.ChallengeSpec spec)
+    internal TeamChallengeScoreSummary BuildTeamChallengeScoreSummary(Data.Challenge challenge, Data.ChallengeSpec spec, IEnumerable<Data.ChallengeBonus> unawardedBonuses)
     {
         var manualBonuses = challenge == null ? new double[] { 0 } : challenge.AwardedManualBonuses.Select(b => b.PointValue);
         var autoBonuses = challenge == null ? new double[] { 0 } : challenge.AwardedBonuses.Select(b => b.ChallengeBonus.PointValue);
@@ -116,8 +124,9 @@ internal class ScoringService : IScoringService
             Spec = new SimpleEntity { Id = spec.Id, Name = spec.Name },
             Score = score,
             TimeElapsed = BuildChallengeTimeElapsed(challenge),
-            Bonuses = _mapper.Map<IEnumerable<GameScoreAwardedChallengeBonus>>(challenge.AwardedBonuses),
-            ManualBonuses = _mapper.Map<ManualChallengeBonusViewModel[]>(challenge.AwardedManualBonuses)
+            Bonuses = _mapper.Map<IEnumerable<GameScoreAutoChallengeBonus>>(challenge.AwardedBonuses),
+            ManualBonuses = _mapper.Map<ManualChallengeBonusViewModel[]>(challenge.AwardedManualBonuses),
+            UnclaimedBonuses = _mapper.Map<IEnumerable<GameScoreAutoChallengeBonus>>(unawardedBonuses.Where(b => b.ChallengeSpecId == challenge.SpecId))
         };
     }
 
@@ -168,5 +177,13 @@ internal class ScoringService : IScoringService
         }
 
         return teamRanks;
+    }
+
+    internal IEnumerable<Data.ChallengeBonus> ResolveUnawardedBonuses(IEnumerable<Data.ChallengeSpec> specs, IEnumerable<Data.Challenge> challenges)
+    {
+        var awardedBonusIds = challenges.SelectMany(c => c.AwardedBonuses).Select(b => b.Id);
+
+        return specs.SelectMany(s => s.Bonuses)
+            .Where(b => !awardedBonusIds.Contains(b.Id));
     }
 }

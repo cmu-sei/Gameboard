@@ -15,8 +15,9 @@ public class ChallengeBonusMaps : Profile
                 Name = m.EnteredByUser.ApprovedName
             }));
 
+        CreateMap<Data.AwardedChallengeBonus, GameScoreAutoChallengeBonus>();
         CreateMap<Data.ChallengeBonus, GameScoringConfigChallengeBonus>();
+        CreateMap<Data.ChallengeBonus, GameScoreAutoChallengeBonus>();
         CreateMap<Data.ChallengeBonusSolveSpeed, GameScoringConfigChallengeBonus>();
-        CreateMap<Data.AwardedChallengeBonus, GameScoreAwardedChallengeBonus>();
     }
 }
