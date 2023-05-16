@@ -1,6 +1,5 @@
 using System.Linq;
 using System.Threading.Tasks;
-using Gameboard.Api.Validators;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.UnityGames;
@@ -22,7 +21,7 @@ public class UnityGamesValidator : IModelValidator
 
             if (!(await GameExists(typedModel.GameId)))
             {
-                throw new ResourceNotFound<Game>(typedModel.GameId);
+                throw new ResourceNotFound<Data.Game>(typedModel.GameId);
             }
 
             if (!(await TeamExists(typedModel.TeamId)))

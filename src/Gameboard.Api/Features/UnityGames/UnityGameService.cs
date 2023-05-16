@@ -15,6 +15,20 @@ using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Features.UnityGames;
 
+public interface IUnityGameService
+{
+    Task<Data.Challenge> AddChallenge(NewUnityChallenge newChallenge, User actor);
+    Task<Data.ChallengeEvent> CreateMissionEvent(UnityMissionUpdate model, Api.User actor);
+    Task<Data.Challenge> HasChallengeData(string gamespaceId);
+    Task DeleteChallengeData(string gameId);
+    bool IsUnityGame(Api.Features.Games.Game game);
+    bool IsUnityGame(Data.Game game);
+    Regex GetMissionCompleteEventRegex();
+    string GetMissionCompleteDefinitionString(string missionId);
+    string GetUnityModeString();
+    Task<string> UndeployGame(string gameId, string teamId);
+}
+
 internal class UnityGameService : _Service, IUnityGameService
 {
     private readonly IChallengeStore _challengeStore;
@@ -239,7 +253,7 @@ internal class UnityGameService : _Service, IUnityGameService
     }
 
     public bool IsUnityGame(Data.Game game) => game.Mode == GetUnityModeString();
-    public bool IsUnityGame(Game game) => game.Mode == GetUnityModeString();
+    public bool IsUnityGame(Api.Features.Games.Game game) => game.Mode == GetUnityModeString();
     public string GetUnityModeString() => "unity";
 
     public Regex GetMissionCompleteEventRegex()

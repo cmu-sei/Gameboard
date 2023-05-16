@@ -29,7 +29,7 @@ namespace Gameboard.Api.Validators
         private async Task _validate(FeedbackSubmission model)
         {
             if ((await GameExists(model.GameId)).Equals(false)) // game must always exist
-                throw new ResourceNotFound<Game>(model.GameId);
+                throw new ResourceNotFound<Data.Game>(model.GameId);
 
             if (model.ChallengeId.IsEmpty() != model.ChallengeSpecId.IsEmpty()) // must specify both or neither
                 throw new InvalideFeedbackFormat();

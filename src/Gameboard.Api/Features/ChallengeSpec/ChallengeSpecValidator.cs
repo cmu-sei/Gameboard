@@ -41,7 +41,7 @@ namespace Gameboard.Api.Validators
         private async Task _validate(NewChallengeSpec model)
         {
             if ((await GameExists(model.GameId)).Equals(false))
-                throw new ResourceNotFound<Game>(model.GameId);
+                throw new ResourceNotFound<Data.Game>(model.GameId);
 
             await Task.CompletedTask;
         }

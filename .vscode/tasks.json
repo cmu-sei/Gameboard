@@ -152,6 +152,43 @@
                 "EF: Undo Migration (MS)"
             ],
             "problemMatcher": []
+        },
+        {
+            "label": "EF: Update database (PG)",
+            "dependsOn": [
+                "build",
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": [],
+            "command": "dotnet",
+            "args": [
+                "ef",
+                "database",
+                "update",
+                "--project",
+                "${workspaceFolder}/src/Gameboard.Api",
+                "--context",
+                "GameboardDbContextPostgreSql"
+            ]
+        },
+        {
+            "label": "EF: Update PG database to... (PG)",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "build"
+            ],
+            "problemMatcher": [],
+            "command": "dotnet",
+            "args": [
+                "ef",
+                "database",
+                "update",
+                "${input:updateDbMigrationName}",
+                "--project",
+                "${workspaceFolder}/src/Gameboard.Api",
+                "--context",
+                "GameboardDbContextPostgreSql"
+            ]
         }
     ],
     "inputs": [
@@ -159,6 +196,12 @@
             "id": "migrationName",
             "type": "promptString",
             "description": "Enter the name of your migration"
+        },
+        {
+            "id": "updateDbMigrationName",
+            "type": "promptString",
+            "description": "Enter the name of the migration to which you want to update the DB. Leave blank to update to the most recent one.",
+            "default": ""
         }
     ]
 }

@@ -97,7 +97,7 @@ namespace Gameboard.Api.Validators
         {
             if (!(await GameExists(model.GameId)))
             {
-                throw new ResourceNotFound<Game>(model.GameId);
+                throw new ResourceNotFound<Data.Game>(model.GameId);
             }
 
             if (!(await UserExists(model.UserId)))
@@ -155,10 +155,10 @@ namespace Gameboard.Api.Validators
         private async Task _validate(TeamAdvancement model)
         {
             if ((await GameExists(model.GameId)).Equals(false))
-                throw new ResourceNotFound<Game>(model.GameId);
+                throw new ResourceNotFound<Data.Game>(model.GameId);
 
             if ((await GameExists(model.NextGameId)).Equals(false))
-                throw new ResourceNotFound<Game>(model.NextGameId, "The next game");
+                throw new ResourceNotFound<Data.Game>(model.NextGameId, "The next game");
 
             await Task.CompletedTask;
         }

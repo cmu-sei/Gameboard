@@ -41,7 +41,7 @@ public class ChallengeGateValidator : IModelValidator
     private async Task _validate(NewChallengeGate model)
     {
         if ((await GameExists(model.GameId)).Equals(false))
-            throw new ResourceNotFound<Game>(model.GameId);
+            throw new ResourceNotFound<Data.Game>(model.GameId);
 
         if ((await SpecExists(model.TargetId)).Equals(false))
             throw new ResourceNotFound<ChallengeSpec>(model.TargetId, "The target spec");
