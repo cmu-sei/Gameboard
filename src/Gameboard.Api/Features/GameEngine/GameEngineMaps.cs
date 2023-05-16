@@ -1,5 +1,4 @@
 using System.Linq;
-using System.Text.Json;
 using AutoMapper;
 using Gameboard.Api.Services;
 
@@ -53,6 +52,7 @@ public class GameEngineMaps : Profile
             .ForMember(c => c.Tag, o => o.Ignore())
             .ForMember(c => c.TeamId, o => o.Ignore())
             .ForMember(c => c.Tickets, o => o.Ignore())
+            .ForMember(c => c.AwardedBonuses, o => o.Ignore())
             .ForMember(c => c.AwardedManualBonuses, o => o.Ignore());
 
         // engine: topo
@@ -63,9 +63,12 @@ public class GameEngineMaps : Profile
         CreateMap<TopoMojo.Api.Client.QuestionView, GameEngineQuestionView>();
         CreateMap<TopoMojo.Api.Client.VmState, GameEngineVmState>();
         CreateMap<TopoMojo.Api.Client.ChallengeView, GameEngineChallengeView>();
-        CreateMap<TopoMojo.Api.Client.SectionSubmission, GameEngineSectionSubmission>();
+        CreateMap<TopoMojo.Api.Client.SectionSubmission, GameEngineSectionSubmission>()
+            .ForMember(d => d.Answers, o => o.MapFrom(s => s.Questions));
 
         CreateMap<GameEngineAnswerSubmission, TopoMojo.Api.Client.AnswerSubmission>();
-        CreateMap<GameEngineSectionSubmission, TopoMojo.Api.Client.SectionSubmission>();
+        CreateMap<GameEngineSectionSubmission, TopoMojo.Api.Client.SectionSubmission>()
+            .ForMember(d => d.Questions, o => o.MapFrom(s => s.Answers));
+
     }
 }

@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Common;
 using Gameboard.Api.Features.Teams;
-using Gameboard.Api.Structure;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Scores;
