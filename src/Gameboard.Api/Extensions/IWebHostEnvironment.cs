@@ -16,4 +16,7 @@ internal static class IWebHostEnvironmentExtensions
     {
         return env.EnvironmentName == _envDev;
     }
+
+    public static bool IsTest(this IWebHostEnvironment env)
+        => env.EnvironmentName == _envTest;
 }
