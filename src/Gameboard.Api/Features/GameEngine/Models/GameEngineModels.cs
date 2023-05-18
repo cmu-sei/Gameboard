@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Gameboard.Api.Features.GameEngine;
 
@@ -33,6 +34,11 @@ public class GameEngineGameState
     public DateTimeOffset ExpirationTime { get; set; }
     public IEnumerable<GameEngineVmState> Vms { get; set; }
     public GameEngineChallengeView Challenge { get; set; }
+
+    public bool HasDeployedGamespace
+    {
+        get => Vms != null && Vms.Count() > 0;
+    }
 }
 
 public class GameEnginePlayer

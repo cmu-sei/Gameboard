@@ -84,9 +84,12 @@ internal static class WebApplicationBuilderExtensions
             .AddGameboardData(settings.Database.Provider, settings.Database.ConnectionString)
             .AddGameboardServices(settings)
             .AddConfiguredHttpClients(settings.Core)
-            .AddHostedService<JobService>()
             .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath)
             .AddGameboardMediatR();
+
+        // don't add the job service during test - we don't want it to interfere with CI
+        if (!builder.Environment.IsTest())
+            services.AddHostedService<JobService>();
 
         services.AddSingleton<AutoMapper.IMapper>(
             new AutoMapper.MapperConfiguration(cfg =>
