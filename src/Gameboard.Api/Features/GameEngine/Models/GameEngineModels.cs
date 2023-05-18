@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 
 // These are data-annotated to support automatic JSON schema generation for Gamebrain dev
 namespace Gameboard.Api.Features.GameEngine;
@@ -35,6 +36,11 @@ public class GameEngineGameState
     [Required] public DateTimeOffset ExpirationTime { get; set; }
     [Required] public IEnumerable<GameEngineVmState> Vms { get; set; }
     [Required] public GameEngineChallengeView Challenge { get; set; }
+
+    public bool HasDeployedGamespace
+    {
+        get => Vms != null && Vms.Count() > 0;
+    }
 }
 
 public class GameEnginePlayer

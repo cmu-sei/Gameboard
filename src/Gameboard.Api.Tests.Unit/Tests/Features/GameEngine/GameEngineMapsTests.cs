@@ -118,4 +118,40 @@ public class GameEngineMapsTests
         mapped.Vms.FirstOrDefault(vm => vm.IsolationId == "vm2").ShouldNotBeNull();
         mapped.Challenge.Questions.First().IsCorrect.ShouldBeFalse();
     }
+
+    [Theory, GameboardAutoData]
+    public void MapStateToChallenge_WithIsActiveTrueAndNoVms_YieldsHasActiveGamespaceFalse(IFixture fixture)
+    {
+        // given
+        var state = new GameEngineGameState
+        {
+            Id = fixture.Create<string>(),
+            Name = fixture.Create<string>(),
+            ManagerId = fixture.Create<string>(),
+            ManagerName = fixture.Create<string>(),
+            IsActive = true,
+            Players = new GameEnginePlayer[]
+            {
+                new GameEnginePlayer
+                {
+                    SubjectId = fixture.Create<string>(),
+                    IsManager = true
+                }
+            },
+            WhenCreated = fixture.Create<DateTimeOffset>(),
+            StartTime = fixture.Create<DateTimeOffset>(),
+            EndTime = fixture.Create<DateTimeOffset>(),
+            ExpirationTime = fixture.Create<DateTimeOffset>(),
+            Vms = new GameEngineVmState[] { }
+        };
+
+        var mapperConfig = new MapperConfiguration(cfg => cfg.AddProfile(new GameEngineMaps()));
+        var mapper = new Mapper(mapperConfig);
+
+        // when
+        var mapped = mapper.Map<Data.Challenge>(state);
+
+        // then
+        mapped.HasDeployedGamespace.ShouldBeFalse();
+    }
 }

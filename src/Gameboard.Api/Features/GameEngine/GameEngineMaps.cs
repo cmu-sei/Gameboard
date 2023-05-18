@@ -28,24 +28,24 @@ public class GameEngineMaps : Profile
             .ForSourceMember(gep => gep.Permission, o => o.DoNotValidate())
             .ForSourceMember(gep => gep.GamespaceId, o => o.DoNotValidate());
 
-        CreateMap<GameEngineGameState, Api.Data.Challenge>(MemberList.Destination)
+        CreateMap<GameEngineGameState, Api.Data.Challenge>()
+            .ForMember(c => c.EndTime, o => o.MapFrom(s => s.ExpirationTime))
+            .ForMember(c => c.HasDeployedGamespace, o => o.MapFrom(s => s.HasDeployedGamespace))
+            .ForMember(c => c.LastScoreTime, o => o.MapFrom(s => s.Challenge.LastScoreTime))
             .ForMember(c => c.ExternalId, o => o.MapFrom(s => s.Id))
             .ForMember(c => c.PlayerId, o => o.MapFrom(p => p.Players.Where(p => p.IsManager).First().SubjectId))
-            .ForMember(c => c.HasDeployedGamespace, o => o.MapFrom(s => s.IsActive))
-            .ForMember(c => c.EndTime, o => o.MapFrom(s => s.ExpirationTime))
             .ForMember(c => c.Points, o => o.MapFrom(s => s.Challenge.MaxPoints))
-            .ForMember(c => c.LastScoreTime, o => o.MapFrom(s => s.Challenge.LastScoreTime))
             .ForMember(c => c.Score, o => o.MapFrom(s => s.Challenge.Score))
             .ForMember(c => c.State, o => o.MapFrom(s => jsonService.Serialize(s)))
-            .ForMember(c => c.Events, o => o.Ignore())
-            .ForMember(c => c.Feedback, o => o.Ignore())
-            .ForMember(c => c.Game, o => o.Ignore())
             // ignore entity properties because we don't want EF to think that we're trying to insert new ones
             .ForMember(c => c.Player, o => o.Ignore())
             // game engine type will need to be resolved using an aftermap expression during mapping
             .ForMember(c => c.GameEngineType, o => o.Ignore())
             // similarly, engines don't know about things like games, tickets, and bonuses
+            .ForMember(c => c.Events, o => o.Ignore())
+            .ForMember(c => c.Feedback, o => o.Ignore())
             .ForMember(c => c.GameId, o => o.Ignore())
+            .ForMember(c => c.Game, o => o.Ignore())
             .ForMember(c => c.GraderKey, o => o.Ignore())
             .ForMember(c => c.LastSyncTime, o => o.Ignore())
             .ForMember(c => c.SpecId, o => o.Ignore())
