@@ -4,8 +4,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Common;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.Common;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
@@ -39,21 +40,27 @@ internal class StartExternalSyncGameHandler : IRequestHandler<StartExternalSyncG
 
     public StartExternalSyncGameHandler
     (
+        ChallengeService challengeService,
+        IGameEngineService gameEngineService,
         IGameService gameService,
         IGameStore gameStore,
         ILogger<StartExternalSyncGameHandler> logger,
         IMapper mapper,
         INowService now,
         PlayerService playerService,
+        ITeamService teamService,
         IValidatorService<StartExternalSyncGameCommand> validator
     )
     {
+        _challengeService = challengeService;
+        _gameEngineService = gameEngineService;
         _gameService = gameService;
         _gameStore = gameStore;
         _logger = logger;
         _mapper = mapper;
         _now = now;
         _playerService = playerService;
+        _teamService = teamService;
         _validator = validator;
     }
 
@@ -117,11 +124,12 @@ internal class StartExternalSyncGameHandler : IRequestHandler<StartExternalSyncG
                 var challengeState = await _gameEngineService.StartGamespace(deployedChallenge);
                 _logger.LogInformation($"""Gamespace started for challenge "{deployedChallenge.Id}".""");
 
+                var vms = _gameEngineService.GetGamespaceVms(challengeState);
                 challengeGamespaces.Add(deployedChallenge.Id, new ExternalGameStartTeamGamespace
                 {
                     Id = challengeState.Id,
                     Challenge = new SimpleEntity { Id = deployedChallenge.Id, Name = deployedChallenge.Name },
-                    // VmUrls = challengeState.Vms.Select(vm => vm.)
+                    VmUrls = vms.Select(vm => vm.Url)
                 });
                 deployContext.DeployedGamespaces.Add(challengeState);
             }
@@ -131,17 +139,22 @@ internal class StartExternalSyncGameHandler : IRequestHandler<StartExternalSyncG
 
             // TODO: notify gameboard to move players along
 
-            // notify external client
-
+            // NOTIFY EXTERNAL CLIENT
             // build team objects to return
             var teamsToReturn = new List<ExternalGameStartMetaDataTeam>();
             foreach (var teamId in teams.Keys)
             {
+                var teamChallengeIds = teamDeployedChallenges[teamId].Select(c => c.Id);
+                var teamGameStates = deployContext.DeployedGamespaces.Where(g => teamChallengeIds.Contains(g.Id));
+
                 var teamToReturn = new ExternalGameStartMetaDataTeam
                 {
                     Id = teamId,
-                    Name = teams[teamId].ApprovedName
+                    Name = teams[teamId].ApprovedName,
+                    Gamespaces = teamChallengeIds.Select(cid => challengeGamespaces[cid])
                 };
+
+                teamsToReturn.Add(teamToReturn);
             }
 
             return new ExternalGameStartMetaData
@@ -161,6 +174,8 @@ internal class StartExternalSyncGameHandler : IRequestHandler<StartExternalSyncG
             _logger.LogError($"""Error during external sync game deploy: "{ex.Message}".""");
             await TryCleanupFailedDeploy(deployContext);
         }
+
+        return null;
     }
 
     private Task TryCleanupFailedDeploy(ExternalSyncGameDeployContext ctx)

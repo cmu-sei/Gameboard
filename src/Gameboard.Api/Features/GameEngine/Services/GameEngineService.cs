@@ -10,8 +10,28 @@ using Microsoft.Extensions.Logging;
 using TopoMojo.Api.Client;
 using Alloy.Api.Client;
 using Gameboard.Api.Services;
+using System.Linq;
 
 namespace Gameboard.Api.Features.GameEngine;
+
+public interface IGameEngineService
+{
+    Task<IEnumerable<GameEngineSectionSubmission>> AuditChallenge(Data.Challenge entity);
+    Task CompleteGamespace(Data.Challenge entity);
+    Task DeleteGamespace(Data.Challenge entity);
+    Task ExtendSession(Data.Challenge entity, DateTimeOffset sessionEnd);
+    Task<ConsoleSummary> GetConsole(Data.Challenge entity, ConsoleRequest model, bool observer);
+    Task<GameEngineGameState> GetPreview(Data.ChallengeSpec spec);
+    IEnumerable<GameEngineGamespaceVm> GetGamespaceVms(GameEngineGameState state);
+    Task<GameEngineGameState> GradeChallenge(Data.Challenge entity, GameEngineSectionSubmission model);
+    Task<ExternalSpec[]> ListSpecs(SearchFilter model);
+    Task<GameEngineGameState> LoadGamespace(Data.Challenge entity);
+    Task<GameEngineGameState> RegisterGamespace(GameEngineChallengeRegistration registration);
+    Task<GameEngineGameState> RegradeChallenge(Data.Challenge entity);
+    Task<GameEngineGameState> StartGamespace(Api.Challenge challenge);
+    Task<GameEngineGameState> StopGamespace(Data.Challenge entity);
+}
+
 
 public class GameEngineService : _Service, IGameEngineService
 {
@@ -22,6 +42,7 @@ public class GameEngineService : _Service, IGameEngineService
     private IMemoryCache _localcache;
     private ConsoleActorMap _actorMap;
     private readonly IGameEngineStore _store;
+    private readonly IVmUrlResolver _vmUrlResolver;
 
     public GameEngineService(
         ILogger<GameEngineService> logger,
@@ -32,13 +53,15 @@ public class GameEngineService : _Service, IGameEngineService
         IMemoryCache localcache,
         ConsoleActorMap actorMap,
         IAlloyApiClient alloy,
-        CrucibleService crucible
+        CrucibleService crucible,
+        IVmUrlResolver vmUrlResolver
     ) : base(logger, mapper, options)
     {
         Mojo = mojo;
         _localcache = localcache;
         _actorMap = actorMap;
         _store = store;
+        _vmUrlResolver = vmUrlResolver;
         Alloy = alloy;
         Crucible = crucible;
     }
@@ -169,9 +192,14 @@ public class GameEngineService : _Service, IGameEngineService
         return null;
     }
 
-    public async Task<IEnumerable<GameEngineGamespaceVm>> GetGamespaceVms(GameEngineGameState state)
+    public IEnumerable<GameEngineGamespaceVm> GetGamespaceVms(GameEngineGameState state)
     {
-
+        return state.Vms.Select(vm => new GameEngineGamespaceVm
+        {
+            Id = vm.Id,
+            Name = vm.Name,
+            Url = _vmUrlResolver.ResolveUrl(vm)
+        });
     }
 
     public async Task<IEnumerable<GameEngineSectionSubmission>> AuditChallenge(Data.Challenge entity)

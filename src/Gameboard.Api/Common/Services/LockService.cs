@@ -4,7 +4,7 @@
 using System.Collections.Concurrent;
 using Nito.AsyncEx;
 
-namespace Gameboard.Api.Services
+namespace Gameboard.Api.Common.Services
 {
     public interface ILockService
     {

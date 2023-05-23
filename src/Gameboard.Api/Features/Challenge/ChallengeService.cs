@@ -7,6 +7,7 @@ using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
 using Microsoft.AspNetCore.Http;
@@ -64,6 +65,7 @@ namespace Gameboard.Api.Services
             _now = now;
             _playerStore = playerStore;
             _specStore = specStore;
+            _urlHelper = urlHelper;
         }
 
         public string BuildGraderUrl()

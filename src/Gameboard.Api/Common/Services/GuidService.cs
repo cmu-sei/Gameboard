@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Gameboard.Api.Services;
+namespace Gameboard.Api.Common.Services;
 
 public interface IGuidService
 {

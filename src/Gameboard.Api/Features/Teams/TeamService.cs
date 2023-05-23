@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Player;
 using Microsoft.EntityFrameworkCore;
@@ -127,14 +128,12 @@ internal class TeamService : ITeamService
 
     public Api.Player ResolveCaptain(string teamId, IEnumerable<Api.Player> players)
     {
-        var groupedByTeam = players.GroupBy(p => p.TeamId);
-        if (groupedByTeam.Count() != 1)
-            throw new PlayersAreFromMultipleTeams(groupedByTeam.Select(g => g.Key));
-
         if (players.Count() == 0)
-        {
             throw new CaptainResolutionFailure(teamId, "This team doesn't have any players.");
-        }
+
+        var groupedByTeam = players.GroupBy(p => p.TeamId).ToDictionary(g => g.Key, g => g.ToList());
+        if (groupedByTeam.Keys.Count() != 1)
+            throw new PlayersAreFromMultipleTeams(groupedByTeam.Select(g => g.Key));
 
         // if the team has a captain (manager), yay
         // if they have too many, boo (pick one by name which is stupid but stupid things happen sometimes)

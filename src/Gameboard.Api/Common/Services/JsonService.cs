@@ -2,7 +2,7 @@ using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Gameboard.Api.Services;
+namespace Gameboard.Api.Common.Services;
 
 public interface IJsonService
 {

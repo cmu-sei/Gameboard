@@ -1,6 +1,6 @@
 using System.Linq;
 using AutoMapper;
-using Gameboard.Api.Services;
+using Gameboard.Api.Common.Services;
 
 namespace Gameboard.Api.Features.GameEngine;
 

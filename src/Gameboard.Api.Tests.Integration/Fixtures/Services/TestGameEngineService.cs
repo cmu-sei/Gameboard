@@ -1,7 +1,6 @@
 using AutoMapper;
-using Gameboard.Api;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.GameEngine;
-using Gameboard.Api.Services;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
@@ -43,9 +42,9 @@ internal class TestGameEngineService : IGameEngineService
         return Task.FromResult(new ConsoleSummary { });
     }
 
-    public Task<IEnumerable<GameEngineGamespaceVm>> GetGamespaceVms(GameEngineGameState state)
+    public IEnumerable<GameEngineGamespaceVm> GetGamespaceVms(GameEngineGameState state)
     {
-        return Task.FromResult(new GameEngineGamespaceVm[] { }.AsEnumerable());
+        return new GameEngineGamespaceVm[] { };
     }
 
     public Task<GameEngineGameState> GetPreview(Api.Data.ChallengeSpec spec)

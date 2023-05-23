@@ -6,10 +6,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using AutoMapper;
 using Microsoft.Extensions.Logging;
 
-namespace Gameboard.Api.Services
+namespace Gameboard.Api.Common.Services
 {
     public interface INameService
     {

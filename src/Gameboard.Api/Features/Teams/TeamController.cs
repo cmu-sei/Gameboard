@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using Gameboard.Api.Services;
+using Gameboard.Api.Common.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

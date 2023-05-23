@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 
-namespace Gameboard.Api.Services;
+namespace Gameboard.Api.Common.Services;
 
 public sealed class ColorConsoleLoggerConfiguration
 {

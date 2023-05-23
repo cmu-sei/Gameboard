@@ -1,5 +1,5 @@
 using AutoMapper;
-using Gameboard.Api;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Services;

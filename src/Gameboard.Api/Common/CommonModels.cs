@@ -1,6 +1,6 @@
 using System;
 
-namespace Gameboard.Api.Features.Common;
+namespace Gameboard.Api.Common;
 
 public class SimpleEntity
 {

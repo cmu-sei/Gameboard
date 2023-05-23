@@ -1,7 +1,7 @@
 using System;
 using System.Security.Cryptography;
 
-namespace Gameboard.Api.Services;
+namespace Gameboard.Api.Common.Services;
 
 public interface IRandomService
 {

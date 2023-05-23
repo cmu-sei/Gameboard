@@ -1,5 +1,5 @@
 using System;
-using Gameboard.Api.Features.Common;
+using Gameboard.Api.Common;
 
 public class CreateManualChallengeBonus
 {

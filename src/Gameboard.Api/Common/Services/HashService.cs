@@ -2,7 +2,7 @@ using System;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Gameboard.Api.Services;
+namespace Gameboard.Api.Common.Services;
 
 public interface IHashService
 {

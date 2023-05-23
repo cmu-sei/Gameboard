@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Http;
 
-namespace Gameboard.Api.Services;
+namespace Gameboard.Api.Common.Services;
 
 public interface IActingUserService
 {

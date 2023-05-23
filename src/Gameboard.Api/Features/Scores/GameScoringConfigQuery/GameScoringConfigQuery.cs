@@ -2,8 +2,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Common;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.Common;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
@@ -54,7 +54,6 @@ internal class GameScoringConfigQueryHandler : IRequestHandler<GameScoringConfig
             .ToArrayAsync();
 
         // transform
-
         return new GameScoringConfig
         {
             Game = new SimpleEntity { Id = game.Id, Name = game.Name },

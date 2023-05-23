@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Services;
 
 namespace Gameboard.Api.Features.GameEngine;
