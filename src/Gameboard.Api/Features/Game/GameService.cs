@@ -13,8 +13,8 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using Gameboard.Api.Common;
-using Gameboard.Api.Features.Games;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Features.Games;
 
 namespace Gameboard.Api.Services;
 
