@@ -13,7 +13,8 @@ public interface ITeamService
     Task<bool> GetExists(string teamId);
     Task<int> GetSessionCount(string teamId, string gameId);
     Task<Team> GetTeam(string id);
-    Task<Data.Player> ResolveCaptain(string teamId);
+    Task<Api.Player> ResolveCaptain(string teamId);
+    Api.Player ResolveCaptain(string teamId, IEnumerable<Api.Player> players);
     Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser);
     Task UpdateTeamSponsors(string teamId);
 }
@@ -63,9 +64,7 @@ internal class TeamService : ITeamService
         if (players.Count() == 0)
             return null;
 
-        var team = _mapper.Map<Team>(
-            players.First(p => p.IsManager)
-        );
+        var team = _mapper.Map<Team>(players.First(p => p.IsManager));
 
         team.Members = _mapper.Map<TeamMember[]>(
             players.Select(p => p.User)
@@ -116,12 +115,21 @@ internal class TeamService : ITeamService
         await _teamHubService.SendPlayerRoleChanged(_mapper.Map<Api.Player>(newCaptain), actingUser);
     }
 
-    public async Task<Data.Player> ResolveCaptain(string teamId)
+    public async Task<Api.Player> ResolveCaptain(string teamId)
     {
         var players = await _store
             .List()
             .Where(p => p.TeamId == teamId)
             .ToListAsync();
+
+        return ResolveCaptain(teamId, _mapper.Map<IEnumerable<Api.Player>>(players));
+    }
+
+    public Api.Player ResolveCaptain(string teamId, IEnumerable<Api.Player> players)
+    {
+        var groupedByTeam = players.GroupBy(p => p.TeamId);
+        if (groupedByTeam.Count() != 1)
+            throw new PlayersAreFromMultipleTeams(groupedByTeam.Select(g => g.Key));
 
         if (players.Count() == 0)
         {

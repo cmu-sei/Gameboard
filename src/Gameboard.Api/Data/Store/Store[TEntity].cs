@@ -27,6 +27,11 @@ namespace Gameboard.Api.Data
             return DbContext.Set<TEntity>();
         }
 
+        public virtual IQueryable<TEntity> ListAsNoTracking()
+        {
+            return DbContext.Set<TEntity>().AsNoTracking();
+        }
+
         public virtual async Task<TEntity> Create(TEntity entity)
         {
             if (string.IsNullOrWhiteSpace(entity.Id))

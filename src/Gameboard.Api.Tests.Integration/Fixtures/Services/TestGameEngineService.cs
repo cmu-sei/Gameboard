@@ -43,6 +43,11 @@ internal class TestGameEngineService : IGameEngineService
         return Task.FromResult(new ConsoleSummary { });
     }
 
+    public Task<IEnumerable<GameEngineGamespaceVm>> GetGamespaceVms(GameEngineGameState state)
+    {
+        return Task.FromResult(new GameEngineGamespaceVm[] { }.AsEnumerable());
+    }
+
     public Task<GameEngineGameState> GetPreview(Api.Data.ChallengeSpec spec)
     {
         return Task.FromResult(new GameEngineGameState());
@@ -116,7 +121,7 @@ internal class TestGameEngineService : IGameEngineService
         return Task.FromResult(new GameEngineGameState());
     }
 
-    public Task<GameEngineGameState> StartGamespace(Api.Data.Challenge entity)
+    public Task<GameEngineGameState> StartGamespace(Api.Challenge challenge)
     {
         return Task.FromResult(new GameEngineGameState());
     }

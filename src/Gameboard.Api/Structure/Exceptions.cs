@@ -28,12 +28,6 @@ namespace Gameboard.Api
         internal AlreadyRegistered(string userId, string gameId) : base($"Player {userId} is already registered for game {gameId}.") { }
     }
 
-    internal class CaptainResolutionFailure : GameboardException
-    {
-        internal CaptainResolutionFailure(string teamId, string message = null)
-            : base($"Couldn't resolve a team captain for team {teamId}. {(message.IsEmpty() ? "" : message)}") { }
-    }
-
     internal class InvalidInvitationCode : GameboardException
     {
         internal InvalidInvitationCode(string code, string reason) : base(reason) { }

@@ -169,6 +169,11 @@ public class GameEngineService : _Service, IGameEngineService
         return null;
     }
 
+    public async Task<IEnumerable<GameEngineGamespaceVm>> GetGamespaceVms(GameEngineGameState state)
+    {
+
+    }
+
     public async Task<IEnumerable<GameEngineSectionSubmission>> AuditChallenge(Data.Challenge entity)
     {
         switch (entity.GameEngineType)
@@ -243,7 +248,7 @@ public class GameEngineService : _Service, IGameEngineService
         }
     }
 
-    public async Task<GameEngineGameState> StartGamespace(Data.Challenge entity)
+    public async Task<GameEngineGameState> StartGamespace(Api.Challenge entity)
     {
         switch (entity.GameEngineType)
         {

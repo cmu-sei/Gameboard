@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -24,11 +26,13 @@ namespace Gameboard.Api.Services
         private ConsoleActorMap _actorMap;
         private readonly IGameStore _gameStore;
         private readonly IGuidService _guids;
+        private readonly IHttpContextAccessor _httpContext;
         private readonly IJsonService _jsonService;
         private readonly IMapper _mapper;
         private readonly INowService _now;
         private readonly IPlayerStore _playerStore;
         private readonly IChallengeSpecStore _specStore;
+        private readonly IUrlHelper _urlHelper;
 
         public ChallengeService(
             ILogger<ChallengeService> logger,
@@ -39,11 +43,13 @@ namespace Gameboard.Api.Services
             IGameEngineService gameEngine,
             IGameStore gameStore,
             IGuidService guids,
+            IHttpContextAccessor httpContext,
             IJsonService jsonService,
             IMemoryCache localcache,
             INowService now,
             IPlayerStore playerStore,
-            ConsoleActorMap actorMap
+            ConsoleActorMap actorMap,
+            IUrlHelper urlHelper
         ) : base(logger, mapper, options)
         {
             Store = store;
@@ -52,12 +58,22 @@ namespace Gameboard.Api.Services
             _actorMap = actorMap;
             _gameStore = gameStore;
             _guids = guids;
+            _httpContext = httpContext;
             _mapper = mapper;
             _jsonService = jsonService;
             _now = now;
             _playerStore = playerStore;
             _specStore = specStore;
         }
+
+        public string BuildGraderUrl()
+            => string.Format
+            (
+                "{0}://{1}{2}",
+                _httpContext.HttpContext.Request.Scheme,
+                _httpContext.HttpContext.Request.Host,
+                _urlHelper.Action("Grade")
+            );
 
         public async Task<Challenge> GetOrCreate(NewChallenge model, string actorId, string graderUrl)
         {
@@ -347,9 +363,10 @@ namespace Gameboard.Api.Services
                 Type = ChallengeEventType.GamespaceOn
             });
 
-            await Sync(
+            await Sync
+            (
                 entity,
-                GameEngine.StartGamespace(entity)
+                GameEngine.StartGamespace(_mapper.Map<Challenge>(entity))
             );
 
             return Mapper.Map<Challenge>(entity);
@@ -610,6 +627,7 @@ namespace Gameboard.Api.Services
                 GraderUrl = graderUrl,
                 Player = player,
                 PlayerCount = playerCount,
+                StartGamespace = true,
                 Variant = variant
             });
 

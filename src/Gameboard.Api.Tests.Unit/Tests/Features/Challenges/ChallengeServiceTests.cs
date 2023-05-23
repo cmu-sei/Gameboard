@@ -3,6 +3,8 @@ using Gameboard.Api;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Services;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
@@ -76,6 +78,7 @@ public class ChallengeServiceTests
                     GraderKey = graderKey,
                     GraderUrl = graderUrl,
                     PlayerCount = 1,
+                    StartGamespace = true,
                     Variant = 0
                 }
             ))
@@ -101,11 +104,13 @@ public class ChallengeServiceTests
             fakeGameEngineService,
             A.Fake<IGameStore>(),
             A.Fake<IGuidService>(),
+            A.Fake<IHttpContextAccessor>(),
             A.Fake<IJsonService>(),
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
             A.Fake<IPlayerStore>(),
-            A.Fake<ConsoleActorMap>()
+            A.Fake<ConsoleActorMap>(),
+            A.Fake<IUrlHelper>()
         );
 
         // when

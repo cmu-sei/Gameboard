@@ -98,7 +98,7 @@ internal class UnityGameService : _Service, IUnityGameService
 
         if (game == null)
         {
-            throw new ResourceNotFound<Game>(newChallenge.GameId);
+            throw new ResourceNotFound<Data.Game>(newChallenge.GameId);
         }
 
         var state = new TopoMojo.Api.Client.GameState

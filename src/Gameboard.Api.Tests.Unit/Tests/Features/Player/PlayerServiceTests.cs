@@ -24,6 +24,7 @@ public class PlayerServiceTests
             IGuidService guidService,
             IMediator mediator,
             IInternalHubBus hubBus,
+            INowService now,
             ITeamService teamService,
             IMapper mapper,
             IMemoryCache localCache,
@@ -39,6 +40,7 @@ public class PlayerServiceTests
                 gameService,
                 gameStore,
                 hubBus,
+                now,
                 teamService,
                 mapper,
                 localCache,
@@ -62,7 +64,8 @@ public class PlayerServiceTests
             ITeamService? teamService = null,
             IMapper? mapper = null,
             IMemoryCache? localCache = null,
-            GameEngineService? gameEngine = null)
+            GameEngineService? gameEngine = null,
+            INowService? now = null)
         {
             return new PlayerService
             (
@@ -76,6 +79,7 @@ public class PlayerServiceTests
                 gameService ?? A.Fake<GameService>(),
                 gameStore ?? A.Fake<IGameStore>(),
                 hubBus ?? A.Fake<IInternalHubBus>(),
+                now ?? A.Fake<INowService>(),
                 teamService ?? A.Fake<ITeamService>(),
                 mapper ?? A.Fake<IMapper>(),
                 localCache ?? A.Fake<IMemoryCache>(),

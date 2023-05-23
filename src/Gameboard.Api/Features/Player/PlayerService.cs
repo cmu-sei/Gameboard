@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Common;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
@@ -27,6 +28,7 @@ public class PlayerService
     IGameHubBus GameHubBus { get; set; }
     IGuidService GuidService { get; }
     IMediator MediatorBus { get; }
+    INowService Now { get; }
     IInternalHubBus HubBus { get; }
     ITeamService TeamService { get; }
     IUserStore UserStore { get; }
@@ -46,6 +48,7 @@ public class PlayerService
         IGameService gameService,
         IGameStore gameStore,
         IInternalHubBus hubBus,
+        INowService now,
         ITeamService teamService,
         IMapper mapper,
         IMemoryCache localCache,
@@ -66,6 +69,7 @@ public class PlayerService
         Mapper = mapper;
         LocalCache = localCache;
         GameEngine = gameEngine;
+        Now = now;
     }
 
     public async Task<Player> Enroll(NewPlayer model, User actor)
@@ -109,6 +113,13 @@ public class PlayerService
 
         return userId;
     }
+
+    public async Task<Data.Player> RetrieveByUserId(string userId)
+    // TODO: possibly cache the opposite direction too
+        => await Store
+            .ListAsNoTracking()
+            .Where(p => p.UserId == userId)
+            .FirstOrDefaultAsync();
 
     public async Task<Player> Retrieve(string id)
     {
@@ -217,9 +228,6 @@ public class PlayerService
         if (!sudo && game.RequireSynchronizedStart)
         {
             throw new InvalidOperationException("Can't start a player's session for a sync start game with PlayerService.StartSession (use GameService.StartSynchronizedSession).");
-            // var syncStartState = await GameService.GetSyncStartState(game.Id);
-            // if (!syncStartState.IsReady)
-            //     throw new SyncStartNotReady(player.Id, syncStartState);
         }
 
         // rule: teams can't have a session limit exceeding the game's settings
@@ -238,14 +246,13 @@ public class PlayerService
                 throw new SessionLimitReached(player.TeamId, game.Id, sessionCount, game.SessionLimit);
         }
 
-        var st = DateTimeOffset.UtcNow;
-        var et = st.AddMinutes(game.SessionMinutes);
+        var sessionWindow = CalculateSessionWindow(game, Now.Get());
 
         foreach (var p in team)
         {
             p.SessionMinutes = game.SessionMinutes;
-            p.SessionBegin = st;
-            p.SessionEnd = et;
+            p.SessionBegin = sessionWindow.Start;
+            p.SessionEnd = sessionWindow.End;
         }
 
         await Store.Update(team);
@@ -273,6 +280,13 @@ public class PlayerService
 
         return asViewModel;
     }
+
+    public DateRange CalculateSessionWindow(Data.Game game, DateTimeOffset sessionStart)
+        => new DateRange
+        {
+            Start = sessionStart,
+            End = sessionStart.AddMinutes(game.SessionMinutes)
+        };
 
     public async Task<Player> AdjustSessionEnd(SessionChangeRequest model, User actor)
     {
@@ -723,6 +737,9 @@ public class PlayerService
                 .GroupBy(p => p.TeamId).Count()
         )).ToArray();
     }
+
+    public async Task<bool> IsUser(string playerId, Api.User user)
+        => (await MapId(playerId)) == user.Id;
 
     private Api.PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount)
     {

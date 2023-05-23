@@ -14,9 +14,19 @@ internal class CantStartNonReadySynchronizedGame : GameboardValidationException
     public CantStartNonReadySynchronizedGame(string gameId, IEnumerable<SyncStartPlayer> nonReadyPlayers) : base($"Can't start synchronized game \"{gameId}\" - {nonReadyPlayers.Count()} players aren't ready (\"{string.Join(",", nonReadyPlayers.Select(p => p.Id))}\").") { }
 }
 
+internal class CantStartStandardGameWithoutActingUserParameter : GameboardValidationException
+{
+    public CantStartStandardGameWithoutActingUserParameter(string gameId) : base($"""Game start failure (gameId "{gameId}"): Game is a standard game, so the `actingUser` parameter is required.""") { }
+}
+
 internal class GameIsNotSyncStart : GameboardValidationException
 {
     public GameIsNotSyncStart(string gameId, string whyItMatters) : base($"""Game "{gameId}" is not a sync-start game. {whyItMatters}""") { }
+}
+
+public class GameModeIsntExternal : GameboardException
+{
+    public GameModeIsntExternal(string gameId, string mode) : base($"Can't boot external game with id '{gameId}' because its mode ('{mode}') isn't set to '{GameMode.External}'.") { }
 }
 
 internal class UserIsntPlayingGame : GameboardValidationException

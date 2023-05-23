@@ -1,7 +1,6 @@
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api;
-using Gameboard.Api.Features.Games;
 using Gameboard.Api.Hubs;
 using Microsoft.AspNetCore.SignalR;
 

@@ -25,14 +25,15 @@ public interface IGameService
     Task<SyncStartState> GetSyncStartState(string gameId);
     Task HandleSyncStartStateChanged(string gameId, User actor);
     Task<Game> Import(GameSpecImport model);
+    bool IsGameStartSuperUser(User user);
     IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool sudo = false);
     Task<IEnumerable<Game>> List(GameSearchFilter model, bool sudo);
     Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo);
     Task ReRank(string id);
     Task<Game> Retrieve(string id, bool accessHidden = true);
-    Task<ChallengeSpec[]> RetrieveChallenges(string id);
+    Task<ChallengeSpec[]> RetrieveChallengeSpecs(string id);
     Task<SessionForecast[]> SessionForecast(string id);
-    Task<SynchronizedGameStartedState> StartSynchronizedSession(string gameId);
+    Task<SynchronizedGameStartedState> StartSynchronizedSession(string gameId, double countdownSeconds = 15);
     Task Update(ChangedGame account);
     Task UpdateImage(string id, string type, string filename);
     Task<bool> UserIsTeamPlayer(string uid, string gid, string tid);
@@ -197,7 +198,7 @@ public class GameService : _Service, IGameService
         return b.ToArray();
     }
 
-    public async Task<ChallengeSpec[]> RetrieveChallenges(string id)
+    public async Task<ChallengeSpec[]> RetrieveChallengeSpecs(string id)
     {
         var entity = await _store.Load(id);
 
@@ -278,6 +279,11 @@ public class GameService : _Service, IGameService
         await _store.Create(entity);
 
         return Mapper.Map<Game>(entity);
+    }
+
+    public bool IsGameStartSuperUser(User user)
+    {
+        return user.IsRegistrar;
     }
 
     public async Task UpdateImage(string id, string type, string filename)
@@ -423,7 +429,19 @@ public class GameService : _Service, IGameService
         await _gameHub.SendSyncStartGameStarting(session);
     }
 
-    public async Task<SynchronizedGameStartedState> StartSynchronizedSession(string gameId)
+    /// <summary>
+    /// Initiates a synchronized game session for all players registered for the given game ID. Optionally offsets
+    /// the session length by a countdown in order to give players a little warning that the session is beginning.
+    /// </summary>
+    /// <param name="gameId">The id of the game to start.</param>
+    /// <param name="countdownSeconds">
+    ///     Number of seconds between the current time and the start of the session (used to display a countdown in clients.
+    /// </param>
+    /// <returns></returns>
+    /// <exception cref="CantSynchronizeNonSynchronizedGame">This call fails if the game is not marked as `RequiresSyncStart`.</exception>
+    /// <exception cref="CantStartNonReadySynchronizedGame">This call fails if initiated before all players have set their `IsReady` to true.</exception>
+    /// <exception cref="SynchronizedGameHasPlayersWithSessionsBeforeStart">This call fails if any players already have an active game session when it starts.</exception>
+    public async Task<SynchronizedGameStartedState> StartSynchronizedSession(string gameId, double countdownSeconds = 15)
     {
         using (await _lockService.GetSyncStartGameLock(gameId).LockAsync())
         {
@@ -458,7 +476,7 @@ public class GameService : _Service, IGameService
             if (playersWithSessions.Count() > 0)
                 throw new SynchronizedGameHasPlayersWithSessionsBeforeStart(game.Id, playersWithSessions.Select(p => p.Id));
 
-            var sessionBegin = DateTimeOffset.UtcNow.AddSeconds(15);
+            var sessionBegin = DateTimeOffset.UtcNow.AddSeconds(countdownSeconds);
             var sessionEnd = sessionBegin.AddMinutes(game.SessionMinutes);
 
             await _playerStore

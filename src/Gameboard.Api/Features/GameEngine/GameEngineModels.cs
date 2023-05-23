@@ -15,6 +15,7 @@ public class GameEngineChallengeRegistration
     public required string GraderUrl { get; set; }
     public required Api.Data.Player Player { get; set; }
     public required int PlayerCount { get; set; }
+    public required bool StartGamespace { get; set; }
     public int Variant { get; set; }
 }
 
@@ -59,6 +60,16 @@ public class GameEngineVmState
     [Required] public string IsolationId { get; set; }
     [Required] public bool IsRunning { get; set; }
     [Required] public bool IsVisible { get; set; }
+}
+
+// this is currently a separate model from `GameEngineVmState` because I don't want to misrepresent
+// the state information that Gameboard is getting from Topo. The `GameEngineGamespaceVm` model is
+// really here to hold the computed URL of the console for clients.
+public class GameEngineGamespaceVm
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required string Url { get; set; }
 }
 
 public class GameEngineChallengeView

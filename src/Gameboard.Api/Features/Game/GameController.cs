@@ -74,11 +74,11 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("api/game/{id}/specs")]
         [Authorize]
-        public async Task<ChallengeSpec[]> RetrieveChallenges([FromRoute] string id)
+        public async Task<ChallengeSpec[]> GetChallengeSpecs([FromRoute] string id)
         {
             await Validate(new Entity { Id = id });
 
-            return await GameService.RetrieveChallenges(id);
+            return await GameService.RetrieveChallengeSpecs(id);
         }
 
         [HttpGet("api/game/{id}/sessions")]
@@ -148,6 +148,7 @@ namespace Gameboard.Api.Controllers
         {
             return await _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
         }
+
 
         [HttpPost("/api/game/import")]
         [Authorize(AppConstants.DesignerPolicy)]
