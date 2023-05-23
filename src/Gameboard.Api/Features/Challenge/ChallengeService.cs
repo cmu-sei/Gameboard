@@ -11,7 +11,7 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -27,13 +27,13 @@ namespace Gameboard.Api.Services
         private ConsoleActorMap _actorMap;
         private readonly IGameStore _gameStore;
         private readonly IGuidService _guids;
-        private readonly IHttpContextAccessor _httpContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IJsonService _jsonService;
+        private readonly LinkGenerator _linkGenerator;
         private readonly IMapper _mapper;
         private readonly INowService _now;
         private readonly IPlayerStore _playerStore;
         private readonly IChallengeSpecStore _specStore;
-        private readonly IUrlHelper _urlHelper;
 
         public ChallengeService(
             ILogger<ChallengeService> logger,
@@ -44,13 +44,12 @@ namespace Gameboard.Api.Services
             IGameEngineService gameEngine,
             IGameStore gameStore,
             IGuidService guids,
-            IHttpContextAccessor httpContext,
+            IHttpContextAccessor httpContextAccessor,
             IJsonService jsonService,
             IMemoryCache localcache,
             INowService now,
             IPlayerStore playerStore,
-            ConsoleActorMap actorMap,
-            IUrlHelper urlHelper
+            ConsoleActorMap actorMap
         ) : base(logger, mapper, options)
         {
             Store = store;
@@ -59,22 +58,21 @@ namespace Gameboard.Api.Services
             _actorMap = actorMap;
             _gameStore = gameStore;
             _guids = guids;
-            _httpContext = httpContext;
+            _httpContextAccessor = httpContextAccessor;
             _mapper = mapper;
             _jsonService = jsonService;
             _now = now;
             _playerStore = playerStore;
             _specStore = specStore;
-            _urlHelper = urlHelper;
         }
 
         public string BuildGraderUrl()
             => string.Format
             (
                 "{0}://{1}{2}",
-                _httpContext.HttpContext.Request.Scheme,
-                _httpContext.HttpContext.Request.Host,
-                _urlHelper.Action("Grade")
+                _httpContextAccessor.HttpContext.Request.Scheme,
+                _httpContextAccessor.HttpContext.Request.Host,
+                _linkGenerator.GetPathByAction(_httpContextAccessor.HttpContext, "Grade")
             );
 
         public async Task<Challenge> GetOrCreate(NewChallenge model, string actorId, string graderUrl)

@@ -88,10 +88,12 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddScoped<IActingUserService, ActingUserService>()
                 .AddSingleton<CoreOptions>(_ => settings.Core)
                 .AddSingleton<ApiKeyOptions>(_ => settings.ApiKey)
+                .AddTransient<IAppUrlService, AppUrlService>()
                 .AddTransient<IGuidService, GuidService>()
                 .AddTransient<IHashService, HashService>()
                 .AddTransient<INowService, NowService>()
                 .AddTransient<IRandomService, RandomService>()
+                .AddTransient<IVmUrlResolver, GameboardMksVmUrlResolver>()
                 // feature services
                 .AddScoped<IApiKeysService, ApiKeysService>()
                 .AddScoped<IApiKeysStore, ApiKeysStore>()

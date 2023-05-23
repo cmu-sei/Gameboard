@@ -109,8 +109,7 @@ public class ChallengeServiceTests
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
             A.Fake<IPlayerStore>(),
-            A.Fake<ConsoleActorMap>(),
-            A.Fake<IUrlHelper>()
+            A.Fake<ConsoleActorMap>()
         );
 
         // when
