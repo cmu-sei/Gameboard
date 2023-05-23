@@ -85,7 +85,7 @@ public class ReportsService : IReportsService
         var hasCompetition = args.Competition.NotEmpty();
         var hasGameId = args.GameId.NotEmpty();
         var hasSpecId = args.ChallengeSpecId.NotEmpty();
-        var hasTrack = args.Track.NotEmpty();
+        var hasTrack = args.TrackName.NotEmpty();
 
         // parameters resolve to challenge specs
         var specs = await _challengeSpecStore
@@ -93,7 +93,7 @@ public class ReportsService : IReportsService
             .Include(s => s.Game)
             .Where(s => !hasCompetition || s.Game.Competition == args.Competition)
             .Where(s => !hasGameId || s.GameId == args.GameId)
-            .Where(s => !hasTrack || s.Game.Track == args.Track)
+            .Where(s => !hasTrack || s.Game.Track == args.TrackName)
             .Where(s => !hasSpecId || s.Id == args.ChallengeSpecId)
             .ToDictionaryAsync
             (

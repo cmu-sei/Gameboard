@@ -8,7 +8,9 @@ public class GetChallengesReportQueryArgs
     public string ChallengeSpecId { get; set; }
     public string Competition { get; set; }
     public string GameId { get; set; }
-    public string Track { get; set; }
+    public DateTimeOffset RegistrationStart { get; set; }
+    public DateTimeOffset RegistrationEnd { get; set; }
+    public string TrackName { get; set; }
 }
 
 public class PlayerTime
