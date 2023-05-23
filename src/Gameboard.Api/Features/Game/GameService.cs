@@ -426,6 +426,7 @@ public class GameService : _Service, IGameService
         if (!state.IsReady)
             return;
 
+        // for now, we're assuming the "happy path" of sync start games being external games, but we'll separate them later
         var session = await StartSynchronizedSession(gameId); ;
         await _gameHub.SendSyncStartGameStarting(session);
     }
@@ -454,7 +455,7 @@ public class GameService : _Service, IGameService
 
             var state = await GetSyncStartState(gameId);
             if (!state.IsReady)
-                throw new CantStartNonReadySynchronizedGame(gameId, state.Teams.SelectMany(t => t.Players).Where(p => !p.IsReady));
+                throw new CantStartNonReadySynchronizedGame(state);
 
             // set the session times for all players
             var players = await _playerStore

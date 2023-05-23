@@ -11,7 +11,10 @@ internal class CantSynchronizeNonSynchronizedGame : GameboardValidationException
 
 internal class CantStartNonReadySynchronizedGame : GameboardValidationException
 {
-    public CantStartNonReadySynchronizedGame(string gameId, IEnumerable<SyncStartPlayer> nonReadyPlayers) : base($"Can't start synchronized game \"{gameId}\" - {nonReadyPlayers.Count()} players aren't ready (\"{string.Join(",", nonReadyPlayers.Select(p => p.Id))}\").") { }
+    public CantStartNonReadySynchronizedGame(SyncStartState state) : base($"Can't start synchronized game \"{state.Game.Id}\" - {GetNonReadyPlayersFromState(state).Count()} players aren't ready (\"{string.Join(",", GetNonReadyPlayersFromState(state).Select(p => p.Id))}\").") { }
+
+    private static IEnumerable<SyncStartPlayer> GetNonReadyPlayersFromState(SyncStartState state)
+        => state.Teams.SelectMany(t => t.Players).Where(p => !p.IsReady);
 }
 
 internal class CantStartStandardGameWithoutActingUserParameter : GameboardValidationException
@@ -24,7 +27,7 @@ internal class GameIsNotSyncStart : GameboardValidationException
     public GameIsNotSyncStart(string gameId, string whyItMatters) : base($"""Game "{gameId}" is not a sync-start game. {whyItMatters}""") { }
 }
 
-public class GameModeIsntExternal : GameboardException
+public class GameModeIsntExternal : GameboardValidationException
 {
     public GameModeIsntExternal(string gameId, string mode) : base($"Can't boot external game with id '{gameId}' because its mode ('{mode}') isn't set to '{GameMode.External}'.") { }
 }

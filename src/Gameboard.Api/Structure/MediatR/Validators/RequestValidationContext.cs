@@ -8,8 +8,9 @@ public class RequestValidationContext
     internal IEnumerable<GameboardValidationException> ValidationExceptions { get => _exceptions; }
     internal RequestValidationContext() { }
 
-    public void AddValidationException(GameboardValidationException exception)
+    public RequestValidationContext AddValidationException(GameboardValidationException exception)
     {
         _exceptions.Add(exception);
+        return this;
     }
 }

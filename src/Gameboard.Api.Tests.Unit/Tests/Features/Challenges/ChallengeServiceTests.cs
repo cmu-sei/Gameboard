@@ -5,6 +5,7 @@ using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
@@ -106,6 +107,7 @@ public class ChallengeServiceTests
             A.Fake<IGuidService>(),
             A.Fake<IHttpContextAccessor>(),
             A.Fake<IJsonService>(),
+            A.Fake<LinkGenerator>(),
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
             A.Fake<IPlayerStore>(),

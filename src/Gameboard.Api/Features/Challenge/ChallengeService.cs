@@ -46,6 +46,7 @@ namespace Gameboard.Api.Services
             IGuidService guids,
             IHttpContextAccessor httpContextAccessor,
             IJsonService jsonService,
+            LinkGenerator linkGenerator,
             IMemoryCache localcache,
             INowService now,
             IPlayerStore playerStore,
@@ -59,6 +60,7 @@ namespace Gameboard.Api.Services
             _gameStore = gameStore;
             _guids = guids;
             _httpContextAccessor = httpContextAccessor;
+            _linkGenerator = linkGenerator;
             _mapper = mapper;
             _jsonService = jsonService;
             _now = now;

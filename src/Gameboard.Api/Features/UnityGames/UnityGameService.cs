@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;

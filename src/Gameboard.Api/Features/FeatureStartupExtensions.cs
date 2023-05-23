@@ -14,7 +14,7 @@ using Gameboard.Api.Features.ChallengeBonuses;
 using Gameboard.Api.Features.CubespaceScoreboard;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
-using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.UnityGames;
@@ -33,7 +33,6 @@ namespace Microsoft.Extensions.DependencyInjection
             services
                 .AddSingleton<ConsoleActorMap>()
                 .AddHttpContextAccessor()
-                .AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>()
                 .AddConcretesFromNamespace("Gameboard.Api.Structure.Authorizers")
                 .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators");
 
@@ -53,10 +52,6 @@ namespace Microsoft.Extensions.DependencyInjection
                 services.AddScoped(t);
             }
 
-            // TODO: Ben -> fix this
-            services.AddHttpContextAccessor();
-            services.AddUnboundServices(settings);
-
             foreach (var t in Assembly
                 .GetExecutingAssembly()
                 .ExportedTypes
@@ -72,6 +67,9 @@ namespace Microsoft.Extensions.DependencyInjection
                 services.AddScoped(t);
             }
 
+            // TODO: Ben -> fix this
+            services.AddUnboundServices(settings);
+
             return services;
         }
 
@@ -84,7 +82,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddSingleton<ILockService, LockService>()
                 .AddSingleton<INameService, NameService>()
                 // global-style services
-                .AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>()
+                .AddScoped<IExternalGameHostAccessTokenProvider, HttpContextAccessTokenProvider>()
                 .AddScoped<IActingUserService, ActingUserService>()
                 .AddSingleton<CoreOptions>(_ => settings.Core)
                 .AddSingleton<ApiKeyOptions>(_ => settings.ApiKey)

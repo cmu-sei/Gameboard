@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Features.UnityGames.ViewModels;
 using Gameboard.Api.Hubs;

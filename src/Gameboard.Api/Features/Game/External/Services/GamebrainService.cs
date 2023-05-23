@@ -4,17 +4,27 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
+using Gameboard.Api.Features.UnityGames;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Gameboard.Api.Features.UnityGames;
+namespace Gameboard.Api.Features.Games.External;
+
+public interface IGamebrainService
+{
+    Task<string> DeployUnitySpace(string gameId, string teamId);
+    Task<string> GetGameState(string gameId, string teamId);
+    Task<string> UndeployUnitySpace(string gameId, string teamId);
+    Task UpdateConsoleUrls(string gameId, string teamId, IEnumerable<UnityGameVm> vms);
+    Task StartV2Game(ExternalGameStartMetaData metaData);
+}
 
 internal class GamebrainService : IGamebrainService
 {
-    private readonly IAccessTokenProvider _accessTokenProvider;
+    private readonly IExternalGameHostAccessTokenProvider _accessTokenProvider;
     private readonly IHttpClientFactory _httpClientFactory;
 
     public GamebrainService(
-        IAccessTokenProvider accessTokenProvider,
+        IExternalGameHostAccessTokenProvider accessTokenProvider,
         IHttpClientFactory httpClientFactory)
     {
         _accessTokenProvider = accessTokenProvider;
@@ -47,6 +57,12 @@ internal class GamebrainService : IGamebrainService
         }
 
         throw new GamebrainException(HttpMethod.Get, gamebrainEndpoint, m.StatusCode, await m.Content.ReadAsStringAsync());
+    }
+
+    public async Task StartV2Game(ExternalGameStartMetaData metaData)
+    {
+        var client = await CreateGamebrain();
+        await client.PostAsJsonAsync($"admin/deploy/{metaData.Game.Id}", metaData);
     }
 
     public async Task UpdateConsoleUrls(string gameId, string teamId, IEnumerable<UnityGameVm> vms)
