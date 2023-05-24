@@ -9,22 +9,22 @@ public record GetSyncStartStateQuery(string gameId, User ActingUser) : IRequest<
 
 internal class GetSyncStartStateQueryHandler : IRequestHandler<GetSyncStartStateQuery, SyncStartState>
 {
-    private readonly IGameService _gameService;
+    private readonly ISyncStartGameService _syncStartGameService;
     private readonly GetSyncStartStateQueryValidator _validator;
 
     public GetSyncStartStateQueryHandler
     (
-        IGameService gameService,
+        ISyncStartGameService syncStartGameService,
         GetSyncStartStateQueryValidator validator
     )
     {
-        _gameService = gameService;
+        _syncStartGameService = syncStartGameService;
         _validator = validator;
     }
 
     public async Task<SyncStartState> Handle(GetSyncStartStateQuery request, CancellationToken cancellationToken)
     {
         await _validator.Validate(request);
-        return await _gameService.GetSyncStartState(request.gameId);
+        return await _syncStartGameService.GetSyncStartState(request.gameId);
     }
 }

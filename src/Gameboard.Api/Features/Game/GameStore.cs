@@ -5,11 +5,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
-using System;
 
 namespace Gameboard.Api.Data;
 
-public class GameStore : Store<Game>, IGameStore
+internal class GameStore : Store<Game>, IGameStore
 {
     public GameStore(GameboardDbContext dbContext)
         : base(dbContext) { }

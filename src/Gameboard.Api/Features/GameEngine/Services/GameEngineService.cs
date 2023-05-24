@@ -32,7 +32,6 @@ public interface IGameEngineService
     Task<GameEngineGameState> StopGamespace(Data.Challenge entity);
 }
 
-
 public class GameEngineService : _Service, IGameEngineService
 {
     ITopoMojoApiClient Mojo { get; }

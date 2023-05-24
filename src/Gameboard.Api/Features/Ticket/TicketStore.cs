@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Gameboard.Api.Data
 {
 
-    public class TicketStore : Store<Ticket>, ITicketStore
+    internal class TicketStore : Store<Ticket>, ITicketStore
     {
         public CoreOptions Options { get; }
 

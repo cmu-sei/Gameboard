@@ -12,9 +12,9 @@ using YamlDotNet.Serialization.NamingConventions;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
-using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Games.External;
 
 namespace Gameboard.Api.Services;
 
@@ -23,8 +23,6 @@ public interface IGameService
     Task<Game> Create(NewGame model);
     Task Delete(string id);
     Task<string> Export(GameSpecExport model);
-    Task<SyncStartState> GetSyncStartState(string gameId);
-    Task HandleSyncStartStateChanged(string gameId, User actor);
     Task<Game> Import(GameSpecImport model);
     bool IsGameStartSuperUser(User user);
     IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool sudo = false);
@@ -34,7 +32,6 @@ public interface IGameService
     Task<Game> Retrieve(string id, bool accessHidden = true);
     Task<ChallengeSpec[]> RetrieveChallengeSpecs(string id);
     Task<SessionForecast[]> SessionForecast(string id);
-    Task<SynchronizedGameStartedState> StartSynchronizedSession(string gameId, double countdownSeconds = 15);
     Task Update(ChangedGame account);
     Task UpdateImage(string id, string type, string filename);
     Task<bool> UserIsTeamPlayer(string uid, string gid, string tid);
@@ -43,12 +40,14 @@ public interface IGameService
 public class GameService : _Service, IGameService
 {
     private readonly Defaults _defaults;
+    private readonly IExternalSyncGameStartService _externalSyncGameStartService;
     private readonly IGameHubBus _gameHub;
     private readonly ILockService _lockService;
     private readonly IPlayerStore _playerStore;
     private readonly IGameStore _store;
 
     public GameService(
+        IExternalSyncGameStartService externalSyncGameStartService,
         ILogger<GameService> logger,
         IMapper mapper,
         CoreOptions options,
@@ -61,6 +60,7 @@ public class GameService : _Service, IGameService
     {
         _store = store;
         _defaults = defaults;
+        _externalSyncGameStartService = externalSyncGameStartService;
         _gameHub = gameHub;
         _lockService = lockService;
         _playerStore = playerStore;
@@ -339,175 +339,6 @@ public class GameService : _Service, IGameService
             u.Enrollments.Any(e => e.TeamId == tid)
         );
 
-        var players = _store.DbContext.Players.Where(p => p.UserId == uid);
-        foreach (var e in players)
-        {
-            Console.WriteLine("game id: " + e.GameId + " | gid: " + gid);
-        }
-
         return authd;
-    }
-
-    public async Task<SyncStartState> GetSyncStartState(string gameId)
-    {
-        var game = await _store.Retrieve(gameId);
-
-        // a game and its challenges are "sync start ready" if either of the following are true:
-        // - the game IS NOT a sync-start game
-        // - the game IS sync-start game, and all registered players have set their IsReady flag to true.
-        if (!game.RequireSynchronizedStart)
-        {
-            return new SyncStartState
-            {
-                Game = new SimpleEntity { Id = game.Id, Name = game.Name },
-                Teams = new SyncStartTeam[] { },
-                IsReady = true
-            };
-        }
-
-        // TODO: for some reason, clever uses of groupby and todictionaryasync aren't working like i expect them to.
-        // they have stale properties. For example, compare the IsReady property of playersDebug here to the result of allTeamsReady
-        // var playersDebug = await _playerStore
-        //     .List()
-        //     .Where(p => p.GameId == gameId)
-        //     .Select(p => new
-        //     {
-        //         Id = p.Id,
-        //         IsReady = p.IsReady
-        //     })
-        //     .ToListAsync();
-
-        // var teams = new List<SyncStartTeam>();
-        // var teamPlayers = await _playerStore
-        //     .List()
-        //     .Where(p => p.GameId == gameId)
-        //     .GroupBy(p => p.TeamId)
-        //     .ToDictionaryAsync(tp => tp.Key, tp => tp.ToList());
-        // var allTeamsReady = teamPlayers.All(team => team.Value.All(p => p.IsReady));
-
-        // out of time, so for now, manually group on returned players
-        var players = await _playerStore
-            .List()
-            .AsNoTracking()
-            .Where(p => p.GameId == gameId)
-            .ToListAsync();
-
-        var teams = new List<SyncStartTeam>();
-        var teamPlayers = players
-            .GroupBy(p => p.TeamId)
-            .ToDictionary(g => g.Key, g => g.ToList());
-        var allTeamsReady = teamPlayers.All(team => team.Value.All(p => p.IsReady));
-
-        return new SyncStartState
-        {
-            Game = new SimpleEntity { Id = game.Id, Name = game.Name },
-            Teams = teamPlayers.Keys.Select(teamId => new SyncStartTeam
-            {
-                Id = teamId,
-                Name = teamPlayers[teamId].Single(p => p.Role == PlayerRole.Manager).ApprovedName,
-                Players = teamPlayers[teamId].Select(p => new SyncStartPlayer
-                {
-                    Id = p.Id,
-                    Name = p.ApprovedName,
-                    IsReady = p.IsReady
-                }),
-                IsReady = teamPlayers[teamId].All(p => p.IsReady)
-            }),
-            IsReady = allTeamsReady
-        };
-    }
-
-    public async Task HandleSyncStartStateChanged(string gameId, User actor)
-    {
-        var state = await GetSyncStartState(gameId);
-        await _gameHub.SendSyncStartStateChanged(state, actor);
-
-        // IFF everyone is ready, start all sessions and return info about them
-        if (!state.IsReady)
-            return;
-
-        // for now, we're assuming the "happy path" of sync start games being external games, but we'll separate them later
-        var session = await StartSynchronizedSession(gameId); ;
-        await _gameHub.SendSyncStartGameStarting(session);
-    }
-
-    /// <summary>
-    /// Initiates a synchronized game session for all players registered for the given game ID. Optionally offsets
-    /// the session length by a countdown in order to give players a little warning that the session is beginning.
-    /// </summary>
-    /// <param name="gameId">The id of the game to start.</param>
-    /// <param name="countdownSeconds">
-    ///     Number of seconds between the current time and the start of the session (used to display a countdown in clients.
-    /// </param>
-    /// <returns></returns>
-    /// <exception cref="CantSynchronizeNonSynchronizedGame">This call fails if the game is not marked as `RequiresSyncStart`.</exception>
-    /// <exception cref="CantStartNonReadySynchronizedGame">This call fails if initiated before all players have set their `IsReady` to true.</exception>
-    /// <exception cref="SynchronizedGameHasPlayersWithSessionsBeforeStart">This call fails if any players already have an active game session when it starts.</exception>
-    public async Task<SynchronizedGameStartedState> StartSynchronizedSession(string gameId, double countdownSeconds = 15)
-    {
-        using (await _lockService.GetSyncStartGameLock(gameId).LockAsync())
-        {
-            // make sure we have a legal sync start game
-            var game = await Retrieve(gameId);
-
-            if (!game.RequireSynchronizedStart)
-                throw new CantSynchronizeNonSynchronizedGame(gameId);
-
-            var state = await GetSyncStartState(gameId);
-            if (!state.IsReady)
-                throw new CantStartNonReadySynchronizedGame(state);
-
-            // set the session times for all players
-            var players = await _playerStore
-                .List()
-                .AsNoTracking()
-                .Where(p => p.GameId == gameId)
-                .Select(p => new
-                {
-                    Id = p.Id,
-                    Name = string.IsNullOrEmpty(p.ApprovedName) ? p.Name : p.ApprovedName,
-                    SessionBegin = p.SessionBegin,
-                    SessionEnd = p.SessionEnd,
-                    TeamId = p.TeamId
-                }).ToListAsync();
-
-            // currently, we don't have an authoritative "This is the session time of this game" kind of construct in the modeling layer
-            // instead, we look at the minimum session start already set. this should be null for new games. if it's null, set everyone's
-            // who doesn't have a session start to now plus something like 15 sec of lead time. 
-            var playersWithSessions = players.Where(p => p.SessionBegin > DateTimeOffset.MinValue || p.SessionEnd > DateTimeOffset.MinValue);
-            if (playersWithSessions.Count() > 0)
-                throw new SynchronizedGameHasPlayersWithSessionsBeforeStart(game.Id, playersWithSessions.Select(p => p.Id));
-
-            var sessionBegin = DateTimeOffset.UtcNow.AddSeconds(countdownSeconds);
-            var sessionEnd = sessionBegin.AddMinutes(game.SessionMinutes);
-
-            await _playerStore
-                .List()
-                .Where(p => p.GameId == gameId && p.SessionBegin == DateTimeOffset.MinValue)
-                .ExecuteUpdateAsync
-                (
-                    p => p
-                        .SetProperty(p => p.SessionBegin, sessionBegin)
-                        .SetProperty(p => p.SessionEnd, sessionEnd)
-                );
-
-
-            var startState = new SynchronizedGameStartedState
-            {
-                Game = new SimpleEntity { Id = game.Id },
-                SessionBegin = sessionBegin,
-                SessionEnd = sessionEnd,
-                Teams = players
-                    .GroupBy(p => p.TeamId)
-                    .ToDictionary(p => p.Key, p => p.Select(p => new SimpleEntity
-                    {
-                        Id = p.Id,
-                        Name = p.Name
-                    }))
-            };
-
-            await _gameHub.SendSyncStartGameStarting(startState);
-            return startState;
-        }
     }
 }

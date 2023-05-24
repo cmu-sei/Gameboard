@@ -11,7 +11,7 @@ public interface IUnityStore : IStore<Data.ChallengeSpec>
     Task<Data.Challenge> HasChallengeData(string gamespaceId);
 }
 
-public class UnityStore : Store<Data.ChallengeSpec>, IUnityStore
+internal class UnityStore : Store<Data.ChallengeSpec>, IUnityStore
 {
     public UnityStore(GameboardDbContext dbContext)
         : base(dbContext) { }

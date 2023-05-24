@@ -26,6 +26,7 @@ public class PlayerServiceTests
             IMediator mediator,
             IInternalHubBus hubBus,
             INowService now,
+            IGameStartService gameStartService,
             ITeamService teamService,
             IMapper mapper,
             IMemoryCache localCache,
@@ -33,6 +34,7 @@ public class PlayerServiceTests
             (
                 coreOptions,
                 challengeService,
+                gameStartService,
                 guidService,
                 mediator,
                 store,
@@ -58,6 +60,7 @@ public class PlayerServiceTests
             IUserStore? userStore = null,
             IGameHubBus? gameHubBus = null,
             IGameService? gameService = null,
+            IGameStartService? gameStartService = null,
             IGameStore? gameStore = null,
             IGuidService? guidService = null,
             IMediator? mediator = null,
@@ -72,6 +75,7 @@ public class PlayerServiceTests
             (
                 coreOptions ?? A.Fake<CoreOptions>(),
                 challengeService ?? A.Fake<ChallengeService>(),
+                gameStartService ?? A.Fake<IGameStartService>(),
                 guidService ?? A.Fake<IGuidService>(),
                 mediator ?? A.Fake<IMediator>(),
                 store ?? A.Fake<IPlayerStore>(),

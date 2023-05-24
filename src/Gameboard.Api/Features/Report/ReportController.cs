@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -15,7 +14,7 @@ namespace Gameboard.Api.Controllers
 {
 
     [Authorize]
-    public class ReportController: _Controller
+    public class ReportController : _Controller
     {
         public ReportController(
             ILogger<ReportController> logger,
@@ -26,7 +25,7 @@ namespace Gameboard.Api.Controllers
             FeedbackService feedbackService,
             TicketService ticketService,
             Defaults defaults
-        ): base(logger, cache)
+        ) : base(logger, cache)
         {
             Service = service;
             GameService = gameService;
@@ -110,7 +109,7 @@ namespace Gameboard.Api.Controllers
             List<Tuple<string, string, string>> playerStats = new List<Tuple<string, string, string>>();
             playerStats.Add(new Tuple<string, string, string>("Game", "Player Count", "Players with Sessions Count"));
 
-            foreach(PlayerStat playerStat in result.Stats)
+            foreach (PlayerStat playerStat in result.Stats)
             {
                 playerStats.Add(new Tuple<string, string, string>(playerStat.GameName, playerStat.PlayerCount.ToString(), playerStat.SessionPlayerCount.ToString()));
             }
@@ -145,7 +144,7 @@ namespace Gameboard.Api.Controllers
             List<Tuple<string, string>> sponsorStats = new List<Tuple<string, string>>();
             sponsorStats.Add(new Tuple<string, string>("Name", "User Count"));
 
-            foreach(SponsorStat sponsorStat in result.Stats)
+            foreach (SponsorStat sponsorStat in result.Stats)
             {
                 sponsorStats.Add(new Tuple<string, string>(sponsorStat.Name, sponsorStat.Count.ToString()));
             }
@@ -182,7 +181,7 @@ namespace Gameboard.Api.Controllers
             {
                 return NotFound();
             }
-            
+
             if (game.MaxTeamSize > 1)
             {
                 List<Tuple<string, string, string>> gameSponsorStats = new List<Tuple<string, string, string>>();
@@ -276,16 +275,33 @@ namespace Gameboard.Api.Controllers
             }
 
             List<ChallengeStatsExport> challengeStats = new List<ChallengeStatsExport>();
-            challengeStats.Add(new ChallengeStatsExport { GameName = "Game", ChallengeName = "Challenge", Tag = "Tag", Points = "Points", Attempts = "Attempts #", 
-                Complete = "Complete(#/%)", Partial = "Partial(#/%)", AvgTime = "Avg Time", AvgScore = "Avg Score" });
+            challengeStats.Add(new ChallengeStatsExport
+            {
+                GameName = "Game",
+                ChallengeName = "Challenge",
+                Tag = "Tag",
+                Points = "Points",
+                Attempts = "Attempts #",
+                Complete = "Complete(#/%)",
+                Partial = "Partial(#/%)",
+                AvgTime = "Avg Time",
+                AvgScore = "Avg Score"
+            });
 
             foreach (ChallengeStat challengeStat in result.Stats)
             {
-                challengeStats.Add(new ChallengeStatsExport {
-                    GameName = game.Name, ChallengeName = challengeStat.Name, Tag = challengeStat.Tag, Points = challengeStat.Points.ToString(), Attempts = challengeStat.AttemptCount.ToString(), 
+                challengeStats.Add(new ChallengeStatsExport
+                {
+                    GameName = game.Name,
+                    ChallengeName = challengeStat.Name,
+                    Tag = challengeStat.Tag,
+                    Points = challengeStat.Points.ToString(),
+                    Attempts = challengeStat.AttemptCount.ToString(),
                     Complete = challengeStat.SuccessCount.ToString() + " / " + (challengeStat.SuccessCount / challengeStat.AttemptCount).ToString("P", CultureInfo.InvariantCulture),
-                    Partial = challengeStat.PartialCount.ToString() + " / " + (challengeStat.PartialCount / challengeStat.AttemptCount).ToString("P", CultureInfo.InvariantCulture), 
-                    AvgTime = challengeStat.AverageTime, AvgScore = challengeStat.AverageScore.ToString()});
+                    Partial = challengeStat.PartialCount.ToString() + " / " + (challengeStat.PartialCount / challengeStat.AttemptCount).ToString("P", CultureInfo.InvariantCulture),
+                    AvgTime = challengeStat.AverageTime,
+                    AvgScore = challengeStat.AverageScore.ToString()
+                });
             }
 
             return File(
@@ -317,8 +333,16 @@ namespace Gameboard.Api.Controllers
             }
 
             List<ChallengeDetailsExport> challengeDetails = new List<ChallengeDetailsExport>();
-            challengeDetails.Add(new ChallengeDetailsExport { GameName = "Game", ChallengeName = "Challenge", Tag = "Tag", Question = "Question", Points = "Points / % of Total", Solves = 
-                "Solves / % of Attempts Correct" });
+            challengeDetails.Add(new ChallengeDetailsExport
+            {
+                GameName = "Game",
+                ChallengeName = "Challenge",
+                Tag = "Tag",
+                Question = "Question",
+                Points = "Points / % of Total",
+                Solves =
+                "Solves / % of Attempts Correct"
+            });
 
             foreach (ChallengeStat stat in result.Stats)
             {
@@ -326,7 +350,12 @@ namespace Gameboard.Api.Controllers
 
                 foreach (Part part in challengeDetail.Parts)
                 {
-                    challengeDetails.Add(new ChallengeDetailsExport { GameName = game.Name, ChallengeName = stat.Name, Tag = stat.Tag, Question = part.Text, 
+                    challengeDetails.Add(new ChallengeDetailsExport
+                    {
+                        GameName = game.Name,
+                        ChallengeName = stat.Name,
+                        Tag = stat.Tag,
+                        Question = part.Text,
                         Points = part.Weight.ToString() + " / " + (part.Weight / stat.Points).ToString("P", CultureInfo.InvariantCulture),
                         Solves = part.SolveCount.ToString() + " / " + ((decimal)part.SolveCount / (decimal)challengeDetail.AttemptCount).ToString("P", CultureInfo.InvariantCulture)
                     });
@@ -378,7 +407,8 @@ namespace Gameboard.Api.Controllers
                     feedbackRow.Add(p.Name, (p.GetValue(response, null)?.ToString() ?? ""));
                 }
                 // Add each individual response as a new cell
-                foreach (var q in questionTemplate) {
+                foreach (var q in questionTemplate)
+                {
                     feedbackRow.Add($"{q.Id} - {q.Prompt}", response.IdToAnswer.GetValueOrDefault(q.Id, ""));
                 }
                 results.Add(feedbackRow);
@@ -387,9 +417,9 @@ namespace Gameboard.Api.Controllers
             string challengeTag = "";
             if (model.WantsSpecificChallenge)
                 challengeTag = (await ChallengeSpecService.Retrieve(model.ChallengeSpecId))?.Tag ?? "";
-            
+
             string filename = Service.GetFeedbackFilename(game.Name, model.WantsGame, model.WantsSpecificChallenge, challengeTag, false);
-        
+
             return File(
                 Service.ConvertToBytes(results),
                 "application/octet-stream",
@@ -430,7 +460,7 @@ namespace Gameboard.Api.Controllers
             string challengeTag = "";
             if (model.WantsSpecificChallenge)
                 challengeTag = (await ChallengeSpecService.Retrieve(model.ChallengeSpecId))?.Tag ?? "";
-            
+
             string filename = Service.GetFeedbackFilename(game.Name, model.WantsGame, model.WantsSpecificChallenge, challengeTag, true);
 
             return File(
@@ -465,7 +495,7 @@ namespace Gameboard.Api.Controllers
             var maxResponses = await Service.GetFeedbackMaxResponses(model);
             var questionStats = Service.GetFeedbackQuestionStats(questionTemplate, expandedTable);
 
-            var fullStats = new FeedbackStats 
+            var fullStats = new FeedbackStats
             {
                 GameId = game.Id,
                 ChallengeSpecId = model.ChallengeSpecId,
@@ -534,7 +564,8 @@ namespace Gameboard.Api.Controllers
         [HttpGet("api/report/exportticketdetails")]
         [Authorize]
         [ProducesResponseType(typeof(FileContentResult), 200)]
-        public async Task<IActionResult> ExportTicketDetails([FromQuery] TicketReportFilter model) {
+        public async Task<IActionResult> ExportTicketDetails([FromQuery] TicketReportFilter model)
+        {
             AuthorizeAny(
                 () => Actor.IsObserver
             );
@@ -542,7 +573,8 @@ namespace Gameboard.Api.Controllers
             var result = await Service.GetTicketDetails(model, Actor.Id);
 
             List<TicketDetailsExport> ticketDetails = new List<TicketDetailsExport>();
-            ticketDetails.Add(new TicketDetailsExport { 
+            ticketDetails.Add(new TicketDetailsExport
+            {
                 Key = "Key",
                 Summary = "Summary",
                 Description = "Description",
@@ -555,11 +587,13 @@ namespace Gameboard.Api.Controllers
                 Created = "Created",
                 LastUpdated = "Last Updated",
                 Label = "Label",
-                Status = "Status" });
+                Status = "Status"
+            });
 
             foreach (TicketDetail detail in result)
             {
-                ticketDetails.Add(new TicketDetailsExport {
+                ticketDetails.Add(new TicketDetailsExport
+                {
                     Key = detail.Key.ToString(),
                     Summary = detail.Summary,
                     Description = detail.Description,
@@ -580,7 +614,8 @@ namespace Gameboard.Api.Controllers
             byte[] fileBytes = Service.ConvertToBytes(ticketDetails);
             // The total length of all properties concatenated together and separated by commas
             int totalCharacterLength = 0;
-            foreach (System.Reflection.PropertyInfo p in typeof(TicketDetailsExport).GetProperties()) {
+            foreach (System.Reflection.PropertyInfo p in typeof(TicketDetailsExport).GetProperties())
+            {
                 totalCharacterLength += p.Name.ToString().Count() + 1;
             }
             // The extra characters inserted into the second row that make them different from the variable names (spaces, punctuation, etc.)
@@ -623,7 +658,8 @@ namespace Gameboard.Api.Controllers
             titles[titles.Count() - 2] = "Outside of Shifts Count";
             titles[titles.Count() - 1] = "Total Created";
             // Create a new title for each shift
-            for (int i = 2; i < titles.Count() - 2; i++) {
+            for (int i = 2; i < titles.Count() - 2; i++)
+            {
                 titles[i] = "Shift " + (i - 1) + " Count";
             }
             // Add to the byte list and remove the whitespace and newline from the file
@@ -634,12 +670,14 @@ namespace Gameboard.Api.Controllers
             int[] sums = new int[titles.Count() - 2];
 
             // Loop through each received TicketDayGroup
-            foreach (TicketDayGroup group in result.TicketDays) {
+            foreach (TicketDayGroup group in result.TicketDays)
+            {
                 // Set each value within the row
                 string[] row = new string[titles.Length];
                 row[0] = group.Date;
                 row[1] = group.DayOfWeek;
-                for (int i = 2; i < row.Count() - 2; i++) {
+                for (int i = 2; i < row.Count() - 2; i++)
+                {
                     row[i] = group.ShiftCounts[i - 2].ToString();
                     sums[i - 2] += group.ShiftCounts[i - 2];
                 }
@@ -656,12 +694,13 @@ namespace Gameboard.Api.Controllers
             string[] rowLater = new string[titles.Length];
             rowLater[0] = "";
             rowLater[1] = "Total";
-            for (int i = 2; i < rowLater.Length; i++) {
+            for (int i = 2; i < rowLater.Length; i++)
+            {
                 rowLater[i] = sums[i - 2].ToString();
             }
             // Add to the list
             fc.AddRange(Service.ConvertToBytes(rowLater));
-            
+
             // Convert the final byte list back to an array and return the resulting file
             f.FileContents = fc.ToArray();
 
@@ -729,7 +768,8 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("api/report/gameseriesstats")]
         [Authorize]
-        public async Task<ActionResult<SeriesReport>> GetSeriesStats() {
+        public async Task<ActionResult<SeriesReport>> GetSeriesStats()
+        {
             AuthorizeAny(
                 () => Actor.IsObserver
             );
@@ -739,7 +779,8 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("api/report/gametrackstats")]
         [Authorize]
-        public async Task<ActionResult<TrackReport>> GetTrackStats() {
+        public async Task<ActionResult<TrackReport>> GetTrackStats()
+        {
             AuthorizeAny(
                 () => Actor.IsObserver
             );
@@ -749,7 +790,8 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("api/report/gameseasonstats")]
         [Authorize]
-        public async Task<ActionResult<SeasonReport>> GetSeasonStats() {
+        public async Task<ActionResult<SeasonReport>> GetSeasonStats()
+        {
             AuthorizeAny(
                 () => Actor.IsObserver
             );
@@ -759,7 +801,8 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("api/report/gamedivisionstats")]
         [Authorize]
-        public async Task<ActionResult<DivisionReport>> GetDivisionStats() {
+        public async Task<ActionResult<DivisionReport>> GetDivisionStats()
+        {
             AuthorizeAny(
                 () => Actor.IsObserver
             );
@@ -769,7 +812,8 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("api/report/gamemodestats")]
         [Authorize]
-        public async Task<ActionResult<ModeReport>> GetModeStats() {
+        public async Task<ActionResult<ModeReport>> GetModeStats()
+        {
             AuthorizeAny(
                 () => Actor.IsObserver
             );
@@ -779,7 +823,8 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("api/report/correlationstats")]
         [Authorize]
-        public async Task<ActionResult<ModeReport>> GetCorrelationStats() {
+        public async Task<ActionResult<ModeReport>> GetCorrelationStats()
+        {
             AuthorizeAny(
                 () => Actor.IsObserver
             );
@@ -907,7 +952,8 @@ namespace Gameboard.Api.Controllers
         }
 
         // Helper method to create participation reports
-        public FileContentResult ConstructParticipationReport(ParticipationReport report) {
+        public FileContentResult ConstructParticipationReport(ParticipationReport report)
+        {
             List<Tuple<string, string, string, string, string, string, string>> participationStats = new List<Tuple<string, string, string, string, string, string, string>>();
             participationStats.Add(new Tuple<string, string, string, string, string, string, string>(report.Key, "Game Count", "Player Count", "Players with Sessions Count", "Team Count", "Teams with Session Count", "Challenges Deployed Count"));
 
@@ -921,7 +967,8 @@ namespace Gameboard.Api.Controllers
 
         #region Many Column Tuple Report Helper Methods
         // Helper method to create reports constructed out of a tuple with 4 items
-        public FileContentResult ConstructManyColumnTupleReport(List<Tuple<string, string, string, string>> stats, string title) {
+        public FileContentResult ConstructManyColumnTupleReport(List<Tuple<string, string, string, string>> stats, string title)
+        {
             // Create the byte array now to remove a header row shortly
             byte[] fileBytes = Service.ConvertToBytes(stats);
             // The number of items per row
@@ -939,7 +986,8 @@ namespace Gameboard.Api.Controllers
         }
 
         // Helper method to create reports constructed out of a tuple with 5 items
-        public FileContentResult ConstructManyColumnTupleReport(List<Tuple<string, string, string, string, string>> stats, string title) {
+        public FileContentResult ConstructManyColumnTupleReport(List<Tuple<string, string, string, string, string>> stats, string title)
+        {
             // Create the byte array now to remove a header row shortly
             byte[] fileBytes = Service.ConvertToBytes(stats);
             // The number of items per row
@@ -957,7 +1005,8 @@ namespace Gameboard.Api.Controllers
         }
 
         // Helper method to create reports constructed out of a tuple with 6 items
-        public FileContentResult ConstructManyColumnTupleReport(List<Tuple<string, string, string, string, string, string>> stats, string title) {
+        public FileContentResult ConstructManyColumnTupleReport(List<Tuple<string, string, string, string, string, string>> stats, string title)
+        {
             // Create the byte array now to remove a header row shortly
             byte[] fileBytes = Service.ConvertToBytes(stats);
             // The number of items per row
@@ -975,7 +1024,8 @@ namespace Gameboard.Api.Controllers
         }
 
         // Helper method to create reports constructed out of a tuple with 7 items
-        public FileContentResult ConstructManyColumnTupleReport(List<Tuple<string, string, string, string, string, string, string>> stats, string title) {
+        public FileContentResult ConstructManyColumnTupleReport(List<Tuple<string, string, string, string, string, string, string>> stats, string title)
+        {
             // Create the byte array now to remove a header row shortly
             byte[] fileBytes = Service.ConvertToBytes(stats);
             // The number of items per row
@@ -993,7 +1043,8 @@ namespace Gameboard.Api.Controllers
         }
 
         // Helper method to create reports constructed out of a tuple with 8 items
-        public FileContentResult ConstructManyColumnTupleReport(List<Tuple<string, string, string, string, string, string, string, string>> stats, string title) {
+        public FileContentResult ConstructManyColumnTupleReport(List<Tuple<string, string, string, string, string, string, string, string>> stats, string title)
+        {
             // Create the byte array now to remove a header row shortly
             byte[] fileBytes = Service.ConvertToBytes(stats);
             // The number of items per row

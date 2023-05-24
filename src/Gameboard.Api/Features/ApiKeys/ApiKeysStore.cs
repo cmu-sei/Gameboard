@@ -14,7 +14,7 @@ public interface IApiKeysStore
     IQueryable<ApiKey> List(string userId);
 }
 
-public class ApiKeysStore : IApiKeysStore
+internal class ApiKeysStore : IApiKeysStore
 {
     private readonly GameboardDbContext _dbContext;
 

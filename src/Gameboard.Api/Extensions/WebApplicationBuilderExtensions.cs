@@ -81,7 +81,12 @@ internal static class WebApplicationBuilderExtensions
         services
             .AddSingleton<CoreOptions>(_ => settings.Core)
             .AddSingleton<CrucibleOptions>(_ => settings.Crucible)
-            .AddGameboardData(settings.Database.Provider, settings.Database.ConnectionString)
+            .AddGameboardData(settings.Database.Provider, new GameboardDataStoreConfig
+            {
+                ConnectionString = settings.Database.ConnectionString,
+                EnableSensitiveDataLogging = builder.Environment.IsDev(),
+                MinimumLogLevel = builder.Environment.IsDev() ? LogLevel.Information : LogLevel.Warning
+            })
             .AddGameboardServices(settings)
             .AddConfiguredHttpClients(settings.Core)
             .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath)

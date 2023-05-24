@@ -3,11 +3,13 @@ using DotNet.Testcontainers.Configurations;
 using DotNet.Testcontainers.Containers;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
@@ -37,7 +39,12 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
         {
             // Add DB context with connection to the container
             services.RemoveService<TDbContext>();
-            services.AddDbContext<TDbContext>(options => options.UseNpgsql(_dbContainer.ConnectionString));
+            services.AddDbContext<TDbContext>(options => options.UseGameboardPostgreSql(new GameboardDataStoreConfig
+            {
+                ConnectionString = _dbContainer.ConnectionString,
+                EnableSensitiveDataLogging = true,
+                MinimumLogLevel = LogLevel.Warning
+            }));
 
             // Some services (like the stores) in Gameboard inject with GameboardDbContext rather than DbContext,
             // so we need to add an additional binding for them

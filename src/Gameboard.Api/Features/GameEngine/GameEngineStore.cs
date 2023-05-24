@@ -16,7 +16,7 @@ public interface IGameEngineStore
     Task<IEnumerable<GameEngineGameState>> GetGameStatesByTeam(string teamId);
 }
 
-public class GameEngineStore : IGameEngineStore
+internal class GameEngineStore : IGameEngineStore
 {
     private readonly GameboardDbContext _db;
     private readonly IJsonService _jsonService;

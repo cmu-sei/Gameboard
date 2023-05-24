@@ -27,6 +27,7 @@ namespace Gameboard.Api.Hubs
         private readonly IGameService _gameService;
         private readonly IMapper _mapper;
         private readonly IMediator _mediator;
+        private readonly ISyncStartGameService _syncStartGameService;
 
         public AppHub
         (
@@ -34,7 +35,8 @@ namespace Gameboard.Api.Hubs
             IMapper mapper,
             IGameService gameService,
             IMediator mediator,
-            IPlayerStore playerStore
+            IPlayerStore playerStore,
+            ISyncStartGameService syncStartGameService
         )
         {
             Logger = logger;
@@ -42,6 +44,7 @@ namespace Gameboard.Api.Hubs
             _gameService = gameService;
             _mapper = mapper;
             _mediator = mediator;
+            _syncStartGameService = syncStartGameService;
         }
 
         public override Task OnConnectedAsync()
@@ -115,7 +118,7 @@ namespace Gameboard.Api.Hubs
 
             if (game.RequireSynchronizedStart)
             {
-                return await _gameService.GetSyncStartState(game.Id);
+                return await _syncStartGameService.GetSyncStartState(game.Id);
             }
 
             // this isn't a failure, we just don't send anything down if sync start isn't needed

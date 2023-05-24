@@ -12,20 +12,22 @@ public record UpdatePlayerReadyStateCommand(string PlayerId, bool IsReady, User 
 
 internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlayerReadyStateCommand>
 {
-    private readonly IGameService _gameService;
+    private readonly IGameStartService _gameStartService;
     private readonly IMediator _mediator;
     private readonly EntityExistsValidator<UpdatePlayerReadyStateCommand, Data.Player> _playerExists;
     private readonly PlayerService _playerService;
     private readonly IValidatorService<UpdatePlayerReadyStateCommand> _validatorService;
 
-    public UpdatePlayerReadyStateCommandHandler(
-        IGameService gameService,
+    public UpdatePlayerReadyStateCommandHandler
+    (
+        IGameStartService gameStartService,
         IMediator mediator,
         EntityExistsValidator<UpdatePlayerReadyStateCommand, Data.Player> playerExists,
         PlayerService playerService,
+        ISyncStartGameService syncStartGameService,
         IValidatorService<UpdatePlayerReadyStateCommand> validatorService)
     {
-        _gameService = gameService;
+        _gameStartService = gameStartService;
         _mediator = mediator;
         _playerExists = playerExists;
         _playerService = playerService;
@@ -43,6 +45,6 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
 
         // retrieve and tell the game that someone has readied/unreadied
         var player = await _playerService.Retrieve(request.PlayerId);
-        await _gameService.HandleSyncStartStateChanged(player.GameId, request.Actor);
+        await _gameStartService.Start(new GameStartRequest { GameId = player.GameId });
     }
 }

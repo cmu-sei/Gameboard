@@ -1,20 +1,13 @@
 using System;
 using System.Collections.Generic;
 using Gameboard.Api.Common;
-using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api.Features.Games.External;
-
-internal class ExternalSyncGameDeployContext
-{
-    public required IEnumerable<string> TeamIds { get; set; }
-    public required IList<Challenge> DeployedChallenges { get; set; }
-    public required IList<GameEngineGameState> DeployedGamespaces { get; set; }
-}
 
 public sealed class ExternalSyncGameStartRequest
 {
     public required string GameId { get; set; }
+    public required GameStartContext Context { get; set; }
 }
 
 public sealed class ExternalGameStartMetaData

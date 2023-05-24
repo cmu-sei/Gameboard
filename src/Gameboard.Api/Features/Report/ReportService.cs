@@ -8,7 +8,6 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {

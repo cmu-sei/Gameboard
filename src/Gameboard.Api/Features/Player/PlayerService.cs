@@ -25,6 +25,7 @@ public class PlayerService
     ChallengeService ChallengeService { get; set; }
     IPlayerStore Store { get; }
     IGameService GameService { get; }
+    IGameStartService GameStartService { get; }
     IGameStore GameStore { get; }
     IGameHubBus GameHubBus { get; set; }
     IGuidService GuidService { get; }
@@ -41,6 +42,7 @@ public class PlayerService
     public PlayerService(
         CoreOptions coreOptions,
         ChallengeService challengeService,
+        IGameStartService gameStartService,
         IGuidService guidService,
         IMediator mediator,
         IPlayerStore store,
@@ -56,21 +58,22 @@ public class PlayerService
         GameEngineService gameEngine
     )
     {
-        CoreOptions = coreOptions;
         ChallengeService = challengeService;
+        CoreOptions = coreOptions;
+        GameEngine = gameEngine;
+        GameHubBus = gameHubBus;
         GameService = gameService;
         GuidService = guidService;
-        MediatorBus = mediator;
-        GameHubBus = gameHubBus;
-        HubBus = hubBus;
-        Store = store;
+        GameStartService = gameStartService;
         GameStore = gameStore;
+        HubBus = hubBus;
+        LocalCache = localCache;
+        Mapper = mapper;
+        MediatorBus = mediator;
+        Now = now;
+        Store = store;
         TeamService = teamService;
         UserStore = userStore;
-        Mapper = mapper;
-        LocalCache = localCache;
-        GameEngine = gameEngine;
-        Now = now;
     }
 
     public async Task<Player> Enroll(NewPlayer model, User actor)
@@ -93,7 +96,11 @@ public class PlayerService
         await HubBus.SendPlayerEnrolled(Mapper.Map<Api.Player>(entity), actor);
 
         if (game.RequireSynchronizedStart)
-            await GameService.HandleSyncStartStateChanged(entity.GameId, actor);
+            await GameStartService.HandleSyncStartStateChanged(new SyncGameStartRequest
+            {
+                ActingUser = actor,
+                GameId = entity.GameId
+            });
 
         return Mapper.Map<Player>(entity);
     }
@@ -200,7 +207,11 @@ public class PlayerService
 
         // update player ready state if game needs it
         if (player.Game.RequireSynchronizedStart && player.SessionBegin == DateTimeOffset.MinValue)
-            await GameService.HandleSyncStartStateChanged(player.GameId, args.ActingUser);
+            await GameStartService.HandleSyncStartStateChanged(new SyncGameStartRequest
+            {
+                ActingUser = args.ActingUser,
+                GameId = player.GameId
+            });
 
         return Mapper.Map<Player>(player);
     }
@@ -564,7 +575,11 @@ public class PlayerService
 
         // update sync start if needed
         if (player.Game.RequireSynchronizedStart)
-            await GameService.HandleSyncStartStateChanged(player.GameId, request.Actor);
+            await GameStartService.HandleSyncStartStateChanged(new SyncGameStartRequest
+            {
+                ActingUser = request.Actor,
+                GameId = player.GameId
+            });
     }
 
     public async Task<TeamChallenge[]> LoadChallengesForTeam(string teamId)
