@@ -16,6 +16,7 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
     private readonly IMediator _mediator;
     private readonly EntityExistsValidator<UpdatePlayerReadyStateCommand, Data.Player> _playerExists;
     private readonly PlayerService _playerService;
+    private readonly ISyncStartGameService _syncStartGameService;
     private readonly IValidatorService<UpdatePlayerReadyStateCommand> _validatorService;
 
     public UpdatePlayerReadyStateCommandHandler
@@ -31,6 +32,7 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
         _mediator = mediator;
         _playerExists = playerExists;
         _playerService = playerService;
+        _syncStartGameService = syncStartGameService;
         _validatorService = validatorService;
     }
 
@@ -41,10 +43,13 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
         await _validatorService.Validate(request);
 
         // update the player's db flag
-        await _playerService.UpdatePlayerReadyState(request.PlayerId, request.IsReady);
+        var playerReadyState = await _syncStartGameService.UpdatePlayerReadyState(request.PlayerId, request.IsReady);
 
-        // retrieve and tell the game that someone has readied/unreadied
-        var player = await _playerService.Retrieve(request.PlayerId);
-        await _gameStartService.Start(new GameStartRequest { GameId = player.GameId });
+        // notify listeners
+        await _gameStartService.HandleSyncStartStateChanged(new SyncGameStartRequest
+        {
+            ActingUser = request.Actor,
+            GameId = playerReadyState.GameId
+        });
     }
 }

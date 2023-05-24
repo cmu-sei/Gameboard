@@ -11,6 +11,14 @@ public class SyncStartPlayer
     public required bool IsReady { get; set; }
 }
 
+public class SyncStartPlayerStatusUpdate
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required string GameId { get; set; }
+    public required bool IsReady { get; set; }
+}
+
 public class SyncStartTeam
 {
     public required string Id { get; set; }

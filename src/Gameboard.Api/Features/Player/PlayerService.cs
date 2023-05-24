@@ -171,15 +171,6 @@ public class PlayerService
         return Mapper.Map<Player>(entity);
     }
 
-    public async Task UpdatePlayerReadyState(string playerId, bool isReady)
-    {
-        var player = await Store.Retrieve(playerId);
-        await Store
-            .List()
-            .Where(p => p.Id == playerId)
-            .ExecuteUpdateAsync(p => p.SetProperty(p => p.IsReady, isReady));
-    }
-
     public async Task<Player> ResetSession(SessionResetCommandArgs args)
     {
         var player = await Store

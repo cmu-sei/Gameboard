@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.Games.External;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games;
@@ -14,6 +13,7 @@ public interface ISyncStartGameService
 {
     Task<SyncStartState> GetSyncStartState(string gameId);
     Task<SynchronizedGameStartedState> StartSynchronizedSession(string gameId, double countdownSeconds = 15);
+    Task<SyncStartPlayerStatusUpdate> UpdatePlayerReadyState(string playerId, bool isReady);
 }
 
 internal class SyncStartGameService : ISyncStartGameService
@@ -184,5 +184,22 @@ internal class SyncStartGameService : ISyncStartGameService
             await _gameHub.SendSyncStartGameStarting(startState);
             return startState;
         }
+    }
+
+    public async Task<SyncStartPlayerStatusUpdate> UpdatePlayerReadyState(string playerId, bool isReady)
+    {
+        var player = await _playerStore.Retrieve(playerId);
+        await _playerStore
+            .List()
+            .Where(p => p.Id == playerId)
+            .ExecuteUpdateAsync(p => p.SetProperty(p => p.IsReady, isReady));
+
+        return new SyncStartPlayerStatusUpdate
+        {
+            Id = player.Id,
+            Name = player.ApprovedName,
+            GameId = player.GameId,
+            IsReady = isReady
+        };
     }
 }
