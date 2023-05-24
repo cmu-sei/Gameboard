@@ -13,8 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gameboard.Api.Tests.Unit", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gameboard.Api.Tests.Integration", "src\Gameboard.Api.Tests.Integration\Gameboard.Api.Tests.Integration.csproj", "{C4A91F95-C5E2-4ACA-BC70-5168E2C565F4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gameboard.Api.GamebrainSchemaGenerator", "src\Gameboard.Api.GamebrainSchemaGenerator\Gameboard.Api.GamebrainSchemaGenerator.csproj", "{405C2A0D-F1D9-4059-9F5A-63D90F3186FF}"
-EndProject
+
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -76,24 +75,11 @@ Global
 		{C4A91F95-C5E2-4ACA-BC70-5168E2C565F4}.Release|x64.Build.0 = Release|Any CPU
 		{C4A91F95-C5E2-4ACA-BC70-5168E2C565F4}.Release|x86.ActiveCfg = Release|Any CPU
 		{C4A91F95-C5E2-4ACA-BC70-5168E2C565F4}.Release|x86.Build.0 = Release|Any CPU
-		{405C2A0D-F1D9-4059-9F5A-63D90F3186FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{405C2A0D-F1D9-4059-9F5A-63D90F3186FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{405C2A0D-F1D9-4059-9F5A-63D90F3186FF}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{405C2A0D-F1D9-4059-9F5A-63D90F3186FF}.Debug|x64.Build.0 = Debug|Any CPU
-		{405C2A0D-F1D9-4059-9F5A-63D90F3186FF}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{405C2A0D-F1D9-4059-9F5A-63D90F3186FF}.Debug|x86.Build.0 = Debug|Any CPU
-		{405C2A0D-F1D9-4059-9F5A-63D90F3186FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{405C2A0D-F1D9-4059-9F5A-63D90F3186FF}.Release|Any CPU.Build.0 = Release|Any CPU
-		{405C2A0D-F1D9-4059-9F5A-63D90F3186FF}.Release|x64.ActiveCfg = Release|Any CPU
-		{405C2A0D-F1D9-4059-9F5A-63D90F3186FF}.Release|x64.Build.0 = Release|Any CPU
-		{405C2A0D-F1D9-4059-9F5A-63D90F3186FF}.Release|x86.ActiveCfg = Release|Any CPU
-		{405C2A0D-F1D9-4059-9F5A-63D90F3186FF}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{A2715FCD-D078-4E96-81C3-B833640921C5} = {C148F187-E600-4044-8944-2E9E52575B07}
 		{79462104-DCF9-4F9C-AC60-EA6E9F961EBF} = {C148F187-E600-4044-8944-2E9E52575B07}
 		{6F5F2BB6-AFD0-4935-8A1E-1E68A53E26CC} = {C148F187-E600-4044-8944-2E9E52575B07}
 		{C4A91F95-C5E2-4ACA-BC70-5168E2C565F4} = {C148F187-E600-4044-8944-2E9E52575B07}
-		{405C2A0D-F1D9-4059-9F5A-63D90F3186FF} = {C148F187-E600-4044-8944-2E9E52575B07}
 	EndGlobalSection
 EndGlobal
