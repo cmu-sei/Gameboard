@@ -25,39 +25,40 @@ public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestCont
     )
     {
         // given 
-        await _testContext.WithDataState(state =>
-        {
-            state.AddPlayer(p =>
+        await _testContext
+            .WithTestServices(services => services.AddGbIntegrationTestAuth(UserRole.Admin))
+            .WithDataState(state =>
             {
-                p.Id = playerId;
-                p.TeamId = teamId;
-            });
+                state.AddPlayer(p =>
+                {
+                    p.Id = playerId;
+                    p.TeamId = teamId;
+                });
 
-            state.AddChallenge(c =>
-            {
-                c.Id = challenge1Id;
-                c.GameEngineType = Api.GameEngineType.TopoMojo;
-                c.PlayerId = playerId;
-                // NOTE: this isn't random - it's handcrafted so we can verify the data "tree"
-                // See Fixtures/SpecimenBuilders/GameStateBuilder.cs
-                c.State = JsonSerializer.Serialize(state1);
-                c.TeamId = teamId;
-            });
+                state.AddChallenge(c =>
+                {
+                    c.Id = challenge1Id;
+                    c.GameEngineType = Api.GameEngineType.TopoMojo;
+                    c.PlayerId = playerId;
+                    // NOTE: this isn't random - it's handcrafted so we can verify the data "tree"
+                    // See Fixtures/SpecimenBuilders/GameStateBuilder.cs
+                    c.State = JsonSerializer.Serialize(state1);
+                    c.TeamId = teamId;
+                });
 
-            state.AddChallenge(c =>
-            {
-                c.Id = challenge2Id;
-                c.GameEngineType = Api.GameEngineType.TopoMojo;
-                c.PlayerId = playerId;
-                c.State = JsonSerializer.Serialize(state2);
-                c.TeamId = teamId;
+                state.AddChallenge(c =>
+                {
+                    c.Id = challenge2Id;
+                    c.GameEngineType = Api.GameEngineType.TopoMojo;
+                    c.PlayerId = playerId;
+                    c.State = JsonSerializer.Serialize(state2);
+                    c.TeamId = teamId;
+                });
             });
-        });
-
-        var httpClient = _testContext.CreateHttpClientWithAuthRole(Api.UserRole.Admin);
 
         // when
-        var results = await httpClient
+        var results = await _testContext
+            .CreateGbApiClient()
             .GetAsync($"/api/gameEngine/state?teamId={teamId}")
             .WithContentDeserializedAs<IEnumerable<GameEngineGameState>>();
 

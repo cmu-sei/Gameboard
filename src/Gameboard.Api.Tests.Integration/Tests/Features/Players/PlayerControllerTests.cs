@@ -17,6 +17,7 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext<Gameboar
     {
         // given
         await _testContext
+            .WithTestServices(s => s.AddGbIntegrationTestAuth(UserRole.Admin))
             .WithDataState(state =>
             {
                 state.AddGame(g =>
@@ -40,7 +41,6 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext<Gameboar
                 });
             });
 
-        var httpClient = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
         var sutParams = new ChangedPlayer
         {
             Id = "PlayerB",
@@ -52,7 +52,8 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext<Gameboar
         };
 
         // when
-        var updatedPlayer = await httpClient
+        var updatedPlayer = await _testContext
+            .Http
             .PutAsync("/api/player", sutParams.ToJsonBody())
             .WithContentDeserializedAs<Api.Player>();
 
@@ -69,31 +70,32 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext<Gameboar
         var now = DateTimeOffset.UtcNow;
         var userId = TestIds.Generate();
 
-        await _testContext.WithDataState(state =>
-        {
-            state.AddGame(g =>
+        await _testContext
+            .WithTestServices(s => s.AddGbIntegrationTestAuth(u => u.Id = userId))
+            .WithDataState(state =>
             {
-                g.GameEnd = now - TimeSpan.FromDays(1);
-                g.CertificateTemplate = "This is a template with a {{player_count}}.";
-                g.Players = new Api.Data.Player[]
+                state.AddGame(g =>
                 {
-                    state.BuildPlayer(p =>
+                    g.GameEnd = now - TimeSpan.FromDays(1);
+                    g.CertificateTemplate = "This is a template with a {{player_count}}.";
+                    g.Players = new Api.Data.Player[]
                     {
-                        p.Id = TestIds.Generate();
-                        p.User = new Api.Data.User { Id = userId };
-                        p.UserId = userId;
-                        p.SessionEnd = now - TimeSpan.FromDays(-2);
-                        p.TeamId = "teamId";
-                        p.Score = score;
-                    })
-                };
+                        state.BuildPlayer(p =>
+                        {
+                            p.Id = TestIds.Generate();
+                            p.User = new Api.Data.User { Id = userId };
+                            p.UserId = userId;
+                            p.SessionEnd = now - TimeSpan.FromDays(-2);
+                            p.TeamId = "teamId";
+                            p.Score = score;
+                        })
+                    };
+                });
             });
-        });
-
-        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = userId);
 
         // when
-        var certs = await httpClient
+        var certs = await _testContext
+            .Http
             .GetAsync("/api/certificates")
             .WithContentDeserializedAs<IEnumerable<PlayerCertificate>>();
 
@@ -110,43 +112,44 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext<Gameboar
         var playerId = TestIds.Generate();
         var recentDate = DateTime.UtcNow.AddDays(-1);
 
-        await _testContext.WithDataState(state =>
-        {
-            var allPlayers = new List<Api.Data.Player>();
-
-            allPlayers.Add(state.BuildPlayer(p =>
+        await _testContext
+            .WithTestServices(s => s.AddGbIntegrationTestAuth(u => u.Id = userId))
+            .WithDataState(state =>
             {
-                p.Id = TestIds.Generate();
-                p.User = new Api.Data.User { Id = userId };
-                p.UserId = userId;
-                p.SessionEnd = recentDate;
-                p.Score = 20;
-            }));
+                var allPlayers = new List<Api.Data.Player>();
 
-            allPlayers.AddRange(state.BuildTeam(playerBuilder: p =>
-            {
-                p.Score = 5;
-                p.SessionEnd = recentDate;
-            }));
+                allPlayers.Add(state.BuildPlayer(p =>
+                {
+                    p.Id = TestIds.Generate();
+                    p.User = new Api.Data.User { Id = userId };
+                    p.UserId = userId;
+                    p.SessionEnd = recentDate;
+                    p.Score = 20;
+                }));
 
-            allPlayers.Add(state.BuildPlayer(p =>
-            {
-                p.SessionEnd = recentDate;
-                p.Score = 0;
-            }));
+                allPlayers.AddRange(state.BuildTeam(playerBuilder: p =>
+                {
+                    p.Score = 5;
+                    p.SessionEnd = recentDate;
+                }));
 
-            state.AddGame(g =>
-            {
-                g.GameEnd = now - TimeSpan.FromDays(1);
-                g.CertificateTemplate = "This is a template with a {{player_count}} and a {{team_count}}.";
-                g.Players = allPlayers;
+                allPlayers.Add(state.BuildPlayer(p =>
+                {
+                    p.SessionEnd = recentDate;
+                    p.Score = 0;
+                }));
+
+                state.AddGame(g =>
+                {
+                    g.GameEnd = now - TimeSpan.FromDays(1);
+                    g.CertificateTemplate = "This is a template with a {{player_count}} and a {{team_count}}.";
+                    g.Players = allPlayers;
+                });
             });
-        });
-
-        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = userId);
 
         // when
-        var certs = await httpClient
+        var certs = await _testContext
+            .Http
             .GetAsync("/api/certificates")
             .WithContentDeserializedAs<IEnumerable<PlayerCertificate>>();
 

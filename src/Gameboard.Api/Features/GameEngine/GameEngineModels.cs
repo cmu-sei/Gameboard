@@ -101,15 +101,15 @@ public class GameEngineQuestionView
 
 public class GameEngineSectionSubmission
 {
-    [Required] public string Id { get; set; }
-    [Required] public DateTimeOffset Timestamp { get; set; }
-    [Required] public int SectionIndex { get; set; }
-    [Required] public IEnumerable<GameEngineAnswerSubmission> Answers { get; set; }
+    public required string Id { get; set; }
+    public required DateTimeOffset Timestamp { get; set; }
+    public required int SectionIndex { get; set; }
+    public required IEnumerable<GameEngineAnswerSubmission> Answers { get; set; }
 }
 
 public class GameEngineAnswerSubmission
 {
-    [Required] public string Answer { get; set; }
+    public required string Answer { get; set; }
 }
 
 public enum GameEnginePlayerPermission

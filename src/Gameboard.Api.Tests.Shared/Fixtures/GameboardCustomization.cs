@@ -52,7 +52,6 @@ public class GameboardCustomization : ICustomization
             Points = 50,
             WhenCreated = now,
             StartTime = now,
-            EndTime = now.AddDays(1),
             HasDeployedGamespace = false,
             GameEngineType = GameEngineType.TopoMojo
         });

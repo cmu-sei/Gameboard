@@ -39,6 +39,7 @@ public static class GameboardTestContextDefaultEntityExtensions
             new Data.Challenge
             {
                 Name = "Integration Test Challenge",
+                StartTime = DateTimeOffset.Now.ToUniversalTime()
             },
             challengeBuilder
         );
@@ -152,9 +153,9 @@ public static class GameboardTestContextDefaultEntityExtensions
             var createManager = i == 0;
             var player = new Data.Player
             {
-                Id = fixture.Create<string>(),
-                ApprovedName = teamName,
-                Name = teamName,
+                Id = (i == 0 && options.Manager?.Id != null ? options.Manager.Id : fixture.Create<string>()),
+                ApprovedName = teamName ?? options.Manager?.Name,
+                Name = teamName ?? options.Manager?.Name,
                 Role = createManager ? Api.PlayerRole.Manager : Api.PlayerRole.Member,
                 TeamId = options.TeamId,
                 User = new Data.User { Id = fixture.Create<string>() },

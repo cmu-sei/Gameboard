@@ -19,6 +19,7 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext<
     {
         // given
         await _testContext
+            .WithTestServices(s => s.AddGbIntegrationTestAuth(u => u.Id = memberUserId))
             .WithDataState(state =>
             {
                 state.AddGame(g =>
@@ -60,14 +61,10 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext<
                 });
             });
 
-        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = memberUserId);
-        var reqParams = new PlayerUnenrollRequest
-        {
-            PlayerId = memberPlayerId
-        };
+        var reqParams = new PlayerUnenrollRequest { PlayerId = memberPlayerId };
 
         // when
-        var response = await httpClient.DeleteAsync($"/api/player/{memberPlayerId}?{reqParams.ToQueryString()}");
+        var response = await _testContext.Http.DeleteAsync($"/api/player/{memberPlayerId}?{reqParams.ToQueryString()}");
 
         // then
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -84,6 +81,7 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext<
     {
         // given
         await _testContext
+            .WithTestServices(s => s.AddGbIntegrationTestAuth(u => u.Id = managerUserId))
             .WithDataState(state =>
             {
                 state.AddGame(g =>
@@ -112,14 +110,10 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext<
                 });
             });
 
-        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = managerUserId);
-        var reqParams = new PlayerUnenrollRequest
-        {
-            PlayerId = managerPlayerId
-        };
+        var reqParams = new PlayerUnenrollRequest { PlayerId = managerPlayerId };
 
         // when / then
-        var response = await httpClient.DeleteAsync($"/api/player/{managerPlayerId}?{reqParams.ToQueryString()}");
+        var response = await _testContext.Http.DeleteAsync($"/api/player/{managerPlayerId}?{reqParams.ToQueryString()}");
 
         // then
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);

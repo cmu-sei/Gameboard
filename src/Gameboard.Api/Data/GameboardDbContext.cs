@@ -100,14 +100,14 @@ public class GameboardDbContext : DbContext
         {
             b
                 .HasDiscriminator(b => b.ChallengeBonusType)
-                .HasValue<ChallengeBonusSolveSpeed>(ChallengeBonusType.SolveSpeed);
+                .HasValue<ChallengeBonusCompleteSolveRank>(ChallengeBonusType.CompleteSolveRank);
 
             b.Property(b => b.Id).HasStandardGuidLength();
             b.Property(b => b.Description).HasStandardNameLength();
             b.HasOne(b => b.ChallengeSpec).WithMany(c => c.Bonuses).OnDelete(DeleteBehavior.Cascade);
         });
 
-        builder.Entity<ChallengeBonusSolveSpeed>();
+        builder.Entity<ChallengeBonusCompleteSolveRank>();
 
         builder.Entity<AwardedChallengeBonus>(b =>
         {
@@ -230,7 +230,7 @@ public class GameboardDbContext : DbContext
     public DbSet<AwardedChallengeBonus> AwardedChallengeBonuses { get; set; }
     public DbSet<Challenge> Challenges { get; set; }
     public DbSet<ChallengeBonus> ChallengeBonuses { get; set; }
-    public DbSet<ChallengeBonusSolveSpeed> ChallengeBonusesSolveSpeed { get; set; }
+    public DbSet<ChallengeBonusCompleteSolveRank> ChallengeBonusesCompleteSolveRank { get; set; }
     public DbSet<ChallengeEvent> ChallengeEvents { get; set; }
     public DbSet<ChallengeSpec> ChallengeSpecs { get; set; }
     public DbSet<ChallengeGate> ChallengeGates { get; set; }

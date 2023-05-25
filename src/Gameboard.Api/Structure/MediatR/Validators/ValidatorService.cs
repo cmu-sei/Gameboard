@@ -8,6 +8,8 @@ namespace Gameboard.Api.Structure.MediatR;
 
 public interface IValidatorService<TModel>
 {
+    IValidatorService<TModel> AddValidator(IGameboardValidator validator);
+    IValidatorService<TModel> AddValidator(Action<TModel, RequestValidationContext> validationAction);
     IValidatorService<TModel> AddValidator(Func<TModel, RequestValidationContext, Task> validationTask);
     IValidatorService<TModel> AddValidator(IGameboardValidator<TModel> validator);
     Task Validate(TModel model);
@@ -15,7 +17,14 @@ public interface IValidatorService<TModel>
 
 internal class ValidatorService<TModel> : IValidatorService<TModel>
 {
+    private readonly IList<Func<RequestValidationContext, Task>> _nonModelValidationTasks = new List<Func<RequestValidationContext, Task>>();
     private readonly IList<Func<TModel, RequestValidationContext, Task>> _validationTasks = new List<Func<TModel, RequestValidationContext, Task>>();
+
+    public IValidatorService<TModel> AddValidator(IGameboardValidator validator)
+    {
+        _nonModelValidationTasks.Add(validator.GetValidationTask());
+        return this;
+    }
 
     public IValidatorService<TModel> AddValidator(IGameboardValidator<TModel> validator)
     {
@@ -29,14 +38,22 @@ internal class ValidatorService<TModel> : IValidatorService<TModel>
         return this;
     }
 
+    public IValidatorService<TModel> AddValidator(Action<TModel, RequestValidationContext> validationAction)
+    {
+        _validationTasks.Add((req, context) => Task.Run(() => validationAction(req, context)));
+        return this;
+    }
+
     public async Task Validate(TModel model)
     {
         var context = new RequestValidationContext();
 
+        // TODO: not great that these don't happen in the order that they're added (because there are two lists). Maybe convert to delegate sig?
         foreach (var task in _validationTasks)
-        {
             await task(model, context);
-        }
+
+        foreach (var task in _nonModelValidationTasks)
+            await task(context);
 
         if (context.ValidationExceptions.Count() > 0)
         {

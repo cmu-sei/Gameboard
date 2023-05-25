@@ -5,7 +5,7 @@ namespace Gameboard.Api.Data;
 
 public enum ChallengeBonusType
 {
-    SolveSpeed = 0
+    CompleteSolveRank = 0
 }
 
 public abstract class ChallengeBonus : IEntity
@@ -21,7 +21,7 @@ public abstract class ChallengeBonus : IEntity
     public ICollection<AwardedChallengeBonus> AwardedTo { get; set; } = new List<AwardedChallengeBonus>();
 }
 
-public class ChallengeBonusSolveSpeed : ChallengeBonus
+public class ChallengeBonusCompleteSolveRank : ChallengeBonus
 {
     public int SolveRank { get; set; }
 }

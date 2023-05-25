@@ -20,28 +20,30 @@ public class ChallengeControllerCreateTests : IClassFixture<GameboardTestContext
         IFixture fixture)
     {
         // arrange
-        await _testContext.WithDataState(state =>
-        {
-            state.AddChallengeSpec(spec =>
+        await _testContext
+            .WithTestServices(services => services.AddGbIntegrationTestAuth(u => u.Id = userId))
+            .WithDataState(state =>
             {
-                spec.Id = challengeSpecId;
-                spec.Name = specName;
-                spec.Game = new Api.Data.Game
+                state.AddChallengeSpec(spec =>
                 {
-                    Id = fixture.Create<string>(),
-                    Players = new Api.Data.Player[]
+                    spec.Id = challengeSpecId;
+                    spec.Name = specName;
+                    spec.Game = new Api.Data.Game
                     {
-                        state.BuildPlayer(p =>
+                        Id = fixture.Create<string>(),
+                        Players = new Api.Data.Player[]
                         {
-                            p.Id = playerId;
-                            p.User = new Api.Data.User { Id = userId };
-                            p.SessionBegin = DateTimeOffset.UtcNow.AddDays(-1);
-                            p.SessionEnd = DateTimeOffset.UtcNow.AddDays(1);
-                        })
-                    }
-                };
+                            state.BuildPlayer(p =>
+                            {
+                                p.Id = playerId;
+                                p.User = new Api.Data.User { Id = userId };
+                                p.SessionBegin = DateTimeOffset.UtcNow.AddDays(-1);
+                                p.SessionEnd = DateTimeOffset.UtcNow.AddDays(1);
+                            })
+                        }
+                    };
+                });
             });
-        });
 
         var model = new NewChallenge
         {
@@ -50,10 +52,11 @@ public class ChallengeControllerCreateTests : IClassFixture<GameboardTestContext
             Variant = 0
         };
 
-        var client = _testContext.CreateHttpClientWithActingUser(u => u.Id = userId);
+        var client = _testContext.CreateGbApiClient();
 
         // act
-        var challenge = await client
+        var challenge = await _testContext
+            .CreateGbApiClient()
             .PostAsync("/api/challenge", model.ToJsonBody())
             .WithContentDeserializedAs<Api.Challenge>();
 

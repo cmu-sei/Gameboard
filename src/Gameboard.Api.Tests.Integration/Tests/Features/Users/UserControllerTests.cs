@@ -1,4 +1,3 @@
-using Gameboard.Api;
 using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Tests.Integration.Users;
@@ -16,42 +15,16 @@ public class UserControllerTests : IClassFixture<GameboardTestContext<GameboardD
     public async Task Create_WhenDoesntExist_IsCreatedWithId()
     {
         // given 
+        _testContext.WithTestServices(s => s.AddGbIntegrationTestAuth(UserRole.Registrar));
         var newUser = new Gameboard.Api.NewUser();
 
         // when 
-        var client = _testContext.CreateHttpClientWithAuthRole(UserRole.Registrar);
-        var result = await client
+        var result = await _testContext
+            .Http
             .PostAsync("api/user", newUser.ToJsonBody())
             .WithContentDeserializedAs<Gameboard.Api.User>();
 
         // then
         result?.Id.ShouldNotBeNullOrEmpty();
-    }
-
-    [Fact]
-    public async Task Create_WhenExists_Throws()
-    {
-        // given
-        await _testContext
-            .WithDataState(state =>
-            {
-                state.AddUser(u =>
-                {
-                    u.Id = "1234";
-                });
-            });
-
-        var newUser = new NewUser { Id = "1234" };
-
-        // when 
-        var client = this._testContext
-            .CreateHttpClientWithAuthRole(UserRole.Registrar);
-
-        var result = await client
-            .PostAsync("api/user", newUser.ToJsonBody())
-            .WithContentDeserializedAs<Gameboard.Api.User>();
-
-        // then
-        // result
     }
 }

@@ -16,44 +16,44 @@ public class ChallengeBonusListTests : IClassFixture<GameboardTestContext<Gamebo
     public async Task List_WithTwo_Succeeds(string challengeId, string userId, string bonusOneId, string bonusTwoId, string description)
     {
         // given
-        await _testContext.WithDataState(state =>
-        {
-            state.AddUser(u =>
+        await _testContext
+            .WithTestServices(services => services.AddGbIntegrationTestAuth(u =>
             {
                 u.Id = userId;
-                u.Role = Api.UserRole.Support;
-            });
-
-            state.AddChallenge(c =>
+                u.Role = UserRole.Support;
+            }))
+            .WithDataState(state =>
             {
-                c.Id = challengeId;
-                c.AwardedManualBonuses = new ManualChallengeBonus[]
+                state.AddUser(u =>
                 {
-                    new ManualChallengeBonus
+                    u.Id = userId;
+                    u.Role = Api.UserRole.Support;
+                });
+
+                state.AddChallenge(c =>
+                {
+                    c.Id = challengeId;
+                    c.AwardedManualBonuses = new ManualChallengeBonus[]
                     {
-                        Id = bonusOneId,
-                        Description = description,
-                        EnteredByUserId = userId,
-                        PointValue = 10
-                    },
-                    new ManualChallengeBonus
-                    {
-                        Id = bonusTwoId,
-                        Description = description,
-                        EnteredByUserId = userId,
-                        PointValue = 40
-                    },
-                };
+                        new ManualChallengeBonus
+                        {
+                            Id = bonusOneId,
+                            Description = description,
+                            EnteredByUserId = userId,
+                            PointValue = 10
+                        },
+                        new ManualChallengeBonus
+                        {
+                            Id = bonusTwoId,
+                            Description = description,
+                            EnteredByUserId = userId,
+                            PointValue = 40
+                        },
+                    };
+                });
             });
 
-
-        });
-
-        var httpClient = _testContext.CreateHttpClientWithActingUser(u =>
-        {
-            u.Id = userId;
-            u.Role = Api.UserRole.Support;
-        });
+        var httpClient = _testContext.CreateGbApiClient();
 
         // when
         var bonuses = await httpClient.GetAsync($"api/challenge/{challengeId}/bonus/manual")

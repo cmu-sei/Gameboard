@@ -66,6 +66,11 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
         return Services.GetRequiredService<TDbContext>();
     }
 
+    public HttpClient Http
+    {
+        get => CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+    }
+
     public async Task InitializeAsync()
     {
         // start up our testcontainer with the db
@@ -79,7 +84,7 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
         }
 
         // ensure database migration
-        await Services.GetService<TDbContext>()!.Database.MigrateAsync();
+        await Services.GetRequiredService<TDbContext>().Database.MigrateAsync();
     }
 
     public new async Task DisposeAsync()

@@ -18,6 +18,6 @@ public class ChallengeBonusMaps : Profile
         CreateMap<Data.AwardedChallengeBonus, GameScoreAutoChallengeBonus>();
         CreateMap<Data.ChallengeBonus, GameScoringConfigChallengeBonus>();
         CreateMap<Data.ChallengeBonus, GameScoreAutoChallengeBonus>();
-        CreateMap<Data.ChallengeBonusSolveSpeed, GameScoringConfigChallengeBonus>();
+        CreateMap<Data.ChallengeBonusCompleteSolveRank, GameScoringConfigChallengeBonus>();
     }
 }

@@ -31,4 +31,10 @@ internal class TeamExistsValidator<TModel> : IGameboardValidator<TModel>
             }
         };
     }
+
+    public TeamExistsValidator<TModel> UseProperty(Func<TModel, string> propertyExpression)
+    {
+        TeamIdProperty = propertyExpression;
+        return this;
+    }
 }

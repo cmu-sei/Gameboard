@@ -16,19 +16,21 @@ public class ChallengeBonusControllerManualTests : IClassFixture<GameboardTestCo
     public async Task AddManual_WithValidData_Succeeds(string challengeId, string userId, string description, double pointsValue)
     {
         // given
-        await _testContext.WithDataState(state =>
-        {
-            state.AddUser(u =>
+        await _testContext
+            .WithTestServices(s => s.AddGbIntegrationTestAuth(UserRole.Support))
+            .WithDataState(state =>
             {
-                u.Id = userId;
-                u.Role = Api.UserRole.Support;
-            });
+                state.AddUser(u =>
+                {
+                    u.Id = userId;
+                    u.Role = Api.UserRole.Support;
+                });
 
-            state.AddChallenge(c =>
-            {
-                c.Id = challengeId;
+                state.AddChallenge(c =>
+                {
+                    c.Id = challengeId;
+                });
             });
-        });
 
         var bonus = new CreateManualChallengeBonus
         {
@@ -36,11 +38,7 @@ public class ChallengeBonusControllerManualTests : IClassFixture<GameboardTestCo
             PointValue = pointsValue
         };
 
-        var httpClient = _testContext.CreateHttpClientWithActingUser(u =>
-        {
-            u.Id = userId;
-            u.Role = Api.UserRole.Support;
-        });
+        var httpClient = _testContext.CreateGbApiClient();
 
         // when
         await httpClient.PostAsync($"api/challenge/{challengeId}/bonus/manual", bonus.ToJsonBody());

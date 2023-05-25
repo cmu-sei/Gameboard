@@ -63,7 +63,7 @@ internal class GameScoringConfigQueryHandler : IRequestHandler<GameScoringConfig
                 // that doesn't have to necessarily be true forever
                 var maxPossibleScore = (double)s.Points;
 
-                if (s.Bonuses.Count() > 0 && s.Bonuses.Any(b => b.PointValue > 0))
+                if (s.Bonuses.Any(b => b.PointValue > 0))
                 {
                     maxPossibleScore += s.Bonuses.OrderByDescending(b => b.PointValue).First().PointValue;
                 }

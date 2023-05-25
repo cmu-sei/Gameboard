@@ -118,9 +118,7 @@ namespace Gameboard.Api.Services
 
             int playerCount = 1;
             if (game.AllowTeam)
-            {
                 playerCount = await _playerStore.CountAsync(q => q.Where(p => p.TeamId == player.TeamId));
-            }
 
             try
             {
@@ -306,9 +304,7 @@ namespace Gameboard.Api.Services
             foreach (var challenge in challenges)
                 _actorMap.RemoveTeam(challenge.TeamId);
 
-            var tasks = challenges.Select(
-                c => Sync(c)
-            );
+            var tasks = challenges.Select(c => Sync(c));
 
             await Task.WhenAll(tasks);
         }
@@ -410,10 +406,10 @@ namespace Gameboard.Api.Services
             });
 
             double currentScore = entity.Score;
-
             var gradingTask = GameEngine.GradeChallenge(entity, model);
 
-            var result = await Sync(
+            var result = await Sync
+            (
                 entity,
                 gradingTask
             );
@@ -430,7 +426,8 @@ namespace Gameboard.Api.Services
 
             double currentScore = entity.Score;
 
-            var result = await Sync(
+            var result = await Sync
+            (
                 entity,
                 GameEngine.RegradeChallenge(entity)
             );

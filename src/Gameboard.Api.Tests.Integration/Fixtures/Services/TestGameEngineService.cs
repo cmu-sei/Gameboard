@@ -6,12 +6,14 @@ namespace Gameboard.Api.Tests.Integration.Fixtures;
 
 internal class TestGameEngineService : IGameEngineService
 {
+    private readonly ITestGradingResultService _gradingResultService;
     private readonly IGameEngineStore _store;
     private readonly IGuidService _guids;
     private readonly IMapper _mapper;
 
-    public TestGameEngineService(IGuidService guids, IMapper mapper, IGameEngineStore store)
+    public TestGameEngineService(IGuidService guids, IMapper mapper, IGameEngineStore store, ITestGradingResultService gradingResultService)
     {
+        _gradingResultService = gradingResultService;
         _guids = guids;
         _mapper = mapper;
         _store = store;
@@ -54,7 +56,7 @@ internal class TestGameEngineService : IGameEngineService
 
     public Task<GameEngineGameState> GradeChallenge(Api.Data.Challenge entity, GameEngineSectionSubmission model)
     {
-        return Task.FromResult(new GameEngineGameState());
+        return Task.FromResult(_gradingResultService.Get());
     }
 
     public Task<ExternalSpec[]> ListSpecs(SearchFilter model)

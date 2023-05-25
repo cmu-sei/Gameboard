@@ -52,6 +52,14 @@ public sealed class GameScoreAutoChallengeBonus
     public double PointValue { get; set; }
 }
 
+public sealed class TeamChallengeScore
+{
+    public required SimpleEntity Challenge { get; set; }
+    public required SimpleEntity Team { get; set; }
+    public required Nullable<TimeSpan> TimeElapsed { get; set; }
+    public required Score Score { get; set; }
+}
+
 public class TeamChallengeScoreSummary
 {
     public SimpleEntity Challenge { get; set; }

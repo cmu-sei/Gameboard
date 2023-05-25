@@ -31,10 +31,9 @@ public class GameControllerTests : IClassFixture<GameboardTestContext<GameboardD
             RegistrationType = GameRegistrationType.Open
         };
 
-        var client = _testContext.CreateHttpClientWithActingUser();
-
         // act
-        var responseGame = await client
+        var responseGame = await _testContext
+            .Http
             .PostAsync("/api/game", game.ToJsonBody())
             .WithContentDeserializedAs<Api.Data.Game>();
 

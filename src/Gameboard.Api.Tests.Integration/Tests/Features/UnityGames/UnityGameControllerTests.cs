@@ -17,6 +17,7 @@ public class UnityGameControllerTests : IClassFixture<GameboardTestContext<Gameb
     {
         // arrange
         await _testContext
+            .WithTestServices(s => s.AddGbIntegrationTestAuth(UserRole.Admin))
             .WithDataState(state =>
             {
                 state.Add(state.BuildPlayer(), p =>
@@ -49,10 +50,9 @@ public class UnityGameControllerTests : IClassFixture<GameboardTestContext<Gameb
            }
         };
 
-        var httpClient = _testContext.CreateHttpClientWithAuthRole(Api.UserRole.Admin);
-
         // act
-        var challenge = await httpClient
+        var challenge = await _testContext
+            .Http
             .PostAsync("/api/unity/challenge", newChallenge.ToJsonBody())
             .WithContentDeserializedAs<Api.Data.Challenge>();
 
