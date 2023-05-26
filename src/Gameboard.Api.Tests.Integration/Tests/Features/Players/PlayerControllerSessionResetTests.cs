@@ -15,17 +15,16 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ResetSession_WithManualReset_DeletesChallengeData(IFixture fixture, string teamId, string managerUserId)
+    public async Task ResetSession_WithManualReset_DeletesChallengeData(IFixture fixture, string teamId)
     {
         // given
         TeamBuilderResult? result = null;
         await _testContext
-            .WithTestServices(s => s.AddGbIntegrationTestAuth(u => u.Id = managerUserId))
+            .WithTestServices(s => s.AddGbIntegrationTestAuth(UserRole.Admin))
             .WithDataState(s =>
             {
                 result = s.AddTeam(fixture, opts =>
                 {
-                    opts.Manager = new TeamBuilderOptionsManager { UserId = managerUserId };
                     opts.NumPlayers = 1;
                     opts.TeamId = teamId;
                 });
@@ -54,19 +53,20 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ResetSession_WithManualReset_ArchivesChallenges(IFixture fixture, string teamId, string managerUserId)
+    public async Task ResetSession_WithManualReset_ArchivesChallenges(IFixture fixture, string teamId)
     {
         // given
         TeamBuilderResult? result = null;
-        await _testContext.WithDataState(s =>
-        {
-            result = s.AddTeam(fixture, opts =>
+        await _testContext
+            .WithTestServices(s => s.AddGbIntegrationTestAuth(UserRole.Admin))
+            .WithDataState(s =>
             {
-                opts.Manager = new TeamBuilderOptionsManager { UserId = managerUserId };
-                opts.NumPlayers = 1;
-                opts.TeamId = teamId;
+                result = s.AddTeam(fixture, opts =>
+                {
+                    opts.NumPlayers = 1;
+                    opts.TeamId = teamId;
+                });
             });
-        });
 
         if (result == null)
             throw new GbAutomatedTestSetupException("AddTeam failed to return a result.");
@@ -87,17 +87,16 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ResetSession_WithAutoResetAndPreserveTeam_PreservesChallenges(IFixture fixture, string teamId, string managerUserId)
+    public async Task ResetSession_WithAutoResetAndPreserveTeam_PreservesChallenges(IFixture fixture, string teamId)
     {
         // given
         TeamBuilderResult? result = null;
         await _testContext
-            .WithTestServices(s => s.AddGbIntegrationTestAuth(u => u.Id = managerUserId))
+            .WithTestServices(s => s.AddGbIntegrationTestAuth(UserRole.Admin))
             .WithDataState(s =>
             {
                 result = s.AddTeam(fixture, opts =>
                 {
-                    opts.Manager = new TeamBuilderOptionsManager { UserId = managerUserId };
                     opts.NumPlayers = 1;
                     opts.TeamId = teamId;
                 });
@@ -126,17 +125,16 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ResetSession_WithAlreadyArchivedChallenges_DoesntChoke(IFixture fixture, string teamId, string managerUserId)
+    public async Task ResetSession_WithAlreadyArchivedChallenges_DoesntChoke(IFixture fixture, string teamId)
     {
         // given
         TeamBuilderResult? result = null;
         await _testContext
-            .WithTestServices(s => s.AddGbIntegrationTestAuth(u => u.Id = managerUserId))
+            .WithTestServices(s => s.AddGbIntegrationTestAuth(UserRole.Admin))
             .WithDataState(s =>
             {
                 result = s.AddTeam(fixture, opts =>
                 {
-                    opts.Manager = new TeamBuilderOptionsManager { UserId = managerUserId };
                     opts.NumPlayers = 1;
                     opts.TeamId = teamId;
                 });

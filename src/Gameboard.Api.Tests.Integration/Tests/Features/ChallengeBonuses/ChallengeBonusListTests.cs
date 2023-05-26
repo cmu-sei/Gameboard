@@ -53,10 +53,11 @@ public class ChallengeBonusListTests : IClassFixture<GameboardTestContext<Gamebo
                 });
             });
 
-        var httpClient = _testContext.CreateGbApiClient();
 
         // when
-        var bonuses = await httpClient.GetAsync($"api/challenge/{challengeId}/bonus/manual")
+        var bonuses = await _testContext
+            .Http
+            .GetAsync($"api/challenge/{challengeId}/bonus/manual")
             .WithContentDeserializedAs<IEnumerable<ManualChallengeBonusViewModel>>();
 
         // then

@@ -101,7 +101,7 @@ public class GameEngineQuestionView
 
 public class GameEngineSectionSubmission
 {
-    public required string Id { get; set; }
+    public required string ChallengeId { get; set; }
     public required DateTimeOffset Timestamp { get; set; }
     public required int SectionIndex { get; set; }
     public required IEnumerable<GameEngineAnswerSubmission> Answers { get; set; }

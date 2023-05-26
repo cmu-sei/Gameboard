@@ -12,7 +12,8 @@ public class ChallengeControllerCreateTests : IClassFixture<GameboardTestContext
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ChallengeControllerCreate_WithMinimal_ReturnsExpectedChallenge(
+    public async Task ChallengeControllerCreate_WithMinimal_ReturnsExpectedChallenge
+    (
         string challengeSpecId,
         string specName,
         string playerId,
@@ -52,11 +53,9 @@ public class ChallengeControllerCreateTests : IClassFixture<GameboardTestContext
             Variant = 0
         };
 
-        var client = _testContext.CreateGbApiClient();
-
         // act
         var challenge = await _testContext
-            .CreateGbApiClient()
+            .Http
             .PostAsync("/api/challenge", model.ToJsonBody())
             .WithContentDeserializedAs<Api.Challenge>();
 

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -15,6 +16,7 @@ namespace Gameboard.Api.Tests.Integration.Fixtures;
 
 public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, IAsyncLifetime where TDbContext : GameboardDbContext
 {
+    internal Action<IServiceCollection> _testServicesBuilder = serviceCollection => { };
     private readonly TestcontainerDatabase _dbContainer;
 
     public GameboardTestContext()
@@ -58,6 +60,9 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
 
             // dummy authorization service that lets everything through
             services.ReplaceService<IAuthorizationService, TestAuthorizationService>();
+
+            // add defaults for services that can be replaced in .ConfigureTestServices
+            services.AddTransient<ITestGradingResultService>(_ => new TestGradingResultService(() => new GameEngineGameState { }));
         });
     }
 
@@ -68,7 +73,9 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
 
     public HttpClient Http
     {
-        get => CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        get => this
+            .WithWebHostBuilder(host => host.ConfigureTestServices(_testServicesBuilder))
+            .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
     }
 
     public async Task InitializeAsync()

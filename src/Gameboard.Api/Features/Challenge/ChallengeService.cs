@@ -394,7 +394,7 @@ namespace Gameboard.Api.Services
 
         public async Task<Challenge> Grade(GameEngineSectionSubmission model, string actorId)
         {
-            var entity = await Store.Retrieve(model.Id);
+            var entity = await Store.Retrieve(model.ChallengeId);
 
             entity.Events.Add(new Data.ChallengeEvent
             {

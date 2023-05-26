@@ -1,6 +1,5 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Services;
 using MediatR;
 
 namespace Gameboard.Api.Features.Games;

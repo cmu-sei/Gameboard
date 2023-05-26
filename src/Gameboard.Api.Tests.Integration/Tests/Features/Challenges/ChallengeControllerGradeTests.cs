@@ -61,16 +61,20 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext<
                 state.AddChallenge(c =>
                 {
                     c.Id = challengeId;
+                    c.Player = new Data.Player
+                    {
+                        Id = fixture.Create<string>(),
+                        TeamId = teamId
+                    };
                     c.SpecId = challengeSpecId;
                     c.TeamId = teamId;
                 });
             });
 
 
-        var httpClient = _testContext.CreateGbApiClient();
         var submission = new GameEngineSectionSubmission
         {
-            Id = fixture.Create<string>(),
+            ChallengeId = challengeId,
             Timestamp = DateTimeOffset.Now.AddMinutes(1),
             SectionIndex = 0,
             Answers = new GameEngineAnswerSubmission[]
@@ -80,7 +84,8 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext<
         };
 
         // when
-        var result = await httpClient
+        var result = await _testContext
+            .Http
             .PutAsync("/api/challenge/grade", submission.ToJsonBody())
             .WithContentDeserializedAs<TeamChallengeScore>();
 

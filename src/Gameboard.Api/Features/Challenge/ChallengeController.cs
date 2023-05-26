@@ -220,11 +220,11 @@ namespace Gameboard.Api.Controllers
         {
             AuthorizeAny(
                 () => Actor.IsDirector,
-                () => Actor.Id == model.Id, // auto-grader
-                () => ChallengeService.UserIsTeamPlayer(model.Id, Actor.Id).Result
+                () => Actor.Id == model.ChallengeId, // auto-grader
+                () => ChallengeService.UserIsTeamPlayer(model.ChallengeId, Actor.Id).Result
             );
 
-            await Validate(new Entity { Id = model.Id });
+            await Validate(new Entity { Id = model.ChallengeId });
 
             var result = await ChallengeService.Grade(model, Actor.Id);
 

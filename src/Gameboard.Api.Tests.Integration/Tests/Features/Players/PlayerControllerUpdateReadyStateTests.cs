@@ -78,7 +78,7 @@ public class PlayerControllerUpdatePlayerReadyTests : IClassFixture<GameboardTes
     {
         // given
         await _testContext
-            .WithTestServices(s => s.AddGbIntegrationTestAuth(u => u.Id = notReadyPlayerId))
+            .WithTestServices(s => s.AddGbIntegrationTestAuth(u => u.Id = notReadyPlayerUserId))
             .WithDataState(state =>
             {
                 state.AddGame(g =>

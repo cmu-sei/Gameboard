@@ -58,7 +58,7 @@ public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestCont
 
         // when
         var results = await _testContext
-            .CreateGbApiClient()
+            .Http
             .GetAsync($"/api/gameEngine/state?teamId={teamId}")
             .WithContentDeserializedAs<IEnumerable<GameEngineGameState>>();
 
