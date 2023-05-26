@@ -1,9 +1,19 @@
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
+file static class GbFixtureCustomizationFactory
+{
+    public static IFixture Fixture
+    {
+        get => new Fixture().Customize(new GameboardCustomization());
+    }
+}
+
 public class GbIntegrationAutoDataAttribute : AutoDataAttribute
 {
-    private static IFixture FIXTURE = new Fixture()
-        .Customize(new GameboardCustomization());
+    public GbIntegrationAutoDataAttribute() : base(() => GbFixtureCustomizationFactory.Fixture) { }
+}
 
-    public GbIntegrationAutoDataAttribute() : base(() => FIXTURE) { }
+public class GbIntegrationInlineAutoDataAttribute : InlineAutoDataAttribute
+{
+    public GbIntegrationInlineAutoDataAttribute(params object[] args) : base(new GbIntegrationAutoDataAttribute(), args) { }
 }

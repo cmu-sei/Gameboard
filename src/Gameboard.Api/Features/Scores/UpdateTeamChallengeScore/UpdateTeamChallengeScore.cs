@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Structure.MediatR;
@@ -18,10 +19,10 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
     private readonly IChallengeStore _challengeStore;
     private readonly IChallengeSpecStore _challengeSpecStore;
     private readonly EntityExistsValidator<UpdateTeamChallengeBaseScoreCommand, Data.Challenge> _challengeExists;
+    private readonly IGuidService _guidService;
     private readonly IMapper _mapper;
     private readonly IScoringService _scoringService;
     private readonly EntityExistsValidator<Data.ChallengeSpec> _specExists;
-    private readonly TeamExistsValidator<UpdateTeamChallengeBaseScoreCommand> _teamExists;
     private readonly IValidatorService<UpdateTeamChallengeBaseScoreCommand> _validator;
     private readonly GameboardDbContext _dbContext;
 
@@ -30,6 +31,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
         IChallengeStore challengeStore,
         IChallengeSpecStore challengeSpecStore,
         EntityExistsValidator<UpdateTeamChallengeBaseScoreCommand, Data.Challenge> challengeExists,
+        IGuidService guidService,
         IMapper mapper,
         IScoringService scoringService,
         EntityExistsValidator<Data.ChallengeSpec> specExists,
@@ -40,6 +42,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
         _challengeStore = challengeStore;
         _challengeSpecStore = challengeSpecStore;
         _challengeExists = challengeExists;
+        _guidService = guidService;
         _mapper = mapper;
         _scoringService = scoringService;
         _specExists = specExists;
@@ -52,6 +55,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
         // validate
         var challenge = await _challengeStore
             .ListAsNoTracking()
+            .Include(c => c.Game)
             .Include(c => c.AwardedBonuses)
                 .ThenInclude(b => b.ChallengeBonus)
             .FirstAsync(c => c.Id == request.ChallengeId);
@@ -113,8 +117,8 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
             .Where(c => c.SpecId == spec.Id)
             .Where(c => c.TeamId != challenge.TeamId)
             .WhereIsFullySolved()
-            // this goes clientside, that's ok
-            .OrderBy(c => c.EndTime - c.StartTime)
+            // end time of the challenge against game start to get ranks
+            .OrderBy(c => c.EndTime - challenge.Game.GameStart)
             .ToArrayAsync();
 
         // award points
@@ -130,7 +134,11 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
                 .Where(bonus => !otherTeamChallenges.SelectMany(c => c.AwardedBonuses).Any(otherTeamBonus => otherTeamBonus.Id == bonus.Id));
 
             if (availableBonuses.Any() && (availableBonuses.First() as ChallengeBonusCompleteSolveRank).SolveRank == otherTeamChallenges.Count() + 1)
-                updateChallenge.AwardedBonuses.Add(new AwardedChallengeBonus { Id = availableBonuses.First().Id });
+                updateChallenge.AwardedBonuses.Add(new AwardedChallengeBonus
+                {
+                    Id = _guidService.GetGuid(),
+                    ChallengeBonusId = availableBonuses.First().Id
+                });
         }
 
         // commit it
@@ -139,5 +147,4 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
         // query manual bonuses to compose a complete score
         return _mapper.Map<TeamChallengeScore>(await _scoringService.GetTeamChallengeScore(challenge.Id));
     }
-
 }

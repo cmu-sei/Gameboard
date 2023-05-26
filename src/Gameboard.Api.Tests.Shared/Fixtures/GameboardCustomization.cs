@@ -1,4 +1,5 @@
 using AutoFixture;
+using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api.Tests.Shared;
 
@@ -54,6 +55,18 @@ public class GameboardCustomization : ICustomization
             StartTime = now,
             HasDeployedGamespace = false,
             GameEngineType = GameEngineType.TopoMojo
+        });
+
+
+        fixture.Register<GameEngineSectionSubmission>(() => new GameEngineSectionSubmission
+        {
+            ChallengeId = fixture.Create<string>(),
+            Timestamp = DateTimeOffset.Now.AddMinutes(1),
+            SectionIndex = 0,
+            Answers = new GameEngineAnswerSubmission[]
+            {
+                new GameEngineAnswerSubmission { Answer = fixture.Create<string>() }
+            }
         });
     }
 }

@@ -54,9 +54,9 @@ internal class TestGameEngineService : IGameEngineService
         return Task.FromResult(new GameEngineGameState());
     }
 
-    public Task<GameEngineGameState> GradeChallenge(Api.Data.Challenge entity, GameEngineSectionSubmission model)
+    public Task<GameEngineGameState> GradeChallenge(Data.Challenge entity, GameEngineSectionSubmission model)
     {
-        return Task.FromResult(_gradingResultService.Get());
+        return Task.FromResult(_gradingResultService.Get(entity));
     }
 
     public Task<ExternalSpec[]> ListSpecs(SearchFilter model)

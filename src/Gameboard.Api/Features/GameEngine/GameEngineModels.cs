@@ -75,7 +75,7 @@ public class GameEngineGamespaceVm
 public class GameEngineChallengeView
 {
     public string Text { get; set; }
-    [Required] public int MaxPoints { get; set; }
+    [Required] public double MaxPoints { get; set; }
     [Required] public int MaxAttempts { get; set; }
     [Required] public int Attempts { get; set; }
     [Required] public double Score { get; set; }

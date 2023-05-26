@@ -62,7 +62,7 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
             services.ReplaceService<IAuthorizationService, TestAuthorizationService>();
 
             // add defaults for services that can be replaced in .ConfigureTestServices
-            services.AddTransient<ITestGradingResultService>(_ => new TestGradingResultService(() => new GameEngineGameState { }));
+            services.AddTransient<ITestGradingResultService>(_ => new TestGradingResultService((state) => { }));
         });
     }
 

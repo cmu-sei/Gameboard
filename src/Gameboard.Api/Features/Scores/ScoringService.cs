@@ -46,7 +46,6 @@ internal class ScoringService : IScoringService
 
     public async Task<TeamChallengeScoreSummary> GetTeamChallengeScore(string challengeId)
     {
-
         var challenge = await _challengeStore
             .List()
             .Include(c => c.Player)
@@ -113,8 +112,8 @@ internal class ScoringService : IScoringService
 
     internal TeamChallengeScoreSummary BuildTeamChallengeScoreSummary(Data.Challenge challenge, Data.ChallengeSpec spec, IEnumerable<Data.ChallengeBonus> unawardedBonuses)
     {
-        var manualBonuses = challenge == null ? new double[] { 0 } : challenge.AwardedManualBonuses.Select(b => b.PointValue);
-        var autoBonuses = challenge == null ? new double[] { 0 } : challenge.AwardedBonuses.Select(b => b.ChallengeBonus.PointValue);
+        var manualBonuses = challenge == null ? new double[] { 0 } : challenge.AwardedManualBonuses.Select(b => b.PointValue).ToArray();
+        var autoBonuses = challenge == null ? new double[] { 0 } : challenge.AwardedBonuses.Select(b => b.ChallengeBonus.PointValue).ToArray();
         var score = CalculateScore(challenge.Points, autoBonuses, manualBonuses);
 
         return new TeamChallengeScoreSummary
@@ -184,6 +183,7 @@ internal class ScoringService : IScoringService
         var awardedBonusIds = challenges.SelectMany(c => c.AwardedBonuses).Select(b => b.Id);
 
         return specs.SelectMany(s => s.Bonuses)
-            .Where(b => !awardedBonusIds.Contains(b.Id));
+            .Where(b => !awardedBonusIds.Contains(b.Id))
+            .ToArray();
     }
 }

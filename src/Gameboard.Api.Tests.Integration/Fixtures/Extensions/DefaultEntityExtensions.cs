@@ -1,3 +1,4 @@
+using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Tests.Shared;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;

@@ -3,6 +3,7 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Services;
+using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
@@ -108,6 +109,7 @@ public class ChallengeServiceTests
             A.Fake<IHttpContextAccessor>(),
             A.Fake<IJsonService>(),
             A.Fake<LinkGenerator>(),
+            A.Fake<IMediator>(),
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
             A.Fake<IPlayerStore>(),

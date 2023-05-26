@@ -10,6 +10,8 @@ using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Features.Scores;
+using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +33,7 @@ namespace Gameboard.Api.Services
         private readonly IJsonService _jsonService;
         private readonly LinkGenerator _linkGenerator;
         private readonly IMapper _mapper;
+        private readonly IMediator _mediator;
         private readonly INowService _now;
         private readonly IPlayerStore _playerStore;
         private readonly IChallengeSpecStore _specStore;
@@ -47,6 +50,7 @@ namespace Gameboard.Api.Services
             IHttpContextAccessor httpContextAccessor,
             IJsonService jsonService,
             LinkGenerator linkGenerator,
+            IMediator mediator,
             IMemoryCache localcache,
             INowService now,
             IPlayerStore playerStore,
@@ -62,6 +66,7 @@ namespace Gameboard.Api.Services
             _httpContextAccessor = httpContextAccessor;
             _linkGenerator = linkGenerator;
             _mapper = mapper;
+            _mediator = mediator;
             _jsonService = jsonService;
             _now = now;
             _playerStore = playerStore;
@@ -414,8 +419,8 @@ namespace Gameboard.Api.Services
                 gradingTask
             );
 
-            if (result.Score > currentScore)
-                await Store.UpdateTeam(entity.TeamId);
+            // update the team score and award automatic bonuses
+            await _mediator.Send(new UpdateTeamChallengeBaseScoreCommand(entity.Id, result.Score));
 
             return Mapper.Map<Challenge>(entity);
         }
@@ -432,8 +437,8 @@ namespace Gameboard.Api.Services
                 GameEngine.RegradeChallenge(entity)
             );
 
-            if (result.Score > currentScore)
-                await Store.UpdateTeam(entity.TeamId);
+            // update the team score and award automatic bonuses
+            await _mediator.Send(new UpdateTeamChallengeBaseScoreCommand(entity.Id, result.Score));
 
             return Mapper.Map<Challenge>(entity);
         }
