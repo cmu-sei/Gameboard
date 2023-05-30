@@ -493,9 +493,7 @@ public class PlayerService
         }
 
         if (player.GameId != manager.GameId)
-        {
             throw new NotYetRegistered(player.Id, manager.GameId);
-        }
 
         if (manager is not Data.Player)
             throw new InvalidInvitationCode(model.Code, "Couldn't find the manager record.");

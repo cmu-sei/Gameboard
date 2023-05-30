@@ -58,7 +58,7 @@ internal class GetPlayersReportQueryHandler : IRequestHandler<PlayersReportQuery
         {
             var playerRecords = u.Value;
             var games = playerRecords.Select(p => p.Game);
-            var challenges = playerRecords.SelectMany(c => c.Challenges);
+            var challenges = playerRecords.SelectMany(c => c.Challenges).ToArray();
 
             return new PlayersReportRecord
             {

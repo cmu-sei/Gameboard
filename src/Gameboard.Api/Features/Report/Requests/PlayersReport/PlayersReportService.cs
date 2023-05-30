@@ -38,6 +38,7 @@ internal class PlayersReportService : IPlayersReportService
         var baseQuery = _playerStore
             .ListWithNoTracking()
             .Include(p => p.User)
+            .Include(p => p.Challenges)
             .Include(p => p.Game)
                 .ThenInclude
                 (
