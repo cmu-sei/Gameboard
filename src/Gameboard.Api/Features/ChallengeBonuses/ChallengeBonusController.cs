@@ -16,6 +16,14 @@ public class ChallengeBonusController : ControllerBase
         _mediator = mediator;
     }
 
+    [HttpPut("api/game/{gameId}/bonus/config")]
+    public async Task<GameScoringConfig> ConfigureAutomaticBonusesForGame([FromRoute] string gameId, [FromBody] GameAutomaticBonusesConfig config)
+        => await _mediator.Send(new ConfigureGameAutoBonusesCommand(new ConfigureGameAutoBonusesCommandParameters
+        {
+            GameId = gameId,
+            Config = config
+        }));
+
     [HttpPost("api/challenge/{challengeId}/bonus/manual")]
     public async Task<ActionResult> AddManualBonus([FromRoute] string challengeId, [FromBody] CreateManualChallengeBonus model)
     {

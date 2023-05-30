@@ -37,7 +37,6 @@ namespace Gameboard.Api
     public class ChangedChallengeSpec : SpecDetail
     {
         public string Id { get; set; }
-
     }
 
     public class BoardSpec
@@ -64,5 +63,4 @@ namespace Gameboard.Api
         public string GameName { get; set; }
         public string GameLogo { get; set; }
     }
-
 }

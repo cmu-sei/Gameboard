@@ -14,6 +14,7 @@ namespace Gameboard.Api.Features.Scores;
 
 public interface IScoringService
 {
+    Task<GameScoringConfig> GetGameScoringConfig(string gameId);
     Task<TeamChallengeScoreSummary> GetTeamChallengeScore(string challengeId);
     Task<TeamGameScoreSummary> GetTeamGameScore(string teamId);
     Dictionary<string, int> ComputeTeamRanks(IEnumerable<TeamGameScoreSummary> teamScores);
@@ -42,6 +43,43 @@ internal class ScoringService : IScoringService
         _gameStore = gameStore;
         _mapper = mapper;
         _teamService = teamService;
+    }
+
+    public async Task<GameScoringConfig> GetGameScoringConfig(string gameId)
+    {
+        var game = await _gameStore.Retrieve(gameId);
+
+        var challengeSpecs = await _challengeSpecStore
+            .List()
+            .AsNoTracking()
+            .Where(s => s.GameId == gameId)
+            .Include(s => s.Bonuses)
+            .ToArrayAsync();
+
+        // transform
+        return new GameScoringConfig
+        {
+            Game = new SimpleEntity { Id = game.Id, Name = game.Name },
+            ChallengeSpecScoringConfigs = challengeSpecs.Select(s =>
+            {
+                // note - we're currently assuming here that there's a max of one bonus per team, but
+                // that doesn't have to necessarily be true forever
+                var maxPossibleScore = (double)s.Points;
+
+                if (s.Bonuses.Any(b => b.PointValue > 0))
+                {
+                    maxPossibleScore += s.Bonuses.OrderByDescending(b => b.PointValue).First().PointValue;
+                }
+
+                return new GameScoringConfigChallengeSpec
+                {
+                    ChallengeSpec = new SimpleEntity { Id = s.Id, Name = s.Description },
+                    CompletionScore = s.Points,
+                    PossibleBonuses = s.Bonuses.Select(b => _mapper.Map<GameScoringConfigChallengeBonus>(b)),
+                    MaxPossibleScore = maxPossibleScore
+                };
+            })
+        };
     }
 
     public async Task<TeamChallengeScoreSummary> GetTeamChallengeScore(string challengeId)

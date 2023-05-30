@@ -95,9 +95,10 @@ namespace Microsoft.Extensions.DependencyInjection
                 // feature services
                 .AddScoped<IApiKeysService, ApiKeysService>()
                 .AddScoped<IApiKeysStore, ApiKeysStore>()
-                .AddScoped<IStore<ManualChallengeBonus>, ChallengeBonusStore>()
+                .AddScoped<IStore<ManualChallengeBonus>, ManualChallengeBonusStore>()
                 .AddScoped<Hub<IAppHubEvent>, AppHub>()
                 .AddScoped<IChallengeStore, ChallengeStore>()
+                .AddScoped<IChallengeBonusStore, ChallengeBonusStore>()
                 .AddScoped<ICubespaceScoreboardService, CubespaceScoreboardService>()
                 .AddScoped<IExternalSyncGameStartService, ExternalSyncGameStartService>()
                 .AddScoped<IGamebrainService, GamebrainService>()

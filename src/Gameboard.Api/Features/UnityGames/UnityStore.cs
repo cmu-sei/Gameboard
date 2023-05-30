@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
@@ -13,8 +14,8 @@ public interface IUnityStore : IStore<Data.ChallengeSpec>
 
 internal class UnityStore : Store<Data.ChallengeSpec>, IUnityStore
 {
-    public UnityStore(GameboardDbContext dbContext)
-        : base(dbContext) { }
+    public UnityStore(GameboardDbContext dbContext, IGuidService guids)
+        : base(dbContext, guids) { }
 
     public async Task<Data.ChallengeEvent> AddUnityChallengeEvent(Data.ChallengeEvent challengeEvent)
     {

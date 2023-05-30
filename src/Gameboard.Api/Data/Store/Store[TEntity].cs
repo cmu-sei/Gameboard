@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,10 +14,13 @@ namespace Gameboard.Api.Data
     public class Store<TEntity> : IStore<TEntity>
         where TEntity : class, IEntity
     {
-        public Store(GameboardDbContext dbContext)
+        private readonly IGuidService _guids;
+
+        public Store(GameboardDbContext dbContext, IGuidService guids)
         {
             DbContext = dbContext;
             DbSet = dbContext.Set<TEntity>().AsQueryable();
+            _guids = guids;
         }
 
         public GameboardDbContext DbContext { get; private set; }
@@ -35,7 +39,7 @@ namespace Gameboard.Api.Data
         public virtual async Task<TEntity> Create(TEntity entity)
         {
             if (string.IsNullOrWhiteSpace(entity.Id))
-                entity.Id = Guid.NewGuid().ToString("n");
+                entity.Id = _guids.GetGuid();
 
             DbContext.Add(entity);
 

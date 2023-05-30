@@ -7,6 +7,7 @@ using Gameboard.Api.Data.Abstractions;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using System;
+using Gameboard.Api.Common.Services;
 
 namespace Gameboard.Api.Data;
 
@@ -17,7 +18,8 @@ internal class ChallengeStore : Store<Challenge>, IChallengeStore
 
     public ChallengeStore(
         GameboardDbContext dbContext,
-        IMapper mapper) : base(dbContext)
+        IGuidService guids,
+        IMapper mapper) : base(dbContext, guids)
     {
         _dbContext = dbContext;
         _mapper = mapper;
