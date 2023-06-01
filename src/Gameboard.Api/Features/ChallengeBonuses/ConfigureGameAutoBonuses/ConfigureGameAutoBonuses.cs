@@ -9,6 +9,7 @@ using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.ChallengeSpecs;
 using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Structure.MediatR;
+using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +26,7 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
     private readonly EntityExistsValidator<Data.Game> _gameExists;
     private readonly IGuidService _guids;
     private readonly IScoringService _scoringService;
+    private readonly UserRoleAuthorizer _userRoleAuthorizer;
     private readonly IValidatorService<ConfigureGameAutoBonusesCommand> _validatorService;
 
     public ConfigureGameAutoBonusesHandler(
@@ -34,6 +36,7 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
         EntityExistsValidator<Data.Game> gameExists,
         IGuidService guids,
         IScoringService scoringService,
+        UserRoleAuthorizer userRoleAuthorizer,
         IValidatorService<ConfigureGameAutoBonusesCommand> validatorService)
     {
         _challengeBonusStore = challengeBonusStore;
@@ -42,18 +45,24 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
         _gameExists = gameExists;
         _guids = guids;
         _scoringService = scoringService;
+        _userRoleAuthorizer = userRoleAuthorizer;
         _validatorService = validatorService;
     }
 
     public async Task<GameScoringConfig> Handle(ConfigureGameAutoBonusesCommand request, CancellationToken cancellationToken)
     {
+        // authorize
+        _userRoleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Director, UserRole.Designer, UserRole.Tester };
+        _userRoleAuthorizer.Authorize();
+
         // validate
         // game exists
         _validatorService.AddValidator(_gameExists.UseValue(request.Parameters.GameId));
 
         // grab the specs ahead of time to speed up validation, and we'll use them again later
+        // NOTE: we're tracking them here since we're going to update them
         var specs = await _challengeSpecStore
-            .ListAsNoTracking()
+            .List()
             .Where(s => s.GameId == request.Parameters.GameId)
             .ToArrayAsync();
 
@@ -65,7 +74,7 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
                 .Parameters
                 .Config
                 .SpecificChallengesBonuses
-                .Select(b => b.ChallengeSupportKey)
+                .Select(b => b.SupportKey)
                 .Where(k => !challengeSupportKeys.Contains(k))
                 .ToArray();
 
@@ -88,18 +97,16 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
         await _validatorService.Validate(request);
 
         // and go
-        // for now
-
         foreach (var spec in specs)
         {
-            var bonusesForThisSpec = new List<GameAutomaticBonusSolveRank>(request.Parameters.Config.AllChallengesBonuses);
-            bonusesForThisSpec.AddRange
+            var newBonuses = new List<GameAutomaticBonusSolveRank>(request.Parameters.Config.AllChallengesBonuses);
+            newBonuses.AddRange
             (
                 request
                     .Parameters
                     .Config
                     .SpecificChallengesBonuses
-                    .Where(b => b.ChallengeSupportKey == spec.Tag)
+                    .Where(b => b.SupportKey == spec.Tag)
                     .Select(b => new GameAutomaticBonusSolveRank
                     {
                         Description = b.Description,
@@ -109,9 +116,13 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
             );
 
             // intentionally clobber existing bonuses with our new ones
+            var previousBonuses = spec.Bonuses.ToArray();
+            foreach (var prevBonus in previousBonuses)
+                spec.Bonuses.Remove(prevBonus);
+
             spec.Bonuses = new Collection<Data.ChallengeBonus>
             (
-                bonusesForThisSpec.Select(b => new Data.ChallengeBonusCompleteSolveRank
+                newBonuses.Select(b => new Data.ChallengeBonusCompleteSolveRank
                 {
                     Id = _guids.GetGuid(),
                     Description = b.Description,

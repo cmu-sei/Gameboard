@@ -16,7 +16,7 @@ public class ScoringController : ControllerBase
         _mediator = mediator;
     }
 
-    [HttpGet("game/{gameId}/scoring-config")]
+    [HttpGet("game/{gameId}/score/config")]
     public async Task<GameScoringConfig> GetGameScoringConfig([FromRoute] string gameId)
         => await _mediator.Send(new GameScoringConfigQuery(gameId));
 

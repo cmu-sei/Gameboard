@@ -8,10 +8,10 @@ public sealed class ConfigureGameAutoBonusesCommandParameters
     public required GameAutomaticBonusesConfig Config { get; set; }
 }
 
-public sealed class GameAutomaticBonusesConfig
+public class GameAutomaticBonusesConfig
 {
-    public IEnumerable<GameAutomaticBonusSolveRank> AllChallengesBonuses { get; set; } = new GameAutomaticBonusSolveRank[] { };
-    public IEnumerable<PerChallengeAutomaticBonusSolveRank> SpecificChallengesBonuses { get; set; } = new PerChallengeAutomaticBonusSolveRank[] { };
+    public IEnumerable<GameAutomaticBonusSolveRank> AllChallengesBonuses { get; set; }
+    public IEnumerable<PerChallengeAutomaticBonusSolveRank> SpecificChallengesBonuses { get; set; }
 }
 
 public sealed class GameAutomaticBonusSolveRank
@@ -35,7 +35,7 @@ public sealed class GameSpecsAutomaticBonusSpecState
 
 public sealed class PerChallengeAutomaticBonusSolveRank
 {
-    public required string ChallengeSupportKey { get; set; }
+    public required string SupportKey { get; set; }
     public string Description { get; set; }
     public required double PointValue { get; set; }
     public required int SolveRank { get; set; }
