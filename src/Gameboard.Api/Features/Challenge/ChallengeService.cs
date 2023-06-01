@@ -370,7 +370,8 @@ namespace Gameboard.Api.Services
                 Type = ChallengeEventType.GamespaceOff
             });
 
-            await Sync(
+            await Sync
+            (
                 entity,
                 GameEngine.StopGamespace(entity)
             );
