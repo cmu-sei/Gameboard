@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Transactions;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
@@ -62,7 +63,8 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
         // grab the specs ahead of time to speed up validation, and we'll use them again later
         // NOTE: we're tracking them here since we're going to update them
         var specs = await _challengeSpecStore
-            .List()
+            .ListAsNoTracking()
+            .Include(s => s.Bonuses)
             .Where(s => s.GameId == request.Parameters.GameId)
             .ToArrayAsync();
 
@@ -96,45 +98,70 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
 
         await _validatorService.Validate(request);
 
-        // and go
-        foreach (var spec in specs)
+        // and go (with a transaction to maintain atomicity)
+        using (var scope = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }, TransactionScopeAsyncFlowOption.Enabled))
         {
-            var newBonuses = new List<GameAutomaticBonusSolveRank>(request.Parameters.Config.AllChallengesBonuses);
-            newBonuses.AddRange
-            (
-                request
-                    .Parameters
-                    .Config
-                    .SpecificChallengesBonuses
-                    .Where(b => b.SupportKey == spec.Tag)
-                    .Select(b => new GameAutomaticBonusSolveRank
-                    {
-                        Description = b.Description,
-                        PointValue = b.PointValue,
-                        SolveRank = b.SolveRank
-                    })
-            );
+            foreach (var spec in specs)
+            {
+                // first, compose all bonuses for this spec:
+                var newBonuses = new List<GameAutomaticBonusSolveRank>(request.Parameters.Config.AllChallengesBonuses);
+                newBonuses.AddRange
+                (
+                    request
+                        .Parameters
+                        .Config
+                        .SpecificChallengesBonuses
+                        .Where(b => b.SupportKey == spec.Tag)
+                        .Select(b => new GameAutomaticBonusSolveRank
+                        {
+                            Description = b.Description,
+                            PointValue = b.PointValue,
+                            SolveRank = b.SolveRank
+                        })
+                );
 
-            // intentionally clobber existing bonuses with our new ones
-            var previousBonuses = spec.Bonuses.ToArray();
-            foreach (var prevBonus in previousBonuses)
-                spec.Bonuses.Remove(prevBonus);
+                // NOTE: ExecuteDeleteAsync seems to mess with the transaction stuff
+                // then delete all existing bonuses from the db
+                // await _challengeSpecStore
+                //     .DbContext
+                //     .ChallengeBonuses
+                //     .Where(b => b.ChallengeSpecId == spec.Id)
+                //     .ExecuteDeleteAsync();
 
-            spec.Bonuses = new Collection<Data.ChallengeBonus>
-            (
-                newBonuses.Select(b => new Data.ChallengeBonusCompleteSolveRank
-                {
-                    Id = _guids.GetGuid(),
-                    Description = b.Description,
-                    PointValue = b.PointValue,
-                    ChallengeBonusType = ChallengeBonusType.CompleteSolveRank,
-                    AwardedTo = new List<AwardedChallengeBonus>()
-                } as Data.ChallengeBonus).ToList()
-            );
 
-            await _challengeSpecStore.Update(spec);
+                await UpdateDatabase(_challengeBonusStore.DbContext, spec.Id, newBonuses);
+            }
+
+            scope.Complete();
         }
 
         return await _scoringService.GetGameScoringConfig(request.Parameters.GameId);
+    }
+
+    private async Task UpdateDatabase(GameboardDbContext ctx, string specId, IEnumerable<GameAutomaticBonusSolveRank> bonuses)
+    {
+        var newBonusEntities = bonuses.Select(b => new Data.ChallengeBonusCompleteSolveRank
+        {
+            Id = _guids.GetGuid(),
+            Description = b.Description,
+            PointValue = b.PointValue,
+            ChallengeBonusType = ChallengeBonusType.CompleteSolveRank,
+            AwardedTo = new List<AwardedChallengeBonus>(),
+            ChallengeSpecId = specId
+        } as Data.ChallengeBonus).ToArray();
+
+        var currentBonuses = await ctx
+            .ChallengeBonuses
+            .Where(b => b.ChallengeSpecId == specId)
+            .ToArrayAsync();
+
+        ctx.RemoveRange(currentBonuses);
+
+        // then insert new ones attached by specId
+        ctx
+            .ChallengeBonuses
+            .AddRange(newBonusEntities);
+
+        ctx.SaveChanges();
     }
 }

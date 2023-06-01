@@ -7,6 +7,7 @@ using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.ChallengeSpecs;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 

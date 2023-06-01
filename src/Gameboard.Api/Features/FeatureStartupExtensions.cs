@@ -11,6 +11,7 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.ApiKeys;
 using Gameboard.Api.Features.ChallengeBonuses;
+using Gameboard.Api.Features.ChallengeSpecs;
 using Gameboard.Api.Features.CubespaceScoreboard;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
@@ -99,6 +100,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddScoped<Hub<IAppHubEvent>, AppHub>()
                 .AddScoped<IChallengeStore, ChallengeStore>()
                 .AddScoped<IChallengeBonusStore, ChallengeBonusStore>()
+                .AddScoped<IChallengeSpecStore, ChallengeSpecStore>()
                 .AddScoped<ICubespaceScoreboardService, CubespaceScoreboardService>()
                 .AddScoped<IExternalSyncGameStartService, ExternalSyncGameStartService>()
                 .AddScoped<IGamebrainService, GamebrainService>()
