@@ -7,7 +7,9 @@ using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 
-namespace Gameboard.Api.Features.GameEngine.Requests;
+namespace Gameboard.Api.Features.ChallengeBonuses;
+
+public record AddManualBonusCommand(string ChallengeId, CreateManualChallengeBonus Model) : IRequest;
 
 internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
 {

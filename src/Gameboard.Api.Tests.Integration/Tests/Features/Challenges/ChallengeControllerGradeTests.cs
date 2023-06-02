@@ -16,9 +16,10 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext<
     [Theory, GbIntegrationAutoData]
     public async Task Grade_WithSingleUnawardedSolveRankBonus_AwardsBonus
     (
+        string bonusId,
         string challengeId,
         string challengeSpecId,
-        string bonusId,
+        string gameId,
         string teamId,
         IFixture fixture
     )
@@ -44,9 +45,11 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext<
             })
             .WithDataState(state =>
             {
+                state.AddGame(gameId);
                 state.AddChallengeSpec(spec =>
                 {
                     spec.Id = challengeSpecId;
+                    spec.GameId = gameId;
                     spec.Points = (int)baseScore;
                     spec.Bonuses = new ChallengeBonus[]
                     {
@@ -62,6 +65,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext<
                 state.AddChallenge(c =>
                 {
                     c.Id = challengeId;
+                    c.GameId = gameId;
                     c.Player = new Data.Player
                     {
                         Id = fixture.Create<string>(),
@@ -98,9 +102,10 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext<
     [Theory, GbIntegrationAutoData]
     public async Task Grade_WithSingleUnawardedSolveRankBonusAndPartialSolve_DoesNotAwardBonus
     (
+        string bonusId,
         string challengeId,
         string challengeSpecId,
-        string bonusId,
+        string gameId,
         string teamId,
         IFixture fixture
     )
@@ -127,9 +132,11 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext<
             })
             .WithDataState(state =>
             {
+                state.AddGame(gameId);
                 state.AddChallengeSpec(spec =>
                 {
                     spec.Id = challengeSpecId;
+                    spec.GameId = gameId;
                     spec.Points = baseScore;
                     spec.Bonuses = new ChallengeBonus[]
                     {
@@ -145,6 +152,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext<
                 state.AddChallenge(c =>
                 {
                     c.Id = challengeId;
+                    c.GameId = gameId;
                     c.Player = new Data.Player
                     {
                         Id = fixture.Create<string>(),
@@ -187,6 +195,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext<
         string unawardedBonusId,
         string awardedTeamId,
         string unawardedTeamId,
+        string gameId,
         IFixture fixture
     )
     {
@@ -212,9 +221,11 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext<
             })
             .WithDataState(state =>
             {
+                state.AddGame(g => { g.Id = gameId; });
                 state.AddChallengeSpec(spec =>
                 {
                     spec.Id = challengeSpecId;
+                    spec.GameId = gameId;
                     spec.Points = baseScore;
                     spec.Bonuses = new ChallengeBonus[]
                     {
@@ -237,9 +248,11 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext<
                 state.AddChallenge(c =>
                 {
                     c.Id = awardedChallengeId;
+                    c.GameId = gameId;
                     c.Player = new Data.Player
                     {
                         Id = fixture.Create<string>(),
+                        GameId = gameId,
                         TeamId = awardedTeamId,
                     };
                     c.SpecId = challengeSpecId;
@@ -252,9 +265,11 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext<
                 state.AddChallenge(c =>
                 {
                     c.Id = unawardedChallengeId;
+                    c.GameId = gameId;
                     c.Player = new Data.Player
                     {
                         Id = fixture.Create<string>(),
+                        GameId = gameId,
                         TeamId = unawardedTeamId,
                     };
                     c.SpecId = challengeSpecId;

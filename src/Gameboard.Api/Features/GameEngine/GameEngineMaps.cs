@@ -37,6 +37,7 @@ public class GameEngineMaps : Profile
             .ForMember(c => c.Points, o => o.MapFrom(s => s.Challenge.MaxPoints))
             .ForMember(c => c.Score, o => o.MapFrom(s => s.Challenge.Score))
             .ForMember(c => c.State, o => o.MapFrom(s => jsonService.Serialize(s)))
+            .ForMember(c => c.ExternalId, o => o.MapFrom(s => s.Id))
             // ignore entity properties because we don't want EF to think that we're trying to insert new ones
             .ForMember(c => c.Player, o => o.Ignore())
             // game engine type will need to be resolved using an aftermap expression during mapping
@@ -64,10 +65,12 @@ public class GameEngineMaps : Profile
         CreateMap<TopoMojo.Api.Client.VmState, GameEngineVmState>();
         CreateMap<TopoMojo.Api.Client.ChallengeView, GameEngineChallengeView>();
         CreateMap<TopoMojo.Api.Client.SectionSubmission, GameEngineSectionSubmission>()
-            .ForMember(d => d.Answers, o => o.MapFrom(s => s.Questions));
+            .ForMember(d => d.Answers, o => o.MapFrom(s => s.Questions))
+            .ForMember(d => d.ChallengeId, o => o.MapFrom(s => s.Id));
 
         CreateMap<GameEngineAnswerSubmission, TopoMojo.Api.Client.AnswerSubmission>();
         CreateMap<GameEngineSectionSubmission, TopoMojo.Api.Client.SectionSubmission>()
+            .ForMember(d => d.Id, o => o.MapFrom(s => s.ChallengeId))
             .ForMember(d => d.Questions, o => o.MapFrom(s => s.Answers));
 
     }

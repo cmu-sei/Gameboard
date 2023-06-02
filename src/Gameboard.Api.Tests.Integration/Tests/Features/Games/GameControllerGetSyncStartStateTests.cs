@@ -120,11 +120,12 @@ public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestC
                 });
             });
 
-        var response = await _testContext.Http.GetAsync($"/api/game/{gameId}/ready");
-        var isGbValidationException = await response.Content.IsGameboardValidationException();
+        var yieldsValidationFailure = await _testContext
+            .Http
+            .GetAsync($"/api/game/{gameId}/ready")
+            .YieldsGameboardValidationException();
 
         // when / then
-        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        isGbValidationException.ShouldBeTrue();
+        yieldsValidationFailure.ShouldBeTrue();
     }
 }

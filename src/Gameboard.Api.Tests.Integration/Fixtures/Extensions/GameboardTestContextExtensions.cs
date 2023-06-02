@@ -1,6 +1,4 @@
 ﻿using Gameboard.Api.Data;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 

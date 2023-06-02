@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,6 +24,7 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
     private readonly IChallengeBonusStore _challengeBonusStore;
     private readonly IChallengeSpecStore _challengeSpecStore;
     private readonly EntityExistsValidator<Data.Game> _gameExists;
+    private readonly GameHasNoAwardedAutoBonuses<ConfigureGameAutoBonusesCommand> _gameHasNoAwardedBonuses;
     private readonly IGuidService _guids;
     private readonly IScoringService _scoringService;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
@@ -35,6 +35,7 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
         IChallengeBonusStore challengeBonusStore,
         IChallengeSpecStore challengeSpecStore,
         EntityExistsValidator<Data.Game> gameExists,
+        GameHasNoAwardedAutoBonuses<ConfigureGameAutoBonusesCommand> gameHasNoAwardedBonuses,
         IGuidService guids,
         IScoringService scoringService,
         UserRoleAuthorizer userRoleAuthorizer,
@@ -44,6 +45,7 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
         _challengeStore = challengeStore;
         _challengeSpecStore = challengeSpecStore;
         _gameExists = gameExists;
+        _gameHasNoAwardedBonuses = gameHasNoAwardedBonuses;
         _guids = guids;
         _scoringService = scoringService;
         _userRoleAuthorizer = userRoleAuthorizer;
@@ -120,7 +122,9 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
                         })
                 );
 
-                // NOTE: ExecuteDeleteAsync seems to mess with the transaction stuff
+                // NOTE: ExecuteDeleteAsync seems to mess with the transaction stuff - may be a
+                // postgres implementation problem
+                //
                 // then delete all existing bonuses from the db
                 // await _challengeSpecStore
                 //     .DbContext

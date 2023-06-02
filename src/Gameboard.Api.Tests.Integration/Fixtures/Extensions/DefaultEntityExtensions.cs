@@ -20,7 +20,6 @@ public static class GameboardTestContextDefaultEntityExtensions
             new Data.ChallengeSpec
             {
                 Id = TestIds.Generate(),
-                Game = BuildGame(dataStateBuilder),
                 Name = "Integration Test Challenge Spec",
                 AverageDeploySeconds = 1,
                 Points = 50,
@@ -44,6 +43,9 @@ public static class GameboardTestContextDefaultEntityExtensions
             },
             challengeBuilder
         );
+
+    public static void AddGame(this IDataStateBuilder dataStateBuilder, string gameId)
+        => AddGame(dataStateBuilder, g => { g.Id = gameId; });
 
     public static void AddGame(this IDataStateBuilder dataStateBuilder, Action<Data.Game>? gameBuilder = null)
         => dataStateBuilder.Add(BuildGame(dataStateBuilder, gameBuilder));
@@ -210,5 +212,10 @@ public static class GameboardTestContextDefaultEntityExtensions
         }
 
         return team;
+    }
+
+    public static ICollection<TEntity> ToCollection<TEntity>(this TEntity entity)
+    {
+        return new TEntity[] { entity };
     }
 }

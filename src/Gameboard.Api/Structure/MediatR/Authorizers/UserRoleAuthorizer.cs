@@ -16,6 +16,11 @@ internal class UserRoleAuthorizer : IAuthorizer
             .ToActor();
     }
 
+    public static IEnumerable<UserRole> RoleList(params UserRole[] roles)
+    {
+        return roles;
+    }
+
     public void Authorize()
     {
         foreach (var role in AllowedRoles)

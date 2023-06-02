@@ -33,16 +33,15 @@ public class ChallengeBonusControllerManualTests : IClassFixture<GameboardTestCo
                 state.AddChallenge(c =>
                 {
                     c.Id = challengeId;
+                    c.Game = state.BuildGame();
                 });
             });
 
         var bonus = new CreateManualChallengeBonus
         {
             Description = description,
-
             PointValue = pointsValue
         };
-
 
         // when
         await _testContext.Http.PostAsync($"api/challenge/{challengeId}/bonus/manual", bonus.ToJsonBody());
