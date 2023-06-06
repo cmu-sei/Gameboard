@@ -34,7 +34,7 @@ public class SyncStartState
     public required bool IsReady { get; set; }
 }
 
-public class SynchronizedGameStartedState
+public class SyncStartGameStartedState
 {
     public required SimpleEntity Game { get; set; }
     public required DateTimeOffset SessionBegin { get; set; }

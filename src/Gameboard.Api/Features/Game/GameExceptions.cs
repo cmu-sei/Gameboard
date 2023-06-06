@@ -34,7 +34,7 @@ public class GameModeIsntExternal : GameboardValidationException
 
 internal class UserIsntPlayingGame : GameboardValidationException
 {
-    public UserIsntPlayingGame(string userId, string gameId, string whyItMatters) : base($"""User {userId} isn't playing game {gameId}.{(string.IsNullOrWhiteSpace(whyItMatters) ? string.Empty : ". " + whyItMatters)} """) { }
+    public UserIsntPlayingGame(string userId, string gameId, string whyItMatters = null) : base($"""User {userId} isn't playing game {gameId}.{(string.IsNullOrWhiteSpace(whyItMatters) ? string.Empty : ". " + whyItMatters)} """) { }
 }
 
 internal class PracticeSessionLimitReached : GameboardValidationException

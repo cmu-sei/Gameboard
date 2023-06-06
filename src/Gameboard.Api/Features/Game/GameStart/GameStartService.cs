@@ -24,7 +24,7 @@ internal class GameStartService : IGameStartService
 {
     private readonly IGameEngineService _gameEngineService;
     private readonly IGamebrainService _gamebrainService;
-    private readonly IGameHubBus _gameHub;
+    private readonly IGameHubBus _gameHubBus;
     private readonly IGameService _gameService;
     private readonly IGameStore _gameStore;
     private readonly IJsonService _jsonService;
@@ -40,7 +40,7 @@ internal class GameStartService : IGameStartService
         IExternalSyncGameStartService externalSyncGameStartService,
         IGamebrainService gamebrainService,
         IGameEngineService gameEngineService,
-        IGameHubBus gameHub,
+        IGameHubBus gameHubBus,
         IGameService gameService,
         IGameStore gameStore,
         IJsonService jsonService,
@@ -54,7 +54,7 @@ internal class GameStartService : IGameStartService
         _externalSyncGameStartService = externalSyncGameStartService;
         _gamebrainService = gamebrainService;
         _gameEngineService = gameEngineService;
-        _gameHub = gameHub;
+        _gameHubBus = gameHubBus;
         _gameService = gameService;
         _gameStore = gameStore;
         _jsonService = jsonService;
@@ -111,11 +111,13 @@ internal class GameStartService : IGameStartService
                 await _gamebrainService.StartV2Game(metaData);
                 _logger.LogInformation("Gamebrain notified!");
 
-                // TODO: notify gameboard to move players along
+                // notify gameboard to move players along
+                await this._gameHubBus.SendSyncStartGameStarting(syncGameStartState);
 
                 return metaData;
             }
 
+            // other combinations of game mode/sync start
             throw new System.NotImplementedException();
         }
         catch (Exception ex)
@@ -130,7 +132,7 @@ internal class GameStartService : IGameStartService
     public async Task HandleSyncStartStateChanged(SyncGameStartRequest request)
     {
         var state = await _syncStartGameService.GetSyncStartState(request.GameId);
-        await _gameHub.SendSyncStartStateChanged(state, request.ActingUser);
+        await _gameHubBus.SendSyncStartGameStateChanged(state);
 
         // IFF everyone is ready, start all sessions and return info about them
         if (!state.IsReady)
@@ -141,7 +143,7 @@ internal class GameStartService : IGameStartService
         await Start(new GameStartRequest { GameId = request.GameId });
     }
 
-    private ExternalGameStartMetaData BuildMetaData(GameStartContext ctx, SynchronizedGameStartedState syncgameStartState)
+    private ExternalGameStartMetaData BuildMetaData(GameStartContext ctx, SyncStartGameStartedState syncgameStartState)
     {
         // build team objects to return
         var teamsToReturn = new List<ExternalGameStartMetaDataTeam>();

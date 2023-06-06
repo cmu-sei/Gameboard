@@ -21,7 +21,6 @@ namespace Gameboard.Api.Controllers
     public class PlayerController : _Controller
     {
         PlayerService PlayerService { get; }
-        IInternalHubBus Hub { get; }
         IMapper Mapper { get; }
         IMediator Mediator { get; }
         ITeamService TeamService { get; set; }
@@ -38,7 +37,6 @@ namespace Gameboard.Api.Controllers
         ) : base(logger, cache, validator)
         {
             PlayerService = playerService;
-            Hub = hub;
             Mapper = mapper;
             Mediator = mediator;
             TeamService = teamService;

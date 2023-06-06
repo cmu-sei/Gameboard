@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -6,7 +5,6 @@ using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.ChallengeSpecs;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;

@@ -12,26 +12,26 @@ namespace Gameboard.Api.Features.Games;
 public interface ISyncStartGameService
 {
     Task<SyncStartState> GetSyncStartState(string gameId);
-    Task<SynchronizedGameStartedState> StartSynchronizedSession(string gameId, double countdownSeconds = 15);
+    Task<SyncStartGameStartedState> StartSynchronizedSession(string gameId, double countdownSeconds = 15);
     Task<SyncStartPlayerStatusUpdate> UpdatePlayerReadyState(string playerId, bool isReady);
 }
 
 internal class SyncStartGameService : ISyncStartGameService
 {
-    private readonly IGameHubBus _gameHub;
+    private readonly IGameHubBus _gameHubBus;
     private readonly IGameStore _gameStore;
     private readonly ILockService _lockService;
     private readonly IPlayerStore _playerStore;
 
     public SyncStartGameService
     (
-        IGameHubBus gameHub,
+        IGameHubBus gameHubBus,
         IGameStore gameStore,
         ILockService lockService,
         IPlayerStore playerStore
     )
     {
-        _gameHub = gameHub;
+        _gameHubBus = gameHubBus;
         _lockService = lockService;
         _playerStore = playerStore;
         _gameStore = gameStore;
@@ -118,7 +118,7 @@ internal class SyncStartGameService : ISyncStartGameService
     /// <exception cref="CantSynchronizeNonSynchronizedGame">This call fails if the game is not marked as `RequiresSyncStart`.</exception>
     /// <exception cref="CantStartNonReadySynchronizedGame">This call fails if initiated before all players have set their `IsReady` to true.</exception>
     /// <exception cref="SynchronizedGameHasPlayersWithSessionsBeforeStart">This call fails if any players already have an active game session when it starts.</exception>
-    public async Task<SynchronizedGameStartedState> StartSynchronizedSession(string gameId, double countdownSeconds = 15)
+    public async Task<SyncStartGameStartedState> StartSynchronizedSession(string gameId, double countdownSeconds = 15)
     {
         using (await _lockService.GetSyncStartGameLock(gameId).LockAsync())
         {
@@ -167,7 +167,7 @@ internal class SyncStartGameService : ISyncStartGameService
                 );
 
 
-            var startState = new SynchronizedGameStartedState
+            var startState = new SyncStartGameStartedState
             {
                 Game = new SimpleEntity { Id = game.Id },
                 SessionBegin = sessionBegin,
@@ -181,7 +181,7 @@ internal class SyncStartGameService : ISyncStartGameService
                     }))
             };
 
-            await _gameHub.SendSyncStartGameStarting(startState);
+            await _gameHubBus.SendSyncStartGameStarting(startState);
             return startState;
         }
     }

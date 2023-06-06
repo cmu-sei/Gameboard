@@ -1,3 +1,4 @@
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Hubs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,6 +41,7 @@ internal static class WebApplicationExtensions
 
         // map endpoints directly on app (warning ASP0014)
         app.MapHub<AppHub>("/hub").RequireAuthorization();
+        app.MapHub<GameHub>("/hub/games").RequireAuthorization();
         app.MapControllers().RequireAuthorization();
 
         return app;

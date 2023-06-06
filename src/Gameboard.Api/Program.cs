@@ -21,10 +21,10 @@ startupLogger.LogInformation("Welcome to Gameboard!");
 // load and resolve settings
 startupLogger.LogInformation("Configuring Gameboard app...");
 var envname = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-var path = Environment.GetEnvironmentVariable("APPSETTINGS_PATH") ?? "./conf/appsettings.conf";
+var appSettingsPath = Environment.GetEnvironmentVariable("APPSETTINGS_PATH") ?? "./conf/appsettings.conf";
 ConfToEnv.Load("appsettings.conf");
 ConfToEnv.Load($"appsettings.{envname}.conf");
-ConfToEnv.Load(path);
+ConfToEnv.Load(appSettingsPath);
 
 startupLogger.LogInformation($"Starting Gameboard in {envname} configuration.");
 

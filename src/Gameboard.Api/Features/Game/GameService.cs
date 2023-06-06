@@ -41,7 +41,6 @@ public class GameService : _Service, IGameService
 {
     private readonly Defaults _defaults;
     private readonly IExternalSyncGameStartService _externalSyncGameStartService;
-    private readonly IGameHubBus _gameHub;
     private readonly ILockService _lockService;
     private readonly IPlayerStore _playerStore;
     private readonly IGameStore _store;
@@ -52,7 +51,6 @@ public class GameService : _Service, IGameService
         IMapper mapper,
         CoreOptions options,
         Defaults defaults,
-        IGameHubBus gameHub,
         IGameStore store,
         ILockService lockService,
         IPlayerStore playerStore
@@ -61,7 +59,6 @@ public class GameService : _Service, IGameService
         _store = store;
         _defaults = defaults;
         _externalSyncGameStartService = externalSyncGameStartService;
-        _gameHub = gameHub;
         _lockService = lockService;
         _playerStore = playerStore;
     }

@@ -11,7 +11,6 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.ApiKeys;
 using Gameboard.Api.Features.ChallengeBonuses;
-using Gameboard.Api.Features.ChallengeSpecs;
 using Gameboard.Api.Features.CubespaceScoreboard;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
@@ -22,6 +21,7 @@ using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
+using Gameboard.Api.Validation;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -35,7 +35,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddSingleton<ConsoleActorMap>()
                 .AddHttpContextAccessor()
                 .AddConcretesFromNamespace("Gameboard.Api.Structure.Authorizers")
-                .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators");
+                .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators")
+                .AddConcretesFromNamespace("Gameboard.Api.Features.Games.Validators");
 
             // Auto-discover from EntityService pattern
             foreach (var t in Assembly
@@ -105,14 +106,15 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddScoped<IExternalSyncGameStartService, ExternalSyncGameStartService>()
                 .AddScoped<IGamebrainService, GamebrainService>()
                 .AddScoped<IGameEngineStore, GameEngineStore>()
-                .AddScoped<IGameHubBus, GameHubBus>()
                 .AddScoped<IGameStartService, GameStartService>()
                 .AddScoped<IInternalHubBus, InternalHubBus>()
+                .AddScoped<IGameHubBus, GameHubBus>()
                 .AddScoped<IScoringService, ScoringService>()
                 .AddScoped<ISyncStartGameService, SyncStartGameService>()
                 .AddScoped<ITeamService, TeamService>()
                 .AddScoped<IUnityGameService, UnityGameService>()
-                .AddScoped<IUnityStore, UnityStore>();
+                .AddScoped<IUnityStore, UnityStore>()
+                .AddScoped<IValidatorServiceFactory, ValidatorServiceFactory>();
 
         public static IMapperConfigurationExpression AddGameboardMaps(this IMapperConfigurationExpression cfg)
         {

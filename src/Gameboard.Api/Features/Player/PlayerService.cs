@@ -27,7 +27,6 @@ public class PlayerService
     IGameService GameService { get; }
     IGameStartService GameStartService { get; }
     IGameStore GameStore { get; }
-    IGameHubBus GameHubBus { get; set; }
     IGuidService GuidService { get; }
     IMediator MediatorBus { get; }
     INowService Now { get; }
@@ -47,7 +46,6 @@ public class PlayerService
         IMediator mediator,
         IPlayerStore store,
         IUserStore userStore,
-        IGameHubBus gameHubBus,
         IGameService gameService,
         IGameStore gameStore,
         IInternalHubBus hubBus,
@@ -61,7 +59,6 @@ public class PlayerService
         ChallengeService = challengeService;
         CoreOptions = coreOptions;
         GameEngine = gameEngine;
-        GameHubBus = gameHubBus;
         GameService = gameService;
         GuidService = guidService;
         GameStartService = gameStartService;

@@ -15,7 +15,8 @@ namespace Gameboard.Api
         public HeaderInspectionMiddleware(
             RequestDelegate next,
             ILogger<HeaderInspectionMiddleware> logger
-        ){
+        )
+        {
             _next = next;
             _logger = logger;
         }
@@ -49,11 +50,7 @@ namespace Microsoft.AspNetCore.Builder
 {
     public static class StartUpExtensions
     {
-        public static IApplicationBuilder UseHeaderInspection (
-            this IApplicationBuilder builder
-        )
-        {
-            return builder.UseMiddleware<HeaderInspectionMiddleware>();
-        }
+        public static IApplicationBuilder UseHeaderInspection(this IApplicationBuilder builder)
+            => builder.UseMiddleware<HeaderInspectionMiddleware>();
     }
 }

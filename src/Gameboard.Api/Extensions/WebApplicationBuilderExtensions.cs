@@ -1,7 +1,5 @@
 using System;
 using System.IO;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
@@ -68,16 +66,6 @@ internal static class WebApplicationBuilderExtensions
             .SetApplicationName(AppConstants.DataProtectionPurpose)
             .PersistKeys(() => settings.Cache);
 
-        services.AddSignalR()
-            .AddJsonProtocol(options =>
-            {
-                options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-                options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter(
-                    JsonNamingPolicy.CamelCase
-                ));
-            });
-        services.AddSignalRHub();
-
         services
             .AddSingleton<CoreOptions>(_ => settings.Core)
             .AddSingleton<CrucibleOptions>(_ => settings.Crucible)
@@ -91,6 +79,9 @@ internal static class WebApplicationBuilderExtensions
             .AddConfiguredHttpClients(settings.Core)
             .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath)
             .AddGameboardMediatR();
+
+        // configuring SignalR involves acting on the builder as well as its services
+        builder.AddGameboardSignalRServices();
 
         // don't add the job service during test - we don't want it to interfere with CI
         if (!builder.Environment.IsTest())
@@ -119,6 +110,16 @@ internal static class WebApplicationBuilderExtensions
                 logging.RequestBodyLogLimit = settings.Logging.RequestBodyLogLimit;
                 logging.ResponseBodyLogLimit = settings.Logging.ResponseBodyLogLimit;
                 logging.MediaTypeOptions.AddText("application/json");
+            });
+        }
+
+        // dev environment logging
+        if (builder.Environment.IsDev())
+        {
+            services.AddLogging(builder =>
+            {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Information);
             });
         }
     }

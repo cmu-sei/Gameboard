@@ -16,6 +16,7 @@ internal class JsonService : IJsonService
     {
         return options =>
         {
+            options.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
             options.PropertyNameCaseInsensitive = true;
             options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             options.ReferenceHandler = ReferenceHandler.IgnoreCycles;

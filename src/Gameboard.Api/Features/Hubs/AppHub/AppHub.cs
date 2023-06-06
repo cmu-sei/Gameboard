@@ -18,7 +18,7 @@ using Microsoft.Extensions.Logging;
 namespace Gameboard.Api.Hubs
 {
     [Authorize(AppConstants.HubPolicy)]
-    public class AppHub : Hub<IAppHubEvent>, IAppHubAction
+    public class AppHub : Hub<IAppHubEvent>, IAppHubApi
     {
         ILogger Logger { get; }
         IPlayerStore PlayerStore { get; }
@@ -97,33 +97,33 @@ namespace Gameboard.Api.Hubs
             );
         }
 
-        public async Task<SyncStartState> JoinGame(string gameId)
-        {
-            if (string.IsNullOrWhiteSpace(gameId))
-                throw new ArgumentNullException();
+        // public async Task<SyncStartState> JoinGame(string gameId)
+        // {
+        //     if (string.IsNullOrWhiteSpace(gameId))
+        //         throw new ArgumentNullException();
 
-            var game = await _gameService
-                .BuildQuery()
-                .AsNoTracking()
-                .Include(g => g.Players)
-                .FirstOrDefaultAsync(g => g.Id == gameId);
+        //     var game = await _gameService
+        //         .BuildQuery()
+        //         .AsNoTracking()
+        //         .Include(g => g.Players)
+        //         .FirstOrDefaultAsync(g => g.Id == gameId);
 
-            if (game == null)
-                throw new ResourceNotFound<Game>(gameId);
+        //     if (game == null)
+        //         throw new ResourceNotFound<Game>(gameId);
 
-            if (!game.Players.Any(p => p.UserId == Context.UserIdentifier))
-                throw new PlayerIsntInGame();
+        //     if (!game.Players.Any(p => p.UserId == Context.UserIdentifier))
+        //         throw new PlayerIsntInGame();
 
-            await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
+        //     await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
 
-            if (game.RequireSynchronizedStart)
-            {
-                return await _syncStartGameService.GetSyncStartState(game.Id);
-            }
+        //     if (game.RequireSynchronizedStart)
+        //     {
+        //         return await _syncStartGameService.GetSyncStartState(game.Id);
+        //     }
 
-            // this isn't a failure, we just don't send anything down if sync start isn't needed
-            return null;
-        }
+        //     // this isn't a failure, we just don't send anything down if sync start isn't needed
+        //     return null;
+        // }
 
         public async Task LeaveChannel(string channelId)
         {
