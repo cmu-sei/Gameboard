@@ -10,7 +10,7 @@ namespace Gameboard.Api.Features.Games;
 public interface IGameHubBus
 {
     Task SendPlayerJoined(string playerConnectionId, PlayerJoinedEvent ev);
-    Task SendYouJoined(YouJoinedEvent ev);
+    Task SendYouJoined(string userId, YouJoinedEvent ev);
     Task SendExternalGameChallengesDeployStart(ExternalGameLaunchState state);
     Task SendExternalGameChallengesDeployProgressChange(ExternalGameLaunchState state);
     Task SendExternalGameChallengesDeployEnd(ExternalGameLaunchState state);
@@ -187,10 +187,10 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
             });
     }
 
-    public Task SendYouJoined(YouJoinedEvent model)
+    public Task SendYouJoined(string userId, YouJoinedEvent model)
         => _hubContext
             .Clients
-            .User(model.UserId)
+            .User(userId)
             .YouJoined(new GameHubEvent<YouJoinedEvent>
             {
                 GameId = null,

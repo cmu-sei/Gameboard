@@ -84,13 +84,7 @@ public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
         // cache a record of this user being in the game
         AddUserToGameCache(request.GameId, player);
 
-        await _hubBus.SendYouJoined(new YouJoinedEvent
-        {
-            ConnectionId = Context.ConnectionId,
-            UserId = Context.UserIdentifier,
-            UserCount = _cache.Get<IList<string>>(request.GameId).Count(),
-            GroupName = this.GetCanonicalGroupId(request.GameId)
-        });
+        await _hubBus.SendYouJoined(Context.UserIdentifier, new YouJoinedEvent { GameId = request.GameId });
 
         // notify other game members
         await _hubBus.SendPlayerJoined(Context.ConnectionId, new PlayerJoinedEvent
@@ -128,11 +122,6 @@ public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
         }
 
         return userIds;
-        // return _cache.GetOrCreate<IList<string>>(gameId, entry =>
-        // {
-        //     entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(player.SessionMinutes);
-        //     return new List<string> { player.UserId };
-        // });
     }
 
     private void RemoveUserFromGameCache(string gameId, string userId)

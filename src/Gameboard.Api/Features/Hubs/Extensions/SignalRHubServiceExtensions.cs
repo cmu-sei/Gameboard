@@ -12,20 +12,14 @@ public static class SignalRHubServiceExtensions
     public static string GetUserLogContextString(this IGameboardHub hub)
         => $"[{hub.Context.User.FindFirstValue("name")} // {hub.Context.UserIdentifier} // {hub.Context.ConnectionId}]:";
 
-    // public static Task JoinGroup(this IGameboardHub hub, string groupIdentifier)
-    //     => hub.Groups.AddToGroupAsync(hub.Context.ConnectionId, GetCanonicalGroupId(hub, groupIdentifier));
-
-    public async static Task JoinGroup(this IGameboardHub hub, string groupIdentifier)
-    {
-        var canonicalGroupId = GetCanonicalGroupId(hub, groupIdentifier);
-        await hub.Groups.AddToGroupAsync(hub.Context.ConnectionId, canonicalGroupId);
-    }
+    public static Task JoinGroup(this IGameboardHub hub, string groupIdentifier)
+        => hub.Groups.AddToGroupAsync(hub.Context.ConnectionId, GetCanonicalGroupId(hub, groupIdentifier));
 
     public static Task LeaveGroup(this IGameboardHub hub, string groupIdentifier)
         => hub.Groups.RemoveFromGroupAsync(hub.Context.ConnectionId, GetCanonicalGroupId(hub, groupIdentifier));
 
     public static void LogOnConnected(this IGameboardHub hub, ILogger logger, HubCallerContext hubContext)
-        => logger.LogInformation(LogEventId.Hub_Connection_Connected, message: $"""Connection id "{hubContext.ConnectionId}" started for user {hubContext.UserIdentifier}""");
+        => logger.LogInformation(LogEventId.Hub_Connection_Connected, message: $""" Connection id "{hubContext.ConnectionId}" started for user "{hubContext.UserIdentifier}." """);
 
     public static void LogOnDisconnected(this IGameboardHub hub, ILogger logger, HubCallerContext hubContext, Exception ex = null)
         => logger.LogInformation(LogEventId.Hub_Connection_Connected, ex, message: $"""Connection id "{hubContext.ConnectionId}" started for user {hubContext.UserIdentifier}""");

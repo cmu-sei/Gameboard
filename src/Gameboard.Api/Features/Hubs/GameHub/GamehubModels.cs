@@ -61,7 +61,7 @@ public class ExternalGameLaunchState
     public DateTimeOffset Now { get; set; }
     public string Error { get; set; }
 
-    public double OverallProgress { get => Math.Round(((0.8 * GamespacesDeployed) / GamespacesTotal) + ((0.2 * ChallengesCreated) / ChallengesTotal)); }
+    // public double OverallProgress { get => Math.Round(((0.8 * GamespacesDeployed) / GamespacesTotal) + ((0.2 * ChallengesCreated) / ChallengesTotal)); }
 }
 
 public class GameJoinRequest
@@ -82,8 +82,5 @@ public class PlayerJoinedEvent
 
 public class YouJoinedEvent
 {
-    public required string ConnectionId { get; set; }
-    public required string UserId { get; set; }
-    public required int UserCount { get; set; }
-    public required string GroupName { get; set; }
+    public required string GameId { get; set; }
 }

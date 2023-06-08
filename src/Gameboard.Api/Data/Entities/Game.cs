@@ -45,6 +45,7 @@ namespace Gameboard.Api.Data
         public string CardText3 { get; set; }
 
         // mode stuff
+        public string ExternalGameClientUrl { get; set; }
         public string ExternalGameStartupUrl { get; set; }
         public string Mode { get; set; }
         public PlayerMode PlayerMode { get; set; }

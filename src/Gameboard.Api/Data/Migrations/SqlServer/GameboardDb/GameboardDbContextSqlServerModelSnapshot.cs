@@ -488,8 +488,13 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<string>("ExternalGameClientUrl")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("ExternalGameStartupUrl")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("FeedbackConfig")
                         .HasColumnType("nvarchar(max)");
@@ -889,7 +894,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Gameboard.Api.Data.ChallengeBonusSolveSpeed", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.ChallengeBonusCompleteSolveRank", b =>
                 {
                     b.HasBaseType("Gameboard.Api.Data.ChallengeBonus");
 
