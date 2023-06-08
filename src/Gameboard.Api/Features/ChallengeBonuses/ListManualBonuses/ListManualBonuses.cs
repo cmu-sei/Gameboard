@@ -12,6 +12,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.ChallengeBonuses;
 
+public record ListManualBonusesQuery(string ChallengeId) : IRequest<IEnumerable<ManualChallengeBonusViewModel>>;
+
 internal class ListManualBonusesHandler : IRequestHandler<ListManualBonusesQuery, IEnumerable<ManualChallengeBonusViewModel>>
 {
     private readonly IStore<ManualChallengeBonus> _challengeBonusStore;
