@@ -12,8 +12,14 @@ public static class SignalRHubServiceExtensions
     public static string GetUserLogContextString(this IGameboardHub hub)
         => $"[{hub.Context.User.FindFirstValue("name")} // {hub.Context.UserIdentifier} // {hub.Context.ConnectionId}]:";
 
-    public static Task JoinGroup(this IGameboardHub hub, string groupIdentifier)
-        => hub.Groups.AddToGroupAsync(hub.Context.ConnectionId, GetCanonicalGroupId(hub, groupIdentifier));
+    // public static Task JoinGroup(this IGameboardHub hub, string groupIdentifier)
+    //     => hub.Groups.AddToGroupAsync(hub.Context.ConnectionId, GetCanonicalGroupId(hub, groupIdentifier));
+
+    public async static Task JoinGroup(this IGameboardHub hub, string groupIdentifier)
+    {
+        var canonicalGroupId = GetCanonicalGroupId(hub, groupIdentifier);
+        await hub.Groups.AddToGroupAsync(hub.Context.ConnectionId, canonicalGroupId);
+    }
 
     public static Task LeaveGroup(this IGameboardHub hub, string groupIdentifier)
         => hub.Groups.RemoveFromGroupAsync(hub.Context.ConnectionId, GetCanonicalGroupId(hub, groupIdentifier));

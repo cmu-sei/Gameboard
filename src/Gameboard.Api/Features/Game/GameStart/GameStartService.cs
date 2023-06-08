@@ -16,7 +16,7 @@ namespace Gameboard.Api.Features.Games;
 
 public interface IGameStartService
 {
-    Task HandleSyncStartStateChanged(SyncGameStartRequest request);
+    Task HandleSyncStartStateChanged(string gameId);
     Task<ExternalGameStartMetaData> Start(GameStartRequest request);
 }
 
@@ -129,9 +129,9 @@ internal class GameStartService : IGameStartService
         return null;
     }
 
-    public async Task HandleSyncStartStateChanged(SyncGameStartRequest request)
+    public async Task HandleSyncStartStateChanged(string gameId)
     {
-        var state = await _syncStartGameService.GetSyncStartState(request.GameId);
+        var state = await _syncStartGameService.GetSyncStartState(gameId);
         await _gameHubBus.SendSyncStartGameStateChanged(state);
 
         // IFF everyone is ready, start all sessions and return info about them
@@ -140,7 +140,7 @@ internal class GameStartService : IGameStartService
 
         // for now, we're assuming the "happy path" of sync start games being external games, but we'll separate them later
         // var session = await StartSynchronizedSession(gameId); ;
-        await Start(new GameStartRequest { GameId = request.GameId });
+        await Start(new GameStartRequest { GameId = state.Game.Id });
     }
 
     private ExternalGameStartMetaData BuildMetaData(GameStartContext ctx, SyncStartGameStartedState syncgameStartState)

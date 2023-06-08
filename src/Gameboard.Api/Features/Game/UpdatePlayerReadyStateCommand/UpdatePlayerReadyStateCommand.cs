@@ -1,9 +1,12 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Services;
+using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Structure.MediatR;
+using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
+using Gameboard.Api.Validation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games;
 
@@ -11,44 +14,56 @@ public record UpdatePlayerReadyStateCommand(string PlayerId, bool IsReady, User 
 
 internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlayerReadyStateCommand>
 {
+    private readonly UserRoleAuthorizer _authorizer;
     private readonly IGameStartService _gameStartService;
     private readonly IMediator _mediator;
     private readonly EntityExistsValidator<UpdatePlayerReadyStateCommand, Data.Player> _playerExists;
-    private readonly PlayerService _playerService;
+    private readonly IPlayerStore _playerStore;
     private readonly ISyncStartGameService _syncStartGameService;
-    private readonly IValidatorService<UpdatePlayerReadyStateCommand> _validatorService;
+    private readonly IValidatorService _validatorService;
 
     public UpdatePlayerReadyStateCommandHandler
     (
+        UserRoleAuthorizer authorizer,
         IGameStartService gameStartService,
         IMediator mediator,
         EntityExistsValidator<UpdatePlayerReadyStateCommand, Data.Player> playerExists,
-        PlayerService playerService,
+        IPlayerStore playerStore,
         ISyncStartGameService syncStartGameService,
-        IValidatorService<UpdatePlayerReadyStateCommand> validatorService)
+        IValidatorServiceFactory validatorServiceFactory)
     {
+        _authorizer = authorizer;
         _gameStartService = gameStartService;
         _mediator = mediator;
         _playerExists = playerExists;
-        _playerService = playerService;
+        _playerStore = playerStore;
         _syncStartGameService = syncStartGameService;
-        _validatorService = validatorService;
+        _validatorService = validatorServiceFactory.Get();
     }
 
     public async Task Handle(UpdatePlayerReadyStateCommand request, CancellationToken cancellationToken)
     {
         // validate
-        _validatorService.AddValidator(_playerExists.UseProperty(c => c.PlayerId));
-        await _validatorService.Validate(request);
+        // grab the player, we need it later anyway
+        var player = await _playerStore.ListAsNoTracking().FirstOrDefaultAsync(p => p.Id == request.PlayerId);
+        _validatorService.AddValidator(ctx =>
+        {
+            if (player == null)
+                ctx.AddValidationException(new ResourceNotFound<Data.Player>(request.PlayerId));
+        });
+        await _validatorService.Validate();
+
+        // authorize
+        if (player.UserId != request.Actor.Id)
+        {
+            _authorizer.AllowedRoles = UserRoleAuthorizer.RoleList(UserRole.Designer, UserRole.Tester, UserRole.Admin);
+            _authorizer.Authorize();
+        }
 
         // update the player's db flag
         var playerReadyState = await _syncStartGameService.UpdatePlayerReadyState(request.PlayerId, request.IsReady);
 
         // notify listeners
-        await _gameStartService.HandleSyncStartStateChanged(new SyncGameStartRequest
-        {
-            ActingUser = request.Actor,
-            GameId = playerReadyState.GameId
-        });
+        await _gameStartService.HandleSyncStartStateChanged(player.GameId);
     }
 }

@@ -13,44 +13,55 @@ public class GameHubEvent<TData> where TData : class
 
 public enum GameHubEventType
 {
-    DeployChallengesStart,
-    DeployChallengesPercentageChange,
-    DeployChallengesEnd,
+    ExternalGameChallengesDeployStart,
+    ExternalGameChallengesDeployProgressChange,
+    ExternalGameChallengesDeployEnd,
+    ExternalGameGamespacesDeployStart,
+    ExternalGameGamespacesDeployProgressChange,
+    ExternalGameGamespacesDeployEnd,
+    ExternalGameLaunchStart,
+    ExternalGameLaunchEnd,
+    ExternalGameLaunchFailure,
     PlayerJoined,
     SyncStartGameStarting,
     SyncStartGameStateChanged,
     VerifyAllPlayersConnectedStart,
-    VerifyAllPlayersConnectedCountChange,
+    VerifyAllPlayersConnectedProgressChange,
     VerifyAllPlayersConnectedEnd,
+    YouJoined
 }
 
 public interface IGameHubEvent
 {
-    Task ExternalGameChallengeDeployEvent(GameHubEvent<ExternalGameChallengeCreationState> ev);
+    Task ExternalGameChallengesDeployStart(GameHubEvent<ExternalGameLaunchState> ev);
+    Task ExternalGameChallengesDeployProgressChange(GameHubEvent<ExternalGameLaunchState> ev);
+    Task ExternalGameChallengesDeployEnd(GameHubEvent<ExternalGameLaunchState> ev);
+    Task ExternalGameLaunchStart(GameHubEvent<ExternalGameLaunchState> ev);
+    Task ExternalGameLaunchEnd(GameHubEvent<ExternalGameLaunchState> ev);
+    Task ExternalGameLaunchFailure(GameHubEvent<ExternalGameLaunchState> ev);
+    Task ExternalGameGamespacesDeployStart(GameHubEvent<ExternalGameLaunchState> ev);
+    Task ExternalGameGamespacesDeployProgressChange(GameHubEvent<ExternalGameLaunchState> ev);
+    Task ExternalGameGamespacesDeployEnd(GameHubEvent<ExternalGameLaunchState> ev);
     Task PlayerJoined(GameHubEvent<PlayerJoinedEvent> ev);
     Task SyncStartGameStateChanged(GameHubEvent<SyncStartState> ev);
     Task SyncStartGameStarting(GameHubEvent<SyncStartGameStartedState> ev);
+    Task YouJoined(GameHubEvent<YouJoinedEvent> ev);
 }
 
-public class ExternalGameChallengeCreationState
+public class ExternalGameLaunchState
 {
-    public required string GameId { get; set; }
-    public required int ChallengesDeployed { get; set; }
-    public required double ChallengesDeployedPercentage { get; set; }
-    public required int ChallengesPerPlayer { get; set; }
-    public required int ChallengesToDeployRemaining { get; set; }
-    public required int ChallengesTotal { get; set; }
-    public required int PlayersTotal { get; set; }
-    public required TimeSpan TimeElapsed { get; set; }
-}
+    public SimpleEntity Game { get; set; }
+    public int ChallengesCreated { get; set; } = 0;
+    public int ChallengesTotal { get; set; } = 0;
+    public int GamespacesDeployed { get; set; } = 0;
+    public int GamespacesTotal { get; set; } = 0;
+    public int PlayersTotal { get; set; }
+    public int TeamsTotal { get; set; }
+    public DateTimeOffset StartTime { get; set; }
+    public DateTimeOffset Now { get; set; }
+    public string Error { get; set; }
 
-public class GameSessionCreationState
-{
-    public required string GameId { get; set; }
-    public required int TotalPlayers { get; set; }
-    public required int PlayersWithSessionCreated { get; set; }
-    public required int PlayersWithoutSessionCreated { get; set; }
-    public required double PercentageOfSessionsCreated { get; set; }
+    public double OverallProgress { get => Math.Round(((0.8 * GamespacesDeployed) / GamespacesTotal) + ((0.2 * ChallengesCreated) / ChallengesTotal)); }
 }
 
 public class GameJoinRequest
@@ -67,4 +78,12 @@ public class PlayerJoinedEvent
 {
     public required string GameId { get; set; }
     public required SimpleEntity Player { get; set; }
+}
+
+public class YouJoinedEvent
+{
+    public required string ConnectionId { get; set; }
+    public required string UserId { get; set; }
+    public required int UserCount { get; set; }
+    public required string GroupName { get; set; }
 }

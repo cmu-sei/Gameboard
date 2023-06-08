@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Gameboard.Api.Common;
 using Gameboard.Api.Features.Games.Validators;
@@ -8,6 +10,7 @@ using Gameboard.Api.Structure;
 using Gameboard.Api.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Games;
@@ -21,6 +24,7 @@ public interface IGameHubApi
 [Authorize(AppConstants.HubPolicy)]
 public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
 {
+    private readonly IMemoryCache _cache;
     private readonly IGameHubBus _hubBus;
     private readonly ILogger<GameHub> _logger;
     private readonly PlayerService _playerService;
@@ -29,6 +33,7 @@ public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
 
     public GameHub
     (
+        IMemoryCache cache,
         IGameHubBus hubBus,
         ILogger<GameHub> logger,
         PlayerService playerService,
@@ -36,6 +41,7 @@ public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
         IValidatorServiceFactory validatorServiceFactory
     )
     {
+        _cache = cache;
         _hubBus = hubBus;
         _logger = logger;
         _playerService = playerService;
@@ -45,10 +51,12 @@ public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
 
     public GameboardHubGroupType GroupType { get => GameboardHubGroupType.Game; }
 
-    public override Task OnConnectedAsync()
+    public override async Task OnConnectedAsync()
     {
         this.LogOnConnected(_logger, Context);
-        return base.OnConnectedAsync();
+        // add user to a group of themselves for easy addressing
+        await this.Groups.AddToGroupAsync(Context.ConnectionId, Context.User.Name());
+        await base.OnConnectedAsync();
     }
 
     public override Task OnDisconnectedAsync(Exception ex)
@@ -73,6 +81,17 @@ public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
         var player = await _playerService.RetrieveByUserId(Context.UserIdentifier);
         Context.Items[BuildPlayerContextKey(request.GameId)] = player;
 
+        // cache a record of this user being in the game
+        AddUserToGameCache(request.GameId, player);
+
+        await _hubBus.SendYouJoined(new YouJoinedEvent
+        {
+            ConnectionId = Context.ConnectionId,
+            UserId = Context.UserIdentifier,
+            UserCount = _cache.Get<IList<string>>(request.GameId).Count(),
+            GroupName = this.GetCanonicalGroupId(request.GameId)
+        });
+
         // notify other game members
         await _hubBus.SendPlayerJoined(Context.ConnectionId, new PlayerJoinedEvent
         {
@@ -94,6 +113,36 @@ public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
 
         // forget the player record if it exists
         Context.Items.Remove(BuildPlayerContextKey(request.GameId));
+        RemoveUserFromGameCache(request.GameId, Context.UserIdentifier);
+    }
+
+    private IList<string> AddUserToGameCache(string gameId, Data.Player player)
+    {
+        IList<string> userIds;
+        if (!_cache.TryGetValue(gameId, out userIds))
+        {
+            var opts = new MemoryCacheEntryOptions();
+            opts.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(player.SessionMinutes);
+
+            _cache.Set(gameId, new List<string> { player.UserId }, opts);
+        }
+
+        return userIds;
+        // return _cache.GetOrCreate<IList<string>>(gameId, entry =>
+        // {
+        //     entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(player.SessionMinutes);
+        //     return new List<string> { player.UserId };
+        // });
+    }
+
+    private void RemoveUserFromGameCache(string gameId, string userId)
+    {
+        IList<string> userIdList;
+        if (_cache.TryGetValue<IList<string>>(gameId, out userIdList))
+        {
+            userIdList.Remove(userId);
+            _cache.Set(gameId, userIdList);
+        }
     }
 
     private string BuildPlayerContextKey(string gameId)

@@ -27,7 +27,6 @@ namespace Gameboard.Api.Hubs
         private readonly IGameService _gameService;
         private readonly IMapper _mapper;
         private readonly IMediator _mediator;
-        private readonly ISyncStartGameService _syncStartGameService;
 
         public AppHub
         (
@@ -44,7 +43,6 @@ namespace Gameboard.Api.Hubs
             _gameService = gameService;
             _mapper = mapper;
             _mediator = mediator;
-            _syncStartGameService = syncStartGameService;
         }
 
         public override Task OnConnectedAsync()
@@ -96,34 +94,6 @@ namespace Gameboard.Api.Hubs
                 }
             );
         }
-
-        // public async Task<SyncStartState> JoinGame(string gameId)
-        // {
-        //     if (string.IsNullOrWhiteSpace(gameId))
-        //         throw new ArgumentNullException();
-
-        //     var game = await _gameService
-        //         .BuildQuery()
-        //         .AsNoTracking()
-        //         .Include(g => g.Players)
-        //         .FirstOrDefaultAsync(g => g.Id == gameId);
-
-        //     if (game == null)
-        //         throw new ResourceNotFound<Game>(gameId);
-
-        //     if (!game.Players.Any(p => p.UserId == Context.UserIdentifier))
-        //         throw new PlayerIsntInGame();
-
-        //     await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
-
-        //     if (game.RequireSynchronizedStart)
-        //     {
-        //         return await _syncStartGameService.GetSyncStartState(game.Id);
-        //     }
-
-        //     // this isn't a failure, we just don't send anything down if sync start isn't needed
-        //     return null;
-        // }
 
         public async Task LeaveChannel(string channelId)
         {

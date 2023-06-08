@@ -93,11 +93,7 @@ public class PlayerService
         await HubBus.SendPlayerEnrolled(Mapper.Map<Api.Player>(entity), actor);
 
         if (game.RequireSynchronizedStart)
-            await GameStartService.HandleSyncStartStateChanged(new SyncGameStartRequest
-            {
-                ActingUser = actor,
-                GameId = entity.GameId
-            });
+            await GameStartService.HandleSyncStartStateChanged(model.GameId);
 
         return Mapper.Map<Player>(entity);
     }
@@ -195,11 +191,7 @@ public class PlayerService
 
         // update player ready state if game needs it
         if (player.Game.RequireSynchronizedStart && player.SessionBegin == DateTimeOffset.MinValue)
-            await GameStartService.HandleSyncStartStateChanged(new SyncGameStartRequest
-            {
-                ActingUser = args.ActingUser,
-                GameId = player.GameId
-            });
+            await GameStartService.HandleSyncStartStateChanged(player.GameId);
 
         return Mapper.Map<Player>(player);
     }
@@ -563,11 +555,7 @@ public class PlayerService
 
         // update sync start if needed
         if (player.Game.RequireSynchronizedStart)
-            await GameStartService.HandleSyncStartStateChanged(new SyncGameStartRequest
-            {
-                ActingUser = request.Actor,
-                GameId = player.GameId
-            });
+            await GameStartService.HandleSyncStartStateChanged(playerModel.GameId);
     }
 
     public async Task<TeamChallenge[]> LoadChallengesForTeam(string teamId)

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -24,6 +25,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     private readonly IChallengeSpecStore _challengeSpecStore;
     private readonly IGamebrainService _gamebrainService;
     private readonly IGameEngineService _gameEngineService;
+    private readonly IGameHubBus _gameHubBus;
     private readonly IGameStore _gameStore;
     private readonly IJsonService _jsonService;
     private readonly ILockService _lockService;
@@ -39,6 +41,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         IChallengeSpecStore challengeSpecStore,
         IGamebrainService gamebrainService,
         IGameEngineService gameEngineService,
+        IGameHubBus gameHubBus,
         IGameStore gameStore,
         IJsonService jsonService,
         ILockService lockService,
@@ -53,6 +56,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         _challengeSpecStore = challengeSpecStore;
         _gamebrainService = gamebrainService;
         _gameEngineService = gameEngineService;
+        _gameHubBus = gameHubBus;
         _gameStore = gameStore;
         _jsonService = jsonService;
         _lockService = lockService;
@@ -65,71 +69,110 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
     public async Task Start(ExternalSyncGameStartRequest request)
     {
-        Log("Gathering data...", request.GameId);
-        var game = await _gameStore.Retrieve(request.GameId);
-        var specs = await _challengeSpecStore.ListAsNoTracking().Where(cs => cs.GameId == request.GameId).ToArrayAsync();
-        var players = _mapper.Map<IEnumerable<Api.Player>>(await _playerStore.ListAsNoTracking().Where(p => p.GameId == request.GameId).ToArrayAsync());
-        var teams = players.GroupBy(p => p.TeamId).ToDictionary(g => g.Key, g => _teamService.ResolveCaptain(g.Key, g.ToList()));
-        var teamDeployedChallenges = new Dictionary<string, List<Api.Challenge>>();
-        var challengeGamespaces = new Dictionary<string, ExternalGameStartTeamGamespace>();
-        Log($"Data gathered: {players.Count()} players on {teams.Keys.Count()}.", request.GameId);
-
-        Log("Identifying team captains...", request.GameId);
-        // validate that we have a team captain for every team before we do anything
-        foreach (var teamId in teams.Keys)
+        var timeStart = _now.Get();
+        var state = new ExternalGameLaunchState
         {
-            if (teams[teamId] == null)
-                throw new CaptainResolutionFailure(teamId, "Couldn't resolve captain during external sync game start.");
-        }
+            Game = new SimpleEntity { Id = request.GameId },
+            StartTime = timeStart,
+            Now = timeStart
+        };
 
-        Log("Deploying challenges...", request.GameId);
-        // deploy all challenges
-        foreach (var teamId in teams.Keys)
+        try
         {
-            // hold onto each team's challenges
-            Log($"""Deploying challenges for team "{teamId}".""", request.GameId);
-            teamDeployedChallenges.Add(teamId, new List<Challenge>());
+            await _gameHubBus.SendExternalGameLaunchStart(state);
+            Log("Gathering data...", request.GameId);
+            var game = await _gameStore.Retrieve(request.GameId);
+            var specs = await _challengeSpecStore.ListAsNoTracking().Where(cs => cs.GameId == request.GameId).ToArrayAsync();
+            var players = _mapper.Map<IEnumerable<Api.Player>>(await _playerStore.ListAsNoTracking().Where(p => p.GameId == request.GameId).ToArrayAsync());
+            var teams = players.GroupBy(p => p.TeamId).ToDictionary(g => g.Key, g => _teamService.ResolveCaptain(g.Key, g.ToList()));
+            var teamDeployedChallenges = new Dictionary<string, List<Api.Challenge>>();
+            var challengeGamespaces = new Dictionary<string, ExternalGameStartTeamGamespace>();
+            Log($"Data gathered: {players.Count()} players on {teams.Keys.Count()}.", request.GameId);
 
-            foreach (var specId in specs.Select(s => s.Id))
+            // update state object and notify clients
+            state.Game.Name = game.Name;
+            state.ChallengesTotal = specs.Count() * teams.Count();
+            state.GamespacesTotal = specs.Count() * teams.Count();
+            state.PlayersTotal = players.Count();
+
+            Log("Identifying team captains...", request.GameId);
+            // validate that we have a team captain for every team before we do anything
+            foreach (var teamId in teams.Keys)
             {
-                Log($"""Creating challenge for spec "{specId}"...""", request.GameId);
-
-                var challenge = await _challengeService.Create
-                (
-                    new NewChallenge
-                    {
-                        PlayerId = teams[teamId].Id,
-                        SpecId = specId,
-                        StartGamespace = false, // hold gamespace startup until we're sure we've created all challenges
-                        Variant = 0
-                    },
-                    teams.Values.First().Id, // for now, actor is first captain
-                    _challengeService.BuildGraderUrl()
-                );
-
-                request.Context.DeployedChallenges.Add(challenge);
-                teamDeployedChallenges[teamId].Add(challenge);
-                Log($"Spec created.", request.GameId);
+                if (teams[teamId] == null)
+                    throw new CaptainResolutionFailure(teamId, "Couldn't resolve captain during external sync game start.");
             }
-        }
 
-        // start all gamespaces
-        Log("Deploying gamespaces...", request.GameId);
-        foreach (var deployedChallenge in request.Context.DeployedChallenges)
-        {
-            _logger.LogInformation($"""Starting gamespace for challenge "{deployedChallenge.Id}" (teamId "{deployedChallenge.TeamId}")... """);
-            var challengeState = await _gameEngineService.StartGamespace(deployedChallenge);
-            _logger.LogInformation($"""Gamespace started for challenge "{deployedChallenge.Id}".""");
+            Log("Deploying challenges...", request.GameId);
 
-            var vms = _gameEngineService.GetGamespaceVms(challengeState);
-            challengeGamespaces.Add(deployedChallenge.Id, new ExternalGameStartTeamGamespace
+            // deploy all challenges
+            await _gameHubBus.SendExternalGameChallengesDeployStart(state);
+            foreach (var teamId in teams.Keys)
             {
-                Id = challengeState.Id,
-                Challenge = new SimpleEntity { Id = deployedChallenge.Id, Name = deployedChallenge.Name },
-                VmUrls = vms.Select(vm => vm.Url)
-            });
+                // hold onto each team's challenges
+                Log($"""Deploying challenges for team "{teamId}".""", request.GameId);
+                teamDeployedChallenges.Add(teamId, new List<Challenge>());
 
-            request.Context.DeployedGamespaces.Add(challengeState);
+                foreach (var specId in specs.Select(s => s.Id))
+                {
+                    Log($"""Creating challenge for spec "{specId}"...""", request.GameId);
+
+                    var challenge = await _challengeService.Create
+                    (
+                        new NewChallenge
+                        {
+                            PlayerId = teams[teamId].Id,
+                            SpecId = specId,
+                            StartGamespace = false, // hold gamespace startup until we're sure we've created all challenges
+                            Variant = 0
+                        },
+                        teams.Values.First().Id, // for now, actor is first captain
+                        _challengeService.BuildGraderUrl()
+                    );
+
+                    request.Context.DeployedChallenges.Add(challenge);
+                    teamDeployedChallenges[teamId].Add(challenge);
+                    Log($"Spec created.", request.GameId);
+
+                    state.ChallengesCreated += 1;
+                    await _gameHubBus.SendExternalGameChallengesDeployProgressChange(state);
+                }
+            }
+
+            await _gameHubBus.SendExternalGameChallengesDeployEnd(state);
+
+            // start all gamespaces
+            Log("Deploying gamespaces...", request.GameId);
+            await _gameHubBus.SendExternalGameGamespacesDeployStart(state);
+
+            foreach (var deployedChallenge in request.Context.DeployedChallenges)
+            {
+                _logger.LogInformation($"""Starting gamespace for challenge "{deployedChallenge.Id}" (teamId "{deployedChallenge.TeamId}")... """);
+                var challengeState = await _gameEngineService.StartGamespace(deployedChallenge);
+                _logger.LogInformation($"""Gamespace started for challenge "{deployedChallenge.Id}".""");
+
+                var vms = _gameEngineService.GetGamespaceVms(challengeState);
+                challengeGamespaces.Add(deployedChallenge.Id, new ExternalGameStartTeamGamespace
+                {
+                    Id = challengeState.Id,
+                    Challenge = new SimpleEntity { Id = deployedChallenge.Id, Name = deployedChallenge.Name },
+                    VmUrls = vms.Select(vm => vm.Url)
+                });
+
+                request.Context.DeployedGamespaces.Add(challengeState);
+                state.GamespacesDeployed = request.Context.DeployedGamespaces.Count();
+                await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(state);
+            }
+
+            await _gameHubBus.SendExternalGameGamespacesDeployEnd(state);
+            await _gameHubBus.SendExternalGameLaunchEnd(state);
+        }
+        catch (Exception ex)
+        {
+            var exceptionMessage = $"""EXTERNAL GAME LAUNCH FAILURE (game "{request.GameId}"): {ex.GetType().Name} :: {ex.Message}""";
+            _logger.LogError(exceptionMessage);
+            state.Error = exceptionMessage;
+            await this._gameHubBus.SendExternalGameLaunchFailure(state);
         }
     }
 
