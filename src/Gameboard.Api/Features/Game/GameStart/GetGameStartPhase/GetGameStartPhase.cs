@@ -1,13 +1,11 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games.Start;
 
@@ -42,18 +40,18 @@ internal class GetGameStartPhaseHandler : IRequestHandler<GetGameStartPhaseQuery
 
     public async Task<GameStartPhase> Handle(GetGameStartPhaseQuery request, CancellationToken cancellationToken)
     {
-        // validate
-        _validatorService
-            .AddValidator(_gameExists.UseProperty(r => r.GameId))
-            .AddValidator(_userExists.UseProperty(r => r.ActingUserId));
-        await _validatorService.Validate(request);
-
         // authorize
         var isPlaying = await _gameService.IsUserPlaying(request.GameId, request.ActingUserId);
         if (!isPlaying)
             _userRoleAuthorizer
                 .AllowRoles(UserRole.Admin, UserRole.Director, UserRole.Observer, UserRole.Support)
                 .Authorize();
+
+        // validate
+        _validatorService
+            .AddValidator(_gameExists.UseProperty(r => r.GameId))
+            .AddValidator(_userExists.UseProperty(r => r.ActingUserId));
+        await _validatorService.Validate(request);
 
         return await _gameStartService.GetGameStartPhase(request.GameId);
     }

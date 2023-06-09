@@ -104,6 +104,12 @@ internal class GameStartService : IGameStartService
     public async Task<GameStartPhase> GetGameStartPhase(string gameId)
     {
         var game = await _gameStore.Retrieve(gameId);
+
+        // we'll backfill this later with real services, but here you go
+        if (!game.RequireSynchronizedStart)
+            return game.IsLive ? GameStartPhase.Started : GameStartPhase.GameOver;
+
+        // for external/sync start, currently
         var gameModeStartService = ResolveGameModeStartService(game);
         return await gameModeStartService.GetStartPhase(gameId);
     }
