@@ -189,6 +189,16 @@ internal class GameStartService : IGameStartService
                 throw new CaptainResolutionFailure(teamId, "Couldn't resolve captain during external sync game start.");
         }
 
+        state.Teams.AddRange(teamCaptains.Select(tc => new GameStartStateTeam
+        {
+            Team = new SimpleEntity { Id = tc.Key, Name = tc.Value.ApprovedName },
+            Captain = new GameStartStateTeamCaptain
+            {
+                Player = new SimpleEntity { Id = tc.Value.Id, Name = tc.Value.ApprovedName },
+                UserId = tc.Value.UserId
+            }
+        }).ToArray());
+
         return new GameModeStartRequest
         {
             GameId = game.Id,
@@ -197,7 +207,6 @@ internal class GameStartService : IGameStartService
             {
                 SessionLengthMinutes = game.SessionMinutes,
                 SpecIds = specs.Select(s => s.Id).ToArray(),
-                TeamCaptains = teamCaptains
             }
         };
     }

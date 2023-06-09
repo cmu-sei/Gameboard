@@ -130,11 +130,12 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
             // deploy all challenges
             await _gameHubBus.SendExternalGameChallengesDeployStart(request.State);
-            foreach (var teamId in request.State.Teams.Select(t => t.Id).ToArray())
+
+            foreach (var team in request.State.Teams)
             {
                 // hold onto each team's challenges
-                Log($"""Deploying challenges for team "{teamId}".""", request.GameId);
-                teamDeployedChallenges.Add(teamId, new List<Challenge>());
+                Log($"""Deploying challenges for team "{team.Team.Id}".""", request.GameId);
+                teamDeployedChallenges.Add(team.Team.Id, new List<Challenge>());
 
                 foreach (var specId in request.Context.SpecIds)
                 {
@@ -144,18 +145,18 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                     (
                         new NewChallenge
                         {
-                            PlayerId = request.Context.TeamCaptains[teamId].Id,
+                            PlayerId = team.Captain.Player.Id,
                             SpecId = specId,
                             StartGamespace = false, // hold gamespace startup until we're sure we've created all challenges
                             Variant = 0
                         },
-                        request.Context.TeamCaptains.Values.First().Id, // for now, actor is first captain
+                        team.Captain.UserId,
                         _challengeService.BuildGraderUrl()
                     );
 
                     request.State.ChallengesCreated.Add(_mapper.Map<GameStartStateChallenge>(challenge));
-                    teamDeployedChallenges[teamId].Add(challenge);
-                    Log($"Spec instantiated for team {teamId}.", request.GameId);
+                    teamDeployedChallenges[team.Team.Id].Add(challenge);
+                    Log($"Spec instantiated for team {team.Team.Id}.", request.GameId);
 
                     await _gameHubBus.SendExternalGameChallengesDeployProgressChange(request.State);
                 }
@@ -255,13 +256,13 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         var teamsToReturn = new List<ExternalGameStartMetaDataTeam>();
         foreach (var team in startState.Teams)
         {
-            var teamChallenges = startState.ChallengesCreated.Where(c => c.TeamId == team.Id).Select(c => c.Challenge);
+            var teamChallenges = startState.ChallengesCreated.Where(c => c.TeamId == team.Team.Id).Select(c => c.Challenge);
             var teamGameStates = startState.GamespacesDeployed.Where(g => teamChallenges.Select(c => c.Id).Contains(g.Id));
 
             var teamToReturn = new ExternalGameStartMetaDataTeam
             {
-                Id = team.Id,
-                Name = team.Name,
+                Id = team.Team.Id,
+                Name = team.Team.Name,
                 Gamespaces = teamGameStates.Select(gs => new ExternalGameStartTeamGamespace
                 {
                     Id = gs.Id,

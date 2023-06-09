@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.External;
+using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Services;
 
@@ -125,13 +126,13 @@ public class GameService : _Service, IGameService
             return q;
 
         if (model.WantsPresent)
-            q = q.Where(g => g.GameEnd > now && g.GameStart < now);
+            q = q.Where(g => (g.GameEnd > now || g.GameEnd == AppConstants.NULL_DATE) && g.GameStart < now);
 
         if (model.WantsFuture)
             q = q.Where(g => g.GameStart > now);
 
         if (model.WantsPast)
-            q = q.Where(g => g.GameEnd < now);
+            q = q.Where(g => g.GameEnd < now && g.GameEnd != AppConstants.NULL_DATE);
 
         if (model.WantsFuture)
             q = q.OrderBy(g => g.GameStart).ThenBy(g => g.Name);

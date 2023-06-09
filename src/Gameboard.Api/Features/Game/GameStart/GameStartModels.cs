@@ -14,7 +14,7 @@ public class GameStartState
     public List<GameEngineGameState> GamespacesDeployed { get; set; } = new List<GameEngineGameState>();
     public int GamespacesTotal { get; set; } = 0;
     public List<GameStartStatePlayer> Players { get; } = new List<GameStartStatePlayer>();
-    public List<SimpleEntity> Teams { get; } = new List<SimpleEntity>();
+    public List<GameStartStateTeam> Teams { get; } = new List<GameStartStateTeam>();
     public DateTimeOffset StartTime { get; set; }
     public required DateTimeOffset Now { get; set; }
     public string Error { get; set; }
@@ -46,6 +46,18 @@ public class GameStartStatePlayer
     public required string TeamId { get; set; }
 }
 
+public class GameStartStateTeam
+{
+    public required SimpleEntity Team { get; set; }
+    public required GameStartStateTeamCaptain Captain { get; set; }
+}
+
+public class GameStartStateTeamCaptain
+{
+    public required SimpleEntity Player { get; set; }
+    public required string UserId { get; set; }
+}
+
 public class GameStartStateChallenge
 {
     public required SimpleEntity Challenge { get; set; }
@@ -71,5 +83,4 @@ public class GameModeStartRequestContext
 {
     public required double SessionLengthMinutes { get; set; }
     public required IEnumerable<string> SpecIds { get; set; }
-    public required IDictionary<string, Api.Player> TeamCaptains { get; set; }
 }
