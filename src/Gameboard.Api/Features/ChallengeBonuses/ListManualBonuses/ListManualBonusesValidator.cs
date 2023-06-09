@@ -28,8 +28,9 @@ internal class ListManualBonusesValidator : IGameboardRequestValidator<ListManua
 
     public async Task Validate(ListManualBonusesQuery request)
     {
-        _authorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Designer, UserRole.Support };
-        _authorizer.Authorize();
+        _authorizer
+            .AllowRoles(UserRole.Admin, UserRole.Designer, UserRole.Support)
+            .Authorize();
 
         _validatorService
             .AddValidator(_challengeExists)

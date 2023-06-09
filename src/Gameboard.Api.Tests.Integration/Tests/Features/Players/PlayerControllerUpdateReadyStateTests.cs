@@ -74,7 +74,7 @@ public class PlayerControllerUpdatePlayerReadyTests : IClassFixture<GameboardTes
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task UpdatePlayerReady_WithAllReadyPlayers_ReturnsStartedSession(IFixture fixture, string gameId, string readyPlayerId, string notReadyPlayerUserId, string notReadyPlayerId)
+    public async Task UpdatePlayerReady_WithAllReadyPlayersAndExternalSyncGame_ReturnsStartedSession(IFixture fixture, string gameId, string readyPlayerId, string notReadyPlayerUserId, string notReadyPlayerId)
     {
         // given
         await _testContext
@@ -85,6 +85,7 @@ public class PlayerControllerUpdatePlayerReadyTests : IClassFixture<GameboardTes
                 {
                     g.Id = gameId;
                     g.Name = fixture.Create<string>();
+                    g.Mode = GameMode.External;
                     g.RequireSynchronizedStart = true;
                     g.Players = new Data.Player[]
                     {

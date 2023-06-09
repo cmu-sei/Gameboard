@@ -2,7 +2,7 @@ using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
-using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using MediatR;

@@ -15,6 +15,7 @@ using Gameboard.Api.Features.CubespaceScoreboard;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.External;
+using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.UnityGames;
@@ -22,18 +23,44 @@ using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
 using Gameboard.Api.Validation;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
     public static class ServiceStartupExtensions
     {
-        public static IServiceCollection AddGameboardServices(this IServiceCollection services, AppSettings settings)
+        public static IServiceCollection AddGameboardServices(this IServiceCollection services, IWebHostEnvironment environment, AppSettings settings)
         {
-            // add special case services
+            // add general services
             services
                 .AddSingleton<ConsoleActorMap>()
                 .AddHttpContextAccessor()
+                .AddGameboardMediatR()
+                .AddSingleton<AutoMapper.IMapper>(
+                new AutoMapper.MapperConfiguration(cfg =>
+                {
+                    cfg.AddGameboardMaps();
+                }).CreateMapper()
+                );
+
+            // don't add the job service during test - we don't want it to interfere with CI
+            if (!environment.IsTest())
+                services.AddHostedService<JobService>();
+
+            // dev environment logging
+            if (environment.IsDev())
+            {
+                services.AddLogging(builder =>
+                {
+                    builder.AddConsole();
+                    builder.SetMinimumLevel(LogLevel.Information);
+                });
+            }
+
+            // add feature services
+            services
                 .AddConcretesFromNamespace("Gameboard.Api.Structure.Authorizers")
                 .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators")
                 .AddConcretesFromNamespace("Gameboard.Api.Features.Games.Validators");

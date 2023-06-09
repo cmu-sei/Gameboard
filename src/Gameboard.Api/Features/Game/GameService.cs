@@ -26,6 +26,7 @@ public interface IGameService
     Task<Game> Import(GameSpecImport model);
     bool IsGameStartSuperUser(User user);
     IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool sudo = false);
+    Task<bool> IsUserPlaying(string gameId, string userId);
     Task<IEnumerable<Game>> List(GameSearchFilter model, bool sudo);
     Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo);
     Task ReRank(string id);
@@ -328,6 +329,12 @@ public class GameService : _Service, IGameService
 
         await _store.DbContext.SaveChangesAsync();
     }
+
+    public Task<bool> IsUserPlaying(string gameId, string userId)
+        => _store
+            .DbContext
+            .Players
+            .AnyAsync(p => p.GameId == gameId && p.UserId == userId);
 
     public async Task<bool> UserIsTeamPlayer(string uid, string gid, string tid)
     {

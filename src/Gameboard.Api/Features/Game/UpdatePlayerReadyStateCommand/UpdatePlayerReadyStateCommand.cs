@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
@@ -56,8 +57,9 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
         // authorize
         if (player.UserId != request.Actor.Id)
         {
-            _authorizer.AllowedRoles = UserRoleAuthorizer.RoleList(UserRole.Designer, UserRole.Tester, UserRole.Admin);
-            _authorizer.Authorize();
+            _authorizer
+                .AllowRoles(UserRole.Designer, UserRole.Tester, UserRole.Admin)
+                .Authorize();
         }
 
         // update the player's db flag

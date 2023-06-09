@@ -29,8 +29,9 @@ internal class GetSubmissionsRequestValidator : IGameboardRequestValidator<GetSu
 
     public async Task Validate(GetSubmissionsQuery query)
     {
-        _roleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Support, UserRole.Designer };
-        _roleAuthorizer.Authorize();
+        _roleAuthorizer
+            .AllowRoles(UserRole.Admin, UserRole.Support, UserRole.Designer)
+            .Authorize();
 
         _validatorService.AddValidator(_challengeExists);
         await _validatorService.Validate(query);

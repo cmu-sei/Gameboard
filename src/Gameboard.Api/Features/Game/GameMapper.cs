@@ -52,6 +52,10 @@ namespace Gameboard.Api.Services
             CreateMap<NewGame, Data.Game>();
             CreateMap<ChangedGame, Data.Game>();
             CreateMap<Data.Game, SimpleEntity>();
+
+            // Game Start maps
+            CreateMap<Data.Challenge, GameStartStateChallenge>()
+                .ForMember(d => d.Challenge, o => o.MapFrom(s => s));
         }
     }
 }

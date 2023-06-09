@@ -122,7 +122,7 @@ internal class TestGameEngineService : IGameEngineService
         return Task.FromResult(new GameEngineGameState());
     }
 
-    public Task<GameEngineGameState> StartGamespace(Api.Challenge challenge)
+    public Task<GameEngineGameState> StartGamespace(GameEngineGamespaceStartRequest request)
     {
         return Task.FromResult(new GameEngineGameState());
     }

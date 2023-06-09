@@ -19,6 +19,12 @@ public class GameEngineChallengeRegistration
     public int Variant { get; set; }
 }
 
+public class GameEngineGamespaceStartRequest
+{
+    public required string ChallengeId { get; set; }
+    public required GameEngineType GameEngineType { get; set; }
+}
+
 public class GameEngineGameState
 {
     [Required] public string Id { get; set; }

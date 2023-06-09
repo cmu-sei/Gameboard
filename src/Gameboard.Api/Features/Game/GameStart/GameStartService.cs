@@ -2,26 +2,31 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games.External;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
 using Gameboard.Api.Structure.MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Gameboard.Api.Features.Games;
+namespace Gameboard.Api.Features.Games.Start;
 
 public interface IGameStartService
 {
+    Task<GameStartPhase> GetGameStartPhase(string gameId);
     Task HandleSyncStartStateChanged(string gameId);
-    Task<ExternalGameStartMetaData> Start(GameStartRequest request);
+    Task<GameStartState> Start(GameStartRequest request);
 }
 
 internal class GameStartService : IGameStartService
 {
+    private readonly IChallengeSpecStore _challengeSpecStore;
     private readonly IGameEngineService _gameEngineService;
     private readonly IGamebrainService _gamebrainService;
     private readonly IGameHubBus _gameHubBus;
@@ -29,14 +34,17 @@ internal class GameStartService : IGameStartService
     private readonly IGameStore _gameStore;
     private readonly IJsonService _jsonService;
     private ILogger<GameStartService> _logger;
+    private readonly IMapper _mapper;
     private readonly INowService _now;
     private readonly IPlayerStore _playerStore;
     private readonly IExternalSyncGameStartService _externalSyncGameStartService;
     private readonly ISyncStartGameService _syncStartGameService;
+    private readonly ITeamService _teamService;
     private readonly IValidatorService<GameStartRequest> _validator;
 
     public GameStartService
     (
+        IChallengeSpecStore challengeSpecStore,
         IExternalSyncGameStartService externalSyncGameStartService,
         IGamebrainService gamebrainService,
         IGameEngineService gameEngineService,
@@ -45,12 +53,15 @@ internal class GameStartService : IGameStartService
         IGameStore gameStore,
         IJsonService jsonService,
         ILogger<GameStartService> logger,
+        IMapper mapper,
         INowService now,
         IPlayerStore playerStore,
         ISyncStartGameService syncGameStartService,
+        ITeamService teamService,
         IValidatorService<GameStartRequest> validator
     )
     {
+        _challengeSpecStore = challengeSpecStore;
         _externalSyncGameStartService = externalSyncGameStartService;
         _gamebrainService = gamebrainService;
         _gameEngineService = gameEngineService;
@@ -59,74 +70,42 @@ internal class GameStartService : IGameStartService
         _gameStore = gameStore;
         _jsonService = jsonService;
         _logger = logger;
+        _mapper = mapper;
         _now = now;
         _playerStore = playerStore;
         _syncStartGameService = syncGameStartService;
+        _teamService = teamService;
         _validator = validator;
     }
 
-    public async Task<ExternalGameStartMetaData> Start(GameStartRequest request)
+    public async Task<GameStartState> Start(GameStartRequest request)
     {
         var game = await _gameStore.Retrieve(request.GameId);
-        var ctx = new GameStartContext
-        {
-            Game = new SimpleEntity { Id = game.Id, Name = game.Name },
-            DeployedChallenges = new List<Challenge>(),
-            DeployedGamespaces = new List<GameEngineGameState>(),
-            Teams = new List<SimpleEntity>()
-        };
+        var gameModeStartService = ResolveGameModeStartService(game);
 
-        // three cases to be accommodated: standard challenges, sync start + external (unity), and
-        // non-sync-start + external (cubespace)
-        // if (game.Mode == GameMode.Standard && !game.RequireSynchronizedStart)
-        // {
-        //     if (actingUser == null)
-        //         throw new CantStartStandardGameWithoutActingUserParameter(gameId);
+        if (gameModeStartService == null)
+            throw new NotImplementedException();
 
-        //     await _mediator.Send(new StartStandardNonSyncGameCommand(gameId, actingUser));
-        // }
+        var startRequest = await LoadGameModeStartRequest(game);
 
         try
         {
-            if (game.Mode == GameMode.External && game.RequireSynchronizedStart)
-            {
-                await ValidateExternalSyncGame(request);
-
-                await _externalSyncGameStartService.Start(new ExternalSyncGameStartRequest
-                {
-                    Context = ctx,
-                    GameId = request.GameId
-                });
-
-                // establish all sessions
-                _logger.LogInformation("Starting a synchronized session for all teams...", request.GameId);
-                var syncGameStartState = await _syncStartGameService.StartSynchronizedSession(game.Id);
-                _logger.LogInformation("Synchronized session started!", request.GameId);
-
-                // build metadata for external host
-                var metaData = BuildMetaData(ctx, syncGameStartState);
-
-                // NOTIFY EXTERNAL CLIENT
-                _logger.LogInformation("Notifying Gamebrain...");
-                await _gamebrainService.StartV2Game(metaData);
-                _logger.LogInformation("Gamebrain notified!");
-
-                // notify gameboard to move players along
-                await this._gameHubBus.SendSyncStartGameStarting(syncGameStartState);
-
-                return metaData;
-            }
-
-            // other combinations of game mode/sync start
-            throw new System.NotImplementedException();
+            return await gameModeStartService.Start(startRequest);
         }
         catch (Exception ex)
         {
             _logger.LogError(LogEventId.GameStart_Failed, exception: ex, message: $"""Deploy for game "{game.Id}" """);
-            await TryCleanupFailedDeploy(ctx);
+            await TryCleanupFailedDeploy(startRequest.State);
         }
 
         return null;
+    }
+
+    public async Task<GameStartPhase> GetGameStartPhase(string gameId)
+    {
+        var game = await _gameStore.Retrieve(gameId);
+        var gameModeStartService = ResolveGameModeStartService(game);
+        return await gameModeStartService.GetStartPhase(gameId);
     }
 
     public async Task HandleSyncStartStateChanged(string gameId)
@@ -143,82 +122,95 @@ internal class GameStartService : IGameStartService
         await Start(new GameStartRequest { GameId = state.Game.Id });
     }
 
-    private ExternalGameStartMetaData BuildMetaData(GameStartContext ctx, SyncStartGameStartedState syncgameStartState)
+    private IGameModeStartService ResolveGameModeStartService(Data.Game game)
     {
-        // build team objects to return
-        var teamsToReturn = new List<ExternalGameStartMetaDataTeam>();
-        foreach (var team in ctx.Teams)
+        // three cases to be accommodated: standard challenges, sync start + external (unity), and
+        // non-sync-start + external (cubespace)
+        // if (game.Mode == GameMode.Standard && !game.RequireSynchronizedStart)
+        // {
+        //     if (actingUser == null)
+        //         throw new CantStartStandardGameWithoutActingUserParameter(gameId);
+
+        //     await _mediator.Send(new StartStandardNonSyncGameCommand(gameId, actingUser));
+        // }
+
+        if (game.Mode == GameMode.External && game.RequireSynchronizedStart)
+            return _externalSyncGameStartService;
+
+        return null;
+    }
+
+    // we need to build the base of the game start data both in the case of doing the actual launch
+    // or on demand when someone asks for it, so consolidate that here
+    private async Task<GameModeStartRequest> LoadGameModeStartRequest(Data.Game game)
+    {
+        var now = _now.Get();
+
+        var state = new GameStartState
         {
-            var teamChallenges = ctx.DeployedChallenges.Where(c => c.TeamId == team.Id).Select(c => new SimpleEntity { Id = c.Id, Name = c.Name });
-            var teamGameStates = ctx.DeployedGamespaces.Where(g => teamChallenges.Select(c => c.Id).Contains(g.Id));
-
-            var teamToReturn = new ExternalGameStartMetaDataTeam
-            {
-                Id = team.Id,
-                Name = team.Name,
-                Gamespaces = teamGameStates.Select(gs => new ExternalGameStartTeamGamespace
-                {
-                    Id = gs.Id,
-                    Challenge = teamChallenges.First(c => c.Id == gs.Id),
-                    VmUrls = _gameEngineService.GetGamespaceVms(gs).Select(vm => vm.Url)
-                })
-            };
-
-            teamsToReturn.Add(teamToReturn);
-        }
-
-        var retVal = new ExternalGameStartMetaData
-        {
-            Game = ctx.Game,
-            Session = new ExternalGameStartMetaDataSession
-            {
-                Now = _now.Get(),
-                SessionBegin = syncgameStartState.SessionBegin,
-                SessionEnd = syncgameStartState.SessionEnd
-            },
-            Teams = teamsToReturn
+            Game = new SimpleEntity { Id = game.Id, Name = game.Name },
+            Now = now,
+            StartTime = now,
         };
 
-        var metadataJson = _jsonService.Serialize(retVal);
-        _logger.LogInformation($"""Final metadata payload for game "{retVal.Game.Id}" is here: {metadataJson}""");
-        return retVal;
-    }
+        var specs = await _challengeSpecStore.ListAsNoTracking().Where(cs => cs.GameId == game.Id).ToArrayAsync();
+        var players = await _playerStore
+            .ListAsNoTracking()
+            .Where(p => p.GameId == game.Id)
+            .ToArrayAsync();
+        var teamCaptains = players
+            .GroupBy(p => p.TeamId)
+            .ToDictionary
+            (
+                g => g.Key,
+                g => _teamService.ResolveCaptain
+                (
+                    g.Key,
+                    _mapper.Map<IEnumerable<Api.Player>>(g.ToList())
+                )
+            );
 
-    private async Task ValidateExternalSyncGame(GameStartRequest request)
-    {
-        _logger.LogInformation("Validating external / sync-start game request...", request.GameId);
-        _validator.AddValidator(async (req, ctx) =>
+        // update state object
+        Log($"Data gathered: {players.Count()} players on {teamCaptains.Keys.Count()}.", game.Id);
+
+        state.ChallengesTotal = specs.Count() * teamCaptains.Count();
+        state.GamespacesTotal = specs.Count() * teamCaptains.Count();
+        state.Players.AddRange(players.Select(p => new GameStartStatePlayer
         {
-            // just do exists here since we need the game for other checks anyway
-            var game = await _gameStore.Retrieve(req.GameId);
-            if (game == null)
+            Player = new SimpleEntity { Id = p.Id, Name = p.ApprovedName },
+            TeamId = p.TeamId
+        }));
+
+        Log("Identifying team captains...", game.Id);
+        // validate that we have a team captain for every team before we do anything
+        foreach (var teamId in teamCaptains.Keys)
+        {
+            if (teamCaptains[teamId] == null)
+                throw new CaptainResolutionFailure(teamId, "Couldn't resolve captain during external sync game start.");
+        }
+
+        return new GameModeStartRequest
+        {
+            GameId = game.Id,
+            State = state,
+            Context = new GameModeStartRequestContext
             {
-                ctx.AddValidationException(new ResourceNotFound<Data.Game>(req.GameId));
-                return;
+                SessionLengthMinutes = game.SessionMinutes,
+                SpecIds = specs.Select(s => s.Id).ToArray(),
+                TeamCaptains = teamCaptains
             }
-
-            if (!game.RequireSynchronizedStart)
-                ctx.AddValidationException(new GameIsNotSyncStart(game.Id, $"""{nameof(ExternalSyncGameStartService)} can't start this game because it's not sync-start."""));
-
-            if (game.Mode != GameMode.External)
-                ctx.AddValidationException(new GameModeIsntExternal(game.Id, $"""{nameof(ExternalSyncGameStartService)} can't start this game because it's not an external game."""));
-        });
-
-        _validator.AddValidator(async (req, ctx) =>
-        {
-            var syncStartState = await _syncStartGameService.GetSyncStartState(req.GameId);
-
-            if (!syncStartState.IsReady)
-                ctx.AddValidationException(new CantStartNonReadySynchronizedGame(syncStartState));
-        });
-
-        await _validator.Validate(request);
-        _logger.LogInformation("Validation complete.", request.GameId);
+        };
     }
 
-    private Task TryCleanupFailedDeploy(GameStartContext ctx)
+    private Task TryCleanupFailedDeploy(GameStartState ctx)
     {
         // TODO
         return Task.CompletedTask;
+    }
+
+    private void Log(string message, string gameId)
+    {
+        var prefix = $"""[START GAME "{gameId}"] - {_now.Get()} - """;
+        _logger.LogInformation($"{prefix} {message}");
     }
 }

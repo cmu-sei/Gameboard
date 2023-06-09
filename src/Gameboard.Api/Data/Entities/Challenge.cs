@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Data
 {
@@ -35,7 +36,7 @@ namespace Gameboard.Api.Data
                 : ChallengeResult.None;
 
         [NotMapped]
-        public long Duration => StartTime.NotEmpty() && LastScoreTime.NotEmpty()
+        public long Duration => StartTime.IsNotEmpty() && LastScoreTime.IsNotEmpty()
             ? (long)LastScoreTime.Subtract(StartTime).TotalMilliseconds
             : 0;
 

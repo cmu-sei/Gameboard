@@ -39,15 +39,6 @@ namespace Gameboard.Api
             }
         }
 
-        public static bool NotEmpty(this DateTimeOffset ts)
-        {
-            return ts.Year > 1;
-        }
-        public static bool Empty(this DateTimeOffset ts)
-        {
-            return ts.Year == 1;
-        }
-
         public static string Tag(this string s)
         {
             if (s.HasValue())

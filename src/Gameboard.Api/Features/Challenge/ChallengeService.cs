@@ -369,7 +369,7 @@ namespace Gameboard.Api.Services
             await Sync
             (
                 entity,
-                GameEngine.StartGamespace(_mapper.Map<Challenge>(entity))
+                GameEngine.StartGamespace(new GameEngineGamespaceStartRequest { ChallengeId = entity.Id, GameEngineType = entity.GameEngineType })
             );
 
             return Mapper.Map<Challenge>(entity);

@@ -4,12 +4,6 @@ using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Features.Games.External;
 
-public sealed class ExternalSyncGameStartRequest
-{
-    public required string GameId { get; set; }
-    public required GameStartContext Context { get; set; }
-}
-
 public sealed class ExternalGameStartMetaData
 {
     public required SimpleEntity Game { get; set; }

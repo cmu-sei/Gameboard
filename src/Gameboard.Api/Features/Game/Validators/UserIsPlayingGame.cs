@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
@@ -12,11 +13,11 @@ public class UserIsPlayingGameValidator : IGameboardValidator
 {
     private string _gameId;
     private string _userId;
-    private readonly GameService _gameService;
+    private readonly IGameStore _gameStore;
 
-    public UserIsPlayingGameValidator(GameService gameService)
+    public UserIsPlayingGameValidator(IGameStore gameStore)
     {
-        _gameService = gameService;
+        _gameStore = gameStore;
     }
 
     public UserIsPlayingGameValidator UseValues(string gameId, string userId)
@@ -31,9 +32,8 @@ public class UserIsPlayingGameValidator : IGameboardValidator
     {
         return async (ctx) =>
         {
-            var game = await _gameService
-                .BuildQuery()
-                .AsNoTracking()
+            var game = await _gameStore
+                .ListAsNoTracking()
                 .Include(g => g.Players)
                 .FirstOrDefaultAsync(g => g.Id == _gameId);
 

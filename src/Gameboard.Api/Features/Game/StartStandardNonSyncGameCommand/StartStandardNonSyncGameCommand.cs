@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Common;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Services;
@@ -56,7 +57,7 @@ internal class StartStandardNonSyncGameHandler : IRequestHandler<StartStandardNo
                 if (player == null)
                     ctx.AddValidationException(new UserIsntPlayingGame((string)req.ActingUser.Id, req.GameId, $"""Can't start standard nonsync game "{req.GameId}" because user "{req.ActingUser.Id}" hasn't registered to play it."""));
 
-                if (StringExtensions.NotEmpty(player.SessionBegin))
+                if (player.SessionBegin.IsNotEmpty())
                     ctx.AddValidationException(new SessionAlreadyStarted((string)player.Id, $"""Can't start player "{player.Id}"'s session for standard nonsync game "{req.GameId}" because it's already started ({player.SessionBegin})"""));
             })
         );

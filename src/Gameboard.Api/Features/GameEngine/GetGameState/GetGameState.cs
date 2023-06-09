@@ -28,13 +28,14 @@ internal class GetGameStateHandler : IRequestHandler<GetGameStateQuery, IEnumera
         _gameEngineStore = gameEngineStore;
         _roleAuthorizer = roleAuthorizer;
         _validator = validator;
-
-        _roleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Designer, UserRole.Designer };
     }
 
     public async Task<IEnumerable<GameEngineGameState>> Handle(GetGameStateQuery request, CancellationToken cancellationToken)
     {
-        _roleAuthorizer.Authorize();
+        _roleAuthorizer
+            .AllowRoles(UserRole.Admin, UserRole.Designer, UserRole.Designer)
+            .Authorize();
+
         await _validator.Validate(request);
         return await _gameEngineStore.GetGameStatesByTeam(request.TeamId);
     }

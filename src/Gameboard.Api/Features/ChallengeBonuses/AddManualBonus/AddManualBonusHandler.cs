@@ -32,13 +32,14 @@ internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
         _challengeBonusStore = challengeBonusStore;
         _roleAuthorizer = roleAuthorizer;
         _validator = validator;
-
-        roleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Support, UserRole.Designer };
     }
 
     public async Task Handle(AddManualBonusCommand request, CancellationToken cancellationToken)
     {
-        _roleAuthorizer.Authorize();
+        _roleAuthorizer
+            .AllowRoles(UserRole.Admin, UserRole.Support, UserRole.Designer)
+            .Authorize();
+
         await _validator.Validate(request);
 
         await _challengeBonusStore.Create(new ManualChallengeBonus

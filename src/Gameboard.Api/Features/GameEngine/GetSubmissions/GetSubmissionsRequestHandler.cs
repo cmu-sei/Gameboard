@@ -32,13 +32,13 @@ internal class GetSubmissionsRequestHandler : IRequestHandler<GetSubmissionsQuer
         _gameEngine = gameEngine;
         _roleAuthorizer = roleAuthorizer;
         _validator = validator;
-
-        roleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Support, UserRole.Designer };
     }
 
     public async Task<IEnumerable<GameEngineSectionSubmission>> Handle(GetSubmissionsQuery request, CancellationToken cancellationToken)
     {
-        _roleAuthorizer.Authorize();
+        _roleAuthorizer
+            .AllowRoles(UserRole.Admin, UserRole.Support, UserRole.Designer)
+            .Authorize();
         await _validator.Validate(request);
 
         var challenge = await _challengeStore.Retrieve(request.ChallengeId);

@@ -37,7 +37,9 @@ internal class DeleteGameAutoBonusesConfigHandler : IRequestHandler<DeleteGameAu
 
     public async Task Handle(DeleteGameAutoBonusesConfigCommand request, CancellationToken cancellationToken)
     {
-        _authorizer.AllowedRoles = UserRoleAuthorizer.RoleList(UserRole.Admin, UserRole.Designer, UserRole.Tester);
+        _authorizer
+            .AllowRoles(UserRole.Admin, UserRole.Designer, UserRole.Tester)
+            .Authorize();
         _authorizer.Authorize();
 
         // TODO: validate that no bonuses have been distributed with this game id

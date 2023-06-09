@@ -75,24 +75,12 @@ internal static class WebApplicationBuilderExtensions
                 EnableSensitiveDataLogging = builder.Environment.IsDev(),
                 MinimumLogLevel = builder.Environment.IsDev() ? LogLevel.Information : LogLevel.Warning
             })
-            .AddGameboardServices(settings)
+            .AddGameboardServices(builder.Environment, settings)
             .AddConfiguredHttpClients(settings.Core)
-            .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath)
-            .AddGameboardMediatR();
+            .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath);
 
         // configuring SignalR involves acting on the builder as well as its services
         builder.AddGameboardSignalRServices();
-
-        // don't add the job service during test - we don't want it to interfere with CI
-        if (!builder.Environment.IsTest())
-            services.AddHostedService<JobService>();
-
-        services.AddSingleton<AutoMapper.IMapper>(
-            new AutoMapper.MapperConfiguration(cfg =>
-            {
-                cfg.AddGameboardMaps();
-            }).CreateMapper()
-        );
 
         // Configure Auth
         services.AddConfiguredAuthentication(settings.Oidc, settings.ApiKey, builder.Environment);
@@ -110,16 +98,6 @@ internal static class WebApplicationBuilderExtensions
                 logging.RequestBodyLogLimit = settings.Logging.RequestBodyLogLimit;
                 logging.ResponseBodyLogLimit = settings.Logging.ResponseBodyLogLimit;
                 logging.MediaTypeOptions.AddText("application/json");
-            });
-        }
-
-        // dev environment logging
-        if (builder.Environment.IsDev())
-        {
-            services.AddLogging(builder =>
-            {
-                builder.AddConsole();
-                builder.SetMinimumLevel(LogLevel.Information);
             });
         }
     }

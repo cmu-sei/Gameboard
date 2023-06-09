@@ -1,4 +1,3 @@
-using System;
 using System.Threading.Tasks;
 using Gameboard.Api.Common;
 
@@ -33,35 +32,19 @@ public enum GameHubEventType
 
 public interface IGameHubEvent
 {
-    Task ExternalGameChallengesDeployStart(GameHubEvent<ExternalGameLaunchState> ev);
-    Task ExternalGameChallengesDeployProgressChange(GameHubEvent<ExternalGameLaunchState> ev);
-    Task ExternalGameChallengesDeployEnd(GameHubEvent<ExternalGameLaunchState> ev);
-    Task ExternalGameLaunchStart(GameHubEvent<ExternalGameLaunchState> ev);
-    Task ExternalGameLaunchEnd(GameHubEvent<ExternalGameLaunchState> ev);
-    Task ExternalGameLaunchFailure(GameHubEvent<ExternalGameLaunchState> ev);
-    Task ExternalGameGamespacesDeployStart(GameHubEvent<ExternalGameLaunchState> ev);
-    Task ExternalGameGamespacesDeployProgressChange(GameHubEvent<ExternalGameLaunchState> ev);
-    Task ExternalGameGamespacesDeployEnd(GameHubEvent<ExternalGameLaunchState> ev);
+    Task ExternalGameChallengesDeployStart(GameHubEvent<GameStartState> ev);
+    Task ExternalGameChallengesDeployProgressChange(GameHubEvent<GameStartState> ev);
+    Task ExternalGameChallengesDeployEnd(GameHubEvent<GameStartState> ev);
+    Task ExternalGameLaunchStart(GameHubEvent<GameStartState> ev);
+    Task ExternalGameLaunchEnd(GameHubEvent<GameStartState> ev);
+    Task ExternalGameLaunchFailure(GameHubEvent<GameStartState> ev);
+    Task ExternalGameGamespacesDeployStart(GameHubEvent<GameStartState> ev);
+    Task ExternalGameGamespacesDeployProgressChange(GameHubEvent<GameStartState> ev);
+    Task ExternalGameGamespacesDeployEnd(GameHubEvent<GameStartState> ev);
     Task PlayerJoined(GameHubEvent<PlayerJoinedEvent> ev);
     Task SyncStartGameStateChanged(GameHubEvent<SyncStartState> ev);
     Task SyncStartGameStarting(GameHubEvent<SyncStartGameStartedState> ev);
     Task YouJoined(GameHubEvent<YouJoinedEvent> ev);
-}
-
-public class ExternalGameLaunchState
-{
-    public SimpleEntity Game { get; set; }
-    public int ChallengesCreated { get; set; } = 0;
-    public int ChallengesTotal { get; set; } = 0;
-    public int GamespacesDeployed { get; set; } = 0;
-    public int GamespacesTotal { get; set; } = 0;
-    public int PlayersTotal { get; set; }
-    public int TeamsTotal { get; set; }
-    public DateTimeOffset StartTime { get; set; }
-    public DateTimeOffset Now { get; set; }
-    public string Error { get; set; }
-
-    // public double OverallProgress { get => Math.Round(((0.8 * GamespacesDeployed) / GamespacesTotal) + ((0.2 * ChallengesCreated) / ChallengesTotal)); }
 }
 
 public class GameJoinRequest

@@ -28,7 +28,7 @@ public interface IGameEngineService
     Task<GameEngineGameState> LoadGamespace(Data.Challenge entity);
     Task<GameEngineGameState> RegisterGamespace(GameEngineChallengeRegistration registration);
     Task<GameEngineGameState> RegradeChallenge(Data.Challenge entity);
-    Task<GameEngineGameState> StartGamespace(Api.Challenge challenge);
+    Task<GameEngineGameState> StartGamespace(GameEngineGamespaceStartRequest request);
     Task<GameEngineGameState> StopGamespace(Data.Challenge entity);
 }
 
@@ -275,12 +275,12 @@ public class GameEngineService : _Service, IGameEngineService
         }
     }
 
-    public async Task<GameEngineGameState> StartGamespace(Api.Challenge entity)
+    public async Task<GameEngineGameState> StartGamespace(GameEngineGamespaceStartRequest request)
     {
-        switch (entity.GameEngineType)
+        switch (request.GameEngineType)
         {
             case GameEngineType.TopoMojo:
-                return Mapper.Map<GameEngineGameState>(await Mojo.StartGamespaceAsync(entity.Id));
+                return Mapper.Map<GameEngineGameState>(await Mojo.StartGamespaceAsync(request.ChallengeId));
 
             default:
                 throw new NotImplementedException();

@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
 using MediatR;
@@ -147,6 +148,13 @@ namespace Gameboard.Api.Controllers
         public async Task<SyncStartState> IsGameReady(string gameId)
         {
             return await _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
+        }
+
+        [HttpGet("/api/game/{gameId}/start-phase")]
+        [Authorize]
+        public async Task<GameStartPhase> GetStartPhase(string gameId)
+        {
+            return await _mediator.Send(new GetGameStartPhaseQuery(gameId, Actor.Id));
         }
 
 

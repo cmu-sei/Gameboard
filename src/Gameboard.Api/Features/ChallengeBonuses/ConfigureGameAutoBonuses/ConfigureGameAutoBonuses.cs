@@ -55,8 +55,9 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
     public async Task<GameScoringConfig> Handle(ConfigureGameAutoBonusesCommand request, CancellationToken cancellationToken)
     {
         // authorize
-        _userRoleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Director, UserRole.Designer, UserRole.Tester };
-        _userRoleAuthorizer.Authorize();
+        _userRoleAuthorizer
+            .AllowRoles(UserRole.Admin, UserRole.Director, UserRole.Designer, UserRole.Tester)
+            .Authorize();
 
         // validate
         // game exists
