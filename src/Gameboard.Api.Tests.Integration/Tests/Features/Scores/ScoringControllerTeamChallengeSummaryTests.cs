@@ -47,10 +47,9 @@ public class ScoringControllerTeamChallengeSummaryTests : IClassFixture<Gameboar
             };
         });
 
-        var httpClient = _testContext.CreateClient();
-
         // when
-        var result = await httpClient
+        var result = await _testContext
+            .Http
             .GetAsync($"api/challenge/{challengeId}/score")
             .WithContentDeserializedAs<TeamChallengeScoreSummary>();
 

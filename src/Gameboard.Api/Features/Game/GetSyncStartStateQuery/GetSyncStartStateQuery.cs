@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Structure.MediatR;
 using MediatR;
 
 namespace Gameboard.Api.Features.Games;
@@ -9,12 +10,12 @@ public record GetSyncStartStateQuery(string gameId, User ActingUser) : IRequest<
 internal class GetSyncStartStateQueryHandler : IRequestHandler<GetSyncStartStateQuery, SyncStartState>
 {
     private readonly ISyncStartGameService _syncStartGameService;
-    private readonly GetSyncStartStateQueryValidator _validator;
+    private readonly IGameboardRequestValidator<GetSyncStartStateQuery> _validator;
 
     public GetSyncStartStateQueryHandler
     (
         ISyncStartGameService syncStartGameService,
-        GetSyncStartStateQueryValidator validator
+        IGameboardRequestValidator<GetSyncStartStateQuery> validator
     )
     {
         _syncStartGameService = syncStartGameService;

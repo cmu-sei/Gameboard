@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
 using Microsoft.AspNetCore.Http;
@@ -13,14 +14,14 @@ internal class GetGameStateHandler : IRequestHandler<GetGameStateQuery, IEnumera
 {
     private readonly User _actor;
     private readonly IGameEngineStore _gameEngineStore;
-    private readonly GetGameStateValidator _validator;
+    private readonly IGameboardRequestValidator<GetGameStateQuery> _validator;
     private readonly UserRoleAuthorizer _roleAuthorizer;
 
     public GetGameStateHandler
     (
         IGameEngineStore gameEngineStore,
         UserRoleAuthorizer roleAuthorizer,
-        GetGameStateValidator validator,
+        IGameboardRequestValidator<GetGameStateQuery> validator,
         IHttpContextAccessor httpContextAccessor
     )
     {

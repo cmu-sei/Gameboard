@@ -2,7 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.ChallengeBonuses;
+using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
 using Microsoft.AspNetCore.Http;
@@ -17,7 +17,7 @@ internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
     private readonly User _actor;
 
     // validators
-    private readonly AddManualBonusValidator _validator;
+    private readonly IGameboardRequestValidator<AddManualBonusCommand> _validator;
 
     // authorizers 
     private readonly UserRoleAuthorizer _roleAuthorizer;
@@ -25,7 +25,7 @@ internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
     public AddManualBonusHandler(
         IStore<ManualChallengeBonus> challengeBonusStore,
         UserRoleAuthorizer roleAuthorizer,
-        AddManualBonusValidator validator,
+        IGameboardRequestValidator<AddManualBonusCommand> validator,
         IHttpContextAccessor httpContextAccessor)
     {
         _actor = httpContextAccessor.HttpContext.User.ToActor();

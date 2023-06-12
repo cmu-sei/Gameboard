@@ -22,6 +22,7 @@ using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
+using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Validation;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
@@ -62,8 +63,7 @@ namespace Microsoft.Extensions.DependencyInjection
             // add feature services
             services
                 .AddConcretesFromNamespace("Gameboard.Api.Structure.Authorizers")
-                .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators")
-                .AddConcretesFromNamespace("Gameboard.Api.Features.Games.Validators");
+                .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators");
 
             // Auto-discover from EntityService pattern
             foreach (var t in Assembly
@@ -81,7 +81,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 services.AddScoped(t);
             }
 
-            foreach (var t in Assembly
+            foreach
+            (var t in Assembly
                 .GetExecutingAssembly()
                 .ExportedTypes
                 .Where(t =>
@@ -124,12 +125,14 @@ namespace Microsoft.Extensions.DependencyInjection
                 // feature services
                 .AddScoped<IApiKeysService, ApiKeysService>()
                 .AddScoped<IApiKeysStore, ApiKeysStore>()
+                .AddScoped<IGameboardValidator<ConfigureGameAutoBonusesCommand>, ConfigureGameAutoBonusesValidator>()
                 .AddScoped<IStore<ManualChallengeBonus>, ManualChallengeBonusStore>()
                 .AddScoped<Hub<IAppHubEvent>, AppHub>()
                 .AddScoped<IChallengeStore, ChallengeStore>()
                 .AddScoped<IChallengeBonusStore, ChallengeBonusStore>()
                 .AddScoped<IChallengeSpecStore, ChallengeSpecStore>()
                 .AddScoped<ICubespaceScoreboardService, CubespaceScoreboardService>()
+                .AddScoped<DeleteGameAutoBonusesConfigValidator>()
                 .AddScoped<IExternalSyncGameStartService, ExternalSyncGameStartService>()
                 .AddScoped<IGamebrainService, GamebrainService>()
                 .AddScoped<IGameEngineStore, GameEngineStore>()

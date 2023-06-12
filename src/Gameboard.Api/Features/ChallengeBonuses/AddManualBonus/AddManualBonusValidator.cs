@@ -1,6 +1,5 @@
 namespace Gameboard.Api.Features.ChallengeBonuses;
 
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;

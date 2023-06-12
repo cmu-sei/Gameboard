@@ -299,12 +299,8 @@ namespace Gameboard.Api.Services
             var ts = DateTimeOffset.UtcNow;
 
             var challenges = await Store.DbSet
-                .Where(c =>
-                    c.LastSyncTime < c.Player.SessionEnd &&
-                    c.Player.SessionEnd < ts
-                )
-                .ToArrayAsync()
-            ;
+                .Where(c => c.LastSyncTime < c.Player.SessionEnd && c.Player.SessionEnd < ts)
+                .ToArrayAsync();
 
             foreach (var challenge in challenges)
                 _actorMap.RemoveTeam(challenge.TeamId);
@@ -338,6 +334,8 @@ namespace Gameboard.Api.Services
                 Logger.LogError(ex, "Sync error on {0} {1}", entity.Id, entity.Name);
             }
 
+            var things = Store.DbContext.ChangeTracker.Entries();
+
             await Store.Update(entity);
             return entity;
         }
@@ -345,7 +343,6 @@ namespace Gameboard.Api.Services
         private async Task<Data.Challenge> Sync(string id, Task<GameEngineGameState> task = null)
         {
             var entity = await Store.Retrieve(id);
-
             return await Sync(entity, task);
         }
 

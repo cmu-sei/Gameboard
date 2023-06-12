@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
 using Microsoft.AspNetCore.Http;
@@ -15,7 +16,7 @@ internal class GetSubmissionsRequestHandler : IRequestHandler<GetSubmissionsQuer
     private readonly User _actor;
 
     // validators
-    private readonly GetSubmissionsRequestValidator _validator;
+    private readonly IGameboardRequestValidator<GetSubmissionsQuery> _validator;
 
     // authorizers 
     private readonly UserRoleAuthorizer _roleAuthorizer;
@@ -24,7 +25,7 @@ internal class GetSubmissionsRequestHandler : IRequestHandler<GetSubmissionsQuer
         IChallengeStore challengeStore,
         IGameEngineService gameEngine,
         UserRoleAuthorizer roleAuthorizer,
-        GetSubmissionsRequestValidator validator,
+        IGameboardRequestValidator<GetSubmissionsQuery> validator,
         IHttpContextAccessor httpContextAccessor)
     {
         _actor = httpContextAccessor.HttpContext.User.ToActor();
@@ -39,6 +40,7 @@ internal class GetSubmissionsRequestHandler : IRequestHandler<GetSubmissionsQuer
         _roleAuthorizer
             .AllowRoles(UserRole.Admin, UserRole.Support, UserRole.Designer)
             .Authorize();
+
         await _validator.Validate(request);
 
         var challenge = await _challengeStore.Retrieve(request.ChallengeId);
