@@ -1,5 +1,4 @@
 using AutoMapper;
-using Gameboard.Api;
 using Gameboard.Api.Services;
 
 namespace Gameboard.Api.Tests.Unit;
