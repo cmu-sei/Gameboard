@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using AutoMapper;
 using Gameboard.Api;
+using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
@@ -28,128 +29,130 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.Extensions.DependencyInjection
+namespace Microsoft.Extensions.DependencyInjection;
+
+public static class ServiceStartupExtensions
 {
-    public static class ServiceStartupExtensions
+    public static IServiceCollection AddGameboardServices(this IServiceCollection services, IWebHostEnvironment environment, AppSettings settings)
     {
-        public static IServiceCollection AddGameboardServices(this IServiceCollection services, IWebHostEnvironment environment, AppSettings settings)
+        // add general services
+        services
+            .AddSingleton<ConsoleActorMap>()
+            .AddHttpContextAccessor()
+            .AddGameboardMediatR()
+            .AddSingleton<AutoMapper.IMapper>(
+            new AutoMapper.MapperConfiguration(cfg =>
+            {
+                cfg.AddGameboardMaps();
+            }).CreateMapper()
+            );
+
+        // don't add the job service during test - we don't want it to interfere with CI
+        if (!environment.IsTest())
+            services.AddHostedService<JobService>();
+
+        // dev environment logging
+        if (environment.IsDev())
         {
-            // add general services
-            services
-                .AddSingleton<ConsoleActorMap>()
-                .AddHttpContextAccessor()
-                .AddGameboardMediatR()
-                .AddSingleton<AutoMapper.IMapper>(
-                new AutoMapper.MapperConfiguration(cfg =>
-                {
-                    cfg.AddGameboardMaps();
-                }).CreateMapper()
-                );
-
-            // don't add the job service during test - we don't want it to interfere with CI
-            if (!environment.IsTest())
-                services.AddHostedService<JobService>();
-
-            // dev environment logging
-            if (environment.IsDev())
+            services.AddLogging(builder =>
             {
-                services.AddLogging(builder =>
-                {
-                    builder.AddConsole();
-                    builder.SetMinimumLevel(LogLevel.Information);
-                });
-            }
-
-            // add feature services
-            services
-                .AddConcretesFromNamespace("Gameboard.Api.Structure.Authorizers")
-                .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators");
-
-            // Auto-discover from EntityService pattern
-            foreach (var t in Assembly
-                .GetExecutingAssembly()
-                .ExportedTypes
-                .Where(t => (t.Namespace == "Gameboard.Api.Services" || t.BaseType == typeof(_Service))
-                    && t.Name.EndsWith("Service")
-                    && t.IsClass
-                    && !t.IsAbstract
-                )
-            )
-            {
-                foreach (Type i in t.GetInterfaces())
-                    services.AddScoped(i, t);
-                services.AddScoped(t);
-            }
-
-            foreach
-            (var t in Assembly
-                .GetExecutingAssembly()
-                .ExportedTypes
-                .Where(t =>
-                    t.GetInterface(nameof(IModelValidator)) != null
-                    && t.IsClass
-                    && !t.IsAbstract
-                )
-            )
-            {
-                foreach (Type i in t.GetInterfaces())
-                    services.AddScoped(i, t);
-                services.AddScoped(t);
-            }
-
-            // TODO: Ben -> fix this
-            services.AddUnboundServices(settings);
-
-            return services;
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Information);
+            });
         }
 
-        // TODO: Ben -> fix this (still on my list, but for now at least segregating into a method)
-        private static IServiceCollection AddUnboundServices(this IServiceCollection services, AppSettings settings)
-            => services
-                // singletons
-                .AddSingleton<IAuthenticationService, AuthenticationService>()
-                .AddSingleton<IJsonService, JsonService>(f => JsonService.WithGameboardSerializerOptions())
-                .AddSingleton<ILockService, LockService>()
-                .AddSingleton<INameService, NameService>()
-                // global-style services
-                .AddScoped<IExternalGameHostAccessTokenProvider, HttpContextAccessTokenProvider>()
-                .AddScoped<IActingUserService, ActingUserService>()
-                .AddSingleton<CoreOptions>(_ => settings.Core)
-                .AddSingleton<ApiKeyOptions>(_ => settings.ApiKey)
-                .AddTransient<IAppUrlService, AppUrlService>()
-                .AddTransient<IGuidService, GuidService>()
-                .AddTransient<IHashService, HashService>()
-                .AddTransient<INowService, NowService>()
-                .AddTransient<IRandomService, RandomService>()
-                .AddTransient<IVmUrlResolver, GameboardMksVmUrlResolver>()
-                // feature services
-                .AddScoped<IApiKeysService, ApiKeysService>()
-                .AddScoped<IApiKeysStore, ApiKeysStore>()
-                .AddScoped<IGameboardValidator<ConfigureGameAutoBonusesCommand>, ConfigureGameAutoBonusesValidator>()
-                .AddScoped<IStore<ManualChallengeBonus>, ManualChallengeBonusStore>()
-                .AddScoped<Hub<IAppHubEvent>, AppHub>()
-                .AddScoped<IChallengeStore, ChallengeStore>()
-                .AddScoped<IChallengeBonusStore, ChallengeBonusStore>()
-                .AddScoped<IChallengeSpecStore, ChallengeSpecStore>()
-                .AddScoped<ICubespaceScoreboardService, CubespaceScoreboardService>()
-                .AddScoped<DeleteGameAutoBonusesConfigValidator>()
-                .AddScoped<IExternalSyncGameStartService, ExternalSyncGameStartService>()
-                .AddScoped<IGamebrainService, GamebrainService>()
-                .AddScoped<IGameEngineStore, GameEngineStore>()
-                .AddScoped<IGameStartService, GameStartService>()
-                .AddScoped<IInternalHubBus, InternalHubBus>()
-                .AddScoped<IGameHubBus, GameHubBus>()
-                .AddScoped<IScoringService, ScoringService>()
-                .AddScoped<ISyncStartGameService, SyncStartGameService>()
-                .AddScoped<ITeamService, TeamService>()
-                .AddScoped<IUnityGameService, UnityGameService>()
-                .AddScoped<IUnityStore, UnityStore>()
-                .AddScoped<IValidatorServiceFactory, ValidatorServiceFactory>();
+        // add feature services
+        services
+            .AddConcretesFromNamespace("Gameboard.Api.Structure.Authorizers")
+            .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators");
 
-        public static IMapperConfigurationExpression AddGameboardMaps(this IMapperConfigurationExpression cfg)
+        // Auto-discover from EntityService pattern
+        foreach (var t in Assembly
+            .GetExecutingAssembly()
+            .ExportedTypes
+            .Where(t => (t.Namespace == "Gameboard.Api.Services" || t.BaseType == typeof(_Service))
+                && t.Name.EndsWith("Service")
+                && t.IsClass
+                && !t.IsAbstract
+            )
+        )
         {
-            cfg.AddMaps(Assembly.GetExecutingAssembly());
-            return cfg;
+            foreach (Type i in t.GetInterfaces())
+                services.AddScoped(i, t);
+            services.AddScoped(t);
         }
+
+        foreach
+        (var t in Assembly
+            .GetExecutingAssembly()
+            .ExportedTypes
+            .Where(t =>
+                t.GetInterface(nameof(IModelValidator)) != null
+                && t.IsClass
+                && !t.IsAbstract
+            )
+        )
+        {
+            foreach (Type i in t.GetInterfaces())
+                services.AddScoped(i, t);
+            services.AddScoped(t);
+        }
+
+        // TODO: Ben -> fix this
+        services.AddUnboundServices(settings);
+
+        return services;
+    }
+
+    // TODO: Ben -> fix this (still on my list, but for now at least segregating into a method)
+    private static IServiceCollection AddUnboundServices(this IServiceCollection services, AppSettings settings)
+        => services
+            // singletons
+            .AddSingleton<IAuthenticationService, AuthenticationService>()
+            .AddSingleton<IJsonService, JsonService>(f => JsonService.WithGameboardSerializerOptions())
+            .AddSingleton<ILockService, LockService>()
+            .AddSingleton<INameService, NameService>()
+            // global-style services
+            .AddScoped<IExternalGameHostAccessTokenProvider, HttpContextAccessTokenProvider>()
+            .AddScoped<IActingUserService, ActingUserService>()
+            .AddSingleton<CoreOptions>(_ => settings.Core)
+            .AddSingleton<ApiKeyOptions>(_ => settings.ApiKey)
+            .AddTransient<IAppUrlService, AppUrlService>()
+            .AddTransient<IFileUploadService, FileUploadService>()
+            .AddTransient<IGuidService, GuidService>()
+            .AddTransient<IHashService, HashService>()
+            .AddTransient<INowService, NowService>()
+            .AddTransient<IRandomService, RandomService>()
+            .AddTransient<IVmUrlResolver, GameboardMksVmUrlResolver>()
+            .AddTransient(typeof(IStore<>), typeof(Store<>))
+            // feature services
+            .AddScoped<IApiKeysService, ApiKeysService>()
+            .AddScoped<IApiKeysStore, ApiKeysStore>()
+            .AddScoped<IGameboardValidator<ConfigureGameAutoBonusesCommand>, ConfigureGameAutoBonusesValidator>()
+            .AddScoped<IStore<ManualChallengeBonus>, ManualChallengeBonusStore>()
+            .AddScoped<Hub<IAppHubEvent>, AppHub>()
+            .AddScoped<IChallengeStore, ChallengeStore>()
+            .AddScoped<IChallengeBonusStore, ChallengeBonusStore>()
+            .AddScoped<ICubespaceScoreboardService, CubespaceScoreboardService>()
+            .AddScoped<DeleteGameAutoBonusesConfigValidator>()
+            .AddScoped<IExternalSyncGameStartService, ExternalSyncGameStartService>()
+            .AddScoped<IGamebrainService, GamebrainService>()
+            .AddScoped<IGameEngineStore, GameEngineStore>()
+            .AddScoped<IGameStartService, GameStartService>()
+            .AddScoped<IGameHubBus, GameHubBus>()
+            .AddScoped<IHtmlEncodeService, HtmlEncodeService>()
+            .AddScoped<IInternalHubBus, InternalHubBus>()
+            .AddScoped<IGameHubBus, GameHubBus>()
+            .AddScoped<IScoringService, ScoringService>()
+            .AddScoped<ISyncStartGameService, SyncStartGameService>()
+            .AddScoped<ITeamService, TeamService>()
+            .AddScoped<IUnityGameService, UnityGameService>()
+            .AddScoped<IUnityStore, UnityStore>()
+            .AddScoped<IValidatorServiceFactory, ValidatorServiceFactory>();
+
+    public static IMapperConfigurationExpression AddGameboardMaps(this IMapperConfigurationExpression cfg)
+    {
+        cfg.AddMaps(Assembly.GetExecutingAssembly());
+        return cfg;
     }
 }

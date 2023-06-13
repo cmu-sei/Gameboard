@@ -6,21 +6,19 @@ using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
 
-namespace Gameboard.Api.Data
+namespace Gameboard.Api.Data;
+
+public class UserStore : Store<User>, IUserStore
 {
+    public UserStore(GameboardDbContext dbContext, IGuidService guids)
+        : base(dbContext, guids) { }
 
-    public class UserStore : Store<User>, IUserStore
+    public override Task<User> Create(User entity)
     {
-        public UserStore(GameboardDbContext dbContext, IGuidService guids)
-            : base(dbContext, guids) { }
+        // first user gets admin
+        if (DbSet.Any().Equals(false))
+            entity.Role = AppConstants.AllRoles;
 
-        public override Task<User> Create(User entity)
-        {
-            // first user gets admin
-            if (DbSet.Any().Equals(false))
-                entity.Role = AppConstants.AllRoles;
-
-            return base.Create(entity);
-        }
+        return base.Create(entity);
     }
 }

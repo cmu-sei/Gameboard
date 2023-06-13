@@ -25,7 +25,7 @@ internal class ScoringService : IScoringService
 {
     private readonly IStore<ManualChallengeBonus> _challengeManualBonusStore;
     private readonly IChallengeStore _challengeStore;
-    private readonly IChallengeSpecStore _challengeSpecStore;
+    private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
     private readonly IGameStore _gameStore;
     private readonly IMapper _mapper;
     private readonly ITeamService _teamService;
@@ -33,7 +33,7 @@ internal class ScoringService : IScoringService
     public ScoringService(
         IStore<ManualChallengeBonus> challengeManualBonusStore,
         IChallengeStore challengeStore,
-        IChallengeSpecStore challengeSpecStore,
+        IStore<Data.ChallengeSpec> challengeSpecStore,
         IGameStore gameStore,
         IMapper mapper,
         ITeamService teamService)

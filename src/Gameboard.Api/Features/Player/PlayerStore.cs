@@ -12,15 +12,7 @@ namespace Gameboard.Api.Data
     public class PlayerStore : Store<Player>, IPlayerStore
     {
         public PlayerStore(GameboardDbContext dbContext, IGuidService guids)
-        : base(dbContext, guids) { }
-
-        public async Task<Player> Load(string id)
-        {
-            return await DbSet
-                .AsNoTracking()
-                .Include(p => p.User)
-                .FirstOrDefaultAsync(p => p.Id == id);
-        }
+            : base(dbContext, guids) { }
 
         public IQueryable<Player> ListTeam(string id) =>
             base.List()

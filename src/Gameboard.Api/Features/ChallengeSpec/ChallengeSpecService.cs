@@ -14,14 +14,14 @@ namespace Gameboard.Api.Services
 {
     public class ChallengeSpecService : _Service
     {
-        IChallengeSpecStore Store { get; }
+        IStore<Data.ChallengeSpec> Store { get; }
         GameEngineService GameEngine { get; }
 
         public ChallengeSpecService(
             ILogger<ChallengeSpecService> logger,
             IMapper mapper,
             CoreOptions options,
-            IChallengeSpecStore store,
+            IStore<Data.ChallengeSpec> store,
             GameEngineService gameEngine
         ) : base(logger, mapper, options)
         {

@@ -11,7 +11,7 @@ namespace Gameboard.Api.Data
     public class FeedbackStore : Store<Feedback>, IFeedbackStore
     {
         public FeedbackStore(GameboardDbContext dbContext, IGuidService guids)
-        : base(dbContext, guids) { }
+            : base(dbContext, guids) { }
 
         public async Task<Feedback> Load(string id)
         {

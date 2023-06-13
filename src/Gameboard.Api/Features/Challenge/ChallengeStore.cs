@@ -1,29 +1,21 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Gameboard.Api.Data.Abstractions;
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using System;
+using AutoMapper;
+using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Common.Services;
 
 namespace Gameboard.Api.Data;
 
 internal class ChallengeStore : Store<Challenge>, IChallengeStore
 {
-    private readonly GameboardDbContext _dbContext;
-    private readonly IMapper _mapper;
-
     public ChallengeStore(
-        GameboardDbContext dbContext,
         IGuidService guids,
-        IMapper mapper) : base(dbContext, guids)
-    {
-        _dbContext = dbContext;
-        _mapper = mapper;
-    }
+        GameboardDbContext dbContext) : base(dbContext, guids) { }
 
     public override IQueryable<Challenge> List(string term)
     {

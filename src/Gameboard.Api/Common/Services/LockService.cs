@@ -14,17 +14,17 @@ namespace Gameboard.Api.Common.Services
 
     public class LockService : ILockService
     {
-        ConcurrentDictionary<string, AsyncLock> ChallengeLocks = new ConcurrentDictionary<string, AsyncLock>();
-        ConcurrentDictionary<string, AsyncLock> SyncStartGameLocks = new ConcurrentDictionary<string, AsyncLock>();
+        private readonly ConcurrentDictionary<string, AsyncLock> _challengeLocks = new ConcurrentDictionary<string, AsyncLock>();
+        private readonly ConcurrentDictionary<string, AsyncLock> _syncStartGameLocks = new ConcurrentDictionary<string, AsyncLock>();
 
         public AsyncLock GetChallengeLock(string challengeId)
         {
-            return ChallengeLocks.GetOrAdd(challengeId, x => { return new AsyncLock(); });
+            return _challengeLocks.GetOrAdd(challengeId, x => { return new AsyncLock(); });
         }
 
         public AsyncLock GetSyncStartGameLock(string gameId)
         {
-            return SyncStartGameLocks.GetOrAdd(gameId, x => new AsyncLock());
+            return _syncStartGameLocks.GetOrAdd(gameId, x => new AsyncLock());
         }
     }
 }

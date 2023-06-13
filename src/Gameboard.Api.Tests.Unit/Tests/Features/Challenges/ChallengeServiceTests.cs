@@ -103,7 +103,7 @@ public class ChallengeServiceTests
             A.Fake<IMapper>(),
             A.Fake<CoreOptions>(),
             A.Fake<IChallengeStore>(),
-            A.Fake<IChallengeSpecStore>(),
+            A.Fake<IStore<Data.ChallengeSpec>>(),
             fakeGameEngineService,
             A.Fake<IGameStore>(),
             A.Fake<IGuidService>(),
