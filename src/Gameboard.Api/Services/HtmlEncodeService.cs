@@ -11,7 +11,7 @@ public interface IHtmlEncodeService
 
 internal class HtmlEncodeService : IHtmlEncodeService
 {
-    private static IDictionary<string, string> PERMITTED_CHARACTER_REPLACEMENTS = new Dictionary<string, string>
+    private static readonly IDictionary<string, string> PERMITTED_CHARACTER_REPLACEMENTS = new Dictionary<string, string>
     {
         { "&#39;", "'" }
     };
