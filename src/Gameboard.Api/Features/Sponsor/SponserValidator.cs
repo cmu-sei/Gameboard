@@ -9,11 +9,9 @@ namespace Gameboard.Api.Validators
 {
     public class SponsorValidator : IModelValidator
     {
-        private readonly ISponsorStore _store;
+        private readonly IStore<Data.Sponsor> _store;
 
-        public SponsorValidator(
-            ISponsorStore store
-        )
+        public SponsorValidator(IStore<Data.Sponsor> store)
         {
             _store = store;
         }

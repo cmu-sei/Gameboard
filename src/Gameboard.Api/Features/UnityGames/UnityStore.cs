@@ -1,13 +1,14 @@
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
+using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.UnityGames;
 
 public class UnityStore : Store<Data.ChallengeSpec>, IUnityStore
 {
-    public UnityStore(GameboardDbContext dbContext)
-        : base(dbContext) { }
+    public UnityStore(IGuidService guids, GameboardDbContext dbContext)
+        : base(guids, dbContext) { }
 
     public async Task<Data.ChallengeEvent> AddUnityChallengeEvent(Data.ChallengeEvent challengeEvent)
     {

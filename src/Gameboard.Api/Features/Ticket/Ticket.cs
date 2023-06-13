@@ -129,12 +129,6 @@ namespace Gameboard.Api
         public UserSimple Assignee { get; set; }
     }
 
-    public class UploadFile
-    {
-        public string FileName { get; set; }
-        public IFormFile File { get; set; }
-    }
-
     public class TicketSearchFilter : SearchFilter
     {
         public const string OpenFilter = "open";

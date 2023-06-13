@@ -3,14 +3,15 @@
 
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data
 {
     public class FeedbackStore : Store<Feedback>, IFeedbackStore
     {
-        public FeedbackStore(GameboardDbContext dbContext)
-        : base(dbContext) { }
+        public FeedbackStore(IGuidService guids, GameboardDbContext dbContext)
+            : base(guids, dbContext) { }
 
         public async Task<Feedback> Load(string id)
         {

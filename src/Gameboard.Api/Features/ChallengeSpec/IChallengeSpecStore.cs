@@ -3,7 +3,5 @@
 
 namespace Gameboard.Api.Data.Abstractions
 {
-
-    public interface IChallengeSpecStore: IStore<ChallengeSpec> { }
-
+    public interface IChallengeSpecStore : IStore<ChallengeSpec> { }
 }
