@@ -21,14 +21,14 @@ public interface IExternalSyncGameStartService : IGameModeStartService { }
 internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 {
     private readonly ChallengeService _challengeService;
-    private readonly IChallengeSpecStore _challengeSpecStore;
+    private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
     private readonly IGamebrainService _gamebrainService;
     private readonly IGameEngineService _gameEngineService;
     private readonly IGameHubBus _gameHubBus;
     private readonly IGameStore _gameStore;
     private readonly IJsonService _jsonService;
     private readonly ILockService _lockService;
-    private ILogger<ExternalSyncGameStartService> _logger;
+    private readonly ILogger<ExternalSyncGameStartService> _logger;
     private readonly IMapper _mapper;
     private readonly IPlayerStore _playerStore;
     private readonly INowService _now;
@@ -39,7 +39,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     public ExternalSyncGameStartService
     (
         ChallengeService challengeService,
-        IChallengeSpecStore challengeSpecStore,
+        IStore<Data.ChallengeSpec> challengeSpecStore,
         IGamebrainService gamebrainService,
         IGameEngineService gameEngineService,
         IGameHubBus gameHubBus,
@@ -170,13 +170,13 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
             foreach (var deployedChallenge in request.State.ChallengesCreated)
             {
-                _logger.LogInformation($"""Starting {deployedChallenge.GameEngineType} gamespace for challenge "{deployedChallenge.Challenge.Id}" (teamId "{deployedChallenge.TeamId}")...""");
+                _logger.LogInformation(message: $"""Starting {deployedChallenge.GameEngineType} gamespace for challenge "{deployedChallenge.Challenge.Id}" (teamId "{deployedChallenge.TeamId}")...""");
                 var challengeState = await _gameEngineService.StartGamespace(new GameEngineGamespaceStartRequest
                 {
                     ChallengeId = deployedChallenge.Challenge.Id,
                     GameEngineType = deployedChallenge.GameEngineType
                 });
-                _logger.LogInformation($"""Gamespace started for challenge "{deployedChallenge.Challenge.Id}".""");
+                _logger.LogInformation(message: $"""Gamespace started for challenge "{deployedChallenge.Challenge.Id}".""");
 
                 var vms = _gameEngineService.GetGamespaceVms(challengeState);
                 challengeGamespaces.Add(deployedChallenge.Challenge.Id, new ExternalGameStartTeamGamespace
@@ -220,7 +220,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         catch (Exception ex)
         {
             var exceptionMessage = $"""EXTERNAL GAME LAUNCH FAILURE (game "{request.GameId}"): {ex.GetType().Name} :: {ex.Message}""";
-            _logger.LogError(exceptionMessage);
+            _logger.LogError(message: exceptionMessage);
             request.State.Error = exceptionMessage;
             await this._gameHubBus.SendExternalGameLaunchFailure(request.State);
         }
@@ -287,13 +287,13 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         };
 
         var metadataJson = _jsonService.Serialize(retVal);
-        _logger.LogInformation($"""Final metadata payload for game "{retVal.Game.Id}" is here: {metadataJson}.""");
+        _logger.LogInformation(message: $"""Final metadata payload for game "{retVal.Game.Id}" is here: {metadataJson}.""");
         return retVal;
     }
 
     private void Log(string message, string gameId)
     {
         var prefix = $"""[EXTERNAL / SYNC - START GAME "{gameId}"] - {_now.Get()} - """;
-        _logger.LogInformation($"{prefix} {message}");
+        _logger.LogInformation(message: $"{prefix} {message}");
     }
 }

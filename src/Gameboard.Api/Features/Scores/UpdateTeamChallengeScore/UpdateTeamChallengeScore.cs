@@ -5,7 +5,6 @@ using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.ChallengeSpecs;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
@@ -18,7 +17,7 @@ public record UpdateTeamChallengeBaseScoreCommand(string ChallengeId, double Sco
 internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamChallengeBaseScoreCommand, TeamChallengeScore>
 {
     private readonly IChallengeStore _challengeStore;
-    private readonly IChallengeSpecStore _challengeSpecStore;
+    private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
     private readonly EntityExistsValidator<UpdateTeamChallengeBaseScoreCommand, Data.Challenge> _challengeExists;
     private readonly IGuidService _guidService;
     private readonly IMapper _mapper;
@@ -30,7 +29,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
     public UpdateTeamChallengeBaseScoreHandler
     (
         IChallengeStore challengeStore,
-        IChallengeSpecStore challengeSpecStore,
+        IStore<Data.ChallengeSpec> challengeSpecStore,
         EntityExistsValidator<UpdateTeamChallengeBaseScoreCommand, Data.Challenge> challengeExists,
         IGuidService guidService,
         IMapper mapper,
@@ -109,7 +108,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
                 .Bonuses
                 .Where(b => b.ChallengeBonusType == ChallengeBonusType.CompleteSolveRank).OrderBy(b => (b as ChallengeBonusCompleteSolveRank).SolveRank)
             )
-            .FirstOrDefaultAsync(spec => spec.Id == challenge.SpecId);
+            .FirstOrDefaultAsync(spec => spec.Id == challenge.SpecId, cancellationToken);
 
         // other copies of this challenge for other teams who have a solve
         var otherTeamChallenges = await _challengeStore
@@ -120,11 +119,11 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
             .WhereIsFullySolved()
             // end time of the challenge against game start to get ranks
             .OrderBy(c => c.EndTime - challenge.Game.GameStart)
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
 
         // award points
         // treating this as a dbcontext savechanges to preserve atomicity
-        var updateChallenge = await _dbContext.Challenges.FirstAsync(c => c.Id == request.ChallengeId);
+        var updateChallenge = await _dbContext.Challenges.FirstAsync(c => c.Id == request.ChallengeId, cancellationToken);
         updateChallenge.Score = request.Score;
 
         // if they have a full solve, compute their ordinal rank by time and award them the appropriate challenge bonus
@@ -143,7 +142,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
         }
 
         // commit it
-        await _dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
         // query manual bonuses to compose a complete score
         return _mapper.Map<TeamChallengeScore>(await _scoringService.GetTeamChallengeScore(challenge.Id));

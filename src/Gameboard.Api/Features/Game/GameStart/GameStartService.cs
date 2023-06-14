@@ -6,10 +6,8 @@ using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Teams;
-using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
 using Gameboard.Api.Structure.MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -26,56 +24,41 @@ public interface IGameStartService
 
 internal class GameStartService : IGameStartService
 {
-    private readonly IChallengeSpecStore _challengeSpecStore;
-    private readonly IGameEngineService _gameEngineService;
-    private readonly IGamebrainService _gamebrainService;
+    private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
     private readonly IGameHubBus _gameHubBus;
-    private readonly IGameService _gameService;
     private readonly IGameStore _gameStore;
-    private readonly IJsonService _jsonService;
-    private ILogger<GameStartService> _logger;
+    private readonly ILogger<GameStartService> _logger;
     private readonly IMapper _mapper;
     private readonly INowService _now;
     private readonly IPlayerStore _playerStore;
     private readonly IExternalSyncGameStartService _externalSyncGameStartService;
     private readonly ISyncStartGameService _syncStartGameService;
     private readonly ITeamService _teamService;
-    private readonly IValidatorService<GameStartRequest> _validator;
 
     public GameStartService
     (
-        IChallengeSpecStore challengeSpecStore,
+        IStore<Data.ChallengeSpec> challengeSpecStore,
         IExternalSyncGameStartService externalSyncGameStartService,
-        IGamebrainService gamebrainService,
-        IGameEngineService gameEngineService,
         IGameHubBus gameHubBus,
-        IGameService gameService,
         IGameStore gameStore,
-        IJsonService jsonService,
         ILogger<GameStartService> logger,
         IMapper mapper,
         INowService now,
         IPlayerStore playerStore,
         ISyncStartGameService syncGameStartService,
-        ITeamService teamService,
-        IValidatorService<GameStartRequest> validator
+        ITeamService teamService
     )
     {
         _challengeSpecStore = challengeSpecStore;
         _externalSyncGameStartService = externalSyncGameStartService;
-        _gamebrainService = gamebrainService;
-        _gameEngineService = gameEngineService;
         _gameHubBus = gameHubBus;
-        _gameService = gameService;
         _gameStore = gameStore;
-        _jsonService = jsonService;
         _logger = logger;
         _mapper = mapper;
         _now = now;
         _playerStore = playerStore;
         _syncStartGameService = syncGameStartService;
         _teamService = teamService;
-        _validator = validator;
     }
 
     public async Task<GameStartState> Start(GameStartRequest request)
@@ -226,6 +209,6 @@ internal class GameStartService : IGameStartService
     private void Log(string message, string gameId)
     {
         var prefix = $"""[START GAME "{gameId}"] - {_now.Get()} - """;
-        _logger.LogInformation($"{prefix} {message}");
+        _logger.LogInformation(message: $"{prefix} {message}");
     }
 }

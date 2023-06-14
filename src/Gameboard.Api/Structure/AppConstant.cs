@@ -1,6 +1,8 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System;
+
 namespace Gameboard.Api;
 
 public static class AppConstants
@@ -26,6 +28,8 @@ public static class AppConstants
     public const string NameStatusNotUnique = "not_unique";
     public const string InternalSupportChannel = "internal_support";
     public const string ApiKeyAuthPolicy = "ApiKeyAuthPolicy";
+
+    public static readonly DateTimeOffset NULL_DATE = DateTimeOffset.MinValue;
 
     public const UserRole AllRoles =
         UserRole.Admin |

@@ -21,7 +21,7 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
 {
     private readonly IChallengeStore _challengeStore;
     private readonly IChallengeBonusStore _challengeBonusStore;
-    private readonly IChallengeSpecStore _challengeSpecStore;
+    private readonly IStore<Data.Challenge> _challengeSpecStore;
     private readonly EntityExistsValidator<Data.Game> _gameExists;
     private readonly IGameboardValidator<ConfigureGameAutoBonusesCommand> _gameHasNoAwardedBonuses;
     private readonly IGuidService _guids;
@@ -33,7 +33,7 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
     public ConfigureGameAutoBonusesHandler(
         IChallengeStore challengeStore,
         IChallengeBonusStore challengeBonusStore,
-        IChallengeSpecStore challengeSpecStore,
+        IStore<Data.Challenge> challengeSpecStore,
         EntityExistsValidator<Data.Game> gameExists,
         IGameboardValidator<ConfigureGameAutoBonusesCommand> gameHasNoAwardedBonuses,
         IGuidService guids,

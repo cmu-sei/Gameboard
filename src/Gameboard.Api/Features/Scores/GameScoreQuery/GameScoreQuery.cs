@@ -17,8 +17,6 @@ public record GameScoreQuery(string GameId) : IRequest<GameScore>;
 internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, GameScore>
 {
     private readonly IMapper _mapper;
-    private readonly IChallengeStore _challengeStore;
-    private readonly IChallengeSpecStore _specStore;
     private readonly IGameStore _gameStore;
     private readonly IPlayerStore _playerStore;
     private readonly IScoringService _scoringService;
@@ -29,21 +27,17 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
     public GameScoreQueryHandler
     (
         IMapper mapper,
-        IChallengeStore challengeStore,
         IGameStore gameStore,
         IPlayerStore playerStore,
-        IChallengeSpecStore specStore,
         EntityExistsValidator<GameScoreQuery, Data.Game> gameExists,
         IScoringService scoringService,
         IValidatorService<GameScoreQuery> validator
     )
     {
         _mapper = mapper;
-        _challengeStore = challengeStore;
         _gameStore = gameStore;
         _playerStore = playerStore;
         _scoringService = scoringService;
-        _specStore = specStore;
 
         _gameExists = gameExists.UseProperty(q => q.GameId);
         _validator = validator;
@@ -64,7 +58,7 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
             .Where(p => p.GameId == request.GameId)
             .GroupBy(p => p.TeamId)
             .Select(g => new { TeamId = g.Key, Players = g.ToList() })
-            .ToDictionaryAsync(g => g.TeamId, g => g.Players);
+            .ToDictionaryAsync(g => g.TeamId, g => g.Players, cancellationToken);
 
         var managers = players.Keys
             .Select(teamId => players[teamId].FirstOrDefault(p => p.Role == PlayerRole.Manager))
