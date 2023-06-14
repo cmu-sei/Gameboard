@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
-using Gameboard.Api.Common;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
@@ -20,7 +19,6 @@ namespace Gameboard.Api.Controllers;
 [Authorize]
 public class TicketController : _Controller
 {
-    private readonly IFileUploadService _fileUploadService;
     TicketService TicketService { get; }
     public CoreOptions Options { get; }
     IHubContext<AppHub, IAppHubEvent> Hub { get; }
@@ -30,14 +28,12 @@ public class TicketController : _Controller
         ILogger<ChallengeController> logger,
         IDistributedCache cache,
         TicketValidator validator,
-        IFileUploadService fileUploadService,
         CoreOptions options,
         TicketService ticketService,
         IHubContext<AppHub, IAppHubEvent> hub,
         IMapper mapper
     ) : base(logger, cache, validator)
     {
-        _fileUploadService = fileUploadService;
         TicketService = ticketService;
         Options = options;
         Hub = hub;
@@ -173,9 +169,10 @@ public class TicketController : _Controller
             ActingUser = HubEventActingUserDescription.FromUser(Actor)
         };
 
-        var tasks = new List<Task>();
-
-        tasks.Add(Hub.Clients.Group(AppConstants.InternalSupportChannel).TicketEvent(ev));
+        var tasks = new List<Task>
+        {
+            Hub.Clients.Group(AppConstants.InternalSupportChannel).TicketEvent(ev)
+        };
 
         if (!string.IsNullOrEmpty(notification.TeamId))
             tasks.Add(Hub.Clients.Group(notification.TeamId).TicketEvent(ev));

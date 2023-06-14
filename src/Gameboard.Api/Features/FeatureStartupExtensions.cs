@@ -103,7 +103,6 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddScoped<IGamebrainService, GamebrainService>()
                 .AddScoped<IGameEngineStore, GameEngineStore>()
                 .AddScoped<IGameHubBus, GameHubBus>()
-                .AddScoped<IHtmlEncodeService, HtmlEncodeService>()
                 .AddScoped<IInternalHubBus, InternalHubBus>()
                 .AddScoped<IScoringService, ScoringService>()
                 .AddScoped<ITeamService, TeamService>()
