@@ -201,8 +201,7 @@ namespace Gameboard.Api.Services
             if (model.Take > 0)
                 q = q.Take(model.Take);
 
-            var tickets = Mapper.Map<IEnumerable<Ticket>>(await q.ToArrayAsync());
-            return Transform(tickets);
+            return Transform(await Mapper.ProjectTo<TicketSummary>(q).ToArrayAsync());
         }
 
         public async Task<TicketActivity> AddComment(NewTicketComment model, string actorId)
@@ -219,7 +218,7 @@ namespace Gameboard.Api.Services
             };
 
             var uploads = await _fileUploadService.Upload(Path.Combine(Options.SupportUploadsFolder, model.TicketId, commentActivity.Id), model.Uploads);
-            if (uploads.Count() > 0)
+            if (uploads.Any())
             {
                 commentActivity.Attachments = Mapper.Map<string>(uploads.Select(x => x.FileName).ToArray());
             }
