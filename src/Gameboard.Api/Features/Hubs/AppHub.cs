@@ -26,7 +26,6 @@ namespace Gameboard.Api.Hubs
 
         private readonly IGameService _gameService;
         private readonly IMapper _mapper;
-        private readonly IMediator _mediator;
 
         public AppHub
         (
@@ -41,7 +40,6 @@ namespace Gameboard.Api.Hubs
             PlayerStore = playerStore;
             _gameService = gameService;
             _mapper = mapper;
-            _mediator = mediator;
         }
 
         public override Task OnConnectedAsync()
@@ -97,7 +95,7 @@ namespace Gameboard.Api.Hubs
         public async Task<SyncStartState> JoinGame(string gameId)
         {
             if (string.IsNullOrWhiteSpace(gameId))
-                throw new ArgumentNullException();
+                throw new ArgumentNullException(nameof(gameId));
 
             var game = await _gameService
                 .BuildQuery()
@@ -125,7 +123,7 @@ namespace Gameboard.Api.Hubs
         public async Task LeaveChannel(string channelId)
         {
             if (string.IsNullOrWhiteSpace(channelId))
-                throw new ArgumentNullException();
+                throw new ArgumentNullException(nameof(channelId));
 
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, channelId);
         }
