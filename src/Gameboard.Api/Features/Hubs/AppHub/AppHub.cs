@@ -24,36 +24,29 @@ namespace Gameboard.Api.Hubs
         IPlayerStore PlayerStore { get; }
         internal static string ContextPlayerKey = "player";
 
-        private readonly IGameService _gameService;
         private readonly IMapper _mapper;
-        private readonly IMediator _mediator;
 
         public AppHub
         (
             ILogger<AppHub> logger,
             IMapper mapper,
-            IGameService gameService,
-            IMediator mediator,
-            IPlayerStore playerStore,
-            ISyncStartGameService syncStartGameService
+            IPlayerStore playerStore
         )
         {
             Logger = logger;
             PlayerStore = playerStore;
-            _gameService = gameService;
             _mapper = mapper;
-            _mediator = mediator;
         }
 
         public override Task OnConnectedAsync()
         {
-            Logger.LogDebug($"Session Connected: {Context.User.FindFirstValue("name")} {Context.UserIdentifier} {Context.ConnectionId}");
+            Logger.LogDebug(message: $"Session Connected: {Context.User.FindFirstValue("name")} {Context.UserIdentifier} {Context.ConnectionId}");
             return base.OnConnectedAsync();
         }
 
         public override async Task OnDisconnectedAsync(Exception ex)
         {
-            Logger.LogDebug($"Session Disconnected: {Context.ConnectionId}");
+            Logger.LogDebug(message: $"Session Disconnected: {Context.ConnectionId}");
 
             await Leave();
             await base.OnDisconnectedAsync(ex);
@@ -98,7 +91,7 @@ namespace Gameboard.Api.Hubs
         public async Task LeaveChannel(string channelId)
         {
             if (string.IsNullOrWhiteSpace(channelId))
-                throw new ArgumentNullException();
+                throw new ArgumentNullException(nameof(channelId));
 
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, channelId);
         }
