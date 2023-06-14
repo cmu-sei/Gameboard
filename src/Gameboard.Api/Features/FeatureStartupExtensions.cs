@@ -35,13 +35,12 @@ public static class ServiceStartupExtensions
 {
     public static IServiceCollection AddGameboardServices(this IServiceCollection services, IWebHostEnvironment environment, AppSettings settings)
     {
-        // add general services
         services
             .AddSingleton<ConsoleActorMap>()
             .AddHttpContextAccessor()
             .AddGameboardMediatR()
-            .AddSingleton<AutoMapper.IMapper>(
-            new AutoMapper.MapperConfiguration(cfg =>
+            .AddSingleton<IMapper>(
+            new MapperConfiguration(cfg =>
             {
                 cfg.AddGameboardMaps();
             }).CreateMapper()
@@ -140,7 +139,6 @@ public static class ServiceStartupExtensions
             .AddScoped<IGameEngineStore, GameEngineStore>()
             .AddScoped<IGameStartService, GameStartService>()
             .AddScoped<IGameHubBus, GameHubBus>()
-            .AddScoped<IHtmlEncodeService, HtmlEncodeService>()
             .AddScoped<IInternalHubBus, InternalHubBus>()
             .AddScoped<IGameHubBus, GameHubBus>()
             .AddScoped<IScoringService, ScoringService>()

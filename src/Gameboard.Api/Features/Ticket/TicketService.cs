@@ -10,7 +10,6 @@ using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Services
@@ -19,11 +18,8 @@ namespace Gameboard.Api.Services
     {
         private readonly IFileUploadService _fileUploadService;
         private readonly IGuidService _guids;
-        private readonly IHtmlEncodeService _htmlEncode;
         private readonly INowService _now;
         ITicketStore Store { get; }
-
-        private IMemoryCache _localcache;
 
         public TicketService
         (
@@ -33,16 +29,12 @@ namespace Gameboard.Api.Services
             IMapper mapper,
             INowService now,
             CoreOptions options,
-            ITicketStore store,
-            IHtmlEncodeService htmlEncode,
-            IMemoryCache localcache
+            ITicketStore store
         ) : base(logger, mapper, options)
         {
             Store = store;
             _fileUploadService = fileUploadService;
             _guids = guids;
-            _htmlEncode = htmlEncode;
-            _localcache = localcache;
             _now = now;
         }
 
@@ -103,9 +95,6 @@ namespace Gameboard.Api.Services
                 entity.Attachments = Mapper.Map<string>(fileNames);
             }
 
-            entity.Summary = _htmlEncode.Encode(entity.Summary);
-            entity.Description = _htmlEncode.Encode(entity.Description);
-
             await Store.Create(entity);
             return TransformInPlace(Mapper.Map<Ticket>(entity));
         }
@@ -138,8 +127,6 @@ namespace Gameboard.Api.Services
                 );
             }
 
-            entity.Summary = _htmlEncode.Encode(entity.Summary);
-            entity.Description = _htmlEncode.Encode(entity.Description);
             entity.LastUpdated = timestamp;
 
             await Store.Update(entity);
@@ -225,7 +212,7 @@ namespace Gameboard.Api.Services
             {
                 Id = _guids.GetGuid(),
                 UserId = actorId,
-                Message = _htmlEncode.Encode(model.Message),
+                Message = model.Message,
                 Type = ActivityType.Comment,
                 Timestamp = timestamp
             };
@@ -248,8 +235,6 @@ namespace Gameboard.Api.Services
             result.LastUpdated = entity.LastUpdated;
             result.Key = entity.Key;
             result.Status = entity.Status;
-            entity.Summary = _htmlEncode.Encode(entity.Summary);
-            entity.Description = _htmlEncode.Encode(entity.Description);
 
             return result;
         }
@@ -285,6 +270,7 @@ namespace Gameboard.Api.Services
                 return true;
             if (ticket.TeamId.IsEmpty())
                 return false;
+
             // if team associated with ticket, see if this user has an enrollment with matching teamId
             return await Store.DbContext.Players.AnyAsync(p =>
                 p.UserId == userId &&
@@ -301,6 +287,7 @@ namespace Gameboard.Api.Services
                 return true;
             if (ticket.TeamId.IsEmpty())
                 return false;
+
             // if team associated with ticket, see if this user has an enrollment with matching teamId
             return await Store.DbContext.Players.AnyAsync(p =>
                 p.UserId == userId &&
@@ -323,6 +310,7 @@ namespace Gameboard.Api.Services
             var ticket = await Store.Load(ticketId);
             if (ticket == null)
                 return false;
+
             var updateUntilTime = DateTimeOffset.UtcNow.Add(new TimeSpan(0, -5, 0));
             if (ticket.RequesterId == userId && ticket.Created > updateUntilTime)
                 return true;
@@ -396,16 +384,12 @@ namespace Gameboard.Api.Services
         {
             var ticketSummary = Mapper.Map<TicketSummary>(ticket);
             ticketSummary.FullKey = FullKey(ticket.Key);
-            ticketSummary.Summary = _htmlEncode.Encode(ticket.Summary);
-            ticketSummary.Description = _htmlEncode.Encode(ticket.Description);
             return ticketSummary;
         }
 
         private Ticket TransformInPlace(Ticket ticket)
         {
             ticket.FullKey = FullKey(ticket.Key);
-            ticket.Summary = _htmlEncode.Encode(ticket.Summary);
-            ticket.Description = _htmlEncode.Encode(ticket.Description);
             return ticket;
         }
 
