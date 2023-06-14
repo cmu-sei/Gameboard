@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using AutoMapper;
 using Gameboard.Api;
+using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.ApiKeys;
@@ -13,7 +14,6 @@ using Gameboard.Api.Features.ChallengeBonuses;
 using Gameboard.Api.Features.CubespaceScoreboard;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
-using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.UnityGames;
@@ -87,10 +87,12 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddScoped<IActingUserService, ActingUserService>()
                 .AddSingleton<CoreOptions>(_ => settings.Core)
                 .AddSingleton<ApiKeyOptions>(_ => settings.ApiKey)
+                .AddTransient<IFileUploadService, FileUploadService>()
                 .AddTransient<IGuidService, GuidService>()
                 .AddTransient<IHashService, HashService>()
                 .AddTransient<INowService, NowService>()
                 .AddTransient<IRandomService, RandomService>()
+                .AddTransient(typeof(IStore<>), typeof(Store<>))
                 // feature services
                 .AddScoped<IApiKeysService, ApiKeysService>()
                 .AddScoped<IApiKeysStore, ApiKeysStore>()

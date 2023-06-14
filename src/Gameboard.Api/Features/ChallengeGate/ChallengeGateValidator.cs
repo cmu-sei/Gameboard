@@ -3,15 +3,14 @@
 
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Validators;
 
 namespace Gameboard.Api.ChallengeGates;
 
 public class ChallengeGateValidator : IModelValidator
 {
-    private readonly IChallengeGateStore _store;
+    private readonly IStore<Data.ChallengeGate> _store;
 
-    public ChallengeGateValidator(IChallengeGateStore store)
+    public ChallengeGateValidator(IStore<Data.ChallengeGate> store)
     {
         _store = store;
     }

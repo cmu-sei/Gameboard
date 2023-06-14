@@ -4,22 +4,15 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data
 {
     public class PlayerStore : Store<Player>, IPlayerStore
     {
-        public PlayerStore(GameboardDbContext dbContext)
-        : base(dbContext) { }
-
-        public async Task<Player> Load(string id)
-        {
-            return await DbSet
-                .AsNoTracking()
-                .Include(p => p.User)
-                .FirstOrDefaultAsync(p => p.Id == id);
-        }
+        public PlayerStore(IGuidService guids, GameboardDbContext dbContext)
+            : base(guids, dbContext) { }
 
         public IQueryable<Player> ListTeam(string id) =>
             base.List()

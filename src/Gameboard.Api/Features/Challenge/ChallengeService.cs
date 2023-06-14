@@ -28,14 +28,14 @@ namespace Gameboard.Api.Services
         private readonly IMapper _mapper;
         private readonly INowService _now;
         private readonly IPlayerStore _playerStore;
-        private readonly IChallengeSpecStore _specStore;
+        private readonly IStore<Data.ChallengeSpec> _specStore;
 
         public ChallengeService(
             ILogger<ChallengeService> logger,
             IMapper mapper,
             CoreOptions options,
             IChallengeStore store,
-            IChallengeSpecStore specStore,
+            IStore<Data.ChallengeSpec> specStore,
             IGameEngineService gameEngine,
             IGameStore gameStore,
             IGuidService guids,

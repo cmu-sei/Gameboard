@@ -6,21 +6,24 @@ using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using Gameboard.Api.Services;
 using System;
+using Gameboard.Api.Services;
 
 namespace Gameboard.Api.Data;
 
 public class ChallengeStore : Store<Challenge>, IChallengeStore
 {
+    private readonly IGuidService _guids;
     private readonly GameboardDbContext _dbContext;
     private readonly IMapper _mapper;
 
     public ChallengeStore(
+        IGuidService guids,
         GameboardDbContext dbContext,
-        IMapper mapper) : base(dbContext)
+        IMapper mapper) : base(guids, dbContext)
     {
         _dbContext = dbContext;
+        _guids = guids;
         _mapper = mapper;
     }
 

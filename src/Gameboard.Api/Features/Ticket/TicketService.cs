@@ -3,52 +3,60 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Common;
 using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Services
 {
     public class TicketService : _Service
     {
+        private readonly IFileUploadService _fileUploadService;
+        private readonly IGuidService _guids;
+        private readonly INowService _now;
         ITicketStore Store { get; }
 
-        private IMemoryCache _localcache;
-
-        public TicketService(
+        public TicketService
+        (
+            IFileUploadService fileUploadService,
+            IGuidService guids,
             ILogger<TicketService> logger,
             IMapper mapper,
+            INowService now,
             CoreOptions options,
-            ITicketStore store,
-            IMemoryCache localcache
+            ITicketStore store
         ) : base(logger, mapper, options)
         {
             Store = store;
-            _localcache = localcache;
+            _fileUploadService = fileUploadService;
+            _guids = guids;
+            _now = now;
         }
 
         public async Task<Ticket> Retrieve(string id, string actorId)
         {
             var entity = await Store.LoadDetails(id);
             entity.Activity = entity.Activity.OrderByDescending(a => a.Timestamp).ToList();
-            return Transform(Mapper.Map<Ticket>(entity));
+            return TransformInPlace(Mapper.Map<Ticket>(entity));
         }
 
         public async Task<Ticket> Retrieve(int id, string actorId)
         {
             var entity = await Store.LoadDetails(id);
             entity.Activity = entity.Activity.OrderByDescending(a => a.Timestamp).ToList();
-            return Transform(Mapper.Map<Ticket>(entity));
+            return TransformInPlace(Mapper.Map<Ticket>(entity));
         }
 
-        public async Task<Ticket> Create(NewTicket model, string actorId, bool sudo, List<UploadFile> uploads)
+        public async Task<Ticket> Create(NewTicket model, string actorId, bool sudo)
         {
             Data.Ticket entity;
-            var timestamp = DateTimeOffset.UtcNow;
+            var timestamp = _now.Get();
+
             if (sudo) // staff with full management capability
             {
                 entity = Mapper.Map<Data.Ticket>(model);
@@ -61,6 +69,7 @@ namespace Gameboard.Api.Services
                 entity = Mapper.Map<Data.Ticket>(selfMade);
                 entity.StaffCreated = false;
             }
+
             if (entity.RequesterId.IsEmpty())
                 entity.RequesterId = actorId;
             if (entity.Status.IsEmpty())
@@ -70,25 +79,31 @@ namespace Gameboard.Api.Services
             {
                 await UpdatedSessionContext(entity);
             }
+
             entity.CreatorId = actorId;
             entity.Created = timestamp;
             entity.LastUpdated = timestamp;
 
+            // generate the insertion guid now so we can use it for file uploads
+            entity.Id = _guids.GetGuid();
+
+            // upload files
+            var uploads = await _fileUploadService.Upload(Path.Combine(Options.SupportUploadsFolder, entity.Id), model.Uploads);
             if (uploads.Count() > 0)
             {
-                var filenames = uploads.Select(x => x.FileName).ToArray();
-                entity.Attachments = Mapper.Map<string>(filenames);
+                var fileNames = uploads.Select(x => x.FileName).ToArray();
+                entity.Attachments = Mapper.Map<string>(fileNames);
             }
 
             await Store.Create(entity);
-
-            return Transform(Mapper.Map<Ticket>(entity));
+            return TransformInPlace(Mapper.Map<Ticket>(entity));
         }
 
         public async Task<Ticket> Update(ChangedTicket model, string actorId, bool sudo)
         {
             var entity = await Store.Retrieve(model.Id);
-            var timestamp = DateTimeOffset.UtcNow;
+            var timestamp = _now.Get();
+
             if (sudo) // staff with full management capability
             {
                 var prev = Mapper.Map<Ticket>(entity);
@@ -113,12 +128,12 @@ namespace Gameboard.Api.Services
             }
 
             entity.LastUpdated = timestamp;
-            await Store.Update(entity);
 
-            return Transform(Mapper.Map<Ticket>(entity));
+            await Store.Update(entity);
+            return TransformInPlace(Mapper.Map<Ticket>(entity));
         }
 
-        public async Task<TicketSummary[]> List(TicketSearchFilter model, string userId, bool sudo)
+        public async Task<IEnumerable<TicketSummary>> List(TicketSearchFilter model, string userId, bool sudo)
         {
             var q = Store.List(model.Term);
 
@@ -185,22 +200,24 @@ namespace Gameboard.Api.Services
             if (model.Take > 0)
                 q = q.Take(model.Take);
 
-            return Transform(await Mapper.ProjectTo<TicketSummary>(q).ToArrayAsync());
+            var tickets = Mapper.Map<IEnumerable<Ticket>>(await q.ToArrayAsync());
+            return Transform(tickets);
         }
 
-        public async Task<TicketActivity> AddComment(NewTicketComment model, string actorId, List<UploadFile> uploads)
+        public async Task<TicketActivity> AddComment(NewTicketComment model, string actorId)
         {
             var entity = await Store.Load(model.TicketId);
-            var timestamp = DateTimeOffset.UtcNow;
+            var timestamp = _now.Get();
             var commentActivity = new Data.TicketActivity
             {
-                Id = Guid.NewGuid().ToString("n"),
+                Id = _guids.GetGuid(),
                 UserId = actorId,
                 Message = model.Message,
                 Type = ActivityType.Comment,
                 Timestamp = timestamp
             };
 
+            var uploads = await _fileUploadService.Upload(Path.Combine(Options.SupportUploadsFolder, model.TicketId, commentActivity.Id), model.Uploads);
             if (uploads.Count() > 0)
             {
                 commentActivity.Attachments = Mapper.Map<string>(uploads.Select(x => x.FileName).ToArray());
@@ -208,6 +225,7 @@ namespace Gameboard.Api.Services
 
             entity.Activity.Add(Mapper.Map<Data.TicketActivity>(commentActivity));
             entity.LastUpdated = timestamp;
+
             // Set the ticket status to be Open if it was closed before and someone leaves a new comment
             entity.Status = entity.Status == "Closed" ? "Open" : entity.Status;
             await Store.Update(entity);
@@ -217,13 +235,13 @@ namespace Gameboard.Api.Services
             result.LastUpdated = entity.LastUpdated;
             result.Key = entity.Key;
             result.Status = entity.Status;
+
             return result;
         }
 
         public async Task<string[]> ListLabels(SearchFilter model)
         {
             var q = Store.List(model.Term);
-
             var tickets = await Mapper.ProjectTo<TicketSummary>(q).ToArrayAsync();
 
             var b = tickets
@@ -252,6 +270,7 @@ namespace Gameboard.Api.Services
                 return true;
             if (ticket.TeamId.IsEmpty())
                 return false;
+
             // if team associated with ticket, see if this user has an enrollment with matching teamId
             return await Store.DbContext.Players.AnyAsync(p =>
                 p.UserId == userId &&
@@ -268,6 +287,7 @@ namespace Gameboard.Api.Services
                 return true;
             if (ticket.TeamId.IsEmpty())
                 return false;
+
             // if team associated with ticket, see if this user has an enrollment with matching teamId
             return await Store.DbContext.Players.AnyAsync(p =>
                 p.UserId == userId &&
@@ -290,6 +310,7 @@ namespace Gameboard.Api.Services
             var ticket = await Store.Load(ticketId);
             if (ticket == null)
                 return false;
+
             var updateUntilTime = DateTimeOffset.UtcNow.Add(new TimeSpan(0, -5, 0));
             if (ticket.RequesterId == userId && ticket.Created > updateUntilTime)
                 return true;
@@ -300,9 +321,7 @@ namespace Gameboard.Api.Services
         {
             if (!entity.ChallengeId.IsEmpty())
             {
-                var challenge = await Store.DbContext.Challenges.FirstOrDefaultAsync(c =>
-                    c.Id == entity.ChallengeId
-                );
+                var challenge = await Store.DbContext.Challenges.FirstOrDefaultAsync(c => c.Id == entity.ChallengeId);
                 if (challenge != null)
                 {
                     entity.TeamId = challenge.TeamId;
@@ -356,13 +375,19 @@ namespace Gameboard.Api.Services
             }
         }
 
-        // Transform functions to create full ticket key with configurable key prefix
-        private TicketSummary[] Transform(TicketSummary[] tickets)
+        private IEnumerable<TicketSummary> Transform(IEnumerable<Ticket> tickets)
         {
-            return tickets.Select(x => { x.FullKey = FullKey(x.Key); return x; }).ToArray();
+            return tickets.Select(t => Transform(t));
         }
 
-        private Ticket Transform(Ticket ticket)
+        private TicketSummary Transform(Ticket ticket)
+        {
+            var ticketSummary = Mapper.Map<TicketSummary>(ticket);
+            ticketSummary.FullKey = FullKey(ticket.Key);
+            return ticketSummary;
+        }
+
+        private Ticket TransformInPlace(Ticket ticket)
         {
             ticket.FullKey = FullKey(ticket.Key);
             return ticket;
