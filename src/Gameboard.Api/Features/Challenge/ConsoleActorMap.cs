@@ -11,7 +11,7 @@ namespace Gameboard.Api.Services
 {
     public class ConsoleActorMap
     {
-        ConcurrentDictionary<string, ConsoleActor> _cache = new ConcurrentDictionary<string, ConsoleActor>();
+        private readonly ConcurrentDictionary<string, ConsoleActor> _cache = new();
 
         public ConsoleActorMap()
         {

@@ -39,14 +39,14 @@ namespace Gameboard.Api.Services
             _now = now;
         }
 
-        public async Task<Ticket> Retrieve(string id, string actorId)
+        public async Task<Ticket> Retrieve(string id)
         {
             var entity = await Store.LoadDetails(id);
             entity.Activity = entity.Activity.OrderByDescending(a => a.Timestamp).ToList();
             return TransformInPlace(Mapper.Map<Ticket>(entity));
         }
 
-        public async Task<Ticket> Retrieve(int id, string actorId)
+        public async Task<Ticket> Retrieve(int id)
         {
             var entity = await Store.LoadDetails(id);
             entity.Activity = entity.Activity.OrderByDescending(a => a.Timestamp).ToList();
@@ -401,6 +401,11 @@ namespace Gameboard.Api.Services
         {
             ticket.FullKey = TransformTicketKey(ticket.Key);
             return ticket;
+        }
+
+        private string FullKey(int key)
+        {
+            return Options.KeyPrefix + "-" + key.ToString();
         }
     }
 }
