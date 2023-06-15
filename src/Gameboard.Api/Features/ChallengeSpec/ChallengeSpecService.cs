@@ -13,15 +13,15 @@ namespace Gameboard.Api.Services
 {
     public class ChallengeSpecService : _Service
     {
-        IChallengeSpecStore Store { get; }
-        IGameEngineService GameEngine { get; }
+        IStore<Data.ChallengeSpec> Store { get; }
+        GameEngineService GameEngine { get; }
 
         public ChallengeSpecService(
             ILogger<ChallengeSpecService> logger,
             IMapper mapper,
             CoreOptions options,
-            IChallengeSpecStore store,
-            IGameEngineService gameEngine
+            IStore<Data.ChallengeSpec> store,
+            GameEngineService gameEngine
         ) : base(logger, mapper, options)
         {
             Store = store;
@@ -35,7 +35,7 @@ namespace Gameboard.Api.Services
                 s.GameId == model.GameId
             );
 
-            if (entity is Data.ChallengeSpec)
+            if (entity is not null)
             {
                 Mapper.Map(model, entity);
                 await Store.Update(entity);

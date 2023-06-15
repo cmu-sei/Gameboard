@@ -14,7 +14,6 @@ namespace Gameboard.Api.Data.Abstractions
         IQueryable<Player> ListTeam(string id);
         Task<Player[]> ListTeamByPlayer(string id);
         Task<Challenge[]> ListTeamChallenges(string id);
-        Task<Player> Load(string id);
         Task<Player> LoadBoard(string id);
     }
 }

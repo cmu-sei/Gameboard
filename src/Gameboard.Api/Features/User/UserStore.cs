@@ -4,14 +4,15 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Services;
 
 namespace Gameboard.Api.Data
 {
 
     public class UserStore : Store<User>, IUserStore
     {
-        public UserStore(GameboardDbContext dbContext)
-            : base(dbContext) { }
+        public UserStore(IGuidService guids, GameboardDbContext dbContext)
+            : base(guids, dbContext) { }
 
         public override Task<User> Create(User entity)
         {

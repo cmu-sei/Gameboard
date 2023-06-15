@@ -6,13 +6,14 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
 using System;
+using Gameboard.Api.Services;
 
 namespace Gameboard.Api.Data;
 
 public class GameStore : Store<Game>, IGameStore
 {
-    public GameStore(GameboardDbContext dbContext)
-        : base(dbContext) { }
+    public GameStore(IGuidService guids, GameboardDbContext dbContext)
+        : base(guids, dbContext) { }
 
     public async Task<Game> Load(string id)
     {

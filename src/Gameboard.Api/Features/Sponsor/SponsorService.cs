@@ -1,7 +1,6 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -12,16 +11,16 @@ using System.IO;
 
 namespace Gameboard.Api.Services
 {
-    public class SponsorService: _Service
+    public class SponsorService : _Service
     {
-        ISponsorStore Store { get; }
+        IStore<Data.Sponsor> Store { get; }
 
-        public SponsorService (
+        public SponsorService(
             ILogger<SponsorService> logger,
             IMapper mapper,
             CoreOptions options,
-            ISponsorStore store
-        ): base (logger, mapper, options)
+            IStore<Data.Sponsor> store
+        ) : base(logger, mapper, options)
         {
             Store = store;
         }
@@ -88,7 +87,7 @@ namespace Gameboard.Api.Services
 
             if (entity is null)
             {
-                entity = await Store.Create(new Data.Sponsor{ Id = id });
+                entity = await Store.Create(new Data.Sponsor { Id = id });
             }
 
             entity.Logo = filename;

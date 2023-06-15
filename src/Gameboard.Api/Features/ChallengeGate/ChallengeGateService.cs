@@ -13,13 +13,13 @@ namespace Gameboard.Api.Services
 {
     public class ChallengeGateService : _Service
     {
-        IChallengeGateStore Store { get; }
+        IStore<Data.ChallengeGate> Store { get; }
 
         public ChallengeGateService(
             ILogger<ChallengeGateService> logger,
             IMapper mapper,
             CoreOptions options,
-            IChallengeGateStore store
+            IStore<Data.ChallengeGate> store
         ) : base(logger, mapper, options)
         {
             Store = store;
@@ -33,7 +33,7 @@ namespace Gameboard.Api.Services
                 s.GameId == model.GameId
             );
 
-            if (entity is Data.ChallengeGate)
+            if (entity is not null)
             {
                 Mapper.Map(model, entity);
                 await Store.Update(entity);
@@ -69,7 +69,7 @@ namespace Gameboard.Api.Services
         internal async Task<ChallengeGate[]> List(string id)
         {
             if (id.IsEmpty())
-                return new ChallengeGate[] { };
+                return Array.Empty<ChallengeGate>();
 
             return
                 await Mapper.ProjectTo<ChallengeGate>(
