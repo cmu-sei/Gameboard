@@ -200,8 +200,7 @@ namespace Gameboard.Api.Services
             if (model.Take > 0)
                 q = q.Take(model.Take);
 
-            var tickets = Mapper.Map<IEnumerable<Ticket>>(await q.ToArrayAsync());
-            return Transform(tickets);
+            return Transform(await Mapper.ProjectTo<TicketSummary>(q).ToArrayAsync());
         }
 
         public async Task<TicketActivity> AddComment(NewTicketComment model, string actorId)
