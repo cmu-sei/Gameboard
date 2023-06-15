@@ -9,7 +9,6 @@ using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
-using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,11 +18,8 @@ public record ConfigureGameAutoBonusesCommand(ConfigureGameAutoBonusesCommandPar
 
 internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAutoBonusesCommand, GameScoringConfig>
 {
-    private readonly IChallengeStore _challengeStore;
     private readonly IChallengeBonusStore _challengeBonusStore;
-    private readonly IStore<Data.Challenge> _challengeSpecStore;
-    private readonly EntityExistsValidator<Data.Game> _gameExists;
-    private readonly IGameboardValidator<ConfigureGameAutoBonusesCommand> _gameHasNoAwardedBonuses;
+    private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
     private readonly IGuidService _guids;
     private readonly IScoringService _scoringService;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
@@ -31,11 +27,8 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
     private readonly IValidatorService<ConfigureGameAutoBonusesCommand> _validatorService;
 
     public ConfigureGameAutoBonusesHandler(
-        IChallengeStore challengeStore,
         IChallengeBonusStore challengeBonusStore,
-        IStore<Data.Challenge> challengeSpecStore,
-        EntityExistsValidator<Data.Game> gameExists,
-        IGameboardValidator<ConfigureGameAutoBonusesCommand> gameHasNoAwardedBonuses,
+        IStore<Data.ChallengeSpec> challengeSpecStore,
         IGuidService guids,
         IScoringService scoringService,
         UserRoleAuthorizer userRoleAuthorizer,
@@ -43,10 +36,7 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
         IValidatorService<ConfigureGameAutoBonusesCommand> validatorService)
     {
         _challengeBonusStore = challengeBonusStore;
-        _challengeStore = challengeStore;
         _challengeSpecStore = challengeSpecStore;
-        _gameExists = gameExists;
-        _gameHasNoAwardedBonuses = gameHasNoAwardedBonuses;
         _guids = guids;
         _scoringService = scoringService;
         _userRoleAuthorizer = userRoleAuthorizer;
@@ -76,10 +66,9 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
         {
             foreach (var spec in specs)
             {
-                // first, compose all bonuses for this spec:
                 var newBonuses = new List<GameAutomaticBonusSolveRank>(request.Parameters.Config.AllChallengesBonuses);
-
-                if (spec.Tag.NotEmpty())
+                if (request.Parameters.Config.SpecificChallengesBonuses?.Any() ?? false)
+                {
                     newBonuses.AddRange
                     (
                         request
@@ -94,20 +83,20 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
                                 SolveRank = b.SolveRank
                             })
                     );
-
-                // NOTE: ExecuteDeleteAsync seems to mess with the transaction stuff - may be a
-                // postgres implementation problem, or may be by design
-                //
-                // then delete all existing bonuses from the db
-                // await _challengeSpecStore
-                //     .DbContext
-                //     .ChallengeBonuses
-                //     .Where(b => b.ChallengeSpecId == spec.Id)
-                //     .ExecuteDeleteAsync();
-
+                }
 
                 await UpdateDatabase(_challengeBonusStore.DbContext, spec.Id, newBonuses);
             }
+
+            // NOTE: ExecuteDeleteAsync seems to mess with the transaction stuff - may be a
+            // postgres implementation problem, or may be by design
+            //
+            // then delete all existing bonuses from the db
+            // await _challengeSpecStore
+            //     .DbContext
+            //     .ChallengeBonuses
+            //     .Where(b => b.ChallengeSpecId == spec.Id)
+            //     .ExecuteDeleteAsync();
 
             scope.Complete();
         }
