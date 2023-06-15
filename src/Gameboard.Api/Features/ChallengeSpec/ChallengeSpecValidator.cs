@@ -8,13 +8,11 @@ namespace Gameboard.Api.Validators
 {
     public class ChallengeSpecValidator : IModelValidator
     {
-        private readonly IChallengeStore _challengeStore;
         private readonly IGameStore _gameStore;
-        private readonly IChallengeSpecStore _specStore;
+        private readonly IStore<Data.ChallengeSpec> _specStore;
 
-        public ChallengeSpecValidator(IChallengeStore challengeStore, IChallengeSpecStore specStore, IGameStore gameStore)
+        public ChallengeSpecValidator(IStore<Data.ChallengeSpec> specStore, IGameStore gameStore)
         {
-            _challengeStore = challengeStore;
             _gameStore = gameStore;
             _specStore = specStore;
         }

@@ -1,5 +1,4 @@
 using AutoMapper;
-using Gameboard.Api;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Services;
@@ -53,11 +52,11 @@ public class ChallengeServiceTests
         {
             Id = gameId,
             MaxTeamSize = 1,
-            Prerequisites = new Api.Data.ChallengeGate[] { }
+            Prerequisites = Array.Empty<Data.ChallengeGate>()
         };
-        var fakeGames = new Api.Data.Game[] { fakeGame }.BuildMock();
+        var fakeGames = new Data.Game[] { fakeGame }.BuildMock();
 
-        var fakeSpec = new Api.Data.ChallengeSpec
+        var fakeSpec = new Data.ChallengeSpec
         {
             Id = specId,
             ExternalId = specExternalId

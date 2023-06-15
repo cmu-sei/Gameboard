@@ -14,14 +14,15 @@ namespace Gameboard.Api.Services
     public class ChallengeSpecService : _Service
     {
         IStore<Data.ChallengeSpec> Store { get; }
-        GameEngineService GameEngine { get; }
+        IGameEngineService GameEngine { get; }
 
-        public ChallengeSpecService(
+        public ChallengeSpecService
+        (
             ILogger<ChallengeSpecService> logger,
             IMapper mapper,
             CoreOptions options,
             IStore<Data.ChallengeSpec> store,
-            GameEngineService gameEngine
+            IGameEngineService gameEngine
         ) : base(logger, mapper, options)
         {
             Store = store;
@@ -30,7 +31,8 @@ namespace Gameboard.Api.Services
 
         public async Task<ChallengeSpec> AddOrUpdate(NewChallengeSpec model)
         {
-            var entity = await Store.List().FirstOrDefaultAsync(s =>
+            var entity = await Store.List().FirstOrDefaultAsync
+            (s =>
                 s.ExternalId == model.ExternalId &&
                 s.GameId == model.GameId
             );

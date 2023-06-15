@@ -32,24 +32,21 @@ internal static class ServiceRegistrationExtensions
 
     public static IServiceCollection AddInterfacesWithSingleImplementations(this IServiceCollection serviceCollection)
     {
-        var interfaceTypes = Assembly
-            .GetExecutingAssembly()
-            .GetTypes()
+        var interfaceTypes = GetRootQuery()
             .Where(t => t.IsInterface)
             .ToArray();
 
         var singleInterfaceTypes = GetRootTypeQuery()
-            .Where(t => t.GetInterfaces().Count() == 1)
-            .Where(t => t.GetConstructors().Where(c => c.IsPublic).Count() > 0)
+            .Where(t => t.GetInterfaces().Length == 1)
+            .Where(t => t.GetConstructors().Where(c => c.IsPublic).Any())
             .GroupBy(t => t.GetInterfaces()[0])
             .ToDictionary(t => t.Key, t => t.ToList())
-            .Where(entry => entry.Value.Count() == 1);
+            .Where(entry => entry.Value.Count == 1);
 
         foreach (var entry in singleInterfaceTypes)
         {
             // if it's a type we want to register and it hasn't already been registered by other logic, add it
             var theInterfaceName = entry.Key.Name;
-            var fargle = theInterfaceName;
             var hasInterface = interfaceTypes.Contains(entry.Key);
             var isUnRegistered = serviceCollection.FirstOrDefault(s => s.ServiceType == entry.Key) == null;
 
@@ -70,9 +67,7 @@ internal static class ServiceRegistrationExtensions
 
     private static IServiceCollection AddConcretesFromNamespaceCriterion(this IServiceCollection serviceCollection, Func<Type, bool> matchCriterion)
     {
-        var types = Assembly
-            .GetExecutingAssembly()
-            .GetTypes()
+        var types = GetRootQuery()
             .Where
             (t =>
                 t.IsClass &&
@@ -100,10 +95,14 @@ internal static class ServiceRegistrationExtensions
         return serviceCollection;
     }
 
-    private static Type[] GetRootTypeQuery()
-     => Assembly
-            .GetExecutingAssembly()
+    private static Type[] GetRootQuery()
+      => typeof(Program)
+            .Assembly
             .GetTypes()
+            .ToArray();
+
+    private static Type[] GetRootTypeQuery()
+     => GetRootQuery()
             .Where(t => t.IsClass & !t.IsAbstract)
             .Where(t => t.AssemblyQualifiedName.StartsWith("Gameboard"))
             .ToArray();

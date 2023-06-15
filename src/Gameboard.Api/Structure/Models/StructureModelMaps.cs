@@ -1,4 +1,5 @@
 using AutoMapper;
+using Gameboard.Api.Features.Common;
 
 namespace Gameboard.Api.Structure;
 

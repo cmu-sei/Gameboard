@@ -6,8 +6,8 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoMapper;
+using Gameboard.Api.Features.Common;
 using Gameboard.Api.Features.GameEngine;
-using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Services
 {

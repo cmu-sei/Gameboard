@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Gameboard.Api.Structure;
+using Gameboard.Api.Features.Common;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -23,12 +23,12 @@ public class SupportReportParameters
     public string GameId { get; set; }
     // public IEnumerable<string> Labels { get; set; }
     public string Labels { get; set; }
-    public Nullable<SupportReportLabelsModifier> LabelsModifier { get; set; } = SupportReportLabelsModifier.HasAll;
-    public Nullable<double> MinutesSinceOpen { get; set; }
-    public Nullable<double> MinutesSinceUpdate { get; set; }
+    public SupportReportLabelsModifier? LabelsModifier { get; set; } = SupportReportLabelsModifier.HasAll;
+    public double? MinutesSinceOpen { get; set; }
+    public double? MinutesSinceUpdate { get; set; }
     public DateTimeOffset? OpenedDateStart { get; set; }
     public DateTimeOffset? OpenedDateEnd { get; set; }
-    public Nullable<SupportReportTicketWindow> OpenedWindow { get; set; }
+    public SupportReportTicketWindow? OpenedWindow { get; set; }
     public string Status { get; set; }
 }
 

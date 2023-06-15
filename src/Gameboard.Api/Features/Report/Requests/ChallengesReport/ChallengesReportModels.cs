@@ -1,5 +1,5 @@
 using System;
-using Gameboard.Api.Structure;
+using Gameboard.Api.Features.Common;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -31,8 +31,8 @@ internal class ChallengesReportPlayerEngagement
 
 internal class ChallengesReportMeanChallengeStats
 {
-    public required Nullable<double> MeanCompleteSolveTimeMs { get; set; }
-    public required Nullable<double> MeanScore { get; set; }
+    public required double? MeanCompleteSolveTimeMs { get; set; }
+    public required double? MeanScore { get; set; }
 }
 
 internal class ChallengesReportPlayer

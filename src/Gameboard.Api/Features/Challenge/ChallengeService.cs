@@ -20,8 +20,8 @@ namespace Gameboard.Api.Services
         IChallengeStore Store { get; }
         IGameEngineService GameEngine { get; }
 
-        private IMemoryCache _localcache;
-        private ConsoleActorMap _actorMap;
+        private readonly IMemoryCache _localcache;
+        private readonly ConsoleActorMap _actorMap;
         private readonly IGameStore _gameStore;
         private readonly IGuidService _guids;
         private readonly IJsonService _jsonService;
@@ -119,8 +119,8 @@ namespace Gameboard.Api.Services
 #pragma warning disable CA2200
             catch (Exception ex)
             {
-                Logger.LogWarning($"Challenge registration failure: {ex.GetType().Name} -- {ex.Message}");
-                ExceptionDispatchInfo.Capture(ex.InnerException == null ? ex : ex.InnerException).Throw();
+                Logger.LogWarning(message: $"Challenge registration failure: {ex.GetType().Name} -- {ex.Message}");
+                ExceptionDispatchInfo.Capture(ex.InnerException ?? ex).Throw();
                 throw;
             }
             finally
@@ -259,7 +259,7 @@ namespace Gameboard.Api.Services
         {
             var entity = await Store.Load(model);
 
-            if (entity is Data.Challenge)
+            if (entity is not null)
                 return Mapper.Map<Challenge>(entity);
 
             var spec = await Store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
@@ -299,8 +299,7 @@ namespace Gameboard.Api.Services
 
         private async Task<Data.Challenge> Sync(Data.Challenge entity, Task<GameEngineGameState> task = null)
         {
-            if (task is null)
-                task = GameEngine.LoadGamespace(entity);
+            task ??= GameEngine.LoadGamespace(entity);
 
             try
             {
@@ -318,18 +317,11 @@ namespace Gameboard.Api.Services
             catch (Exception ex)
             {
                 entity.LastSyncTime = DateTimeOffset.UtcNow;
-                Logger.LogError(ex, "Sync error on {0} {1}", entity.Id, entity.Name);
+                Logger.LogError(message: $"Sync error on {entity.Id} {entity.Name}: {ex.Message}", ex);
             }
 
             await Store.Update(entity);
             return entity;
-        }
-
-        private async Task<Data.Challenge> Sync(string id, Task<GameEngineGameState> task = null)
-        {
-            var entity = await Store.Retrieve(id);
-
-            return await Sync(entity, task);
         }
 
         public async Task<Challenge> StartGamespace(string id, string actorId)
@@ -459,7 +451,7 @@ namespace Gameboard.Api.Services
 
         private async Task ArchiveChallenges(IEnumerable<Data.Challenge> challenges)
         {
-            if (challenges != null && challenges.Count() > 0)
+            if (challenges != null && challenges.Any())
             {
                 var toArchiveIds = challenges.Select(c => c.Id).ToArray();
 
@@ -473,7 +465,7 @@ namespace Gameboard.Api.Services
 
                 var toArchiveTasks = challenges.Select(async challenge =>
                 {
-                    var submissions = new GameEngineSectionSubmission[] { };
+                    var submissions = Array.Empty<GameEngineSectionSubmission>();
 
                     // gamespace may be deleted in TopoMojo which would cause error and prevent reset
                     try

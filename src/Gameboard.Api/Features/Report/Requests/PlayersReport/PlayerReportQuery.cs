@@ -4,8 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Common;
 using Gameboard.Api.Services;
-using Gameboard.Api.Structure;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,25 +17,19 @@ internal class GetPlayersReportQueryHandler : IRequestHandler<PlayersReportQuery
 {
     private readonly IMapper _mapper;
     private readonly INowService _nowService;
-    private readonly IPlayerStore _playerStore;
-    private readonly IReportStore _reportStore;
     private readonly IPlayersReportService _reportService;
-    private readonly ISponsorStore _sponsorStore;
+    private readonly IStore<Data.Sponsor> _sponsorStore;
 
     public GetPlayersReportQueryHandler
     (
         IMapper mapper,
         INowService now,
-        IPlayerStore playerStore,
         IPlayersReportService reportService,
-        IReportStore reportStore,
-        ISponsorStore sponsorStore
+        IStore<Data.Sponsor> sponsorStore
     )
     {
         _mapper = mapper;
         _nowService = now;
-        _playerStore = playerStore;
-        _reportStore = reportStore;
         _reportService = reportService;
         _sponsorStore = sponsorStore;
     }

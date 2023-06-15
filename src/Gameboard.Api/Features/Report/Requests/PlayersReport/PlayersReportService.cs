@@ -12,12 +12,10 @@ public interface IPlayersReportService
 internal class PlayersReportService : IPlayersReportService
 {
     private readonly IPlayerStore _playerStore;
-    private readonly IUserStore _userStore;
 
-    public PlayersReportService(IPlayerStore playerStore, ISponsorStore sponsorStore, IUserStore userStore)
+    public PlayersReportService(IPlayerStore playerStore)
     {
         _playerStore = playerStore;
-        _userStore = userStore;
     }
 
     public IQueryable<Data.Player> GetPlayersReportBaseQuery(PlayersReportQueryParameters parameters)
@@ -43,22 +41,22 @@ internal class PlayersReportService : IPlayersReportService
                 .ThenInclude
                 (
                     g => g.Challenges
-                        .Where(c => hasSpecId ? c.SpecId == parameters.ChallengeSpecId : true)
-                        .Where(c => hasSessionStartBegin ? c.StartTime >= parameters.SessionStartWindow.DateStart : true)
-                        .Where(c => hasSessionStartEnd ? c.EndTime <= parameters.SessionStartWindow.DateEnd : true)
+                        .Where(c => !hasSpecId || c.SpecId == parameters.ChallengeSpecId)
+                        .Where(c => !hasSessionStartBegin || c.StartTime >= parameters.SessionStartWindow.DateStart)
+                        .Where(c => !hasSessionStartEnd || c.EndTime <= parameters.SessionStartWindow.DateEnd)
                 )
             .Where(p => p.Game.PlayerMode == PlayerMode.Competition)
-            .Where(p => hasGameId ? p.GameId == parameters.GameId : true)
+            .Where(p => !hasGameId || p.GameId == parameters.GameId)
             // note that the database uses the term "competition", but it's "series" in the UI
-            .Where(p => hasSeries ? p.Game.Competition == parameters.Series : true)
+            .Where(p => !hasSeries || p.Game.Competition == parameters.Series)
             // i'm SURE there's a better way to structure this
-            .Where(p => hasTrack && parameters.TrackModifier == PlayersReportTrackModifier.CompetedInThisTrack ? p.Game.Track == parameters.TrackName : true)
-            .Where(p => hasTrack && parameters.TrackModifier == PlayersReportTrackModifier.DidntCompeteInThisTrack ? p.Game.Track != parameters.TrackName : true)
+            .Where(p => !hasTrack || parameters.TrackModifier != PlayersReportTrackModifier.CompetedInThisTrack || p.Game.Track == parameters.TrackName)
+            .Where(p => !hasTrack || parameters.TrackModifier != PlayersReportTrackModifier.DidntCompeteInThisTrack || p.Game.Track != parameters.TrackName)
 
             // the "competed only in this track" thing is NYI
             //.Where(u => hasTrack && parameters.TrackModifier == PlayersReportTrackModifier.CompetedInOnlyThisTrack ? u.Enrollments.GroupBy(p => p.Game.Track).Count() == 1 : true)
             .AsQueryable()
-            .Where(u => sponsorId != null ? u.Sponsor == sponsorId : true);
+            .Where(u => sponsorId == null || u.Sponsor == sponsorId);
 
         return baseQuery;
     }

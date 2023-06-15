@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Common;
 using Gameboard.Api.Services;
-using Gameboard.Api.Structure;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
@@ -18,7 +18,7 @@ public interface ISupportReportService
 
 internal class SupportReportService : ISupportReportService
 {
-    private static string LIST_PARAMETER_DELIMITER = ",";
+    private static readonly string LIST_PARAMETER_DELIMITER = ",";
 
     private readonly IJsonService _jsonService;
     private readonly IMapper _mapper;
@@ -96,7 +96,7 @@ internal class SupportReportService : ISupportReportService
 
             if (parameters.LabelsModifier == null || parameters.LabelsModifier == SupportReportLabelsModifier.HasAll)
             {
-                records = records.Where(r => r.Labels.Count() > 0 && splits.All(s => r.Labels.Contains(s)));
+                records = records.Where(r => r.Labels.Any() && splits.All(s => r.Labels.Contains(s)));
             }
 
             if (parameters.LabelsModifier == SupportReportLabelsModifier.HasAny)

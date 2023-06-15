@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Common;
 using Gameboard.Api.Services;
-using Gameboard.Api.Structure;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
@@ -24,7 +24,7 @@ public interface IReportsService
 public class ReportsService : IReportsService
 {
     private readonly IChallengeStore _challengeStore;
-    private readonly IChallengeSpecStore _challengeSpecStore;
+    private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
     private readonly IMapper _mapper;
     private readonly IGameStore _gameStore;
     private readonly INowService _now;
@@ -35,7 +35,7 @@ public class ReportsService : IReportsService
     public ReportsService
     (
         IChallengeStore challengeStore,
-        IChallengeSpecStore challengeSpecStore,
+        IStore<Data.ChallengeSpec> challengeSpecStore,
         IGameStore gameStore,
         IMapper mapper,
         INowService now,
@@ -160,8 +160,8 @@ public class ReportsService : IReportsService
                 {
                     var playersCompleteSolved = c.Where(p => p.Player.Result == ChallengeResult.Success);
 
-                    var meanCompleteSolveTime = playersCompleteSolved.Count() > 0 ? playersCompleteSolved.Average(p => p.Player.SolveTimeMs.Value) : null as Nullable<double>;
-                    var meanScore = c.Count() > 0 ? c.Average(c => c.Player.Score) : null as Nullable<double>;
+                    var meanCompleteSolveTime = playersCompleteSolved.Any() ? playersCompleteSolved.Average(p => p.Player.SolveTimeMs.Value) : null as double?;
+                    var meanScore = c.Any() ? c.Average(c => c.Player.Score) : null as double?;
 
                     return new ChallengesReportMeanChallengeStats
                     {
@@ -175,8 +175,8 @@ public class ReportsService : IReportsService
             .Where(c => c.Player.SolveTimeMs != null)
             .Select(c => new
             {
-                SpecId = c.SpecId,
-                Player = c.Player.Player,
+                c.SpecId,
+                c.Player.Player,
                 SolveTime = c.Player.SolveTimeMs.Value
             })
             .GroupBy(specPlayerSolve => specPlayerSolve.SpecId)
@@ -198,10 +198,10 @@ public class ReportsService : IReportsService
         Dictionary<string, ChallengesReportMeanChallengeStats> meanStats
     )
     {
-        var hasChallenges = challengesBySpec.Keys.Contains(spec.Id);
+        var hasChallenges = challengesBySpec.ContainsKey(spec.Id);
         var challenge = hasChallenges ? challengesBySpec[spec.Id].Where(s => s.Game.Id == spec.Game.Id).FirstOrDefault() : null;
-        var hasSolves = fastestSolves.Keys.Contains(spec.Id);
-        var hasStats = meanStats.Keys.Contains(spec.Id);
+        var hasSolves = fastestSolves.ContainsKey(spec.Id);
+        var hasStats = meanStats.ContainsKey(spec.Id);
 
         return new ChallengesReportRecord
         {

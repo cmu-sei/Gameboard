@@ -2,8 +2,8 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using AutoMapper;
+using Gameboard.Api.Features.Common;
 using Gameboard.Api.Hubs;
-using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Services
 {
