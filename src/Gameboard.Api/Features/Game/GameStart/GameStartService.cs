@@ -9,7 +9,6 @@ using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Structure;
-using Gameboard.Api.Structure.MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 

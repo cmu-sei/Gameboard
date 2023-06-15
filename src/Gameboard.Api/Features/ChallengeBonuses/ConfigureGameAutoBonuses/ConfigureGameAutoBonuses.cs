@@ -69,8 +69,8 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
         var specs = await _challengeSpecStore
             .ListAsNoTracking()
             .Where(s => s.GameId == request.Parameters.GameId)
-            .Select(s => new { Id = s.Id, Tag = s.Tag })
-            .ToArrayAsync();
+            .Select(s => new { s.Id, s.Tag })
+            .ToArrayAsync(cancellationToken);
 
         using (var scope = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }, TransactionScopeAsyncFlowOption.Enabled))
         {

@@ -33,27 +33,30 @@ internal class ConfigureGameAutoBonusesValidator : IGameboardValidator<Configure
                 .GetValidationTask()
                 .Invoke(request, context);
 
-            var specs = await _store
+            if (request.Parameters.Config.SpecificChallengesBonuses is not null && request.Parameters.Config.SpecificChallengesBonuses.Any())
+            {
+                var specs = await _store
                 .ListAsNoTracking<Data.ChallengeSpec>()
                 .Include(s => s.Bonuses)
                 .Where(s => s.GameId == request.Parameters.GameId)
                 .ToArrayAsync();
 
-            // all specifically-configured challenges have existing support keys
-            var challengeSupportKeys = specs.Select(s => s.Tag).ToArray();
+                // all specifically-configured challenges have existing support keys
+                var challengeSupportKeys = specs.Select(s => s.Tag).ToArray();
 
-            if (challengeSupportKeys != null && challengeSupportKeys.Length > 0)
-            {
-                var nonExistentKeys = request
-                    .Parameters
-                    .Config
-                    .SpecificChallengesBonuses
-                    .Select(b => b.SupportKey)
-                    .Where(k => !challengeSupportKeys.Contains(k))
-                    .ToArray();
+                if (challengeSupportKeys != null && challengeSupportKeys.Length > 0)
+                {
+                    var nonExistentKeys = request
+                        .Parameters
+                        .Config
+                        .SpecificChallengesBonuses
+                        .Select(b => b.SupportKey)
+                        .Where(k => !challengeSupportKeys.Contains(k))
+                        .ToArray();
 
-                foreach (var key in nonExistentKeys)
-                    context.AddValidationException(new NonExistentSupportKey(key));
+                    foreach (var key in nonExistentKeys)
+                        context.AddValidationException(new NonExistentSupportKey(key));
+                }
             }
 
             // all point values are greater than zero

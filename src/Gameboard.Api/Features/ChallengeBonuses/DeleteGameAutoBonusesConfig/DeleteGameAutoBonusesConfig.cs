@@ -34,12 +34,14 @@ internal class DeleteGameAutoBonusesConfigHandler : IRequestHandler<DeleteGameAu
             .Authorize();
         _authorizer.Authorize();
 
-        await _validator.UseGameIdProperty(r => r.GameId).Validate(request);
+        await _validator
+            .UseGameIdProperty(r => r.GameId)
+            .Validate(request);
 
         await _challengeBonusStore
             .DbContext
             .ChallengeBonuses
             .Where(s => s.ChallengeSpec.GameId == request.GameId)
-            .ExecuteDeleteAsync();
+            .ExecuteDeleteAsync(cancellationToken);
     }
 }

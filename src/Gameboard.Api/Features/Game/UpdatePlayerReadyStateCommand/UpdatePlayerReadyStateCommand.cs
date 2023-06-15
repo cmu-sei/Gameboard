@@ -46,7 +46,7 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
     {
         // validate
         // grab the player, we need it later anyway
-        var player = await _playerStore.ListAsNoTracking().FirstOrDefaultAsync(p => p.Id == request.PlayerId);
+        var player = await _playerStore.ListAsNoTracking().FirstOrDefaultAsync(p => p.Id == request.PlayerId, cancellationToken);
         _validatorService.AddValidator(ctx =>
         {
             if (player == null)

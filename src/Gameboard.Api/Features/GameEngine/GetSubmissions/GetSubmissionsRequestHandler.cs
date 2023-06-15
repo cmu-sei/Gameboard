@@ -5,7 +5,6 @@ using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
-using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Features.GameEngine.Requests;
 
@@ -13,7 +12,6 @@ internal class GetSubmissionsRequestHandler : IRequestHandler<GetSubmissionsQuer
 {
     private readonly IChallengeStore _challengeStore;
     private readonly IGameEngineService _gameEngine;
-    private readonly User _actor;
 
     // validators
     private readonly IGameboardRequestValidator<GetSubmissionsQuery> _validator;
@@ -21,14 +19,14 @@ internal class GetSubmissionsRequestHandler : IRequestHandler<GetSubmissionsQuer
     // authorizers 
     private readonly UserRoleAuthorizer _roleAuthorizer;
 
-    public GetSubmissionsRequestHandler(
+    public GetSubmissionsRequestHandler
+    (
         IChallengeStore challengeStore,
         IGameEngineService gameEngine,
         UserRoleAuthorizer roleAuthorizer,
-        IGameboardRequestValidator<GetSubmissionsQuery> validator,
-        IHttpContextAccessor httpContextAccessor)
+        IGameboardRequestValidator<GetSubmissionsQuery> validator
+    )
     {
-        _actor = httpContextAccessor.HttpContext.User.ToActor();
         _challengeStore = challengeStore;
         _gameEngine = gameEngine;
         _roleAuthorizer = roleAuthorizer;
