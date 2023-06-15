@@ -89,7 +89,7 @@ namespace Gameboard.Api.Services
 
             // upload files
             var uploads = await _fileUploadService.Upload(Path.Combine(Options.SupportUploadsFolder, entity.Id), model.Uploads);
-            if (uploads.Count() > 0)
+            if (uploads.Any())
             {
                 var fileNames = uploads.Select(x => x.FileName).ToArray();
                 entity.Attachments = Mapper.Map<string>(fileNames);
@@ -200,8 +200,7 @@ namespace Gameboard.Api.Services
             if (model.Take > 0)
                 q = q.Take(model.Take);
 
-            var tickets = Mapper.Map<IEnumerable<Ticket>>(await q.ToArrayAsync());
-            return Transform(tickets);
+            return Transform(await Mapper.ProjectTo<TicketSummary>(q).ToArrayAsync());
         }
 
         public async Task<TicketActivity> AddComment(NewTicketComment model, string actorId)
@@ -375,16 +374,13 @@ namespace Gameboard.Api.Services
             }
         }
 
-        private IEnumerable<TicketSummary> Transform(IEnumerable<Ticket> tickets)
+        private IEnumerable<TicketSummary> Transform(IEnumerable<TicketSummary> tickets)
         {
-            return tickets.Select(t => Transform(t));
-        }
-
-        private TicketSummary Transform(Ticket ticket)
-        {
-            var ticketSummary = Mapper.Map<TicketSummary>(ticket);
-            ticketSummary.FullKey = FullKey(ticket.Key);
-            return ticketSummary;
+            return tickets.Select(t =>
+            {
+                t.FullKey = FullKey(t.Key);
+                return t;
+            }).ToArray();
         }
 
         private Ticket TransformInPlace(Ticket ticket)
