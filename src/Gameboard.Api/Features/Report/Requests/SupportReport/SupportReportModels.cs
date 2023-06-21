@@ -21,7 +21,6 @@ public class SupportReportParameters
 {
     public string ChallengeSpecId { get; set; }
     public string GameId { get; set; }
-    // public IEnumerable<string> Labels { get; set; }
     public string Labels { get; set; }
     public SupportReportLabelsModifier? LabelsModifier { get; set; } = SupportReportLabelsModifier.HasAll;
     public double? MinutesSinceOpen { get; set; }

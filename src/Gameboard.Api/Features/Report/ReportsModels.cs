@@ -8,13 +8,13 @@ namespace Gameboard.Api.Features.Reports;
 public static class ReportKey
 {
     public static string ChallengesReport { get; } = "challenges-report";
+    public static string EnrollmentReport { get; } = "enrollment";
     public static string PlayersReport { get; } = "players-report";
     public static string SupportReport { get; } = "support-report";
 }
 
 public class ReportViewModel
 {
-    public required string Id { get; set; }
     public required string Key { get; set; }
     public required string Name { get; set; }
     public required string Description { get; set; }

@@ -3,7 +3,6 @@ using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Teams;
 
@@ -11,23 +10,17 @@ namespace Gameboard.Api.Features.Teams;
 [Route("/api/team")]
 public class TeamController : ControllerBase
 {
-    private IActingUserService _actingUserService;
-    private ILogger<TeamController> _logger;
-    private IMediator _mediator;
-    private readonly ITeamService _teamService;
+    private readonly IActingUserService _actingUserService;
+    private readonly IMediator _mediator;
 
     public TeamController
     (
         IActingUserService actingUserService,
-        ILogger<TeamController> logger,
-        IMediator mediator,
-        ITeamService teamService
+        IMediator mediator
     )
     {
         _actingUserService = actingUserService;
-        _logger = logger;
         _mediator = mediator;
-        _teamService = teamService;
     }
 
     [HttpGet("{teamId}")]

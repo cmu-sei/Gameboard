@@ -6,7 +6,7 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Scores;
 
-public record TeamGameScoreQuery(string teamId) : IRequest<TeamGameScoreSummary>;
+public record TeamGameScoreQuery(string TeamId) : IRequest<TeamGameScoreSummary>;
 
 internal class TeamGameScoreQueryHandler : IRequestHandler<TeamGameScoreQuery, TeamGameScoreSummary>
 {
@@ -26,11 +26,10 @@ internal class TeamGameScoreQueryHandler : IRequestHandler<TeamGameScoreQuery, T
 
     public async Task<TeamGameScoreSummary> Handle(TeamGameScoreQuery request, CancellationToken cancellationToken)
     {
-        _teamExists.TeamIdProperty = r => r.teamId;
-        _validatorService.AddValidator(_teamExists);
+        _validatorService.AddValidator(_teamExists.UseProperty(r => r.TeamId));
         await _validatorService.Validate(request);
 
         return await _scoreService
-            .GetTeamGameScore(request.teamId);
+            .GetTeamGameScore(request.TeamId);
     }
 }

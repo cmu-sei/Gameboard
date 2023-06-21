@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using Gameboard.Api.Features.Common;
 
+namespace Gameboard.Api.Features.Scores;
+
 public class TeamChallengeScoreSummary
 {
     public SimpleEntity Challenge { get; set; }

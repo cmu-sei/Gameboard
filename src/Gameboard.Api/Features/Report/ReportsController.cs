@@ -29,10 +29,8 @@ public class ReportsController : ControllerBase
         => await _service.List();
 
     [HttpGet("challenges-report")]
-    public async Task<ReportResults<ChallengesReportRecord>> GetChallengeReport([FromQuery] GetChallengesReportQueryArgs args)
-    {
-        return await _mediator.Send(new ChallengesReportQuery(args));
-    }
+    public Task<ReportResults<ChallengesReportRecord>> GetChallengeReport([FromQuery] GetChallengesReportQueryArgs args)
+        => _mediator.Send(new ChallengesReportQuery(args));
 
     [HttpGet("players-report")]
     public async Task<ReportResults<PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportQueryParameters reportParams)
@@ -44,15 +42,23 @@ public class ReportsController : ControllerBase
 
     [HttpGet("parameter/challenge-specs/{gameId?}")]
     public Task<IEnumerable<SimpleEntity>> GetChallengeSpecs(string gameId = null)
-        => _service.ListParameterOptionsChallengeSpecs(gameId);
-
-    [HttpGet("parameter/competitions")]
-    public Task<IEnumerable<string>> GetCompetitions()
-        => _service.ListParameterOptionsCompetitions();
+        => _service.ListChallengeSpecs(gameId);
 
     [HttpGet("parameter/games")]
     public Task<IEnumerable<SimpleEntity>> GetGames()
-        => _service.ListParameterOptionsGames();
+        => _service.ListGames();
+
+    [HttpGet("parameter/seasons")]
+    public Task<IEnumerable<string>> GetSeasons()
+        => _service.ListSeasons();
+
+    [HttpGet("parameter/sponsors")]
+    public Task<IEnumerable<SimpleEntity>> GetSponsors()
+        => _service.ListSponsors();
+
+    [HttpGet("parameter/series")]
+    public Task<IEnumerable<string>> GetSeries()
+        => _service.ListSeries();
 
     [HttpGet("parameter/ticket-statuses")]
     public Task<IEnumerable<string>> GetTicketStatuses()
@@ -60,5 +66,5 @@ public class ReportsController : ControllerBase
 
     [HttpGet("parameter/tracks")]
     public Task<IEnumerable<string>> GetTracks()
-        => _service.ListParameterOptionsTracks();
+        => _service.ListTracks();
 }

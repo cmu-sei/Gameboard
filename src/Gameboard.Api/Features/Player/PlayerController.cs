@@ -54,7 +54,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<Player> Enroll([FromBody] NewPlayer model)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsRegistrar,
                 () => model.UserId == Actor.Id
             );
@@ -284,10 +285,7 @@ namespace Gameboard.Api.Controllers
         public async Task<BoardPlayer> GetBoard([FromRoute] string id)
         {
             await Validate(new Entity { Id = id });
-
-            AuthorizeAny(
-                () => IsSelf(id).Result
-            );
+            AuthorizeAny(() => IsSelf(id).Result);
 
             return await PlayerService.LoadBoard(id);
         }
@@ -343,7 +341,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task PromoteToManager(string teamId, string playerId, [FromBody] PromoteToManagerRequest promoteRequest)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsRegistrar,
                 () => PlayerService.Retrieve(promoteRequest.CurrentManagerPlayerId).Result.UserId == Actor.Id
             );

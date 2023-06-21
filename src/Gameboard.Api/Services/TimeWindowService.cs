@@ -29,8 +29,8 @@ public class TimeWindow
             State = TimeWindowState.After;
         }
 
-        TimeUntilStart = (now < start ? start - now : null);
-        TimeUntilEnd = (now < end ? end - now : null);
+        TimeUntilStart = now < start ? start - now : null;
+        TimeUntilEnd = now < end ? end - now : null;
         Duration = end - start;
     }
 }

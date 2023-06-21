@@ -3,6 +3,7 @@
 
 using System.Threading.Tasks;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Teams;
 
 namespace Gameboard.Api.Hubs
 {

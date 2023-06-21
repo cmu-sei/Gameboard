@@ -13,12 +13,10 @@ namespace Gameboard.Api.Features.Reports;
 public class ReportsExportController : ControllerBase
 {
     private readonly IMediator _mediator;
-    private readonly IReportsService _reportsService;
 
-    public ReportsExportController(IMediator mediator, IReportsService reportsService)
+    public ReportsExportController(IMediator mediator)
     {
         _mediator = mediator;
-        _reportsService = reportsService;
     }
 
     [HttpGet("challenges-report")]

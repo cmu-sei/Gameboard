@@ -26,7 +26,7 @@ ConfToEnv.Load("appsettings.conf");
 ConfToEnv.Load($"appsettings.{envname}.conf");
 ConfToEnv.Load(path);
 
-startupLogger.LogInformation($"Starting Gameboard in {envname} configuration.");
+startupLogger.LogInformation(message: $"Starting Gameboard in {envname} configuration.");
 
 // create an application builder
 var builder = WebApplication.CreateBuilder(args);

@@ -827,37 +827,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Report", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ExampleFields")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ExampleParameters")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Key")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Reports");
-                });
-
             modelBuilder.Entity("Gameboard.Api.Data.ApiKey", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.User", "Owner")

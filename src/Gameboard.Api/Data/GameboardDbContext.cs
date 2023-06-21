@@ -193,16 +193,6 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.UserId).HasMaxLength(40);
             });
 
-            builder.Entity<Report>(b =>
-            {
-                b.Property(b => b.Id).HasStandardGuidLength();
-                b.Property(b => b.Name).HasStandardNameLength();
-                b.Property(b => b.Key).HasMaxLength(50);
-                b.Property(b => b.Description).HasMaxLength(200);
-                b.Property(b => b.ExampleFields).HasMaxLength(200);
-                b.Property(b => b.ExampleParameters).HasMaxLength(200);
-            });
-
             builder.Entity<Ticket>(b =>
             {
                 b.HasOne(p => p.Challenge).WithMany(u => u.Tickets).OnDelete(DeleteBehavior.SetNull);
@@ -242,7 +232,6 @@ namespace Gameboard.Api.Data
         public DbSet<Game> Games { get; set; }
         public DbSet<ManualChallengeBonus> ManualChallengeBonuses { get; set; }
         public DbSet<Player> Players { get; set; }
-        public DbSet<Report> Reports { get; set; }
         public DbSet<Sponsor> Sponsors { get; set; }
         public DbSet<Ticket> Tickets { get; set; }
         public DbSet<TicketActivity> TicketActivity { get; set; }

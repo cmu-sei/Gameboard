@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using AutoMapper;
-using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Common;
-using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
@@ -14,52 +14,130 @@ public interface IReportsService
 {
     Task<IEnumerable<ChallengesReportRecord>> GetChallengesReportRecords(GetChallengesReportQueryArgs parameters);
     Task<IEnumerable<ReportViewModel>> List();
-    Task<IEnumerable<SimpleEntity>> ListParameterOptionsChallengeSpecs(string gameId = null);
-    Task<IEnumerable<string>> ListParameterOptionsCompetitions();
-    Task<IEnumerable<SimpleEntity>> ListParameterOptionsGames();
-    Task<IEnumerable<string>> ListParameterOptionsTracks();
+    Task<IEnumerable<SimpleEntity>> ListChallengeSpecs(string gameId = null);
+    Task<IEnumerable<SimpleEntity>> ListGames();
+    Task<IEnumerable<string>> ListSeasons();
+    Task<IEnumerable<string>> ListSeries();
+    Task<IEnumerable<SimpleEntity>> ListSponsors();
+    Task<IEnumerable<string>> ListTracks();
     Task<IEnumerable<string>> ListTicketStatuses();
+    IEnumerable<string> ParseMultiSelectCriteria(string criteria);
 }
 
 public class ReportsService : IReportsService
 {
-    private readonly IChallengeStore _challengeStore;
-    private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
+    private static readonly string MULTI_SELECT_DELIMITER = ",";
     private readonly IMapper _mapper;
-    private readonly IGameStore _gameStore;
-    private readonly INowService _now;
-    private readonly IPlayerStore _playerStore;
-    private readonly IReportStore _store;
-    private readonly ITicketStore _ticketStore;
+    private readonly IStore _store;
 
     public ReportsService
     (
-        IChallengeStore challengeStore,
-        IStore<Data.ChallengeSpec> challengeSpecStore,
-        IGameStore gameStore,
         IMapper mapper,
-        INowService now,
-        IPlayerStore playerStore,
-        IReportStore store,
-        ITicketStore ticketStore
+        IStore store
     )
     {
-        _challengeStore = challengeStore;
-        _challengeSpecStore = challengeSpecStore;
-        _gameStore = gameStore;
         _mapper = mapper;
-        _now = now;
-        _playerStore = playerStore;
         _store = store;
-        _ticketStore = ticketStore;
     }
 
-    public async Task<IEnumerable<ReportViewModel>> List()
-        => await _mapper.ProjectTo<ReportViewModel>(_store.List()).ToArrayAsync();
-
-    public async Task<IEnumerable<SimpleEntity>> ListParameterOptionsChallengeSpecs(string gameId)
+    public Task<IEnumerable<ReportViewModel>> List()
     {
-        var query = _challengeSpecStore.ListWithNoTracking();
+        var reports = new ReportViewModel[]
+        {
+            new ReportViewModel
+            {
+                Name = "Challenges",
+                Key = ReportKey.ChallengesReport,
+                Description = "Understand the role a challenge played in its games and competitions, how attainable a full solve was, and more.",
+                ExampleFields = new string[]
+                {
+                    "Scores & Solve Times",
+                    "Eligibility",
+                    "Engagement",
+                    "Participation Across Challenges/Games"
+                },
+                ExampleParameters = new string[]
+                {
+                    "Session Date Range",
+                    "Season",
+                    "Series",
+                    "Track",
+                    "Game & Challenge"
+                }
+            },
+            new ReportViewModel
+            {
+                Name = "Enrollment",
+                Key = ReportKey.EnrollmentReport,
+                Description = "View a summary of player enrollment - who enrolled when, which sponsors do they a represent, and how many of them actually played challenges.",
+                ExampleFields = new string[]
+                {
+                    "Player Info",
+                    "Games Enrolled",
+                    "Sessions Launched",
+                    "Challenge Performance",
+                    "Sponsor"
+                },
+                ExampleParameters = new string[]
+                {
+                    "Enrollment Date Range",
+                    "Season",
+                    "Series",
+                    "Sponsor",
+                    "Track",
+                    "Game & Challenge"
+                }
+            },
+            new ReportViewModel
+            {
+                Name = "Players",
+                Key = ReportKey.PlayersReport,
+                Description = "View a player-based perspective of your games and challenge. See who's scoring highly, logging in regularly, and more.",
+                ExampleFields = new string[]
+                {
+                    "Deplyoment/Enrollment Counts",
+                    "Completion Stats",
+                    "Engagement",
+                    "Participation Across Challenges/Games"
+                },
+                ExampleParameters = new string[]
+                {
+                    "Session Date Range",
+                    "Season",
+                    "Series",
+                    "Sponsor",
+                    "Track",
+                    "Game/Challenge"
+                }
+            },
+            new ReportViewModel
+            {
+                Name = "Support",
+                Key = ReportKey.SupportReport,
+                Description = "View a summary of the support tickets that have been created in Gameboard, including closer looks at submission times, ticket categories, and associated challenges.",
+                ExampleFields = new string[]
+                {
+                    "TicketCategory",
+                    "Challenge",
+                    "Time Windows",
+                    "Assignment Info"
+                },
+                ExampleParameters = new string[]
+                {
+                    "Challenge",
+                    "Creation Date",
+                    "Ticket Category",
+                    "Time Window",
+                }
+            },
+        };
+
+        return Task.FromResult<IEnumerable<ReportViewModel>>(reports);
+    }
+
+    public async Task<IEnumerable<SimpleEntity>> ListChallengeSpecs(string gameId)
+    {
+        var query = _store.List<Data.ChallengeSpec>();
 
         if (gameId.NotEmpty())
             query = query.Where(c => c.GameId == gameId);
@@ -67,17 +145,51 @@ public class ReportsService : IReportsService
         return await query.Select(c => new SimpleEntity { Id = c.Id, Name = c.Name }).ToArrayAsync();
     }
 
-    public async Task<IEnumerable<string>> ListParameterOptionsCompetitions()
-        => await _store.GetCompetitions();
+    public Task<IEnumerable<string>> ListSeasons()
+        => GetGameStringPropertyOptions(g => g.Season);
 
-    public async Task<IEnumerable<SimpleEntity>> ListParameterOptionsGames()
-        => await _gameStore
-            .ListWithNoTracking()
+    public async Task<IEnumerable<string>> ListSeries()
+        =>
+        (
+            await _store
+                .List<Data.Game>()
+                .Select(g => g.Competition)
+                .Distinct()
+                .Where(c => c != null && c != "")
+                .ToArrayAsync()
+        ).Where(s => s.NotEmpty());
+
+    public async Task<IEnumerable<SimpleEntity>> ListGames()
+        => await _store.List<Data.Game>()
             .Select(g => new SimpleEntity { Id = g.Id, Name = g.Name })
             .ToArrayAsync();
 
-    public async Task<IEnumerable<string>> ListParameterOptionsTracks()
-        => await _store.GetTracks();
+    public async Task<IEnumerable<SimpleEntity>> ListSponsors()
+        => await _store.List<Data.Sponsor>()
+            .Select(s => new SimpleEntity { Id = s.Id, Name = s.Name })
+            .OrderBy(s => s.Name)
+            .ToArrayAsync();
+
+    public Task<IEnumerable<string>> ListTracks()
+        => GetGameStringPropertyOptions(g => g.Track);
+
+    public async Task<IEnumerable<string>> ListTicketStatuses()
+    {
+        return await _store.List<Data.Ticket>()
+            .Select(t => t.Status)
+            .Distinct()
+            .ToArrayAsync();
+    }
+
+    public IEnumerable<string> ParseMultiSelectCriteria(string criteria)
+    {
+        if (criteria.IsEmpty())
+            return Array.Empty<string>();
+
+        return criteria
+            .ToLower()
+            .Split(MULTI_SELECT_DELIMITER, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
 
     public async Task<IEnumerable<ChallengesReportRecord>> GetChallengesReportRecords(GetChallengesReportQueryArgs args)
     {
@@ -88,8 +200,7 @@ public class ReportsService : IReportsService
         var hasTrack = args.TrackName.NotEmpty();
 
         // parameters resolve to challenge specs
-        var specs = await _challengeSpecStore
-            .ListWithNoTracking()
+        var specs = await _store.List<Data.ChallengeSpec>()
             .Include(s => s.Game)
             .Where(s => !hasCompetition || s.Game.Competition == args.Competition)
             .Where(s => !hasGameId || s.GameId == args.GameId)
@@ -110,15 +221,12 @@ public class ReportsService : IReportsService
         var specIds = specs.Keys;
         var gameIds = specs.Values.Select(v => v.Game.Id).Distinct();
 
-        // this separate because players may be registered by not deploy this challenge, and we need to know that for reporting
-        var allPlayers = await _playerStore
-            .ListWithNoTracking()
+        // this separate because players may be registered but not deploy this challenge, and we need to know that for reporting
+        var allPlayers = await _store.List<Data.Player>()
             .Where(p => gameIds.Contains(p.GameId))
             .ToArrayAsync();
 
-        var challenges = await _challengeStore
-            .List()
-            .AsNoTracking()
+        var challenges = await _store.List<Data.Challenge>()
             .Include(c => c.Game)
             .Include(c => c.Player)
             .Include(c => c.Tickets)
@@ -228,12 +336,16 @@ public class ReportsService : IReportsService
         };
     }
 
-    public async Task<IEnumerable<string>> ListTicketStatuses()
-    {
-        return await _ticketStore
-            .ListWithNoTracking()
-            .Select(t => t.Status)
-            .Distinct()
-            .ToArrayAsync();
-    }
+    private async Task<IEnumerable<string>> GetGameStringPropertyOptions(Expression<Func<Data.Game, string>> property)
+        =>
+        (
+            await _store
+                .List<Data.Game>()
+                .Select(property)
+                .Distinct()
+                // catch as many blanks as we can here, but have to use
+                // client side eval to distinguish long blanks
+                .Where(s => s != null && s != string.Empty)
+                .ToArrayAsync()
+        ).Where(s => s.NotEmpty());
 }

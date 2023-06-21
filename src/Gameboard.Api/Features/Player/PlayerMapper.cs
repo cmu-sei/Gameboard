@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using AutoMapper;
 using Gameboard.Api.Features.Common;
+using Gameboard.Api.Features.Teams;
 
 namespace Gameboard.Api.Services;
 

@@ -27,11 +27,13 @@ internal class TeamService : ITeamService
     private readonly IInternalHubBus _teamHubService;
     private readonly IPlayerStore _store;
 
-    public TeamService(
+    public TeamService
+    (
         IMapper mapper,
         INowService now,
         IInternalHubBus teamHubService,
-        IPlayerStore store)
+        IPlayerStore store
+    )
     {
         _mapper = mapper;
         _now = now;
@@ -40,9 +42,7 @@ internal class TeamService : ITeamService
     }
 
     public async Task<bool> GetExists(string teamId)
-    {
-        return (await _store.ListTeam(teamId).CountAsync()) > 0;
-    }
+        => await _store.ListTeam(teamId).AnyAsync();
 
     public async Task<int> GetSessionCount(string teamId, string gameId)
     {
@@ -62,17 +62,12 @@ internal class TeamService : ITeamService
     public async Task<Team> GetTeam(string id)
     {
         var players = await _store.ListTeam(id).ToArrayAsync();
-        if (players.Count() == 0)
+        if (players.Length == 0)
             return null;
 
-        var team = _mapper.Map<Team>(
-            players.First(p => p.IsManager)
-        );
+        var team = _mapper.Map<Team>(players.First(p => p.IsManager));
 
-        team.Members = _mapper.Map<TeamMember[]>(
-            players.Select(p => p.User)
-        );
-
+        team.Members = _mapper.Map<TeamMember[]>(players.Select(p => p.User));
         team.TeamSponsors = string.Join("|", players.Select(p => p.Sponsor));
 
         return team;
@@ -111,7 +106,6 @@ internal class TeamService : ITeamService
                 throw new PromotionFailed(teamId, newCaptainPlayerId, affectedPlayers);
 
             await UpdateTeamSponsors(teamId);
-
             await transaction.CommitAsync();
         }
 
@@ -125,7 +119,7 @@ internal class TeamService : ITeamService
             .Where(p => p.TeamId == teamId)
             .ToListAsync();
 
-        if (players.Count() == 0)
+        if (players.Count == 0)
         {
             throw new CaptainResolutionFailure(teamId, "This team doesn't have any players.");
         }
@@ -155,9 +149,9 @@ internal class TeamService : ITeamService
             .Where(p => p.TeamId == teamId)
             .Select(p => new
             {
-                Id = p.Id,
-                Sponsor = p.Sponsor,
-                IsManager = p.IsManager
+                p.Id,
+                p.Sponsor,
+                p.IsManager
             })
             .ToArrayAsync();
 

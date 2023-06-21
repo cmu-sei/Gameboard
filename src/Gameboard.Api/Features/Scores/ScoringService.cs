@@ -116,7 +116,7 @@ internal class ScoringService : IScoringService
             ChallengeScoreSummaries = specs.Select(spec =>
             {
                 var challenge = challenges.FirstOrDefault(c => c.SpecId == spec.Id);
-                var bonuses = challenge == null ? new ManualChallengeBonus[] { } : challenge.AwardedManualBonuses;
+                var bonuses = challenge == null ? System.Array.Empty<ManualChallengeBonus>() : challenge.AwardedManualBonuses;
                 var bonusesSum = challenge == null ? 0 : challenge.AwardedManualBonuses.Select(b => b.PointValue).Sum();
                 var points = challenge == null ? 0 : challenge.Points;
 

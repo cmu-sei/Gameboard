@@ -108,10 +108,10 @@ internal class SupportReportService : ISupportReportService
         }
 
         if (parameters.MinutesSinceOpen != null && parameters.MinutesSinceOpen > 0)
-            records = records.Where(r => (_now.Get().Subtract(r.CreatedOn).TotalMinutes >= parameters.MinutesSinceOpen));
+            records = records.Where(r => _now.Get().Subtract(r.CreatedOn).TotalMinutes >= parameters.MinutesSinceOpen);
 
         if (parameters.MinutesSinceUpdate != null && parameters.MinutesSinceUpdate > 0)
-            records = records.Where(r => (_now.Get().Subtract(r.UpdatedOn).TotalHours >= parameters.MinutesSinceUpdate));
+            records = records.Where(r => _now.Get().Subtract(r.UpdatedOn).TotalHours >= parameters.MinutesSinceUpdate);
 
         if (parameters.OpenedWindow != null)
             records = records.Where(r => GetTicketDateSupportWindow(r.CreatedOn) == parameters.OpenedWindow);

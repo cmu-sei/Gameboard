@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Structure.MediatR.Validators;
@@ -8,18 +9,24 @@ namespace Gameboard.Api.Structure.MediatR.Validators;
 internal class TeamExistsValidator<TModel> : IGameboardValidator<TModel>
 {
     private readonly IPlayerStore _playerStore;
-    public required Func<TModel, string> TeamIdProperty { get; set; }
+    private Func<TModel, string> _teamIdProperty;
 
     public TeamExistsValidator(IPlayerStore playerStore)
     {
         _playerStore = playerStore;
     }
 
+    public TeamExistsValidator<TModel> UseProperty(Func<TModel, string> propertyExpression)
+    {
+        _teamIdProperty = propertyExpression;
+        return this;
+    }
+
     public Func<TModel, RequestValidationContext, Task> GetValidationTask()
     {
         return async (model, context) =>
         {
-            var teamId = TeamIdProperty(model);
+            var teamId = _teamIdProperty(model);
 
             if (string.IsNullOrEmpty(teamId))
                 context.AddValidationException(new MissingRequiredInput<string>(nameof(teamId), teamId));

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Gameboard.Api.Structure;
@@ -95,15 +94,15 @@ internal static class ServiceRegistrationExtensions
         return serviceCollection;
     }
 
-    private static Type[] GetRootQuery()
+    private static IEnumerable<Type> GetRootQuery()
       => typeof(Program)
             .Assembly
             .GetTypes()
+            .Where(t => t.Namespace != null && t.Namespace.StartsWith("Gameboard"))
             .ToArray();
 
     private static Type[] GetRootTypeQuery()
      => GetRootQuery()
             .Where(t => t.IsClass & !t.IsAbstract)
-            .Where(t => t.AssemblyQualifiedName.StartsWith("Gameboard"))
             .ToArray();
 }

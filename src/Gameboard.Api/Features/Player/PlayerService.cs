@@ -269,7 +269,7 @@ public class PlayerService
             await Store.DbContext.SaveChangesAsync();
         }
 
-        var asViewModel = Mapper.Map<Api.Player>(player);
+        var asViewModel = Mapper.Map<Player>(player);
         await HubBus.SendTeamSessionStarted(asViewModel, actor);
 
         return asViewModel;

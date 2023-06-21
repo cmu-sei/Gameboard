@@ -12,22 +12,19 @@ public class UnityGamesValidator : IModelValidator
     private readonly IGameStore _gameStore;
     private readonly IUnityStore _store;
     private readonly ITeamService _teamService;
-    private readonly IUserStore _userStore;
 
     public UnityGamesValidator
     (
         IChallengeStore challengeStore,
         IGameStore gameStore,
         IUnityStore store,
-        ITeamService teamService,
-        IUserStore userStore
+        ITeamService teamService
     )
     {
         _challengeStore = challengeStore;
         _gameStore = gameStore;
         _store = store;
         _teamService = teamService;
-        _userStore = userStore;
     }
 
     public async Task Validate(object model)
