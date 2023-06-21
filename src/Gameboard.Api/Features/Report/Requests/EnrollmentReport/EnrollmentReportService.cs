@@ -13,7 +13,7 @@ namespace Gameboard.Api.Features.Reports;
 
 public interface IEnrollmentReportService
 {
-    Task<IEnumerable<EnrollmentReportRecord>> GetRecords(EnrollmentReportQuery request, CancellationToken cancellationToken);
+    Task<IEnumerable<EnrollmentReportRecord>> GetRecords(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
 }
 
 internal class EnrollmentReportService : IEnrollmentReportService
@@ -31,13 +31,13 @@ internal class EnrollmentReportService : IEnrollmentReportService
         _store = store;
     }
 
-    public async Task<IEnumerable<EnrollmentReportRecord>> GetRecords(EnrollmentReportQuery request, CancellationToken cancellationToken)
+    public async Task<IEnumerable<EnrollmentReportRecord>> GetRecords(EnrollmentReportParameters parameters, CancellationToken cancellationToken)
     {
         // parse multiselect criteria
-        var seasonCriteria = _reportsService.ParseMultiSelectCriteria(request.Parameters.Seasons);
-        var seriesCriteria = _reportsService.ParseMultiSelectCriteria(request.Parameters.Series);
-        var sponsorCriteria = _reportsService.ParseMultiSelectCriteria(request.Parameters.Sponsors);
-        var trackCriteria = _reportsService.ParseMultiSelectCriteria(request.Parameters.Tracks);
+        var seasonCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Seasons);
+        var seriesCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Series);
+        var sponsorCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Sponsors);
+        var trackCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Tracks);
 
         // we also have to look up sponsors separately, because when we build the results, we have to translate
         // sponsor logos (which is what the Player entity has) to actual Sponsor entities
@@ -102,13 +102,15 @@ internal class EnrollmentReportService : IEnrollmentReportService
         // need to report challenge data based on teammate rather than the player who represents the
         // current record, we grab team and challenge data for every player who met the criteria
         // above who is playing a team game (defined as a game with minimum team size > 1).
-        var teamIds = players.Select(p => p.TeamId).ToArray();
+        var teamIds = players.Select(p => p.TeamId)
+            .Distinct()
+            .ToArray();
+
         var teamAndChallengeData = await _store
             .List<Data.Player>()
             .Include(p => p.Challenges)
             .Include(p => p.Game)
             .Where(p => teamIds.Contains(p.TeamId))
-            .Where(p => p.Challenges.Any())
             .Select(p => new
             {
                 p.Id,
@@ -133,9 +135,9 @@ internal class EnrollmentReportService : IEnrollmentReportService
         // transform the player records into enrollment report records
         var records = players.Select(p =>
         {
-            var playerTeamChallengeData = teamAndChallengeData.ContainsKey(p.TeamId) ? teamAndChallengeData[p.TeamId] : null;
-            var captain = playerTeamChallengeData?.FirstOrDefault(p => p.Role == PlayerRole.Manager);
-            var playerTeamSponsorLogos = playerTeamChallengeData?.Select(p => p.Sponsor);
+            var playerTeamChallengeData = teamAndChallengeData[p.TeamId];
+            var captain = playerTeamChallengeData.FirstOrDefault(p => p.Role == PlayerRole.Manager);
+            var playerTeamSponsorLogos = playerTeamChallengeData.Select(p => p.Sponsor);
             var challenges = teamAndChallengeData[p.TeamId]
                 .SelectMany(c => ChallengeDataToViewModel(c.Challenges))
                 .DistinctBy(c => c.SpecId);
@@ -148,14 +150,12 @@ internal class EnrollmentReportService : IEnrollmentReportService
                     Game = new SimpleEntity { Id = p.GameId, Name = p.Game.Name },
                     IsTeamGame = p.Game.MinTeamSize > 1
                 },
-                Team = p.Game.IsTeamGame() && playerTeamChallengeData != null ?
-                    new EnrollmentReportTeamViewModel
-                    {
-                        Team = new SimpleEntity { Id = p.TeamId, Name = captain?.Name ?? p.Name },
-                        CurrentCaptain = new SimpleEntity { Id = captain?.Id ?? p.Id, Name = captain?.Name ?? p.Name },
-                        Sponsors = sponsors.Where(s => playerTeamSponsorLogos.Contains(s.LogoFileName)).ToArray()
-                    }
-                    : null,
+                Team = new EnrollmentReportTeamViewModel
+                {
+                    Team = new SimpleEntity { Id = p.TeamId, Name = captain?.Name ?? p.Name },
+                    CurrentCaptain = new SimpleEntity { Id = captain?.Id ?? p.Id, Name = captain?.Name ?? p.Name },
+                    Sponsors = sponsors.Where(s => playerTeamSponsorLogos.Contains(s.LogoFileName)).ToArray()
+                },
                 Session = new EnrollmentReportSessionViewModel
                 {
                     SessionStart = p.SessionBegin.HasValue() ? p.SessionBegin : null,

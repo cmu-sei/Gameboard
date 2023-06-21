@@ -6,7 +6,6 @@ namespace Gameboard.Api.Tests.Unit;
 
 public class SupportReportServiceTests
 {
-
     [Fact]
     public void GetDateTimeSupportWindow_ForEachWindow_CorrectlyCalculates()
     {

@@ -24,7 +24,7 @@ internal class EnrollmentReportQueryHandler : IRequestHandler<EnrollmentReportQu
 
     public async Task<ReportResults<EnrollmentReportRecord>> Handle(EnrollmentReportQuery request, CancellationToken cancellationToken)
     {
-        var records = await _enrollmentReportService.GetRecords(request, cancellationToken);
+        var records = await _enrollmentReportService.GetRecords(request.Parameters, cancellationToken);
 
         return new ReportResults<EnrollmentReportRecord>
         {

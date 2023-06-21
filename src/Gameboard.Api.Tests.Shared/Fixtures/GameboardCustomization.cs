@@ -29,15 +29,15 @@ public class GameboardCustomization : ICustomization
         fixture.Register<Data.Player>(() => new Data.Player
         {
             Id = fixture.Create<string>(),
-            TeamId = fixture.Create<string>(),
             User = fixture.Create<Data.User>(),
             Game = fixture.Create<Data.Game>(),
             ApprovedName = "Test Player",
             Sponsor = "Test Sponsor",
             Role = PlayerRole.Manager,
+            Score = 0,
             SessionBegin = now,
             SessionEnd = now.AddDays(1),
-            Score = 0,
+            TeamId = fixture.Create<string>(),
             Mode = PlayerMode.Competition
         });
 
