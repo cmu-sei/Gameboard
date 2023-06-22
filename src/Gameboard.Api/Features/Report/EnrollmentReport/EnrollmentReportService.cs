@@ -60,6 +60,17 @@ internal class EnrollmentReportService : IEnrollmentReportService
                 .ThenInclude(c => c.AwardedManualBonuses)
             .Where(p => p.Game.PlayerMode == PlayerMode.Competition);
 
+        // TODO: consider something like LinqKit (https://github.com/scottksmith95/LINQKit) for stuff like this
+        if (parameters.EnrollDateStart != null)
+            query = query
+                .WhereDateHasValue(p => p.WhenCreated)
+                .Where(p => p.WhenCreated >= parameters.EnrollDateStart);
+
+        if (parameters.EnrollDateEnd != null)
+            query = query
+                .WhereDateHasValue(p => p.WhenCreated)
+                .Where(p => p.WhenCreated <= parameters.EnrollDateEnd);
+
         if (seasonCriteria.Any())
             query = query.Where(p => seasonCriteria.Contains(p.Game.Season.ToLower()));
 
@@ -71,8 +82,6 @@ internal class EnrollmentReportService : IEnrollmentReportService
 
         if (sponsorCriteria.Any())
         {
-            // if sponsors have been specified as a criteria, we have to get a lookup, because the entities are not 
-            // related by foreign key in the db
             var sponsorLogos = sponsors
                 .Where(s => sponsorCriteria.Contains(s.Id))
                 .Select(s => s.LogoFileName)
@@ -109,6 +118,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
             .List<Data.Player>()
             .Include(p => p.Challenges)
             .Include(p => p.Game)
+            .Include(p => p.User)
             .Where(p => teamIds.Contains(p.TeamId))
             .Select(p => new
             {
@@ -145,10 +155,12 @@ internal class EnrollmentReportService : IEnrollmentReportService
 
             return new EnrollmentReportRecord
             {
+                User = new SimpleEntity { Id = p.UserId, Name = p.User.Name },
                 Player = new EnrollmentReportPlayerViewModel
                 {
                     Id = p.Id,
                     Name = p.ApprovedName,
+                    EnrollDate = p.WhenCreated.HasValue() ? p.WhenCreated : null,
                     Sponsor = sponsors.FirstOrDefault(s => s.LogoFileName == p.Sponsor)
                 },
                 Game = new EnrollmentReportGameViewModel

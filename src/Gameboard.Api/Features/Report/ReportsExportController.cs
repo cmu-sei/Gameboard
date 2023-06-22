@@ -27,6 +27,14 @@ public class ReportsExportController : ControllerBase
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
     }
 
+    [HttpGet("enrollment")]
+    [ProducesResponseType(typeof(FileContentResult), 200)]
+    public async Task<IActionResult> GetEnrollmentReportExport(EnrollmentReportParameters parameters)
+    {
+        var results = await _mediator.Send(new EnrollmentReportExportQuery(parameters));
+        return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
+    }
+
     [HttpGet("players-report")]
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> GetPlayersReport(PlayersReportQueryParameters parameters)

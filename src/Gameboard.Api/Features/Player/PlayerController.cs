@@ -22,7 +22,6 @@ namespace Gameboard.Api.Controllers
     public class PlayerController : _Controller
     {
         PlayerService PlayerService { get; }
-        IInternalHubBus Hub { get; }
         IMapper Mapper { get; }
         IMediator Mediator { get; }
         ITeamService TeamService { get; set; }
@@ -33,13 +32,11 @@ namespace Gameboard.Api.Controllers
             PlayerValidator validator,
             IMediator mediator,
             PlayerService playerService,
-            IInternalHubBus hub,
             IMapper mapper,
             ITeamService teamService
         ) : base(logger, cache, validator)
         {
             PlayerService = playerService;
-            Hub = hub;
             Mapper = mapper;
             Mediator = mediator;
             TeamService = teamService;
@@ -233,7 +230,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<IEnumerable<TeamChallenge>> GetTeamChallenges([FromRoute] string id)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsAdmin,
                 () => Actor.IsDirector,
                 () => Actor.IsObserver

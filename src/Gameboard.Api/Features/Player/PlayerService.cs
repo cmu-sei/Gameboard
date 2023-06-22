@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
@@ -20,6 +21,8 @@ namespace Gameboard.Api.Services;
 
 public class PlayerService
 {
+    private readonly INowService _now;
+
     CoreOptions CoreOptions { get; }
     ChallengeService ChallengeService { get; set; }
     IPlayerStore Store { get; }
@@ -41,6 +44,7 @@ public class PlayerService
         ChallengeService challengeService,
         IGuidService guidService,
         IMediator mediator,
+        INowService now,
         IPlayerStore store,
         IUserStore userStore,
         IGameHubBus gameHubBus,
@@ -58,6 +62,7 @@ public class PlayerService
         GameService = gameService;
         GuidService = guidService;
         MediatorBus = mediator;
+        _now = now;
         GameHubBus = gameHubBus;
         HubBus = hubBus;
         Store = store;
@@ -325,7 +330,7 @@ public class PlayerService
     public async Task<Player[]> List(PlayerDataFilter model, bool sudo = false)
     {
         if (!sudo && !model.WantsGame && !model.WantsTeam)
-            return new Player[] { };
+            return Array.Empty<Player>();
 
         var q = _List(model);
 
@@ -335,7 +340,7 @@ public class PlayerService
     public async Task<Standing[]> Standings(PlayerDataFilter model)
     {
         if (model.gid.IsEmpty())
-            return new Standing[] { };
+            return Array.Empty<Standing>();
 
         model.Filter = model.Filter
             .Append(PlayerDataFilter.FilterScoredOnly)
@@ -397,8 +402,6 @@ public class PlayerService
 
         if (model.WantsScored)
             q = q.WhereIsScoringPlayer();
-
-
 
         if (model.Term.NotEmpty())
         {
@@ -808,6 +811,7 @@ public class PlayerService
         entity.Name = user.ApprovedName;
         entity.Sponsor = user.Sponsor;
         entity.SessionMinutes = duration;
+        entity.WhenCreated = _now.Get();
 
         return entity;
     }
