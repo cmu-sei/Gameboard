@@ -7,7 +7,7 @@ namespace Gameboard.Api.Features.Reports;
 public class EnrollmentReportParameters
 {
     public DateTimeOffset? EnrollDateStart { get; set; }
-    public DateTime? EnrollDateEnd { get; set; }
+    public DateTimeOffset? EnrollDateEnd { get; set; }
     public string Seasons { get; set; }
     public string Series { get; set; }
     public string Sponsors { get; set; }
@@ -16,33 +16,48 @@ public class EnrollmentReportParameters
 
 public class EnrollmentReportRecord
 {
-    public required SimpleEntity Player { get; set; }
+    public required EnrollmentReportPlayerViewModel Player { get; set; }
     public required EnrollmentReportGameViewModel Game { get; set; }
     public required EnrollmentReportSessionViewModel Session { get; set; }
+    public required double Score { get; set; }
 
     // team data
     public required EnrollmentReportTeamViewModel Team { get; set; }
 
     // challenge data
     public required IEnumerable<EnrollmentReportChallengeViewModel> Challenges { get; set; }
+    public required int ChallengesPartiallySolvedCount { get; set; }
+    public required int ChallengesCompletelySolvedCount { get; set; }
+}
+
+public class EnrollmentReportPlayerViewModel
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required EnrollmentReportSponsorViewModel Sponsor { get; set; }
 }
 
 public class EnrollmentReportGameViewModel
 {
-    public required SimpleEntity Game { get; set; }
+    public required string Id { get; set; }
+    public required string Name { get; set; }
     public required bool IsTeamGame { get; set; }
+    public required string Series { get; set; }
+    public required string Season { get; set; }
+    public required string Track { get; set; }
 }
 
 public class EnrollmentReportSessionViewModel
 {
-    public required DateTimeOffset? SessionStart { get; set; }
-    public required DateTimeOffset? SessionEnd { get; set; }
-    public required TimeSpan? SessionLength { get; set; }
+    public required DateTimeOffset? Start { get; set; }
+    public required DateTimeOffset? End { get; set; }
+    public required double? DurationMs { get; set; }
 }
 
 public class EnrollmentReportTeamViewModel
 {
-    public required SimpleEntity Team { get; set; }
+    public required string Id { get; set; }
+    public required string Name { get; set; }
     public required SimpleEntity CurrentCaptain { get; set; }
     public required IEnumerable<EnrollmentReportSponsorViewModel> Sponsors { get; set; }
 }
@@ -54,7 +69,9 @@ public class EnrollmentReportChallengeViewModel
     public required DateTimeOffset? DeployDate { get; set; }
     public required DateTimeOffset? StartDate { get; set; }
     public required DateTimeOffset? EndDate { get; set; }
-    public required TimeSpan? Duration { get; set; }
+    public required double? DurationMs { get; set; }
+    public required double? Score { get; set; }
+    public required double? MaxPossiblePoints { get; set; }
     public required ChallengeResult Result { get; set; }
 }
 
@@ -75,5 +92,5 @@ public class EnrollmentReportChallengeQueryData
     public required DateTimeOffset StartTime { get; set; }
     public required DateTimeOffset EndTime { get; set; }
     public required double? Score { get; set; }
-    public required double Points { get; set; }
+    public required double MaxPossiblePoints { get; set; }
 }

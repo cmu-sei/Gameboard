@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.Common;
-using Gameboard.Api.Features.Games;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
@@ -117,6 +116,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
                 p.TeamId,
                 Name = p.ApprovedName,
                 p.Role,
+                p.Score,
                 p.Sponsor,
                 Challenges = p.Challenges.Select(c => new EnrollmentReportChallengeQueryData
                 {
@@ -126,7 +126,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
                     StartTime = c.StartTime,
                     EndTime = c.EndTime,
                     Score = c.Score,
-                    Points = c.Points
+                    MaxPossiblePoints = c.Points
                 })
             })
             .GroupBy(p => p.TeamId)
@@ -140,31 +140,45 @@ internal class EnrollmentReportService : IEnrollmentReportService
             var playerTeamSponsorLogos = playerTeamChallengeData.Select(p => p.Sponsor);
             var challenges = teamAndChallengeData[p.TeamId]
                 .SelectMany(c => ChallengeDataToViewModel(c.Challenges))
-                .DistinctBy(c => c.SpecId);
+                .DistinctBy(c => c.SpecId)
+                .ToArray();
 
             return new EnrollmentReportRecord
             {
-                Player = new SimpleEntity { Id = p.Id, Name = p.Name },
+                Player = new EnrollmentReportPlayerViewModel
+                {
+                    Id = p.Id,
+                    Name = p.ApprovedName,
+                    Sponsor = sponsors.FirstOrDefault(s => s.LogoFileName == p.Sponsor)
+                },
                 Game = new EnrollmentReportGameViewModel
                 {
-                    Game = new SimpleEntity { Id = p.GameId, Name = p.Game.Name },
-                    IsTeamGame = p.Game.MinTeamSize > 1
+                    Id = p.GameId,
+                    Name = p.Game.Name,
+                    IsTeamGame = p.Game.MinTeamSize > 1,
+                    Series = p.Game.Competition,
+                    Season = p.Game.Season,
+                    Track = p.Game.Track
                 },
                 Team = new EnrollmentReportTeamViewModel
                 {
-                    Team = new SimpleEntity { Id = p.TeamId, Name = captain?.Name ?? p.Name },
+                    Id = p.TeamId,
+                    Name = captain?.Name ?? p.Name,
                     CurrentCaptain = new SimpleEntity { Id = captain?.Id ?? p.Id, Name = captain?.Name ?? p.Name },
                     Sponsors = sponsors.Where(s => playerTeamSponsorLogos.Contains(s.LogoFileName)).ToArray()
                 },
                 Session = new EnrollmentReportSessionViewModel
                 {
-                    SessionStart = p.SessionBegin.HasValue() ? p.SessionBegin : null,
-                    SessionEnd = p.SessionEnd.HasValue() ? p.SessionEnd : null,
-                    SessionLength = p.SessionBegin.HasValue() && p.SessionEnd.HasValue() ?
-                        p.SessionEnd.Subtract(p.SessionBegin) :
+                    Start = p.SessionBegin.HasValue() ? p.SessionBegin : null,
+                    End = p.SessionEnd.HasValue() ? p.SessionEnd : null,
+                    DurationMs = p.SessionBegin.HasValue() && p.SessionEnd.HasValue() ?
+                        p.SessionEnd.Subtract(p.SessionBegin).TotalMilliseconds :
                         null
                 },
-                Challenges = challenges ?? Array.Empty<EnrollmentReportChallengeViewModel>()
+                Challenges = challenges,
+                ChallengesPartiallySolvedCount = challenges.Where(c => c.Result == ChallengeResult.Partial).Count(),
+                ChallengesCompletelySolvedCount = challenges.Where(c => c.Result == ChallengeResult.Success).Count(),
+                Score = p.Score
             };
         });
 
@@ -179,7 +193,9 @@ internal class EnrollmentReportService : IEnrollmentReportService
             DeployDate = c.WhenCreated,
             StartDate = c.StartTime,
             EndDate = c.EndTime,
-            Duration = c.StartTime.HasValue() && c.EndTime.HasValue() ? c.EndTime.Subtract(c.StartTime) : null,
-            Result = ChallengeExtensions.GetResult(c.Score, c.Points)
+            DurationMs = c.StartTime.HasValue() && c.EndTime.HasValue() ? c.EndTime.Subtract(c.StartTime).TotalMilliseconds : null,
+            Result = ChallengeExtensions.GetResult(c.Score, c.MaxPossiblePoints),
+            Score = c.Score,
+            MaxPossiblePoints = c.MaxPossiblePoints
         });
 }

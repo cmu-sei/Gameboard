@@ -32,6 +32,10 @@ public class ReportsController : ControllerBase
     public Task<ReportResults<ChallengesReportRecord>> GetChallengeReport([FromQuery] GetChallengesReportQueryArgs args)
         => _mediator.Send(new ChallengesReportQuery(args));
 
+    [HttpGet("enrollment")]
+    public Task<ReportResults<EnrollmentReportRecord>> GetEnrollmentReport([FromQuery] EnrollmentReportParameters parameters)
+        => _mediator.Send(new EnrollmentReportQuery(parameters));
+
     [HttpGet("players-report")]
     public async Task<ReportResults<PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportQueryParameters reportParams)
         => await _mediator.Send(new PlayersReportQuery(reportParams));
