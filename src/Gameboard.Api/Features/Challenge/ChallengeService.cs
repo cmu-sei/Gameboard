@@ -114,9 +114,6 @@ namespace Gameboard.Api.Services
 
                 return Mapper.Map<Challenge>(challenge);
             }
-            // we need to catch here to allow cleanup in `finally`, but we want a complete rethrow
-            // (and the compiler doesn't know we're doing this, so it needs to relax a little)
-#pragma warning disable CA2200
             catch (Exception ex)
             {
                 Logger.LogWarning(message: $"Challenge registration failure: {ex.GetType().Name} -- {ex.Message}");
