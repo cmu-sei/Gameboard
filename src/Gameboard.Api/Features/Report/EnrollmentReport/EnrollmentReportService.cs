@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
-using Gameboard.Api.Features.Common;
+using Gameboard.Api.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
@@ -60,7 +60,6 @@ internal class EnrollmentReportService : IEnrollmentReportService
                 .ThenInclude(c => c.AwardedManualBonuses)
             .Where(p => p.Game.PlayerMode == PlayerMode.Competition);
 
-        // TODO: consider something like LinqKit (https://github.com/scottksmith95/LINQKit) for stuff like this
         if (parameters.EnrollDateStart != null)
             query = query
                 .WhereDateHasValue(p => p.WhenCreated)
@@ -110,7 +109,8 @@ internal class EnrollmentReportService : IEnrollmentReportService
         // need to report challenge data based on teammate rather than the player who represents the
         // current record, we grab team and challenge data for every player who met the criteria
         // above who is playing a team game (defined as a game with minimum team size > 1).
-        var teamIds = players.Select(p => p.TeamId)
+        var teamIds = players
+            .Select(p => p.TeamId)
             .Distinct()
             .ToArray();
 
@@ -135,6 +135,11 @@ internal class EnrollmentReportService : IEnrollmentReportService
                     WhenCreated = c.WhenCreated,
                     StartTime = c.StartTime,
                     EndTime = c.EndTime,
+                    ManualChallengeBonuses = c.AwardedManualBonuses.Select(b => new EnrollmentReportManualChallengeBonus
+                    {
+                        Description = b.Description,
+                        Points = b.PointValue
+                    }),
                     Score = c.Score,
                     MaxPossiblePoints = c.Points
                 })
@@ -179,14 +184,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
                     CurrentCaptain = new SimpleEntity { Id = captain?.Id ?? p.Id, Name = captain?.Name ?? p.Name },
                     Sponsors = sponsors.Where(s => playerTeamSponsorLogos.Contains(s.LogoFileName)).ToArray()
                 },
-                Session = new EnrollmentReportSessionViewModel
-                {
-                    Start = p.SessionBegin.HasValue() ? p.SessionBegin : null,
-                    End = p.SessionEnd.HasValue() ? p.SessionEnd : null,
-                    DurationMs = p.SessionBegin.HasValue() && p.SessionEnd.HasValue() ?
-                        p.SessionEnd.Subtract(p.SessionBegin).TotalMilliseconds :
-                        null
-                },
+                Session = ComputePlayTime(p.SessionBegin, p.SessionEnd, p.CorrectCount, p.Challenges.Count, p.Time),
                 Challenges = challenges,
                 ChallengesPartiallySolvedCount = challenges.Where(c => c.Result == ChallengeResult.Partial).Count(),
                 ChallengesCompletelySolvedCount = challenges.Where(c => c.Result == ChallengeResult.Success).Count(),
@@ -195,6 +193,31 @@ internal class EnrollmentReportService : IEnrollmentReportService
         });
 
         return records;
+    }
+
+    private EnrollmentReportPlayTimeViewModel ComputePlayTime(DateTimeOffset? sessionStart, DateTimeOffset? sessionEnd, int correctCount, int challengeCount, double time)
+    {
+        // if the player's correct count is equal to the number challenges played, then their p.Time
+        // is representative of the time they spent on the game (because p.Time is updated upon scoring)
+        // 
+        // if they have any challenges that are not completely correct, then we use the session time instead
+        // to represent the fact that they played for the complete duration but didn't finish everything.
+        var playStart = sessionStart;
+        var playEnd = sessionEnd;
+        var duration = 0d;
+
+        if (correctCount == challengeCount && challengeCount > 0 && time > 0 && playStart != null)
+            playEnd = playStart.Value.AddMilliseconds(time);
+
+        if (playStart != null & playEnd != null)
+            duration = playEnd.Value.Subtract(playStart.Value).TotalMilliseconds;
+
+        return new EnrollmentReportPlayTimeViewModel
+        {
+            Start = playStart,
+            End = playEnd,
+            DurationMs = duration
+        };
     }
 
     private IEnumerable<EnrollmentReportChallengeViewModel> ChallengeDataToViewModel(IEnumerable<EnrollmentReportChallengeQueryData> challengeData)
@@ -207,6 +230,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
             EndDate = c.EndTime,
             DurationMs = c.StartTime.HasValue() && c.EndTime.HasValue() ? c.EndTime.Subtract(c.StartTime).TotalMilliseconds : null,
             Result = ChallengeExtensions.GetResult(c.Score, c.MaxPossiblePoints),
+            ManualChallengeBonuses = c.ManualChallengeBonuses,
             Score = c.Score,
             MaxPossiblePoints = c.MaxPossiblePoints
         });

@@ -1,16 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Features.Reports;
 
 public static class ReportKey
 {
-    public static string ChallengesReport { get; } = "challenges-report";
+    public static string ChallengesReport { get; } = "challenges";
     public static string EnrollmentReport { get; } = "enrollment";
-    public static string PlayersReport { get; } = "players-report";
-    public static string SupportReport { get; } = "support-report";
+    public static string PlayersReport { get; } = "players";
+    public static string SupportReport { get; } = "support";
 }
 
 public class ReportViewModel
@@ -74,5 +75,6 @@ public sealed class ReportScoreRange : IReportPredicateProvider<double>
 public sealed class ReportResults<TRecord>
 {
     public required ReportMetaData MetaData { get; set; }
+    public required PagingResults Paging { get; set; }
     public required IEnumerable<TRecord> Records { get; set; }
 }

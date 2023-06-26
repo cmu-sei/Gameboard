@@ -1,12 +1,13 @@
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Reports;
+using Gameboard.Api.Services;
 
 namespace Gameboard.Api.Tests.Unit;
 
 public class EnrollmentReportServiceTests
 {
     [Theory, GameboardAutoData]
-    public async Task GetRecords_WithOneNonTeamRecord_ReportsExpectedValues(IFixture fixture)
+    public async Task GetResults_WithOneNonTeamRecord_ReportsExpectedValues(IFixture fixture)
     {
         // given 
         var sponsors = new List<Data.Sponsor>
@@ -42,15 +43,15 @@ public class EnrollmentReportServiceTests
         var sut = new EnrollmentReportService(reportsService, store);
 
         // when
-        var records = await sut.GetRecords(new EnrollmentReportParameters(), CancellationToken.None);
+        var results = await sut.GetRecords(new EnrollmentReportParameters(), CancellationToken.None);
 
         // then
-        records.Count().ShouldBe(1);
-        records.First().Team.ShouldBeNull();
+        results.Count().ShouldBe(1);
+        results.First().Team.ShouldBeNull();
     }
 
     [Theory, GameboardAutoData]
-    public async Task GetRecords_WithOneTeamRecord_ReportsExpectedValues(IFixture fixture)
+    public async Task GetResults_WithOneTeamRecord_ReportsExpectedValues(IFixture fixture)
     {
         // given 
         var sponsors = new List<Data.Sponsor>
@@ -101,11 +102,11 @@ public class EnrollmentReportServiceTests
         var sut = new EnrollmentReportService(reportsService, store);
 
         // when
-        var records = await sut.GetRecords(new EnrollmentReportParameters(), CancellationToken.None);
+        var results = await sut.GetRecords(new EnrollmentReportParameters(), CancellationToken.None);
 
         // then
-        records.Count().ShouldBe(2);
-        records.First().Team.Sponsors.Count().ShouldBe(2);
-        records.SelectMany(r => r.Challenges).DistinctBy(c => c.SpecId).Count().ShouldBe(1);
+        results.Count().ShouldBe(2);
+        results.First().Team.Sponsors.Count().ShouldBe(2);
+        results.SelectMany(r => r.Challenges).DistinctBy(c => c.SpecId).Count().ShouldBe(1);
     }
 }

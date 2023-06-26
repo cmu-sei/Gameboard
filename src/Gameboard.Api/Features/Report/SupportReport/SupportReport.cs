@@ -32,6 +32,7 @@ internal class SupportReportQueryHandler : IRequestHandler<SupportReportQuery, R
                 RunAt = _now.Get(),
                 Key = ReportKey.SupportReport
             },
+            Paging = null,
             Records = await _service.QueryRecords(request.Parameters)
         };
     }

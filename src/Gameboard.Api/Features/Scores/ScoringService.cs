@@ -5,9 +5,10 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.Common;
+using Gameboard.Api.Common;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
+using Gameboard.Api.Features.ChallengeBonuses;
 
 namespace Gameboard.Api.Features.Scores;
 
@@ -15,7 +16,6 @@ public interface IScoringService
 {
     Task<TeamChallengeScoreSummary> GetTeamChallengeScore(string challengeId);
     Task<TeamGameScoreSummary> GetTeamGameScore(string teamId);
-    Task<ChallengeScoreSummary> GetChallengeScores(string challengeId);
 }
 
 internal class ScoringService : IScoringService
@@ -41,11 +41,6 @@ internal class ScoringService : IScoringService
         _gameStore = gameStore;
         _mapper = mapper;
         _teamService = teamService;
-    }
-
-    public Task<ChallengeScoreSummary> GetChallengeScores(string challengeId)
-    {
-        throw new System.NotImplementedException();
     }
 
     public async Task<TeamChallengeScoreSummary> GetTeamChallengeScore(string challengeId)

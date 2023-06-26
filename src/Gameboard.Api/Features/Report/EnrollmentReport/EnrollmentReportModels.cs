@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Gameboard.Api.Features.Common;
+using Gameboard.Api.Common;
+using Gameboard.Api.Features.ChallengeBonuses;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -19,7 +20,7 @@ public class EnrollmentReportRecord
     public required SimpleEntity User { get; set; }
     public required EnrollmentReportPlayerViewModel Player { get; set; }
     public required EnrollmentReportGameViewModel Game { get; set; }
-    public required EnrollmentReportSessionViewModel Session { get; set; }
+    public required EnrollmentReportPlayTimeViewModel Session { get; set; }
     public required EnrollmentReportTeamViewModel Team { get; set; }
 
     // performance data
@@ -47,7 +48,7 @@ public class EnrollmentReportGameViewModel
     public required string Track { get; set; }
 }
 
-public class EnrollmentReportSessionViewModel
+public class EnrollmentReportPlayTimeViewModel
 {
     public required DateTimeOffset? Start { get; set; }
     public required DateTimeOffset? End { get; set; }
@@ -70,9 +71,16 @@ public class EnrollmentReportChallengeViewModel
     public required DateTimeOffset? StartDate { get; set; }
     public required DateTimeOffset? EndDate { get; set; }
     public required double? DurationMs { get; set; }
+    public required IEnumerable<EnrollmentReportManualChallengeBonus> ManualChallengeBonuses { get; set; }
     public required double? Score { get; set; }
     public required double? MaxPossiblePoints { get; set; }
     public required ChallengeResult Result { get; set; }
+}
+
+public class EnrollmentReportManualChallengeBonus
+{
+    public required string Description { get; set; }
+    public required double Points { get; set; }
 }
 
 public class EnrollmentReportSponsorViewModel
@@ -91,6 +99,7 @@ internal class EnrollmentReportChallengeQueryData
     public required DateTimeOffset WhenCreated { get; set; }
     public required DateTimeOffset StartTime { get; set; }
     public required DateTimeOffset EndTime { get; set; }
+    public required IEnumerable<EnrollmentReportManualChallengeBonus> ManualChallengeBonuses { get; set; }
     public required double? Score { get; set; }
     public required double MaxPossiblePoints { get; set; }
 }

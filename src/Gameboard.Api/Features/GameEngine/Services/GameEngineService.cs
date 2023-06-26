@@ -20,7 +20,7 @@ public class GameEngineService : _Service, IGameEngineService
     IAlloyApiClient Alloy { get; }
 
     private IMemoryCache _localcache;
-    private ConsoleActorMap _actorMap;
+    private readonly ConsoleActorMap _actorMap;
     private readonly IGameEngineStore _store;
 
     public GameEngineService(

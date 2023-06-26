@@ -1,6 +1,6 @@
 using AutoMapper;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Common;
+using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Features.ChallengeBonuses;
 

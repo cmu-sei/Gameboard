@@ -3,7 +3,7 @@
 
 using Alloy.Api.Client;
 using AutoMapper;
-using Gameboard.Api.Features.Common;
+using Gameboard.Api.Common;
 using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services

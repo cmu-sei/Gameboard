@@ -30,6 +30,7 @@ public class ChallengeReportQueryHandler : IRequestHandler<ChallengesReportQuery
                 Title = "Challenge Report",
                 RunAt = _now.Get()
             },
+            Paging = null,
             Records = results
         };
     }

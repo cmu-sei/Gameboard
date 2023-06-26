@@ -1,4 +1,5 @@
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.ChallengeBonuses;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;

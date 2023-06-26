@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.Common;
+using Gameboard.Api.Common;
 using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -109,6 +109,7 @@ internal class GetPlayersReportQueryHandler : IRequestHandler<PlayersReportQuery
                 Title = "Players Report",
                 RunAt = _nowService.Get(),
             },
+            Paging = null,
             Records = records
         };
     }

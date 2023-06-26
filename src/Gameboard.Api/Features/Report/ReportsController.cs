@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Gameboard.Api.Features.Common;
+using Gameboard.Api.Common;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -33,8 +33,8 @@ public class ReportsController : ControllerBase
         => _mediator.Send(new ChallengesReportQuery(args));
 
     [HttpGet("enrollment")]
-    public Task<ReportResults<EnrollmentReportRecord>> GetEnrollmentReport([FromQuery] EnrollmentReportParameters parameters)
-        => _mediator.Send(new EnrollmentReportQuery(parameters));
+    public Task<ReportResults<EnrollmentReportRecord>> GetEnrollmentReport([FromQuery] EnrollmentReportParameters parameters, [FromQuery] PagingArgs paging)
+        => _mediator.Send(new EnrollmentReportQuery(parameters, paging));
 
     [HttpGet("players-report")]
     public async Task<ReportResults<PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportQueryParameters reportParams)
