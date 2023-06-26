@@ -95,7 +95,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
         // This is pretty messy. Here's why:
         //
         // Teams are not first-class entities in the data model as of now. There's a teamId
-        // on the player record which is always populated, even if the game is not a team game,
+        // on the player record which is always populated (even if the game is not a team game)
         // and there is another on the Challenge entity (which is also always populated). These
         // are not foreign keys and can't be the bases of join-like structures in EF.
         //
@@ -105,10 +105,9 @@ internal class EnrollmentReportService : IEnrollmentReportService
         // we strictly look at individual player registrations and report their challenges and performance,
         // we won't get the whole story if their challenges are owned by a teammate.
         //
-        // To handle the fact that we conditionally need to report information about the team and may
-        // need to report challenge data based on teammate rather than the player who represents the
-        // current record, we grab team and challenge data for every player who met the criteria
-        // above who is playing a team game (defined as a game with minimum team size > 1).
+        // To accommodate this, we just group all players by team id, create a dictionary of challenges
+        // owned by any player on the team (by TeamId), and report the team's challenges for every player
+        // on the team.
         var teamIds = players
             .Select(p => p.TeamId)
             .Distinct()
