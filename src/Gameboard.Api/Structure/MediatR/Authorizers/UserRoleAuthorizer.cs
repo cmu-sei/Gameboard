@@ -22,9 +22,7 @@ internal class UserRoleAuthorizer : IAuthorizer
         foreach (var role in AllowedRoles)
         {
             if (_actor.Role.HasFlag(role))
-            {
                 return;
-            }
         }
 
         throw new ActionForbidden();

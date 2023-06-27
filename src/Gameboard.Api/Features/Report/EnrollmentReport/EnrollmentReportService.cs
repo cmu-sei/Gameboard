@@ -12,6 +12,7 @@ namespace Gameboard.Api.Features.Reports;
 
 public interface IEnrollmentReportService
 {
+    Task<IQueryable<Data.Player>> GetBaseQuery(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
     Task<IEnumerable<EnrollmentReportRecord>> GetRecords(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
 }
 
@@ -30,7 +31,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
         _store = store;
     }
 
-    public async Task<IEnumerable<EnrollmentReportRecord>> GetRecords(EnrollmentReportParameters parameters, CancellationToken cancellationToken)
+    public async Task<IQueryable<Data.Player>> GetBaseQuery(EnrollmentReportParameters parameters, CancellationToken cancellationToken)
     {
         // parse multiselect criteria
         var seasonCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Seasons);
@@ -38,8 +39,10 @@ internal class EnrollmentReportService : IEnrollmentReportService
         var sponsorCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Sponsors);
         var trackCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Tracks);
 
-        // we also have to look up sponsors separately, because when we build the results, we have to translate
-        // sponsor logos (which is what the Player entity has) to actual Sponsor entities
+        // we have to look up sponsors to both resolve query criteria and to build the result set
+        // (because the player entity has logo files, not ids)
+        // doing this in both places for now because the cost is minimal and makes use of this query in the 
+        // chart handler easier
         var sponsors = await _store
             .List<Data.Sponsor>()
             .Select(s => new EnrollmentReportSponsorViewModel
@@ -89,8 +92,27 @@ internal class EnrollmentReportService : IEnrollmentReportService
             query = query.Where(p => sponsorLogos.Contains(p.Sponsor));
         }
 
+        return query;
+    }
+
+    public async Task<IEnumerable<EnrollmentReportRecord>> GetRecords(EnrollmentReportParameters parameters, CancellationToken cancellationToken)
+    {
+        // load query
+        var query = await GetBaseQuery(parameters, cancellationToken);
+
         // finalize query - we have to do the rest "client" (application server) side
         var players = await query.ToListAsync(cancellationToken);
+
+        // look up sponsors to build the result set
+        var sponsors = await _store
+            .List<Data.Sponsor>()
+            .Select(s => new EnrollmentReportSponsorViewModel
+            {
+                Id = s.Id,
+                Name = s.Name,
+                LogoFileName = s.Logo
+            })
+            .ToArrayAsync(cancellationToken);
 
         // This is pretty messy. Here's why:
         //
@@ -183,7 +205,12 @@ internal class EnrollmentReportService : IEnrollmentReportService
                     CurrentCaptain = new SimpleEntity { Id = captain?.Id ?? p.Id, Name = captain?.Name ?? p.Name },
                     Sponsors = sponsors.Where(s => playerTeamSponsorLogos.Contains(s.LogoFileName)).ToArray()
                 },
-                Session = ComputePlayTime(p.SessionBegin, p.SessionEnd, p.CorrectCount, p.Challenges.Count, p.Time),
+                PlayTime = new EnrollmentReportPlayTimeViewModel
+                {
+                    Start = p.SessionBegin.HasValue() ? p.SessionBegin : null,
+                    DurationMs = p.Time > 0 ? p.Time : null,
+                    End = (p.SessionBegin.HasValue() && p.Time > 0) ? p.SessionBegin.AddMilliseconds(p.Time) : null
+                },
                 Challenges = challenges,
                 ChallengesPartiallySolvedCount = challenges.Where(c => c.Result == ChallengeResult.Partial).Count(),
                 ChallengesCompletelySolvedCount = challenges.Where(c => c.Result == ChallengeResult.Success).Count(),
@@ -192,31 +219,6 @@ internal class EnrollmentReportService : IEnrollmentReportService
         });
 
         return records;
-    }
-
-    private EnrollmentReportPlayTimeViewModel ComputePlayTime(DateTimeOffset? sessionStart, DateTimeOffset? sessionEnd, int correctCount, int challengeCount, double time)
-    {
-        // if the player's correct count is equal to the number challenges played, then their p.Time
-        // is representative of the time they spent on the game (because p.Time is updated upon scoring)
-        // 
-        // if they have any challenges that are not completely correct, then we use the session time instead
-        // to represent the fact that they played for the complete duration but didn't finish everything.
-        var playStart = sessionStart;
-        var playEnd = sessionEnd;
-        var duration = 0d;
-
-        if (correctCount == challengeCount && challengeCount > 0 && time > 0 && playStart != null)
-            playEnd = playStart.Value.AddMilliseconds(time);
-
-        if (playStart != null & playEnd != null)
-            duration = playEnd.Value.Subtract(playStart.Value).TotalMilliseconds;
-
-        return new EnrollmentReportPlayTimeViewModel
-        {
-            Start = playStart,
-            End = playEnd,
-            DurationMs = duration
-        };
     }
 
     private IEnumerable<EnrollmentReportChallengeViewModel> ChallengeDataToViewModel(IEnumerable<EnrollmentReportChallengeQueryData> challengeData)

@@ -36,7 +36,7 @@ namespace Gameboard.Api
 
     internal class InvalidInvitationCode : GameboardException
     {
-        internal InvalidInvitationCode(string code, string reason) : base(reason) { }
+        internal InvalidInvitationCode(string code, string reason) : base($"""Can't join a team with code "{code}". {reason}""") { }
     }
 
     internal class InvalidParameterValue<T> : GameboardValidationException

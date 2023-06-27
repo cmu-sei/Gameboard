@@ -4,22 +4,18 @@ using System.Threading.Tasks;
 using Gameboard.Api.Features.GameEngine.Requests;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
-using Microsoft.AspNetCore.Http;
 
 internal class AddManualBonusValidator : IGameboardRequestValidator<AddManualBonusCommand>
 {
     private readonly EntityExistsValidator<AddManualBonusCommand, Data.Challenge> _challengeExists;
-    private readonly User _actor;
     private readonly IValidatorService<AddManualBonusCommand> _validatorService;
 
     public AddManualBonusValidator
     (
         EntityExistsValidator<AddManualBonusCommand, Data.Challenge> challengeExists,
-        IHttpContextAccessor httpContextAccessor,
         IValidatorService<AddManualBonusCommand> validatorService
     )
     {
-        _actor = httpContextAccessor.HttpContext.User.ToActor();
         _challengeExists = challengeExists;
         _validatorService = validatorService;
     }

@@ -12,12 +12,10 @@ public record EnrollmentReportExportQuery(EnrollmentReportParameters Parameters)
 internal class EnrollmentReportExportHandler : IRequestHandler<EnrollmentReportExportQuery, IEnumerable<EnrollmentReportCsvRecord>>
 {
     private readonly IEnrollmentReportService _enrollmentReportService;
-    private readonly IMediator _mediator;
 
-    public EnrollmentReportExportHandler(IMediator mediator, IEnrollmentReportService enrollmentReportService)
+    public EnrollmentReportExportHandler(IEnrollmentReportService enrollmentReportService)
     {
         _enrollmentReportService = enrollmentReportService;
-        _mediator = mediator;
     }
 
     public async Task<IEnumerable<EnrollmentReportCsvRecord>> Handle(EnrollmentReportExportQuery request, CancellationToken cancellationToken)
@@ -46,9 +44,9 @@ internal class EnrollmentReportExportHandler : IRequestHandler<EnrollmentReportE
             Track = r.Game.Track,
 
             // session
-            SessionStart = r.Session.Start,
-            SessionEnd = r.Session.End,
-            SessionDurationInSeconds = r.Session.DurationMs != null ? Math.Round(new Decimal((double)r.Session.DurationMs) / 1000, 2) : null,
+            PlayStart = r.PlayTime.Start,
+            PlayEnd = r.PlayTime.End,
+            PlayDurationInSeconds = r.PlayTime.DurationMs != null ? Math.Round(new Decimal((double)r.PlayTime.DurationMs) / 1000, 2) : null,
 
             // team
             TeamId = r.Team?.Id,

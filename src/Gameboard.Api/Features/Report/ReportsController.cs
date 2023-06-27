@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Gameboard.Api.Common;
@@ -35,6 +36,10 @@ public class ReportsController : ControllerBase
     [HttpGet("enrollment")]
     public Task<ReportResults<EnrollmentReportRecord>> GetEnrollmentReport([FromQuery] EnrollmentReportParameters parameters, [FromQuery] PagingArgs paging)
         => _mediator.Send(new EnrollmentReportQuery(parameters, paging));
+
+    [HttpGet("enrollment/trend")]
+    public Task<IDictionary<DateTimeOffset, EnrollmentReportLineChartGroup>> GetEnrollmentReportLineChart([FromQuery] EnrollmentReportParameters parameters)
+        => _mediator.Send(new EnrollmentReportLineChartQuery(parameters));
 
     [HttpGet("players-report")]
     public async Task<ReportResults<PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportQueryParameters reportParams)

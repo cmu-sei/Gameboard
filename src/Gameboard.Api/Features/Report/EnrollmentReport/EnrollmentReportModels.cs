@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Gameboard.Api.Common;
-using Gameboard.Api.Features.ChallengeBonuses;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -20,7 +19,7 @@ public class EnrollmentReportRecord
     public required SimpleEntity User { get; set; }
     public required EnrollmentReportPlayerViewModel Player { get; set; }
     public required EnrollmentReportGameViewModel Game { get; set; }
-    public required EnrollmentReportPlayTimeViewModel Session { get; set; }
+    public required EnrollmentReportPlayTimeViewModel PlayTime { get; set; }
     public required EnrollmentReportTeamViewModel Team { get; set; }
 
     // performance data
@@ -125,9 +124,9 @@ public class EnrollmentReportCsvRecord
     public required string Track { get; set; }
 
     // session
-    public required DateTimeOffset? SessionStart { get; set; }
-    public required DateTimeOffset? SessionEnd { get; set; }
-    public required decimal? SessionDurationInSeconds { get; set; }
+    public required DateTimeOffset? PlayStart { get; set; }
+    public required DateTimeOffset? PlayEnd { get; set; }
+    public required decimal? PlayDurationInSeconds { get; set; }
 
     // team data
     public required string TeamId { get; set; }
@@ -149,4 +148,18 @@ public class EnrollmentReportCsvRecord
     public required int ChallengesPartiallySolvedCount { get; set; }
     public required int ChallengesCompletelySolvedCount { get; set; }
     public required double Score { get; set; }
+}
+
+public sealed class EnrollmentReportLineChartGroup
+{
+    public required IEnumerable<EnrollmentReportLineChartPlayer> Players { get; set; }
+    public required int TotalCount { get; set; }
+}
+
+public sealed class EnrollmentReportLineChartPlayer
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required DateTimeOffset EnrollDate { get; set; }
+    public required SimpleEntity Game { get; set; }
 }

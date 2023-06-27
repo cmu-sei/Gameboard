@@ -15,7 +15,7 @@ public static class QueryExtensions
     /// <returns>A query with an appended `.Where` call that eliminates entities of type T with 01/01/0001 in the date field specified by `dateExpression`.</returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="ArgumentException"></exception>
-    public static IQueryable<T> WhereDateHasValue<T>(this IQueryable<T> query, Expression<Func<T, DateTimeOffset>> dateExpression) where T : class, IEntity
+    public static IQueryable<T> WhereDateHasValue<T>(this IQueryable<T> query, Expression<Func<T, DateTimeOffset>> dateExpression) where T : class
     {
         if (dateExpression == null)
             throw new ArgumentNullException(nameof(dateExpression));
