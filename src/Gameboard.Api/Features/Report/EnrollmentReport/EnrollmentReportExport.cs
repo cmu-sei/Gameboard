@@ -69,6 +69,7 @@ internal class EnrollmentReportExportHandler : IRequestHandler<EnrollmentReportE
             ChallengeScores = string.Join(",", r.Challenges.Select(c => $"{c.Score}/{c.MaxPossiblePoints}")),
 
             // challenge/game performance summary
+            ChallengesAttempted = r.Challenges.Count(),
             ChallengesPartiallySolvedCount = r.Challenges.Where(c => c.Result == ChallengeResult.Partial).Count(),
             ChallengesCompletelySolvedCount = r.Challenges.Where(c => c.Result == ChallengeResult.Success).Count(),
             Score = r.Score

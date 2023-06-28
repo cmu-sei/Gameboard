@@ -145,6 +145,7 @@ public class EnrollmentReportCsvRecord
     public required string ChallengeScores { get; set; }
 
     // challenge / game performance summary
+    public required int ChallengesAttempted { get; set; }
     public required int ChallengesPartiallySolvedCount { get; set; }
     public required int ChallengesCompletelySolvedCount { get; set; }
     public required double Score { get; set; }

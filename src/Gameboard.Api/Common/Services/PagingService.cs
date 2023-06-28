@@ -30,6 +30,8 @@ public interface IPagingService
 
 internal class PagingService : IPagingService
 {
+    private static readonly int DEFAULT_PAGE_SIZE = 5;
+
     public PagedEnumerable<T> Page<T>(IEnumerable<T> items, PagingArgs pagingArgs = null)
     {
         var itemCount = items.Count();
@@ -41,7 +43,11 @@ internal class PagingService : IPagingService
             if ((pagingArgs.PageNumber == null || pagingArgs.PageSize == null) && pagingArgs.PageNumber != pagingArgs.PageSize)
                 throw new ArgumentException($"If either of {nameof(pagingArgs.PageNumber)} or {nameof(pagingArgs.PageSize)} is specified when calling {nameof(Page)}, both most be specified.");
             else if (pagingArgs.PageNumber != null && pagingArgs.PageSize != null && pagingArgs.PageNumber.Value * pagingArgs.PageSize.Value > itemCount)
-                throw new ArgumentException($"The item count (> {pagingArgs.PageNumber.Value * pagingArgs.PageSize.Value}) implied by {nameof(pagingArgs.PageNumber)} ({pagingArgs.PageNumber.Value}) and {nameof(pagingArgs.PageSize)} ({pagingArgs.PageSize.Value}) was greater than the actual item count ({itemCount}).");
+            {
+                pagingArgs.PageNumber = 0;
+                pagingArgs.PageSize = DEFAULT_PAGE_SIZE;
+
+            }
 
             isPaging = pagingArgs.PageNumber != null;
         }
