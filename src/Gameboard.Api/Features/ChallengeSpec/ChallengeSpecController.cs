@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Threading.Tasks;
+using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
 using Microsoft.AspNetCore.Authorization;
@@ -100,18 +101,6 @@ namespace Gameboard.Api.Controllers
         public async Task Sync([FromRoute] string id)
         {
             await ChallengeSpecService.Sync(id);
-        }
-
-        /// <summary>
-        /// Find challengespecs
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpGet("/api/practice")]
-        [AllowAnonymous]
-        public async Task<ChallengeSpecSummary[]> Browse([FromQuery] SearchFilter model)
-        {
-            return await ChallengeSpecService.Browse(model);
         }
     }
 }

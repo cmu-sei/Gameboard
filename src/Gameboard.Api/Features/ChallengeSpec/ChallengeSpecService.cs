@@ -1,6 +1,7 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -90,34 +91,6 @@ namespace Gameboard.Api.Services
             }
 
             await Store.DbContext.SaveChangesAsync();
-        }
-
-        internal async Task<ChallengeSpecSummary[]> Browse(SearchFilter model)
-        {
-            var q = Store.List()
-                .Include(s => s.Game)
-                .Where(s => s.Game.PlayerMode == PlayerMode.Practice)
-                .AsNoTracking();
-
-            if (model.HasTerm)
-            {
-                string term = model.Term.ToLower();
-                q = q.Where(s =>
-                    s.Id.Equals(term) ||
-                    s.Name.ToLower().Contains(term) ||
-                    s.Description.ToLower().Contains(term) ||
-                    s.Game.Name.ToLower().Contains(term) ||
-                    s.Text.ToLower().Contains(term)
-                );
-            }
-
-            q = q.OrderBy(s => s.Name);
-            q = q.Skip(model.Skip);
-
-            if (model.Take > 0)
-                q = q.Take(model.Take);
-
-            return await Mapper.ProjectTo<ChallengeSpecSummary>(q).ToArrayAsync();
         }
     }
 }

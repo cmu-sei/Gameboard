@@ -19,6 +19,7 @@ public sealed class PagingResults
 
 public sealed class PagingArgs
 {
+    public int? DefaultPageSize { get; set; } = null;
     public int? PageNumber { get; set; } = null;
     public int? PageSize { get; set; } = null;
 }
@@ -42,11 +43,10 @@ internal class PagingService : IPagingService
         {
             if ((pagingArgs.PageNumber == null || pagingArgs.PageSize == null) && pagingArgs.PageNumber != pagingArgs.PageSize)
                 throw new ArgumentException($"If either of {nameof(pagingArgs.PageNumber)} or {nameof(pagingArgs.PageSize)} is specified when calling {nameof(Page)}, both most be specified.");
-            else if (pagingArgs.PageNumber != null && pagingArgs.PageSize != null && pagingArgs.PageNumber.Value * pagingArgs.PageSize.Value > itemCount)
+            else if (pagingArgs.PageNumber != null && pagingArgs.PageSize != null && pagingArgs.PageNumber.Value * pagingArgs.PageSize.Value >= itemCount)
             {
                 pagingArgs.PageNumber = 0;
                 pagingArgs.PageSize = DEFAULT_PAGE_SIZE;
-
             }
 
             isPaging = pagingArgs.PageNumber != null;

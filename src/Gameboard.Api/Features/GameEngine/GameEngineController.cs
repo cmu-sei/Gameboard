@@ -4,7 +4,6 @@ using Gameboard.Api.Features.GameEngine.Requests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.GameEngine;
 
@@ -12,17 +11,10 @@ namespace Gameboard.Api.Features.GameEngine;
 [Route("/api/gameEngine")]
 public class GameEngineController : ControllerBase
 {
-    private readonly IGameEngineService _gameEngine;
     private readonly IMediator _mediator;
 
-    public GameEngineController
-    (
-        IGameEngineService gameEngineService,
-        ILogger<GameEngineController> logger,
-        IMediator mediator
-    )
+    public GameEngineController(IMediator mediator)
     {
-        _gameEngine = gameEngineService;
         _mediator = mediator;
     }
 
