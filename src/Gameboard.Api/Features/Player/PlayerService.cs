@@ -22,6 +22,7 @@ namespace Gameboard.Api.Services;
 public class PlayerService
 {
     private readonly INowService _now;
+    private readonly IStore<Data.User> _userStore;
 
     CoreOptions CoreOptions { get; }
     ChallengeService ChallengeService { get; set; }
@@ -33,7 +34,6 @@ public class PlayerService
     IMediator MediatorBus { get; }
     IInternalHubBus HubBus { get; }
     ITeamService TeamService { get; }
-    IUserStore UserStore { get; }
     IMapper Mapper { get; }
     IMemoryCache LocalCache { get; }
     TimeSpan _idmapExpiration = new TimeSpan(0, 30, 0);
@@ -46,7 +46,6 @@ public class PlayerService
         IMediator mediator,
         INowService now,
         IPlayerStore store,
-        IUserStore userStore,
         IGameHubBus gameHubBus,
         IGameService gameService,
         IGameStore gameStore,
@@ -54,7 +53,8 @@ public class PlayerService
         ITeamService teamService,
         IMapper mapper,
         IMemoryCache localCache,
-        IGameEngineService gameEngine
+        IGameEngineService gameEngine,
+        IStore<Data.User> userStore
     )
     {
         CoreOptions = coreOptions;
@@ -68,10 +68,10 @@ public class PlayerService
         Store = store;
         GameStore = gameStore;
         TeamService = teamService;
-        UserStore = userStore;
         Mapper = mapper;
         LocalCache = localCache;
         GameEngine = gameEngine;
+        _userStore = userStore;
     }
 
     public async Task<Player> Enroll(NewPlayer model, User actor)
@@ -332,7 +332,7 @@ public class PlayerService
         if (!sudo && !model.WantsGame && !model.WantsTeam)
             return Array.Empty<Player>();
 
-        var q = _List(model);
+        var q = BuildListQuery(model);
 
         return await Mapper.ProjectTo<Player>(q).ToArrayAsync();
     }
@@ -349,12 +349,12 @@ public class PlayerService
 
         model.mode = PlayerMode.Competition.ToString();
 
-        var q = _List(model);
+        var q = BuildListQuery(model);
 
         return await Mapper.ProjectTo<Standing>(q).ToArrayAsync();
     }
 
-    private IQueryable<Data.Player> _List(PlayerDataFilter model)
+    private IQueryable<Data.Player> BuildListQuery(PlayerDataFilter model)
     {
         var ts = DateTimeOffset.UtcNow;
 
@@ -490,7 +490,7 @@ public class PlayerService
 
         var player = await Store.DbSet.FirstOrDefaultAsync(p => p.Id == model.PlayerId);
 
-        if (player == null)
+        if (player is null)
         {
             throw new ResourceNotFound<Player>(model.PlayerId);
         }

@@ -18,7 +18,6 @@ public class PlayerServiceTests
             CoreOptions coreOptions,
             ChallengeService challengeService,
             IPlayerStore store,
-            IUserStore userStore,
             IGameHubBus gameHubBus,
             IGameService gameService,
             IGameStore gameStore,
@@ -29,7 +28,8 @@ public class PlayerServiceTests
             ITeamService teamService,
             IMapper mapper,
             IMemoryCache localCache,
-            GameEngineService gameEngine) : base
+            GameEngineService gameEngine,
+            IStore<Data.User> userStore) : base
             (
                 coreOptions,
                 challengeService,
@@ -37,7 +37,6 @@ public class PlayerServiceTests
                 mediator,
                 now,
                 store,
-                userStore,
                 gameHubBus,
                 gameService,
                 gameStore,
@@ -45,7 +44,8 @@ public class PlayerServiceTests
                 teamService,
                 mapper,
                 localCache,
-                gameEngine
+                gameEngine,
+                userStore
             )
         {
         }
@@ -55,7 +55,6 @@ public class PlayerServiceTests
             CoreOptions? coreOptions = null,
             ChallengeService? challengeService = null,
             IPlayerStore? store = null,
-            IUserStore? userStore = null,
             IGameHubBus? gameHubBus = null,
             IGameService? gameService = null,
             IGameStore? gameStore = null,
@@ -66,7 +65,8 @@ public class PlayerServiceTests
             ITeamService? teamService = null,
             IMapper? mapper = null,
             IMemoryCache? localCache = null,
-            GameEngineService? gameEngine = null)
+            GameEngineService? gameEngine = null,
+            IStore<Data.User>? userStore = null)
         {
             return new PlayerService
             (
@@ -76,7 +76,6 @@ public class PlayerServiceTests
                 mediator ?? A.Fake<IMediator>(),
                 now ?? A.Fake<INowService>(),
                 store ?? A.Fake<IPlayerStore>(),
-                userStore ?? A.Fake<IUserStore>(),
                 gameHubBus ?? A.Fake<IGameHubBus>(),
                 gameService ?? A.Fake<GameService>(),
                 gameStore ?? A.Fake<IGameStore>(),
@@ -84,7 +83,8 @@ public class PlayerServiceTests
                 teamService ?? A.Fake<ITeamService>(),
                 mapper ?? A.Fake<IMapper>(),
                 localCache ?? A.Fake<IMemoryCache>(),
-                gameEngine ?? A.Fake<GameEngineService>()
+                gameEngine ?? A.Fake<GameEngineService>(),
+                userStore ?? A.Fake<IStore<Data.User>>()
             );
         }
     }

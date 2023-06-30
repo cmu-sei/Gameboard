@@ -13,7 +13,6 @@ using Polly;
 
 namespace Gameboard.Api
 {
-
     public class AuthenticatingHandler : DelegatingHandler
     {
         private readonly IAsyncPolicy<HttpResponseMessage> _policy;
@@ -68,7 +67,7 @@ namespace Gameboard.Api
             }
             else
             {
-                _logger.LogError($"Error in {typeof(AuthenticatingHandler).Name}: {_token.Error}");
+                _logger.LogError($"Error in {nameof(AuthenticatingHandler)}: {_token.Error}");
             }
         }
     }

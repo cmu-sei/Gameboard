@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
@@ -23,24 +22,21 @@ internal class ApiKeysService : IApiKeysService
     private readonly IGuidService _guids;
     private readonly IMapper _mapper;
     private readonly INowService _now;
-    private readonly IHashService _hasher;
     private readonly IRandomService _rng;
     private readonly IApiKeysStore _store;
     private readonly ApiKeyOptions _options;
-    private readonly IUserStore _userStore;
+    private readonly IStore<Data.User> _userStore;
 
     public ApiKeysService(
         ApiKeyOptions options,
         IGuidService guids,
         IMapper mapper,
         INowService now,
-        IHashService hasher,
         IRandomService rng,
         IApiKeysStore store,
-        IUserStore userStore)
+        IStore<Data.User> userStore)
     {
         _guids = guids;
-        _hasher = hasher;
         _mapper = mapper;
         _now = now;
         _rng = rng;
@@ -59,7 +55,7 @@ internal class ApiKeysService : IApiKeysService
     public async Task<CreateApiKeyResult> Create(NewApiKey newApiKey)
     {
         var user = await _userStore.Retrieve(newApiKey.UserId);
-        if (user == null)
+        if (user is null)
             throw new ResourceNotFound<User>(newApiKey.UserId);
 
         var generatedKey = GenerateKey();
@@ -98,7 +94,7 @@ internal class ApiKeysService : IApiKeysService
         return keyRaw.Substring(0, Math.Min(keyRaw.Length, _options.RandomCharactersLength));
     }
 
-    internal bool IsValidKey(string hashedKey, Data.ApiKey candidate)
+    internal bool IsValidKey(string hashedKey, ApiKey candidate)
         => hashedKey == candidate.Key &&
         (
             candidate.ExpiresOn == null ||

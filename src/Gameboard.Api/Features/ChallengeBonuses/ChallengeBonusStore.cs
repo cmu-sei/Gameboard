@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
@@ -23,14 +24,20 @@ internal class ChallengeBonusStore : IStore<ManualChallengeBonus>
     public GameboardDbContext DbContext => _db;
     public IQueryable<ManualChallengeBonus> DbSet => _db.ManualChallengeBonuses;
 
-    public async Task<int> CountAsync(Func<IQueryable<ManualChallengeBonus>, IQueryable<ManualChallengeBonus>> queryBuilder = null)
+    public Task<bool> AnyAsync()
+        => _db.ManualChallengeBonuses.AnyAsync();
+
+    public Task<bool> AnyAsync(Expression<Func<ManualChallengeBonus, bool>> predicate = null)
+        => _db.ManualChallengeBonuses.AnyAsync(predicate);
+
+    public Task<int> CountAsync(Func<IQueryable<ManualChallengeBonus>, IQueryable<ManualChallengeBonus>> queryBuilder = null)
     {
         var query = _db.ManualChallengeBonuses.AsNoTracking();
 
         if (queryBuilder != null)
             query = queryBuilder(query);
 
-        return await query.CountAsync();
+        return query.CountAsync();
     }
 
     public async Task<ManualChallengeBonus> Create(ManualChallengeBonus entity)
@@ -55,12 +62,10 @@ internal class ChallengeBonusStore : IStore<ManualChallengeBonus>
         throw new NotImplementedException();
     }
 
-    public async Task Delete(string id)
-        => await _db
-            .ManualChallengeBonuses
-            .Where(b => b.Id == id)
-            .ExecuteDeleteAsync();
-
+    public Task Delete(string id)
+    {
+        throw new NotImplementedException();
+    }
 
     public async Task<bool> Exists(string id)
     {

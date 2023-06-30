@@ -14,7 +14,7 @@ public class UserServiceTests
     public void HasRole_WithMatchingRole_ReturnsTrue(UserRole usersRoles, UserRole targetRole)
     {
         // given
-        var userService = new UserService(A.Fake<IUserStore>(), A.Fake<IMapper>(), A.Fake<IMemoryCache>(), A.Fake<INameService>(), A.Fake<Defaults>());
+        var userService = new UserService(A.Fake<INowService>(), A.Fake<IStore<Data.User>>(), A.Fake<IMapper>(), A.Fake<IMemoryCache>(), A.Fake<INameService>(), A.Fake<Defaults>());
         var user = new User() { Role = usersRoles };
 
         // when
@@ -31,7 +31,7 @@ public class UserServiceTests
     public void HasRole_WithoutMatchingRole_ReturnsFalse(UserRole usersRoles, UserRole targetRole)
     {
         // given
-        var userService = new UserService(A.Fake<IUserStore>(), A.Fake<IMapper>(), A.Fake<IMemoryCache>(), A.Fake<INameService>(), A.Fake<Defaults>());
+        var userService = new UserService(A.Fake<INowService>(), A.Fake<IStore<Data.User>>(), A.Fake<IMapper>(), A.Fake<IMemoryCache>(), A.Fake<INameService>(), A.Fake<Defaults>());
         var user = new User() { Role = usersRoles };
 
         // when

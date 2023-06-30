@@ -22,6 +22,7 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.NameStatus).HasMaxLength(40);
                 b.Property(u => u.Email).HasMaxLength(64);
                 b.Property(u => u.Sponsor).HasMaxLength(40);
+                b.Property(u => u.LoginCount).HasDefaultValueSql("0");
             });
 
             builder.Entity<ApiKey>(k =>

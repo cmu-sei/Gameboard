@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace Gameboard.Api.Data.Abstractions
@@ -14,6 +15,8 @@ namespace Gameboard.Api.Data.Abstractions
         GameboardDbContext DbContext { get; }
         IQueryable<TEntity> DbSet { get; }
 
+        Task<bool> AnyAsync();
+        Task<bool> AnyAsync(Expression<Func<TEntity, bool>> predicate);
         IQueryable<TEntity> List(string term = null);
         IQueryable<TEntity> ListWithNoTracking();
         Task<TEntity> Create(TEntity entity);

@@ -1,5 +1,4 @@
 using AutoMapper;
-using Gameboard.Api;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.ApiKeys;
 using Gameboard.Api.Services;
@@ -14,10 +13,9 @@ public class ApiKeyServiceTests
             A.Fake<IGuidService>(),
             A.Fake<IMapper>(),
             A.Fake<INowService>(),
-            A.Fake<IHashService>(),
             random ?? A.Fake<IRandomService>(),
             A.Fake<IApiKeysStore>(),
-            A.Fake<IUserStore>()
+            A.Fake<IStore<Data.User>>()
         );
 
     [Theory, InlineAutoData(3)]

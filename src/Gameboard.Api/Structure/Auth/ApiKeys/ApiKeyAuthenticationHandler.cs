@@ -4,6 +4,7 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.ApiKeys;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
@@ -38,8 +39,8 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        StringValues requestApiKey;
-        if (!Request.Headers.TryGetValue(ApiKeyAuthentication.ApiKeyHeaderName, out requestApiKey))
+        var requestApiKey = ResolveRequestApiKey(Request);
+        if (requestApiKey.IsEmpty())
         {
             return AuthenticateResult.NoResult();
         }
@@ -76,8 +77,7 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
     // for now, we're just doing x-api-key to standardize access
     internal string ResolveRequestApiKey(HttpRequest request)
     {
-        StringValues headerApiKey;
-        if (request.Headers.TryGetValue(ApiKeyAuthentication.ApiKeyHeaderName, out headerApiKey))
+        if (request.Headers.TryGetValue(ApiKeyAuthentication.ApiKeyHeaderName, out StringValues headerApiKey))
         {
             return headerApiKey;
         }

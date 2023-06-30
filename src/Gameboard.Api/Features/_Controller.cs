@@ -27,7 +27,7 @@ namespace Gameboard.Api.Controllers
         protected User Actor { get; set; }
         protected ILogger Logger { get; private set; }
         protected IDistributedCache Cache { get; private set; }
-        private IModelValidator[] _validators;
+        private readonly IModelValidator[] _validators;
 
         public virtual void OnActionExecuting(ActionExecutingContext context)
         {

@@ -7,7 +7,7 @@ namespace Gameboard.Api.Tests.Unit;
 public class EnrollmentReportServiceTests
 {
     [Theory, GameboardAutoData]
-    public async Task GetResults_WithOneNonTeamRecord_ReportsExpectedValues(IFixture fixture)
+    public async Task GetResults_WithOnePlayerAndChallenge_ReportsCompleteSolve(IFixture fixture)
     {
         // given 
         var sponsors = new List<Data.Sponsor>
@@ -47,7 +47,7 @@ public class EnrollmentReportServiceTests
 
         // then
         results.Count().ShouldBe(1);
-        results.First().Team.ShouldBeNull();
+        results.First().ChallengesCompletelySolvedCount.ShouldBe(1);
     }
 
     [Theory, GameboardAutoData]

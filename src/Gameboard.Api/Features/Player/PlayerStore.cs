@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data
 {
-    public class PlayerStore : Store<Player>, IPlayerStore
+    public class PlayerStore : Store<Data.Player>, IPlayerStore
     {
         public PlayerStore(IGuidService guids, GameboardDbContext dbContext)
             : base(guids, dbContext) { }

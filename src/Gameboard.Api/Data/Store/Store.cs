@@ -1,16 +1,25 @@
 using System;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 
 namespace Gameboard.Api.Data;
 
 public interface IStore
 {
+    Task<bool> AnyAsync<TEntity>() where TEntity : class, IEntity;
+    Task<bool> AnyAsync<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : class, IEntity;
     Task<int> CountAsync<TEntity>(Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder) where TEntity : class, IEntity;
     Task<TEntity> Create<TEntity>(TEntity entity) where TEntity : class, IEntity;
     Task Delete<TEntity>(string id) where TEntity : class, IEntity;
+    Task<int> ExecuteUpdateAsync<TEntity>
+    (
+        Expression<Func<TEntity, bool>> predicate,
+        Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls
+    ) where TEntity : class, IEntity;
     Task<bool> Exists<TEntity>(string id) where TEntity : class, IEntity;
     IQueryable<TEntity> List<TEntity>(bool enableTracking = false) where TEntity : class, IEntity;
     Task<TEntity> Retrieve<TEntity>(string id, bool enableTracking = false) where TEntity : class, IEntity;
@@ -28,6 +37,12 @@ internal class Store : IStore
         _dbContext = dbContext;
         _guids = guids;
     }
+
+    public Task<bool> AnyAsync<TEntity>() where TEntity : class, IEntity
+        => _dbContext.Set<TEntity>().AnyAsync();
+
+    public Task<bool> AnyAsync<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : class, IEntity
+        => _dbContext.Set<TEntity>().AnyAsync(predicate);
 
     public async Task<int> CountAsync<TEntity>(Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder) where TEntity : class, IEntity
     {
@@ -56,6 +71,18 @@ internal class Store : IStore
 
         if (rowsAffected != 1)
             throw new GameboardException($"""Delete of entity type {typeof(TEntity)} with id "{id}" affected {rowsAffected} rows (expected 1).""");
+    }
+
+    public Task<int> ExecuteUpdateAsync<TEntity>
+    (
+        Expression<Func<TEntity, bool>> predicate,
+        Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls
+    ) where TEntity : class, IEntity
+    {
+        return _dbContext
+            .Set<TEntity>()
+            .Where(predicate)
+            .ExecuteUpdateAsync(setPropertyCalls);
     }
 
     public Task<bool> Exists<TEntity>(string id) where TEntity : class, IEntity

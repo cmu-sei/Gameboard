@@ -11,13 +11,6 @@ namespace Gameboard.Api
 {
     public static class StringExtensions
     {
-        public static string ToHash(this string str)
-        {
-            return BitConverter.ToString(
-                SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(str))
-            ).Replace("-", "").ToLower();
-        }
-
         public static string[] AsHashTag(this string str)
         {
             var chars = str.ToLower().ToCharArray()
@@ -29,15 +22,10 @@ namespace Gameboard.Api
         }
 
         public static string ToSha256(this string input)
-        {
-            using (SHA256 alg = SHA256.Create())
-            {
-                return BitConverter.ToString(alg
-                    .ComputeHash(Encoding.UTF8.GetBytes(input)))
-                    .Replace("-", "")
-                    .ToLower();
-            }
-        }
+            => BitConverter.ToString(SHA256.HashData(Encoding.UTF8.GetBytes(input)))
+                .Replace("-", "")
+                .ToLower();
+
 
         public static bool HasValue(this DateTimeOffset ts)
         {
