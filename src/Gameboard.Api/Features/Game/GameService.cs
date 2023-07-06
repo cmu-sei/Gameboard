@@ -15,7 +15,6 @@ using System.Collections.Generic;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.External;
-using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Services;
 
@@ -32,6 +31,7 @@ public interface IGameService
     Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo);
     Task ReRank(string id);
     Task<Game> Retrieve(string id, bool accessHidden = true);
+    Task<string> ResolveExternalStartupUrl(string gameId);
     Task<ChallengeSpec[]> RetrieveChallengeSpecs(string id);
     Task<SessionForecast[]> SessionForecast(string id);
     Task Update(ChangedGame account);
@@ -42,27 +42,18 @@ public interface IGameService
 public class GameService : _Service, IGameService
 {
     private readonly Defaults _defaults;
-    private readonly IExternalSyncGameStartService _externalSyncGameStartService;
-    private readonly ILockService _lockService;
-    private readonly IPlayerStore _playerStore;
     private readonly IGameStore _store;
 
     public GameService(
-        IExternalSyncGameStartService externalSyncGameStartService,
         ILogger<GameService> logger,
         IMapper mapper,
         CoreOptions options,
         Defaults defaults,
-        IGameStore store,
-        ILockService lockService,
-        IPlayerStore playerStore
+        IGameStore store
     ) : base(logger, mapper, options)
     {
         _store = store;
         _defaults = defaults;
-        _externalSyncGameStartService = externalSyncGameStartService;
-        _lockService = lockService;
-        _playerStore = playerStore;
     }
 
     public async Task<Game> Create(NewGame model)
@@ -198,6 +189,16 @@ public class GameService : _Service, IGameService
         return b.ToArray();
     }
 
+    public async Task<string> ResolveExternalStartupUrl(string gameId)
+    {
+        var game = await Retrieve(gameId);
+
+        if (game.ExternalGameStartupUrl.IsEmpty())
+            throw new EmptyExternalStartupUrl(gameId, game.ExternalGameStartupUrl);
+
+        return game.ExternalGameStartupUrl.TrimEnd('/');
+    }
+
     public async Task<ChallengeSpec[]> RetrieveChallengeSpecs(string id)
     {
         var entity = await _store.Load(id);
@@ -245,7 +246,7 @@ public class GameService : _Service, IGameService
 
         var entity = await _store.Retrieve(model.Id, q => q.Include(g => g.Specs));
 
-        if (entity is Data.Game)
+        if (entity is not null)
             return yaml.Serialize(entity);
 
         entity = new Data.Game

@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
+using Gameboard.Api.Features.Games;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.UnityGames;

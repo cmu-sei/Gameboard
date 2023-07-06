@@ -43,7 +43,7 @@ public class AppUrlServiceTests
         var sut = new AppUrlService(httpContextAccessor);
 
         // when
-        var result = sut.GetAbsoluteUrlFromRelative("mks");
+        var result = sut.ToAppAbsoluteUrl("mks");
 
         // then
         result.ShouldBe("https://gameboard.com:4202/test/gb/mks");

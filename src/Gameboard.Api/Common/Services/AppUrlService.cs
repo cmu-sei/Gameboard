@@ -6,7 +6,8 @@ namespace Gameboard.Api.Common.Services;
 public interface IAppUrlService
 {
     string GetBaseUrl();
-    string GetAbsoluteUrlFromRelative(string relativeUrl);
+    string ToAppAbsoluteUrl(string relativeUrl);
+    string ToAbsoluteUrl(string baseUrl, string relativeUrl);
 }
 
 internal class AppUrlService : IAppUrlService
@@ -26,16 +27,20 @@ internal class AppUrlService : IAppUrlService
         return builder.ToString();
     }
 
-    public string GetAbsoluteUrlFromRelative(string relativeUrl)
+    public string ToAppAbsoluteUrl(string relativeUrl)
+        => ToAbsoluteUrl(GetBaseUrl(), relativeUrl);
+
+    public string ToAbsoluteUrl(string baseUrl, string relativeUrl)
     {
         // if you just convert both the base and the relative url to Uri objects, the `new Uri(baseUri, relativeUri)` ctor
         // does some pretty surprising things (e.g. drops the base path of the base Uri and replaces it with the relative path 
         // of the second). We have to build it manually, unfortunately.
-        var baseUrl = GetBaseUrl().TrimEnd('/');
+        var finalBaseUrl = baseUrl.TrimEnd('/');
+        // var baseUrl = GetBaseUrl().TrimEnd('/');
 
         if (relativeUrl.IsEmpty())
-            return baseUrl;
+            return finalBaseUrl;
 
-        return $"{baseUrl}/{relativeUrl.TrimStart('/')}";
+        return $"{finalBaseUrl}/{relativeUrl.TrimStart('/')}";
     }
 }

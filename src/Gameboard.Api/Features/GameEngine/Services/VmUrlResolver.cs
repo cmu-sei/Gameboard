@@ -19,9 +19,11 @@ internal class GameboardMksVmUrlResolver : IVmUrlResolver
 
     public string ResolveUrl(GameEngineVmState vmState)
     {
-        var url = _appUrlService.GetAbsoluteUrlFromRelative("mks");
-        var urlBuilder = new UriBuilder(url);
-        urlBuilder.Query = $"f=1&s={vmState.Id}&v={vmState.Name}";
+        var url = _appUrlService.ToAppAbsoluteUrl("mks");
+        var urlBuilder = new UriBuilder(url)
+        {
+            Query = $"f=1&s={vmState.Id}&v={vmState.Name}"
+        };
 
         return urlBuilder.ToString();
     }

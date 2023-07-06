@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Gameboard.Api.Common;
 using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.Games;
@@ -22,6 +24,16 @@ internal class CantStartStandardGameWithoutActingUserParameter : GameboardValida
     public CantStartStandardGameWithoutActingUserParameter(string gameId) : base($"""Game start failure (gameId "{gameId}"): Game is a standard game, so the `actingUser` parameter is required.""") { }
 }
 
+internal class ChallengeResolutionFailure : GameboardException
+{
+    public ChallengeResolutionFailure(string teamId, IEnumerable<string> challengeIds) : base($"Couldn't resolve a Unity challenge for team {teamId}. They have {challengeIds.Count()} challenges ({String.Join(" | ", challengeIds)})") { }
+}
+
+internal class EmptyExternalStartupUrl : GameboardException
+{
+    public EmptyExternalStartupUrl(string gameId, string startupUrl) : base($"""Game ${gameId} doesn't have a configured {nameof(Game.ExternalGameStartupUrl)} configured (current value: "{startupUrl}")""") { }
+}
+
 internal class GameIsNotSyncStart : GameboardValidationException
 {
     public GameIsNotSyncStart(string gameId, string whyItMatters) : base($"""Game "{gameId}" is not a sync-start game. {whyItMatters}""") { }
@@ -37,6 +49,8 @@ internal class UserIsntPlayingGame : GameboardValidationException
     public UserIsntPlayingGame(string userId, string gameId, string whyItMatters = null) : base($"""User {userId} isn't playing game {gameId}.{(string.IsNullOrWhiteSpace(whyItMatters) ? string.Empty : ". " + whyItMatters)} """) { }
 }
 
+public class PlayerWrongGameIDException : Exception { }
+
 internal class PracticeSessionLimitReached : GameboardValidationException
 {
     public PracticeSessionLimitReached(string userId, int userSessionCount, int practiceSessionLimit) : base($"Can't start a new practice session. User \"{userId}\" has \"{userSessionCount}\" practice sessions, and the limit is \"{practiceSessionLimit}\".") { }
@@ -47,7 +61,14 @@ internal class SessionLimitReached : GameboardValidationException
     public SessionLimitReached(string teamId, string gameId, int sessions, int sessionLimit) : base($"Can't start a new game ({gameId}) for team \"{teamId}\". The session limit is {sessionLimit}, and the team has {sessions} sessions.") { }
 }
 
+internal class SpecNotFound : GameboardException
+{
+    public SpecNotFound(string gameId) : base($"Couldn't resolve a challenge spec for gameId {gameId}.") { }
+}
+
 internal class SynchronizedGameHasPlayersWithSessionsBeforeStart : GameboardValidationException
 {
     public SynchronizedGameHasPlayersWithSessionsBeforeStart(string gameId, IEnumerable<string> playerIdsWithSessions) : base($"""Can't launch synchronized game "{gameId}". {playerIdsWithSessions.Count()} players already have a game session: ("{string.Join(",", playerIdsWithSessions)}") """) { }
 }
+
+public class TeamHasNoPlayersException : Exception { }

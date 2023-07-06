@@ -155,10 +155,10 @@ internal class GameStartService : IGameStartService
             );
 
         // update state object
-        Log($"Data gathered: {players.Count()} players on {teamCaptains.Keys.Count()}.", game.Id);
+        Log($"Data gathered: {players.Length} players on {teamCaptains.Keys.Count}.", game.Id);
 
-        state.ChallengesTotal = specs.Count() * teamCaptains.Count();
-        state.GamespacesTotal = specs.Count() * teamCaptains.Count();
+        state.ChallengesTotal = specs.Length * teamCaptains.Count;
+        state.GamespacesTotal = specs.Length * teamCaptains.Count;
         state.Players.AddRange(players.Select(p => new GameStartStatePlayer
         {
             Player = new SimpleEntity { Id = p.Id, Name = p.ApprovedName },

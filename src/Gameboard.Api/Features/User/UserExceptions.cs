@@ -1,4 +1,5 @@
 using System;
+using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Features.Users;
 

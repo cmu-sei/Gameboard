@@ -2,17 +2,12 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Structure;
 
 namespace Gameboard.Api
 {
-    public class GameboardException : Exception
-    {
-        internal GameboardException(string message) : base(message) { }
-        internal GameboardException(string message, Exception innerException) : base(message, innerException) { }
-    }
-
     internal class MissingRequiredInput<T> : GameboardValidationException
     {
         internal MissingRequiredInput(string inputName, T input) : base($"Your input for ${inputName} was either missing or incorrectly formed (found \"{input}\").") { }
@@ -30,7 +25,7 @@ namespace Gameboard.Api
 
     internal class InvalidInvitationCode : GameboardException
     {
-        internal InvalidInvitationCode(string code, string reason) : base(reason) { }
+        internal InvalidInvitationCode(string code, string reason) : base($"""Invitation code {code} is invalid: {reason} """) { }
     }
 
     internal class InvalidParameterValue<T> : GameboardValidationException
