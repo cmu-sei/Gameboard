@@ -47,7 +47,7 @@ public class ReportsService : IReportsService
             new ReportViewModel
             {
                 Name = "Challenges",
-                Key = ReportKey.ChallengesReport,
+                Key = ReportKey.Challenges,
                 Description = "Understand the role a challenge played in its games and competitions, how attainable a full solve was, and more.",
                 ExampleFields = new string[]
                 {
@@ -68,7 +68,7 @@ public class ReportsService : IReportsService
             new ReportViewModel
             {
                 Name = "Enrollment",
-                Key = ReportKey.EnrollmentReport,
+                Key = ReportKey.Enrollment,
                 Description = "View a summary of player enrollment - who enrolled when, which sponsors do they a represent, and how many of them actually played challenges.",
                 ExampleFields = new string[]
                 {
@@ -91,7 +91,7 @@ public class ReportsService : IReportsService
             new ReportViewModel
             {
                 Name = "Players",
-                Key = ReportKey.PlayersReport,
+                Key = ReportKey.Players,
                 Description = "View a player-based perspective of your games and challenge. See who's scoring highly, logging in regularly, and more.",
                 ExampleFields = new string[]
                 {
@@ -112,8 +112,27 @@ public class ReportsService : IReportsService
             },
             new ReportViewModel
             {
+                Name = "Practice Mode",
+                Key = ReportKey.PracticeMode,
+                Description = "Check in on players who are spending free time honing their skills on Gameboard. See which challenges are practiced most, success rates, and which players are logging in to practice.",
+                ExampleFields = new string[]
+                {
+                    "Challenge Performance",
+                    "Player Engagement",
+                    "Scoring",
+                    "Trends"
+                },
+                ExampleParameters = new string[]
+                {
+                    "Practice Date Range",
+                    "Game",
+                    "Sponsor"
+                }
+            },
+            new ReportViewModel
+            {
                 Name = "Support",
-                Key = ReportKey.SupportReport,
+                Key = ReportKey.Support,
                 Description = "View a summary of the support tickets that have been created in Gameboard, including closer looks at submission times, ticket categories, and associated challenges.",
                 ExampleFields = new string[]
                 {

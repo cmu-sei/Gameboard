@@ -105,7 +105,7 @@ internal class GetPlayersReportQueryHandler : IRequestHandler<PlayersReportQuery
         {
             MetaData = new ReportMetaData
             {
-                Key = ReportKey.PlayersReport,
+                Key = ReportKey.Players,
                 Title = "Players Report",
                 RunAt = _nowService.Get(),
             },

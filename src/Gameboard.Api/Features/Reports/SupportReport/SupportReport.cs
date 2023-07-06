@@ -30,7 +30,7 @@ internal class SupportReportQueryHandler : IRequestHandler<SupportReportQuery, R
             {
                 Title = "Support Report",
                 RunAt = _now.Get(),
-                Key = ReportKey.SupportReport
+                Key = ReportKey.Support
             },
             Paging = null,
             Records = await _service.QueryRecords(request.Parameters)

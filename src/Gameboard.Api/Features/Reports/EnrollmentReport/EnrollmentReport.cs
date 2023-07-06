@@ -37,7 +37,7 @@ internal class EnrollmentReportQueryHandler : IRequestHandler<EnrollmentReportQu
             {
                 Title = "Enrollment Report",
                 RunAt = _now.Get(),
-                Key = ReportKey.EnrollmentReport
+                Key = ReportKey.Enrollment
             },
             Records = paged.Items,
             Paging = paged.Paging

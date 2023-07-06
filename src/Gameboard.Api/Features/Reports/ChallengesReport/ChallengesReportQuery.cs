@@ -26,7 +26,7 @@ public class ChallengeReportQueryHandler : IRequestHandler<ChallengesReportQuery
         {
             MetaData = new ReportMetaData
             {
-                Key = ReportKey.ChallengesReport,
+                Key = ReportKey.Challenges,
                 Title = "Challenge Report",
                 RunAt = _now.Get()
             },
