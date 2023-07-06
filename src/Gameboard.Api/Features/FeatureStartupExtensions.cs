@@ -43,8 +43,7 @@ public static class ServiceStartupExtensions
             new MapperConfiguration(cfg =>
             {
                 cfg.AddGameboardMaps();
-            }).CreateMapper()
-            );
+            }).CreateMapper());
 
         // don't add the job service during test - we don't want it to interfere with CI
         if (!environment.IsTest())
