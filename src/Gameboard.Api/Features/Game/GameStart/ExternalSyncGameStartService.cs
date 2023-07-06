@@ -205,7 +205,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             _logger.LogInformation("Gamebrain notified!");
 
             // notify gameboard to move players along
-            await this._gameHubBus.SendSyncStartGameStarting(syncGameStartState);
+            await _gameHubBus.SendSyncStartGameStarting(syncGameStartState);
 
             // update game end time after deployment
             var gameEndTime = request.State.StartTime.AddMinutes(request.Context.SessionLengthMinutes);

@@ -63,11 +63,7 @@ internal class GameStartService : IGameStartService
     public async Task<GameStartState> Start(GameStartRequest request)
     {
         var game = await _gameStore.Retrieve(request.GameId);
-        var gameModeStartService = ResolveGameModeStartService(game);
-
-        if (gameModeStartService == null)
-            throw new NotImplementedException();
-
+        var gameModeStartService = ResolveGameModeStartService(game) ?? throw new NotImplementedException();
         var startRequest = await LoadGameModeStartRequest(game);
 
         try
