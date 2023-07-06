@@ -137,7 +137,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext<
                 {
                     spec.Id = challengeSpecId;
                     spec.GameId = gameId;
-                    spec.Points = baseScore;
+                    spec.Points = fullSolveScore;
                     spec.Bonuses = new ChallengeBonus[]
                     {
                         new ChallengeBonusCompleteSolveRank
@@ -158,6 +158,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext<
                         Id = fixture.Create<string>(),
                         TeamId = teamId
                     };
+                    c.Points = fullSolveScore;
                     c.SpecId = challengeSpecId;
                     c.TeamId = teamId;
                 });
@@ -170,7 +171,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext<
         await _testContext
             .Http
             .PutAsync("/api/challenge/grade", submission.ToJsonBody())
-            .WithContentDeserializedAs<Api.Challenge>();
+            .WithContentDeserializedAs<Challenge>();
 
         // tricky to validate this - the endpoint is pinned to returning a challenge state, which doesn't include bonuses yet.
         // have to go to the DB to minimize false positives

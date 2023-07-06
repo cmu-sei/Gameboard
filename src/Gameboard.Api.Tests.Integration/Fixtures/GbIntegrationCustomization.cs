@@ -1,3 +1,4 @@
+namespace Gameboard.Api.Tests.Integration.Fixtures;
 
 public class GameboardCustomization : ICustomization
 {

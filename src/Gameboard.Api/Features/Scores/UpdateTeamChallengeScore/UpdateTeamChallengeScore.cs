@@ -58,7 +58,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
             .Include(c => c.Game)
             .Include(c => c.AwardedBonuses)
                 .ThenInclude(b => b.ChallengeBonus)
-            .FirstAsync(c => c.Id == request.ChallengeId);
+            .FirstAsync(c => c.Id == request.ChallengeId, cancellationToken);
 
         // TODO: validator may need to be able to one-off validate, because all of this will fail without a challenge id
         // _validator.AddValidator(_challengeExists.UseProperty(c => c.ChallengeId));
@@ -105,10 +105,11 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
             .Include
             (
                 spec => spec
-                .Bonuses
-                .Where(b => b.ChallengeBonusType == ChallengeBonusType.CompleteSolveRank).OrderBy(b => (b as ChallengeBonusCompleteSolveRank).SolveRank)
+                    .Bonuses
+                    .Where(b => b.ChallengeBonusType == ChallengeBonusType.CompleteSolveRank)
+                    .OrderBy(b => (b as ChallengeBonusCompleteSolveRank).SolveRank)
             )
-            .FirstOrDefaultAsync(spec => spec.Id == challenge.SpecId, cancellationToken);
+            .FirstAsync(spec => spec.Id == challenge.SpecId, cancellationToken);
 
         // other copies of this challenge for other teams who have a solve
         var otherTeamChallenges = await _challengeStore

@@ -17,8 +17,7 @@ public class IdBuilder : ISpecimenBuilder
             argumentType = pi.PropertyType;
         }
 
-        var rpi = request as ParameterInfo;
-        if (rpi != null)
+        if (request is ParameterInfo rpi)
         {
             name = rpi.Name;
             argumentType = rpi.ParameterType;
