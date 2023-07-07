@@ -701,7 +701,8 @@ public class PlayerService
         var completedSessions = await Store.List()
             .Include(p => p.Game)
             .Include(p => p.User)
-            .Where(
+            .Where
+            (
                 p => p.UserId == uid &&
                 p.SessionEnd > DateTimeOffset.MinValue &&
                 p.Game.GameEnd < now &&

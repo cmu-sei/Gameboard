@@ -45,7 +45,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
         // chart handler easier
         var sponsors = await _store
             .List<Data.Sponsor>()
-            .Select(s => new EnrollmentReportSponsorViewModel
+            .Select(s => new ReportSponsorViewModel
             {
                 Id = s.Id,
                 Name = s.Name,
@@ -66,12 +66,12 @@ internal class EnrollmentReportService : IEnrollmentReportService
         if (parameters.EnrollDateStart != null)
             query = query
                 .WhereDateHasValue(p => p.WhenCreated)
-                .Where(p => p.WhenCreated >= parameters.EnrollDateStart);
+                .Where(p => p.WhenCreated >= parameters.EnrollDateStart.GetValueOrDefault());
 
         if (parameters.EnrollDateEnd != null)
             query = query
                 .WhereDateHasValue(p => p.WhenCreated)
-                .Where(p => p.WhenCreated <= parameters.EnrollDateEnd);
+                .Where(p => p.WhenCreated <= parameters.EnrollDateEnd.GetValueOrDefault());
 
         if (seasonCriteria.Any())
             query = query.Where(p => seasonCriteria.Contains(p.Game.Season.ToLower()));
@@ -106,7 +106,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
         // look up sponsors to build the result set
         var sponsors = await _store
             .List<Data.Sponsor>()
-            .Select(s => new EnrollmentReportSponsorViewModel
+            .Select(s => new ReportSponsorViewModel
             {
                 Id = s.Id,
                 Name = s.Name,
@@ -189,7 +189,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
                     EnrollDate = p.WhenCreated.HasValue() ? p.WhenCreated : null,
                     Sponsor = sponsors.FirstOrDefault(s => s.LogoFileName == p.Sponsor)
                 },
-                Game = new EnrollmentReportGameViewModel
+                Game = new ReportGameViewModel
                 {
                     Id = p.GameId,
                     Name = p.Game.Name,

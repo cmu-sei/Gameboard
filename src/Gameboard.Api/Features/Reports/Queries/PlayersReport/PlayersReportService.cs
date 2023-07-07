@@ -23,8 +23,8 @@ internal class PlayersReportService : IPlayersReportService
         // compute these first so we can preserve server-side evaluation
         var hasGameId = parameters.GameId.NotEmpty();
         var hasSeries = parameters.Series.NotEmpty();
-        var hasSessionStartBegin = parameters.SessionStartWindow != null && parameters.SessionStartWindow.HasDateStartValue();
-        var hasSessionStartEnd = parameters.SessionStartWindow != null && parameters.SessionStartWindow.HasDateEndValue();
+        var hasSessionStartBegin = parameters.SessionStartWindow != null && parameters.SessionStartWindow.HasDateStartValue;
+        var hasSessionStartEnd = parameters.SessionStartWindow != null && parameters.SessionStartWindow.HasDateEndValue;
         var hasSpecId = parameters.ChallengeSpecId.NotEmpty();
         var hasTrack = parameters.TrackName.NotEmpty();
 

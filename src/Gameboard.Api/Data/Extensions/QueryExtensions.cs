@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Data;
 
@@ -26,9 +27,12 @@ public static class QueryExtensions
         var accessMemberOnEntity = Expression.MakeMemberAccess(entityParameter, (dateExpression.Body as MemberExpression).Member);
         var finalExpression = Expression.Lambda<Func<T, bool>>(Expression.NotEqual(accessMemberOnEntity, Expression.Constant(DateTimeOffset.MinValue)), entityParameter);
 
+        var expressionVisitor = new LambdaVisitor(finalExpression);
+        expressionVisitor.Visit();
+
         return query.Where(finalExpression);
     }
 
-    public static IQueryable<Data.Player> WhereIsScoringPlayer(this IQueryable<Data.Player> query)
+    public static IQueryable<Player> WhereIsScoringPlayer(this IQueryable<Data.Player> query)
         => query.Where(p => p.Score > 0);
 }

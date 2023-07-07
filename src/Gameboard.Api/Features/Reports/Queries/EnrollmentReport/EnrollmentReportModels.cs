@@ -18,7 +18,7 @@ public class EnrollmentReportRecord
 {
     public required SimpleEntity User { get; set; }
     public required EnrollmentReportPlayerViewModel Player { get; set; }
-    public required EnrollmentReportGameViewModel Game { get; set; }
+    public required ReportGameViewModel Game { get; set; }
     public required EnrollmentReportPlayTimeViewModel PlayTime { get; set; }
     public required EnrollmentReportTeamViewModel Team { get; set; }
 
@@ -34,17 +34,7 @@ public class EnrollmentReportPlayerViewModel
     public required string Id { get; set; }
     public required string Name { get; set; }
     public required DateTimeOffset? EnrollDate { get; set; }
-    public required EnrollmentReportSponsorViewModel Sponsor { get; set; }
-}
-
-public class EnrollmentReportGameViewModel
-{
-    public required string Id { get; set; }
-    public required string Name { get; set; }
-    public required bool IsTeamGame { get; set; }
-    public required string Series { get; set; }
-    public required string Season { get; set; }
-    public required string Track { get; set; }
+    public required ReportSponsorViewModel Sponsor { get; set; }
 }
 
 public class EnrollmentReportPlayTimeViewModel
@@ -59,7 +49,7 @@ public class EnrollmentReportTeamViewModel
     public required string Id { get; set; }
     public required string Name { get; set; }
     public required SimpleEntity CurrentCaptain { get; set; }
-    public required IEnumerable<EnrollmentReportSponsorViewModel> Sponsors { get; set; }
+    public required IEnumerable<ReportSponsorViewModel> Sponsors { get; set; }
 }
 
 public class EnrollmentReportChallengeViewModel
@@ -82,11 +72,18 @@ public class EnrollmentReportManualChallengeBonus
     public required double Points { get; set; }
 }
 
-public class EnrollmentReportSponsorViewModel
+public sealed class EnrollmentReportLineChartGroup
+{
+    public required IEnumerable<EnrollmentReportLineChartPlayer> Players { get; set; }
+    public required int TotalCount { get; set; }
+}
+
+public sealed class EnrollmentReportLineChartPlayer
 {
     public required string Id { get; set; }
     public required string Name { get; set; }
-    public required string LogoFileName { get; set; }
+    public required DateTimeOffset EnrollDate { get; set; }
+    public required SimpleEntity Game { get; set; }
 }
 
 // this class isn't sent down with the report data, it's just used as an intermediate
@@ -149,18 +146,4 @@ public class EnrollmentReportCsvRecord
     public required int ChallengesPartiallySolvedCount { get; set; }
     public required int ChallengesCompletelySolvedCount { get; set; }
     public required double Score { get; set; }
-}
-
-public sealed class EnrollmentReportLineChartGroup
-{
-    public required IEnumerable<EnrollmentReportLineChartPlayer> Players { get; set; }
-    public required int TotalCount { get; set; }
-}
-
-public sealed class EnrollmentReportLineChartPlayer
-{
-    public required string Id { get; set; }
-    public required string Name { get; set; }
-    public required DateTimeOffset EnrollDate { get; set; }
-    public required SimpleEntity Game { get; set; }
 }
