@@ -7,16 +7,16 @@ namespace Gameboard.Api.Tests.Unit;
 
 public class ApiKeyServiceTests
 {
-    private ApiKeysService GetSut(ApiKeyOptions options, IRandomService? random = null) => new ApiKeysService
-        (
-            options,
-            A.Fake<IGuidService>(),
-            A.Fake<IMapper>(),
-            A.Fake<INowService>(),
-            random ?? A.Fake<IRandomService>(),
-            A.Fake<IApiKeysStore>(),
-            A.Fake<IStore<Data.User>>()
-        );
+    private ApiKeysService GetSut(ApiKeyOptions options, IRandomService? random = null) => new
+    (
+        options,
+        A.Fake<IGuidService>(),
+        A.Fake<IMapper>(),
+        A.Fake<INowService>(),
+        random ?? A.Fake<IRandomService>(),
+        A.Fake<IApiKeysStore>(),
+        A.Fake<IStore<Data.User>>()
+    );
 
     [Theory, InlineAutoData(3)]
     public void GeneratePlainKey_WithRandomnessLength_GeneratesExpectedLength(int randomnessLength, string randomness)
