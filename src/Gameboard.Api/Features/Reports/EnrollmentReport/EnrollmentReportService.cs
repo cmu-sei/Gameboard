@@ -63,15 +63,16 @@ internal class EnrollmentReportService : IEnrollmentReportService
                 .ThenInclude(c => c.AwardedManualBonuses)
             .Where(p => p.Game.PlayerMode == PlayerMode.Competition);
 
+
         if (parameters.EnrollDateStart != null)
             query = query
                 .WhereDateHasValue(p => p.WhenCreated)
-                .Where(p => p.WhenCreated >= parameters.EnrollDateStart);
+                .Where(p => p.WhenCreated >= parameters.EnrollDateStart.Value);
 
         if (parameters.EnrollDateEnd != null)
             query = query
                 .WhereDateHasValue(p => p.WhenCreated)
-                .Where(p => p.WhenCreated <= parameters.EnrollDateEnd);
+                .Where(p => p.WhenCreated <= parameters.EnrollDateEnd.Value);
 
         if (seasonCriteria.Any())
             query = query.Where(p => seasonCriteria.Contains(p.Game.Season.ToLower()));
