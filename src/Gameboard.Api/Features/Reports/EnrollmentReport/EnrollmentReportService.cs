@@ -67,12 +67,12 @@ internal class EnrollmentReportService : IEnrollmentReportService
         if (parameters.EnrollDateStart != null)
             query = query
                 .WhereDateHasValue(p => p.WhenCreated)
-                .Where(p => p.WhenCreated >= parameters.EnrollDateStart.Value);
+                .Where(p => p.WhenCreated >= parameters.EnrollDateStart);
 
         if (parameters.EnrollDateEnd != null)
             query = query
                 .WhereDateHasValue(p => p.WhenCreated)
-                .Where(p => p.WhenCreated <= parameters.EnrollDateEnd.Value);
+                .Where(p => p.WhenCreated <= parameters.EnrollDateEnd);
 
         if (seasonCriteria.Any())
             query = query.Where(p => seasonCriteria.Contains(p.Game.Season.ToLower()));

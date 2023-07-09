@@ -21,24 +21,22 @@ namespace Gameboard.Api.Extensions
     {
         public static WebApplication InitializeDatabase(this WebApplication app, AppSettings settings, ILogger logger)
         {
-            using (var scope = app.Services.CreateScope())
+            using var scope = app.Services.CreateScope();
+            var services = scope.ServiceProvider;
+            var config = services.GetRequiredService<IConfiguration>();
+            var env = services.GetService<IWebHostEnvironment>();
+
+            using (var db = services.GetService<GameboardDbContext>())
             {
-                var services = scope.ServiceProvider;
-                var config = services.GetRequiredService<IConfiguration>();
-                var env = services.GetService<IWebHostEnvironment>();
-
-                using (var db = services.GetService<GameboardDbContext>())
+                if (!db.Database.IsInMemory())
                 {
-                    if (!db.Database.IsInMemory())
-                    {
-                        db.Database.Migrate();
-                    }
-
-                    SeedDatabase(env, config, db, settings, logger);
+                    db.Database.Migrate();
                 }
 
-                return app;
+                SeedDatabase(env, config, db, settings, logger);
             }
+
+            return app;
         }
 
         private static void SeedEnumerable<T>(this GameboardDbContext db, IEnumerable<T> entities, ILogger logger) where T : class, IEntity

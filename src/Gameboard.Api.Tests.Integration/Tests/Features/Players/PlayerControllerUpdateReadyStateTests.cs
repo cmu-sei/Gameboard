@@ -5,11 +5,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration.Players;
 
-public class PlayerControllerUpdatePlayerReadyTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class PlayerControllerUpdatePlayerReadyTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public PlayerControllerUpdatePlayerReadyTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public PlayerControllerUpdatePlayerReadyTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }

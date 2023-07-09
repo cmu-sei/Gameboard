@@ -8,7 +8,7 @@ public class QueryExtensionsTests
     public void WhereHasDateValue_WithMinDate_ExcludesFromResults()
     {
         // given
-        var player = new Player { SessionBegin = DateTime.MinValue };
+        var player = new Player { SessionBegin = DateTimeOffset.MinValue };
         var dataSet = new Player[] { player }.BuildMock();
 
         // when

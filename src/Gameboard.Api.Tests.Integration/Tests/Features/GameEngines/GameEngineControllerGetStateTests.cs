@@ -4,11 +4,12 @@ using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class GameEngineControllerGetStateTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public GameEngineControllerGetStateTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public GameEngineControllerGetStateTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }
@@ -36,7 +37,7 @@ public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestCont
             state.AddChallenge(c =>
             {
                 c.Id = challenge1Id;
-                c.GameEngineType = Api.GameEngineType.TopoMojo;
+                c.GameEngineType = GameEngineType.TopoMojo;
                 c.PlayerId = playerId;
                 // NOTE: this isn't random - it's handcrafted so we can verify the data "tree"
                 // See Fixtures/SpecimenBuilders/GameStateBuilder.cs
@@ -47,14 +48,14 @@ public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestCont
             state.AddChallenge(c =>
             {
                 c.Id = challenge2Id;
-                c.GameEngineType = Api.GameEngineType.TopoMojo;
+                c.GameEngineType = GameEngineType.TopoMojo;
                 c.PlayerId = playerId;
                 c.State = JsonSerializer.Serialize(state2);
                 c.TeamId = teamId;
             });
         });
 
-        var httpClient = _testContext.CreateHttpClientWithAuthRole(Api.UserRole.Admin);
+        var httpClient = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
 
         // when
         var results = await httpClient

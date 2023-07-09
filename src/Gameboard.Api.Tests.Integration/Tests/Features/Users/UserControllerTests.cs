@@ -2,11 +2,12 @@ using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Tests.Integration.Users;
 
-public class UserControllerTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class UserControllerTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public UserControllerTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public UserControllerTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }
