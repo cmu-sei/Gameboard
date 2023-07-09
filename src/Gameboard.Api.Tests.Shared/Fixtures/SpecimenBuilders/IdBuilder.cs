@@ -1,7 +1,7 @@
 using System.Reflection;
 using AutoFixture.Kernel;
 
-namespace Gameboard.Api.Tests.Integration.Fixtures;
+namespace Gameboard.Api.Tests.Shared.Fixtures;
 
 public class IdBuilder : ISpecimenBuilder
 {
@@ -10,15 +10,13 @@ public class IdBuilder : ISpecimenBuilder
         var name = string.Empty;
         Type argumentType = typeof(object);
 
-        var pi = request as PropertyInfo;
-        if (pi != null)
+        if (request is PropertyInfo pi)
         {
             name = pi.Name;
             argumentType = pi.PropertyType;
         }
 
-        var rpi = request as ParameterInfo;
-        if (rpi != null)
+        if (request is ParameterInfo rpi)
         {
             name = rpi.Name;
             argumentType = rpi.ParameterType;

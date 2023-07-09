@@ -1,6 +1,6 @@
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
-internal static class ServiceCollectionExtensions
+public static class ServiceCollectionExtensions
 {
     public static void RemoveService<I>(this IServiceCollection services) where I : class
     {
@@ -42,17 +42,17 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<I>(replacement);
     }
 
-    private static ServiceDescriptor? FindService<T>(IServiceCollection services) where T : class
+    public static ServiceDescriptor? FindService<T>(this IServiceCollection services) where T : class
     {
         return services.SingleOrDefault(d => d.ServiceType == typeof(T));
     }
 
-    private static ServiceDescriptor? FindService<I, C>(IServiceCollection services) where I : class where C : class
+    public static ServiceDescriptor? FindService<I, C>(this IServiceCollection services) where I : class where C : class
     {
         return services.SingleOrDefault(d => d.ServiceType == typeof(I) && d.ImplementationType == typeof(C));
     }
 
-    private static ServiceDescriptor[] FindServices<I>(IServiceCollection services) where I : class
+    public static ServiceDescriptor[] FindServices<I>(this IServiceCollection services) where I : class
     {
         return services.Where(d => d.ServiceType == typeof(I)).ToArray();
     }

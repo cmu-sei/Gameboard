@@ -4,17 +4,25 @@ using Gameboard.Api.Tests.Shared;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class ScoringControllerTeamChallengeSummaryTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class ScoringControllerTeamChallengeSummaryTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public ScoringControllerTeamChallengeSummaryTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public ScoringControllerTeamChallengeSummaryTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task GetChallengeScore_WithFixedTeam_CalculatesScore(IFixture fixture, string teamId, string challengeId, int basePoints, int bonus1Points, int bonus2Points)
+    public async Task GetChallengeScore_WithFixedTeam_CalculatesScore
+    (
+        IFixture fixture,
+        string teamId,
+        string challengeId,
+        int basePoints,
+        int bonus1Points,
+        int bonus2Points)
     {
         // given
         await _testContext.WithDataState(state =>

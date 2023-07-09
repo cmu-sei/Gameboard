@@ -3,11 +3,12 @@ using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class GameControllerTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class GameControllerTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public GameControllerTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public GameControllerTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }

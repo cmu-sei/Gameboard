@@ -38,6 +38,9 @@ internal class EnrollmentReportService : IEnrollmentReportService
         var seriesCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Series);
         var sponsorCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Sponsors);
         var trackCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Tracks);
+        DateTimeOffset? enrollDateStart = parameters.EnrollDateStart.HasValue ? parameters.EnrollDateStart.Value.ToUniversalTime() : null;
+        DateTimeOffset? enrollDateEnd = parameters.EnrollDateEnd.HasValue ? parameters.EnrollDateEnd.Value.ToUniversalTime() : null;
+
 
         // we have to look up sponsors to both resolve query criteria and to build the result set
         // (because the player entity has logo files, not ids)
@@ -63,15 +66,15 @@ internal class EnrollmentReportService : IEnrollmentReportService
                 .ThenInclude(c => c.AwardedManualBonuses)
             .Where(p => p.Game.PlayerMode == PlayerMode.Competition);
 
-        if (parameters.EnrollDateStart != null)
+        if (enrollDateStart != null)
             query = query
                 .WhereDateHasValue(p => p.WhenCreated)
-                .Where(p => p.WhenCreated >= parameters.EnrollDateStart.GetValueOrDefault());
+                .Where(p => p.WhenCreated >= enrollDateStart);
 
-        if (parameters.EnrollDateEnd != null)
+        if (enrollDateEnd != null)
             query = query
                 .WhereDateHasValue(p => p.WhenCreated)
-                .Where(p => p.WhenCreated <= parameters.EnrollDateEnd.GetValueOrDefault());
+                .Where(p => p.WhenCreated <= enrollDateEnd);
 
         if (seasonCriteria.Any())
             query = query.Where(p => seasonCriteria.Contains(p.Game.Season.ToLower()));
