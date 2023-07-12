@@ -74,7 +74,7 @@ internal class GamebrainService : IGamebrainService
 
         _logger.LogInformation($"Posting startup data to Gamebrain at {startupUrl}/{metaData.Game.Id}: {metaData}");
         var teamConfigResponse = await client
-            .PostAsJsonAsync($"{startupUrl}/{metaData.Game.Id}", metaData)
+            .PostAsJsonAsync($"{startupUrl}", metaData)
             .WithContentDeserializedAs<IDictionary<string, string>>();
 
         _logger.LogInformation($"Posted startup data. Gamebrain's response: {teamConfigResponse} ");
