@@ -6,6 +6,7 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Games.External;
 
@@ -23,6 +24,7 @@ internal class GamebrainService : IGamebrainService
     private readonly IExternalGameHostAccessTokenProvider _accessTokenProvider;
     private readonly IGameService _gameService;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<GamebrainService> _logger;
 
     public GamebrainService
     (
@@ -69,7 +71,9 @@ internal class GamebrainService : IGamebrainService
     {
         var startupUrl = await _gameService.ResolveExternalStartupUrl(metaData.Game.Id);
         var client = await CreateGamebrain();
-        await client.PostAsJsonAsync($"${startupUrl}/{metaData.Game.Id}", metaData);
+        _logger.LogInformation($"Posting startup data to Gamebrain at {startupUrl}/{metaData.Game.Id}: {metaData}");
+        await client.PostAsJsonAsync($"{startupUrl}/{metaData.Game.Id}", metaData);
+        _logger.LogInformation($"Posted startup data!");
     }
 
     public async Task UpdateConsoleUrls(string gameId, string teamId, IEnumerable<UnityGameVm> vms)
