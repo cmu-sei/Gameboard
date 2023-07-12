@@ -32,6 +32,15 @@ public sealed class ReportMetaData
     public required DateTimeOffset RunAt { get; set; }
 }
 
+public sealed class ReportRawResults<TRecord>
+{
+    public required PagingArgs PagingArgs { get; set; }
+    public required string ParameterSummary { get; set; }
+    public required IEnumerable<TRecord> Records { get; set; }
+    public required string ReportKey { get; set; }
+    public required string Title { get; set; }
+}
+
 public interface IReportPredicateProvider<TProperty>
 {
     IEnumerable<Expression<Func<TProperty, bool>>> GetPredicates<TData>(TProperty entityExpression) where TData : IEntity;

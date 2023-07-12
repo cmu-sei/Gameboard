@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Common;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Hubs;
@@ -16,6 +18,7 @@ public interface ITeamService
     Task<int> GetSessionCount(string teamId, string gameId);
     Task<Team> GetTeam(string id);
     Task<Data.Player> ResolveCaptain(string teamId);
+    Task<Data.Player> ResolveCaptain(IEnumerable<Data.Player> players);
     Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser);
     Task UpdateTeamSponsors(string teamId);
 }
@@ -112,14 +115,24 @@ internal class TeamService : ITeamService
         await _teamHubService.SendPlayerRoleChanged(_mapper.Map<Api.Player>(newCaptain), actingUser);
     }
 
-    public async Task<Data.Player> ResolveCaptain(string teamId)
+    public Task<Data.Player> ResolveCaptain(string teamId)
     {
-        var players = await _store
+        return ResolveCaptain(teamId: teamId);
+    }
+
+    public Task<Data.Player> ResolveCaptain(IEnumerable<Data.Player> players)
+    {
+        return ResolveCaptain(teamId: null, players: players);
+    }
+
+    private async Task<Data.Player> ResolveCaptain(string teamId = null, IEnumerable<Data.Player> players = null)
+    {
+        players ??= await _store
             .List()
             .Where(p => p.TeamId == teamId)
             .ToListAsync();
 
-        if (players.Count == 0)
+        if (players.Count() == 0)
         {
             throw new CaptainResolutionFailure(teamId, "This team doesn't have any players.");
         }

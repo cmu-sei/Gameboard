@@ -41,20 +41,11 @@ internal class EnrollmentReportService : IEnrollmentReportService
         DateTimeOffset? enrollDateStart = parameters.EnrollDateStart.HasValue ? parameters.EnrollDateStart.Value.ToUniversalTime() : null;
         DateTimeOffset? enrollDateEnd = parameters.EnrollDateEnd.HasValue ? parameters.EnrollDateEnd.Value.ToUniversalTime() : null;
 
-
         // we have to look up sponsors to both resolve query criteria and to build the result set
         // (because the player entity has logo files, not ids)
         // doing this in both places for now because the cost is minimal and makes use of this query in the 
         // chart handler easier
-        var sponsors = await _store
-            .List<Data.Sponsor>()
-            .Select(s => new ReportSponsorViewModel
-            {
-                Id = s.Id,
-                Name = s.Name,
-                LogoFileName = s.Logo
-            })
-            .ToArrayAsync(cancellationToken);
+
 
         // the fundamental unit of reporting here is really the player record (an "enrollment"), so resolve enrollments that
         // meet the filter criteria
@@ -87,12 +78,13 @@ internal class EnrollmentReportService : IEnrollmentReportService
 
         if (sponsorCriteria.Any())
         {
-            var sponsorLogos = sponsors
-                .Where(s => sponsorCriteria.Contains(s.Id))
-                .Select(s => s.LogoFileName)
-                .ToArray();
+            var sponsors = await _store
+                .List<Data.Sponsor>()
+                .Select(s => s.Logo)
+                .Where(s => sponsorCriteria.Contains(s))
+                .ToArrayAsync(cancellationToken);
 
-            query = query.Where(p => sponsorLogos.Contains(p.Sponsor));
+            query = query.Where(p => sponsors.Contains(p.Sponsor));
         }
 
         return query;

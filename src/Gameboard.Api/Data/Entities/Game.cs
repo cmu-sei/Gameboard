@@ -61,8 +61,8 @@ public class Game : IEntity
     public bool IsLive =>
         GameStart != DateTimeOffset.MinValue &&
         GameStart.CompareTo(DateTimeOffset.UtcNow) < 0 &&
-        GameEnd.CompareTo(DateTimeOffset.UtcNow) > 0
-    ;
+        GameEnd.CompareTo(DateTimeOffset.UtcNow) > 0;
+
     [NotMapped]
     public bool HasEnded =>
         GameEnd.CompareTo(DateTimeOffset.UtcNow) < 0;

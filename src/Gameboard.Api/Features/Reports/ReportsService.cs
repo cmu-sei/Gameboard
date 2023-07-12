@@ -2,23 +2,28 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
 
 public interface IReportsService
 {
+    ReportResults<TRecord> BuildResults<TRecord>(ReportRawResults<TRecord> rawResults);
     Task<IEnumerable<ChallengesReportRecord>> GetChallengesReportRecords(GetChallengesReportQueryArgs parameters);
+    Task<IDictionary<string, ReportTeamViewModel>> GetTeamsByPlayerIds(IEnumerable<string> playerIds, CancellationToken cancellationToken);
     Task<IEnumerable<ReportViewModel>> List();
     Task<IEnumerable<SimpleEntity>> ListChallengeSpecs(string gameId = null);
     Task<IEnumerable<SimpleEntity>> ListGames();
     Task<IEnumerable<string>> ListSeasons();
     Task<IEnumerable<string>> ListSeries();
-    Task<IEnumerable<SimpleEntity>> ListSponsors();
+    Task<IEnumerable<ReportSponsorViewModel>> ListSponsors();
     Task<IEnumerable<string>> ListTracks();
     Task<IEnumerable<string>> ListTicketStatuses();
     IEnumerable<string> ParseMultiSelectCriteria(string criteria);
@@ -28,16 +33,25 @@ public class ReportsService : IReportsService
 {
     private static readonly string MULTI_SELECT_DELIMITER = ",";
     private readonly IMapper _mapper;
+    private readonly INowService _now;
+    private readonly IPagingService _paging;
     private readonly IStore _store;
+    private readonly ITeamService _teamService;
 
     public ReportsService
     (
         IMapper mapper,
-        IStore store
+        INowService now,
+        IPagingService paging,
+        IStore store,
+        ITeamService teamService
     )
     {
         _mapper = mapper;
+        _now = now;
+        _paging = paging;
         _store = store;
+        _teamService = teamService;
     }
 
     public Task<IEnumerable<ReportViewModel>> List()
@@ -154,6 +168,59 @@ public class ReportsService : IReportsService
         return Task.FromResult<IEnumerable<ReportViewModel>>(reports);
     }
 
+    /// <summary>
+    /// Given a list of player Ids, return a dictionary of the teams that those players are assigned to.
+    /// 
+    /// Note that the string key of the dictionary is the player's teamId, NOT their playerId.
+    /// </summary>
+    /// <param name="playerIds"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public async Task<IDictionary<string, ReportTeamViewModel>> GetTeamsByPlayerIds(IEnumerable<string> playerIds, CancellationToken cancellationToken)
+    {
+        var sponsors = await _store
+            .List<Data.Sponsor>()
+            .Select(s => new ReportSponsorViewModel
+            {
+                Id = s.Id,
+                Name = s.Name,
+                LogoFileName = s.Logo
+            })
+            .ToDictionaryAsync(s => s.LogoFileName, s => s);
+
+        var teamPlayers = await _store
+            .List<Data.Player>()
+            .Where(p => playerIds.Contains(p.Id))
+            .ToArrayAsync(cancellationToken);
+
+        // note that none of this actually runs back to the DB, but this was difficult
+        // to do with typical projection because ResolveCaptain is async to handle
+        // a signature that accepts a teamId
+        var teamDict = new Dictionary<string, ReportTeamViewModel>();
+        foreach (var team in teamPlayers.GroupBy(p => p.TeamId))
+        {
+            var captain = await _teamService.ResolveCaptain(team.ToList());
+
+            teamDict.Add(team.Key, new ReportTeamViewModel
+            {
+                Id = captain.TeamId,
+                Name = captain.ApprovedName,
+                Captain = new SimpleEntity { Id = captain.Id, Name = captain.Name },
+                Players = team.Select(p => new SimpleEntity { Id = p.Id, Name = p.ApprovedName }),
+                Sponsors = team
+                    .OrderBy(p => p.IsManager ? 0 : 1)
+                    .Select(p => p.Sponsor.IsEmpty() ? null : new ReportSponsorViewModel
+                    {
+                        Id = sponsors[p.Sponsor].Id,
+                        Name = sponsors[p.Sponsor].Name,
+                        LogoFileName = p.Sponsor
+                    })
+            });
+        }
+
+        return teamDict;
+    }
+
     public async Task<IEnumerable<SimpleEntity>> ListChallengeSpecs(string gameId)
     {
         var query = _store.List<Data.ChallengeSpec>();
@@ -183,9 +250,14 @@ public class ReportsService : IReportsService
             .Select(g => new SimpleEntity { Id = g.Id, Name = g.Name })
             .ToArrayAsync();
 
-    public async Task<IEnumerable<SimpleEntity>> ListSponsors()
+    public async Task<IEnumerable<ReportSponsorViewModel>> ListSponsors()
         => await _store.List<Data.Sponsor>()
-            .Select(s => new SimpleEntity { Id = s.Id, Name = s.Name })
+            .Select(s => new ReportSponsorViewModel
+            {
+                Id = s.Id,
+                Name = s.Name,
+                LogoFileName = s.Logo
+            })
             .OrderBy(s => s.Name)
             .ToArrayAsync();
 
@@ -208,6 +280,24 @@ public class ReportsService : IReportsService
         return criteria
             .ToLower()
             .Split(MULTI_SELECT_DELIMITER, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+
+    public ReportResults<TRecord> BuildResults<TRecord>(ReportRawResults<TRecord> rawResults)
+    {
+        var pagedResults = _paging.Page(rawResults.Records, rawResults.PagingArgs);
+
+        return new ReportResults<TRecord>
+        {
+            MetaData = new ReportMetaData
+            {
+                Title = rawResults.Title,
+                Key = rawResults.ReportKey,
+                ParametersSummary = null,
+                RunAt = _now.Get()
+            },
+            Paging = pagedResults.Paging,
+            Records = pagedResults.Items
+        };
     }
 
     public async Task<IEnumerable<ChallengesReportRecord>> GetChallengesReportRecords(GetChallengesReportQueryArgs args)

@@ -41,6 +41,10 @@ public class ReportsController : ControllerBase
     public Task<IDictionary<DateTimeOffset, EnrollmentReportLineChartGroup>> GetEnrollmentReportLineChart([FromQuery] EnrollmentReportParameters parameters)
         => _mediator.Send(new EnrollmentReportLineChartQuery(parameters));
 
+    [HttpGet("practice-mode")]
+    public async Task<ReportResults<IPracticeModeReportRecord>> GetPracticeModeReport([FromQuery] PracticeModeReportParameters parameters, [FromQuery] PagingArgs paging)
+        => await _mediator.Send(new PracticeModeReportQuery(parameters, paging));
+
     [HttpGet("players-report")]
     public async Task<ReportResults<PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportQueryParameters reportParams)
         => await _mediator.Send(new PlayersReportQuery(reportParams));
@@ -62,7 +66,7 @@ public class ReportsController : ControllerBase
         => _service.ListSeasons();
 
     [HttpGet("parameter/sponsors")]
-    public Task<IEnumerable<SimpleEntity>> GetSponsors()
+    public Task<IEnumerable<ReportSponsorViewModel>> GetSponsors()
         => _service.ListSponsors();
 
     [HttpGet("parameter/series")]
