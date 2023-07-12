@@ -201,7 +201,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
             // NOTIFY EXTERNAL CLIENT
             _logger.LogInformation("Notifying Gamebrain...");
-            var externalClientTeamConfigs = await _gamebrainService.StartV2Game(metaData);
+            var externalClientTeamConfigs = await _gamebrainService.StartGame(metaData);
             _logger.LogInformation("Gamebrain notified!");
 
             // notify gameboard to move players along

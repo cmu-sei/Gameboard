@@ -9,7 +9,7 @@ namespace Gameboard.Api;
 
 public static class HttpExtensions
 {
-    public static async Task<T?> WithContentDeserializedAs<T>(this Task<HttpResponseMessage> responseTask) where T : class
+    public static async Task<T> WithContentDeserializedAs<T>(this Task<HttpResponseMessage> responseTask) where T : class
     {
         var response = await responseTask;
         response.EnsureSuccessStatusCode();
