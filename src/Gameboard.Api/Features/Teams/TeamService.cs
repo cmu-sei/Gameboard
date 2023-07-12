@@ -160,9 +160,9 @@ internal class TeamService : ITeamService
             .Where(p => p.TeamId == teamId)
             .Select(p => new
             {
-                Id = p.Id,
-                Sponsor = p.Sponsor,
-                IsManager = p.IsManager
+                p.Id,
+                p.Sponsor,
+                p.IsManager
             })
             .ToArrayAsync();
 

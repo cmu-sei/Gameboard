@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games;
@@ -21,20 +23,26 @@ internal class SyncStartGameService : ISyncStartGameService
     private readonly IGameHubBus _gameHubBus;
     private readonly IGameStore _gameStore;
     private readonly ILockService _lockService;
+    private readonly IMapper _mapper;
     private readonly IPlayerStore _playerStore;
+    private readonly ITeamService _teamService;
 
     public SyncStartGameService
     (
         IGameHubBus gameHubBus,
         IGameStore gameStore,
         ILockService lockService,
-        IPlayerStore playerStore
+        IMapper mapper,
+        IPlayerStore playerStore,
+        ITeamService teamService
     )
     {
         _gameHubBus = gameHubBus;
         _lockService = lockService;
+        _mapper = mapper;
         _playerStore = playerStore;
         _gameStore = gameStore;
+        _teamService = teamService;
     }
 
     public async Task<SyncStartState> GetSyncStartState(string gameId)
@@ -75,11 +83,13 @@ internal class SyncStartGameService : ISyncStartGameService
         // var allTeamsReady = teamPlayers.All(team => team.Value.All(p => p.IsReady));
 
         // out of time, so for now, manually group on returned players
-        var players = await _playerStore
-            .List()
-            .AsNoTracking()
-            .Where(p => p.GameId == gameId)
-            .ToListAsync();
+        var players = await _mapper.ProjectTo<Api.Player>
+        (
+            _playerStore
+                .List()
+                .AsNoTracking()
+                .Where(p => p.GameId == gameId)
+        ).ToListAsync();
 
         var teams = new List<SyncStartTeam>();
         var teamPlayers = players
@@ -93,7 +103,7 @@ internal class SyncStartGameService : ISyncStartGameService
             Teams = teamPlayers.Keys.Select(teamId => new SyncStartTeam
             {
                 Id = teamId,
-                Name = teamPlayers[teamId].Single(p => p.Role == PlayerRole.Manager).ApprovedName,
+                Name = _teamService.ResolveCaptain(teamId, teamPlayers[teamId]).ApprovedName,
                 Players = teamPlayers[teamId].Select(p => new SyncStartPlayer
                 {
                     Id = p.Id,
@@ -139,11 +149,11 @@ internal class SyncStartGameService : ISyncStartGameService
                 .Where(p => p.GameId == gameId)
                 .Select(p => new
                 {
-                    Id = p.Id,
+                    p.Id,
                     Name = string.IsNullOrEmpty(p.ApprovedName) ? p.Name : p.ApprovedName,
-                    SessionBegin = p.SessionBegin,
-                    SessionEnd = p.SessionEnd,
-                    TeamId = p.TeamId
+                    p.SessionBegin,
+                    p.SessionEnd,
+                    p.TeamId
                 }).ToListAsync();
 
             // currently, we don't have an authoritative "This is the session time of this game" kind of construct in the modeling layer
