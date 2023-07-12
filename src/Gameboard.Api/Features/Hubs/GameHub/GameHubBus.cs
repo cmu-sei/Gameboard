@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
@@ -26,29 +27,20 @@ public interface IGameHubBus
 
 internal class GameHubBus : IGameHubBus, IGameboardHubBus
 {
-    private readonly IMemoryCache _cache;
     private readonly IHubContext<GameHub, IGameHubEvent> _hubContext;
-    private readonly IMapper _mapper;
 
     public GameboardHubGroupType GroupType { get => GameboardHubGroupType.Game; }
 
     public GameHubBus
     (
-        IMemoryCache cache,
-        IHubContext<GameHub, IGameHubEvent> hubContext,
-        IMapper mapper
+        IHubContext<GameHub, IGameHubEvent> hubContext
     )
     {
-        _cache = cache;
         _hubContext = hubContext;
-        _mapper = mapper;
     }
 
     public async Task SendExternalGameChallengesDeployStart(GameStartState state)
     {
-        IList<string> userIds;
-        _cache.TryGetValue(state.Game.Id, out userIds);
-
         await _hubContext
             .Clients
             .Group(this.GetCanonicalGroupId(state.Game.Id))
@@ -82,8 +74,6 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
 
     public Task SendExternalGameLaunchStart(GameStartState state)
     {
-        var canoncalGroupId = this.GetCanonicalGroupId(state.Game.Id);
-
         return _hubContext
             .Clients
             .Group(this.GetCanonicalGroupId(state.Game.Id))

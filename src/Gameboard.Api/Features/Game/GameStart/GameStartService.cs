@@ -180,7 +180,8 @@ internal class GameStartService : IGameStartService
             {
                 Player = new SimpleEntity { Id = tc.Value.Id, Name = tc.Value.ApprovedName },
                 UserId = tc.Value.UserId
-            }
+            },
+            HeadlessUrl = null
         }).ToArray());
 
         return new GameModeStartRequest

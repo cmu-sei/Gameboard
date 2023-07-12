@@ -2,6 +2,7 @@ using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 using System.Web;
+using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
@@ -62,6 +63,6 @@ internal static class SerializationExtensions
             throw new ResponseContentDeserializationTypeFailure<T>(rawResponse, ex);
         }
 
-        return default(T);
+        return default;
     }
 }

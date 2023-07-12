@@ -31,3 +31,9 @@ public sealed class ExternalGameStartTeamGamespace
     public required SimpleEntity Challenge { get; set; }
     public required IEnumerable<string> VmUrls { get; set; }
 }
+
+public sealed class ExternalGameClientTeamConfig
+{
+    public required string TeamID { get; set; }
+    public required string HeadlessServerUrl { get; set; }
+}

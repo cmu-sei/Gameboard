@@ -50,6 +50,7 @@ public class GameStartStateTeam
 {
     public required SimpleEntity Team { get; set; }
     public required GameStartStateTeamCaptain Captain { get; set; }
+    public required string HeadlessUrl { get; set; }
 }
 
 public class GameStartStateTeamCaptain

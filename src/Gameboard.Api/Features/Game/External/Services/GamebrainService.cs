@@ -16,7 +16,7 @@ public interface IGamebrainService
     Task<string> GetGameState(string gameId, string teamId);
     Task<string> UndeployUnitySpace(string gameId, string teamId);
     Task UpdateConsoleUrls(string gameId, string teamId, IEnumerable<UnityGameVm> vms);
-    Task StartV2Game(ExternalGameStartMetaData metaData);
+    Task<IEnumerable<ExternalGameClientTeamConfig>> StartV2Game(ExternalGameStartMetaData metaData);
 }
 
 internal class GamebrainService : IGamebrainService
@@ -67,13 +67,23 @@ internal class GamebrainService : IGamebrainService
         throw new GamebrainException(HttpMethod.Get, gamebrainEndpoint, m.StatusCode, await m.Content.ReadAsStringAsync());
     }
 
-    public async Task StartV2Game(ExternalGameStartMetaData metaData)
+    public async Task<IEnumerable<ExternalGameClientTeamConfig>> StartV2Game(ExternalGameStartMetaData metaData)
     {
         var startupUrl = await _gameService.ResolveExternalStartupUrl(metaData.Game.Id);
         var client = await CreateGamebrain();
+
         _logger.LogInformation($"Posting startup data to Gamebrain at {startupUrl}/{metaData.Game.Id}: {metaData}");
-        await client.PostAsJsonAsync($"{startupUrl}/{metaData.Game.Id}", metaData);
-        _logger.LogInformation($"Posted startup data!");
+        var teamConfigResponse = await client
+            .PostAsJsonAsync($"{startupUrl}/{metaData.Game.Id}", metaData)
+            .WithContentDeserializedAs<IDictionary<string, string>>();
+
+        _logger.LogInformation($"Posted startup data. Gamebrain's response: {teamConfigResponse} ");
+
+        return teamConfigResponse.Keys.Select(key => new ExternalGameClientTeamConfig
+        {
+            TeamID = key,
+            HeadlessServerUrl = teamConfigResponse[key]
+        });
     }
 
     public async Task UpdateConsoleUrls(string gameId, string teamId, IEnumerable<UnityGameVm> vms)

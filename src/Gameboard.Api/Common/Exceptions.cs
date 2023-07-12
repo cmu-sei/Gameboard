@@ -12,3 +12,9 @@ internal class SemaphoreLockFailure : GameboardException
 {
     public SemaphoreLockFailure(Exception ex) : base($"An operation inside a semaphore lock failed.", ex) { }
 }
+
+internal class ResponseContentDeserializationTypeFailure<T> : GameboardException
+{
+    public ResponseContentDeserializationTypeFailure(string responseContent, Exception innerException)
+        : base($"Attempted to deserialize a response body to type {typeof(T).Name} but failed. \n\nResponse body: \"{responseContent}\"\nInner exception: {innerException.Message}") { }
+}

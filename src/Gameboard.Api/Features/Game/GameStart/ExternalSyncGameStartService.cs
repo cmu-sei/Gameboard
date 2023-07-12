@@ -201,7 +201,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
             // NOTIFY EXTERNAL CLIENT
             _logger.LogInformation("Notifying Gamebrain...");
-            await _gamebrainService.StartV2Game(metaData);
+            var externalClientTeamConfigs = await _gamebrainService.StartV2Game(metaData);
             _logger.LogInformation("Gamebrain notified!");
 
             // notify gameboard to move players along
@@ -213,6 +213,16 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 .List()
                 .Where(g => g.Id == request.GameId)
                 .ExecuteUpdateAsync(g => g.SetProperty(g => g.GameEnd, gameEndTime));
+
+            // assign each team a headless Url from gamebrain's response
+            foreach (var team in request.State.Teams)
+            {
+                var config = externalClientTeamConfigs.FirstOrDefault(t => t.TeamID == team.Team.Id);
+                if (config is null)
+                    _logger.LogError($"""Team "{team.Team.Id}" wasn't assigned a headless URL by Gamebrain.""");
+                else
+                    team.HeadlessUrl = config.HeadlessServerUrl;
+            }
 
             // on we go
             await _gameHubBus.SendExternalGameLaunchEnd(request.State);
