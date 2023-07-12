@@ -178,12 +178,12 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 });
                 _logger.LogInformation(message: $"""Gamespace started for challenge "{deployedChallenge.Challenge.Id}".""");
 
+                // TODO: verify that we need this - buildmetadata also assembles challenge info
                 var vms = _gameEngineService.GetGamespaceVms(challengeState);
                 challengeGamespaces.Add(deployedChallenge.Challenge.Id, new ExternalGameStartTeamGamespace
                 {
                     Id = challengeState.Id,
-                    Challenge = deployedChallenge.Challenge,
-                    VmUrls = vms.Select(vm => vm.Url)
+                    VmUris = vms.Select(vm => vm.Url)
                 });
 
                 request.State.GamespacesDeployed.Add(challengeState);
@@ -276,8 +276,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 Gamespaces = teamGameStates.Select(gs => new ExternalGameStartTeamGamespace
                 {
                     Id = gs.Id,
-                    Challenge = teamChallenges.First(c => c.Id == gs.Id),
-                    VmUrls = _gameEngineService.GetGamespaceVms(gs).Select(vm => vm.Url)
+                    VmUris = _gameEngineService.GetGamespaceVms(gs).Select(vm => vm.Url)
                 })
             };
 

@@ -28,8 +28,7 @@ public sealed class ExternalGameStartMetaDataTeam
 public sealed class ExternalGameStartTeamGamespace
 {
     public required string Id { get; set; }
-    public required SimpleEntity Challenge { get; set; }
-    public required IEnumerable<string> VmUrls { get; set; }
+    public required IEnumerable<string> VmUris { get; set; }
 }
 
 public sealed class ExternalGameClientTeamConfig
