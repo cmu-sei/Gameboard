@@ -53,6 +53,10 @@ public class ReportsController : ControllerBase
     public async Task<ReportResults<SupportReportRecord>> GetSupportReport([FromQuery] SupportReportParameters reportParams)
         => await _mediator.Send(new SupportReportQuery(reportParams));
 
+    [HttpGet("metaData")]
+    public async Task<ReportMetaData> GetReportMetaData([FromQuery] string reportKey)
+        => await _mediator.Send(new GetMetaDataQuery(reportKey));
+
     [HttpGet("parameter/challenge-specs/{gameId?}")]
     public Task<IEnumerable<SimpleEntity>> GetChallengeSpecs(string gameId = null)
         => _service.ListChallengeSpecs(gameId);

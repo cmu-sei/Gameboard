@@ -35,20 +35,18 @@ namespace Gameboard.Api
 
         private void RunTasks(object state)
         {
-            using (var scope = _services.CreateScope())
+            using var scope = _services.CreateScope();
+            try
             {
-                try
-                {
-                    var svc = scope.ServiceProvider.GetRequiredService<ChallengeService>();
-                    svc.SyncExpired().Wait();
+                var svc = scope.ServiceProvider.GetRequiredService<ChallengeService>();
+                svc.SyncExpired().Wait();
 
-                    var consoleMap = scope.ServiceProvider.GetRequiredService<ConsoleActorMap>();
-                    consoleMap.Prune();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error running job");
-                }
+                var consoleMap = scope.ServiceProvider.GetRequiredService<ConsoleActorMap>();
+                consoleMap.Prune();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error running job");
             }
         }
 

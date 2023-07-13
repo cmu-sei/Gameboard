@@ -186,7 +186,7 @@ public class ReportsService : IReportsService
                 Name = s.Name,
                 LogoFileName = s.Logo
             })
-            .ToDictionaryAsync(s => s.LogoFileName, s => s);
+            .ToDictionaryAsync(s => s.LogoFileName, s => s, cancellationToken);
 
         var teamPlayers = await _store
             .List<Data.Player>()
