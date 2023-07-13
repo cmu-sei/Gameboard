@@ -38,7 +38,7 @@ public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestCont
                 state.AddChallenge(c =>
                 {
                     c.Id = challenge1Id;
-                    c.GameEngineType = Api.GameEngineType.TopoMojo;
+                    c.GameEngineType = GameEngineType.TopoMojo;
                     c.PlayerId = playerId;
                     // NOTE: this isn't random - it's handcrafted so we can verify the data "tree"
                     // See Fixtures/SpecimenBuilders/GameStateBuilder.cs
@@ -49,7 +49,7 @@ public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestCont
                 state.AddChallenge(c =>
                 {
                     c.Id = challenge2Id;
-                    c.GameEngineType = Api.GameEngineType.TopoMojo;
+                    c.GameEngineType = GameEngineType.TopoMojo;
                     c.PlayerId = playerId;
                     c.State = JsonSerializer.Serialize(state2);
                     c.TeamId = teamId;

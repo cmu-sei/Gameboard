@@ -39,12 +39,10 @@ internal class GetGameStateValidator : IGameboardRequestValidator<GetGameStateQu
 
         _validatorService.AddValidator((request, context) =>
         {
-            if (!players.Any(p => p.UserId == _actingUser.Id))
+            if (!players.Any(p => p.UserId == _actingUser.Id) && !_roleAuthorizer.WouldAuthorize())
+            {
                 context.AddValidationException(new PlayerIsntOnTeam(_actingUser.Id, request.TeamId, "[unknown]"));
-            else
-                _roleAuthorizer
-                    .AllowRoles(UserRole.Admin, UserRole.Designer, UserRole.Tester)
-                    .Authorize();
+            }
         });
 
         _validatorService.AddValidator((request, context) =>

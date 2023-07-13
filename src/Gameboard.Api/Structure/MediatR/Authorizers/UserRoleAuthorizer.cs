@@ -5,7 +5,7 @@ namespace Gameboard.Api.Structure.MediatR.Authorizers;
 
 internal class UserRoleAuthorizer : IAuthorizer
 {
-    private User _actor;
+    private readonly User _actor;
     private IEnumerable<UserRole> _allowedRoles { get; set; } = new List<UserRole> { UserRole.Admin };
 
     public UserRoleAuthorizer(IHttpContextAccessor httpContextAccessor)
@@ -22,16 +22,22 @@ internal class UserRoleAuthorizer : IAuthorizer
         return this;
     }
 
-    public void Authorize()
+    public bool WouldAuthorize()
     {
         foreach (var role in _allowedRoles)
         {
             if (_actor.Role.HasFlag(role))
             {
-                return;
+                return true;
             }
         }
 
-        throw new ActionForbidden();
+        return false;
+    }
+
+    public void Authorize()
+    {
+        if (!WouldAuthorize())
+            throw new ActionForbidden();
     }
 }
