@@ -32,6 +32,7 @@ public class ChallengeService : _Service
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IJsonService _jsonService;
     private readonly LinkGenerator _linkGenerator;
+    private readonly ILogger<ChallengeService> _logger;
     private readonly IMapper _mapper;
     private readonly IMediator _mediator;
     private readonly INowService _now;
@@ -65,6 +66,7 @@ public class ChallengeService : _Service
         _guids = guids;
         _httpContextAccessor = httpContextAccessor;
         _linkGenerator = linkGenerator;
+        _logger = logger;
         _mapper = mapper;
         _mediator = mediator;
         _jsonService = jsonService;
@@ -308,9 +310,16 @@ public class ChallengeService : _Service
 
         foreach (var challenge in challenges)
         {
-            _actorMap.RemoveTeam(challenge.TeamId);
-            var state = await GameEngine.LoadGamespace(challenge);
-            Sync(challenge, state);
+            try
+            {
+                var state = await GameEngine.LoadGamespace(challenge);
+                _actorMap.RemoveTeam(challenge.TeamId);
+                Sync(challenge, state);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"""Couldn't sync data for challenge {challenge.Id}.""");
+            }
         }
     }
 

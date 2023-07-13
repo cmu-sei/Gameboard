@@ -125,7 +125,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 );
 
             Log("Deploying challenges...", request.GameId);
-            var teamDeployedChallenges = new Dictionary<string, List<Api.Challenge>>();
+            var teamDeployedChallenges = new Dictionary<string, List<Challenge>>();
             var challengeGamespaces = new Dictionary<string, ExternalGameStartTeamGamespace>();
 
             // deploy all challenges
