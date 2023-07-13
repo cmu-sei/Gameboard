@@ -94,7 +94,6 @@ namespace Gameboard.Api
     public class ChallengeStartPending : Exception { }
     public class GamespaceLimitReached : Exception { }
     public class InvalideFeedbackFormat : Exception { }
-    public class PlayerIsntOnTeam : Exception { }
     public class PlayerIsntInGame : Exception { }
     public class InvalidPlayerMode : Exception { }
     public class MissingRequiredField : Exception { }

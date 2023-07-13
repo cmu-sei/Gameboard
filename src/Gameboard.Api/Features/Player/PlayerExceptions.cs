@@ -26,16 +26,9 @@ internal class ManagerCantUnenrollWhileTeammatesRemain : GameboardException
     """) { }
 }
 
-internal class NotOnSameTeam : GameboardException
+internal class PlayerIsntManager : GameboardException
 {
-    internal NotOnSameTeam(string firstPlayerId, string firstPlayerTeamId, string secondPlayerId, string secondPlayerTeamId, string whyItMatters) : base($"""
-        Players {firstPlayerId} (team {firstPlayerTeamId}) and {secondPlayerId} (team {secondPlayerTeamId} aren't on the same team . {whyItMatters}
-    """) { }
-}
-
-internal class NotManager : GameboardException
-{
-    internal NotManager(string playerId, string addlMessage) : base($"Player {playerId} isn't the team manager. {addlMessage}") { }
+    internal PlayerIsntManager(string playerId, string addlMessage) : base($"Player {playerId} isn't the team manager. {addlMessage}") { }
 }
 
 internal class PromotionFailed : GameboardException

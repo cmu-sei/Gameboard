@@ -38,8 +38,15 @@ public class JobService : BackgroundService, IDisposable
             var svc = scope.ServiceProvider.GetRequiredService<ChallengeService>();
             var consoleMap = scope.ServiceProvider.GetRequiredService<ConsoleActorMap>();
 
-            await svc.SyncExpired();
-            consoleMap.Prune();
+            try
+            {
+                await svc.SyncExpired();
+                consoleMap.Prune();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error running the job service.");
+            }
 
             _logger.LogInformation(message: $"{nameof(JobService)} run #{_runCount} complete. Waiting for next run...");
             await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken);

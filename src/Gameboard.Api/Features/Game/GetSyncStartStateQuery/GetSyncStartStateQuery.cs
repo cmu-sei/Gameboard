@@ -5,7 +5,7 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Games;
 
-public record GetSyncStartStateQuery(string gameId, User ActingUser) : IRequest<SyncStartState>;
+public record GetSyncStartStateQuery(string GameId, User ActingUser) : IRequest<SyncStartState>;
 
 internal class GetSyncStartStateQueryHandler : IRequestHandler<GetSyncStartStateQuery, SyncStartState>
 {
@@ -25,6 +25,6 @@ internal class GetSyncStartStateQueryHandler : IRequestHandler<GetSyncStartState
     public async Task<SyncStartState> Handle(GetSyncStartStateQuery request, CancellationToken cancellationToken)
     {
         await _validator.Validate(request);
-        return await _syncStartGameService.GetSyncStartState(request.gameId);
+        return await _syncStartGameService.GetSyncStartState(request.GameId);
     }
 }

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -67,8 +68,8 @@ namespace Gameboard.Api.Hubs
 
             var player = teamPlayers.FirstOrDefault(p => p.UserId == Context.UserIdentifier);
 
-            if (player == null)
-                throw new PlayerIsntOnTeam();
+            if (player is null)
+                throw new UserIsntOnTeam(Context.UserIdentifier, teamId);
 
             if (Context.Items[ContextPlayerKey] != null)
                 Context.Items.Remove(ContextPlayerKey);

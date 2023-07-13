@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.UnityGames;
@@ -20,12 +21,12 @@ public class UnityGamesValidator : IModelValidator
         {
             var typedModel = model as NewUnityChallenge;
 
-            if (!(await GameExists(typedModel.GameId)))
+            if (!await GameExists(typedModel.GameId))
             {
                 throw new ResourceNotFound<Data.Game>(typedModel.GameId);
             }
 
-            if (!(await TeamExists(typedModel.TeamId)))
+            if (!await TeamExists(typedModel.TeamId))
             {
                 throw new ResourceNotFound<Team>(typedModel.TeamId);
             }
@@ -37,7 +38,7 @@ public class UnityGamesValidator : IModelValidator
 
             if (teamPlayers.Count == 0)
             {
-                throw new TeamHasNoPlayersException();
+                throw new TeamHasNoPlayersException(typedModel.TeamId);
             }
 
             if (teamPlayers.Any(p => p.GameId != typedModel.GameId))

@@ -4,7 +4,6 @@ using Gameboard.Api.Features.GameEngine.Requests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.GameEngine;
 
@@ -12,19 +11,9 @@ namespace Gameboard.Api.Features.GameEngine;
 [Route("/api/gameEngine")]
 public class GameEngineController : ControllerBase
 {
-    private readonly GameEngineService _gameEngine;
     private readonly IMediator _mediator;
 
-    public GameEngineController
-    (
-        GameEngineService gameEngineService,
-        ILogger<GameEngineController> logger,
-        IMediator mediator
-    )
-    {
-        _gameEngine = gameEngineService;
-        _mediator = mediator;
-    }
+    public GameEngineController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet("state")]
     public async Task<IEnumerable<GameEngineGameState>> GetGameStates(string teamId)

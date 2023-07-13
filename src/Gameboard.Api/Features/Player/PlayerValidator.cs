@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Teams;
 
 namespace Gameboard.Api.Validators
 {
@@ -139,7 +140,7 @@ namespace Gameboard.Api.Validators
                 throw new ResourceNotFound<Player>(model.CurrentManagerPlayerId, $"Couldn't resolve the player record for current manager {model.CurrentManagerPlayerId}.");
 
             if (!currentManager.IsManager)
-                throw new NotManager(model.CurrentManagerPlayerId, "Calls to this endpoint must supply the correct ID of the current manager.");
+                throw new PlayerIsntManager(model.CurrentManagerPlayerId, "Calls to this endpoint must supply the correct ID of the current manager.");
 
             var newManager = await _store.List().SingleOrDefaultAsync(p => p.Id == model.NewManagerPlayerId);
             if (newManager == null)

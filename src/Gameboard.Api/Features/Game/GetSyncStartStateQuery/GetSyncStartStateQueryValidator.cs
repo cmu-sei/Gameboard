@@ -30,19 +30,19 @@ internal class GetSyncStartStateQueryValidator : IGameboardRequestValidator<GetS
     public async Task Validate(GetSyncStartStateQuery request)
     {
         // game must exist
-        _validatorService.AddValidator(_gameExists.UseProperty(r => r.gameId));
+        _validatorService.AddValidator(_gameExists.UseProperty(r => r.GameId));
 
         // user must have registered for the game (if not admin/tester)
-        if (!request.ActingUser.IsAdmin && !request.ActingUser.IsTester)
-            _validatorService.AddValidator(_userIsPlayingGame.UseValues(request.gameId, request.ActingUser.Id));
+        if (!request.ActingUser.IsAdmin && !request.ActingUser.IsTester && !request.ActingUser.IsDesigner)
+            _validatorService.AddValidator(_userIsPlayingGame.UseValues(request.GameId, request.ActingUser.Id));
 
         // game must be a sync start game
         _validatorService.AddValidator(async (request, context) =>
         {
-            var game = await _gameService.Retrieve(request.gameId);
+            var game = await _gameService.Retrieve(request.GameId);
             if (!game.RequireSynchronizedStart)
             {
-                context.AddValidationException(new GameIsNotSyncStart(request.gameId, "Can't read the sync start state of a non-sync-start game."));
+                context.AddValidationException(new GameIsNotSyncStart(request.GameId, "Can't read the sync start state of a non-sync-start game."));
             }
         });
         await _validatorService.Validate(request);
