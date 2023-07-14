@@ -85,8 +85,10 @@ public sealed class PracticeModeByChallengeReportRecord : IPracticeModeReportRec
 
 public sealed class PracticeModeReportByChallengePerformance
 {
-    public required int PlayerCount { get; set; }
+    public required IEnumerable<string> Players { get; set; }
     public required int TotalAttempts { get; set; }
+    public required decimal? ScoreHigh { get; set; }
+    public required decimal? ScoreAvg { get; set; }
     public required int CompleteSolves { get; set; }
     public required decimal? PercentageCompleteSolved { get; set; }
     public required int PartialSolves { get; set; }

@@ -119,9 +119,11 @@ internal class PracticeModeReportService : IPracticeModeReportService
 
         return new PracticeModeReportByChallengePerformance
         {
-            PlayerCount = attempts.Select(a => a.Player.UserId).Distinct().Count(),
+            Players = attempts.Select(a => a.Player.ApprovedName).ToArray(),
             TotalAttempts = totalAttempts,
             CompleteSolves = completeSolves,
+            ScoreHigh = new decimal(attempts.Select(a => a.Score).Max()),
+            ScoreAvg = new decimal(attempts.Select(a => a.Score).Average()),
             PercentageCompleteSolved = totalAttempts > 0 ? decimal.Divide(completeSolves, totalAttempts) * 100 : null,
             PartialSolves = partialSolves,
             PercentagePartiallySolved = totalAttempts > 0 ? decimal.Divide(partialSolves, totalAttempts) * 100 : null,
