@@ -6,8 +6,10 @@ using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -24,6 +26,7 @@ public interface IGameStartService
 internal class GameStartService : IGameStartService
 {
     private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
+    private readonly IGameEngineService _gameEngineService;
     private readonly IGameHubBus _gameHubBus;
     private readonly IGameStore _gameStore;
     private readonly ILogger<GameStartService> _logger;
@@ -38,6 +41,7 @@ internal class GameStartService : IGameStartService
     (
         IStore<Data.ChallengeSpec> challengeSpecStore,
         IExternalSyncGameStartService externalSyncGameStartService,
+        IGameEngineService gameEngineService,
         IGameHubBus gameHubBus,
         IGameStore gameStore,
         ILogger<GameStartService> logger,
@@ -50,6 +54,7 @@ internal class GameStartService : IGameStartService
     {
         _challengeSpecStore = challengeSpecStore;
         _externalSyncGameStartService = externalSyncGameStartService;
+        _gameEngineService = gameEngineService;
         _gameHubBus = gameHubBus;
         _gameStore = gameStore;
         _logger = logger;
@@ -196,10 +201,37 @@ internal class GameStartService : IGameStartService
         };
     }
 
-    private Task TryCleanupFailedDeploy(GameStartState ctx)
+    private async Task TryCleanupFailedDeploy(GameStartState ctx)
     {
-        // TODO
-        return Task.CompletedTask;
+        _logger.LogError(message: $"Deployment failed for game {ctx.Game.Id}. Resetting sessions and cleaning up gamespaces for {ctx.Teams.Count} teams.");
+
+        foreach (var team in ctx.Teams)
+        {
+            try
+            {
+                await ResetSession(ctx, team.Team.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(message: $"Cleanup failed for team {team.Team.Id}", exception: ex);
+            }
+        }
+    }
+
+    private async Task ResetSession(GameStartState ctx, string teamId)
+    {
+        var challengeIds = ctx.ChallengesCreated.Select(c => c.Challenge.Id);
+        var challenges = await _playerStore
+            .DbContext
+            .Challenges
+            .Where(c => challengeIds.Contains(c.Id))
+            .ToListAsync();
+
+        foreach (var challenge in challenges)
+            await _gameEngineService.CompleteGamespace(challenge);
+
+
+        await _playerStore.DeleteTeam(teamId);
     }
 
     private void Log(string message, string gameId)

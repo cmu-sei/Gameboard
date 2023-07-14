@@ -118,7 +118,6 @@ namespace Gameboard.Api.Controllers
             {
                 ActingUser = Actor,
                 PlayerId = playerId,
-                IsManualReset = request.IsManualReset,
                 UnenrollTeam = request.UnenrollTeam
             };
 

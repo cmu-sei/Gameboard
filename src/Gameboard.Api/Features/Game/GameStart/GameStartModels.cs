@@ -26,7 +26,7 @@ public class GameStartState
             if (GamespacesTotal == 0 || ChallengesTotal == 0)
                 return 0;
 
-            var retVal = Math.Round(((0.8 * GamespacesDeployed.Count()) / GamespacesTotal) + ((0.2 * ChallengesCreated.Count()) / ChallengesTotal));
+            var retVal = Math.Round(((0.8 * GamespacesDeployed.Count) / GamespacesTotal) + ((0.2 * ChallengesCreated.Count) / ChallengesTotal));
             return double.IsRealNumber(retVal) ? retVal : 0;
         }
     }

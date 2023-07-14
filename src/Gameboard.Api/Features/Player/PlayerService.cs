@@ -22,6 +22,8 @@ namespace Gameboard.Api.Services;
 
 public class PlayerService
 {
+    private readonly TimeSpan _idmapExpiration = new(0, 30, 0);
+
     CoreOptions CoreOptions { get; }
     ChallengeService ChallengeService { get; set; }
     IPlayerStore Store { get; }
@@ -29,14 +31,12 @@ public class PlayerService
     IGameStartService GameStartService { get; }
     IGameStore GameStore { get; }
     IGuidService GuidService { get; }
-    IMediator MediatorBus { get; }
     INowService Now { get; }
     IInternalHubBus HubBus { get; }
     ITeamService TeamService { get; }
     IUserStore UserStore { get; }
     IMapper Mapper { get; }
     IMemoryCache LocalCache { get; }
-    TimeSpan _idmapExpiration = new TimeSpan(0, 30, 0);
     GameEngineService GameEngine { get; }
 
     public PlayerService(
@@ -67,7 +67,6 @@ public class PlayerService
         HubBus = hubBus;
         LocalCache = localCache;
         Mapper = mapper;
-        MediatorBus = mediator;
         Now = now;
         Store = store;
         TeamService = teamService;
@@ -173,14 +172,11 @@ public class PlayerService
             .Include(p => p.Game)
             .SingleAsync(p => p.Id == args.PlayerId);
 
-        // unlike unenroll, we archive the entire team's challenges, but only if this reset is manual and we're not unenrolling them
-        if (args.IsManualReset && !args.UnenrollTeam)
-            await ChallengeService.ArchiveTeamChallenges(player.TeamId);
-
         // delete the entire team if requested
         if (args.UnenrollTeam)
         {
             await Store.DeleteTeam(player.TeamId);
+            await ChallengeService.ArchiveTeamChallenges(player.TeamId);
 
             // notify hub that the team is deleted /players left so the client can respond
             var playerModel = Mapper.Map<Player>(player);
