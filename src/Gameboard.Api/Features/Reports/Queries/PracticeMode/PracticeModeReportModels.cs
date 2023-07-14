@@ -88,11 +88,11 @@ public sealed class PracticeModeReportByChallengePerformance
     public required int PlayerCount { get; set; }
     public required int TotalAttempts { get; set; }
     public required int CompleteSolves { get; set; }
-    public required double? PercentageCompleteSolved { get; set; }
+    public required decimal? PercentageCompleteSolved { get; set; }
     public required int PartialSolves { get; set; }
-    public required double? PercentagePartiallySolved { get; set; }
+    public required decimal? PercentagePartiallySolved { get; set; }
     public required int ZeroScoreSolves { get; set; }
-    public required double? PercentageZeroScoreSolved { get; set; }
+    public required decimal? PercentageZeroScoreSolved { get; set; }
 }
 
 public sealed class PracticeModeReportByChallengePerformanceBySponsor

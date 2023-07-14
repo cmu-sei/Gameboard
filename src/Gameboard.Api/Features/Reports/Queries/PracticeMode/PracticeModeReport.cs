@@ -41,6 +41,6 @@ internal class PracticeModeReportHandler : IRequestHandler<PracticeModeReportQue
                 Title = "Practice Mode Report (Grouped By Player)",
             });
 
-        throw new ArgumentException($"""Grouping value "{request.Parameters.Grouping}" is unsupported.""", nameof(request.Parameters.Grouping));
+        throw new ArgumentException(message: $"""Grouping value "{request.Parameters.Grouping}" is unsupported.""", nameof(request.Parameters.Grouping));
     }
 }

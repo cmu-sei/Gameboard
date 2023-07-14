@@ -82,7 +82,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
         }
 
         // query for the raw results
-        var challenges = await query.ToListAsync();
+        var challenges = await query.ToListAsync(cancellationToken);
 
         // also load challenge spec data for these challenges (spec can't be joined)
         var specs = await _store
@@ -122,11 +122,11 @@ internal class PracticeModeReportService : IPracticeModeReportService
             PlayerCount = attempts.Select(a => a.Player.UserId).Distinct().Count(),
             TotalAttempts = totalAttempts,
             CompleteSolves = completeSolves,
-            PercentageCompleteSolved = totalAttempts > 0 ? completeSolves / totalAttempts : null,
+            PercentageCompleteSolved = totalAttempts > 0 ? decimal.Divide(completeSolves, totalAttempts) * 100 : null,
             PartialSolves = partialSolves,
-            PercentagePartiallySolved = totalAttempts > 0 ? partialSolves / totalAttempts : null,
+            PercentagePartiallySolved = totalAttempts > 0 ? decimal.Divide(partialSolves, totalAttempts) * 100 : null,
             ZeroScoreSolves = zeroScoreSolves,
-            PercentageZeroScoreSolved = totalAttempts > 0 ? zeroScoreSolves / totalAttempts : null
+            PercentageZeroScoreSolved = totalAttempts > 0 ? decimal.Divide(zeroScoreSolves, totalAttempts) * 100 : null
         };
     }
 
