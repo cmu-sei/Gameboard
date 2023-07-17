@@ -3,9 +3,11 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
@@ -20,9 +22,9 @@ namespace Gameboard.Api.Controllers
     [Authorize]
     public class PlayerController : _Controller
     {
+        private readonly IMediator _mediator;
         PlayerService PlayerService { get; }
         IMapper Mapper { get; }
-        IMediator Mediator { get; }
         ITeamService TeamService { get; set; }
 
         public PlayerController(
@@ -31,14 +33,13 @@ namespace Gameboard.Api.Controllers
             PlayerValidator validator,
             IMediator mediator,
             PlayerService playerService,
-            IInternalHubBus hub,
             IMapper mapper,
             ITeamService teamService
         ) : base(logger, cache, validator)
         {
             PlayerService = playerService;
             Mapper = mapper;
-            Mediator = mediator;
+            _mediator = mediator;
             TeamService = teamService;
         }
 
@@ -46,10 +47,11 @@ namespace Gameboard.Api.Controllers
         /// Enrolls a user in a game.
         /// </summary>
         /// <param name="model"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns>A player record which represents an instance of the user playing a given game.</returns>
         [HttpPost("api/player")]
         [Authorize]
-        public async Task<Player> Enroll([FromBody] NewPlayer model)
+        public async Task<Player> Enroll([FromBody] NewPlayer model, CancellationToken cancellationToken)
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
@@ -57,7 +59,7 @@ namespace Gameboard.Api.Controllers
             );
 
             await Validate(model);
-            return await PlayerService.Enroll(model, Actor);
+            return await PlayerService.Enroll(model, Actor, cancellationToken);
         }
 
         /// <summary>
@@ -102,27 +104,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task UpdatePlayerReady([FromRoute] string playerId, [FromBody] PlayerReadyUpdate readyUpdate)
         {
-            await Mediator.Send(new UpdatePlayerReadyStateCommand(playerId, readyUpdate.IsReady, Actor));
-        }
-
-        [HttpPost("api/player/{playerId}/session")]
-        [Authorize]
-        public async Task<Player> ResetSession([FromRoute] string playerId, [FromBody] SessionResetRequest request)
-        {
-            AuthorizeAny(
-                () => Actor.IsAdmin,
-                () => PlayerService.MapId(playerId).Result == Actor.Id
-            );
-
-            var commandArgs = new SessionResetCommandArgs
-            {
-                ActingUser = Actor,
-                PlayerId = playerId,
-                UnenrollTeam = request.UnenrollTeam
-            };
-
-            await Validate(commandArgs);
-            return await PlayerService.ResetSession(commandArgs);
+            await _mediator.Send(new UpdatePlayerReadyStateCommand(playerId, readyUpdate.IsReady, Actor));
         }
 
         /// <summary>
@@ -168,10 +150,11 @@ namespace Gameboard.Api.Controllers
         /// </summary>
         /// <param name="playerId"></param>
         /// <param name="asAdmin"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpDelete("/api/player/{playerId}")]
         [Authorize]
-        public async Task Unenroll([FromRoute] string playerId, [FromQuery] bool asAdmin = false)
+        public async Task Unenroll([FromRoute] string playerId, [FromQuery] bool asAdmin, CancellationToken cancellationToken)
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
@@ -186,7 +169,7 @@ namespace Gameboard.Api.Controllers
             };
 
             await Validate(unenrollRequest);
-            await PlayerService.Unenroll(unenrollRequest);
+            await PlayerService.Unenroll(unenrollRequest, cancellationToken);
         }
 
         /// <summary>
@@ -337,7 +320,7 @@ namespace Gameboard.Api.Controllers
 
         [HttpPut("/api/team/{teamId}/manager/{playerId}")]
         [Authorize]
-        public async Task PromoteToManager(string teamId, string playerId, [FromBody] PromoteToManagerRequest promoteRequest)
+        public async Task PromoteToManager(string teamId, string playerId, [FromBody] PromoteToManagerRequest promoteRequest, CancellationToken cancellationToken)
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
@@ -356,7 +339,7 @@ namespace Gameboard.Api.Controllers
             };
 
             await Validate(model);
-            await TeamService.PromoteCaptain(teamId, playerId, Actor);
+            await TeamService.PromoteCaptain(teamId, playerId, Actor, cancellationToken);
         }
 
         /// <summary>

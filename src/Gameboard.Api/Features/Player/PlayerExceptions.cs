@@ -10,12 +10,7 @@ namespace Gameboard.Api.Features.Player;
 internal class InvalidExtendSessionRequest : GameboardException
 {
     internal InvalidExtendSessionRequest(DateTimeOffset currentSessionEnd, DateTimeOffset requestedSessionEnd)
-        : base($"Can't extend the session: The current session ends at {currentSessionEnd.ToString("u")}, and the request would extend it to {requestedSessionEnd.ToString("u")} (before the current session is set to end).") { }
-}
-
-internal class GameDoesntAllowSessionReset : GameboardException
-{
-    internal GameDoesntAllowSessionReset(string playerId, string gameId, DateTimeOffset sessionStartedOn) : base($"Player {playerId} is playing Game {gameId}. This game doesn't allow non-administrative resets after a session has begun, and their session began at {sessionStartedOn}.") { }
+        : base($"Can't extend the session: The current session ends at {currentSessionEnd:u}, and the request would extend it to {requestedSessionEnd:u} (before the current session is set to end).") { }
 }
 
 internal class ManagerCantUnenrollWhileTeammatesRemain : GameboardException

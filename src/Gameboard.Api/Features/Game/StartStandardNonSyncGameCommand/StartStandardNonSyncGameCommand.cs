@@ -39,7 +39,7 @@ internal class StartStandardNonSyncGameHandler : IRequestHandler<StartStandardNo
         _validator.AddValidator(new EntityExistsValidator<StartStandardNonSyncGameCommand, Data.Game>(_gameStore).UseProperty(r => r.GameId));
         _validator.AddValidator
         (
-            (System.Func<StartStandardNonSyncGameCommand, RequestValidationContext, Task>)((req, ctx) =>
+            ((req, ctx) =>
             {
                 if (req.ActingUser == null)
                     ctx.AddValidationException(new CantStartStandardGameWithoutActingUserParameter(req.GameId));
@@ -50,7 +50,7 @@ internal class StartStandardNonSyncGameHandler : IRequestHandler<StartStandardNo
 
         _validator.AddValidator
         (
-            (System.Func<StartStandardNonSyncGameCommand, RequestValidationContext, Task>)(async (req, ctx) =>
+            (async (req, ctx) =>
             {
                 var player = await _playerService.RetrieveByUserId((string)req.ActingUser.Id);
 
@@ -62,7 +62,7 @@ internal class StartStandardNonSyncGameHandler : IRequestHandler<StartStandardNo
             })
         );
 
-        await _validator.Validate(request);
+        await _validator.Validate(request, cancellationToken);
 
         // start
         // for now, just delegate this to PlayerService, which is what was doing this before

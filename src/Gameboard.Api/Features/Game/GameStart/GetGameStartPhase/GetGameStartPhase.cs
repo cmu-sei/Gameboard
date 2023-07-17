@@ -51,8 +51,8 @@ internal class GetGameStartPhaseHandler : IRequestHandler<GetGameStartPhaseQuery
         _validatorService
             .AddValidator(_gameExists.UseProperty(r => r.GameId))
             .AddValidator(_userExists.UseProperty(r => r.ActingUserId));
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
 
-        return await _gameStartService.GetGameStartPhase(request.GameId);
+        return await _gameStartService.GetGameStartPhase(request.GameId, cancellationToken);
     }
 }

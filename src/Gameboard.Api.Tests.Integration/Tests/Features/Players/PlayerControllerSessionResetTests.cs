@@ -15,7 +15,7 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ResetSession_WithManualReset_DeletesChallengeData(IFixture fixture, string teamId)
+    public async Task ResetSession_WithNoTeamUnenroll_DeletesChallengeData(IFixture fixture, string teamId)
     {
         // given
         TeamBuilderResult? result = null;
@@ -36,10 +36,9 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
         var player = result.Players.First();
 
         // when 
-        var response = await _testContext.Http.PostAsync($"api/player/{player.Id}/session", new SessionResetRequest
+        var response = await _testContext.Http.PostAsync($"api/team/{player.TeamId}/session", new SessionResetRequest
         {
-            IsManualReset = true,
-            UnenrollTeam = true
+            Unenroll = true
         }.ToJsonBody());
 
         // then
@@ -53,7 +52,7 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ResetSession_WithManualReset_ArchivesChallenges(IFixture fixture, string teamId)
+    public async Task ResetSession_WithNoTeamUnenroll_ArchivesChallenges(IFixture fixture, string teamId)
     {
         // given
         TeamBuilderResult? result = null;
@@ -68,26 +67,26 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
                 });
             });
 
-        if (result == null)
+        if (result is null)
             throw new GbAutomatedTestSetupException("AddTeam failed to return a result.");
 
         var player = result.Players.First();
 
         // when 
-        var response = await _testContext.Http.PostAsync($"api/player/{player.Id}/session", new SessionResetRequest
+        var response = await _testContext.Http.PostAsync($"api/team/{player.TeamId}/session", new SessionResetRequest
         {
-            IsManualReset = true,
-            UnenrollTeam = true
+            Unenroll = true
         }.ToJsonBody());
 
         // then
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var hasArchivedChallenges = await _testContext.GetDbContext().ArchivedChallenges.AnyAsync(c => c.TeamId == teamId);
+        hasArchivedChallenges.ShouldBeTrue();
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ResetSession_WithAutoResetAndPreserveTeam_PreservesChallenges(IFixture fixture, string teamId)
+    public async Task ResetSession_WithNoTeamUnenroll_PreservesTeam(IFixture fixture, string teamId)
     {
         // given
         TeamBuilderResult? result = null;
@@ -102,26 +101,22 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
                 });
             });
 
-        if (result == null)
+        if (result is null)
             throw new GbAutomatedTestSetupException("AddTeam failed to return a result.");
 
         var player = result.Players.First();
 
         // when 
-        var response = await _testContext.Http.PostAsync($"api/player/{player.Id}/session", new SessionResetRequest
+        var response = await _testContext.Http.PostAsync($"api/team/{player.TeamId}/session", new SessionResetRequest
         {
-            IsManualReset = false,
-            UnenrollTeam = false
+            Unenroll = false
         }.ToJsonBody());
 
         // then
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var hasChallenges = await _testContext.GetDbContext().Challenges.AnyAsync(c => c.TeamId == teamId);
-        var hasArchivedChallenges = await _testContext.GetDbContext().ArchivedChallenges.AnyAsync(c => c.TeamId == teamId);
-
-        hasArchivedChallenges.ShouldBeFalse();
-        hasChallenges.ShouldBeTrue();
+        var teamPreserved = (await _testContext.GetDbContext().Players.FirstOrDefaultAsync(p => p.TeamId == teamId));
+        teamPreserved.ShouldNotBeNull();
     }
 
     [Theory, GbIntegrationAutoData]
@@ -146,19 +141,18 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
                 });
             });
 
-        if (result == null)
+        if (result is null)
             throw new GbAutomatedTestSetupException("AddTeam failed to return a result.");
 
-        var realTHings = await _testContext.GetDbContext().Challenges.Where(c => c.TeamId == teamId).ToListAsync();
-        var things = await _testContext.GetDbContext().ArchivedChallenges.Where(c => c.TeamId == teamId).ToListAsync();
+        var challenges = await _testContext.GetDbContext().Challenges.Where(c => c.TeamId == teamId).ToListAsync();
+        var archivedChallenges = await _testContext.GetDbContext().ArchivedChallenges.Where(c => c.TeamId == teamId).ToListAsync();
 
         var player = result.Players.First();
 
         // when / then
-        await Should.NotThrowAsync(_testContext.Http.PostAsync($"api/player/{player.Id}/session", new SessionResetRequest
+        await Should.NotThrowAsync(_testContext.Http.PostAsync($"api/team/{player.TeamId}/session", new SessionResetRequest
         {
-            IsManualReset = true,
-            UnenrollTeam = false
+            Unenroll = true
         }.ToJsonBody()));
 
         var archivedChallengeCount = await _testContext.GetDbContext().ArchivedChallenges.Where(c => c.TeamId == teamId).CountAsync();

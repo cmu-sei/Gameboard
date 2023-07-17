@@ -20,6 +20,6 @@ internal class GetTeamQueryHandler : IRequestHandler<GetTeamQuery, Team>
 
     public async Task<Team> Handle(GetTeamQuery request, CancellationToken cancellationToken)
     {
-        return await _teamService.GetTeam(request.TeamId);
+        return await _teamService.GetTeam(request.TeamId, cancellationToken);
     }
 }

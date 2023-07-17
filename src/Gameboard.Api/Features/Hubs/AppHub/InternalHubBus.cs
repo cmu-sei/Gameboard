@@ -1,22 +1,24 @@
 using System.Threading.Tasks;
 using AutoMapper;
-using Gameboard.Api;
+using Gameboard.Api.Common;
 using Gameboard.Api.Hubs;
 using Microsoft.AspNetCore.SignalR;
 
+namespace Gameboard.Api.Features.Games;
+
 /// <summary>
 /// This is separate from AppHub because it encapsulates hub management functionality that we want to be available server side
-/// but not client side - every public method on AppHub is available to clients.
+/// but not client side - every public method on AppHub is available to SignalR clients.
 /// </summary>
 public interface IInternalHubBus
 {
-    // Task Leave(Player p, User actor);
-    Task SendPlayerEnrolled(Player p, User actor);
-    Task SendPlayerLeft(Player p, User actor);
-    Task SendTeamDeleted(Player p, User actor);
-    Task SendPlayerRoleChanged(Player p, User actor);
-    Task SendTeamSessionStarted(Player p, User actor);
-    Task SendTeamUpdated(Player p, User actor);
+    // Task Leave(Api.Player p, User actor);
+    Task SendPlayerEnrolled(Api.Player p, User actor);
+    Task SendPlayerLeft(Api.Player p, User actor);
+    Task SendTeamDeleted(TeamState teamState, SimpleEntity actor);
+    Task SendPlayerRoleChanged(Api.Player p, User actor);
+    Task SendTeamSessionStarted(Api.Player p, User actor);
+    Task SendTeamUpdated(Api.Player p, User actor);
 }
 
 internal class InternalHubBus : IInternalHubBus
@@ -30,36 +32,31 @@ internal class InternalHubBus : IInternalHubBus
         _mapper = mapper;
     }
 
-    public async Task SendPlayerLeft(Player p, User actor)
+    public async Task SendPlayerLeft(Api.Player p, User actor)
     {
-        await this._hubContext.Clients
+        await _hubContext.Clients
             .Group(p.TeamId)
             .PlayerEvent(
                 new HubEvent<TeamPlayer>
                 {
                     Action = EventAction.Departed,
                     Model = _mapper.Map<TeamPlayer>(p),
-                    ActingUser = BuildUserDescription(actor)
+                    ActingUser = new SimpleEntity { Id = actor.Id, Name = actor.ApprovedName }
                 }
             );
     }
 
-    public async Task SendTeamDeleted(Player p, User actor)
+    public async Task SendTeamDeleted(TeamState teamState, SimpleEntity actor)
     {
-        var teamState = _mapper.Map<TeamState>(p, opts => opts.AfterMap((src, dest) =>
-        {
-            dest.Actor = actor;
-        }));
-
-        await _hubContext.Clients.Group(p.TeamId).TeamEvent(new HubEvent<TeamState>
+        await _hubContext.Clients.Group(teamState.Id).TeamEvent(new HubEvent<TeamState>
         {
             Model = teamState,
             Action = EventAction.Deleted,
-            ActingUser = BuildUserDescription(actor)
+            ActingUser = actor
         });
     }
 
-    public async Task SendPlayerEnrolled(Player p, User actor)
+    public async Task SendPlayerEnrolled(Api.Player p, User actor)
     {
         var mappedPlayer = _mapper.Map<TeamPlayer>(p);
 
@@ -70,11 +67,11 @@ internal class InternalHubBus : IInternalHubBus
             {
                 Model = mappedPlayer,
                 Action = EventAction.Created,
-                ActingUser = BuildUserDescription(actor)
+                ActingUser = new SimpleEntity { Id = actor.Id, Name = actor.ApprovedName }
             });
     }
 
-    public async Task SendPlayerRoleChanged(Player p, User actor)
+    public async Task SendPlayerRoleChanged(Api.Player p, User actor)
     {
         var mappedPlayer = _mapper.Map<TeamPlayer>(p);
 
@@ -84,16 +81,20 @@ internal class InternalHubBus : IInternalHubBus
             {
                 Model = mappedPlayer,
                 Action = EventAction.RoleChanged,
-                ActingUser = BuildUserDescription(actor)
+                ActingUser = new SimpleEntity { Id = actor.Id, Name = actor.ApprovedName }
             });
     }
 
-    public async Task SendTeamSessionStarted(Player p, User actor)
+    public async Task SendTeamSessionStarted(Api.Player p, User actor)
     {
-        var teamState = _mapper.Map<TeamState>(p, opts => opts.AfterMap((src, dest) =>
+        var teamState = new TeamState
         {
-            dest.Actor = actor;
-        }));
+            Id = p.TeamId,
+            Name = p.ApprovedName,
+            SessionBegin = p.SessionBegin.IsEmpty() ? null : p.SessionBegin,
+            SessionEnd = p.SessionEnd.IsEmpty() ? null : p.SessionEnd,
+            Actor = actor.ToSimpleEntity()
+        };
 
         await _hubContext.Clients
             .Group(p.TeamId)
@@ -101,16 +102,20 @@ internal class InternalHubBus : IInternalHubBus
             {
                 Model = teamState,
                 Action = EventAction.Started,
-                ActingUser = BuildUserDescription(actor)
+                ActingUser = new SimpleEntity { Id = actor.Id, Name = actor.ApprovedName }
             });
     }
 
-    public async Task SendTeamUpdated(Player p, User actor)
+    public async Task SendTeamUpdated(Api.Player p, User actor)
     {
-        var teamState = _mapper.Map<TeamState>(p, opts => opts.AfterMap((src, dest) =>
+        var teamState = new TeamState
         {
-            dest.Actor = actor;
-        }));
+            Id = p.TeamId,
+            Name = p.ApprovedName,
+            SessionBegin = p.SessionBegin.IsEmpty() ? null : p.SessionBegin,
+            SessionEnd = p.SessionEnd.IsEmpty() ? null : p.SessionEnd,
+            Actor = new SimpleEntity { Id = actor.Id, Name = actor.ApprovedName }
+        };
 
         await _hubContext.Clients
             .Group(p.TeamId)
@@ -118,16 +123,7 @@ internal class InternalHubBus : IInternalHubBus
             {
                 Model = teamState,
                 Action = EventAction.Updated,
-                ActingUser = BuildUserDescription(actor)
+                ActingUser = new SimpleEntity { Id = actor.Id, Name = actor.ApprovedName }
             });
-    }
-
-    private HubEventActingUserDescription BuildUserDescription(User user)
-    {
-        return new HubEventActingUserDescription
-        {
-            Id = user.Id,
-            Name = user.Name
-        };
     }
 }

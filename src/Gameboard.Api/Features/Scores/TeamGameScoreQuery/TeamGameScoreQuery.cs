@@ -27,7 +27,7 @@ internal class TeamGameScoreQueryHandler : IRequestHandler<TeamGameScoreQuery, T
     public async Task<TeamGameScoreSummary> Handle(TeamGameScoreQuery request, CancellationToken cancellationToken)
     {
         _validatorService.AddValidator(_teamExists.UseProperty(r => r.teamId));
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
 
         return await _scoreService
             .GetTeamGameScore(request.teamId);

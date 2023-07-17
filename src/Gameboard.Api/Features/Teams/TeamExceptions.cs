@@ -17,9 +17,14 @@ internal class NotOnSameTeam : GameboardException
     """) { }
 }
 
-internal class PlayersAreFromMultipleTeams : GameboardException
+internal class PlayersAreFromMultipleTeams : GameboardValidationException
 {
     internal PlayersAreFromMultipleTeams(IEnumerable<string> teamIds, string message = null) : base($"""${(string.IsNullOrWhiteSpace(message) ? "" : $"{message}.")} The players evaluated are from multiple teams ({string.Join(",", teamIds)})""") { }
+}
+
+internal class PlayersAreInMultipleGames : GameboardValidationException
+{
+    internal PlayersAreInMultipleGames(IEnumerable<string> gameIds) : base($"""The players have multiple dinstinct gameIds: ({string.Join(",", gameIds)})""") { }
 }
 
 internal class PlayerIsntOnTeam : GameboardValidationException

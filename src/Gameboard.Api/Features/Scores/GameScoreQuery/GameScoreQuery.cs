@@ -47,7 +47,7 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
     {
         // validate
         _validator.AddValidator(_gameExists);
-        await _validator.Validate(request);
+        await _validator.Validate(request, cancellationToken);
 
         // and go
         var game = await _gameStore.Retrieve(request.GameId);

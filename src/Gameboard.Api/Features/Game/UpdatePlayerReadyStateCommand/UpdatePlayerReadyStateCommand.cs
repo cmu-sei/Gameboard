@@ -66,6 +66,6 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
         var playerReadyState = await _syncStartGameService.UpdatePlayerReadyState(request.PlayerId, request.IsReady);
 
         // notify listeners
-        await _gameStartService.HandleSyncStartStateChanged(player.GameId);
+        await _gameStartService.HandleSyncStartStateChanged(player.GameId, cancellationToken);
     }
 }

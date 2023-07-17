@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common;
@@ -73,7 +74,7 @@ public class PlayerService
         UserStore = userStore;
     }
 
-    public async Task<Player> Enroll(NewPlayer model, User actor)
+    public async Task<Player> Enroll(NewPlayer model, User actor, CancellationToken cancellationToken)
     {
         var game = await GameStore.Retrieve(model.GameId);
 
@@ -93,7 +94,7 @@ public class PlayerService
         await HubBus.SendPlayerEnrolled(Mapper.Map<Api.Player>(entity), actor);
 
         if (game.RequireSynchronizedStart)
-            await GameStartService.HandleSyncStartStateChanged(model.GameId);
+            await GameStartService.HandleSyncStartStateChanged(model.GameId, cancellationToken);
 
         return Mapper.Map<Player>(entity);
     }
@@ -160,37 +161,8 @@ public class PlayerService
         }
 
         await Store.Update(entity);
-        await HubBus.SendTeamUpdated(Mapper.Map<Api.Player>(entity), actor);
+        await HubBus.SendTeamUpdated(Mapper.Map<Player>(entity), actor);
         return Mapper.Map<Player>(entity);
-    }
-
-    public async Task<Player> ResetSession(SessionResetCommandArgs args)
-    {
-        var player = await Store
-            .DbSet
-            .AsNoTracking()
-            .Include(p => p.Game)
-            .SingleAsync(p => p.Id == args.PlayerId);
-
-        // delete the entire team if requested
-        if (args.UnenrollTeam)
-        {
-            await Store.DeleteTeam(player.TeamId);
-            await ChallengeService.ArchiveTeamChallenges(player.TeamId);
-
-            // notify hub that the team is deleted /players left so the client can respond
-            var playerModel = Mapper.Map<Player>(player);
-            await HubBus.SendTeamDeleted(playerModel, args.ActingUser);
-
-            if (!player.IsManager && !player.Game.RequireSponsoredTeam)
-                await TeamService.UpdateTeamSponsors(player.TeamId);
-        }
-
-        // update player ready state if game needs it
-        if (player.Game.RequireSynchronizedStart && player.SessionBegin == DateTimeOffset.MinValue)
-            await GameStartService.HandleSyncStartStateChanged(player.GameId);
-
-        return Mapper.Map<Player>(player);
     }
 
     public async Task<Player> StartSession(SessionStartRequest model, User actor, bool sudo)
@@ -271,7 +243,7 @@ public class PlayerService
     }
 
     public DateRange CalculateSessionWindow(Data.Game game, DateTimeOffset sessionStart)
-        => new DateRange
+        => new()
         {
             Start = sessionStart,
             End = sessionStart.AddMinutes(game.SessionMinutes)
@@ -327,7 +299,7 @@ public class PlayerService
     public async Task<Player[]> List(PlayerDataFilter model, bool sudo = false)
     {
         if (!sudo && !model.WantsGame && !model.WantsTeam)
-            return new Player[] { };
+            return Array.Empty<Player>();
 
         var q = _List(model);
 
@@ -337,7 +309,7 @@ public class PlayerService
     public async Task<Standing[]> Standings(PlayerDataFilter model)
     {
         if (model.gid.IsEmpty())
-            return new Standing[] { };
+            return Array.Empty<Standing>();
 
         model.Filter = model.Filter
             .Append(PlayerDataFilter.FilterScoredOnly)
@@ -533,7 +505,7 @@ public class PlayerService
         return mappedPlayer;
     }
 
-    public async Task Unenroll(PlayerUnenrollRequest request)
+    public async Task Unenroll(PlayerUnenrollRequest request, CancellationToken cancellationToken)
     {
         // they probably don't have challenge data on an unenroll, but in case an admin does this
         // or something, we'll clean up their challenges
@@ -552,7 +524,7 @@ public class PlayerService
 
         // update sync start if needed
         if (player.Game.RequireSynchronizedStart)
-            await GameStartService.HandleSyncStartStateChanged(playerModel.GameId);
+            await GameStartService.HandleSyncStartStateChanged(playerModel.GameId, cancellationToken);
     }
 
     public async Task<TeamChallenge[]> LoadChallengesForTeam(string teamId)
@@ -727,10 +699,10 @@ public class PlayerService
         )).ToArray();
     }
 
-    public async Task<bool> IsUser(string playerId, Api.User user)
+    public async Task<bool> IsUser(string playerId, User user)
         => (await MapId(playerId)) == user.Id;
 
-    private Api.PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount)
+    private PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount)
     {
         string certificateHTML = player.Game.CertificateTemplate;
         if (certificateHTML.IsEmpty())

@@ -17,6 +17,7 @@ using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Games.Start;
+using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.UnityGames;
@@ -140,6 +141,7 @@ public static class ServiceStartupExtensions
             .AddScoped<IGameHubBus, GameHubBus>()
             .AddScoped<IInternalHubBus, InternalHubBus>()
             .AddScoped<IGameHubBus, GameHubBus>()
+            .AddScoped<IGameboardRequestValidator<ResetSessionCommand>, ResetSessionCommandValidator>()
             .AddScoped<IScoringService, ScoringService>()
             .AddScoped<ISyncStartGameService, SyncStartGameService>()
             .AddScoped<ITeamService, TeamService>()

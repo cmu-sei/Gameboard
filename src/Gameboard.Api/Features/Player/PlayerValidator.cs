@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Features.Games;
 
 namespace Gameboard.Api.Validators
 {
@@ -184,7 +185,7 @@ namespace Gameboard.Api.Validators
 
             var actAsElevated = args.ActingUser.IsTester || args.ActingUser.IsAdmin;
             if (!actAsElevated && !player.Game.AllowReset && player.SessionBegin.Year > 1)
-                throw new GameDoesntAllowSessionReset(args.PlayerId, player.GameId, player.SessionBegin);
+                throw new GameDoesntAllowReset(player.GameId);
 
             // TODO: rethink AsAdmin, see https://github.com/cmu-sei/Gameboard/issues/158
             if (!actAsElevated && !player.Game.RegistrationActive)

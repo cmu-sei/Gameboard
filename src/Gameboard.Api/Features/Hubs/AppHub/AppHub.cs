@@ -6,6 +6,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Common;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Teams;
@@ -145,12 +146,12 @@ namespace Gameboard.Api.Hubs
             return Task.WhenAll(tasks);
         }
 
-        private HubEventActingUserDescription GetApiUser()
+        private SimpleEntity GetApiUser()
         {
-            if (Context.Items.Keys.Contains(ContextPlayerKey))
+            if (Context.Items.ContainsKey(ContextPlayerKey))
             {
                 var player = Context.Items[ContextPlayerKey] as Data.Player;
-                return _mapper.Map<HubEventActingUserDescription>(player.User);
+                return new SimpleEntity { Id = player.UserId, Name = player.ApprovedName };
             }
 
             return null;

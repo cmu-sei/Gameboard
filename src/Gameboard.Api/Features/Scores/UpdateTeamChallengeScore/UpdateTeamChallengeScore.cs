@@ -58,10 +58,10 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
             .Include(c => c.Game)
             .Include(c => c.AwardedBonuses)
                 .ThenInclude(b => b.ChallengeBonus)
-            .FirstAsync(c => c.Id == request.ChallengeId, cancellationToken);
+            .FirstOrDefaultAsync(c => c.Id == request.ChallengeId, cancellationToken);
 
         // TODO: validator may need to be able to one-off validate, because all of this will fail without a challenge id
-        // _validator.AddValidator(_challengeExists.UseProperty(c => c.ChallengeId));
+        _validator.AddValidator(_challengeExists.UseProperty(c => c.ChallengeId));
         _validator.AddValidator
         (
             (req, context) =>
@@ -96,7 +96,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
             );
         }
 
-        await _validator.Validate(request);
+        await _validator.Validate(request, cancellationToken);
 
         // load additional data
         // note: right now, we're only awarding solve rank bonuses right now
@@ -134,7 +134,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
                 .Bonuses
                 .Where(bonus => !otherTeamChallenges.SelectMany(c => c.AwardedBonuses).Any(otherTeamBonus => otherTeamBonus.Id == bonus.Id));
 
-            if (availableBonuses.Any() && (availableBonuses.First() as ChallengeBonusCompleteSolveRank).SolveRank == otherTeamChallenges.Count() + 1)
+            if (availableBonuses.Any() && (availableBonuses.First() as ChallengeBonusCompleteSolveRank).SolveRank == otherTeamChallenges.Length + 1)
                 updateChallenge.AwardedBonuses.Add(new AwardedChallengeBonus
                 {
                     Id = _guidService.GetGuid(),

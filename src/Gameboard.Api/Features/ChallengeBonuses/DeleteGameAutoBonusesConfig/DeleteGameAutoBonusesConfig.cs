@@ -36,7 +36,7 @@ internal class DeleteGameAutoBonusesConfigHandler : IRequestHandler<DeleteGameAu
 
         await _validator
             .UseGameIdProperty(r => r.GameId)
-            .Validate(request);
+            .Validate(request, cancellationToken);
 
         await _challengeBonusStore
             .DbContext

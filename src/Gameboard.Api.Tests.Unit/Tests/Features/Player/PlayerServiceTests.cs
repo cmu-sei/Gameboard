@@ -2,6 +2,7 @@ using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
@@ -12,81 +13,42 @@ namespace Gameboard.Api.Tests.Unit;
 
 public class PlayerServiceTests
 {
-    class PlayerServiceTestable : PlayerService
+    // TODO: reflection helper
+    internal static PlayerService GetTestable(
+        CoreOptions? coreOptions = null,
+        ChallengeService? challengeService = null,
+        IPlayerStore? store = null,
+        IUserStore? userStore = null,
+        IGameService? gameService = null,
+        IGameStartService? gameStartService = null,
+        IGameStore? gameStore = null,
+        IGuidService? guidService = null,
+        IMediator? mediator = null,
+        IInternalHubBus? hubBus = null,
+        ITeamService? teamService = null,
+        IMapper? mapper = null,
+        IMemoryCache? localCache = null,
+        GameEngineService? gameEngine = null,
+        INowService? now = null)
     {
-        private PlayerServiceTestable(
-            CoreOptions coreOptions,
-            ChallengeService challengeService,
-            IPlayerStore store,
-            IUserStore userStore,
-            IGameService gameService,
-            IGameStore gameStore,
-            IGuidService guidService,
-            IMediator mediator,
-            IInternalHubBus hubBus,
-            INowService now,
-            IGameStartService gameStartService,
-            ITeamService teamService,
-            IMapper mapper,
-            IMemoryCache localCache,
-            GameEngineService gameEngine) : base
-            (
-                coreOptions,
-                challengeService,
-                gameStartService,
-                guidService,
-                mediator,
-                store,
-                userStore,
-                gameService,
-                gameStore,
-                hubBus,
-                now,
-                teamService,
-                mapper,
-                localCache,
-                gameEngine
-            )
-        {
-        }
-
-        // TODO: reflection helper
-        internal static PlayerService GetTestable(
-            CoreOptions? coreOptions = null,
-            ChallengeService? challengeService = null,
-            IPlayerStore? store = null,
-            IUserStore? userStore = null,
-            IGameService? gameService = null,
-            IGameStartService? gameStartService = null,
-            IGameStore? gameStore = null,
-            IGuidService? guidService = null,
-            IMediator? mediator = null,
-            IInternalHubBus? hubBus = null,
-            ITeamService? teamService = null,
-            IMapper? mapper = null,
-            IMemoryCache? localCache = null,
-            GameEngineService? gameEngine = null,
-            INowService? now = null)
-        {
-            return new PlayerService
-            (
-                coreOptions ?? A.Fake<CoreOptions>(),
-                challengeService ?? A.Fake<ChallengeService>(),
-                gameStartService ?? A.Fake<IGameStartService>(),
-                guidService ?? A.Fake<IGuidService>(),
-                mediator ?? A.Fake<IMediator>(),
-                store ?? A.Fake<IPlayerStore>(),
-                userStore ?? A.Fake<IUserStore>(),
-                gameService ?? A.Fake<GameService>(),
-                gameStore ?? A.Fake<IGameStore>(),
-                hubBus ?? A.Fake<IInternalHubBus>(),
-                now ?? A.Fake<INowService>(),
-                teamService ?? A.Fake<ITeamService>(),
-                mapper ?? A.Fake<IMapper>(),
-                localCache ?? A.Fake<IMemoryCache>(),
-                gameEngine ?? A.Fake<GameEngineService>()
-            );
-        }
+        return new PlayerService
+        (
+            coreOptions ?? A.Fake<CoreOptions>(),
+            challengeService ?? A.Fake<ChallengeService>(),
+            gameStartService ?? A.Fake<IGameStartService>(),
+            guidService ?? A.Fake<IGuidService>(),
+            mediator ?? A.Fake<IMediator>(),
+            store ?? A.Fake<IPlayerStore>(),
+            userStore ?? A.Fake<IUserStore>(),
+            gameService ?? A.Fake<GameService>(),
+            gameStore ?? A.Fake<IGameStore>(),
+            hubBus ?? A.Fake<IInternalHubBus>(),
+            now ?? A.Fake<INowService>(),
+            teamService ?? A.Fake<ITeamService>(),
+            mapper ?? A.Fake<IMapper>(),
+            localCache ?? A.Fake<IMemoryCache>(),
+            gameEngine ?? A.Fake<GameEngineService>()
+        );
     }
 
     [Theory, GameboardAutoData]
@@ -100,7 +62,7 @@ public class PlayerServiceTests
         var result = await sut.Standings(filterParams);
 
         // assert
-        result.ShouldBe(new Standing[] { });
+        result.ShouldBe(Array.Empty<Standing>());
     }
 
     [Theory, GameboardAutoData]
@@ -128,13 +90,13 @@ public class PlayerServiceTests
         A.CallTo(() => fakeStore.List(null)).Returns(fakePlayers);
         A.CallTo(() => fakeStore.DbSet).Returns(fakePlayers);
 
-        var sut = PlayerServiceTestable.GetTestable(store: fakeStore);
+        var sut = GetTestable(store: fakeStore);
 
         // act
         var result = await sut.MakeCertificates(userId);
 
         // assert
-        result.ShouldBe(new PlayerCertificate[] { });
+        result.ShouldBe(Array.Empty<PlayerCertificate>());
     }
 
     [Theory, GameboardAutoData]
@@ -163,7 +125,7 @@ public class PlayerServiceTests
         A.CallTo(() => fakeStore.List(null)).Returns(fakePlayers);
         A.CallTo(() => fakeStore.DbSet).Returns(fakePlayers);
 
-        var sut = PlayerServiceTestable.GetTestable(store: fakeStore);
+        var sut = GetTestable(store: fakeStore);
 
         // act
         var result = await sut.MakeCertificates(userId);

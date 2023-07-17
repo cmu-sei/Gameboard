@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
@@ -68,7 +69,7 @@ internal class UnityGameService : _Service, IUnityGameService
         }
 
         // otherwise, let's make some challenges
-        var teamCaptain = await _teamService.ResolveCaptain(newChallenge.TeamId);
+        var teamCaptain = await _teamService.ResolveCaptain(newChallenge.TeamId, CancellationToken.None);
         var challengeName = $"{teamCaptain.ApprovedName} vs. Cubespace";
 
         // load the spec associated with the game

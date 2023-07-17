@@ -73,7 +73,7 @@ namespace Gameboard.Api.Controllers
                 {
                     Model = result,
                     Action = EventAction.Updated,
-                    ActingUser = HubEventActingUserDescription.FromUser(Actor)
+                    ActingUser = Actor.ToSimpleEntity()
                 });
 
             return result;
@@ -172,7 +172,7 @@ namespace Gameboard.Api.Controllers
                 {
                     Model = result,
                     Action = EventAction.Updated,
-                    ActingUser = HubEventActingUserDescription.FromUser(Actor)
+                    ActingUser = Actor.ToSimpleEntity()
                 }
             );
 
@@ -202,7 +202,7 @@ namespace Gameboard.Api.Controllers
                 {
                     Model = result,
                     Action = EventAction.Updated,
-                    ActingUser = HubEventActingUserDescription.FromUser(Actor)
+                    ActingUser = Actor.ToSimpleEntity()
                 }
             );
 
@@ -233,7 +233,7 @@ namespace Gameboard.Api.Controllers
                 {
                     Model = result,
                     Action = EventAction.Updated,
-                    ActingUser = HubEventActingUserDescription.FromUser(Actor)
+                    ActingUser = Actor.ToSimpleEntity()
                 }
             );
 
@@ -262,7 +262,7 @@ namespace Gameboard.Api.Controllers
                 {
                     Model = result,
                     Action = EventAction.Updated,
-                    ActingUser = HubEventActingUserDescription.FromUser(Actor)
+                    ActingUser = Actor.ToSimpleEntity()
                 });
 
             return result;

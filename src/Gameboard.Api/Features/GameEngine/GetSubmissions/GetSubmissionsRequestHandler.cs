@@ -39,7 +39,7 @@ internal class GetSubmissionsRequestHandler : IRequestHandler<GetSubmissionsQuer
             .AllowRoles(UserRole.Admin, UserRole.Support, UserRole.Designer)
             .Authorize();
 
-        await _validator.Validate(request);
+        await _validator.Validate(request, cancellationToken);
 
         var challenge = await _challengeStore.Retrieve(request.ChallengeId);
         return await _gameEngine.AuditChallenge(challenge);

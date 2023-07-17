@@ -8,9 +8,9 @@ namespace Gameboard.Api.Features.Scores;
 
 internal class TeamChallengeScoreQueryHandler : IRequestHandler<TeamChallengeScoreQuery, TeamChallengeScoreSummary>
 {
-    private EntityExistsValidator<TeamChallengeScoreQuery, Data.Challenge> _challengeExists;
-    private IScoringService _scoresService;
-    private IValidatorService<TeamChallengeScoreQuery> _validatorService;
+    private readonly EntityExistsValidator<TeamChallengeScoreQuery, Data.Challenge> _challengeExists;
+    private readonly IScoringService _scoresService;
+    private readonly IValidatorService<TeamChallengeScoreQuery> _validatorService;
 
     public TeamChallengeScoreQueryHandler(
         EntityExistsValidator<TeamChallengeScoreQuery, Data.Challenge> challengeExists,
@@ -25,7 +25,7 @@ internal class TeamChallengeScoreQueryHandler : IRequestHandler<TeamChallengeSco
     public async Task<TeamChallengeScoreSummary> Handle(TeamChallengeScoreQuery request, CancellationToken cancellationToken)
     {
         _validatorService.AddValidator(_challengeExists.UseProperty(r => r.ChallengeId));
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
 
         return await _scoresService.GetTeamChallengeScore(request.ChallengeId);
     }

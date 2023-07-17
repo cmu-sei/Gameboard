@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common;
@@ -110,7 +111,7 @@ internal class ScoringService : IScoringService
 
     public async Task<TeamGameScoreSummary> GetTeamGameScore(string teamId)
     {
-        var captain = await _teamService.ResolveCaptain(teamId);
+        var captain = await _teamService.ResolveCaptain(teamId, CancellationToken.None);
         var game = await _gameStore
             .List()
             .SingleAsync(g => g.Id == captain.GameId);

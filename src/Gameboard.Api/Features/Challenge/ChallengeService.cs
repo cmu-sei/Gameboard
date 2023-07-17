@@ -512,7 +512,7 @@ public class ChallengeService : _Service
                     // no-op - leave as empty array
                 }
 
-                var mappedChallenge = _mapper.Map<Api.ArchivedChallenge>(challenge);
+                var mappedChallenge = _mapper.Map<ArchivedChallenge>(challenge);
                 mappedChallenge.Submissions = submissions;
                 mappedChallenge.TeamMembers = teamMemberMap[challenge.TeamId].ToArray();
 
@@ -524,7 +524,6 @@ public class ChallengeService : _Service
             // this is a backstoppy kind of thing - we aren't quite sure about the conditions under which this happens, but we've had
             // some stale challenges appear in the archive table and the real challenges table. if for whatever reason we're trying to
             // archive something that's already in the archive table, instead, delete it, replace it with the updated object
-
             var recordsAffected = await Store
                 .DbContext
                 .ArchivedChallenges

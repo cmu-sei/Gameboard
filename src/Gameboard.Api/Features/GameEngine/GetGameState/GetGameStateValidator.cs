@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Teams;
@@ -30,12 +31,12 @@ internal class GetGameStateValidator : IGameboardRequestValidator<GetGameStateQu
         _validatorService = validatorService;
     }
 
-    public async Task Validate(GetGameStateQuery request)
+    public async Task Validate(GetGameStateQuery request, CancellationToken cancellationToken)
     {
         var players = await _playerStore
             .ListTeam(request.TeamId)
             .AsNoTracking()
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
 
         _validatorService.AddValidator((request, context) =>
         {
@@ -51,6 +52,6 @@ internal class GetGameStateValidator : IGameboardRequestValidator<GetGameStateQu
                 context.AddValidationException(new ResourceNotFound<Team>(request.TeamId));
         });
 
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
     }
 }

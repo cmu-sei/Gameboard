@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Gameboard.Api.Features.Games.Start;
@@ -13,7 +14,7 @@ namespace Gameboard.Api.Features.Games.Start;
 // the logic that happens when a game starts (e.g. ExternalSyncGameStartService for #4)
 public interface IGameModeStartService
 {
-    public Task ValidateStart(GameModeStartRequest request);
-    public Task<GameStartPhase> GetStartPhase(string gameId);
-    public Task<GameStartState> Start(GameModeStartRequest request);
+    public Task ValidateStart(GameModeStartRequest request, CancellationToken cancellationToken);
+    public Task<GameStartPhase> GetStartPhase(string gameId, CancellationToken cancellationToken);
+    public Task<GameStartState> Start(GameModeStartRequest request, CancellationToken cancellationToken);
 }

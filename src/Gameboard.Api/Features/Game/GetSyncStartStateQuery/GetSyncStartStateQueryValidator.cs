@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Features.Games.Validators;
 using Gameboard.Api.Services;
@@ -27,7 +28,7 @@ internal class GetSyncStartStateQueryValidator : IGameboardRequestValidator<GetS
         _validatorService = validatorService;
     }
 
-    public async Task Validate(GetSyncStartStateQuery request)
+    public async Task Validate(GetSyncStartStateQuery request, CancellationToken cancellationToken)
     {
         // game must exist
         _validatorService.AddValidator(_gameExists.UseProperty(r => r.GameId));
@@ -45,6 +46,6 @@ internal class GetSyncStartStateQueryValidator : IGameboardRequestValidator<GetS
                 context.AddValidationException(new GameIsNotSyncStart(request.GameId, "Can't read the sync start state of a non-sync-start game."));
             }
         });
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
     }
 }

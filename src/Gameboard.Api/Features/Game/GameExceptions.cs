@@ -44,6 +44,11 @@ public class GameModeIsntExternal : GameboardValidationException
     public GameModeIsntExternal(string gameId, string mode) : base($"Can't boot external game with id '{gameId}' because its mode ('{mode}') isn't set to '{GameMode.External}'.") { }
 }
 
+public class GameDoesntAllowReset : GameboardValidationException
+{
+    public GameDoesntAllowReset(string gameId) : base($"""Game {gameId} has "Allow Reset" set to disabled.""") { }
+}
+
 internal class UserIsntPlayingGame : GameboardValidationException
 {
     public UserIsntPlayingGame(string userId, string gameId, string whyItMatters = null) : base($"""User {userId} isn't playing game {gameId}.{(string.IsNullOrWhiteSpace(whyItMatters) ? string.Empty : ". " + whyItMatters)} """) { }

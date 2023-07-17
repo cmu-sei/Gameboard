@@ -33,7 +33,7 @@ internal class GameScoringConfigQueryHandler : IRequestHandler<GameScoringConfig
     {
         // validate
         _validator.AddValidator(_gameExists.UseProperty(query => query.GameId));
-        await _validator.Validate(request);
+        await _validator.Validate(request, cancellationToken);
 
         // and go!
         return await _scoringService.GetGameScoringConfig(request.GameId);

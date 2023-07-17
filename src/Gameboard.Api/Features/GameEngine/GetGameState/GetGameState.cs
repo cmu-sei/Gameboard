@@ -25,7 +25,7 @@ internal class GetGameStateHandler : IRequestHandler<GetGameStateQuery, IEnumera
 
     public async Task<IEnumerable<GameEngineGameState>> Handle(GetGameStateQuery request, CancellationToken cancellationToken)
     {
-        await _validator.Validate(request);
+        await _validator.Validate(request, cancellationToken);
         return await _gameEngineStore.GetGameStatesByTeam(request.TeamId);
     }
 }

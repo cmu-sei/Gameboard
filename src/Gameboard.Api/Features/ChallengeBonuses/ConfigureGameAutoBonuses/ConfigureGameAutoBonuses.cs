@@ -53,7 +53,7 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
 
         // validate
         _validatorService.AddValidator(_validator);
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
 
         // and go (with a transaction to maintain atomicity)
         var specs = await _challengeSpecStore

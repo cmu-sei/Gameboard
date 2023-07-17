@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Gameboard.Api.Common;
 using Gameboard.Api.Features.Games;
 
 namespace Gameboard.Api
@@ -104,8 +105,7 @@ namespace Gameboard.Api
 
     public class SessionResetRequest
     {
-        public required bool IsManualReset { get; set; } = false;
-        public required bool UnenrollTeam { get; set; } = true;
+        public required bool Unenroll { get; set; } = true;
     }
 
     public class SessionResetCommandArgs
@@ -265,14 +265,11 @@ namespace Gameboard.Api
 
     public class TeamState
     {
-        public string TeamId { get; set; }
-        public Player ActingPlayer { get; set; }
-        public string ApprovedName { get; set; }
+        public string Id { get; set; }
         public string Name { get; set; }
-        public string NameStatus { get; set; }
-        public DateTimeOffset SessionBegin { get; set; }
-        public DateTimeOffset SessionEnd { get; set; }
-        public User Actor { get; set; }
+        public DateTimeOffset? SessionBegin { get; set; }
+        public DateTimeOffset? SessionEnd { get; set; }
+        public SimpleEntity Actor { get; set; }
     }
 
     public class PlayerCertificate

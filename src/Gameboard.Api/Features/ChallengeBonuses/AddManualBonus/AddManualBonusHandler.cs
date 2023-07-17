@@ -40,7 +40,7 @@ internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
             .AllowRoles(UserRole.Admin, UserRole.Support, UserRole.Designer)
             .Authorize();
 
-        await _validator.Validate(request);
+        await _validator.Validate(request, cancellationToken);
 
         await _challengeBonusStore.Create(new ManualChallengeBonus
         {

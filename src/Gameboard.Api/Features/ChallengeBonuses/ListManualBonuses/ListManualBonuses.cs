@@ -44,7 +44,7 @@ internal class ListManualBonusesHandler : IRequestHandler<ListManualBonusesQuery
             .Authorize();
 
         _validatorService.AddValidator(_challengeExists.UseProperty(r => r.ChallengeId));
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
 
         return await _mapper
             .ProjectTo<ManualChallengeBonusViewModel>
@@ -52,6 +52,6 @@ internal class ListManualBonusesHandler : IRequestHandler<ListManualBonusesQuery
                 _challengeBonusStore
                 .List()
                 .Where(b => b.ChallengeId == request.ChallengeId)
-            ).ToListAsync();
+            ).ToListAsync(cancellationToken);
     }
 }

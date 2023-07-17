@@ -166,7 +166,7 @@ public class UnityGameController : _Controller
             {
                 Model = _mapper.Map<Challenge>(challengeData),
                 Action = EventAction.Updated,
-                ActingUser = HubEventActingUserDescription.FromUser(Actor)
+                ActingUser = Actor.ToSimpleEntity()
             });
 
         return Ok(_mapper.Map<UnityGameChallengeViewModel>(challengeData));

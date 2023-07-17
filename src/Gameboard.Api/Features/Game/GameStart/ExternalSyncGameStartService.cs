@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common;
@@ -72,7 +73,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         _validator = validator;
     }
 
-    public async Task ValidateStart(GameModeStartRequest request)
+    public async Task ValidateStart(GameModeStartRequest request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Validating external / sync-start game request...", request.GameId);
 
@@ -101,11 +102,11 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 ctx.AddValidationException(new CantStartNonReadySynchronizedGame(syncStartState));
         });
 
-        await _validator.Validate(request);
+        await _validator.Validate(request, cancellationToken);
         _logger.LogInformation("Validation complete.", request.GameId);
     }
 
-    public async Task<GameStartState> Start(GameModeStartRequest request)
+    public async Task<GameStartState> Start(GameModeStartRequest request, CancellationToken cancellationToken)
     {
         try
         {
@@ -121,7 +122,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 (
                     g => g
                         .SetProperty(g => g.GameStart, request.State.StartTime)
-                        .SetProperty(g => g.GameEnd, DateTimeOffset.MinValue)
+                        .SetProperty(g => g.GameEnd, DateTimeOffset.MinValue),
+                    cancellationToken
                 );
 
             Log("Deploying challenges...", request.GameId);
@@ -212,7 +214,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             await _gameStore
                 .List()
                 .Where(g => g.Id == request.GameId)
-                .ExecuteUpdateAsync(g => g.SetProperty(g => g.GameEnd, gameEndTime));
+                .ExecuteUpdateAsync(g => g.SetProperty(g => g.GameEnd, gameEndTime), cancellationToken);
 
             // assign each team a headless Url from gamebrain's response
             foreach (var team in request.State.Teams)
@@ -238,9 +240,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         return request.State;
     }
 
-    public async Task<GameStartPhase> GetStartPhase(string gameId)
+    public async Task<GameStartPhase> GetStartPhase(string gameId, CancellationToken cancellationToken)
     {
-        var game = await _gameStore.ListAsNoTracking().FirstOrDefaultAsync(g => g.Id == gameId);
+        var game = await _gameStore.ListAsNoTracking().FirstOrDefaultAsync(g => g.Id == gameId, cancellationToken);
         var hasStart = game.GameStart.IsNotEmpty();
         var hasEnd = game.GameEnd.IsNotEmpty();
         var now = _now.Get();

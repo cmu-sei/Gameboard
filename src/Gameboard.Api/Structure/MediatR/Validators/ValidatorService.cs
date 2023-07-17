@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Structure.MediatR.Validators;
 
@@ -56,7 +57,7 @@ public interface IValidatorService<TModel>
     IValidatorService<TModel> AddValidator(Action<TModel, RequestValidationContext> validationAction);
     IValidatorService<TModel> AddValidator(Func<TModel, RequestValidationContext, Task> validationTask);
     IValidatorService<TModel> AddValidator(IGameboardValidator<TModel> validator);
-    Task Validate(TModel model);
+    Task Validate(TModel model, CancellationToken cancellationToken);
 }
 
 internal class ValidatorService<TModel> : IValidatorService<TModel>
@@ -88,7 +89,7 @@ internal class ValidatorService<TModel> : IValidatorService<TModel>
         return this;
     }
 
-    public async Task Validate(TModel model)
+    public async Task Validate(TModel model, CancellationToken cancellationToken)
     {
         var context = new RequestValidationContext();
 

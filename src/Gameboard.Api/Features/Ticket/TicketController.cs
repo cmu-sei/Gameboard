@@ -166,7 +166,7 @@ public class TicketController : _Controller
         {
             Model = notification,
             Action = action,
-            ActingUser = HubEventActingUserDescription.FromUser(Actor)
+            ActingUser = Actor.ToSimpleEntity()
         };
 
         var tasks = new List<Task>

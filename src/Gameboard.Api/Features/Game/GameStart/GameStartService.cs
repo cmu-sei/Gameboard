@@ -1,16 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
-using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games.External;
+using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Teams;
-using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -18,62 +19,56 @@ namespace Gameboard.Api.Features.Games.Start;
 
 public interface IGameStartService
 {
-    Task<GameStartPhase> GetGameStartPhase(string gameId);
-    Task HandleSyncStartStateChanged(string gameId);
-    Task<GameStartState> Start(GameStartRequest request);
+    Task<GameStartPhase> GetGameStartPhase(string gameId, CancellationToken cancellationToken);
+    Task HandleSyncStartStateChanged(string gameId, CancellationToken cancellationToken);
+    Task<GameStartState> Start(GameStartRequest request, CancellationToken cancellationToken);
 }
 
 internal class GameStartService : IGameStartService
 {
-    private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
-    private readonly IGameEngineService _gameEngineService;
+    private readonly IExternalSyncGameStartService _externalSyncGameStartService;
     private readonly IGameHubBus _gameHubBus;
-    private readonly IGameStore _gameStore;
     private readonly ILogger<GameStartService> _logger;
     private readonly IMapper _mapper;
+    private readonly IMediator _mediator;
     private readonly INowService _now;
-    private readonly IPlayerStore _playerStore;
-    private readonly IExternalSyncGameStartService _externalSyncGameStartService;
+    private readonly IStore _store;
     private readonly ISyncStartGameService _syncStartGameService;
     private readonly ITeamService _teamService;
 
     public GameStartService
     (
-        IStore<Data.ChallengeSpec> challengeSpecStore,
         IExternalSyncGameStartService externalSyncGameStartService,
-        IGameEngineService gameEngineService,
         IGameHubBus gameHubBus,
-        IGameStore gameStore,
         ILogger<GameStartService> logger,
+        IMediator mediator,
         IMapper mapper,
         INowService now,
-        IPlayerStore playerStore,
+        IStore store,
         ISyncStartGameService syncGameStartService,
         ITeamService teamService
     )
     {
-        _challengeSpecStore = challengeSpecStore;
         _externalSyncGameStartService = externalSyncGameStartService;
-        _gameEngineService = gameEngineService;
         _gameHubBus = gameHubBus;
-        _gameStore = gameStore;
         _logger = logger;
         _mapper = mapper;
+        _mediator = mediator;
         _now = now;
-        _playerStore = playerStore;
+        _store = store;
         _syncStartGameService = syncGameStartService;
         _teamService = teamService;
     }
 
-    public async Task<GameStartState> Start(GameStartRequest request)
+    public async Task<GameStartState> Start(GameStartRequest request, CancellationToken cancellationToken)
     {
-        var game = await _gameStore.Retrieve(request.GameId);
+        var game = await _store.Retrieve<Data.Game>(request.GameId);
         var gameModeStartService = ResolveGameModeStartService(game) ?? throw new NotImplementedException();
-        var startRequest = await LoadGameModeStartRequest(game);
+        var startRequest = await LoadGameModeStartRequest(game, cancellationToken);
 
         try
         {
-            return await gameModeStartService.Start(startRequest);
+            return await gameModeStartService.Start(startRequest, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -84,9 +79,9 @@ internal class GameStartService : IGameStartService
         return null;
     }
 
-    public async Task<GameStartPhase> GetGameStartPhase(string gameId)
+    public async Task<GameStartPhase> GetGameStartPhase(string gameId, CancellationToken cancellationToken)
     {
-        var game = await _gameStore.Retrieve(gameId);
+        var game = await _store.Retrieve<Data.Game>(gameId);
 
         // we'll backfill this later with real services, but here you go
         if (!game.RequireSynchronizedStart)
@@ -94,10 +89,10 @@ internal class GameStartService : IGameStartService
 
         // for external/sync start, currently
         var gameModeStartService = ResolveGameModeStartService(game);
-        return await gameModeStartService.GetStartPhase(gameId);
+        return await gameModeStartService.GetStartPhase(gameId, cancellationToken);
     }
 
-    public async Task HandleSyncStartStateChanged(string gameId)
+    public async Task HandleSyncStartStateChanged(string gameId, CancellationToken cancellationToken)
     {
         var state = await _syncStartGameService.GetSyncStartState(gameId);
         await _gameHubBus.SendSyncStartGameStateChanged(state);
@@ -108,7 +103,7 @@ internal class GameStartService : IGameStartService
 
         // for now, we're assuming the "happy path" of sync start games being external games, but we'll separate them later
         // var session = await StartSynchronizedSession(gameId); ;
-        await Start(new GameStartRequest { GameId = state.Game.Id });
+        await Start(new GameStartRequest { GameId = state.Game.Id }, cancellationToken);
     }
 
     private IGameModeStartService ResolveGameModeStartService(Data.Game game)
@@ -126,12 +121,12 @@ internal class GameStartService : IGameStartService
         if (game.Mode == GameMode.External && game.RequireSynchronizedStart)
             return _externalSyncGameStartService;
 
-        return null;
+        throw new NotImplementedException();
     }
 
     // we need to build the base of the game start data both in the case of doing the actual launch
     // or on demand when someone asks for it, so consolidate that here
-    private async Task<GameModeStartRequest> LoadGameModeStartRequest(Data.Game game)
+    private async Task<GameModeStartRequest> LoadGameModeStartRequest(Data.Game game, CancellationToken cancellationToken)
     {
         var now = _now.Get();
 
@@ -142,11 +137,16 @@ internal class GameStartService : IGameStartService
             StartTime = now,
         };
 
-        var specs = await _challengeSpecStore.ListAsNoTracking().Where(cs => cs.GameId == game.Id).ToArrayAsync();
-        var players = await _playerStore
-            .ListAsNoTracking()
+        var specs = await _store
+            .ListAsNoTracking<Data.ChallengeSpec>()
+            .Where(cs => cs.GameId == game.Id)
+            .ToArrayAsync(cancellationToken);
+
+        var players = await _store
+            .ListAsNoTracking<Data.Player>()
             .Where(p => p.GameId == game.Id)
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
+
         var teamCaptains = players
             .GroupBy(p => p.TeamId)
             .ToDictionary
@@ -220,18 +220,7 @@ internal class GameStartService : IGameStartService
 
     private async Task ResetSession(GameStartState ctx, string teamId)
     {
-        var challengeIds = ctx.ChallengesCreated.Select(c => c.Challenge.Id);
-        var challenges = await _playerStore
-            .DbContext
-            .Challenges
-            .Where(c => challengeIds.Contains(c.Id))
-            .ToListAsync();
-
-        foreach (var challenge in challenges)
-            await _gameEngineService.CompleteGamespace(challenge);
-
-
-        await _playerStore.DeleteTeam(teamId);
+        await _mediator.Send(new ResetSessionCommand(teamId, false));
     }
 
     private void Log(string message, string gameId)

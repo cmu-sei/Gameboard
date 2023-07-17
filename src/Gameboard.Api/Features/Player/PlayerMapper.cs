@@ -22,7 +22,6 @@ public class PlayerMapper : Profile
         CreateMap<TeamPlayer, Data.Player>();
         CreateMap<Data.Player, PlayerOverview>();
         CreateMap<Player, TeamPlayer>();
-        CreateMap<Player, TeamState>();
         CreateMap<Player, Data.Player>();
         CreateMap<NewPlayer, Data.Player>();
         CreateMap<ChangedPlayer, Data.Player>();

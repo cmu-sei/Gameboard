@@ -1,9 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
-using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Data;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,12 +14,12 @@ namespace Gameboard.Api.Features.Teams;
 
 public interface ITeamService
 {
-    Task<bool> GetExists(string teamId);
-    Task<int> GetSessionCount(string teamId, string gameId);
-    Task<Team> GetTeam(string id);
-    Task<Api.Player> ResolveCaptain(string teamId);
+    Task DeleteTeam(string teamId, SimpleEntity actingUser, CancellationToken cancellationToken);
+    Task<int> GetSessionCount(string teamId, string gameId, CancellationToken cancellationToken);
+    Task<Team> GetTeam(string id, CancellationToken cancellationToken);
+    Task<Api.Player> ResolveCaptain(string teamId, CancellationToken cancellationToken);
     Api.Player ResolveCaptain(string teamId, IEnumerable<Api.Player> players);
-    Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser);
+    Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser, CancellationToken cancellationToken);
     Task UpdateTeamSponsors(string teamId);
 }
 
@@ -25,13 +28,13 @@ internal class TeamService : ITeamService
     private readonly IMapper _mapper;
     private readonly INowService _now;
     private readonly IInternalHubBus _teamHubService;
-    private readonly IPlayerStore _store;
+    private readonly IStore _store;
 
     public TeamService(
         IMapper mapper,
         INowService now,
         IInternalHubBus teamHubService,
-        IPlayerStore store)
+        IStore store)
     {
         _mapper = mapper;
         _now = now;
@@ -39,30 +42,40 @@ internal class TeamService : ITeamService
         _teamHubService = teamHubService;
     }
 
-    public async Task<bool> GetExists(string teamId)
+    public async Task DeleteTeam(string teamId, SimpleEntity actingUser, CancellationToken cancellationToken)
     {
-        return (await _store.ListTeam(teamId).CountAsync()) > 0;
+        var teamState = await GetTeamState(teamId, actingUser, cancellationToken);
+
+        // delete player records
+        await _store
+            .ListAsNoTracking<Data.Player>()
+            .Where(p => p.TeamId == teamId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        // notify hub that the team is deleted /players left so the client can respond
+        await _teamHubService.SendTeamDeleted(teamState, actingUser);
     }
 
-    public async Task<int> GetSessionCount(string teamId, string gameId)
+    public async Task<int> GetSessionCount(string teamId, string gameId, CancellationToken cancellationToken)
     {
         var now = _now.Get();
 
         return await _store
-            .List()
+            .ListAsNoTracking<Data.Player>()
             .CountAsync
             (
                 p =>
                     p.GameId == gameId &&
                     p.Role == PlayerRole.Manager &&
-                    now < p.SessionEnd
+                    now < p.SessionEnd,
+                cancellationToken
             );
     }
 
-    public async Task<Team> GetTeam(string id)
+    public async Task<Team> GetTeam(string id, CancellationToken cancellationToken)
     {
-        var players = await _store.ListTeam(id).ToArrayAsync();
-        if (players.Count() == 0)
+        var players = await ListTeam(id, cancellationToken);
+        if (!players.Any())
             return null;
 
         var team = _mapper.Map<Team>(players.First(p => p.IsManager));
@@ -76,32 +89,28 @@ internal class TeamService : ITeamService
         return team;
     }
 
-    public async Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser)
+    public async Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser, CancellationToken cancellationToken)
     {
-        var teamPlayers = await _store
-            .List()
-            .AsNoTracking()
-            .Where(p => p.TeamId == teamId)
-            .ToListAsync();
-
+        var teamPlayers = await ListTeam(teamId, cancellationToken);
         var oldCaptain = teamPlayers.SingleOrDefault(p => p.Role == PlayerRole.Manager);
         var newCaptain = teamPlayers.Single(p => p.Id == newCaptainPlayerId);
 
-        using (var transaction = await _store.DbContext.Database.BeginTransactionAsync())
+        await _store.DoTransaction(async () =>
         {
             await _store
-                .List()
+                .ListAsNoTracking<Data.Player>()
                 .Where(p => p.TeamId == teamId)
-                .ExecuteUpdateAsync(p => p.SetProperty(p => p.Role, p => PlayerRole.Member));
+                .ExecuteUpdateAsync(p => p.SetProperty(p => p.Role, p => PlayerRole.Member), cancellationToken);
 
             var affectedPlayers = await _store
-                .List()
+                .ListAsNoTracking<Data.Player>()
                 .Where(p => p.Id == newCaptainPlayerId)
                 .ExecuteUpdateAsync
                 (
                     p => p
                         .SetProperty(p => p.Role, p => PlayerRole.Manager)
-                        .SetProperty(p => p.TeamSponsors, p => oldCaptain.TeamSponsors ?? p.TeamSponsors)
+                        .SetProperty(p => p.TeamSponsors, p => oldCaptain.TeamSponsors ?? p.TeamSponsors),
+                    cancellationToken
                 );
 
             // this automatically rolls back the transaction
@@ -109,30 +118,28 @@ internal class TeamService : ITeamService
                 throw new PromotionFailed(teamId, newCaptainPlayerId, affectedPlayers);
 
             await UpdateTeamSponsors(teamId);
-
-            await transaction.CommitAsync();
-        }
+        }, cancellationToken);
 
         await _teamHubService.SendPlayerRoleChanged(_mapper.Map<Api.Player>(newCaptain), actingUser);
     }
 
-    public async Task<Api.Player> ResolveCaptain(string teamId)
+    public async Task<Api.Player> ResolveCaptain(string teamId, CancellationToken cancellationToken)
     {
         var players = await _store
-            .List()
+            .ListAsNoTracking<Data.Player>()
             .Where(p => p.TeamId == teamId)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return ResolveCaptain(teamId, _mapper.Map<IEnumerable<Api.Player>>(players));
     }
 
     public Api.Player ResolveCaptain(string teamId, IEnumerable<Api.Player> players)
     {
-        if (players.Count() == 0)
+        if (!players.Any())
             throw new CaptainResolutionFailure(teamId, "This team doesn't have any players.");
 
         var groupedByTeam = players.GroupBy(p => p.TeamId).ToDictionary(g => g.Key, g => g.ToList());
-        if (groupedByTeam.Keys.Count() != 1)
+        if (groupedByTeam.Keys.Count != 1)
             throw new PlayersAreFromMultipleTeams(groupedByTeam.Select(g => g.Key));
 
         // if the team has a captain (manager), yay
@@ -155,8 +162,7 @@ internal class TeamService : ITeamService
     public async Task UpdateTeamSponsors(string teamId)
     {
         var members = await _store
-            .List()
-            .AsNoTracking()
+            .ListAsNoTracking<Data.Player>()
             .Where(p => p.TeamId == teamId)
             .Select(p => new
             {
@@ -178,9 +184,31 @@ internal class TeamService : ITeamService
         var manager = members.FirstOrDefault(p => p.IsManager);
 
         await _store
-            .List()
+            .ListAsNoTracking<Data.Player>()
             .Where(p => p.Id == manager.Id)
-            .ExecuteUpdateAsync(p => p
-                .SetProperty(p => p.TeamSponsors, sponsors));
+            .ExecuteUpdateAsync(p => p.SetProperty(p => p.TeamSponsors, sponsors));
     }
+
+    private async Task<TeamState> GetTeamState(string teamId, SimpleEntity actor, CancellationToken cancellationToken)
+    {
+        var captain = await ResolveCaptain(teamId, cancellationToken);
+
+        return new TeamState
+        {
+            Id = teamId,
+            Name = captain.Name,
+            SessionBegin = captain.SessionBegin.IsEmpty() ? null : captain.SessionBegin,
+            SessionEnd = captain.SessionEnd.IsEmpty() ? null : captain.SessionEnd,
+            Actor = actor
+        };
+    }
+
+    private async Task<IEnumerable<Data.Player>> ListTeam(string teamId, CancellationToken cancellationToken)
+        =>
+        (
+            await _store
+            .ListAsNoTracking<Data.Player>()
+            .Where(p => p.TeamId == teamId)
+            .ToArrayAsync(cancellationToken)
+        ).AsEnumerable();
 }

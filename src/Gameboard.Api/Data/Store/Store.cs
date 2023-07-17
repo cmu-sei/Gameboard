@@ -1,13 +1,16 @@
+using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data;
 
-internal interface IStore
+public interface IStore
 {
     Task<TEntity> Create<TEntity>(TEntity entity) where TEntity : class, IEntity;
+    Task DoTransaction(Func<Task> operation, CancellationToken cancellationToken);
     Task<int> Delete<TEntity>(string id) where TEntity : class, IEntity;
     Task<bool> Exists<TEntity>(string id) where TEntity : class, IEntity;
     IQueryable<TEntity> List<TEntity>() where TEntity : class, IEntity;
@@ -16,7 +19,7 @@ internal interface IStore
     Task Update<TEntity>(TEntity entity) where TEntity : class, IEntity;
 }
 
-internal sealed class Store : IStore
+internal class Store : IStore
 {
     private readonly GameboardDbContext _dbContext;
     private readonly IGuidService _guids;
@@ -25,6 +28,13 @@ internal sealed class Store : IStore
     {
         _dbContext = dbContext;
         _guids = guids;
+    }
+
+    public async Task DoTransaction(Func<Task> operation, CancellationToken cancellationToken)
+    {
+        using var transaction = _dbContext.Database.BeginTransaction();
+        await operation();
+        await transaction.CommitAsync(cancellationToken);
     }
 
     public IQueryable<TEntity> List<TEntity>() where TEntity : class, IEntity
@@ -64,6 +74,6 @@ internal sealed class Store : IStore
 
     public Task<int> Delete<TEntity>(string id) where TEntity : class, IEntity
         => _dbContext.Set<TEntity>()
-            .Where<TEntity>(e => e.Id == id)
-            .ExecuteDeleteAsync<TEntity>();
+            .Where(e => e.Id == id)
+            .ExecuteDeleteAsync();
 }
