@@ -9,10 +9,12 @@ public class PracticeModeReportGrouping
 {
     public static readonly string Challenge = "challenge";
     public static readonly string Player = "player";
+    public static readonly string PlayerPerformance = "player-performance";
 }
 
-[JsonDerivedType(typeof(PracticeModeByUserReportRecord), typeDiscriminator: "byUser")]
 [JsonDerivedType(typeof(PracticeModeByChallengeReportRecord), typeDiscriminator: "byChallenge")]
+[JsonDerivedType(typeof(PracticeModeByUserReportRecord), typeDiscriminator: "byUser")]
+[JsonDerivedType(typeof(PracticeModeReportByPlayerPerformanceRecord), typeDiscriminator: "byPlayerPerformance")]
 public interface IPracticeModeReportRecord { }
 
 public sealed class PracticeModeReportParameters
@@ -101,4 +103,31 @@ public sealed class PracticeModeReportByChallengePerformanceBySponsor
 {
     public required ReportSponsorViewModel Sponsor { get; set; }
     public required PracticeModeReportByChallengePerformance Performance { get; set; }
+}
+
+public sealed class PracticeModeReportByPlayerPerformanceRecord : IPracticeModeReportRecord
+{
+    public required SimpleEntity Player { get; set; }
+    public required ReportSponsorViewModel Sponsor { get; set; }
+    public required PracticeModeReportByPlayerPerformanceModeSummary PracticeStats { get; set; }
+    public required PracticeModeReportByPlayerPerformanceModeSummary CompetitiveStats { get; set; }
+}
+
+public sealed class PracticeModeReportByPlayerPerformanceModeSummary
+{
+    public required DateTimeOffset? LastAttemptDate { get; set; }
+    public required int TotalChallengesPlayed { get; set; }
+    public required decimal ZeroScoreSolves { get; set; }
+    public required decimal PartialSolves { get; set; }
+    public required decimal CompleteSolves { get; set; }
+    public required decimal AvgPctAvailablePointsScored { get; set; }
+    public required decimal AvgScorePercentile { get; set; }
+}
+
+internal sealed class PracticeModeReportByPlayerPerformanceChallengeScore
+{
+    public required string ChallengeSpecId { get; set; }
+    public required string UserId { get; set; }
+    public required bool IsPractice { get; set; }
+    public required decimal Score { get; set; }
 }

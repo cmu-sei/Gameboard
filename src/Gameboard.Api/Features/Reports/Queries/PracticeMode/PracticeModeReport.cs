@@ -40,6 +40,15 @@ internal class PracticeModeReportHandler : IRequestHandler<PracticeModeReportQue
                 ReportKey = ReportKey.PracticeMode,
                 Title = "Practice Mode Report (Grouped By Player)",
             });
+        else if (request.Parameters.Grouping == PracticeModeReportGrouping.PlayerPerformance)
+            return _reportsService.BuildResults(new ReportRawResults<IPracticeModeReportRecord>
+            {
+                PagingArgs = request.PagingArgs,
+                ParameterSummary = null,
+                Records = await _practiceModeByUserReportService.GetResultsByPlayerPerformance(request.Parameters, cancellationToken),
+                ReportKey = ReportKey.PracticeMode,
+                Title = "Practice Mode Report (Grouped By Player Mode Performance)"
+            });
 
         throw new ArgumentException(message: $"""Grouping value "{request.Parameters.Grouping}" is unsupported.""", nameof(request.Parameters.Grouping));
     }

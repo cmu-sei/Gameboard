@@ -14,6 +14,7 @@ public interface IPracticeModeReportService
 {
     Task<IEnumerable<PracticeModeByChallengeReportRecord>> GetResultsByChallenge(PracticeModeReportParameters parameters, CancellationToken cancellationToken);
     Task<IEnumerable<PracticeModeByUserReportRecord>> GetResultsByUser(PracticeModeReportParameters parameters, CancellationToken cancellationToken);
+    Task<IEnumerable<PracticeModeReportByPlayerPerformanceRecord>> GetResultsByPlayerPerformance(PracticeModeReportParameters parameters, CancellationToken cancellationToken);
 }
 
 internal class PracticeModeReportService : IPracticeModeReportService
@@ -203,6 +204,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
     public async Task<IEnumerable<PracticeModeByChallengeReportRecord>> GetResultsByChallenge(PracticeModeReportParameters parameters, CancellationToken cancellationToken)
     {
         var ungroupedResults = await BuildUngroupedResults(parameters, cancellationToken);
+
         var records = ungroupedResults
             .Challenges
             .GroupBy(c => c.SpecId)
@@ -252,34 +254,87 @@ internal class PracticeModeReportService : IPracticeModeReportService
         return records;
     }
 
+    public async Task<IEnumerable<PracticeModeReportByPlayerPerformanceRecord>> GetResultsByPlayerPerformance(PracticeModeReportParameters parameters, CancellationToken cancellationToken)
+    {
+        var ungroupedResults = await BuildUngroupedResults(parameters, cancellationToken);
+        var allSpecPercentiles = ungroupedResults
+            .Challenges
+            .GroupBy(c => new { c.SpecId, c.Player.UserId, IsPractice = c.Game.IsPracticeMode })
+            .Select(g => new PracticeModeReportByPlayerPerformanceChallengeScore
+            {
+                ChallengeSpecId = g.Key.SpecId,
+                UserId = g.Key.UserId,
+                IsPractice = g.Key.IsPractice,
+                Score = new decimal(g.Select(c => c.Score).ToList().Max())
+            });
 
+        return ungroupedResults
+            .Challenges
+            .GroupBy(r => new { r.Player.UserId, r.Player.User.ApprovedName, r.Player.Sponsor })
+            .Select(g => new PracticeModeReportByPlayerPerformanceRecord
+            {
+                Player = new SimpleEntity { Id = g.Key.UserId, Name = g.Key.ApprovedName },
+                Sponsor = ungroupedResults.Sponsors.FirstOrDefault(s => s.LogoFileName == g.Key.Sponsor),
+                PracticeStats = CalculateByPlayerPerformanceModeSummary(g.Key.UserId, true, g.ToList(), allSpecPercentiles),
+                CompetitiveStats = CalculateByPlayerPerformanceModeSummary(g.Key.UserId, false, g.ToList(), allSpecPercentiles)
+            });
+    }
 
-    // public async Task<IEnumerable<Data.Challenge>> GetPlayerPracticeCompetitiveResults(PracticeModeReportParameters parameters, CancellationToken cancellationToken)
-    // {
-    // var userCompetitiveChallenges = await _store
-    // .List<Data.Challenge>()
-    // .Include(c => c.Player)
-    // .Include(c => c.Game)
-    // .Where(c => c.Game.PlayerMode == PlayerMode.Competition)
-    // .Where(c => userIds.Contains(c.Player.UserId))
-    // .GroupBy(c => c.Player.UserId)
-    // .ToDictionaryAsync(c => c.Key, c => c, cancellationToken);
-    //     CompetitiveSummary = !userCompetitiveChallenges.ContainsKey(c.Key.UserId)
-    //             ? null : new PracticeModeUserCompetitiveSummary
-    //             {
-    //                 AvgCompetitivePointsPct = userCompetitiveChallenges[c.Key.UserId]
-    //                     .Where(c => c.Points > 0) // no dividing by zero here
-    //                     .Average(c => c.Score / c.Points)
-    //                     * 100,
-    //                 CompetitiveChallengesPlayed = userCompetitiveChallenges[c.Key.UserId].Count(),
-    //                 CompetitiveGamesPlayed = userCompetitiveChallenges[c.Key.UserId]
-    //                     .Select(c => c.GameId)
-    //                     .Distinct()
-    //                     .Count(),
-    //                 LastCompetitiveChallengeDate = userCompetitiveChallenges[c.Key.UserId]
-    //                     .OrderBy(c => c.StartTime)
-    //                     .Select(c => c.StartTime)
-    //                     .FirstOrDefault()
-    //             }
-    // }
+    private PracticeModeReportByPlayerPerformanceModeSummary CalculateByPlayerPerformanceModeSummary(string userId, bool isPractice, IEnumerable<Data.Challenge> challenges, IEnumerable<PracticeModeReportByPlayerPerformanceChallengeScore> percentileTable)
+    {
+        var modeChallenges = challenges.Where(c => c.Game.IsPracticeMode == isPractice);
+        var modePercentiles = percentileTable.Where(p => p.IsPractice == isPractice);
+        PracticeModeReportByPlayerPerformanceModeSummary modeStats = null;
+
+        if (modeChallenges.Any())
+        {
+            // COMPETITIVE MODE
+            modeStats = new PracticeModeReportByPlayerPerformanceModeSummary
+            {
+                LastAttemptDate = modeChallenges
+                    .OrderByDescending(c => c.Player.SessionBegin)
+                    .Select(c => c.Player.SessionBegin)
+                    .FirstOrDefault(),
+                TotalChallengesPlayed = modeChallenges.Count(),
+                ZeroScoreSolves = modeChallenges.Where(c => c.Result == ChallengeResult.None).Count(),
+                PartialSolves = modeChallenges.Where(c => c.Result == ChallengeResult.Partial).Count(),
+                CompleteSolves = modeChallenges.Where(c => c.Result == ChallengeResult.Success).Count(),
+                AvgPctAvailablePointsScored = modeChallenges
+                    .Where(c => c.Points > 0)
+                    .Average(c => decimal.Divide(new decimal(c.Score), c.Points) * 100),
+                AvgScorePercentile = modeChallenges
+                    .Select
+                    (
+                        c => CalculatePlayerChallengePercentile(userId, c.SpecId, new decimal(c.Score), true, modePercentiles)
+                    )
+                    .Where(percentile => percentile is not null)
+                    .Select(percentile => percentile.Value)
+                    .DefaultIfEmpty()
+                    .Average()
+            };
+        }
+
+        return modeStats;
+    }
+
+    private decimal? CalculatePlayerChallengePercentile(string userId, string specId, decimal score, bool isPractice, IEnumerable<PracticeModeReportByPlayerPerformanceChallengeScore> percentileTable)
+    {
+        Func<PracticeModeReportByPlayerPerformanceChallengeScore, bool> isOtherPlayerRecord = p =>
+                p.IsPractice == isPractice &&
+                p.ChallengeSpecId == specId &&
+                p.UserId != userId;
+
+        var denominator = percentileTable
+            .Where(p => isOtherPlayerRecord(p))
+            .Count();
+
+        if (denominator == 0)
+            return null;
+
+        var numerator = percentileTable
+            .Where(p => isOtherPlayerRecord(p) && p.Score < score)
+            .Count();
+
+        return decimal.Divide(numerator, denominator);
+    }
 }
