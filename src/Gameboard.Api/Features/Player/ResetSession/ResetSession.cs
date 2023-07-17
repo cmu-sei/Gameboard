@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -58,6 +59,21 @@ internal class ResetSessionHandler : IRequestHandler<ResetSessionCommand>
         if (request.Unenroll)
         {
             await _teamService.DeleteTeam(request.TeamId, null, cancellationToken);
+        }
+        else
+        {
+            // if we're not deleting the team, we still reset the session properties
+            await _store
+                .ListAsNoTracking<Data.Player>()
+                .Where(p => p.TeamId == request.TeamId)
+                .ExecuteUpdateAsync
+                (
+                    p => p
+                        .SetProperty(p => p.SessionBegin, DateTimeOffset.MinValue)
+                        .SetProperty(p => p.SessionEnd, DateTimeOffset.MinValue)
+                        .SetProperty(p => p.SessionMinutes, 0),
+                    cancellationToken
+                );
         }
 
         if (game.RequireSynchronizedStart)

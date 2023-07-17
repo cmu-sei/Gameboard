@@ -27,6 +27,7 @@ internal class TeamExistsValidator<TModel> : IGameboardValidator<TModel>
             // in different games
             var players = await _store
                 .ListAsNoTracking<Data.Player>()
+                .Where(p => p.TeamId == teamId)
                 .ToListAsync();
 
             if (!players.Any())
