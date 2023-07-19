@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -12,14 +14,16 @@ namespace Gameboard.Api.Features.Reports;
 [Route("/api/reports/export")]
 public class ReportsExportController : ControllerBase
 {
+    private readonly User _actingUser;
     private readonly IMediator _mediator;
 
-    public ReportsExportController(IMediator mediator)
+    public ReportsExportController(IActingUserService actingUserService, IMediator mediator)
     {
+        _actingUser = actingUserService.Get();
         _mediator = mediator;
     }
 
-    [HttpGet("challenges-report")]
+    [HttpGet("challenges")]
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> GetChallengesReport(GetChallengesReportQueryArgs parameters)
     {
@@ -35,11 +39,19 @@ public class ReportsExportController : ControllerBase
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
     }
 
-    [HttpGet("players-report")]
+    [HttpGet("players")]
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> GetPlayersReport(PlayersReportQueryParameters parameters)
     {
         var results = await _mediator.Send(new PlayersReportExportQuery(parameters));
+        return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
+    }
+
+    [HttpGet("practice-mode")]
+    [ProducesResponseType(typeof(FileContentResult), 200)]
+    public async Task<IActionResult> GetPracticeModeReportExport(PracticeModeReportParameters parameters, CancellationToken cancellationToken)
+    {
+        var results = await _mediator.Send(new PracticeModeReportCsvExportQuery(parameters, _actingUser), cancellationToken);
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
     }
 

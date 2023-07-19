@@ -31,38 +31,36 @@ public interface IPagingService
 
 internal class PagingService : IPagingService
 {
-    private static readonly int DEFAULT_PAGE_SIZE = 5;
+    private static readonly int DEFAULT_PAGE_SIZE = 20;
 
     public PagedEnumerable<T> Page<T>(IEnumerable<T> items, PagingArgs pagingArgs = null)
     {
         var itemCount = items.Count();
         var finalItems = items;
-        var isPaging = false;
 
-        if (pagingArgs != null)
+        if (pagingArgs is null)
         {
-            if ((pagingArgs.PageNumber == null || pagingArgs.PageSize == null) && pagingArgs.PageNumber != pagingArgs.PageSize)
-                throw new ArgumentException($"If either of {nameof(pagingArgs.PageNumber)} or {nameof(pagingArgs.PageSize)} is specified when calling {nameof(Page)}, both most be specified.");
-            else if (pagingArgs.PageNumber != null && pagingArgs.PageSize != null && pagingArgs.PageNumber.Value * pagingArgs.PageSize.Value >= itemCount)
+            pagingArgs = new()
             {
-                pagingArgs.PageNumber = 0;
-                pagingArgs.PageSize = DEFAULT_PAGE_SIZE;
-            }
-
-            isPaging = pagingArgs.PageNumber != null;
+                PageNumber = 0,
+                PageSize = DEFAULT_PAGE_SIZE,
+            };
         }
-
-        if (isPaging)
+        else
         {
-            finalItems = finalItems
-                .Skip(pagingArgs.PageNumber.Value * pagingArgs.PageSize.Value)
-                .Take(pagingArgs.PageSize.Value);
+            pagingArgs.PageSize = pagingArgs.PageSize ?? DEFAULT_PAGE_SIZE;
+            pagingArgs.PageNumber = pagingArgs.PageNumber ?? 0;
         }
+
+
+        finalItems = finalItems
+            .Skip(pagingArgs.PageNumber.Value * pagingArgs.PageSize.Value)
+            .Take(pagingArgs.PageSize.Value);
 
         return new PagedEnumerable<T>
         {
             Items = finalItems,
-            Paging = !isPaging ? null : new PagingResults
+            Paging = new PagingResults
             {
                 ItemCount = itemCount,
                 PageNumber = pagingArgs.PageNumber,

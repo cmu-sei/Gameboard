@@ -16,6 +16,7 @@ namespace Gameboard.Api.Features.Reports;
 public interface IReportsService
 {
     ReportResults<TRecord> BuildResults<TRecord>(ReportRawResults<TRecord> rawResults);
+    ReportResults<TOverallStats, TRecord> BuildResults<TOverallStats, TRecord>(ReportRawResults<TOverallStats, TRecord> rawResults);
     Task<IEnumerable<ChallengesReportRecord>> GetChallengesReportRecords(GetChallengesReportQueryArgs parameters);
     Task<IDictionary<string, ReportTeamViewModel>> GetTeamsByPlayerIds(IEnumerable<string> playerIds, CancellationToken cancellationToken);
     Task<IEnumerable<ReportViewModel>> List();
@@ -32,6 +33,12 @@ public interface IReportsService
 public class ReportsService : IReportsService
 {
     private static readonly string MULTI_SELECT_DELIMITER = ",";
+    public static readonly PagingArgs DEFAULT_PAGING = new()
+    {
+        PageNumber = 0,
+        PageSize = 20,
+    };
+
     private readonly IMapper _mapper;
     private readonly INowService _now;
     private readonly IPagingService _paging;
@@ -58,27 +65,27 @@ public class ReportsService : IReportsService
     {
         var reports = new ReportViewModel[]
         {
-            new ReportViewModel
-            {
-                Name = "Challenges",
-                Key = ReportKey.Challenges,
-                Description = "Understand the role a challenge played in its games and competitions, how attainable a full solve was, and more.",
-                ExampleFields = new string[]
-                {
-                    "Scores & Solve Times",
-                    "Eligibility",
-                    "Engagement",
-                    "Participation Across Challenges/Games"
-                },
-                ExampleParameters = new string[]
-                {
-                    "Session Date Range",
-                    "Season",
-                    "Series",
-                    "Track",
-                    "Game & Challenge"
-                }
-            },
+            // new ReportViewModel
+            // {
+            //     Name = "Challenges",
+            //     Key = ReportKey.Challenges,
+            //     Description = "Understand the role a challenge played in its games and competitions, how attainable a full solve was, and more.",
+            //     ExampleFields = new string[]
+            //     {
+            //         "Scores & Solve Times",
+            //         "Eligibility",
+            //         "Engagement",
+            //         "Participation Across Challenges/Games"
+            //     },
+            //     ExampleParameters = new string[]
+            //     {
+            //         "Session Date Range",
+            //         "Season",
+            //         "Series",
+            //         "Track",
+            //         "Game & Challenge"
+            //     }
+            // },
             new ReportViewModel
             {
                 Name = "Enrollment",
@@ -102,28 +109,28 @@ public class ReportsService : IReportsService
                     "Game & Challenge"
                 }
             },
-            new ReportViewModel
-            {
-                Name = "Players",
-                Key = ReportKey.Players,
-                Description = "View a player-based perspective of your games and challenge. See who's scoring highly, logging in regularly, and more.",
-                ExampleFields = new string[]
-                {
-                    "Deplyoment/Enrollment Counts",
-                    "Completion Stats",
-                    "Engagement",
-                    "Participation Across Challenges/Games"
-                },
-                ExampleParameters = new string[]
-                {
-                    "Session Date Range",
-                    "Season",
-                    "Series",
-                    "Sponsor",
-                    "Track",
-                    "Game/Challenge"
-                }
-            },
+            // new ReportViewModel
+            // {
+            //     Name = "Players",
+            //     Key = ReportKey.Players,
+            //     Description = "View a player-based perspective of your games and challenge. See who's scoring highly, logging in regularly, and more.",
+            //     ExampleFields = new string[]
+            //     {
+            //         "Deplyoment/Enrollment Counts",
+            //         "Completion Stats",
+            //         "Engagement",
+            //         "Participation Across Challenges/Games"
+            //     },
+            //     ExampleParameters = new string[]
+            //     {
+            //         "Session Date Range",
+            //         "Season",
+            //         "Series",
+            //         "Sponsor",
+            //         "Track",
+            //         "Game/Challenge"
+            //     }
+            // },
             new ReportViewModel
             {
                 Name = "Practice Mode",
@@ -150,7 +157,7 @@ public class ReportsService : IReportsService
                 Description = "View a summary of the support tickets that have been created in Gameboard, including closer looks at submission times, ticket categories, and associated challenges.",
                 ExampleFields = new string[]
                 {
-                    "TicketCategory",
+                    "Ticket Category",
                     "Challenge",
                     "Time Windows",
                     "Assignment Info"
@@ -295,6 +302,25 @@ public class ReportsService : IReportsService
                 ParametersSummary = null,
                 RunAt = _now.Get()
             },
+            Paging = pagedResults.Paging,
+            Records = pagedResults.Items
+        };
+    }
+
+    public ReportResults<TOverallStats, TRecord> BuildResults<TOverallStats, TRecord>(ReportRawResults<TOverallStats, TRecord> rawResults)
+    {
+        var pagedResults = _paging.Page(rawResults.Records, rawResults.PagingArgs);
+
+        return new ReportResults<TOverallStats, TRecord>
+        {
+            MetaData = new ReportMetaData
+            {
+                Title = rawResults.Title,
+                Key = rawResults.ReportKey,
+                ParametersSummary = null,
+                RunAt = _now.Get()
+            },
+            OverallStats = rawResults.OverallStats,
             Paging = pagedResults.Paging,
             Records = pagedResults.Items
         };

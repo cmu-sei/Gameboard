@@ -1,39 +1,41 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Services;
+using Gameboard.Api.Common;
 using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record SupportReportQuery(SupportReportParameters Parameters) : IRequest<ReportResults<SupportReportRecord>>;
+public record SupportReportQuery(SupportReportParameters Parameters, PagingArgs PagingArgs, User ActingUser) : IRequest<ReportResults<SupportReportRecord>>, IReportQuery;
 
 internal class SupportReportQueryHandler : IRequestHandler<SupportReportQuery, ReportResults<SupportReportRecord>>
 {
-    private readonly INowService _now;
+    private readonly IReportsService _reportsService;
     private readonly ISupportReportService _service;
+    private readonly ReportsQueryValidator<PracticeModeReportCsvExportQuery> _validator;
 
     public SupportReportQueryHandler
     (
-        INowService now,
-        ISupportReportService service
+        IReportsService reportsService,
+        ISupportReportService service,
+        ReportsQueryValidator<PracticeModeReportCsvExportQuery> validator
     )
     {
-        _now = now;
+        _reportsService = reportsService;
         _service = service;
+        _validator = validator;
     }
 
     public async Task<ReportResults<SupportReportRecord>> Handle(SupportReportQuery request, CancellationToken cancellationToken)
     {
-        return new ReportResults<SupportReportRecord>
+        await _validator.Validate(request);
+
+        return _reportsService.BuildResults(new ReportRawResults<SupportReportRecord>
         {
-            MetaData = new ReportMetaData
-            {
-                Title = "Support Report",
-                RunAt = _now.Get(),
-                Key = ReportKey.Support
-            },
-            Paging = null,
-            Records = await _service.QueryRecords(request.Parameters)
-        };
+            PagingArgs = request.PagingArgs,
+            ParameterSummary = null,
+            Records = await _service.QueryRecords(request.Parameters),
+            ReportKey = ReportKey.Support,
+            Title = "Support Report"
+        });
     }
 }

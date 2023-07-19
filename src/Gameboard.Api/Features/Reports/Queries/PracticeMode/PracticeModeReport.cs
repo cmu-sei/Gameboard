@@ -6,11 +6,11 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record PracticeModeReportQuery(PracticeModeReportParameters Parameters, PagingArgs PagingArgs) : IRequest<ReportResults<IPracticeModeReportRecord>>;
+public record PracticeModeReportQuery(PracticeModeReportParameters Parameters, User ActingUser, PagingArgs PagingArgs) : IRequest<ReportResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>>;
 
-internal class PracticeModeReportHandler : IRequestHandler<PracticeModeReportQuery, ReportResults<IPracticeModeReportRecord>>
+internal class PracticeModeReportHandler : IRequestHandler<PracticeModeReportQuery, ReportResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>>
 {
-    private readonly IPracticeModeReportService _practiceModeByUserReportService;
+    private readonly IPracticeModeReportService _practiceModeReportService;
     private readonly IReportsService _reportsService;
 
     public PracticeModeReportHandler
@@ -18,37 +18,49 @@ internal class PracticeModeReportHandler : IRequestHandler<PracticeModeReportQue
         IPracticeModeReportService practiceModeReportService,
         IReportsService reportsService
     )
-     => (_practiceModeByUserReportService, _reportsService) = (practiceModeReportService, reportsService);
+     => (_practiceModeReportService, _reportsService) = (practiceModeReportService, reportsService);
 
-    public async Task<ReportResults<IPracticeModeReportRecord>> Handle(PracticeModeReportQuery request, CancellationToken cancellationToken)
+    public async Task<ReportResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>> Handle(PracticeModeReportQuery request, CancellationToken cancellationToken)
     {
         if (request.Parameters.Grouping == PracticeModeReportGrouping.Challenge)
-            return _reportsService.BuildResults(new ReportRawResults<IPracticeModeReportRecord>
+        {
+            var results = await _practiceModeReportService.GetResultsByChallenge(request.Parameters, cancellationToken);
+            return _reportsService.BuildResults(new ReportRawResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>
             {
+                OverallStats = results.OverallStats,
                 PagingArgs = request.PagingArgs,
                 ParameterSummary = null,
-                Records = await _practiceModeByUserReportService.GetResultsByChallenge(request.Parameters, cancellationToken),
+                Records = results.Records,
                 ReportKey = ReportKey.PracticeMode,
                 Title = "Practice Mode Report (Grouped By Challenge)"
             });
+        }
         else if (request.Parameters.Grouping == PracticeModeReportGrouping.Player)
-            return _reportsService.BuildResults(new ReportRawResults<IPracticeModeReportRecord>
+        {
+            var results = await _practiceModeReportService.GetResultsByUser(request.Parameters, cancellationToken);
+            return _reportsService.BuildResults(new ReportRawResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>
             {
+                OverallStats = results.OverallStats,
                 PagingArgs = request.PagingArgs,
                 ParameterSummary = null,
-                Records = await _practiceModeByUserReportService.GetResultsByUser(request.Parameters, cancellationToken),
+                Records = results.Records,
                 ReportKey = ReportKey.PracticeMode,
                 Title = "Practice Mode Report (Grouped By Player)",
             });
-        else if (request.Parameters.Grouping == PracticeModeReportGrouping.PlayerPerformance)
-            return _reportsService.BuildResults(new ReportRawResults<IPracticeModeReportRecord>
+        }
+        else if (request.Parameters.Grouping == PracticeModeReportGrouping.PlayerModePerformance)
+        {
+            var results = await _practiceModeReportService.GetResultsByPlayerModePerformance(request.Parameters, cancellationToken);
+            return _reportsService.BuildResults(new ReportRawResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>
             {
+                OverallStats = results.OverallStats,
                 PagingArgs = request.PagingArgs,
                 ParameterSummary = null,
-                Records = await _practiceModeByUserReportService.GetResultsByPlayerPerformance(request.Parameters, cancellationToken),
+                Records = results.Records,
                 ReportKey = ReportKey.PracticeMode,
                 Title = "Practice Mode Report (Grouped By Player Mode Performance)"
             });
+        }
 
         throw new ArgumentException(message: $"""Grouping value "{request.Parameters.Grouping}" is unsupported.""", nameof(request.Parameters.Grouping));
     }

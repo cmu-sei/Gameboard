@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Gameboard.Api.Common;
+using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,15 +13,18 @@ namespace Gameboard.Api.Features.Reports;
 [Route("/api/reports")]
 public class ReportsController : ControllerBase
 {
+    private readonly User _actingUser;
     private readonly IMediator _mediator;
     private readonly IReportsService _service;
 
     public ReportsController
     (
+        IActingUserService actingUserService,
         IMediator mediator,
         IReportsService service
     )
     {
+        _actingUser = actingUserService.Get();
         _mediator = mediator;
         _service = service;
     }
@@ -42,16 +46,20 @@ public class ReportsController : ControllerBase
         => _mediator.Send(new EnrollmentReportLineChartQuery(parameters));
 
     [HttpGet("practice-mode")]
-    public async Task<ReportResults<IPracticeModeReportRecord>> GetPracticeModeReport([FromQuery] PracticeModeReportParameters parameters, [FromQuery] PagingArgs paging)
-        => await _mediator.Send(new PracticeModeReportQuery(parameters, paging));
+    public async Task<ReportResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>> GetPracticeModeReport([FromQuery] PracticeModeReportParameters parameters, [FromQuery] PagingArgs paging)
+        => await _mediator.Send(new PracticeModeReportQuery(parameters, _actingUser, paging));
+
+    [HttpGet("practice-mode/user/{id}/summary")]
+    public async Task<PracticeModeReportPlayerModeSummary> GetPracticeModeReportPlayerModeSummary([FromRoute] string id, [FromQuery] bool isPractice)
+        => await _mediator.Send(new PracticeModeReportPlayerModeSummaryQuery(id, isPractice, _actingUser));
 
     [HttpGet("players-report")]
     public async Task<ReportResults<PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportQueryParameters reportParams)
         => await _mediator.Send(new PlayersReportQuery(reportParams));
 
-    [HttpGet("support-report")]
-    public async Task<ReportResults<SupportReportRecord>> GetSupportReport([FromQuery] SupportReportParameters reportParams)
-        => await _mediator.Send(new SupportReportQuery(reportParams));
+    [HttpGet("support")]
+    public async Task<ReportResults<SupportReportRecord>> GetSupportReport([FromQuery] SupportReportParameters reportParams, [FromQuery] PagingArgs pagingArgs)
+        => await _mediator.Send(new SupportReportQuery(reportParams, pagingArgs, _actingUser));
 
     [HttpGet("metaData")]
     public async Task<ReportMetaData> GetReportMetaData([FromQuery] string reportKey)

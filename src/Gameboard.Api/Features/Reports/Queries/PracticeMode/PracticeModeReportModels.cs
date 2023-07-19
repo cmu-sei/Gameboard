@@ -9,20 +9,36 @@ public class PracticeModeReportGrouping
 {
     public static readonly string Challenge = "challenge";
     public static readonly string Player = "player";
-    public static readonly string PlayerPerformance = "player-performance";
+    public static readonly string PlayerModePerformance = "player-mode-performance";
+}
+
+public sealed class PracticeModeReportOverallStats
+{
+    public int ChallengeCount { get; set; }
+    public int PlayerCount { get; set; }
+    public int SponsorCount { get; set; }
+    public int AttemptCount { get; set; }
 }
 
 [JsonDerivedType(typeof(PracticeModeByChallengeReportRecord), typeDiscriminator: "byChallenge")]
 [JsonDerivedType(typeof(PracticeModeByUserReportRecord), typeDiscriminator: "byUser")]
-[JsonDerivedType(typeof(PracticeModeReportByPlayerPerformanceRecord), typeDiscriminator: "byPlayerPerformance")]
+[JsonDerivedType(typeof(PracticeModeReportByPlayerModePerformanceRecord), typeDiscriminator: "byPlayerModePerformance")]
 public interface IPracticeModeReportRecord { }
+
+public sealed class PracticeModeReportResults
+{
+    public PracticeModeReportOverallStats OverallStats { get; set; }
+    public IEnumerable<IPracticeModeReportRecord> Records { get; set; }
+}
 
 public sealed class PracticeModeReportParameters
 {
-    public DateTimeOffset? AttemptDateStart { get; set; }
-    public DateTimeOffset? AttemptDateEnd { get; set; }
-    public ReportDateRange AttemptDateRange { get; set; }
+    public DateTimeOffset? PracticeDateStart { get; set; }
+    public DateTimeOffset? PracticeDateEnd { get; set; }
     public IEnumerable<string> GameIds { get; set; }
+    public IEnumerable<string> Seasons { get; set; }
+    public IEnumerable<string> Series { get; set; }
+    public IEnumerable<string> Tracks { get; set; }
     public IEnumerable<string> SponsorIds { get; set; }
     public string Grouping { get; set; }
 }
@@ -105,29 +121,72 @@ public sealed class PracticeModeReportByChallengePerformanceBySponsor
     public required PracticeModeReportByChallengePerformance Performance { get; set; }
 }
 
-public sealed class PracticeModeReportByPlayerPerformanceRecord : IPracticeModeReportRecord
+public sealed class PracticeModeReportByPlayerModePerformanceRecord : IPracticeModeReportRecord
 {
     public required SimpleEntity Player { get; set; }
     public required ReportSponsorViewModel Sponsor { get; set; }
-    public required PracticeModeReportByPlayerPerformanceModeSummary PracticeStats { get; set; }
-    public required PracticeModeReportByPlayerPerformanceModeSummary CompetitiveStats { get; set; }
+    public required PracticeModeReportByPlayerModePerformanceRecordModeSummary PracticeStats { get; set; }
+    public required PracticeModeReportByPlayerModePerformanceRecordModeSummary CompetitiveStats { get; set; }
 }
 
-public sealed class PracticeModeReportByPlayerPerformanceModeSummary
+public sealed class PracticeModeReportByPlayerModePerformanceRecordModeSummary
 {
     public required DateTimeOffset? LastAttemptDate { get; set; }
     public required int TotalChallengesPlayed { get; set; }
     public required decimal ZeroScoreSolves { get; set; }
     public required decimal PartialSolves { get; set; }
     public required decimal CompleteSolves { get; set; }
-    public required decimal AvgPctAvailablePointsScored { get; set; }
+    public required double AvgPctAvailablePointsScored { get; set; }
     public required decimal AvgScorePercentile { get; set; }
 }
 
-internal sealed class PracticeModeReportByPlayerPerformanceChallengeScore
+internal sealed class PracticeModeReportByPlayerModePerformanceChallengeScore
 {
+    public required string ChallengeId { get; set; }
     public required string ChallengeSpecId { get; set; }
-    public required string UserId { get; set; }
     public required bool IsPractice { get; set; }
-    public required decimal Score { get; set; }
+    public required double Score { get; set; }
 }
+
+public sealed class PracticeModeReportPlayerModeSummary
+{
+    public required PracticeModeReportUser Player { get; set; }
+    public required IEnumerable<PracticeModeReportPlayerModeSummaryChallenge> Challenges { get; set; }
+}
+
+public sealed class PracticeModeReportPlayerModeSummaryChallenge
+{
+    public required SimpleEntity ChallengeSpec { get; set; }
+    public required ReportGameViewModel Game { get; set; }
+    public required decimal Score { get; set; }
+    public required decimal MaxPossibleScore { get; set; }
+    public required ChallengeResult Result { get; set; }
+    public required double PctAvailablePointsScored { get; set; }
+    public required decimal? ScorePercentile { get; set; }
+}
+
+public sealed class PracticeModeReportCsvRecord
+{
+    public required string UserId { get; set; }
+    public required string UserName { get; set; }
+    public required string ChallengeId { get; set; }
+    public required string ChallengeName { get; set; }
+    public required string ChallengeSpecId { get; set; }
+    public required string GameId { get; set; }
+    public required string GameName { get; set; }
+    public required string PlayerId { get; set; }
+    public required string PlayerName { get; set; }
+    public required string SponsorId { get; set; }
+    public required string SponsorName { get; set; }
+    public required string TeamId { get; set; }
+    public required string TeamName { get; set; }
+    public required double Score { get; set; }
+    public required double MaxPossibleScore { get; set; }
+    public required double PctMaxPointsScored { get; set; }
+    public required double? ScorePercentile { get; set; }
+    public required DateTimeOffset? SessionStart { get; set; }
+    public required DateTimeOffset? SessionEnd { get; set; }
+    public required ChallengeResult ChallengeResult { get; set; }
+    public required long DurationMs { get; set; }
+}
+

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Threading;
 using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 
@@ -13,6 +14,11 @@ public static class ReportKey
     public static string Players { get; } = "players";
     public static string PracticeMode { get; } = "practice-mode";
     public static string Support { get; } = "support";
+}
+
+public interface IReportQuery
+{
+    public User ActingUser { get; }
 }
 
 public sealed class ReportViewModel
@@ -34,6 +40,16 @@ public sealed class ReportMetaData
 
 public sealed class ReportRawResults<TRecord>
 {
+    public required PagingArgs PagingArgs { get; set; }
+    public required string ParameterSummary { get; set; }
+    public required IEnumerable<TRecord> Records { get; set; }
+    public required string ReportKey { get; set; }
+    public required string Title { get; set; }
+}
+
+public sealed class ReportRawResults<TOverallStats, TRecord>
+{
+    public required TOverallStats OverallStats { get; set; }
     public required PagingArgs PagingArgs { get; set; }
     public required string ParameterSummary { get; set; }
     public required IEnumerable<TRecord> Records { get; set; }
@@ -84,4 +100,12 @@ public sealed class ReportResults<TRecord>
     public required ReportMetaData MetaData { get; set; }
     public required PagingResults Paging { get; set; }
     public required IEnumerable<TRecord> Records { get; set; }
+}
+
+public sealed class ReportResults<TOverallStats, TRecord>
+{
+    public required ReportMetaData MetaData { get; set; }
+    public required PagingResults Paging { get; set; }
+    public required IEnumerable<TRecord> Records { get; set; }
+    public required TOverallStats OverallStats { get; set; }
 }
