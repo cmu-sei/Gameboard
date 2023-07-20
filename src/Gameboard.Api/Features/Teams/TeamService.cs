@@ -117,15 +117,15 @@ internal class TeamService : ITeamService
 
     public Task<Data.Player> ResolveCaptain(string teamId)
     {
-        return ResolveCaptain(teamId: teamId);
+        return ResolveCaptain(teamId, null);
     }
 
     public Task<Data.Player> ResolveCaptain(IEnumerable<Data.Player> players)
     {
-        return ResolveCaptain(teamId: null, players: players);
+        return ResolveCaptain(null, players);
     }
 
-    private async Task<Data.Player> ResolveCaptain(string teamId = null, IEnumerable<Data.Player> players = null)
+    private async Task<Data.Player> ResolveCaptain(string teamId, IEnumerable<Data.Player> players)
     {
         players ??= await _store
             .List()
