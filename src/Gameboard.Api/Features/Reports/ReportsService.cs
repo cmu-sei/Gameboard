@@ -235,7 +235,9 @@ public class ReportsService : IReportsService
         if (gameId.NotEmpty())
             query = query.Where(c => c.GameId == gameId);
 
-        return await query.Select(c => new SimpleEntity { Id = c.Id, Name = c.Name }).ToArrayAsync();
+        return await query.Select(c => new SimpleEntity { Id = c.Id, Name = c.Name })
+            .OrderBy(s => s.Name)
+            .ToArrayAsync();
     }
 
     public Task<IEnumerable<string>> ListSeasons()
@@ -481,6 +483,7 @@ public class ReportsService : IReportsService
                 // catch as many blanks as we can here, but have to use
                 // client side eval to distinguish long blanks
                 .Where(s => s != null && s != string.Empty)
+                .OrderBy(s => s)
                 .ToArrayAsync()
         ).Where(s => s.NotEmpty());
 }
