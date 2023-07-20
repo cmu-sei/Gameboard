@@ -110,14 +110,11 @@ public class GameEngineService : _Service, IGameEngineService
 
     public async Task<GameEngineGameState> RegradeChallenge(Data.Challenge entity)
     {
-        switch (entity.GameEngineType)
+        return entity.GameEngineType switch
         {
-            case GameEngineType.TopoMojo:
-                return Mapper.Map<GameEngineGameState>(await Mojo.RegradeChallengeAsync(entity.Id));
-
-            default:
-                throw new NotImplementedException();
-        }
+            GameEngineType.TopoMojo => Mapper.Map<GameEngineGameState>(await Mojo.RegradeChallengeAsync(entity.Id)),
+            _ => throw new NotImplementedException(),
+        };
     }
 
     public async Task<ConsoleSummary> GetConsole(Data.Challenge entity, ConsoleRequest model, bool observer)
@@ -126,16 +123,13 @@ public class GameEngineService : _Service, IGameEngineService
         {
             case ConsoleAction.Ticket:
                 {
-                    switch (entity.GameEngineType)
+                    return entity.GameEngineType switch
                     {
-                        case GameEngineType.TopoMojo:
-                            return Mapper.Map<ConsoleSummary>(
-                            await Mojo.GetVmTicketAsync(model.Id)
-                        );
-
-                        default:
-                            throw new NotImplementedException();
-                    }
+                        GameEngineType.TopoMojo => Mapper.Map<ConsoleSummary>(
+                                                    await Mojo.GetVmTicketAsync(model.Id)
+                                                ),
+                        _ => throw new NotImplementedException(),
+                    };
                 }
 
             case ConsoleAction.Reset:
@@ -245,26 +239,20 @@ public class GameEngineService : _Service, IGameEngineService
 
     public async Task<GameEngineGameState> StartGamespace(Data.Challenge entity)
     {
-        switch (entity.GameEngineType)
+        return entity.GameEngineType switch
         {
-            case GameEngineType.TopoMojo:
-                return Mapper.Map<GameEngineGameState>(await Mojo.StartGamespaceAsync(entity.Id));
-
-            default:
-                throw new NotImplementedException();
-        }
+            GameEngineType.TopoMojo => Mapper.Map<GameEngineGameState>(await Mojo.StartGamespaceAsync(entity.Id)),
+            _ => throw new NotImplementedException(),
+        };
     }
 
     public async Task<GameEngineGameState> StopGamespace(Data.Challenge entity)
     {
-        switch (entity.GameEngineType)
+        return entity.GameEngineType switch
         {
-            case GameEngineType.TopoMojo:
-                return Mapper.Map<GameEngineGameState>(await Mojo.StopGamespaceAsync(entity.Id));
-
-            default:
-                throw new NotImplementedException();
-        }
+            GameEngineType.TopoMojo => Mapper.Map<GameEngineGameState>(await Mojo.StopGamespaceAsync(entity.Id)),
+            _ => throw new NotImplementedException(),
+        };
     }
 
     public async Task DeleteGamespace(Data.Challenge entity)
@@ -299,17 +287,14 @@ public class GameEngineService : _Service, IGameEngineService
 
     public Task ExtendSession(Data.Challenge entity, DateTimeOffset sessionEnd)
     {
-        switch (entity.GameEngineType)
+        return entity.GameEngineType switch
         {
-            case GameEngineType.TopoMojo:
-                return Mojo.UpdateGamespaceAsync(new ChangedGamespace
-                {
-                    Id = entity.Id,
-                    ExpirationTime = sessionEnd
-                });
-
-            default:
-                throw new NotImplementedException();
-        }
+            GameEngineType.TopoMojo => Mojo.UpdateGamespaceAsync(new ChangedGamespace
+            {
+                Id = entity.Id,
+                ExpirationTime = sessionEnd
+            }),
+            _ => throw new NotImplementedException(),
+        };
     }
 }
