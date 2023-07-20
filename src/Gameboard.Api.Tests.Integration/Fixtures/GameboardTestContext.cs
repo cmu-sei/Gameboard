@@ -16,7 +16,6 @@ public class DbTestCollection : ICollectionFixture<GameboardTestContext> { }
 public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private PostgreSqlContainer? _container;
-    private string _connectionStringJustCurious = "";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -34,7 +33,6 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
             {
                 builder.UseNpgsql(_container.GetConnectionString(), opts => opts.MigrationsAssembly("Gameboard.Api"));
             });
-            _connectionStringJustCurious = _container.GetConnectionString();
 
             // migrate the database (forces a blocking call)
             // get the dbcontext type and use it to migrate (stand up) the database

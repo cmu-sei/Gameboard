@@ -24,7 +24,7 @@ public class PlayerControllerUnenrollTests
             {
                 state.AddGame(g =>
                 {
-                    g.Players = new Api.Data.Player[]
+                    g.Players = new Data.Player[]
                     {
                         state.BuildPlayer(p =>
                         {
@@ -45,7 +45,7 @@ public class PlayerControllerUnenrollTests
                                 u.Id = memberUserId;
                                 u.Role = UserRole.Member;
                             });
-                            p.Challenges = new Api.Data.Challenge[]
+                            p.Challenges = new Data.Challenge[]
                             {
                                 state.BuildChallenge(c =>
                                 {
