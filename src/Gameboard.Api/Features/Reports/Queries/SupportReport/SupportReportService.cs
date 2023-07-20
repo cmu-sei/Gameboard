@@ -78,6 +78,20 @@ internal class SupportReportService : ISupportReportService
             query = query
                 .Where(t => t.Created <= openedDateEnd);
 
+        var rightNow = _now.Get();
+        if (parameters.MinutesSinceOpen is not null)
+        {
+            var openSince = rightNow.Subtract(TimeSpan.FromMinutes(parameters.MinutesSinceOpen.Value));
+            query = query.Where(t => t.Created <= openSince);
+        }
+
+        if (parameters.MinutesSinceUpdate is not null)
+        {
+            var notUpdatedSince = rightNow.Subtract(TimeSpan.FromMinutes(parameters.MinutesSinceUpdate.Value));
+            query = query
+                .Where(t => t.LastUpdated <= notUpdatedSince);
+        }
+
         if (statuses.IsNotEmpty())
             query = query.Where(t => statuses.Contains(t.Status.ToLower()));
 
@@ -106,12 +120,6 @@ internal class SupportReportService : ISupportReportService
         // we have to do labels in .net land, because they're stored as space-delimited values in a single column
         if (labels.IsNotEmpty())
             records = records.Where(r => labels.Any(l => r.Labels.Any(r => r == l)));
-
-        if (parameters.MinutesSinceOpen != null && parameters.MinutesSinceOpen > 0)
-            records = records.Where(r => _now.Get().Subtract(r.CreatedOn).TotalMinutes >= parameters.MinutesSinceOpen);
-
-        if (parameters.MinutesSinceUpdate != null && parameters.MinutesSinceUpdate > 0)
-            records = records.Where(r => r.UpdatedOn.HasValue && _now.Get().Subtract(r.UpdatedOn.Value).TotalHours >= parameters.MinutesSinceUpdate);
 
         if (parameters.OpenedWindow != null)
             records = records.Where(r => GetTicketDateSupportWindow(r.CreatedOn) == parameters.OpenedWindow);
