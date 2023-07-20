@@ -22,13 +22,12 @@ public class SupportReportParameters
     public string ChallengeSpecId { get; set; }
     public string GameId { get; set; }
     public string Labels { get; set; }
-    public SupportReportLabelsModifier? LabelsModifier { get; set; } = SupportReportLabelsModifier.HasAll;
     public double? MinutesSinceOpen { get; set; }
     public double? MinutesSinceUpdate { get; set; }
     public DateTimeOffset? OpenedDateStart { get; set; }
     public DateTimeOffset? OpenedDateEnd { get; set; }
     public SupportReportTicketWindow? OpenedWindow { get; set; }
-    public string Status { get; set; }
+    public string Statuses { get; set; }
 }
 
 public class SupportReportRecord
@@ -36,7 +35,7 @@ public class SupportReportRecord
     public required int Key { get; set; }
     public required string PrefixedKey { get; set; }
     public required DateTimeOffset CreatedOn { get; set; }
-    public required DateTimeOffset UpdatedOn { get; set; }
+    public required DateTimeOffset? UpdatedOn { get; set; }
     public required SimpleEntity AssignedTo { get; set; }
     public required SimpleEntity CreatedBy { get; set; }
     public required SimpleEntity UpdatedBy { get; set; }

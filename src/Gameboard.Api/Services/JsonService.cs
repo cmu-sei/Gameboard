@@ -22,7 +22,7 @@ internal class JsonService : IJsonService
             options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             options.ReferenceHandler = ReferenceHandler.IgnoreCycles;
             options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
-            options.Converters.Add(new JsonDateTimeConverter());
+            options.Converters.Add(new JsonDateTimeOffsetConverter());
         };
     }
 

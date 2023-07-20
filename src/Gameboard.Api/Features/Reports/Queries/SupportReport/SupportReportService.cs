@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Common;
 using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client.Extensibility;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -18,11 +20,10 @@ public interface ISupportReportService
 
 internal class SupportReportService : ISupportReportService
 {
-    private static readonly string LIST_PARAMETER_DELIMITER = ",";
-
     private readonly IJsonService _jsonService;
     private readonly IMapper _mapper;
     private readonly INowService _now;
+    private readonly IReportsService _reportsService;
     private readonly TicketService _ticketService;
     private readonly ITicketStore _ticketStore;
 
@@ -31,6 +32,7 @@ internal class SupportReportService : ISupportReportService
         IJsonService jsonService,
         IMapper mapper,
         INowService now,
+        IReportsService reportsService,
         TicketService ticketService,
         ITicketStore ticketStore
     )
@@ -38,12 +40,19 @@ internal class SupportReportService : ISupportReportService
         _jsonService = jsonService;
         _mapper = mapper;
         _now = now;
+        _reportsService = reportsService;
         _ticketService = ticketService;
         _ticketStore = ticketStore;
     }
 
     public async Task<IEnumerable<SupportReportRecord>> QueryRecords(SupportReportParameters parameters)
     {
+        // format parameters
+        DateTimeOffset? openedDateStart = parameters.OpenedDateStart.HasValue ? parameters.OpenedDateStart.Value.ToUniversalTime() : null;
+        DateTimeOffset? openedDateEnd = parameters.OpenedDateEnd.HasValue ? parameters.OpenedDateEnd.Value.ToUniversalTime() : null;
+        var labels = _reportsService.ParseMultiSelectCriteria(parameters.Labels);
+        var statuses = _reportsService.ParseMultiSelectCriteria(parameters.Statuses);
+
         var query = _ticketStore
             .ListWithNoTracking()
             .Include(t => t.Assignee)
@@ -61,17 +70,21 @@ internal class SupportReportService : ISupportReportService
         if (parameters.GameId.NotEmpty())
             query = query.Where(t => t.Player != null && t.Player.GameId == parameters.GameId);
 
-        if (parameters.OpenedDateStart != null)
-            query = query.Where(t => t.Created >= parameters.OpenedDateStart);
+        if (openedDateStart is not null)
+            query = query
+                .Where(t => t.Created >= openedDateStart);
 
-        if (parameters.OpenedDateEnd != null)
-            query = query.Where(t => t.Created <= parameters.OpenedDateEnd);
+        if (openedDateEnd != null)
+            query = query
+                .Where(t => t.Created <= openedDateEnd);
 
-        if (parameters.Status.NotEmpty())
-            query = query.Where(t => t.Status == parameters.Status);
+        if (statuses.IsNotEmpty())
+            query = query.Where(t => statuses.Contains(t.Status.ToLower()));
+
+        var results = await query.ToListAsync();
 
         // client side processing
-        IEnumerable<SupportReportRecord> records = await query.Select(t => new SupportReportRecord
+        IEnumerable<SupportReportRecord> records = results.Select(t => new SupportReportRecord
         {
             Key = t.Key,
             PrefixedKey = _ticketService.TransformTicketKey(t.Key),
@@ -88,30 +101,17 @@ internal class SupportReportService : ISupportReportService
             AttachmentUris = _jsonService.Deserialize<List<string>>(t.Attachments),
             Labels = _ticketService.TransformTicketLabels(t.Label),
             ActivityCount = t.Activity.Count()
-        }).ToArrayAsync();
+        });
 
-        if (parameters.Labels.NotEmpty())
-        {
-            var splits = parameters.Labels.Split(LIST_PARAMETER_DELIMITER, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-            if (parameters.LabelsModifier == null || parameters.LabelsModifier == SupportReportLabelsModifier.HasAll)
-            {
-                records = records.Where(r => r.Labels.Any() && splits.All(s => r.Labels.Contains(s)));
-            }
-
-            if (parameters.LabelsModifier == SupportReportLabelsModifier.HasAny)
-            {
-                // if (parameters.LabelsModifier == null || parameters.LabelsModifier == SupportReportLabelsModifier.HasAny)
-                //     records = records.Where(r => r.Labels.Any(l => parameters.Labels.Contains(l)));
-                throw new NotImplementedException();
-            }
-        }
+        // we have to do labels in .net land, because they're stored as space-delimited values in a single column
+        if (labels.IsNotEmpty())
+            records = records.Where(r => labels.Any(l => r.Labels.Any(r => r == l)));
 
         if (parameters.MinutesSinceOpen != null && parameters.MinutesSinceOpen > 0)
             records = records.Where(r => _now.Get().Subtract(r.CreatedOn).TotalMinutes >= parameters.MinutesSinceOpen);
 
         if (parameters.MinutesSinceUpdate != null && parameters.MinutesSinceUpdate > 0)
-            records = records.Where(r => _now.Get().Subtract(r.UpdatedOn).TotalHours >= parameters.MinutesSinceUpdate);
+            records = records.Where(r => r.UpdatedOn.HasValue && _now.Get().Subtract(r.UpdatedOn.Value).TotalHours >= parameters.MinutesSinceUpdate);
 
         if (parameters.OpenedWindow != null)
             records = records.Where(r => GetTicketDateSupportWindow(r.CreatedOn) == parameters.OpenedWindow);
