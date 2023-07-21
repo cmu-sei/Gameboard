@@ -41,12 +41,6 @@ internal class EnrollmentReportService : IEnrollmentReportService
         DateTimeOffset? enrollDateStart = parameters.EnrollDateStart.HasValue ? parameters.EnrollDateStart.Value.ToUniversalTime() : null;
         DateTimeOffset? enrollDateEnd = parameters.EnrollDateEnd.HasValue ? parameters.EnrollDateEnd.Value.ToUniversalTime() : null;
 
-        // we have to look up sponsors to both resolve query criteria and to build the result set
-        // (because the player entity has logo files, not ids)
-        // doing this in both places for now because the cost is minimal and makes use of this query in the 
-        // chart handler easier
-
-
         // the fundamental unit of reporting here is really the player record (an "enrollment"), so resolve enrollments that
         // meet the filter criteria
         var query = _store
@@ -80,8 +74,8 @@ internal class EnrollmentReportService : IEnrollmentReportService
         {
             var sponsors = await _store
                 .List<Data.Sponsor>()
+                .Where(s => sponsorCriteria.Contains(s.Id))
                 .Select(s => s.Logo)
-                .Where(s => sponsorCriteria.Contains(s))
                 .ToArrayAsync(cancellationToken);
 
             query = query.Where(p => sponsors.Contains(p.Sponsor));
