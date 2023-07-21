@@ -200,7 +200,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
                     (s =>
                         s.LogoFileName == c
                             .OrderByDescending(c => c.StartTime)
-                            .FirstOrDefault(c => c.Player.Sponsor.NotEmpty())
+                            .FirstOrDefault(c => c.Player.Sponsor is not null)
                             .Player
                             .Sponsor
                     ),
@@ -225,7 +225,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
             {
                 Player = new SimpleEntity { Id = attempt.PlayerId, Name = attempt.Player.ApprovedName },
                 Team = teams.ContainsKey(attempt.Player.TeamId) ? teams[attempt.Player.TeamId] : null,
-                Sponsor = ungroupedResults.Sponsors.First(s => s.LogoFileName == attempt.Player.Sponsor),
+                Sponsor = ungroupedResults.Sponsors.FirstOrDefault(s => s.LogoFileName == attempt.Player.Sponsor),
                 Start = attempt.StartTime,
                 End = attempt.EndTime,
                 DurationMs = attempt.Player.Time,
@@ -310,16 +310,19 @@ internal class PracticeModeReportService : IPracticeModeReportService
         {
             OverallStats = ungroupedResults.OverallStats,
             Records = ungroupedResults
-            .Challenges
-            .GroupBy(r => new { r.Player.UserId })
-            .Select(g => new PracticeModeReportByPlayerModePerformanceRecord
-            {
-                // this is really more of a user entity than a player entity, but the report uses "player" to refer to users on purpose
-                Player = new SimpleEntity { Id = g.Key.UserId, Name = g.First().Player.User.ApprovedName },
-                Sponsor = ungroupedResults.Sponsors.FirstOrDefault(s => s.LogoFileName == g.First().Player.User.Sponsor),
-                PracticeStats = CalculateByPlayerPerformanceModeSummary(true, g.ToList(), allSpecRawScores),
-                CompetitiveStats = CalculateByPlayerPerformanceModeSummary(false, g.ToList(), allSpecRawScores)
-            })
+                .Challenges
+                .GroupBy(r => new { r.Player.UserId })
+                .Select(g =>
+                {
+                    return new PracticeModeReportByPlayerModePerformanceRecord
+                    {
+                        // this is really more of a user entity than a player entity, but the report uses "player" to refer to users on purpose
+                        Player = new SimpleEntity { Id = g.Key.UserId, Name = g.First().Player?.User?.ApprovedName ?? g.First().Player?.ApprovedName },
+                        Sponsor = ungroupedResults.Sponsors.FirstOrDefault(s => s.LogoFileName == g.FirstOrDefault()?.Player?.User?.Sponsor),
+                        PracticeStats = CalculateByPlayerPerformanceModeSummary(true, g.ToList(), allSpecRawScores),
+                        CompetitiveStats = CalculateByPlayerPerformanceModeSummary(false, g.ToList(), allSpecRawScores)
+                    };
+                })
         };
     }
 

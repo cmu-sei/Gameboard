@@ -35,8 +35,8 @@ internal class PagingService : IPagingService
 
     public PagedEnumerable<T> Page<T>(IEnumerable<T> items, PagingArgs pagingArgs = null)
     {
-        var itemCount = items.Count();
-        var finalItems = items;
+        var finalItems = items ?? Array.Empty<T>();
+        var itemCount = finalItems.Count();
 
         if (pagingArgs is null)
         {
@@ -48,8 +48,8 @@ internal class PagingService : IPagingService
         }
         else
         {
-            pagingArgs.PageSize = pagingArgs.PageSize ?? DEFAULT_PAGE_SIZE;
-            pagingArgs.PageNumber = pagingArgs.PageNumber ?? 0;
+            pagingArgs.PageSize ??= DEFAULT_PAGE_SIZE;
+            pagingArgs.PageNumber ??= 0;
         }
 
 
