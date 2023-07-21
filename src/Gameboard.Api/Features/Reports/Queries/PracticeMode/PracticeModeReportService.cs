@@ -94,6 +94,14 @@ internal class PracticeModeReportService : IPracticeModeReportService
             query = query.Where(c => sponsorLogos.Contains(c.Player.Sponsor));
         }
 
+        // we have to constrain the query results by eliminating challenges that have a specId
+        // which points at a nonexistent spec. (This is possible due to the non-FK relationship
+        // between challenge and spec and the fact that specs are deletable)
+        // 
+        // so load all spec ids and add a clause which excludes challenges with orphaned specIds
+        var allSpecIds = await _store.List<Data.ChallengeSpec>().Select(s => s.Id).ToArrayAsync();
+        query = query.Where(c => allSpecIds.Contains(c.SpecId));
+
         // query for the raw results
         var challenges = await query.ToListAsync(cancellationToken);
 
@@ -419,6 +427,8 @@ internal class PracticeModeReportService : IPracticeModeReportService
 
         if (modeChallenges.Any())
         {
+            var scoringChallenges = modeChallenges.Where(c => c.Points > 0);
+
             modeStats = new PracticeModeReportByPlayerModePerformanceRecordModeSummary
             {
                 LastAttemptDate = modeChallenges
@@ -429,9 +439,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
                 ZeroScoreSolves = modeChallenges.Where(c => c.Result == ChallengeResult.None).Count(),
                 PartialSolves = modeChallenges.Where(c => c.Result == ChallengeResult.Partial).Count(),
                 CompleteSolves = modeChallenges.Where(c => c.Result == ChallengeResult.Success).Count(),
-                AvgPctAvailablePointsScored = modeChallenges
-                    .Where(c => c.Points > 0)
-                    .Average(c => c.GetPercentMaxPointsScored()),
+                AvgPctAvailablePointsScored = scoringChallenges.Count() == 0 ? 0 : scoringChallenges.Average(c => c.GetPercentMaxPointsScored()),
                 AvgScorePercentile = modeChallenges
                     .Select
                     (

@@ -26,7 +26,6 @@ namespace Gameboard.Api.Controllers
         GameService GameService { get; }
         public CoreOptions Options { get; }
         public IHostEnvironment Env { get; }
-        private readonly IHttpClientFactory HttpClientFactory;
         private readonly IMediator _mediator;
 
         public GameController(
@@ -36,14 +35,12 @@ namespace Gameboard.Api.Controllers
             GameValidator validator,
             CoreOptions options,
             IMediator mediator,
-            IHostEnvironment env,
-            IHttpClientFactory factory
+            IHostEnvironment env
         ) : base(logger, cache, validator)
         {
             GameService = gameService;
             Options = options;
             Env = env;
-            HttpClientFactory = factory;
             _mediator = mediator;
         }
 
