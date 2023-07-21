@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Common;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,6 +33,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
     public async Task<IQueryable<Data.Player>> GetBaseQuery(EnrollmentReportParameters parameters, CancellationToken cancellationToken)
     {
         // parse multiselect criteria
+        var gamesCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Games);
         var seasonCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Seasons);
         var seriesCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Series);
         var sponsorCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Sponsors);
@@ -60,6 +60,9 @@ internal class EnrollmentReportService : IEnrollmentReportService
             query = query
                 .WhereDateHasValue(p => p.WhenCreated)
                 .Where(p => p.WhenCreated <= enrollDateEnd);
+
+        if (gamesCriteria.Any())
+            query = query.Where(p => gamesCriteria.Contains(p.GameId));
 
         if (seasonCriteria.Any())
             query = query.Where(p => seasonCriteria.Contains(p.Game.Season.ToLower()));
