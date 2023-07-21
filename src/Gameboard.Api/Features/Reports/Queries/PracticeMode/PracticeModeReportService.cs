@@ -132,7 +132,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
                     .Count()
             },
             Specs = specs,
-            Sponsors = sponsors
+            Sponsors = sponsors ?? Array.Empty<ReportSponsorViewModel>()
         };
     }
 
@@ -200,9 +200,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
                     (s =>
                         s.LogoFileName == c
                             .OrderByDescending(c => c.StartTime)
-                            .FirstOrDefault(c => c.Player.Sponsor is not null)
-                            .Player
-                            .Sponsor
+                            .FirstOrDefault(c => c.Player.Sponsor is not null)?.Player?.Sponsor
                     ),
                 HasScoringAttempt = c.Any(c => c.Score > 0)
             },
