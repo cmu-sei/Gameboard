@@ -63,7 +63,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
                 .Include(c => c.Game)
                 .Include(c => c.Player)
                     .ThenInclude(p => p.User)
-            .Where(c => includeCompetitive || c.Game.PlayerMode == PlayerMode.Practice);
+            .Where(c => includeCompetitive || c.PlayerMode == PlayerMode.Practice);
 
         if (startDate is not null)
         {
@@ -340,7 +340,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
                 .Include(c => c.Player)
                     .ThenInclude(p => p.User)
             .Where(c => c.Player.UserId == userId)
-            .Where(c => c.Game.PlayerMode == (isPractice ? PlayerMode.Practice : PlayerMode.Competition))
+            .Where(c => c.PlayerMode == (isPractice ? PlayerMode.Practice : PlayerMode.Competition))
             .ToListAsync(cancellationToken);
 
         // these will all be the same
@@ -488,7 +488,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
         return await _store
             .List<Data.Challenge>()
                 .Include(c => c.Game)
-            .GroupBy(c => new { c.Id, c.SpecId, IsPractice = c.Game.PlayerMode == PlayerMode.Practice })
+            .GroupBy(c => new { c.Id, c.SpecId, IsPractice = c.PlayerMode == PlayerMode.Practice })
             .Select(g => new PracticeModeReportByPlayerModePerformanceChallengeScore
             {
                 ChallengeId = g.Key.Id,
