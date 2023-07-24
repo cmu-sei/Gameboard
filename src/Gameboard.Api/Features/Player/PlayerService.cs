@@ -21,8 +21,8 @@ namespace Gameboard.Api.Services;
 
 public class PlayerService
 {
+    private readonly TimeSpan _idmapExpiration = new(0, 30, 0);
     private readonly INowService _now;
-    private readonly IStore<Data.User> _userStore;
 
     CoreOptions CoreOptions { get; }
     ChallengeService ChallengeService { get; set; }
@@ -36,7 +36,6 @@ public class PlayerService
     ITeamService TeamService { get; }
     IMapper Mapper { get; }
     IMemoryCache LocalCache { get; }
-    TimeSpan _idmapExpiration = new TimeSpan(0, 30, 0);
     IGameEngineService GameEngine { get; }
 
     public PlayerService(
@@ -54,7 +53,6 @@ public class PlayerService
         IMapper mapper,
         IMemoryCache localCache,
         IGameEngineService gameEngine,
-        IStore<Data.User> userStore
     )
     {
         CoreOptions = coreOptions;
@@ -71,7 +69,6 @@ public class PlayerService
         Mapper = mapper;
         LocalCache = localCache;
         GameEngine = gameEngine;
-        _userStore = userStore;
     }
 
     public async Task<Player> Enroll(NewPlayer model, User actor)
