@@ -29,9 +29,7 @@ public class PlayerService
     IPlayerStore Store { get; }
     IGameService GameService { get; }
     IGameStore GameStore { get; }
-    IGameHubBus GameHubBus { get; set; }
     IGuidService GuidService { get; }
-    IMediator MediatorBus { get; }
     IInternalHubBus HubBus { get; }
     ITeamService TeamService { get; }
     IMapper Mapper { get; }
@@ -42,26 +40,22 @@ public class PlayerService
         CoreOptions coreOptions,
         ChallengeService challengeService,
         IGuidService guidService,
-        IMediator mediator,
         INowService now,
         IPlayerStore store,
-        IGameHubBus gameHubBus,
         IGameService gameService,
         IGameStore gameStore,
         IInternalHubBus hubBus,
         ITeamService teamService,
         IMapper mapper,
         IMemoryCache localCache,
-        IGameEngineService gameEngine,
+        IGameEngineService gameEngine
     )
     {
         CoreOptions = coreOptions;
         ChallengeService = challengeService;
         GameService = gameService;
         GuidService = guidService;
-        MediatorBus = mediator;
         _now = now;
-        GameHubBus = gameHubBus;
         HubBus = hubBus;
         Store = store;
         GameStore = gameStore;

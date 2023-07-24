@@ -18,34 +18,28 @@ public class PlayerServiceTests
             CoreOptions coreOptions,
             ChallengeService challengeService,
             IPlayerStore store,
-            IGameHubBus gameHubBus,
             IGameService gameService,
             IGameStore gameStore,
             IGuidService guidService,
-            IMediator mediator,
-            INowService now,
             IInternalHubBus hubBus,
+            INowService now,
             ITeamService teamService,
             IMapper mapper,
             IMemoryCache localCache,
-            GameEngineService gameEngine,
-            IStore<Data.User> userStore) : base
+            GameEngineService gameEngine) : base
             (
                 coreOptions,
                 challengeService,
                 guidService,
-                mediator,
                 now,
                 store,
-                gameHubBus,
                 gameService,
                 gameStore,
                 hubBus,
                 teamService,
                 mapper,
                 localCache,
-                gameEngine,
-                userStore
+                gameEngine
             )
         {
         }
@@ -55,36 +49,30 @@ public class PlayerServiceTests
             CoreOptions? coreOptions = null,
             ChallengeService? challengeService = null,
             IPlayerStore? store = null,
-            IGameHubBus? gameHubBus = null,
             IGameService? gameService = null,
             IGameStore? gameStore = null,
             IGuidService? guidService = null,
-            IMediator? mediator = null,
             INowService? now = null,
             IInternalHubBus? hubBus = null,
             ITeamService? teamService = null,
             IMapper? mapper = null,
             IMemoryCache? localCache = null,
-            GameEngineService? gameEngine = null,
-            IStore<Data.User>? userStore = null)
+            GameEngineService? gameEngine = null)
         {
             return new PlayerService
             (
                 coreOptions ?? A.Fake<CoreOptions>(),
                 challengeService ?? A.Fake<ChallengeService>(),
                 guidService ?? A.Fake<IGuidService>(),
-                mediator ?? A.Fake<IMediator>(),
                 now ?? A.Fake<INowService>(),
                 store ?? A.Fake<IPlayerStore>(),
-                gameHubBus ?? A.Fake<IGameHubBus>(),
                 gameService ?? A.Fake<GameService>(),
                 gameStore ?? A.Fake<IGameStore>(),
                 hubBus ?? A.Fake<IInternalHubBus>(),
                 teamService ?? A.Fake<ITeamService>(),
                 mapper ?? A.Fake<IMapper>(),
                 localCache ?? A.Fake<IMemoryCache>(),
-                gameEngine ?? A.Fake<GameEngineService>(),
-                userStore ?? A.Fake<IStore<Data.User>>()
+                gameEngine ?? A.Fake<GameEngineService>()
             );
         }
     }
