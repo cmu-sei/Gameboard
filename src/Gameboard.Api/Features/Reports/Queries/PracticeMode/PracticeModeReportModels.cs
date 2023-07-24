@@ -35,11 +35,11 @@ public sealed class PracticeModeReportParameters
 {
     public DateTimeOffset? PracticeDateStart { get; set; }
     public DateTimeOffset? PracticeDateEnd { get; set; }
-    public IEnumerable<string> GameIds { get; set; }
-    public IEnumerable<string> Seasons { get; set; }
-    public IEnumerable<string> Series { get; set; }
-    public IEnumerable<string> Tracks { get; set; }
-    public IEnumerable<string> SponsorIds { get; set; }
+    public string GameIds { get; set; }
+    public string Seasons { get; set; }
+    public string Series { get; set; }
+    public string Tracks { get; set; }
+    public string SponsorIds { get; set; }
     public string Grouping { get; set; }
 }
 

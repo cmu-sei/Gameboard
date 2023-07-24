@@ -51,6 +51,12 @@ internal class PracticeModeReportService : IPracticeModeReportService
         // process parameters
         DateTimeOffset? startDate = parameters.PracticeDateStart.HasValue ? parameters.PracticeDateStart.Value.ToUniversalTime() : null;
         DateTimeOffset? endDate = parameters.PracticeDateEnd.HasValue ? parameters.PracticeDateEnd.Value.ToUniversalTime() : null;
+        var gameIds = _reportsService.ParseMultiSelectCriteria(parameters.GameIds);
+        var sponsorIds = _reportsService.ParseMultiSelectCriteria(parameters.SponsorIds);
+        var seasons = _reportsService.ParseMultiSelectCriteria(parameters.Seasons);
+        var series = _reportsService.ParseMultiSelectCriteria(parameters.Series);
+        var tracks = _reportsService.ParseMultiSelectCriteria(parameters.Tracks);
+
 
         var query = _store
             .List<Data.Challenge>()
