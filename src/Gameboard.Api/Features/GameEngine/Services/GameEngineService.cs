@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using TopoMojo.Api.Client;
 using Alloy.Api.Client;
@@ -19,8 +18,6 @@ public class GameEngineService : _Service, IGameEngineService
     ICrucibleService Crucible { get; }
     IAlloyApiClient Alloy { get; }
 
-    private IMemoryCache _localcache;
-    private readonly ConsoleActorMap _actorMap;
     private readonly IGameEngineStore _store;
 
     public GameEngineService(
@@ -29,15 +26,11 @@ public class GameEngineService : _Service, IGameEngineService
         IMapper mapper,
         CoreOptions options,
         ITopoMojoApiClient mojo,
-        IMemoryCache localcache,
-        ConsoleActorMap actorMap,
         IAlloyApiClient alloy,
         ICrucibleService crucible
     ) : base(logger, mapper, options)
     {
         Mojo = mojo;
-        _localcache = localcache;
-        _actorMap = actorMap;
         _store = store;
         Alloy = alloy;
         Crucible = crucible;
@@ -228,13 +221,11 @@ public class GameEngineService : _Service, IGameEngineService
 
     public async Task<GameEngineGameState> LoadGamespace(Data.Challenge entity)
     {
-        switch (entity.GameEngineType)
+        return entity.GameEngineType switch
         {
-            case GameEngineType.TopoMojo:
-                return Mapper.Map<GameEngineGameState>(await Mojo.LoadGamespaceAsync(entity.Id));
-            default:
-                throw new NotImplementedException();
-        }
+            GameEngineType.TopoMojo => Mapper.Map<GameEngineGameState>(await Mojo.LoadGamespaceAsync(entity.Id)),
+            _ => throw new NotImplementedException(),
+        };
     }
 
     public async Task<GameEngineGameState> StartGamespace(Data.Challenge entity)
