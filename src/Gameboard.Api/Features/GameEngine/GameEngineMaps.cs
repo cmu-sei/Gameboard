@@ -13,14 +13,14 @@ public class GameEngineMaps : Profile
         var jsonService = JsonService.WithGameboardSerializerOptions();
 
         // api-level maps
-        CreateMap<Api.Data.Player, GameEnginePlayer>()
+        CreateMap<Data.Player, GameEnginePlayer>()
             .ForMember(gep => gep.SubjectId, o => o.MapFrom(p => p.Id))
             .ForMember(gep => gep.SubjectName, o => o.MapFrom(p => p.ApprovedName))
             .ForMember(gep => gep.GamespaceId, o => o.Ignore())
             .ForMember(gep => gep.Permission, o => o.Ignore());
 
         // engine-level maps
-        CreateMap<GameEnginePlayer, Api.Data.Player>(MemberList.Source)
+        CreateMap<GameEnginePlayer, Data.Player>(MemberList.Source)
             .ForMember(p => p.Id, o => o.MapFrom(gep => gep.SubjectId))
             .ForMember(p => p.ApprovedName, o => o.MapFrom(gep => gep.SubjectName))
             .ForMember(p => p.Role, o => o.MapFrom(gep => gep.IsManager ? PlayerRole.Manager : PlayerRole.Member))
@@ -29,7 +29,7 @@ public class GameEngineMaps : Profile
             .ForSourceMember(gep => gep.Permission, o => o.DoNotValidate())
             .ForSourceMember(gep => gep.GamespaceId, o => o.DoNotValidate());
 
-        CreateMap<GameEngineGameState, Api.Data.Challenge>()
+        CreateMap<GameEngineGameState, Data.Challenge>()
             .ForMember(c => c.EndTime, o => o.MapFrom(s => s.ExpirationTime))
             .ForMember(c => c.HasDeployedGamespace, o => o.MapFrom(s => s.HasDeployedGamespace))
             .ForMember(c => c.LastScoreTime, o => o.MapFrom(s => s.Challenge.LastScoreTime))
@@ -49,6 +49,7 @@ public class GameEngineMaps : Profile
             .ForMember(c => c.Game, o => o.Ignore())
             .ForMember(c => c.GraderKey, o => o.Ignore())
             .ForMember(c => c.LastSyncTime, o => o.Ignore())
+            .ForMember(c => c.PlayerMode, o => o.Ignore())
             .ForMember(c => c.SpecId, o => o.Ignore())
             .ForMember(c => c.Tag, o => o.Ignore())
             .ForMember(c => c.TeamId, o => o.Ignore())

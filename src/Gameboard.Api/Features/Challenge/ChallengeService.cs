@@ -476,7 +476,7 @@ namespace Gameboard.Api.Services
                         // no-op - leave as empty array
                     }
 
-                    var mappedChallenge = _mapper.Map<Api.ArchivedChallenge>(challenge);
+                    var mappedChallenge = _mapper.Map<ArchivedChallenge>(challenge);
                     mappedChallenge.Submissions = submissions;
                     mappedChallenge.TeamMembers = teamMemberMap[challenge.TeamId].ToArray();
 
@@ -572,12 +572,12 @@ namespace Gameboard.Api.Services
             return await GameEngine.AuditChallenge(entity);
         }
 
-        internal async Task<Api.Data.Challenge> BuildAndRegisterChallenge
+        internal async Task<Data.Challenge> BuildAndRegisterChallenge
         (
             NewChallenge newChallenge,
-            Api.Data.ChallengeSpec spec,
-            Api.Data.Game game,
-            Api.Data.Player player,
+            Data.ChallengeSpec spec,
+            Data.Game game,
+            Data.Player player,
             string actorUserId,
             string graderUrl,
             int playerCount,
@@ -586,10 +586,12 @@ namespace Gameboard.Api.Services
         {
             var graderKey = _guids.GetGuid();
             var challenge = Mapper.Map<Data.Challenge>(newChallenge);
+
             Mapper.Map(spec, challenge);
             challenge.PlayerId = player.Id;
             challenge.TeamId = player.TeamId;
             challenge.GraderKey = graderKey.ToSha256();
+            challenge.PlayerMode = game.PlayerMode;
             challenge.WhenCreated = _now.Get();
 
             var state = await GameEngine.RegisterGamespace(new GameEngineChallengeRegistration

@@ -3,12 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
-using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Common;
 using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Client.Extensibility;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -95,7 +93,9 @@ internal class SupportReportService : ISupportReportService
         if (statuses.IsNotEmpty())
             query = query.Where(t => statuses.Contains(t.Status.ToLower()));
 
-        var results = await query.ToListAsync();
+        var results = await query
+            .OrderBy(t => t.Created)
+            .ToListAsync();
 
         // client side processing
         IEnumerable<SupportReportRecord> records = results.Select(t => new SupportReportRecord
