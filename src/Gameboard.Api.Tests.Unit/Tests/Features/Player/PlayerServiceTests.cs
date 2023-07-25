@@ -1,11 +1,9 @@
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
-using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
-using MediatR;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Api.Tests.Unit;
@@ -99,7 +97,7 @@ public class PlayerServiceTests
         var fakeStore = A.Fake<IPlayerStore>();
         var fakePlayers = new Api.Data.Player[]
         {
-            new Api.Data.Player
+            new Data.Player
             {
                 PartialCount = 1,
                 Game = new Api.Data.Game
@@ -131,12 +129,12 @@ public class PlayerServiceTests
         // arrange
         var userId = fixture.Create<string>();
         var fakeStore = A.Fake<IPlayerStore>();
-        var fakePlayers = new Api.Data.Player[]
+        var fakePlayers = new Data.Player[]
         {
-            new Api.Data.Player
+            new Data.Player
             {
                 PartialCount = 0,
-                Game = new Api.Data.Game
+                Game = new Data.Game
                 {
                     CertificateTemplate = fixture.Create<string>(),
                     GameEnd = DateTimeOffset.Now - TimeSpan.FromDays(1)
@@ -144,7 +142,7 @@ public class PlayerServiceTests
                 Score = 1,
                 SessionEnd = DateTimeOffset.Now - TimeSpan.FromDays(2),
                 UserId = userId,
-                User = new Api.Data.User { Id = userId }
+                User = new Data.User { Id = userId }
             }
         }.ToList().BuildMock();
 
