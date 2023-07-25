@@ -51,8 +51,8 @@ internal class PracticeModeReportService : IPracticeModeReportService
         // process parameters
         DateTimeOffset? startDate = parameters.PracticeDateStart.HasValue ? parameters.PracticeDateStart.Value.ToUniversalTime() : null;
         DateTimeOffset? endDate = parameters.PracticeDateEnd.HasValue ? parameters.PracticeDateEnd.Value.ToUniversalTime() : null;
-        var gameIds = _reportsService.ParseMultiSelectCriteria(parameters.GameIds);
-        var sponsorIds = _reportsService.ParseMultiSelectCriteria(parameters.SponsorIds);
+        var gameIds = _reportsService.ParseMultiSelectCriteria(parameters.Games);
+        var sponsorIds = _reportsService.ParseMultiSelectCriteria(parameters.Sponsors);
         var seasons = _reportsService.ParseMultiSelectCriteria(parameters.Seasons);
         var series = _reportsService.ParseMultiSelectCriteria(parameters.Series);
         var tracks = _reportsService.ParseMultiSelectCriteria(parameters.Tracks);
@@ -88,13 +88,13 @@ internal class PracticeModeReportService : IPracticeModeReportService
         if (parameters.Tracks.IsNotEmpty())
             query = query.Where(c => parameters.Tracks.Contains(c.Game.Track));
 
-        if (parameters.GameIds is not null && parameters.GameIds.Any())
-            query = query.Where(c => parameters.GameIds.Contains(c.GameId));
+        if (parameters.Games is not null && parameters.Games.Any())
+            query = query.Where(c => parameters.Games.Contains(c.GameId));
 
-        if (parameters.SponsorIds is not null && parameters.SponsorIds.Any())
+        if (parameters.Sponsors is not null && parameters.Sponsors.Any())
         {
             var sponsorLogos = sponsors
-                .Where(s => parameters.SponsorIds.Contains(s.Id))
+                .Where(s => parameters.Sponsors.Contains(s.Id))
                 .Select(s => s.LogoFileName);
 
             query = query.Where(c => sponsorLogos.Contains(c.Player.Sponsor));
