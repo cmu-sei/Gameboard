@@ -57,7 +57,6 @@ internal class PracticeModeReportService : IPracticeModeReportService
         var series = _reportsService.ParseMultiSelectCriteria(parameters.Series);
         var tracks = _reportsService.ParseMultiSelectCriteria(parameters.Tracks);
 
-
         var query = _store
             .List<Data.Challenge>()
                 .Include(c => c.Game)
@@ -110,6 +109,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
 
         // query for the raw results
         var challenges = await query.ToListAsync(cancellationToken);
+        var challengesOfInterest = challenges.Where(c => c.SpecId == "126b262bfe274587a35c026416f803b2");
 
         // also load challenge spec data for these challenges (spec can't be joined)
         var specs = await _store
@@ -450,10 +450,8 @@ internal class PracticeModeReportService : IPracticeModeReportService
                 AvgScorePercentile = modeChallenges
                     .Select
                     (
-                        c => CalculatePlayerChallengePercentile(c.Id, c.SpecId, c.Score, true, modePercentiles)
+                        c => CalculatePlayerChallengePercentile(c.Id, c.SpecId, c.Score, isPractice, modePercentiles)
                     )
-                    .Where(percentile => percentile is not null)
-                    .Select(percentile => percentile.Value)
                     .DefaultIfEmpty()
                     .Average()
             };
@@ -462,7 +460,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
         return modeStats;
     }
 
-    private decimal? CalculatePlayerChallengePercentile(string challengeId, string specId, double score, bool isPractice, IEnumerable<PracticeModeReportByPlayerModePerformanceChallengeScore> percentileTable)
+    private decimal CalculatePlayerChallengePercentile(string challengeId, string specId, double score, bool isPractice, IEnumerable<PracticeModeReportByPlayerModePerformanceChallengeScore> percentileTable)
     {
         Func<PracticeModeReportByPlayerModePerformanceChallengeScore, bool> isOtherChallengeRecord = p =>
                 p.IsPractice == isPractice &&
@@ -474,7 +472,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
             .Count();
 
         if (denominator == 0)
-            return null;
+            return 100;
 
         var numerator = percentileTable
             .Where(p => isOtherChallengeRecord(p) && p.Score < score)
