@@ -43,11 +43,11 @@ public class EnrollmentReportServiceTests
         var sut = new EnrollmentReportService(reportsService, store);
 
         // when
-        var results = await sut.GetRecords(new EnrollmentReportParameters(), CancellationToken.None);
+        var results = await sut.GetRawResults(new EnrollmentReportParameters(), CancellationToken.None);
 
         // then
-        results.Count().ShouldBe(1);
-        results.First().ChallengesCompletelySolvedCount.ShouldBe(1);
+        results.Records.Count().ShouldBe(1);
+        results.Records.First().ChallengesCompletelySolvedCount.ShouldBe(1);
     }
 
     [Theory, GameboardAutoData]
@@ -102,11 +102,11 @@ public class EnrollmentReportServiceTests
         var sut = new EnrollmentReportService(reportsService, store);
 
         // when
-        var results = await sut.GetRecords(new EnrollmentReportParameters(), CancellationToken.None);
+        var results = await sut.GetRawResults(new EnrollmentReportParameters(), CancellationToken.None);
 
         // then
-        results.Count().ShouldBe(2);
-        results.First().Team.Sponsors.Count().ShouldBe(2);
-        results.SelectMany(r => r.Challenges).DistinctBy(c => c.SpecId).Count().ShouldBe(1);
+        results.Records.Count().ShouldBe(2);
+        results.Records.First().Team.Sponsors.Count().ShouldBe(2);
+        results.Records.SelectMany(r => r.Challenges).DistinctBy(c => c.SpecId).Count().ShouldBe(1);
     }
 }
