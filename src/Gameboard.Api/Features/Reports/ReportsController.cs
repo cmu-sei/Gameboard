@@ -38,7 +38,7 @@ public class ReportsController : ControllerBase
         => _mediator.Send(new ChallengesReportQuery(args));
 
     [HttpGet("enrollment")]
-    public Task<ReportResults<EnrollmentReportRecord>> GetEnrollmentReport([FromQuery] EnrollmentReportParameters parameters, [FromQuery] PagingArgs paging)
+    public Task<ReportResults<EnrollmentReportStatSummary, EnrollmentReportRecord>> GetEnrollmentReport([FromQuery] EnrollmentReportParameters parameters, [FromQuery] PagingArgs paging)
         => _mediator.Send(new EnrollmentReportQuery(parameters, paging));
 
     [HttpGet("enrollment/trend")]

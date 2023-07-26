@@ -30,6 +30,26 @@ public class EnrollmentReportRecord
     public required double Score { get; set; }
 }
 
+public sealed class EnrollmentReportStatSummary
+{
+    public required int DistinctPlayerCount { get; set; }
+    public required int DistinctSponsorCount { get; set; }
+    public required EnrollmentReportStatSummarySponsorPlayerCount SponsorWithMostPlayers { get; set; }
+    public required int DistinctTeamCount { get; set; }
+}
+
+public sealed class EnrollmentReportStatSummarySponsorPlayerCount
+{
+    public required ReportSponsorViewModel Sponsor { get; set; }
+    public required int DistinctPlayerCount { get; set; }
+}
+
+public sealed class EnrollmentReportRawResults
+{
+    public required IEnumerable<EnrollmentReportRecord> Records { get; set; }
+    public required EnrollmentReportStatSummary StatSummary { get; set; }
+}
+
 public class EnrollmentReportPlayerViewModel
 {
     public required string Id { get; set; }

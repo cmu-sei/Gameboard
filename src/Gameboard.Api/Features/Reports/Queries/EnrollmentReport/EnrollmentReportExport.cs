@@ -21,9 +21,9 @@ internal class EnrollmentReportExportHandler : IRequestHandler<EnrollmentReportE
     public async Task<IEnumerable<EnrollmentReportCsvRecord>> Handle(EnrollmentReportExportQuery request, CancellationToken cancellationToken)
     {
         // ignore paging parameters - for file export, we don't page
-        var records = await _enrollmentReportService.GetRecords(request.Parameters, cancellationToken);
+        var results = await _enrollmentReportService.GetRawResults(request.Parameters, cancellationToken);
 
-        return records.Select(r => new EnrollmentReportCsvRecord
+        return results.Records.Select(r => new EnrollmentReportCsvRecord
         {
             // user
             UserId = r.User.Id,

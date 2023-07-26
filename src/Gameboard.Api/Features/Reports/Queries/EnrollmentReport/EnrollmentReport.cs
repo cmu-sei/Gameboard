@@ -6,9 +6,9 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record EnrollmentReportQuery(EnrollmentReportParameters Parameters, PagingArgs PagingArgs) : IRequest<ReportResults<EnrollmentReportRecord>>;
+public record EnrollmentReportQuery(EnrollmentReportParameters Parameters, PagingArgs PagingArgs) : IRequest<ReportResults<EnrollmentReportStatSummary, EnrollmentReportRecord>>;
 
-internal class EnrollmentReportQueryHandler : IRequestHandler<EnrollmentReportQuery, ReportResults<EnrollmentReportRecord>>
+internal class EnrollmentReportQueryHandler : IRequestHandler<EnrollmentReportQuery, ReportResults<EnrollmentReportStatSummary, EnrollmentReportRecord>>
 {
     private readonly IEnrollmentReportService _enrollmentReportService;
     private readonly INowService _now;
@@ -26,12 +26,12 @@ internal class EnrollmentReportQueryHandler : IRequestHandler<EnrollmentReportQu
         _pagingService = pagingService;
     }
 
-    public async Task<ReportResults<EnrollmentReportRecord>> Handle(EnrollmentReportQuery request, CancellationToken cancellationToken)
+    public async Task<ReportResults<EnrollmentReportStatSummary, EnrollmentReportRecord>> Handle(EnrollmentReportQuery request, CancellationToken cancellationToken)
     {
-        var unpagedResults = await _enrollmentReportService.GetRecords(request.Parameters, cancellationToken);
-        var paged = _pagingService.Page(unpagedResults, request.PagingArgs);
+        var rawResults = await _enrollmentReportService.GetRawResults(request.Parameters, cancellationToken);
+        var paged = _pagingService.Page(rawResults.Records, request.PagingArgs);
 
-        return new ReportResults<EnrollmentReportRecord>
+        return new ReportResults<EnrollmentReportStatSummary, EnrollmentReportRecord>
         {
             MetaData = new ReportMetaData
             {
@@ -39,6 +39,7 @@ internal class EnrollmentReportQueryHandler : IRequestHandler<EnrollmentReportQu
                 RunAt = _now.Get(),
                 Key = ReportKey.Enrollment
             },
+            OverallStats = rawResults.StatSummary,
             Records = paged.Items,
             Paging = paged.Paging
         };

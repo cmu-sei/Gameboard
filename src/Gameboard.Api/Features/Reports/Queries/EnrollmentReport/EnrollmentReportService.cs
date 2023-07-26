@@ -12,7 +12,7 @@ namespace Gameboard.Api.Features.Reports;
 public interface IEnrollmentReportService
 {
     Task<IQueryable<Data.Player>> GetBaseQuery(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
-    Task<IEnumerable<EnrollmentReportRecord>> GetRecords(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
+    Task<EnrollmentReportRawResults> GetRawResults(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
 }
 
 internal class EnrollmentReportService : IEnrollmentReportService
@@ -87,7 +87,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
         return query;
     }
 
-    public async Task<IEnumerable<EnrollmentReportRecord>> GetRecords(EnrollmentReportParameters parameters, CancellationToken cancellationToken)
+    public async Task<EnrollmentReportRawResults> GetRawResults(EnrollmentReportParameters parameters, CancellationToken cancellationToken)
     {
         // load query
         var query = await GetBaseQuery(parameters, cancellationToken);
@@ -210,7 +210,44 @@ internal class EnrollmentReportService : IEnrollmentReportService
             };
         });
 
-        return records;
+        var usersBySponsor = records.Select(r => new
+        {
+            SponsorId = r.Player.Sponsor.Id,
+            UserId = r.User.Id
+        })
+        .GroupBy(r => r.SponsorId)
+        .OrderByDescending(g => g.Count())
+        .ToDictionary(g => g.Key, g => g.Count());
+
+        EnrollmentReportStatSummarySponsorPlayerCount sponsorWithMostPlayers = null;
+
+        if (usersBySponsor.Any())
+        {
+            var sponsor = sponsors.FirstOrDefault(s => s.Id == usersBySponsor.First().Key);
+
+            if (sponsor is not null)
+            {
+                sponsorWithMostPlayers = new()
+                {
+                    Sponsor = sponsor,
+                    DistinctPlayerCount = usersBySponsor[sponsor.Id]
+                };
+            }
+        }
+
+        var statSummary = new EnrollmentReportStatSummary
+        {
+            DistinctPlayerCount = records.Select(r => r.User.Id).Distinct().Count(),
+            DistinctSponsorCount = records.Select(r => r.Player.Sponsor.Id).Distinct().Count(),
+            SponsorWithMostPlayers = sponsorWithMostPlayers,
+            DistinctTeamCount = records.Select(p => p.Team.Id).Distinct().Count()
+        };
+
+        return new()
+        {
+            StatSummary = statSummary,
+            Records = records
+        };
     }
 
     private IEnumerable<EnrollmentReportChallengeViewModel> ChallengeDataToViewModel(IEnumerable<EnrollmentReportChallengeQueryData> challengeData)
