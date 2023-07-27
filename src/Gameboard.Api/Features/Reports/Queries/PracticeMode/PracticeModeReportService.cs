@@ -233,6 +233,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
                 Start = attempt.StartTime,
                 End = attempt.EndTime,
                 DurationMs = attempt.Player.Time,
+                Result = attempt.Result,
                 Score = attempt.Score,
                 PartiallyCorrectCount = attempt.Player.PartialCount,
                 FullyCorrectCount = attempt.Player.CorrectCount

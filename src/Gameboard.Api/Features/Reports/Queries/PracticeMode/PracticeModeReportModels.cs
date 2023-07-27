@@ -74,6 +74,7 @@ public sealed class PracticeModeReportAttempt
     public required DateTimeOffset Start { get; set; }
     public required DateTimeOffset End { get; set; }
     public required double DurationMs { get; set; }
+    public required ChallengeResult Result { get; set; }
     public required double Score { get; set; }
     public required int PartiallyCorrectCount { get; set; }
     public required int FullyCorrectCount { get; set; }
