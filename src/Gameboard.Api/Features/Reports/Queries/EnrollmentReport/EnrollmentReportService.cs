@@ -210,14 +210,16 @@ internal class EnrollmentReportService : IEnrollmentReportService
             };
         });
 
-        var usersBySponsor = records.Select(r => new
-        {
-            SponsorId = r.Player.Sponsor.Id,
-            UserId = r.User.Id
-        })
-        .GroupBy(r => r.SponsorId)
-        .OrderByDescending(g => g.Count())
-        .ToDictionary(g => g.Key, g => g.Count());
+        var usersBySponsor = records
+            .Where(r => r.Player.Sponsor is not null)
+            .Select(r => new
+            {
+                SponsorId = r.Player.Sponsor.Id,
+                UserId = r.User.Id
+            })
+            .GroupBy(r => r.SponsorId)
+            .OrderByDescending(g => g.Count())
+            .ToDictionary(g => g.Key, g => g.Count());
 
         EnrollmentReportStatSummarySponsorPlayerCount sponsorWithMostPlayers = null;
 
@@ -237,6 +239,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
 
         var statSummary = new EnrollmentReportStatSummary
         {
+            DistinctGameCount = records.Select(r => r.Game.Id).Distinct().Count(),
             DistinctPlayerCount = records.Select(r => r.User.Id).Distinct().Count(),
             DistinctSponsorCount = records.Select(r => r.Player.Sponsor.Id).Distinct().Count(),
             SponsorWithMostPlayers = sponsorWithMostPlayers,

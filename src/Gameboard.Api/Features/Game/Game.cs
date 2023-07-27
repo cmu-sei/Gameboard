@@ -69,9 +69,11 @@ namespace Gameboard.Api
 
     public class GameSearchFilter : SearchFilter
     {
+        private const string CompetitiveFilter = "competitive";
         public const string PastFilter = "past";
         public const string PresentFilter = "present";
         public const string FutureFilter = "future";
+        public bool WantsCompetitive => Filter.Contains(CompetitiveFilter);
         public bool WantsPresent => Filter.Contains(PresentFilter);
         public bool WantsPast => Filter.Contains(PastFilter);
         public bool WantsFuture => Filter.Contains(FutureFilter);

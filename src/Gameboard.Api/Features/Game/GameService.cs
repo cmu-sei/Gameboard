@@ -118,6 +118,9 @@ public class GameService : _Service, IGameService
         if (model == null)
             return q;
 
+        if (model.WantsCompetitive)
+            q = q.Where(g => g.PlayerMode == PlayerMode.Competition);
+
         if (model.WantsPresent)
             q = q.Where(g => g.GameEnd > now && g.GameStart < now);
 
@@ -153,11 +156,14 @@ public class GameService : _Service, IGameService
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;
 
-        var q = Store.List(model.Term);
+        var q = Store
+            .List(model.Term);
 
         if (!sudo)
             q = q.Where(g => g.IsPublished);
 
+        if (model.WantsCompetitive)
+            q = q.Where(g => g.PlayerMode == PlayerMode.Competition);
         if (model.WantsPresent)
             q = q.Where(g => g.GameEnd > now && g.GameStart < now);
         if (model.WantsFuture)

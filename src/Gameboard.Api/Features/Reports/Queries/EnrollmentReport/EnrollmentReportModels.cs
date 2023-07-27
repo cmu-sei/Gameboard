@@ -32,6 +32,7 @@ public class EnrollmentReportRecord
 
 public sealed class EnrollmentReportStatSummary
 {
+    public required int DistinctGameCount { get; set; }
     public required int DistinctPlayerCount { get; set; }
     public required int DistinctSponsorCount { get; set; }
     public required EnrollmentReportStatSummarySponsorPlayerCount SponsorWithMostPlayers { get; set; }
