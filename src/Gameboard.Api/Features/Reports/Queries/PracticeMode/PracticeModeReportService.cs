@@ -478,7 +478,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
             .Where(p => isOtherChallengeRecord(p) && p.Score < score)
             .Count();
 
-        return decimal.Divide(numerator, denominator);
+        return decimal.Divide(numerator, denominator) * 100;
     }
 
     private async Task<IEnumerable<PracticeModeReportByPlayerModePerformanceChallengeScore>> GetSpecRawScores(IList<string> specIds)
