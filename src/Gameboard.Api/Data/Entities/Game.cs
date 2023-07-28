@@ -54,25 +54,25 @@ namespace Gameboard.Api.Data
         public ICollection<ChallengeGate> Prerequisites { get; set; } = new List<ChallengeGate>();
         public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
 
-        [NotMapped] public bool RequireSession => SessionMinutes > 0;
         [NotMapped] public bool RequireTeam => MinTeamSize > 1;
         [NotMapped] public bool AllowTeam => MaxTeamSize > 1;
+
         [NotMapped]
         public bool IsLive =>
             GameStart != DateTimeOffset.MinValue &&
             GameStart.CompareTo(DateTimeOffset.UtcNow) < 0 &&
-            GameEnd.CompareTo(DateTimeOffset.UtcNow) > 0
-        ;
+            GameEnd.CompareTo(DateTimeOffset.UtcNow) > 0;
+
         [NotMapped]
         public bool HasEnded =>
-            GameEnd.CompareTo(DateTimeOffset.UtcNow) < 0
-        ;
+            GameEnd.CompareTo(DateTimeOffset.UtcNow) < 0;
+
         [NotMapped]
         public bool RegistrationActive =>
             RegistrationType != GameRegistrationType.None &&
             RegistrationOpen.CompareTo(DateTimeOffset.UtcNow) < 0 &&
-            RegistrationClose.CompareTo(DateTimeOffset.UtcNow) > 0
-        ;
+            RegistrationClose.CompareTo(DateTimeOffset.UtcNow) > 0;
+
         [NotMapped] public bool IsPracticeMode => PlayerMode == PlayerMode.Practice;
         [NotMapped] public bool IsCompetitionMode => PlayerMode == PlayerMode.Competition;
     }
