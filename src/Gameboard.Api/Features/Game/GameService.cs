@@ -121,6 +121,9 @@ public class GameService : _Service, IGameService
         if (model.WantsCompetitive)
             q = q.Where(g => g.PlayerMode == PlayerMode.Competition);
 
+        if (model.WantsPractice)
+            q = q.Where(g => g.PlayerMode == PlayerMode.Practice);
+
         if (model.WantsPresent)
             q = q.Where(g => g.GameEnd > now && g.GameStart < now);
 
@@ -141,6 +144,11 @@ public class GameService : _Service, IGameService
             q = q.Take(model.Take);
 
         return q;
+    }
+
+    public Task<IEnumerable<GameSearchResult>> Search(GameSearchQuery query)
+    {
+        throw new NotImplementedException();
     }
 
     public async Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false)

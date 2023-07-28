@@ -110,7 +110,6 @@ namespace Gameboard.Api.Controllers
         public async Task Delete([FromRoute] string id)
         {
             await Validate(new Entity { Id = id });
-
             await GameService.Delete(id);
         }
 
@@ -124,6 +123,13 @@ namespace Gameboard.Api.Controllers
         public async Task<IEnumerable<Game>> List([FromQuery] GameSearchFilter model)
         {
             return await GameService.List(model, Actor.IsDesigner || Actor.IsTester);
+        }
+
+        [HttpGet("api/games/search")]
+        [AllowAnonymous]
+        public async Task<IEnumerable<GameSearchResult>> Search([FromQuery] GameSearchQuery model)
+        {
+            return await GameService.Search(model);
         }
 
         /// <summary>
@@ -141,9 +147,7 @@ namespace Gameboard.Api.Controllers
         [HttpGet("/api/game/{gameId}/ready")]
         [Authorize]
         public async Task<SyncStartState> IsGameReady(string gameId)
-        {
-            return await _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
-        }
+            => await _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
 
         [HttpPost("/api/game/import")]
         [Authorize(AppConstants.DesignerPolicy)]

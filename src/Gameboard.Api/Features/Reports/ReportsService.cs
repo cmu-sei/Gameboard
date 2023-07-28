@@ -65,27 +65,6 @@ public class ReportsService : IReportsService
     {
         var reports = new ReportViewModel[]
         {
-            // new ReportViewModel
-            // {
-            //     Name = "Challenges",
-            //     Key = ReportKey.Challenges,
-            //     Description = "Understand the role a challenge played in its games and competitions, how attainable a full solve was, and more.",
-            //     ExampleFields = new string[]
-            //     {
-            //         "Scores & Solve Times",
-            //         "Eligibility",
-            //         "Engagement",
-            //         "Participation Across Challenges/Games"
-            //     },
-            //     ExampleParameters = new string[]
-            //     {
-            //         "Session Date Range",
-            //         "Season",
-            //         "Series",
-            //         "Track",
-            //         "Game & Challenge"
-            //     }
-            // },
             new ReportViewModel
             {
                 Name = "Enrollment",
@@ -109,28 +88,6 @@ public class ReportsService : IReportsService
                     "Game & Challenge"
                 }
             },
-            // new ReportViewModel
-            // {
-            //     Name = "Players",
-            //     Key = ReportKey.Players,
-            //     Description = "View a player-based perspective of your games and challenge. See who's scoring highly, logging in regularly, and more.",
-            //     ExampleFields = new string[]
-            //     {
-            //         "Deplyoment/Enrollment Counts",
-            //         "Completion Stats",
-            //         "Engagement",
-            //         "Participation Across Challenges/Games"
-            //     },
-            //     ExampleParameters = new string[]
-            //     {
-            //         "Session Date Range",
-            //         "Season",
-            //         "Series",
-            //         "Sponsor",
-            //         "Track",
-            //         "Game/Challenge"
-            //     }
-            // },
             new ReportViewModel
             {
                 Name = "Practice Mode",
@@ -145,7 +102,10 @@ public class ReportsService : IReportsService
                 },
                 ExampleParameters = new string[]
                 {
-                    "Practice Date Range",
+                    "Practice Date",
+                    "Series",
+                    "Track",
+                    "Season",
                     "Game",
                     "Sponsor"
                 }
