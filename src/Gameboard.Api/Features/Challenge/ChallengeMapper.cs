@@ -123,7 +123,7 @@ namespace Gameboard.Api.Services
                 .ForMember(d => d.Consoles, opt => opt.MapFrom(s =>
                     JsonSerializer.Deserialize<TopoMojo.Api.Client.GameState>(s.State, JsonOptions).Vms)
                 )
-                .ForMember(d => d.isActive, opt => opt.MapFrom(s =>
+                .ForMember(d => d.IsActive, opt => opt.MapFrom(s =>
                     JsonSerializer.Deserialize<TopoMojo.Api.Client.GameState>(s.State, JsonOptions).IsActive)
                 )
             ;

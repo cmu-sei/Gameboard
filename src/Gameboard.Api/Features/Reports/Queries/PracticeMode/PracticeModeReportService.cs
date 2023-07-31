@@ -67,14 +67,14 @@ internal class PracticeModeReportService : IPracticeModeReportService
         if (startDate is not null)
         {
             query = query
-                .WhereDateHasValue(c => c.StartTime)
+                .WhereDateIsNotEmpty(c => c.StartTime)
                 .Where(c => c.StartTime >= startDate);
         }
 
         if (endDate is not null)
         {
             query = query
-                .WhereDateHasValue(c => c.EndTime)
+                .WhereDateIsNotEmpty(c => c.EndTime)
                 .Where(c => c.EndTime <= endDate);
         }
 

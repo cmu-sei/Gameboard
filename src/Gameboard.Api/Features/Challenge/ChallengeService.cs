@@ -526,7 +526,7 @@ namespace Gameboard.Api.Services
                 .ThenBy(c => c.Name);
             var challenges = Mapper.Map<ObserveChallenge[]>(await q.ToArrayAsync());
             var result = new List<ObserveChallenge>();
-            foreach (var challenge in challenges.Where(c => c.isActive))
+            foreach (var challenge in challenges.Where(c => c.IsActive))
             {
                 challenge.Consoles = challenge.Consoles
                     .Where(v => v.IsVisible)

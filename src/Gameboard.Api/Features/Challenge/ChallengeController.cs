@@ -117,19 +117,6 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
-        /// Change challenge
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpPut("api/challenge")]
-        [Authorize]
-        public Task Update([FromBody] ChangedChallenge model)
-        {
-            // await ChallengeService.Update(model);
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
         /// Delete challenge
         /// </summary>
         /// <param name="id"></param>
