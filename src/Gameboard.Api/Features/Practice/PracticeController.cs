@@ -36,6 +36,6 @@ public class PracticeController : ControllerBase
     /// <param name="userId"></param>
     /// <returns></returns>
     [HttpGet("user/{userId}/challenges/active")]
-    public Task<IEnumerable<UserChallengeSlim>> GetUserActivePracticeChallenges([FromRoute] string userId)
+    public Task<IEnumerable<ActiveChallenge>> GetUserActivePracticeChallenges([FromRoute] string userId)
             => _mediator.Send(new GetUserActiveChallengesQuery(userId));
 }

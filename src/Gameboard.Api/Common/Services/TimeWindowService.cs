@@ -5,9 +5,9 @@ namespace Gameboard.Api.Features.Player;
 
 public class TimeWindow
 {
-    public DateTimeOffset Now { get; }
-    public DateTimeOffset? Start { get; }
-    public DateTimeOffset? End { get; }
+    public double Now { get; }
+    public double? Start { get; }
+    public double? End { get; }
     public double? DurationMs { get; private set; }
     public TimeWindowState State { get; private set; }
     public double? MsTilStart { get; private set; }
@@ -15,9 +15,9 @@ public class TimeWindow
 
     public TimeWindow(DateTimeOffset now, DateTimeOffset? start, DateTimeOffset? end)
     {
-        Now = now;
-        Start = start;
-        End = end;
+        Now = now.ToUnixTimeMilliseconds();
+        Start = start?.ToUnixTimeMilliseconds();
+        End = end?.ToUnixTimeMilliseconds();
 
         State = TimeWindowState.Before;
         if (start != null && now >= start && (end is null || now < end))

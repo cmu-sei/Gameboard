@@ -6,12 +6,12 @@ namespace Gameboard.Api.Features.GameEngine;
 
 public class GameEngineChallengeRegistration
 {
-    public required Api.Data.Challenge Challenge { get; set; }
-    public required Api.Data.ChallengeSpec ChallengeSpec { get; set; }
-    public required Api.Data.Game Game { get; set; }
+    public required Data.Challenge Challenge { get; set; }
+    public required Data.ChallengeSpec ChallengeSpec { get; set; }
+    public required Data.Game Game { get; set; }
     public required string GraderKey { get; set; }
     public required string GraderUrl { get; set; }
-    public required Api.Data.Player Player { get; set; }
+    public required Data.Player Player { get; set; }
     public required int PlayerCount { get; set; }
     public int Variant { get; set; }
 }

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using Gameboard.Api.Common;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Player;
+using TopoMojo.Api.Client;
 
 namespace Gameboard.Api;
 
@@ -50,19 +51,25 @@ public class ChallengeSummary
     public bool IsActive { get; set; }
 }
 
-public class UserChallengeSlim
+public class ActiveChallenge
 {
     public required SimpleEntity ChallengeSpec { get; set; }
     public required SimpleEntity Game { get; set; }
     public required SimpleEntity Player { get; set; }
     public required SimpleEntity User { get; set; }
-    public required string ChallengeId { get; set; }
+    public required ActiveChallengeDeployment ChallengeDeployment { get; set; }
     public required string TeamId { get; set; }
     public required TimeWindow Session { get; set; }
     public required PlayerMode PlayerMode { get; set; }
     public required bool HasDeployedGamespace { get; set; }
     public required decimal MaxPossibleScore { get; set; }
     public required decimal Score { get; set; }
+}
+
+public class ActiveChallengeDeployment
+{
+    public required string ChallengeId { get; set; }
+    public required IEnumerable<GameEngineVmState> Vms { get; set; }
 }
 
 public class ChallengePlayer

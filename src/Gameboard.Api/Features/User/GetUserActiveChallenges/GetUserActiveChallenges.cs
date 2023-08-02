@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
@@ -12,13 +14,15 @@ using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace Gameboard.Api.Features.Users;
 
-public record GetUserActiveChallengesQuery(string UserId) : IRequest<IEnumerable<UserChallengeSlim>>;
+public record GetUserActiveChallengesQuery(string UserId) : IRequest<IEnumerable<ActiveChallenge>>;
 
-internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveChallengesQuery, IEnumerable<UserChallengeSlim>>
+internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveChallengesQuery, IEnumerable<ActiveChallenge>>
 {
+    private readonly JsonSerializerOptions _jsonSerializerOptions;
     private readonly INowService _now;
     private readonly IStore _store;
     private readonly ITimeWindowService _timeWindowService;
@@ -28,6 +32,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
 
     public GetUserActiveChallengesHandler
     (
+        JsonSerializerOptions jsonSerializerOptions,
         INowService now,
         IStore store,
         ITimeWindowService timeWindowService,
@@ -36,6 +41,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
         IValidatorService<GetUserActiveChallengesQuery> validator
     )
     {
+        _jsonSerializerOptions = jsonSerializerOptions;
         _now = now;
         _store = store;
         _timeWindowService = timeWindowService;
@@ -44,7 +50,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
         _validator = validator;
     }
 
-    public async Task<IEnumerable<UserChallengeSlim>> Handle(GetUserActiveChallengesQuery request, CancellationToken cancellationToken)
+    public async Task<IEnumerable<ActiveChallenge>> Handle(GetUserActiveChallengesQuery request, CancellationToken cancellationToken)
     {
         // validate
         _validator.AddValidator(_userExists.UseProperty(m => m.UserId));
@@ -65,14 +71,18 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
             .Where(c => c.PlayerMode == PlayerMode.Practice)
             .Where(c => c.Player.UserId == request.UserId)
             .OrderByDescending(c => c.Player.SessionBegin)
-            .Select(c => new UserChallengeSlim
+            .Select(c => new ActiveChallenge
             {
                 // have to join spec separately later to get the names
                 ChallengeSpec = new SimpleEntity { Id = c.SpecId, Name = null },
                 Game = new SimpleEntity { Id = c.GameId, Name = c.Game.Name },
                 Player = new SimpleEntity { Id = c.PlayerId, Name = c.Player.ApprovedName },
                 User = new SimpleEntity { Id = c.Player.UserId, Name = c.Player.User.ApprovedName },
-                ChallengeId = c.Id,
+                ChallengeDeployment = new ActiveChallengeDeployment
+                {
+                    ChallengeId = c.Id,
+                    Vms = c.BuildGameEngineState(_jsonSerializerOptions).Vms
+                },
                 TeamId = c.Player.TeamId,
                 Session = _timeWindowService.CreateWindow(c.Player.SessionBegin, c.Player.SessionEnd),
                 HasDeployedGamespace = c.HasDeployedGamespace,

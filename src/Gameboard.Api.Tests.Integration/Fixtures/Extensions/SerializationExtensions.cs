@@ -12,9 +12,7 @@ internal static class SerializationExtensions
     public static StringContent ToJsonBody<T>(this T obj) where T : class
     {
         // build gameboard-like serializer options
-        var opts = new JsonSerializerOptions();
-        var builder = JsonService.BuildJsonSerializerOptions();
-        builder(opts);
+        var opts = JsonService.GetJsonSerializerOptions();
 
         // serialize and go
         return new StringContent(JsonSerializer.Serialize(obj, opts), Encoding.UTF8, MediaTypeNames.Application.Json);
@@ -44,8 +42,7 @@ internal static class SerializationExtensions
         response.EnsureSuccessStatusCode();
 
         // we do this to ensure that we're deserializing with the same rules as gameboard is
-        var serializerOptions = new JsonSerializerOptions();
-        JsonService.BuildJsonSerializerOptions()(serializerOptions);
+        var opts = JsonService.GetJsonSerializerOptions();
 
         var rawResponse = await response.Content.ReadAsStringAsync();
 
