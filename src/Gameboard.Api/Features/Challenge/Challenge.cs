@@ -52,11 +52,11 @@ public class ChallengeSummary
 
 public class UserChallengeSlim
 {
-    public required SimpleEntity Challenge { get; set; }
+    public required SimpleEntity ChallengeSpec { get; set; }
     public required SimpleEntity Game { get; set; }
     public required SimpleEntity Player { get; set; }
     public required SimpleEntity User { get; set; }
-    public required string SpecId { get; set; }
+    public required string ChallengeId { get; set; }
     public required string TeamId { get; set; }
     public required TimeWindow Session { get; set; }
     public required PlayerMode PlayerMode { get; set; }

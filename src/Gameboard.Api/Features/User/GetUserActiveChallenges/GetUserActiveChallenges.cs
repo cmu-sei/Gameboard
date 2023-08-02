@@ -67,11 +67,12 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
             .OrderByDescending(c => c.Player.SessionBegin)
             .Select(c => new UserChallengeSlim
             {
-                Challenge = new SimpleEntity { Id = c.Id, Name = c.Name },
+                // have to join spec separately later to get the names
+                ChallengeSpec = new SimpleEntity { Id = c.SpecId, Name = null },
                 Game = new SimpleEntity { Id = c.GameId, Name = c.Game.Name },
                 Player = new SimpleEntity { Id = c.PlayerId, Name = c.Player.ApprovedName },
                 User = new SimpleEntity { Id = c.Player.UserId, Name = c.Player.User.ApprovedName },
-                SpecId = c.SpecId,
+                ChallengeId = c.Id,
                 TeamId = c.Player.TeamId,
                 Session = _timeWindowService.CreateWindow(c.Player.SessionBegin, c.Player.SessionEnd),
                 HasDeployedGamespace = c.HasDeployedGamespace,
@@ -79,8 +80,20 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
                 MaxPossibleScore = c.Points,
                 Score = new decimal(c.Score),
             })
-
             .ToListAsync(cancellationToken);
+
+        // load the spec names
+        var specIds = challenges.Select(c => c.ChallengeSpec.Id).ToList();
+        var specNames = await _store
+            .List<Data.ChallengeSpec>()
+            .Where(s => specIds.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id, s => s.Name, cancellationToken);
+
+        foreach (var challenge in challenges)
+        {
+            if (specNames.ContainsKey(challenge.ChallengeSpec.Id))
+                challenge.ChallengeSpec.Name = specNames[challenge.ChallengeSpec.Id];
+        }
 
         return challenges;
     }
