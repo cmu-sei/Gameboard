@@ -64,11 +64,11 @@ public class GameEngineService : _Service, IGameEngineService
                 {
                     Players = new RegistrationPlayer[]
                     {
-                            new RegistrationPlayer
-                            {
-                                SubjectId = registration.Player.TeamId,
-                                SubjectName = registration.Player.ApprovedName
-                            }
+                        new RegistrationPlayer
+                        {
+                            SubjectId = registration.Player.TeamId,
+                            SubjectName = registration.Player.ApprovedName
+                        }
                     },
                     ResourceId = registration.ChallengeSpec.ExternalId,
                     Variant = registration.Variant,

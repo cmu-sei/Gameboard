@@ -22,7 +22,7 @@ internal class GameboardMksVmUrlResolver : IVmUrlResolver
         var url = _appUrlService.ToAppAbsoluteUrl("mks");
         var urlBuilder = new UriBuilder(url)
         {
-            Query = $"f=1&s={vmState.Id}&v={vmState.Name}"
+            Query = $"f=1&s={vmState.IsolationId}&v={vmState.Name}"
         };
 
         return urlBuilder.ToString();
