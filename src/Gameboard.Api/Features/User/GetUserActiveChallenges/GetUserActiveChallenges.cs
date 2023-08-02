@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
@@ -14,7 +15,6 @@ using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 
 namespace Gameboard.Api.Features.Users;
 
@@ -23,6 +23,7 @@ public record GetUserActiveChallengesQuery(string UserId) : IRequest<IEnumerable
 internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveChallengesQuery, IEnumerable<ActiveChallenge>>
 {
     private readonly JsonSerializerOptions _jsonSerializerOptions;
+    private readonly IMapper _mapper;
     private readonly INowService _now;
     private readonly IStore _store;
     private readonly ITimeWindowService _timeWindowService;
@@ -33,6 +34,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
     public GetUserActiveChallengesHandler
     (
         JsonSerializerOptions jsonSerializerOptions,
+        IMapper mapper,
         INowService now,
         IStore store,
         ITimeWindowService timeWindowService,
@@ -42,6 +44,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
     )
     {
         _jsonSerializerOptions = jsonSerializerOptions;
+        _mapper = mapper;
         _now = now;
         _store = store;
         _timeWindowService = timeWindowService;
@@ -70,21 +73,28 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
             .Where(c => c.Player.SessionEnd > _now.Get())
             .Where(c => c.PlayerMode == PlayerMode.Practice)
             .Where(c => c.Player.UserId == request.UserId)
-            .OrderByDescending(c => c.Player.SessionBegin)
+            .OrderByDescending(c => c.Player.SessionEnd)
             .Select(c => new ActiveChallenge
             {
-                // have to join spec separately later to get the names
-                ChallengeSpec = new SimpleEntity { Id = c.SpecId, Name = null },
+                // have to join spec separately later to get the names/tags
+                ChallengeSpec = new ActiveChallengeSpec
+                {
+                    Id = c.SpecId,
+                    Name = null,
+                    Tag = null
+                },
                 Game = new SimpleEntity { Id = c.GameId, Name = c.Game.Name },
                 Player = new SimpleEntity { Id = c.PlayerId, Name = c.Player.ApprovedName },
                 User = new SimpleEntity { Id = c.Player.UserId, Name = c.Player.User.ApprovedName },
                 ChallengeDeployment = new ActiveChallengeDeployment
                 {
                     ChallengeId = c.Id,
-                    Vms = c.BuildGameEngineState(_jsonSerializerOptions).Vms
+                    Vms = c.BuildGameEngineState(_mapper, _jsonSerializerOptions).Vms
                 },
                 TeamId = c.Player.TeamId,
-                Session = _timeWindowService.CreateWindow(c.Player.SessionBegin, c.Player.SessionEnd),
+                Session = _timeWindowService.CreateWindow(_now.Get(), c.Player.SessionBegin, c.Player.SessionEnd),
+                Start = c.Player.SessionBegin,
+                End = c.Player.SessionEnd,
                 HasDeployedGamespace = c.HasDeployedGamespace,
                 PlayerMode = c.PlayerMode,
                 MaxPossibleScore = c.Points,
@@ -94,15 +104,18 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
 
         // load the spec names
         var specIds = challenges.Select(c => c.ChallengeSpec.Id).ToList();
-        var specNames = await _store
+        var specs = await _store
             .List<Data.ChallengeSpec>()
             .Where(s => specIds.Contains(s.Id))
-            .ToDictionaryAsync(s => s.Id, s => s.Name, cancellationToken);
+            .ToDictionaryAsync(s => s.Id, s => s, cancellationToken);
 
         foreach (var challenge in challenges)
         {
-            if (specNames.ContainsKey(challenge.ChallengeSpec.Id))
-                challenge.ChallengeSpec.Name = specNames[challenge.ChallengeSpec.Id];
+            if (specs.ContainsKey(challenge.ChallengeSpec.Id))
+            {
+                challenge.ChallengeSpec.Name = specs[challenge.ChallengeSpec.Id].Name;
+                challenge.ChallengeSpec.Tag = specs[challenge.ChallengeSpec.Id].Tag;
+            }
         }
 
         return challenges;

@@ -718,7 +718,7 @@ public class PlayerService
         )).ToArray();
     }
 
-    private Api.PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount)
+    private PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount)
     {
         string certificateHTML = player.Game.CertificateTemplate;
         if (certificateHTML.IsEmpty())
@@ -747,10 +747,12 @@ public class PlayerService
     private async Task<Player> RegisterPracticeSession(NewPlayer model)
     {
         // check for existing sessions
+        var nowStamp = _now.Get();
+
         var players = await Store.DbContext.Players.Where(p =>
             p.UserId == model.UserId &&
             p.Mode == PlayerMode.Practice &&
-            p.SessionEnd > DateTimeOffset.UtcNow
+            p.SessionEnd > nowStamp
         ).ToArrayAsync();
 
         if (players.Any(p => p.GameId == model.GameId))
@@ -773,7 +775,7 @@ public class PlayerService
         {
             int count = await Store.DbSet.CountAsync(p =>
                 p.Mode == PlayerMode.Practice &&
-                p.SessionEnd > DateTimeOffset.UtcNow
+                p.SessionEnd > nowStamp
             );
 
             if (count >= CoreOptions.MaxPracticeSessions)
@@ -783,7 +785,7 @@ public class PlayerService
         var entity = await InitializePlayer(model, CoreOptions.PracticeSessionMinutes);
 
         // start session
-        entity.SessionBegin = DateTimeOffset.UtcNow;
+        entity.SessionBegin = nowStamp;
         entity.SessionEnd = entity.SessionBegin.AddMinutes(entity.SessionMinutes);
         entity.Mode = PlayerMode.Practice;
 

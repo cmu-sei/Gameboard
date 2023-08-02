@@ -53,17 +53,26 @@ public class ChallengeSummary
 
 public class ActiveChallenge
 {
-    public required SimpleEntity ChallengeSpec { get; set; }
+    public required ActiveChallengeSpec ChallengeSpec { get; set; }
     public required SimpleEntity Game { get; set; }
     public required SimpleEntity Player { get; set; }
     public required SimpleEntity User { get; set; }
     public required ActiveChallengeDeployment ChallengeDeployment { get; set; }
     public required string TeamId { get; set; }
     public required TimeWindow Session { get; set; }
+    public DateTimeOffset Start { get; set; }
+    public DateTimeOffset End { get; set; }
     public required PlayerMode PlayerMode { get; set; }
     public required bool HasDeployedGamespace { get; set; }
     public required decimal MaxPossibleScore { get; set; }
     public required decimal Score { get; set; }
+}
+
+public sealed class ActiveChallengeSpec
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required string Tag { get; set; }
 }
 
 public class ActiveChallengeDeployment

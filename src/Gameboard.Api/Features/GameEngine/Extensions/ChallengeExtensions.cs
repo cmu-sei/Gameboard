@@ -1,13 +1,17 @@
-using System.Collections;
+using System;
 using System.Text.Json;
-using Gameboard.Api.Services;
+using AutoMapper;
+using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Features.GameEngine;
 
 internal static class GameEngineChallengeExtensions
 {
-    public static GameEngineGameState BuildGameEngineState(this Data.Challenge challenge, JsonSerializerOptions jsonSerializerOptions)
+    public static GameEngineGameState BuildGameEngineState(this Data.Challenge challenge, IMapper mapper, JsonSerializerOptions jsonSerializerOptions)
     {
-        return JsonSerializer.Deserialize<GameEngineGameState>(challenge.State, jsonSerializerOptions);
+        var state = mapper.Map<GameState, GameEngineGameState>(JsonSerializer.Deserialize<TopoMojo.Api.Client.GameState>(challenge.State, jsonSerializerOptions));
+        state.Vms ??= Array.Empty<GameEngineVmState>();
+
+        return state;
     }
 }

@@ -29,9 +29,9 @@ public class TimeWindow
             State = TimeWindowState.After;
         }
 
-        MsTilStart = start is null ? null : (start - now).Value.TotalMilliseconds;
-        MsTilEnd = end is null ? null : (end - now).Value.TotalMilliseconds;
-        DurationMs = start == null ? null : ((end ?? now) - start).Value.TotalMilliseconds;
+        MsTilStart = start is null ? null : (Start - Now);
+        MsTilEnd = end is null ? null : (End - Now);
+        DurationMs = start == null ? null : ((End ?? Now) - Start);
     }
 }
 
@@ -45,6 +45,7 @@ public enum TimeWindowState
 public interface ITimeWindowService
 {
     TimeWindow CreateWindow(DateTimeOffset start, DateTimeOffset end);
+    TimeWindow CreateWindow(DateTimeOffset now, DateTimeOffset start, DateTimeOffset end);
 }
 
 public class TimeWindowService : ITimeWindowService
@@ -57,6 +58,9 @@ public class TimeWindowService : ITimeWindowService
     }
 
     public TimeWindow CreateWindow(DateTimeOffset start, DateTimeOffset end)
+        => CreateWindow(_now.Get(), start, end);
+
+    public TimeWindow CreateWindow(DateTimeOffset now, DateTimeOffset start, DateTimeOffset end)
     {
         DateTimeOffset? finalStart = start == DateTimeOffset.MinValue ? null : start;
         DateTimeOffset? finalEnd = end == DateTimeOffset.MinValue ? null : end;
@@ -64,6 +68,6 @@ public class TimeWindowService : ITimeWindowService
         if (finalStart != null && finalEnd != null && finalStart.Value >= finalEnd.Value)
             throw new ArgumentException("Can't create a time window with end date occurring before the start date.");
 
-        return new TimeWindow(_now.Get(), finalStart, finalEnd);
+        return new TimeWindow(now, finalStart, finalEnd);
     }
 }
