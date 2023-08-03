@@ -18,9 +18,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Users;
 
-public record GetUserActiveChallengesQuery(string UserId) : IRequest<IEnumerable<ActiveChallenge>>;
+public record GetUserActiveChallengesQuery(string UserId) : IRequest<UserActiveChallenges>;
 
-internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveChallengesQuery, IEnumerable<ActiveChallenge>>
+public sealed class UserActiveChallenges
+{
+    public required SimpleEntity User { get; set; }
+    public required IEnumerable<ActiveChallenge> Practice { get; set; }
+    public required IEnumerable<ActiveChallenge> Competition { get; set; }
+}
+
+internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveChallengesQuery, UserActiveChallenges>
 {
     private readonly JsonSerializerOptions _jsonSerializerOptions;
     private readonly IMapper _mapper;
@@ -53,7 +60,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
         _validator = validator;
     }
 
-    public async Task<IEnumerable<ActiveChallenge>> Handle(GetUserActiveChallengesQuery request, CancellationToken cancellationToken)
+    public async Task<UserActiveChallenges> Handle(GetUserActiveChallengesQuery request, CancellationToken cancellationToken)
     {
         // validate
         _validator.AddValidator(_userExists.UseProperty(m => m.UserId));
@@ -64,6 +71,11 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
         _userRoleAuthorizer.Authorize();
 
         // retrieve stuff
+        var user = await _store
+            .List<Data.User>()
+            .Select(u => new SimpleEntity { Id = u.Id, Name = u.ApprovedName })
+            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+
         var challenges = await _store
             .List<Data.Challenge>()
                 .Include(c => c.Game)
@@ -71,7 +83,6 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
                     .ThenInclude(p => p.User)
             .Where(c => c.Player.SessionBegin >= DateTimeOffset.MinValue)
             .Where(c => c.Player.SessionEnd > _now.Get())
-            .Where(c => c.PlayerMode == PlayerMode.Practice)
             .Where(c => c.Player.UserId == request.UserId)
             .OrderByDescending(c => c.Player.SessionEnd)
             .Select(c => new ActiveChallenge
@@ -95,7 +106,6 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
                 Session = _timeWindowService.CreateWindow(_now.Get(), c.Player.SessionBegin, c.Player.SessionEnd),
                 Start = c.Player.SessionBegin,
                 End = c.Player.SessionEnd,
-                HasDeployedGamespace = c.HasDeployedGamespace,
                 PlayerMode = c.PlayerMode,
                 MaxPossibleScore = c.Points,
                 Score = new decimal(c.Score),
@@ -118,6 +128,11 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
             }
         }
 
-        return challenges;
+        return new UserActiveChallenges
+        {
+            User = user,
+            Competition = challenges.Where(c => c.PlayerMode == PlayerMode.Competition),
+            Practice = challenges.Where(c => c.PlayerMode == PlayerMode.Practice)
+        };
     }
 }

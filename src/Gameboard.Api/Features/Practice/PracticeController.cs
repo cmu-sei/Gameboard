@@ -27,15 +27,4 @@ public class PracticeController : ControllerBase
     [AllowAnonymous]
     public Task<SearchPracticeChallengesResult> Browse([FromQuery] SearchFilter model)
         => _mediator.Send(new SearchPracticeChallengesQuery(model));
-
-    /// <summary>
-    /// Get the user's current active practice challenge.
-    ///
-    /// NOTE: We currently only allow them to have one active at a time, but this may change soon.
-    /// </summary>
-    /// <param name="userId"></param>
-    /// <returns></returns>
-    [HttpGet("user/{userId}/challenges/active")]
-    public Task<IEnumerable<ActiveChallenge>> GetUserActivePracticeChallenges([FromRoute] string userId)
-            => _mediator.Send(new GetUserActiveChallengesQuery(userId));
 }

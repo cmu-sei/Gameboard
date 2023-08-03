@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,9 @@ public interface IStore
         Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls
     ) where TEntity : class, IEntity;
     Task<bool> Exists<TEntity>(string id) where TEntity : class, IEntity;
+    Task<TEntity> FirstOrDefaultAsync<TEntity>(CancellationToken cancellationToken) where TEntity : class, IEntity;
+    Task<TEntity> FirstOrDefaultAsync<TEntity>(bool enableTracking, CancellationToken cancellationToken) where TEntity : class, IEntity;
+    Task<TEntity> FirstOrDefaultAsync<TEntity>(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) where TEntity : class, IEntity;
     IQueryable<TEntity> List<TEntity>(bool enableTracking = false) where TEntity : class, IEntity;
     Task<TEntity> Retrieve<TEntity>(string id, bool enableTracking = false) where TEntity : class, IEntity;
     Task<TEntity> Retrieve<TEntity>(string id, Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder, bool enableTracking = false) where TEntity : class, IEntity;
@@ -89,6 +93,25 @@ internal class Store : IStore
         => _dbContext
             .Set<TEntity>()
             .AnyAsync(e => e.Id == id);
+
+    public Task<TEntity> FirstOrDefaultAsync<TEntity>(CancellationToken cancellationToken) where TEntity : class, IEntity
+        => FirstOrDefaultAsync(null as Expression<Func<TEntity, bool>>, false, cancellationToken);
+
+    public Task<TEntity> FirstOrDefaultAsync<TEntity>(bool enableTracking, CancellationToken cancellationToken) where TEntity : class, IEntity
+        => FirstOrDefaultAsync(null as Expression<Func<TEntity, bool>>, enableTracking, cancellationToken);
+
+    public Task<TEntity> FirstOrDefaultAsync<TEntity>(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) where TEntity : class, IEntity
+        => FirstOrDefaultAsync(predicate, false, cancellationToken);
+
+    public Task<TEntity> FirstOrDefaultAsync<TEntity>(Expression<Func<TEntity, bool>> predicate, bool enableTracking, CancellationToken cancellationToken) where TEntity : class, IEntity
+    {
+        var query = GetQueryBase<TEntity>(enableTracking);
+
+        if (predicate is not null)
+            return query.FirstOrDefaultAsync(predicate, cancellationToken);
+
+        return query.FirstOrDefaultAsync(cancellationToken);
+    }
 
     public IQueryable<TEntity> List<TEntity>(bool enableTracking = false) where TEntity : class, IEntity
         => GetQueryBase<TEntity>(enableTracking);

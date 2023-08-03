@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using Gameboard.Api.Common;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Player;
-using TopoMojo.Api.Client;
 
 namespace Gameboard.Api;
 
@@ -63,7 +62,6 @@ public class ActiveChallenge
     public DateTimeOffset Start { get; set; }
     public DateTimeOffset End { get; set; }
     public required PlayerMode PlayerMode { get; set; }
-    public required bool HasDeployedGamespace { get; set; }
     public required decimal MaxPossibleScore { get; set; }
     public required decimal Score { get; set; }
 }

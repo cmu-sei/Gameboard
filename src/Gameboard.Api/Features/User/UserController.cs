@@ -138,6 +138,15 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
+        /// Get the user's active challenges.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        [HttpGet("/api/user/{userId}/challenges/active")]
+        public Task<UserActiveChallenges> GetUserActiveChallenges([FromRoute] string userId)
+                => _mediator.Send(new GetUserActiveChallengesQuery(userId));
+
+        /// <summary>
         /// Find users
         /// </summary>
         /// <param name="model"></param>
