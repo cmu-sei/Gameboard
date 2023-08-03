@@ -140,6 +140,7 @@ internal class GameStartService : IGameStartService
         var specs = await _store
             .ListAsNoTracking<Data.ChallengeSpec>()
             .Where(cs => cs.GameId == game.Id)
+            .Where(cs => !cs.Disabled)
             .ToArrayAsync(cancellationToken);
 
         var players = await _store
