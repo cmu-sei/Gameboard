@@ -17,7 +17,7 @@ internal class JsonService : IJsonService
     public static JsonSerializerOptions GetJsonSerializerOptions()
     {
         var options = new JsonSerializerOptions();
-        BuildJsonSerializerOptions()(new JsonSerializerOptions());
+        BuildJsonSerializerOptions()(options);
         return options;
     }
 
