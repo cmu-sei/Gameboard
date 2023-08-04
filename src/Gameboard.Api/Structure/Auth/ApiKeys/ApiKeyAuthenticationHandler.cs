@@ -55,10 +55,11 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
         }
 
         var principal = new ClaimsPrincipal(
-            new ClaimsIdentity(
+            new ClaimsIdentity
+            (
                 new Claim[] {
-                            new Claim(AppConstants.SubjectClaimName, user.Id),
-                            new Claim(AppConstants.NameClaimName, user.Name),
+                    new Claim(AppConstants.SubjectClaimName, user.Id),
+                    new Claim(AppConstants.NameClaimName, user.Name),
                 },
                 Scheme.Name
             )
