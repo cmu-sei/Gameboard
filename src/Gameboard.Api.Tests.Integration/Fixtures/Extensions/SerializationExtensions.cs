@@ -48,7 +48,7 @@ internal static class SerializationExtensions
 
         try
         {
-            var deserialized = JsonSerializer.Deserialize<T>(rawResponse, serializerOptions);
+            var deserialized = JsonSerializer.Deserialize<T>(rawResponse, opts);
 
             if (deserialized != null)
             {
@@ -60,6 +60,6 @@ internal static class SerializationExtensions
             throw new ResponseContentDeserializationTypeFailure<T>(rawResponse, ex);
         }
 
-        return default(T);
+        return default;
     }
 }
