@@ -17,6 +17,7 @@ public interface IGameEngineService
     Task<IEnumerable<GameEngineSectionSubmission>> AuditChallenge(Data.Challenge entity);
     Task CompleteGamespace(Data.Challenge entity);
     Task DeleteGamespace(Data.Challenge entity);
+    Task<GameEngineGameState> GetChallengeState(GameEngineType gameEngineType, string stateJson);
     Task ExtendSession(Data.Challenge entity, DateTimeOffset sessionEnd);
     Task<ConsoleSummary> GetConsole(Data.Challenge entity, ConsoleRequest model, bool observer);
     Task<GameEngineGameState> GetPreview(Data.ChallengeSpec spec);
@@ -35,9 +36,11 @@ public class GameEngineService : _Service, IGameEngineService
     ICrucibleService Crucible { get; }
     IAlloyApiClient Alloy { get; }
 
+    private readonly IJsonService _jsonService;
     private readonly IGameEngineStore _store;
 
     public GameEngineService(
+        IJsonService jsonService,
         ILogger<GameEngineService> logger,
         IGameEngineStore store,
         IMapper mapper,
@@ -47,6 +50,7 @@ public class GameEngineService : _Service, IGameEngineService
         ICrucibleService crucible
     ) : base(logger, mapper, options)
     {
+        _jsonService = jsonService;
         Mojo = mojo;
         _store = store;
         Alloy = alloy;
@@ -62,11 +66,11 @@ public class GameEngineService : _Service, IGameEngineService
                 {
                     Players = new RegistrationPlayer[]
                     {
-                            new RegistrationPlayer
-                            {
-                                SubjectId = registration.Player.TeamId,
-                                SubjectName = registration.Player.ApprovedName
-                            }
+                        new RegistrationPlayer
+                        {
+                            SubjectId = registration.Player.TeamId,
+                            SubjectName = registration.Player.ApprovedName
+                        }
                     },
                     ResourceId = registration.ChallengeSpec.ExternalId,
                     Variant = registration.Variant,
@@ -85,6 +89,15 @@ public class GameEngineService : _Service, IGameEngineService
             default:
                 throw new NotImplementedException();
         }
+    }
+
+    public Task<GameEngineGameState> GetChallengeState(GameEngineType gameEngineType, string stateJson)
+    {
+        return gameEngineType switch
+        {
+            GameEngineType.TopoMojo => Task.FromResult(Mapper.Map<GameEngineGameState>(_jsonService.Deserialize<GameState>(stateJson))),
+            _ => throw new NotImplementedException(),
+        };
     }
 
     public async Task<GameEngineGameState> GetPreview(Data.ChallengeSpec spec)
@@ -270,7 +283,6 @@ public class GameEngineService : _Service, IGameEngineService
             case GameEngineType.TopoMojo:
                 await Mojo.DeleteGamespaceAsync(entity.Id);
                 break;
-
             default:
                 throw new NotImplementedException();
         }

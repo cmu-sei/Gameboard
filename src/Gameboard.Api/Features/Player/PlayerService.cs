@@ -287,6 +287,7 @@ public class PlayerService
         if (manager.IsPractice)
         {
             DateTimeOffset now = DateTimeOffset.UtcNow;
+
             // end session now or extend by configured amount
             model.SessionEnd = model.SessionEnd.Year == 1
                 ? DateTimeOffset.UtcNow

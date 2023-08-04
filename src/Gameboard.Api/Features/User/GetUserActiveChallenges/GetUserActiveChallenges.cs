@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -29,7 +28,7 @@ public sealed class UserActiveChallenges
 
 internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveChallengesQuery, UserActiveChallenges>
 {
-    private readonly JsonSerializerOptions _jsonSerializerOptions;
+    private readonly IGameEngineService _gameEngine;
     private readonly IMapper _mapper;
     private readonly INowService _now;
     private readonly IStore _store;
@@ -40,7 +39,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
 
     public GetUserActiveChallengesHandler
     (
-        JsonSerializerOptions jsonSerializerOptions,
+        IGameEngineService gameEngine,
         IMapper mapper,
         INowService now,
         IStore store,
@@ -50,7 +49,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
         IValidatorService<GetUserActiveChallengesQuery> validator
     )
     {
-        _jsonSerializerOptions = jsonSerializerOptions;
+        _gameEngine = gameEngine;
         _mapper = mapper;
         _now = now;
         _store = store;
@@ -85,35 +84,37 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
             .Where(c => c.Player.SessionEnd > _now.Get())
             .Where(c => c.Player.UserId == request.UserId)
             .OrderByDescending(c => c.Player.SessionEnd)
-            .Select(c => new ActiveChallenge
+            .Select(c => new
             {
                 // have to join spec separately later to get the names/tags
-                ChallengeSpec = new ActiveChallengeSpec
+                Spec = new ActiveChallengeSpec
                 {
                     Id = c.SpecId,
                     Name = null,
                     Tag = null
                 },
                 Game = new SimpleEntity { Id = c.GameId, Name = c.Game.Name },
+                c.GameEngineType,
                 Player = new SimpleEntity { Id = c.PlayerId, Name = c.Player.ApprovedName },
                 User = new SimpleEntity { Id = c.Player.UserId, Name = c.Player.User.ApprovedName },
                 ChallengeDeployment = new ActiveChallengeDeployment
                 {
                     ChallengeId = c.Id,
-                    Vms = c.BuildGameEngineState(_mapper, _jsonSerializerOptions).Vms
+                    // these are dummy values we'll fill out below (can't do it here because we're on the db server side during the query)
+                    IsDeployed = false,
+                    Vms = Array.Empty<GameEngineVmState>()
                 },
-                TeamId = c.Player.TeamId,
+                c.Player.TeamId,
                 Session = _timeWindowService.CreateWindow(_now.Get(), c.Player.SessionBegin, c.Player.SessionEnd),
-                Start = c.Player.SessionBegin,
-                End = c.Player.SessionEnd,
-                PlayerMode = c.PlayerMode,
+                c.PlayerMode,
                 MaxPossibleScore = c.Points,
                 Score = new decimal(c.Score),
+                c.State,
             })
             .ToListAsync(cancellationToken);
 
-        // load the spec names
-        var specIds = challenges.Select(c => c.ChallengeSpec.Id).ToList();
+        // load the spec names and set state properties
+        var specIds = challenges.Select(c => c.Spec.Id).ToList();
         var specs = await _store
             .List<Data.ChallengeSpec>()
             .Where(s => specIds.Contains(s.Id))
@@ -121,18 +122,39 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
 
         foreach (var challenge in challenges)
         {
-            if (specs.ContainsKey(challenge.ChallengeSpec.Id))
+            if (specs.ContainsKey(challenge.Spec.Id))
             {
-                challenge.ChallengeSpec.Name = specs[challenge.ChallengeSpec.Id].Name;
-                challenge.ChallengeSpec.Tag = specs[challenge.ChallengeSpec.Id].Tag;
+                challenge.Spec.Name = specs[challenge.Spec.Id].Name;
+                challenge.Spec.Tag = specs[challenge.Spec.Id].Tag;
             }
+
+            // currently, topomojo sends an empty VM list when the vms are turned off, so we use this to 
+            // proxy whether the challenge is deployed. hopefully topo will eventually send VMs with
+            // isRunning = false when asked, so we're making these separate concepts on the API surface
+            var state = await _gameEngine.GetChallengeState(challenge.GameEngineType, challenge.State);
+            challenge.ChallengeDeployment.IsDeployed = state.Vms.Count() > 0;
+            challenge.ChallengeDeployment.Vms = state.Vms;
         }
+
+        var typedChallenges = challenges.Select(c => new ActiveChallenge
+        {
+            Spec = c.Spec,
+            Game = c.Game,
+            Player = c.Player,
+            User = c.User,
+            ChallengeDeployment = c.ChallengeDeployment,
+            TeamId = c.TeamId,
+            PlayerMode = c.PlayerMode,
+            Session = c.Session,
+            MaxPossibleScore = c.MaxPossibleScore,
+            Score = c.Score
+        });
 
         return new UserActiveChallenges
         {
             User = user,
-            Competition = challenges.Where(c => c.PlayerMode == PlayerMode.Competition),
-            Practice = challenges.Where(c => c.PlayerMode == PlayerMode.Practice)
+            Competition = typedChallenges.Where(c => c.PlayerMode == PlayerMode.Competition),
+            Practice = typedChallenges.Where(c => c.PlayerMode == PlayerMode.Practice)
         };
     }
 }

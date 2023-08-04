@@ -52,15 +52,13 @@ public class ChallengeSummary
 
 public class ActiveChallenge
 {
-    public required ActiveChallengeSpec ChallengeSpec { get; set; }
+    public required ActiveChallengeSpec Spec { get; set; }
     public required SimpleEntity Game { get; set; }
     public required SimpleEntity Player { get; set; }
     public required SimpleEntity User { get; set; }
     public required ActiveChallengeDeployment ChallengeDeployment { get; set; }
     public required string TeamId { get; set; }
     public required TimeWindow Session { get; set; }
-    public DateTimeOffset Start { get; set; }
-    public DateTimeOffset End { get; set; }
     public required PlayerMode PlayerMode { get; set; }
     public required decimal MaxPossibleScore { get; set; }
     public required decimal Score { get; set; }
@@ -76,6 +74,7 @@ public sealed class ActiveChallengeSpec
 public class ActiveChallengeDeployment
 {
     public required string ChallengeId { get; set; }
+    public required Boolean IsDeployed { get; set; }
     public required IEnumerable<GameEngineVmState> Vms { get; set; }
 }
 
