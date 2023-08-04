@@ -76,13 +76,22 @@ public class ChallengeService : _Service
     }
 
     public string BuildGraderUrl()
-        => string.Format
-        (
-            "{0}://{1}{2}",
-            _httpContextAccessor.HttpContext.Request.Scheme,
-            _httpContextAccessor.HttpContext.Request.Host,
-            _linkGenerator.GetPathByAction(_httpContextAccessor.HttpContext, "Grade")
-        );
+    {
+        var request = _httpContextAccessor.HttpContext.Request;
+
+        return string.Join('/', new string[]
+        {
+            _linkGenerator.GetUriByAction
+            (
+                _httpContextAccessor.HttpContext,
+                "Grade",
+                "Challenge",
+                null,
+                request.Scheme,
+                request.Host,request.PathBase
+            )
+        });
+    }
 
     public async Task<Challenge> GetOrCreate(NewChallenge model, string actorId, string graderUrl)
     {
