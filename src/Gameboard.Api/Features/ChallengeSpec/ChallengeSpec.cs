@@ -54,13 +54,14 @@ public class BoardSpec
     public float R { get; set; }
 }
 
-public class ChallengeSpecSummary
+public sealed class ChallengeSpecSummary
 {
-    public string Id { get; set; }
-    public string Name { get; set; }
-    public string Description { get; set; }
-    public string Text { get; set; }
-    public string GameId { get; set; }
-    public string GameName { get; set; }
-    public string GameLogo { get; set; }
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required string Description { get; set; }
+    public required string Text { get; set; }
+    public required string GameId { get; set; }
+    public required string GameName { get; set; }
+    public required string GameLogo { get; set; }
+    public required int AverageDeploySeconds { get; set; }
 }

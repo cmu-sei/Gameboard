@@ -69,6 +69,7 @@ public sealed class ActiveChallengeSpec
     public required string Id { get; set; }
     public required string Name { get; set; }
     public required string Tag { get; set; }
+    public required int AverageDeploySeconds { get; set; }
 }
 
 public class ActiveChallengeDeployment

@@ -86,12 +86,13 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
             .OrderByDescending(c => c.Player.SessionEnd)
             .Select(c => new
             {
-                // have to join spec separately later to get the names/tags
+                // have to join spec separately later to get the names/other properties
                 Spec = new ActiveChallengeSpec
                 {
                     Id = c.SpecId,
                     Name = null,
-                    Tag = null
+                    Tag = null,
+                    AverageDeploySeconds = 0
                 },
                 Game = new SimpleEntity { Id = c.GameId, Name = c.Game.Name },
                 c.GameEngineType,
@@ -126,6 +127,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
             {
                 challenge.Spec.Name = specs[challenge.Spec.Id].Name;
                 challenge.Spec.Tag = specs[challenge.Spec.Id].Tag;
+                challenge.Spec.AverageDeploySeconds = specs[challenge.Spec.Id].AverageDeploySeconds;
             }
 
             // currently, topomojo sends an empty VM list when the vms are turned off, so we use this to 
