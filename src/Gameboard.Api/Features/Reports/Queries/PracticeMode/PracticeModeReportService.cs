@@ -162,7 +162,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
 
         return new PracticeModeReportByChallengePerformance
         {
-            Players = attempts.Select(a => a.Player.ApprovedName).ToArray(),
+            Players = (sponsor is null ? attempts : attempts.Where(sponsorConstraint)).Select(a => a.Player.ApprovedName).ToArray(),
             TotalAttempts = totalAttempts,
             CompleteSolves = completeSolves,
             ScoreHigh = new decimal(attempts.Select(a => a.Score).Max()),
@@ -172,6 +172,64 @@ internal class PracticeModeReportService : IPracticeModeReportService
             PercentagePartiallySolved = totalAttempts > 0 ? decimal.Divide(partialSolves, totalAttempts) : null,
             ZeroScoreSolves = zeroScoreSolves,
             PercentageZeroScoreSolved = totalAttempts > 0 ? decimal.Divide(zeroScoreSolves, totalAttempts) : null
+        };
+    }
+
+    public async Task<PracticeModeReportResults> GetResultsByChallenge(PracticeModeReportParameters parameters, CancellationToken cancellationToken)
+    {
+        // the "false" argument here excludes competitive records (this grouping only looks at practice challenges)
+        var ungroupedResults = await BuildUngroupedResults(parameters, false, cancellationToken);
+
+        var records = ungroupedResults
+            .Challenges
+            .GroupBy(c => c.SpecId)
+            .Select(g =>
+            {
+                var attempts = g.ToList();
+                var spec = ungroupedResults.Specs[g.Key];
+
+                var sponsorLogosPlayed = attempts.Select(a => a.Player.Sponsor).Distinct();
+                var sponsorsPlayed = ungroupedResults
+                    .Sponsors
+                    .Where(s => sponsorLogosPlayed.Contains(s.LogoFileName));
+
+                // overall results across all sponsors
+                var performanceOverall = BuildChallengePerformance(attempts);
+
+                // performance by sponsor
+                var performanceBySponsor = sponsorsPlayed.Select(s => new PracticeModeReportByChallengePerformanceBySponsor
+                {
+                    Sponsor = s,
+                    Performance = BuildChallengePerformance(attempts, s)
+                });
+
+                return new PracticeModeByChallengeReportRecord
+                {
+                    Id = spec.Id,
+                    Name = spec.Name,
+                    Game = new ReportGameViewModel
+                    {
+                        Id = spec.GameId,
+                        Name = spec.Game.Name,
+                        IsTeamGame = spec.Game.IsTeamGame(),
+                        Series = spec.Game.Competition,
+                        Season = spec.Game.Season,
+                        Track = spec.Game.Track
+                    },
+                    MaxPossibleScore = spec.Points,
+                    AvgScore = attempts.Select(a => a.Score).Average(),
+                    Description = spec.Description,
+                    Text = spec.Text,
+                    SponsorsPlayed = sponsorsPlayed,
+                    OverallPerformance = performanceOverall,
+                    PerformanceBySponsor = performanceBySponsor
+                };
+            });
+
+        return new()
+        {
+            OverallStats = ungroupedResults.OverallStats,
+            Records = records
         };
     }
 
@@ -239,64 +297,6 @@ internal class PracticeModeReportService : IPracticeModeReportService
                 FullyCorrectCount = attempt.Player.CorrectCount
             })
         });
-
-        return new()
-        {
-            OverallStats = ungroupedResults.OverallStats,
-            Records = records
-        };
-    }
-
-    public async Task<PracticeModeReportResults> GetResultsByChallenge(PracticeModeReportParameters parameters, CancellationToken cancellationToken)
-    {
-        // the "false" argument here excludes competitive records (this grouping only looks at practice challenges)
-        var ungroupedResults = await BuildUngroupedResults(parameters, false, cancellationToken);
-
-        var records = ungroupedResults
-            .Challenges
-            .GroupBy(c => c.SpecId)
-            .Select(g =>
-            {
-                var attempts = g.ToList();
-                var spec = ungroupedResults.Specs[g.Key];
-
-                var sponsorLogosPlayed = attempts.Select(a => a.Player.Sponsor).Distinct();
-                var sponsorsPlayed = ungroupedResults
-                    .Sponsors
-                    .Where(s => sponsorLogosPlayed.Contains(s.LogoFileName));
-
-                // overall results across all sponsors
-                var performanceOverall = BuildChallengePerformance(attempts);
-
-                // performance by sponsor
-                var performanceBySponsor = sponsorsPlayed.Select(s => new PracticeModeReportByChallengePerformanceBySponsor
-                {
-                    Sponsor = s,
-                    Performance = BuildChallengePerformance(attempts, s)
-                });
-
-                return new PracticeModeByChallengeReportRecord
-                {
-                    Id = spec.Id,
-                    Name = spec.Name,
-                    Game = new ReportGameViewModel
-                    {
-                        Id = spec.GameId,
-                        Name = spec.Game.Name,
-                        IsTeamGame = spec.Game.IsTeamGame(),
-                        Series = spec.Game.Competition,
-                        Season = spec.Game.Season,
-                        Track = spec.Game.Track
-                    },
-                    MaxPossibleScore = spec.Points,
-                    AvgScore = attempts.Select(a => a.Score).Average(),
-                    Description = spec.Description,
-                    Text = spec.Text,
-                    SponsorsPlayed = sponsorsPlayed,
-                    OverallPerformance = performanceOverall,
-                    PerformanceBySponsor = performanceBySponsor
-                };
-            });
 
         return new()
         {
