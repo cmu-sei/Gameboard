@@ -95,6 +95,43 @@ public class ApiKeyServiceTests
     }
 
     [Theory, GameboardAutoData]
+    public void GetUserFromApiKey_WithChallengeGraderKey_ResolvesUser(string graderKey)
+    {
+        // given
+        var fakeUsers = new Data.User[]
+        {
+            new()
+            {
+                ApiKeys = Array.Empty<Data.ApiKey>(),
+                Enrollments = new Data.Player[]
+                {
+                    new()
+                    {
+
+                        Challenges = new Data.Challenge []
+                        {
+                            new()
+                            {
+                                GraderKey = graderKey.ToSha256()
+                            }
+                        }
+                    }
+                }
+            }
+        }.BuildMock();
+
+        var userStore = A.Fake<IUserStore>();
+        A.CallTo(() => userStore.ListAsNoTracking()).Returns(fakeUsers);
+        var sut = GetSut(userStore: userStore);
+
+        // when
+        var result = sut.GetUserFromApiKey(graderKey);
+
+        // then
+        result.ShouldNotBeNull();
+    }
+
+    [Theory, GameboardAutoData]
     public void GetUserFromApiKey_WithIdenticalUserAndChallengeGraderKeyForDifferentUsers_Throws(string unhashedKey, IFixture fixture)
     {
         // given
