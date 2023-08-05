@@ -38,8 +38,7 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        StringValues requestApiKey;
-        if (!Request.Headers.TryGetValue(ApiKeyAuthentication.ApiKeyHeaderName, out requestApiKey))
+        if (!Request.Headers.TryGetValue(ApiKeyAuthentication.ApiKeyHeaderName, out StringValues requestApiKey))
         {
             return AuthenticateResult.NoResult();
         }
@@ -76,8 +75,7 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
     // for now, we're just doing x-api-key to standardize access
     internal string ResolveRequestApiKey(HttpRequest request)
     {
-        StringValues headerApiKey;
-        if (request.Headers.TryGetValue(ApiKeyAuthentication.ApiKeyHeaderName, out headerApiKey))
+        if (request.Headers.TryGetValue(ApiKeyAuthentication.ApiKeyHeaderName, out StringValues headerApiKey))
         {
             return headerApiKey;
         }

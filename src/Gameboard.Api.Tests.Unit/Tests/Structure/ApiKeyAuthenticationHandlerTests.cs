@@ -1,7 +1,5 @@
 using System.Text.Encodings.Web;
-using Gameboard.Api;
 using Gameboard.Api.Auth;
-using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.ApiKeys;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
@@ -14,13 +12,13 @@ namespace Gameboard.Api.Tests.Unit;
 public class ApiKeyAuthenticationHandlerTests
 {
     // TODO: constructor fixture thing
-    private ApiKeyAuthenticationHandler GetSut() => new ApiKeyAuthenticationHandler
+    private ApiKeyAuthenticationHandler GetSut() => new
     (
-            A.Fake<IOptionsMonitor<ApiKeyAuthenticationOptions>>(),
-            A.Fake<ILoggerFactory>(),
-            A.Fake<UrlEncoder>(),
-            A.Fake<ISystemClock>(),
-            A.Fake<IApiKeysService>()
+        A.Fake<IOptionsMonitor<ApiKeyAuthenticationOptions>>(),
+        A.Fake<ILoggerFactory>(),
+        A.Fake<UrlEncoder>(),
+        A.Fake<ISystemClock>(),
+        A.Fake<IApiKeysService>()
     );
 
     [Theory, GameboardAutoData]
