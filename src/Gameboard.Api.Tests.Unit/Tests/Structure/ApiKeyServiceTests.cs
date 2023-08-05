@@ -130,4 +130,53 @@ public class ApiKeyServiceTests
         // then
         result.ShouldNotBeNull();
     }
+
+    [Theory, GameboardAutoData]
+    public void GetUserFromApiKey_WithIdenticalUserAndChallengeGraderKeyForDifferentUsers_Throws(string unhashedKey, IFixture fixture)
+    {
+        // given
+        var fakeUsers = new Data.User[]
+        {
+            // this user has the value as an api key
+            new()
+            {
+                ApiKeys = new Data.ApiKey[]
+                {
+                    new()
+                    {
+                        Id =  fixture.Create<string>(),
+                        Name = fixture.Create<string>(),
+                        Key = unhashedKey.ToSha256(),
+                        GeneratedOn = fixture.Create<DateTimeOffset>(),
+                        OwnerId = fixture.Create<string>()
+                    }
+                },
+            },
+            // this user has the value as a challenge grader key
+            new()
+            {
+                Enrollments = new Data.Player[]
+                {
+                    new()
+                    {
+
+                        Challenges = new Data.Challenge []
+                        {
+                            new()
+                            {
+                                GraderKey = unhashedKey.ToSha256()
+                            }
+                        }
+                    }
+                }
+            }
+        }.BuildMock();
+
+        var userStore = A.Fake<IUserStore>();
+        A.CallTo(() => userStore.ListAsNoTracking()).Returns(fakeUsers);
+        var sut = GetSut(userStore: userStore);
+
+        // when/then
+        Should.Throw<Exception>(() => sut.GetUserFromApiKey(unhashedKey));
+    }
 }
