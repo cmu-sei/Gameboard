@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 
-namespace Gameboard.Api.Auth;
+namespace Gameboard.Api.Structure.Auth;
 
 public static class ApiKeyAuthentication
 {
@@ -55,8 +55,8 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
         var principal = new ClaimsPrincipal(
             new ClaimsIdentity(
                 new Claim[] {
-                            new Claim(AppConstants.SubjectClaimName, user.Id),
-                            new Claim(AppConstants.NameClaimName, user.Name),
+                    new Claim(AppConstants.SubjectClaimName, user.Id),
+                    new Claim(AppConstants.NameClaimName, user.Name),
                 },
                 Scheme.Name
             )

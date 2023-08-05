@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Authentication;
 
-namespace Gameboard.Api.Auth;
+namespace Gameboard.Api.Structure.Auth;
 
 public class ApiKeyAuthenticationOptions : AuthenticationSchemeOptions
 {
-    public static int MIN_BYTES_RANDOMNESS = 16;
-    public static int MIN_RANDOMNESS_LENGTH = 10;
+    private readonly static int MIN_BYTES_RANDOMNESS = 16;
+    private readonly static int MIN_RANDOMNESS_LENGTH = 10;
 
     public int BytesOfRandomness { get; set; } = 32;
     public string KeyPrefix { get; set; } = "GB";

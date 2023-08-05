@@ -4,6 +4,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using Gameboard.Api;
 using Gameboard.Api.Auth;
+using Gameboard.Api.Structure.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
@@ -15,7 +16,8 @@ namespace Microsoft.Extensions.DependencyInjection
 {
     public static class AuthenticationStartupExtensions
     {
-        public static IServiceCollection AddConfiguredAuthentication(
+        public static IServiceCollection AddConfiguredAuthentication
+        (
             this IServiceCollection services,
             OidcOptions oidcOptions,
             ApiKeyOptions apiKeyOptions,
@@ -29,7 +31,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 IdentityModelEventSource.ShowPII = true;
             }
 
-            services
+            _ = services
                 .AddScoped<IClaimsTransformation, UserClaimTransformation>()
                 .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(jwt =>
@@ -67,12 +69,13 @@ namespace Microsoft.Extensions.DependencyInjection
                         return System.Threading.Tasks.Task.CompletedTask;
                     };
                 })
+                .AddGraderKeyAuthentication(GraderKeyAuthentication.AuthenticationScheme, opt => { })
                 .AddApiKeyAuthentication(ApiKeyAuthentication.AuthenticationScheme, opt =>
                 {
                     opt.BytesOfRandomness = apiKeyOptions.BytesOfRandomness;
                     opt.RandomCharactersLength = apiKeyOptions.RandomCharactersLength;
                 })
-                .AddTicketAuthentication(TicketAuthentication.AuthenticationScheme, opt => new TicketAuthenticationOptions())
+                .AddTicketAuthentication(TicketAuthentication.AuthenticationScheme, opt => { })
             ;
 
             return services;

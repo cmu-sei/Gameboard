@@ -3,6 +3,7 @@
 
 using Gameboard.Api;
 using Gameboard.Api.Auth;
+using Gameboard.Api.Structure.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 
@@ -80,7 +81,7 @@ namespace Microsoft.Extensions.DependencyInjection
                     .RequireAuthenticatedUser()
                     .AddAuthenticationSchemes(
                         JwtBearerDefaults.AuthenticationScheme,
-                        ApiKeyAuthentication.AuthenticationScheme
+                        GraderKeyAuthentication.AuthenticationScheme
                     ).Build()
                 );
 

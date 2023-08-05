@@ -1,6 +1,6 @@
 using System;
 
-namespace Gameboard.Api.Auth;
+namespace Gameboard.Api.Structure.Auth;
 
 public class ApiKeyAuthenticationChallengeException : Exception
 {

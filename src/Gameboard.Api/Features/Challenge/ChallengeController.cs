@@ -219,8 +219,10 @@ namespace Gameboard.Api.Controllers
         public async Task<Challenge> Grade([FromBody] GameEngineSectionSubmission model)
         {
             AuthorizeAny(
+                // this is set by _Controller if the caller authenticated with a grader key
+                () => AuthenticatedGraderForChallengeId == model.Id,
+                // these are set if the caller authenticated with standard JWT
                 () => Actor.IsDirector,
-                () => Actor.Id == model.Id, // auto-grader
                 () => ChallengeService.UserIsTeamPlayer(model.Id, Actor.Id).Result
             );
 
