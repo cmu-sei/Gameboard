@@ -5,10 +5,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data
 {
-
     public class UserStore : Store<User>, IUserStore
     {
         public UserStore(IGuidService guids, GameboardDbContext dbContext)
@@ -22,5 +22,8 @@ namespace Gameboard.Api.Data
 
             return base.Create(entity);
         }
+
+        public IQueryable<Data.User> ListAsNoTracking()
+            => DbContext.Users.AsQueryable().AsNoTracking();
     }
 }

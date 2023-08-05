@@ -1,5 +1,4 @@
 using AutoMapper;
-using Gameboard.Api;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.ApiKeys;
 using Gameboard.Api.Services;
@@ -8,16 +7,15 @@ namespace Gameboard.Api.Tests.Unit;
 
 public class ApiKeyServiceTests
 {
-    private ApiKeysService GetSut(ApiKeyOptions options, IRandomService? random = null) => new ApiKeysService
-        (
-            options,
+    private ApiKeysService GetSut(ApiKeyOptions? options = null, IRandomService? random = null, IUserStore? userStore = null)
+        => new(
+            options ?? A.Fake<ApiKeyOptions>(),
             A.Fake<IGuidService>(),
             A.Fake<IMapper>(),
             A.Fake<INowService>(),
-            A.Fake<IHashService>(),
             random ?? A.Fake<IRandomService>(),
             A.Fake<IApiKeysStore>(),
-            A.Fake<IUserStore>()
+            userStore ?? A.Fake<IUserStore>()
         );
 
     [Theory, InlineAutoData(3)]
@@ -60,5 +58,76 @@ public class ApiKeyServiceTests
 
         // assert
         result.ShouldBe("1234567890");
+    }
+
+    [Theory, GameboardAutoData]
+    public void GetUserFromApiKey_WithUserAssignedKey_ResolvesUser(string apiKey, IFixture fixture)
+    {
+        // given
+        var userStore = A.Fake<IUserStore>();
+        var fakeUsers = new Data.User[]
+        {
+            new ()
+            {
+                ApiKeys = new Data.ApiKey []
+                {
+                    new ()
+                    {
+                        Id =  fixture.Create<string>(),
+                        Name = fixture.Create<string>(),
+                        Key = apiKey.ToSha256(),
+                        GeneratedOn = fixture.Create<DateTimeOffset>(),
+                        OwnerId = fixture.Create<string>()
+                    }
+                },
+                Enrollments = Array.Empty<Data.Player>()
+            }
+        }.BuildMock();
+
+        A.CallTo(() => userStore.ListAsNoTracking()).Returns(fakeUsers);
+        var sut = GetSut(userStore: userStore);
+
+        // when
+        var result = sut.GetUserFromApiKey(apiKey);
+
+        // then
+        result.ShouldNotBeNull();
+    }
+
+    [Theory, GameboardAutoData]
+    public void GetUserFromApiKey_WithChallengeGraderKey_ResolvesUser(string graderKey)
+    {
+        // given
+        var fakeUsers = new Data.User[]
+        {
+            new()
+            {
+                ApiKeys = Array.Empty<Data.ApiKey>(),
+                Enrollments = new Data.Player[]
+                {
+                    new()
+                    {
+
+                        Challenges = new Data.Challenge []
+                        {
+                            new()
+                            {
+                                GraderKey = graderKey.ToSha256()
+                            }
+                        }
+                    }
+                }
+            }
+        }.BuildMock();
+
+        var userStore = A.Fake<IUserStore>();
+        A.CallTo(() => userStore.ListAsNoTracking()).Returns(fakeUsers);
+        var sut = GetSut(userStore: userStore);
+
+        // when
+        var result = sut.GetUserFromApiKey(graderKey);
+
+        // then
+        result.ShouldNotBeNull();
     }
 }
