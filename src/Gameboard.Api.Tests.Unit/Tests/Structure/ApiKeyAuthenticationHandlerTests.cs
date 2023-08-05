@@ -1,6 +1,6 @@
 using System.Text.Encodings.Web;
-using Gameboard.Api.Auth;
 using Gameboard.Api.Features.ApiKeys;
+using Gameboard.Api.Structure.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;

@@ -85,23 +85,10 @@ internal class ApiKeysService : IApiKeysService
 
         return await _userStore
             .ListAsNoTracking()
-                .Include(u => u.ApiKeys)
-                .Include(u => u.Enrollments)
-                    .ThenInclude(p => p.Challenges)
-            .Where
-            (
-                u =>
-                    // api keys are most commonly assigned to users, so we can usually retrieve them
-                    // by querying the users/userapikeys entities
-                    u.ApiKeys.Any(k => k.Key == hashedKey) ||
-                    // however, we also assign GraderKeys to challenges which are also sent via `x-api-key` header,
-                    // so if we didn't find a user with a matching api key, we also check users playing
-                    // challenges with a matching graderkey
-                    u.Enrollments.Any(p => p.Challenges.Any(c => c.GraderKey == hashedKey))
-            )
-            // in either case, we use SingleOrDefaultAsync to ensure that we only get one result -
+            .Include(u => u.ApiKeys)
+            // we use SingleOrDefaultAsync to ensure that we only get one result -
             // if we get more than one, some weird stuff is happening and we need to know.
-            .SingleOrDefaultAsync();
+            .SingleOrDefaultAsync(u => u.ApiKeys.Any(k => k.Key == hashedKey));
     }
 
     public async Task<IEnumerable<ApiKeyViewModel>> ListKeys(string userId)
