@@ -144,7 +144,7 @@ public class CrucibleService : _Service
 
             var eventId = challenge.State.Players.FirstOrDefault().GamespaceId;
 
-            var questionViews = await Alloy.GradeEventAsync(new Guid(eventId), model.Answers.Select(x => x.Answer));
+            var questionViews = await Alloy.GradeEventAsync(new Guid(eventId), model.Questions.Select(x => x.Answer));
             var grade = questionViews.Where(x => x.IsCorrect && x.IsGraded).Sum(x => x.Weight);
 
             var state = challenge.State;

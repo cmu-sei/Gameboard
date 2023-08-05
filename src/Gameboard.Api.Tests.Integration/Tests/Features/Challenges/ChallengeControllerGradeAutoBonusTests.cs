@@ -77,7 +77,7 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
             });
 
         var submission = fixture.Create<GameEngineSectionSubmission>();
-        submission.ChallengeId = challengeId;
+        submission.Id = challengeId;
 
         // when
         await _testContext
@@ -165,7 +165,7 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
             });
 
         var submission = fixture.Create<GameEngineSectionSubmission>();
-        submission.ChallengeId = challengeId;
+        submission.Id = challengeId;
 
         // when
         await _testContext
@@ -279,7 +279,7 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
             });
 
         var submission = fixture.Create<GameEngineSectionSubmission>();
-        submission.ChallengeId = unawardedChallengeId;
+        submission.Id = unawardedChallengeId;
 
         // when
         await _testContext

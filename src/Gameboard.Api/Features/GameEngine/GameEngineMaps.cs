@@ -64,14 +64,8 @@ public class GameEngineMaps : Profile
         CreateMap<TopoMojo.Api.Client.QuestionView, GameEngineQuestionView>();
         CreateMap<TopoMojo.Api.Client.VmState, GameEngineVmState>();
         CreateMap<TopoMojo.Api.Client.ChallengeView, GameEngineChallengeView>();
-        CreateMap<TopoMojo.Api.Client.SectionSubmission, GameEngineSectionSubmission>()
-            .ForMember(d => d.Answers, o => o.MapFrom(s => s.Questions))
-            .ForMember(d => d.ChallengeId, o => o.MapFrom(s => s.Id));
-
+        CreateMap<TopoMojo.Api.Client.SectionSubmission, GameEngineSectionSubmission>();
         CreateMap<GameEngineAnswerSubmission, TopoMojo.Api.Client.AnswerSubmission>();
-        CreateMap<GameEngineSectionSubmission, TopoMojo.Api.Client.SectionSubmission>()
-            .ForMember(d => d.Id, o => o.MapFrom(s => s.ChallengeId))
-            .ForMember(d => d.Questions, o => o.MapFrom(s => s.Answers));
-
+        CreateMap<GameEngineSectionSubmission, TopoMojo.Api.Client.SectionSubmission>();
     }
 }

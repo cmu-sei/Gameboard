@@ -46,7 +46,7 @@ public class GameEngineGameState
 
     public bool HasDeployedGamespace
     {
-        get => Vms != null && Vms.Count() > 0;
+        get => Vms != null && Vms.Any();
     }
 }
 
@@ -107,10 +107,10 @@ public class GameEngineQuestionView
 
 public class GameEngineSectionSubmission
 {
-    public required string ChallengeId { get; set; }
+    public required string Id { get; set; }
     public DateTimeOffset Timestamp { get; set; }
     public required int SectionIndex { get; set; }
-    public required IEnumerable<GameEngineAnswerSubmission> Answers { get; set; }
+    public required IEnumerable<GameEngineAnswerSubmission> Questions { get; set; }
 }
 
 public class GameEngineAnswerSubmission

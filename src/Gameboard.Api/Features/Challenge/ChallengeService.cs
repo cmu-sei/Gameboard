@@ -425,7 +425,7 @@ public class ChallengeService : _Service
 
     public async Task<Challenge> Grade(GameEngineSectionSubmission model, string actorId)
     {
-        var challenge = await Store.Retrieve(model.ChallengeId);
+        var challenge = await Store.Retrieve(model.Id);
 
         challenge.Events.Add(new Data.ChallengeEvent
         {

@@ -227,7 +227,7 @@ namespace Gameboard.Api.Controllers
                 () => ChallengeService.UserIsTeamPlayer(model.Id, Actor.Id).Result
             );
 
-            await Validate(new Entity { Id = model.ChallengeId });
+            await Validate(new Entity { Id = model.Id });
 
             var result = await ChallengeService.Grade(model, Actor.Id);
 

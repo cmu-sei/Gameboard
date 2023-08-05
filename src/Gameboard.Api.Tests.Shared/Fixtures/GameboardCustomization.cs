@@ -58,12 +58,12 @@ public class GameboardCustomization : ICustomization
         });
 
 
-        fixture.Register<GameEngineSectionSubmission>(() => new GameEngineSectionSubmission
+        fixture.Register(() => new GameEngineSectionSubmission
         {
-            ChallengeId = fixture.Create<string>(),
+            Id = fixture.Create<string>(),
             Timestamp = DateTimeOffset.Now.AddMinutes(1),
             SectionIndex = 0,
-            Answers = new GameEngineAnswerSubmission[]
+            Questions = new GameEngineAnswerSubmission[]
             {
                 new GameEngineAnswerSubmission { Answer = fixture.Create<string>() }
             }
