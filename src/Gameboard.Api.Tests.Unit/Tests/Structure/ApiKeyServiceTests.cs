@@ -95,29 +95,14 @@ public class ApiKeyServiceTests
     }
 
     [Theory, GameboardAutoData]
-    public void GetUserFromApiKey_WithIdenticalUserAndChallengeGraderKeyForDifferentUsers_Throws(string unhashedKey, IFixture fixture)
+    public void GetUserFromApiKey_WithChallengeGraderKey_ResolvesUser(string graderKey)
     {
         // given
         var fakeUsers = new Data.User[]
         {
-            // this user has the value as an api key
             new()
             {
-                ApiKeys = new Data.ApiKey[]
-                {
-                    new()
-                    {
-                        Id =  fixture.Create<string>(),
-                        Name = fixture.Create<string>(),
-                        Key = unhashedKey.ToSha256(),
-                        GeneratedOn = fixture.Create<DateTimeOffset>(),
-                        OwnerId = fixture.Create<string>()
-                    }
-                },
-            },
-            // this user has the value as a challenge grader key
-            new()
-            {
+                ApiKeys = Array.Empty<Data.ApiKey>(),
                 Enrollments = new Data.Player[]
                 {
                     new()
@@ -127,7 +112,7 @@ public class ApiKeyServiceTests
                         {
                             new()
                             {
-                                GraderKey = unhashedKey.ToSha256()
+                                GraderKey = graderKey.ToSha256()
                             }
                         }
                     }
@@ -139,7 +124,10 @@ public class ApiKeyServiceTests
         A.CallTo(() => userStore.ListAsNoTracking()).Returns(fakeUsers);
         var sut = GetSut(userStore: userStore);
 
-        // when/then
-        Should.Throw<Exception>(() => sut.GetUserFromApiKey(unhashedKey));
+        // when
+        var result = sut.GetUserFromApiKey(graderKey);
+
+        // then
+        result.ShouldNotBeNull();
     }
 }

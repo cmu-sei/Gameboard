@@ -1,3 +1,4 @@
+using Gameboard.Api;
 using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Tests.Integration;
