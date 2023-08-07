@@ -8,7 +8,7 @@ public sealed class CantRescoreChallengeWithANonZeroBonus : GameboardValidationE
         : base($"""Challenge "{challengeId}" (for team "{teamId}") can't be re-scored, because the team has already received bonus "{bonusId}" for {pointValue} points.""") { }
 }
 
-public sealed class CantAwardNonPositivePointValue : GameboardValidationException
+public sealed class CantAwardNegativePointValue : GameboardValidationException
 {
-    public CantAwardNonPositivePointValue(string challengeId, string teamId, double pointValue) : base($"""Can't award a non-positive point value ({pointValue}) to team "{teamId}" for challenge "{challengeId}".""") { }
+    public CantAwardNegativePointValue(string challengeId, string teamId, double pointValue) : base($"""Can't award a non-positive point value ({pointValue}) to team "{teamId}" for challenge "{challengeId}".""") { }
 }

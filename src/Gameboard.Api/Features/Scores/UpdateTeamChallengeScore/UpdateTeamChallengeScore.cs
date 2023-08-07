@@ -66,8 +66,8 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
         (
             (req, context) =>
             {
-                if (request.Score <= 0)
-                    context.AddValidationException(new CantAwardNonPositivePointValue(challenge.Id, challenge.TeamId, request.Score));
+                if (request.Score < 0)
+                    context.AddValidationException(new CantAwardNegativePointValue(challenge.Id, challenge.TeamId, request.Score));
             }
         );
 
