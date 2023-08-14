@@ -53,12 +53,12 @@ internal class EnrollmentReportService : IEnrollmentReportService
 
         if (enrollDateStart != null)
             query = query
-                .WhereDateHasValue(p => p.WhenCreated)
+                .WhereDateIsNotEmpty(p => p.WhenCreated)
                 .Where(p => p.WhenCreated >= enrollDateStart);
 
         if (enrollDateEnd != null)
             query = query
-                .WhereDateHasValue(p => p.WhenCreated)
+                .WhereDateIsNotEmpty(p => p.WhenCreated)
                 .Where(p => p.WhenCreated <= enrollDateEnd);
 
         if (gamesCriteria.Any())

@@ -47,7 +47,7 @@ internal class EnrollmentReportLineChartHandler : IRequestHandler<EnrollmentRepo
             EnrollDate = p.WhenCreated,
             Game = new SimpleEntity { Id = p.GameId, Name = p.Game.Id },
         })
-        .WhereDateHasValue(p => p.EnrollDate)
+        .WhereDateIsNotEmpty(p => p.EnrollDate)
         .OrderBy(p => p.EnrollDate)
         .ToListAsync(cancellationToken);
 

@@ -117,19 +117,6 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
-        /// Change challenge
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpPut("api/challenge")]
-        [Authorize]
-        public Task Update([FromBody] ChangedChallenge model)
-        {
-            // await ChallengeService.Update(model);
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
         /// Delete challenge
         /// </summary>
         /// <param name="id"></param>
@@ -219,8 +206,10 @@ namespace Gameboard.Api.Controllers
         public async Task<Challenge> Grade([FromBody] GameEngineSectionSubmission model)
         {
             AuthorizeAny(
+                // this is set by _Controller if the caller authenticated with a grader key
+                () => AuthenticatedGraderForChallengeId == model.Id,
+                // these are set if the caller authenticated with standard JWT
                 () => Actor.IsDirector,
-                () => Actor.Id == model.Id, // auto-grader
                 () => ChallengeService.UserIsTeamPlayer(model.Id, Actor.Id).Result
             );
 

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
 
@@ -8,6 +7,7 @@ internal class UserRoleAuthorizer : IAuthorizer
 {
     private readonly User _actor;
     public IEnumerable<UserRole> AllowedRoles { get; set; } = new List<UserRole> { UserRole.Admin };
+    public string AllowedUserId { get; set; }
 
     public UserRoleAuthorizer(IHttpContextAccessor httpContextAccessor)
     {
@@ -19,6 +19,9 @@ internal class UserRoleAuthorizer : IAuthorizer
 
     public void Authorize()
     {
+        if (AllowedUserId.NotEmpty() && _actor.Id == AllowedUserId)
+            return;
+
         foreach (var role in AllowedRoles)
         {
             if (_actor.Role.HasFlag(role))

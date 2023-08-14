@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
@@ -16,7 +15,22 @@ public static class QueryExtensions
     /// <returns>A query with an appended `.Where` call that eliminates entities of type T with 01/01/0001 in the date field specified by `dateExpression`.</returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="ArgumentException"></exception>
-    public static IQueryable<T> WhereDateHasValue<T>(this IQueryable<T> query, Expression<Func<T, DateTimeOffset>> dateExpression) where T : class
+    public static IQueryable<T> WhereDateIsNotEmpty<T>(this IQueryable<T> query, Expression<Func<T, DateTimeOffset>> dateExpression) where T : class
+        => WhereDate<T>(query, dateExpression, false);
+
+    /// <summary>
+    /// Allows simplified evaluation of dates in the DB with value 01/01/0001.
+    /// </summary>
+    /// <typeparam name="T">The entity type upon which the query is based.</typeparam>
+    /// <param name="query">An existing Linq query for entity type T.</param>
+    /// <param name="dateExpression">An expression which resolves to a date property on T (e.g. e => e.StartDate).</param>
+    /// <returns>A query with an appended `.Where` call that eliminates entities of type T with 01/01/0001 in the date field specified by `dateExpression`.</returns>
+    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="ArgumentException"></exception>
+    public static IQueryable<T> WhereDateIsEmpty<T>(this IQueryable<T> query, Expression<Func<T, DateTimeOffset>> dateExpression) where T : class
+        => WhereDate<T>(query, dateExpression, true);
+
+    private static IQueryable<T> WhereDate<T>(IQueryable<T> query, Expression<Func<T, DateTimeOffset>> dateExpression, bool isEmpty) where T : class
     {
         if (dateExpression == null)
             throw new ArgumentNullException(nameof(dateExpression));
@@ -25,7 +39,14 @@ public static class QueryExtensions
 
         var entityParameter = Expression.Parameter(typeof(T));
         var accessMemberOnEntity = Expression.MakeMemberAccess(entityParameter, (dateExpression.Body as MemberExpression).Member);
-        var finalExpression = Expression.Lambda<Func<T, bool>>(Expression.NotEqual(accessMemberOnEntity, Expression.Constant(DateTimeOffset.MinValue)), entityParameter);
+        var finalExpression = Expression.Lambda<Func<T, bool>>
+        (
+            (
+                isEmpty ?
+                    Expression.Equal(accessMemberOnEntity, Expression.Constant(DateTimeOffset.MinValue)) :
+                    Expression.NotEqual(accessMemberOnEntity, Expression.Constant(DateTimeOffset.MinValue))
+            ), entityParameter
+        );
 
         return query.Where(finalExpression);
     }

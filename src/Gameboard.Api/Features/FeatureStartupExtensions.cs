@@ -28,6 +28,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddSingleton(_ => settings.Core)
                 .AddSingleton(_ => settings.ApiKey)
                 .AddSingleton<IJsonService, JsonService>(f => jsonService)
+                .AddSingleton(opts => JsonService.GetJsonSerializerOptions())
                 .AddSingleton(jsonService)
                 .AddConcretesFromNamespace("Gameboard.Api.Services")
                 .AddConcretesFromNamespace("Gameboard.Api.Structure.Authorizers")

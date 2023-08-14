@@ -3,6 +3,7 @@
 
 using System;
 using System.Security.Claims;
+using Gameboard.Api.Structure.Auth;
 
 namespace Gameboard.Api
 {
@@ -18,6 +19,14 @@ namespace Gameboard.Api
                 Sponsor = principal.FindFirstValue(AppConstants.SponsorClaimName),
                 Role = Enum.Parse<UserRole>(principal.FindFirstValue(AppConstants.RoleListClaimName) ?? UserRole.Member.ToString())
             };
+        }
+
+        public static string ToAuthenticatedGraderForChallengeId(this ClaimsPrincipal principal)
+        {
+            if (!principal.HasClaim(claim => claim.Type == GraderKeyAuthentication.GraderKeyChallengeIdClaimName))
+                return null;
+
+            return principal.FindFirstValue(GraderKeyAuthentication.GraderKeyChallengeIdClaimName);
         }
 
         public static string Subject(this ClaimsPrincipal principal)

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Gameboard.Api.Data.Abstractions;
 
-public interface IPlayerStore : IStore<Data.Player>
+public interface IPlayerStore : IStore<Player>
 {
     Task DeleteTeam(string teamId);
     Task<User> GetUserEnrollments(string id);

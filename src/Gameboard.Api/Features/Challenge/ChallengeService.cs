@@ -106,9 +106,7 @@ namespace Gameboard.Api.Services
 
             try
             {
-                // build and register
                 var challenge = await BuildAndRegisterChallenge(model, spec, game, player, actorId, graderUrl, playerCount, model.Variant);
-
                 await Store.Create(challenge);
                 await Store.UpdateEtd(challenge.SpecId);
 
@@ -350,6 +348,12 @@ namespace Gameboard.Api.Services
         {
             var entity = await Store.Retrieve(id);
 
+            await Sync
+            (
+                entity,
+                GameEngine.StopGamespace(entity)
+            );
+
             entity.Events.Add(new Data.ChallengeEvent
             {
                 Id = _guids.GetGuid(),
@@ -358,12 +362,6 @@ namespace Gameboard.Api.Services
                 Timestamp = DateTimeOffset.UtcNow,
                 Type = ChallengeEventType.GamespaceOff
             });
-
-            await Sync
-            (
-                entity,
-                GameEngine.StopGamespace(entity)
-            );
 
             return Mapper.Map<Challenge>(entity);
         }
@@ -508,7 +506,6 @@ namespace Gameboard.Api.Services
             var entity = await Store.Retrieve(model.SessionId);
             var challenge = Mapper.Map<Challenge>(entity);
 
-            var thing = challenge.State.Vms.First();
             if (!challenge.State.Vms.Any(v => v.Name == model.Name))
                 throw new ResourceNotFound<GameEngineVmState>("n/a", $"VMS for challenge {model.Name}");
 
@@ -526,7 +523,7 @@ namespace Gameboard.Api.Services
                 .ThenBy(c => c.Name);
             var challenges = Mapper.Map<ObserveChallenge[]>(await q.ToArrayAsync());
             var result = new List<ObserveChallenge>();
-            foreach (var challenge in challenges.Where(c => c.isActive))
+            foreach (var challenge in challenges.Where(c => c.IsActive))
             {
                 challenge.Consoles = challenge.Consoles
                     .Where(v => v.IsVisible)

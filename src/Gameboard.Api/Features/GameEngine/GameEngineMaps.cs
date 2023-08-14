@@ -1,5 +1,4 @@
 using System.Linq;
-using System.Text.Json;
 using AutoMapper;
 using Gameboard.Api.Services;
 
@@ -31,7 +30,7 @@ public class GameEngineMaps : Profile
 
         CreateMap<GameEngineGameState, Data.Challenge>()
             .ForMember(c => c.EndTime, o => o.MapFrom(s => s.ExpirationTime))
-            .ForMember(c => c.HasDeployedGamespace, o => o.MapFrom(s => s.HasDeployedGamespace))
+            .ForMember(c => c.HasDeployedGamespace, o => o.MapFrom(s => s.Vms.Any() && s.IsActive))
             .ForMember(c => c.LastScoreTime, o => o.MapFrom(s => s.Challenge.LastScoreTime))
             .ForMember(c => c.ExternalId, o => o.MapFrom(s => s.Id))
             .ForMember(c => c.PlayerId, o => o.MapFrom(p => p.Players.Where(p => p.IsManager).First().SubjectId))

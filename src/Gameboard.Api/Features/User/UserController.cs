@@ -20,6 +20,7 @@ using Gameboard.Api.Validators;
 using Gameboard.Api.Features.Users;
 using MediatR;
 using Microsoft.AspNetCore.Http;
+using System.Threading;
 
 namespace Gameboard.Api.Controllers
 {
@@ -135,6 +136,15 @@ namespace Gameboard.Api.Controllers
 
             await UserService.Delete(id);
         }
+
+        /// <summary>
+        /// Get the user's active challenges.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        [HttpGet("/api/user/{userId}/challenges/active")]
+        public Task<UserActiveChallenges> GetUserActiveChallenges([FromRoute] string userId)
+                => _mediator.Send(new GetUserActiveChallengesQuery(userId));
 
         /// <summary>
         /// Find users

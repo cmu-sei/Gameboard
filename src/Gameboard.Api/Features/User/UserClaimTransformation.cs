@@ -27,10 +27,13 @@ namespace Gameboard.Api
 
         public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
         {
-            string subject = principal.Subject()
-                ?? throw new ArgumentException("ClaimsPrincipal requires 'sub' claim");
+            // subject will be null if the user is authenticating with the GraderKey scheme
+            // in this case, just pass the claims we already have
+            string subject = principal.Subject();
+            if (subject is null)
+                return principal;
 
-            if (! _cache.TryGetValue<User>(subject, out User user))
+            if (!_cache.TryGetValue(subject, out User user))
             {
                 user = await _svc.Retrieve(subject) ?? new User
                 {
@@ -39,17 +42,18 @@ namespace Gameboard.Api
                 };
 
                 // TODO: implement IChangeToken for this
-
-                _cache.Set<User>(subject, user, new TimeSpan(0, 5, 0));
+                _cache.Set(subject, user, new TimeSpan(0, 5, 0));
             }
 
-            var claims = new List<Claim>();
-            claims.Add(new Claim(AppConstants.SubjectClaimName, user.Id));
-            claims.Add(new Claim(AppConstants.NameClaimName, user.Name ?? ""));
-            claims.Add(new Claim(AppConstants.ApprovedNameClaimName, user.ApprovedName ?? ""));
-            claims.Add(new Claim(AppConstants.RoleListClaimName, user.Role.ToString()));
+            var claims = new List<Claim>
+            {
+                new Claim(AppConstants.SubjectClaimName, user.Id),
+                new Claim(AppConstants.NameClaimName, user.Name ?? ""),
+                new Claim(AppConstants.ApprovedNameClaimName, user.ApprovedName ?? ""),
+                new Claim(AppConstants.RoleListClaimName, user.Role.ToString())
+            };
 
-            foreach(string role in user.Role.ToString().Replace(" ", "").Split(','))
+            foreach (string role in user.Role.ToString().Replace(" ", "").Split(','))
                 claims.Add(new Claim(AppConstants.RoleClaimName, role));
 
             return new ClaimsPrincipal(

@@ -12,7 +12,7 @@ public class QueryExtensionsTests
         var dataSet = new Player[] { player }.BuildMock();
 
         // when
-        var results = dataSet.WhereDateHasValue(p => p.SessionBegin);
+        var results = dataSet.WhereDateIsNotEmpty(p => p.SessionBegin);
 
         // then
         results.ShouldBeEmpty();

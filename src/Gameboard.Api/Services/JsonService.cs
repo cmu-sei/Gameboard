@@ -14,7 +14,14 @@ internal class JsonService : IJsonService
 {
     public JsonService() { }
 
-    internal static Action<JsonSerializerOptions> BuildJsonSerializerOptions()
+    public static JsonSerializerOptions GetJsonSerializerOptions()
+    {
+        var options = new JsonSerializerOptions();
+        BuildJsonSerializerOptions()(options);
+        return options;
+    }
+
+    public static Action<JsonSerializerOptions> BuildJsonSerializerOptions()
     {
         return options =>
         {
@@ -26,8 +33,8 @@ internal class JsonService : IJsonService
         };
     }
 
-    internal static JsonService WithGameboardSerializerOptions()
-        => new JsonService(BuildJsonSerializerOptions());
+    public static JsonService WithGameboardSerializerOptions()
+        => new(BuildJsonSerializerOptions());
 
     public JsonSerializerOptions Options { get; private set; }
 
@@ -45,7 +52,7 @@ internal class JsonService : IJsonService
     public T Deserialize<T>(string json) where T : new()
     {
         if (json.IsEmpty())
-            return default(T);
+            return default;
 
         return JsonSerializer.Deserialize<T>(json, Options);
     }

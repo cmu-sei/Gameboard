@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using System.Linq.Expressions;
 
 namespace Gameboard.Api.Common;
-// Base Visitor class:
+
 public abstract class Visitor
 {
     private readonly string _prefix;
@@ -31,7 +31,6 @@ public abstract class Visitor
     protected void Log(string message) => System.Diagnostics.Debug.WriteLine($"{(string.IsNullOrWhiteSpace(_prefix) ? string.Empty : _prefix)}{message}");
 }
 
-// Lambda Visitor
 public class LambdaVisitor : Visitor
 {
     public static ReadOnlyCollection<ParameterExpression> Parameters;
@@ -62,7 +61,6 @@ public class LambdaVisitor : Visitor
     }
 }
 
-// Binary Expression Visitor:
 public class BinaryVisitor : Visitor
 {
     private readonly BinaryExpression node;
@@ -80,7 +78,6 @@ public class BinaryVisitor : Visitor
     }
 }
 
-// Parameter visitor:
 public class ParameterVisitor : Visitor
 {
     private readonly ParameterExpression node;
@@ -96,7 +93,6 @@ public class ParameterVisitor : Visitor
     }
 }
 
-// Constant visitor:
 public class ConstantVisitor : Visitor
 {
     private readonly ConstantExpression node;
