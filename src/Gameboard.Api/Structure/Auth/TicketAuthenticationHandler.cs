@@ -116,5 +116,4 @@ namespace Gameboard.Api.Auth
     public class TicketAuthenticationOptions : AuthenticationSchemeOptions
     {
     }
-
 }

@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 
-namespace Gameboard.Api.Auth;
+namespace Gameboard.Api.Structure.Auth;
 
 public static class ApiKeyAuthentication
 {

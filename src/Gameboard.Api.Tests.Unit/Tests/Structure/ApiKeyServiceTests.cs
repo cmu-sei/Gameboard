@@ -7,15 +7,15 @@ namespace Gameboard.Api.Tests.Unit;
 
 public class ApiKeyServiceTests
 {
-    private ApiKeysService GetSut(ApiKeyOptions options, IRandomService? random = null) => new
+    private ApiKeysService GetSut(ApiKeyOptions? options = null, IRandomService? random = null, IStore<Data.User>? userStore = null) => new
     (
-        options,
+        options ?? new ApiKeyOptions { RandomCharactersLength = 15 },
         A.Fake<IGuidService>(),
         A.Fake<IMapper>(),
         A.Fake<INowService>(),
         random ?? A.Fake<IRandomService>(),
         A.Fake<IApiKeysStore>(),
-        A.Fake<IStore<Data.User>>()
+        userStore ?? A.Fake<IStore<Data.User>>()
     );
 
     [Theory, InlineAutoData(3)]
@@ -58,5 +58,39 @@ public class ApiKeyServiceTests
 
         // assert
         result.ShouldBe("1234567890");
+    }
+
+    [Theory, GameboardAutoData]
+    public void GetUserFromApiKey_WithUserAssignedKey_ResolvesUser(string apiKey, IFixture fixture)
+    {
+        // given
+        var userStore = A.Fake<IStore<Data.User>>();
+        var fakeUsers = new Data.User[]
+        {
+            new ()
+            {
+                ApiKeys = new Data.ApiKey[]
+                {
+                    new ()
+                    {
+                        Id =  fixture.Create<string>(),
+                        Name = fixture.Create<string>(),
+                        Key = apiKey.ToSha256(),
+                        GeneratedOn = fixture.Create<DateTimeOffset>(),
+                        OwnerId = fixture.Create<string>()
+                    }
+                },
+                Enrollments = Array.Empty<Data.Player>()
+            }
+        }.BuildMock();
+
+        A.CallTo(() => userStore.ListWithNoTracking()).Returns(fakeUsers);
+        var sut = GetSut(userStore: userStore);
+
+        // when
+        var result = sut.GetUserFromApiKey(apiKey);
+
+        // then
+        result.ShouldNotBeNull();
     }
 }

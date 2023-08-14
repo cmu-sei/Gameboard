@@ -1,5 +1,6 @@
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Tests.Shared;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -50,7 +51,8 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
             // add user claims transformation that lets them all through
             services.ReplaceService<IClaimsTransformation, TestClaimsTransformation>(allowMultipleReplace: true);
 
-            // add a stand-in for the game engine service for now, because we don't have an instance for integration tests 
+            // add a stand-in for external services
+            services.ReplaceService<IGamebrainService, TestGamebrainService>();
             services.ReplaceService<IGameEngineService, TestGameEngineService>();
 
             // dummy authorization service that lets everything through

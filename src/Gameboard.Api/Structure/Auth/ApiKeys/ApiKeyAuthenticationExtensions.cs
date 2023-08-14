@@ -3,7 +3,7 @@
 
 using System;
 using Microsoft.AspNetCore.Authentication;
-using Gameboard.Api.Auth;
+using Gameboard.Api.Structure.Auth;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
