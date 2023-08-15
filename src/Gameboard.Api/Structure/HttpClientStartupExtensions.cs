@@ -26,6 +26,7 @@ namespace Microsoft.Extensions.DependencyInjection
                         client.BaseAddress = new Uri(config.GameEngineUrl);
                         client.DefaultRequestHeaders.Add("x-api-key", config.GameEngineClientSecret);
                         client.DefaultRequestHeaders.Add("x-api-client", config.GameEngineClientName);
+                        client.Timeout = TimeSpan.FromSeconds(300);
                     })
                     .AddPolicyHandler(
                         HttpPolicyExtensions.HandleTransientHttpError()
