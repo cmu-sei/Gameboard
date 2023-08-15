@@ -1,6 +1,7 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System.Reflection.Metadata;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data
@@ -192,6 +193,17 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.PlayerId).HasMaxLength(40);
                 b.Property(p => p.PlayerName).HasMaxLength(64);
                 b.Property(u => u.UserId).HasMaxLength(40);
+            });
+
+            builder.Entity<PracticeModeSettings>(b =>
+            {
+                b.HasKey(m => m.Id);
+                b.Property(m => m.Id).HasStandardGuidLength();
+                b.Property(m => m.IntroTextMarkdown).HasMaxLength(4000);
+                b
+                    .HasOne(m => m.UpdatedByUser)
+                    .WithOne(u => u.UpdatedPracticeModeSettings)
+                    .IsRequired(false);
             });
 
             builder.Entity<Ticket>(b =>

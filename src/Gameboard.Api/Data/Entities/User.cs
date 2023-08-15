@@ -25,4 +25,5 @@ public class User : IEntity
     public ICollection<Player> Enrollments { get; set; } = new List<Player>();
     public ICollection<ManualChallengeBonus> EnteredManualChallengeBonuses { get; set; } = new List<ManualChallengeBonus>();
     public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
+    public PracticeModeSettings UpdatedPracticeModeSettings { get; set; }
 }

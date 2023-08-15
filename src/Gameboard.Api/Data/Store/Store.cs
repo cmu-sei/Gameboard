@@ -28,7 +28,9 @@ public interface IStore
     IQueryable<TEntity> List<TEntity>(bool enableTracking = false) where TEntity : class, IEntity;
     Task<TEntity> Retrieve<TEntity>(string id, bool enableTracking = false) where TEntity : class, IEntity;
     Task<TEntity> Retrieve<TEntity>(string id, Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder, bool enableTracking = false) where TEntity : class, IEntity;
-    Task<TEntity> Update<TEntity>(TEntity entity) where TEntity : class, IEntity;
+    Task<TEntity> SingleOrDefaultAsync<TEntity>(CancellationToken cancellationToken) where TEntity : class, IEntity;
+    Task<TEntity> SingleOrDefaultAsync<TEntity>(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) where TEntity : class, IEntity;
+    Task<TEntity> Update<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity;
 }
 
 internal class Store : IStore
@@ -126,7 +128,15 @@ internal class Store : IStore
         return query.FirstOrDefaultAsync(e => e.Id == id);
     }
 
-    public async Task<TEntity> Update<TEntity>(TEntity entity) where TEntity : class, IEntity
+    public Task<TEntity> SingleOrDefaultAsync<TEntity>(CancellationToken cancellationToken) where TEntity : class, IEntity
+        => SingleOrDefaultAsync<TEntity>(null, cancellationToken);
+
+    public Task<TEntity> SingleOrDefaultAsync<TEntity>(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) where TEntity : class, IEntity
+    {
+        return GetQueryBase<TEntity>().SingleOrDefaultAsync(predicate, cancellationToken);
+    }
+
+    public async Task<TEntity> Update<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity
     {
         if (_dbContext.Entry(entity).State == EntityState.Detached)
             _dbContext.Attach(entity);

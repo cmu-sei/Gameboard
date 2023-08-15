@@ -11,6 +11,7 @@ using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Hubs;
 using MediatR;
@@ -23,6 +24,7 @@ public class PlayerService
 {
     private readonly TimeSpan _idmapExpiration = new(0, 30, 0);
     private readonly INowService _now;
+    private readonly IPracticeService _practiceService;
 
     CoreOptions CoreOptions { get; }
     ChallengeService ChallengeService { get; set; }
@@ -45,6 +47,7 @@ public class PlayerService
         IGameService gameService,
         IGameStore gameStore,
         IInternalHubBus hubBus,
+        IPracticeService practiceService,
         ITeamService teamService,
         IMapper mapper,
         IMemoryCache localCache,
@@ -55,6 +58,7 @@ public class PlayerService
         ChallengeService = challengeService;
         GameService = gameService;
         GuidService = guidService;
+        _practiceService = practiceService;
         _now = now;
         HubBus = hubBus;
         Store = store;

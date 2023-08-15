@@ -653,6 +653,43 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("Players");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.PracticeModeSettings", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("CertificateHtmlTemplate")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DefaultPracticeSessionLengthMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("IntroTextMarkdown")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int?>("MaxConcurrentPracticeSessions")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MaxPracticeSessionLengthMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTimeOffset?>("UpdatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UpdatedByUserId")
+                        .IsUnique()
+                        .HasFilter("[UpdatedByUserId] IS NOT NULL");
+
+                    b.ToTable("PracticeModeSettings");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Sponsor", b =>
                 {
                     b.Property<string>("Id")
@@ -974,6 +1011,15 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.PracticeModeSettings", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.User", "UpdatedByUser")
+                        .WithOne("UpdatedPracticeModeSettings")
+                        .HasForeignKey("Gameboard.Api.Data.PracticeModeSettings", "UpdatedByUserId");
+
+                    b.Navigation("UpdatedByUser");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Ticket", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.User", "Assignee")
@@ -1083,6 +1129,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("EnteredManualChallengeBonuses");
 
                     b.Navigation("Feedback");
+
+                    b.Navigation("UpdatedPracticeModeSettings");
                 });
 #pragma warning restore 612, 618
         }
