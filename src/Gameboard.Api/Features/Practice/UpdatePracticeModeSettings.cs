@@ -94,6 +94,11 @@ internal class UpdatePracticeModeSettingsHandler : IRequestHandler<UpdatePractic
         var updatedSettings = _mapper.Map<Data.PracticeModeSettings>(request.Settings);
         updatedSettings.Id = currentSettings.Id;
         updatedSettings.UpdatedOn = _now.Get();
+        updatedSettings.UpdatedByUserId = request.ActingUser.Id;
+
+        // force a value for default session length, becaues it's required
+        if (updatedSettings.DefaultPracticeSessionLengthMinutes <= 0)
+            updatedSettings.DefaultPracticeSessionLengthMinutes = 60;
 
         await _store.Update(updatedSettings, cancellationToken);
     }
