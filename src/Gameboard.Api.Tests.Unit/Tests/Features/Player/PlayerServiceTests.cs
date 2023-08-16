@@ -1,6 +1,7 @@
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
@@ -20,6 +21,7 @@ public class PlayerServiceTests
             IGameStore gameStore,
             IGuidService guidService,
             IInternalHubBus hubBus,
+            IPracticeService practiceService,
             INowService now,
             ITeamService teamService,
             IMapper mapper,
@@ -34,6 +36,7 @@ public class PlayerServiceTests
                 gameService,
                 gameStore,
                 hubBus,
+                practiceService,
                 teamService,
                 mapper,
                 localCache,
@@ -52,6 +55,7 @@ public class PlayerServiceTests
             IGuidService? guidService = null,
             INowService? now = null,
             IInternalHubBus? hubBus = null,
+            IPracticeService? practiceService = null,
             ITeamService? teamService = null,
             IMapper? mapper = null,
             IMemoryCache? localCache = null,
@@ -67,6 +71,7 @@ public class PlayerServiceTests
                 gameService ?? A.Fake<GameService>(),
                 gameStore ?? A.Fake<IGameStore>(),
                 hubBus ?? A.Fake<IInternalHubBus>(),
+                practiceService ?? A.Fake<IPracticeService>(),
                 teamService ?? A.Fake<ITeamService>(),
                 mapper ?? A.Fake<IMapper>(),
                 localCache ?? A.Fake<IMemoryCache>(),
