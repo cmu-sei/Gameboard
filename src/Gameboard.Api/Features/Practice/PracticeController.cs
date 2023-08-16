@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Mime;
+using System.Reflection.Metadata.Ecma335;
 using System.Threading.Tasks;
 using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Services;
+using Gameboard.Api.Structure;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -38,6 +41,20 @@ public class PracticeController : ControllerBase
     [Route("challenges")]
     public Task<IEnumerable<GameCardContext>> ListChallenges()
         => Task.FromResult(Array.Empty<GameCardContext>().AsEnumerable());
+
+    [HttpGet]
+    [Route("certificate/{challengeSpecId}/html")]
+    public async Task<ContentResult> GetCertificateHtml([FromRoute] string challengeSpecId)
+        => new ContentResult
+        {
+            Content = await _mediator.Send(new GetPracticeModeCertificateHtmlQuery(challengeSpecId, _actingUserService.Get())),
+            ContentType = MediaTypeNames.Text.Html
+        };
+
+    [HttpGet]
+    [Route("certificates")]
+    public Task<IEnumerable<PracticeModeCertificate>> ListCertificates()
+        => _mediator.Send(new GetPracticeModeCertificatesQuery(_actingUserService.Get()));
 
     [HttpGet]
     [Route("settings")]

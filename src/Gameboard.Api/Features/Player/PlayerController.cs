@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Features.Games;
@@ -46,10 +47,11 @@ namespace Gameboard.Api.Controllers
         /// Enrolls a user in a game.
         /// </summary>
         /// <param name="model"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns>A player record which represents an instance of the user playing a given game.</returns>
         [HttpPost("api/player")]
         [Authorize]
-        public async Task<Player> Enroll([FromBody] NewPlayer model)
+        public async Task<Player> Enroll([FromBody] NewPlayer model, CancellationToken cancellationToken)
         {
             AuthorizeAny
             (
@@ -58,7 +60,7 @@ namespace Gameboard.Api.Controllers
             );
 
             await Validate(model);
-            return await PlayerService.Enroll(model, Actor);
+            return await PlayerService.Enroll(model, Actor, cancellationToken);
         }
 
         /// <summary>
@@ -131,10 +133,11 @@ namespace Gameboard.Api.Controllers
         /// Change player session
         /// </summary>
         /// <param name="model"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpPut("api/team/session")]
         [Authorize]
-        public async Task UpdateSession([FromBody] SessionChangeRequest model)
+        public async Task UpdateSession([FromBody] SessionChangeRequest model, CancellationToken cancellationToken)
         {
             await Validate(model);
 
@@ -143,7 +146,7 @@ namespace Gameboard.Api.Controllers
                 () => IsSelf(model.TeamId).Result
             );
 
-            await PlayerService.AdjustSessionEnd(model, Actor);
+            await PlayerService.AdjustSessionEnd(model, Actor, cancellationToken);
         }
 
         /// <summary>

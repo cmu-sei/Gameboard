@@ -129,7 +129,7 @@ internal class Store : IStore
     }
 
     public Task<TEntity> SingleOrDefaultAsync<TEntity>(CancellationToken cancellationToken) where TEntity : class, IEntity
-        => SingleOrDefaultAsync<TEntity>(null, cancellationToken);
+        => GetQueryBase<TEntity>().SingleOrDefaultAsync(cancellationToken);
 
     public Task<TEntity> SingleOrDefaultAsync<TEntity>(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) where TEntity : class, IEntity
     {

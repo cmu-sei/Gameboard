@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
@@ -69,12 +70,12 @@ public class PlayerService
         GameEngine = gameEngine;
     }
 
-    public async Task<Player> Enroll(NewPlayer model, User actor)
+    public async Task<Player> Enroll(NewPlayer model, User actor, CancellationToken cancellationToken)
     {
         var game = await GameStore.Retrieve(model.GameId);
 
         if (game.IsPracticeMode)
-            return await RegisterPracticeSession(model);
+            return await RegisterPracticeSession(model, cancellationToken);
 
         if (!actor.IsRegistrar && !game.RegistrationActive)
             throw new RegistrationIsClosed(model.GameId);
@@ -275,7 +276,7 @@ public class PlayerService
         return asViewModel;
     }
 
-    public async Task<Player> AdjustSessionEnd(SessionChangeRequest model, User actor)
+    public async Task<Player> AdjustSessionEnd(SessionChangeRequest model, User actor, CancellationToken cancellationToken)
     {
         var team = await Store.ListTeam(model.TeamId).ToArrayAsync();
         var sudo = actor.IsRegistrar;
@@ -291,15 +292,16 @@ public class PlayerService
         if (manager.IsPractice)
         {
             DateTimeOffset now = DateTimeOffset.UtcNow;
+            var settings = await _practiceService.GetSettings(cancellationToken);
 
             // end session now or extend by configured amount
             model.SessionEnd = model.SessionEnd.Year == 1
                 ? DateTimeOffset.UtcNow
                 : DateTimeOffset.UtcNow.AddMinutes(manager.SessionMinutes)
             ;
-            if (CoreOptions.MaxPracticeSessionMinutes > 0)
+            if (settings.MaxPracticeSessionLengthMinutes.HasValue)
             {
-                var maxTime = manager.SessionBegin.AddMinutes(CoreOptions.MaxPracticeSessionMinutes);
+                var maxTime = manager.SessionBegin.AddMinutes(settings.MaxPracticeSessionLengthMinutes.Value);
                 if (model.SessionEnd > maxTime)
                     model.SessionEnd = maxTime;
             }
@@ -749,8 +751,11 @@ public class PlayerService
         };
     }
 
-    private async Task<Player> RegisterPracticeSession(NewPlayer model)
+    private async Task<Player> RegisterPracticeSession(NewPlayer model, CancellationToken cancellationToken)
     {
+        // load practice settings
+        var settings = await _practiceService.GetSettings(cancellationToken);
+
         // check for existing sessions
         var nowStamp = _now.Get();
 
@@ -776,18 +781,17 @@ public class PlayerService
             throw new GamespaceLimitReached();
 
         // don't exceed global configured limit
-        if (CoreOptions.MaxPracticeSessions > 0)
+        if (settings.MaxConcurrentPracticeSessions.HasValue)
         {
             int count = await Store.DbSet.CountAsync(p =>
                 p.Mode == PlayerMode.Practice &&
-                p.SessionEnd > nowStamp
-            );
+                p.SessionEnd > nowStamp, cancellationToken);
 
-            if (count >= CoreOptions.MaxPracticeSessions)
-                throw new PracticeSessionLimitReached(model.UserId, count, CoreOptions.MaxPracticeSessions);
+            if (count >= settings.MaxConcurrentPracticeSessions.Value)
+                throw new PracticeSessionLimitReached(model.UserId, count, settings.MaxConcurrentPracticeSessions.Value);
         }
 
-        var entity = await InitializePlayer(model, CoreOptions.PracticeSessionMinutes);
+        var entity = await InitializePlayer(model, settings.DefaultPracticeSessionLengthMinutes);
 
         // start session
         entity.SessionBegin = nowStamp;
