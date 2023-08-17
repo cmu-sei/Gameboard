@@ -51,17 +51,6 @@ internal class GetPracticeModeCertificateHtmlHandler : IRequestHandler<GetPracti
                 </p>
             """.Trim();
 
-        // compute time string - hours and minutes rounded off
-        var timeString = "Less than a minute";
-        if (Math.Round(certificate.Time.TotalMinutes, 0) > 0)
-        {
-            var hours = Math.Round(certificate.Time.TotalHours, 0);
-            var hoursString = $"{hours} hour{(hours == 1 ? "" : "s")}";
-            var minutesString = $"{certificate.Time.Minutes} minute{(certificate.Time.Minutes == 1 ? "" : "s")}";
-
-            timeString = $"{hoursString}{(!hoursString.IsEmpty() && !minutesString.IsEmpty() ? " and " : "")}{minutesString}";
-        }
-
         return settings.CertificateHtmlTemplate
             .Replace("{{challengeName}}", certificate.Challenge.Name)
             .Replace("{{challengeDescription}}", certificate.Challenge.Description)
@@ -70,7 +59,26 @@ internal class GetPracticeModeCertificateHtmlHandler : IRequestHandler<GetPracti
             .Replace("{{playerName}}", certificate.PlayerName)
             .Replace("{{score}}", certificate.Score.ToString())
             .Replace("{{season}}", certificate.Game.Season)
-            .Replace("{{time}}", timeString)
+            .Replace("{{time}}", GetDurationDescription(certificate.Time))
             .Replace("{{track}}", certificate.Game.Track);
+    }
+
+    internal string GetDurationDescription(TimeSpan time)
+    {
+        // compute time string - hours and minutes rounded off
+        var timeString = "Less than a minute";
+        if (Math.Round(time.TotalMinutes, 0) > 0)
+        {
+            var hours = Math.Floor(time.TotalHours);
+
+            // for each of the hour and minute strings, do pluralization stuff or set to empty
+            // if the value is zero
+            var hoursString = hours > 0 ? $"{hours} hour{(hours == 1 ? "" : "s")}" : string.Empty;
+            var minutesString = time.Minutes > 0 ? $"{time.Minutes} minute{(time.Minutes == 1 ? "" : "s")}" : string.Empty;
+
+            timeString = $"{hoursString}{(!hoursString.IsEmpty() && !minutesString.IsEmpty() ? " and " : "")}{minutesString}";
+        }
+
+        return timeString;
     }
 }
