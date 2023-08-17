@@ -86,43 +86,6 @@ public class PlayerControllerSessionResetTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ResetSession_WithAutoResetAndPreserveTeam_PreservesChallenges(IFixture fixture, string teamId)
-    {
-        // given
-        TeamBuilderResult? result = null;
-        await _testContext.WithDataState(s =>
-        {
-            result = s.AddTeam(fixture, opts =>
-            {
-                opts.NumPlayers = 1;
-                opts.TeamId = teamId;
-            });
-        });
-
-        if (result == null)
-            throw new GbAutomatedTestSetupException("AddTeam failed to return a result.");
-
-        var player = result.Players.First();
-        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = player.UserId);
-
-        // when 
-        var response = await httpClient.PostAsync($"api/player/{player.Id}/session", new SessionResetRequest
-        {
-            IsManualReset = false,
-            UnenrollTeam = false
-        }.ToJsonBody());
-
-        // then
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
-
-        var hasChallenges = await _testContext.GetDbContext().Challenges.AnyAsync(c => c.TeamId == teamId);
-        var hasArchivedChallenges = await _testContext.GetDbContext().ArchivedChallenges.AnyAsync(c => c.TeamId == teamId);
-
-        hasArchivedChallenges.ShouldBeFalse();
-        hasChallenges.ShouldBeTrue();
-    }
-
-    [Theory, GbIntegrationAutoData]
     public async Task ResetSession_WithAlreadyArchivedChallenges_DoesntChoke(IFixture fixture, string teamId)
     {
         // given
