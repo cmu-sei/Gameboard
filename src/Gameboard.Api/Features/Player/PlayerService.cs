@@ -16,6 +16,7 @@ using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Hubs;
 using MediatR;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -171,9 +172,8 @@ public class PlayerService
             .Include(p => p.Game)
             .SingleAsync(p => p.Id == args.PlayerId);
 
-        // unlike unenroll, we archive the entire team's challenges, but only if this reset is manual and we're not unenrolling them
-        if (args.IsManualReset && !args.UnenrollTeam)
-            await ChallengeService.ArchiveTeamChallenges(player.TeamId);
+        // always archive challenges
+        await ChallengeService.ArchiveTeamChallenges(player.TeamId);
 
         // delete the entire team if requested
         if (args.UnenrollTeam)
