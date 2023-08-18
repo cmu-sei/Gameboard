@@ -37,6 +37,12 @@ internal static class WebApplicationBuilderExtensions
 
         Directory.CreateDirectory(settings.Core.ImageFolder);
 
+        settings.Core.TemplatesDirectory = Path.Combine
+        (
+            builder.Environment.ContentRootPath,
+            settings.Core.TemplatesDirectory ?? ""
+        );
+
         CsvConfig<Tuple<string, string>>.OmitHeaders = true;
         CsvConfig<Tuple<string, string, string>>.OmitHeaders = true;
         CsvConfig<ChallengeStatsExport>.OmitHeaders = true;

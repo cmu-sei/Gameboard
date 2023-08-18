@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,17 +13,20 @@ public record GetPracticeModeCertificateHtmlQuery(string ChallengeSpecId, User A
 
 internal class GetPracticeModeCertificateHtmlHandler : IRequestHandler<GetPracticeModeCertificateHtmlQuery, string>
 {
+    private readonly CoreOptions _coreOptions;
     private readonly IPracticeService _practiceService;
     private readonly EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> _userExists;
     private readonly IValidatorService<GetPracticeModeCertificateHtmlQuery> _validatorService;
 
     public GetPracticeModeCertificateHtmlHandler
     (
+        CoreOptions coreOptions,
         IPracticeService practiceService,
         EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> userExists,
         IValidatorService<GetPracticeModeCertificateHtmlQuery> validatorService
     )
     {
+        _coreOptions = coreOptions;
         _practiceService = practiceService;
         _userExists = userExists;
         _validatorService = validatorService;
@@ -40,27 +44,32 @@ internal class GetPracticeModeCertificateHtmlHandler : IRequestHandler<GetPracti
         if (certificate is null)
             return null;
 
-        var settings = await _practiceService.GetSettings(cancellationToken);
-        if (settings.CertificateHtmlTemplate.IsEmpty())
-            return
-            $"""
-                <p>
-                    You successfully completed challenge {certificate.Challenge.Name} on {certificate.Date} with
-                    a score of {certificate.Score} and a time of {certificate.Time}, but the administrator of this
-                    site hasn't configured a certificate template for Practice Mode.
-                </p>
-            """.Trim();
+        // load the outer template from this application
+        var outerTemplatePath = Path.Combine(_coreOptions.TemplatesDirectory, "practice-certificate.template.html");
+        var outerTemplate = File.ReadAllText(outerTemplatePath);
 
-        return settings.CertificateHtmlTemplate
-            .Replace("{{challengeName}}", certificate.Challenge.Name)
-            .Replace("{{challengeDescription}}", certificate.Challenge.Description)
-            .Replace("{{date}}", certificate.Date.ToLocalTime().ToString("M/d/yyyy"))
-            .Replace("{{division}}", certificate.Game.Division)
-            .Replace("{{playerName}}", certificate.PlayerName)
-            .Replace("{{score}}", certificate.Score.ToString())
-            .Replace("{{season}}", certificate.Game.Season)
-            .Replace("{{time}}", GetDurationDescription(certificate.Time))
-            .Replace("{{track}}", certificate.Game.Track);
+        var settings = await _practiceService.GetSettings(cancellationToken);
+        var innerTemplate = $"""
+            <p>
+                You successfully completed challenge {certificate.Challenge.Name} on {certificate.Date} with
+                a score of {certificate.Score} and a time of {certificate.Time}, but the administrator of this
+                site hasn't configured a certificate template for Practice Mode.
+            </p>
+        """.Trim();
+
+        if (!settings.CertificateHtmlTemplate.IsEmpty())
+            innerTemplate = settings.CertificateHtmlTemplate
+                .Replace("{{challengeName}}", certificate.Challenge.Name)
+                .Replace("{{challengeDescription}}", certificate.Challenge.Description)
+                .Replace("{{date}}", certificate.Date.ToLocalTime().ToString("M/d/yyyy"))
+                .Replace("{{division}}", certificate.Game.Division)
+                .Replace("{{playerName}}", certificate.PlayerName)
+                .Replace("{{score}}", certificate.Score.ToString())
+                .Replace("{{season}}", certificate.Game.Season)
+                .Replace("{{time}}", GetDurationDescription(certificate.Time))
+                .Replace("{{track}}", certificate.Game.Track);
+
+        return outerTemplate.Replace("{{bodyContent}}", innerTemplate);
     }
 
     internal string GetDurationDescription(TimeSpan time)

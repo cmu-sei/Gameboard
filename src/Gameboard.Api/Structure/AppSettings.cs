@@ -170,6 +170,8 @@ namespace Gameboard.Api
         public string SupportUploadsRequestPath { get; set; } = "supportfiles";
         public string SupportUploadsFolder { get; set; } = "wwwroot/supportfiles";
         public string ChallengeDocUrl { get; set; }
+        public string TempDirectory { get; set; } = "wwwroot/temp";
+        public string TemplatesDirectory { get; set; } = "wwwroot/templates";
         public string SafeNamesFile { get; set; } = "names.json";
         public string KeyPrefix { get; set; } = "GB";
         public string GamebrainApiKey { get; set; }

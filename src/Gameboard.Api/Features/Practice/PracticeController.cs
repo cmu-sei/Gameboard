@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Mime;
-using System.Reflection.Metadata.Ecma335;
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
@@ -19,11 +19,18 @@ namespace Gameboard.Api.Features.Practice;
 public class PracticeController : ControllerBase
 {
     private readonly IActingUserService _actingUserService;
+    private readonly IHtmlToPdfService _htmlToPdfService;
     private readonly IMediator _mediator;
 
-    public PracticeController(IActingUserService actingUserService, IMediator mediator)
+    public PracticeController
+    (
+        IActingUserService actingUserService,
+        IHtmlToPdfService htmlToPdfService,
+        IMediator mediator
+    )
     {
         _actingUserService = actingUserService;
+        _htmlToPdfService = htmlToPdfService;
         _mediator = mediator;
     }
 
@@ -44,12 +51,11 @@ public class PracticeController : ControllerBase
 
     [HttpGet]
     [Route("certificate/{challengeSpecId}/html")]
-    public async Task<ContentResult> GetCertificateHtml([FromRoute] string challengeSpecId)
-        => new ContentResult
-        {
-            Content = await _mediator.Send(new GetPracticeModeCertificateHtmlQuery(challengeSpecId, _actingUserService.Get())),
-            ContentType = MediaTypeNames.Text.Html
-        };
+    public async Task<FileResult> GetCertificateHtml([FromRoute] string challengeSpecId, CancellationToken cancellationToken)
+    {
+        var html = await _mediator.Send(new GetPracticeModeCertificateHtmlQuery(challengeSpecId, _actingUserService.Get()), cancellationToken);
+        return File(await _htmlToPdfService.ToPdf(html), MimeTypes.ApplicationPdf);
+    }
 
     [HttpGet]
     [Route("certificates")]
