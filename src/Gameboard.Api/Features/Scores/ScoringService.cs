@@ -50,10 +50,8 @@ internal class ScoringService : IScoringService
             .Include(c => c.Player)
             .FirstOrDefaultAsync(c => c.Id == challengeId);
 
-        if (challenge == null)
-        {
+        if (challenge is null)
             return null;
-        }
 
         var spec = await _challengeSpecStore.Retrieve(challenge.SpecId);
         var bonuses = await _mapper.ProjectTo<ManualChallengeBonusViewModel>(_challengeBonusStore

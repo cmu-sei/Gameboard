@@ -375,7 +375,7 @@ namespace Gameboard.Api.Services
                 Id = _guids.GetGuid(),
                 UserId = actorId,
                 TeamId = entity.TeamId,
-                Timestamp = DateTimeOffset.UtcNow,
+                Timestamp = _now.Get(),
                 Type = ChallengeEventType.Submission
             });
 
@@ -390,6 +390,7 @@ namespace Gameboard.Api.Services
 
             if (result.Score > currentScore)
                 await Store.UpdateTeam(entity.TeamId);
+
 
             return Mapper.Map<Challenge>(entity);
         }

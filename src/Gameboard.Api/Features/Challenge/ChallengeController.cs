@@ -184,7 +184,8 @@ namespace Gameboard.Api.Controllers
 
             var result = await ChallengeService.StopGamespace(model.Id, Actor.Id);
 
-            await Hub.Clients.Group(result.TeamId).ChallengeEvent(
+            await Hub.Clients.Group(result.TeamId).ChallengeEvent
+            (
                 new HubEvent<Challenge>
                 {
                     Model = result,
