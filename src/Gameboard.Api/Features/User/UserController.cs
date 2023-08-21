@@ -20,7 +20,6 @@ using Gameboard.Api.Validators;
 using Gameboard.Api.Features.Users;
 using MediatR;
 using Microsoft.AspNetCore.Http;
-using System.Threading;
 
 namespace Gameboard.Api.Controllers
 {

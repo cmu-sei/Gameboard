@@ -278,12 +278,10 @@ public class PlayerService
 
     public async Task<Player> AdjustSessionEnd(SessionChangeRequest model, User actor, CancellationToken cancellationToken)
     {
-        var team = await Store.ListTeam(model.TeamId).ToArrayAsync();
+        var team = await Store.ListTeam(model.TeamId).ToArrayAsync(cancellationToken);
         var sudo = actor.IsRegistrar;
 
-        var manager = team.FirstOrDefault(p =>
-            p.Role == PlayerRole.Manager
-        );
+        var manager = team.FirstOrDefault(p => p.Role == PlayerRole.Manager);
 
         if (sudo.Equals(false) && manager.IsCompetition)
             throw new ActionForbidden();
