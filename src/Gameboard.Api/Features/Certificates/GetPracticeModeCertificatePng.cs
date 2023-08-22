@@ -21,10 +21,10 @@ internal class GetPracticeModeCertificatePngHandler : IRequestHandler<GetPractic
 
     public GetPracticeModeCertificatePngHandler
     (
+        EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User> actingUserExists,
+        EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User> certificateOwnerExists,
         CoreOptions coreOptions,
         IPracticeService practiceService,
-        EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User> certificateOwnerExists,
-        EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User> actingUserExists,
         IValidatorService<GetPracticeModeCertificatePngQuery> validatorService
     )
     {

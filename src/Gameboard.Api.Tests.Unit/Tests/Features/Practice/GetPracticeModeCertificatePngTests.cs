@@ -12,13 +12,18 @@ public class GetPracticeModeCertificateHtmlTests
 
     public GetPracticeModeCertificateHtmlTests()
     {
-        _sut = new GetPracticeModeCertificateHtmlHandler
+        _sut = new GetPracticeModeCertificatePngHandler
         (
-            A.Fake<IPracticeService>(),
             A.Fake<EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User>>(options =>
             {
                 options.WithArgumentsForConstructor(() => new EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User>(A.Fake<IStore<Data.User>>()));
             }),
+            A.Fake<EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User>>(options =>
+            {
+                options.WithArgumentsForConstructor(() => new EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User>(A.Fake<IStore<Data.User>>()));
+            }),
+            A.Fake<CoreOptions>(),
+            A.Fake<IPracticeService>(),
             A.Fake<IValidatorService<GetPracticeModeCertificatePngQuery>>()
         );
     }
