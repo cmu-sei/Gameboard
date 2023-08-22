@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Common;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Certificates;
 using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -51,7 +51,7 @@ internal class PracticeService : IPracticeService
     }
 
     public async Task<IEnumerable<PracticeModeCertificate>> GetCertificates(string userId)
-    { 
+    {
         var challenges = await _store
             .List<Data.Challenge>()
                 .Include(c => c.Game)

@@ -19,13 +19,13 @@ namespace Gameboard.Api.Features.Practice;
 public class PracticeController : ControllerBase
 {
     private readonly IActingUserService _actingUserService;
-    private readonly IHtmlToPdfService _htmlToPdfService;
+    private readonly IHtmlToImageService _htmlToPdfService;
     private readonly IMediator _mediator;
 
     public PracticeController
     (
         IActingUserService actingUserService,
-        IHtmlToPdfService htmlToPdfService,
+        IHtmlToImageService htmlToPdfService,
         IMediator mediator
     )
     {
@@ -48,19 +48,6 @@ public class PracticeController : ControllerBase
     [Route("challenges")]
     public Task<IEnumerable<GameCardContext>> ListChallenges()
         => Task.FromResult(Array.Empty<GameCardContext>().AsEnumerable());
-
-    [HttpGet]
-    [Route("certificate/{challengeSpecId}/html")]
-    public async Task<FileResult> GetCertificateHtml([FromRoute] string challengeSpecId, CancellationToken cancellationToken)
-    {
-        var html = await _mediator.Send(new GetPracticeModeCertificateHtmlQuery(challengeSpecId, _actingUserService.Get()), cancellationToken);
-        return File(await _htmlToPdfService.ToPdf(html), MimeTypes.ApplicationPdf);
-    }
-
-    [HttpGet]
-    [Route("certificates")]
-    public Task<IEnumerable<PracticeModeCertificate>> ListCertificates()
-        => _mediator.Send(new GetPracticeModeCertificatesQuery(_actingUserService.Get()));
 
     [HttpGet]
     [Route("settings")]

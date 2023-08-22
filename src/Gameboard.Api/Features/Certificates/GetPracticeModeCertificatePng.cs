@@ -9,45 +9,53 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Practice;
 
-public record GetPracticeModeCertificateHtmlQuery(string ChallengeSpecId, User ActingUser) : IRequest<string>;
+public record GetPracticeModeCertificatePngQuery(string ChallengeSpecId, string CertificateOwnerUserId, User ActingUser) : IRequest<string>;
 
-internal class GetPracticeModeCertificateHtmlHandler : IRequestHandler<GetPracticeModeCertificateHtmlQuery, string>
+internal class GetPracticeModeCertificatePngHandler : IRequestHandler<GetPracticeModeCertificatePngQuery, string>
 {
     private readonly CoreOptions _coreOptions;
     private readonly IPracticeService _practiceService;
-    private readonly EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> _userExists;
-    private readonly IValidatorService<GetPracticeModeCertificateHtmlQuery> _validatorService;
+    private readonly EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User> _actingUserExists;
+    private readonly EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User> _certificateOwnerExists;
+    private readonly IValidatorService<GetPracticeModeCertificatePngQuery> _validatorService;
 
-    public GetPracticeModeCertificateHtmlHandler
+    public GetPracticeModeCertificatePngHandler
     (
         CoreOptions coreOptions,
         IPracticeService practiceService,
-        EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> userExists,
-        IValidatorService<GetPracticeModeCertificateHtmlQuery> validatorService
+        EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User> certificateOwnerExists,
+        EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User> actingUserExists,
+        IValidatorService<GetPracticeModeCertificatePngQuery> validatorService
     )
     {
+        _actingUserExists = actingUserExists;
+        _certificateOwnerExists = certificateOwnerExists;
         _coreOptions = coreOptions;
         _practiceService = practiceService;
-        _userExists = userExists;
         _validatorService = validatorService;
     }
 
-    public async Task<string> Handle(GetPracticeModeCertificateHtmlQuery request, CancellationToken cancellationToken)
+    public async Task<string> Handle(GetPracticeModeCertificatePngQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .AddValidator(_userExists.UseProperty(r => r.ActingUser.Id))
+            .AddValidator(_actingUserExists.UseProperty(r => r.ActingUser.Id))
+            .AddValidator(_certificateOwnerExists.UseProperty(r => r.CertificateOwnerUserId))
             .Validate(request);
 
-        var certificate = (await _practiceService.GetCertificates(request.ActingUser.Id))
+        // tODO: validate publication if the owner isn't the actor
+
+        var certificate = (await _practiceService.GetCertificates(request.CertificateOwnerUserId))
             .FirstOrDefault(c => c.Challenge.ChallengeSpecId == request.ChallengeSpecId);
 
         if (certificate is null)
             return null;
 
-        // load the outer template from this application
+        // load the outer template from this application (this is custom crafted by us to ensure we end up)
+        // with a consistent HTML-compliant base
         var outerTemplatePath = Path.Combine(_coreOptions.TemplatesDirectory, "practice-certificate.template.html");
         var outerTemplate = File.ReadAllText(outerTemplatePath);
 
+        // the "inner" template is user-defined and loaded from settings
         var settings = await _practiceService.GetSettings(cancellationToken);
         var innerTemplate = $"""
             <p>
@@ -69,6 +77,7 @@ internal class GetPracticeModeCertificateHtmlHandler : IRequestHandler<GetPracti
                 .Replace("{{time}}", GetDurationDescription(certificate.Time))
                 .Replace("{{track}}", certificate.Game.Track);
 
+        // compose final html and save to a temp file
         return outerTemplate.Replace("{{bodyContent}}", innerTemplate);
     }
 

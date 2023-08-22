@@ -1,5 +1,5 @@
 #
-#multi-stage target: dev
+# multi-stage target: dev
 #
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS dev
 
@@ -8,12 +8,16 @@ ENV ASPNETCORE_URLS=http://*:5000 \
 
 COPY . /app
 
+# install chromium for PNG generation on the server
+RUN chmod +x ./app/tools/setup-chromium.sh
+RUN ./app/tools/setup-chromium.sh
+
 WORKDIR /app/src/Gameboard.Api
 RUN dotnet publish -c Release -o /app/dist
 CMD ["dotnet", "run"]
 
 #
-#multi-stage target: prod
+# multi-stage target: prod
 #
 FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS prod
 ARG commit

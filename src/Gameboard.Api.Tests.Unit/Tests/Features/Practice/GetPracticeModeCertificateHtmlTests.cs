@@ -8,18 +8,18 @@ namespace Gameboard.Api.Tests.Unit;
 
 public class GetPracticeModeCertificateHtmlTests
 {
-    private readonly GetPracticeModeCertificateHtmlHandler _sut;
+    private readonly GetPracticeModeCertificatePngHandler _sut;
 
     public GetPracticeModeCertificateHtmlTests()
     {
         _sut = new GetPracticeModeCertificateHtmlHandler
         (
             A.Fake<IPracticeService>(),
-            A.Fake<EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User>>(options =>
+            A.Fake<EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User>>(options =>
             {
-                options.WithArgumentsForConstructor(() => new EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User>(A.Fake<IStore<Data.User>>()));
+                options.WithArgumentsForConstructor(() => new EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User>(A.Fake<IStore<Data.User>>()));
             }),
-            A.Fake<IValidatorService<GetPracticeModeCertificateHtmlQuery>>()
+            A.Fake<IValidatorService<GetPracticeModeCertificatePngQuery>>()
         );
     }
 

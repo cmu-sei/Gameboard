@@ -29,6 +29,8 @@ internal static class WebApplicationBuilderExtensions
             settings.Core.ImageFolder ?? ""
         );
 
+        settings.Core.WebHostRoot = builder.Environment.ContentRootPath;
+
         if (settings.Core.ChallengeDocUrl.IsEmpty())
             settings.Core.ChallengeDocUrl = settings.PathBase;
 
@@ -37,10 +39,16 @@ internal static class WebApplicationBuilderExtensions
 
         Directory.CreateDirectory(settings.Core.ImageFolder);
 
+        settings.Core.TempDirectory = Path.Combine
+        (
+            builder.Environment.ContentRootPath,
+            settings.Core.TempDirectory = "wwwroot/temp"
+        );
+
         settings.Core.TemplatesDirectory = Path.Combine
         (
             builder.Environment.ContentRootPath,
-            settings.Core.TemplatesDirectory ?? ""
+            settings.Core.TemplatesDirectory ?? "wwwroot/templates"
         );
 
         CsvConfig<Tuple<string, string>>.OmitHeaders = true;

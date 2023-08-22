@@ -175,6 +175,7 @@ namespace Gameboard.Api
         public string SafeNamesFile { get; set; } = "names.json";
         public string KeyPrefix { get; set; } = "GB";
         public string GamebrainApiKey { get; set; }
+        public string WebHostRoot { get; set; }
     }
 
     public class CrucibleOptions
