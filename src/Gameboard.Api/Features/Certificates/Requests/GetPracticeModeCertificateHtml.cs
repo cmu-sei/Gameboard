@@ -3,52 +3,62 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Data;
+using Gameboard.Api.Features.Certificates;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 
 namespace Gameboard.Api.Features.Practice;
 
-public record GetPracticeModeCertificatePngQuery(string ChallengeSpecId, string CertificateOwnerUserId, User ActingUser) : IRequest<string>;
+public record GetPracticeModeCertificateHtmlQuery(string ChallengeSpecId, string CertificateOwnerUserId, User ActingUser) : IRequest<string>;
 
-internal class GetPracticeModeCertificatePngHandler : IRequestHandler<GetPracticeModeCertificatePngQuery, string>
+internal class GetPracticeModeCertificateHtmlHandler : IRequestHandler<GetPracticeModeCertificateHtmlQuery, string>
 {
+    private readonly ICertificatesService _certificatesService;
     private readonly CoreOptions _coreOptions;
+    private readonly EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> _actingUserExists;
+    private readonly EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> _certificateOwnerExists;
     private readonly IPracticeService _practiceService;
-    private readonly EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User> _actingUserExists;
-    private readonly EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User> _certificateOwnerExists;
-    private readonly IValidatorService<GetPracticeModeCertificatePngQuery> _validatorService;
+    private readonly IValidatorService<GetPracticeModeCertificateHtmlQuery> _validatorService;
 
-    public GetPracticeModeCertificatePngHandler
+    public GetPracticeModeCertificateHtmlHandler
     (
-        EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User> actingUserExists,
-        EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User> certificateOwnerExists,
+        EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> actingUserExists,
+        EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> certificateOwnerExists,
+        ICertificatesService certificatesService,
         CoreOptions coreOptions,
         IPracticeService practiceService,
-        IValidatorService<GetPracticeModeCertificatePngQuery> validatorService
+        IValidatorService<GetPracticeModeCertificateHtmlQuery> validatorService
     )
     {
         _actingUserExists = actingUserExists;
         _certificateOwnerExists = certificateOwnerExists;
+        _certificatesService = certificatesService;
         _coreOptions = coreOptions;
         _practiceService = practiceService;
         _validatorService = validatorService;
     }
 
-    public async Task<string> Handle(GetPracticeModeCertificatePngQuery request, CancellationToken cancellationToken)
+    public async Task<string> Handle(GetPracticeModeCertificateHtmlQuery request, CancellationToken cancellationToken)
     {
+        var certificate = (await _certificatesService.GetPracticeCertificates(request.CertificateOwnerUserId))
+                    .FirstOrDefault(c => c.Challenge.ChallengeSpecId == request.ChallengeSpecId);
+
         await _validatorService
             .AddValidator(_actingUserExists.UseProperty(r => r.ActingUser.Id))
             .AddValidator(_certificateOwnerExists.UseProperty(r => r.CertificateOwnerUserId))
+            .AddValidator((request, context) =>
+            {
+                if (request.CertificateOwnerUserId != request.ActingUser.Id && certificate.PublishedOn is null)
+                    context.AddValidationException(new CertificateIsntPublished(request.CertificateOwnerUserId, PublishedCertificateMode.Practice, request.ChallengeSpecId));
+
+                return Task.CompletedTask;
+            })
             .Validate(request);
 
-        // tODO: validate publication if the owner isn't the actor
-
-        var certificate = (await _practiceService.GetCertificates(request.CertificateOwnerUserId))
-            .FirstOrDefault(c => c.Challenge.ChallengeSpecId == request.ChallengeSpecId);
-
         if (certificate is null)
-            return null;
+            throw new ResourceNotFound<PublishedPracticeCertificate>(request.ChallengeSpecId, $"Couldn't resolve a certificate for owner {request.CertificateOwnerUserId} and challenge spec {request.ChallengeSpecId}");
 
         // load the outer template from this application (this is custom crafted by us to ensure we end up)
         // with a consistent HTML-compliant base

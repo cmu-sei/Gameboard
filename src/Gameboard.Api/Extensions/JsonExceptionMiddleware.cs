@@ -47,7 +47,7 @@ namespace Gameboard.Api
                         context.Response.StatusCode = 400;
                         message = ex.Message;
                     }
-                    else if (typeof(GameboardValidationException).IsAssignableFrom(type))
+                    else if (typeof(GameboardValidationException).IsAssignableFrom(type) || typeof(GameboardAggregatedValidationExceptions).IsAssignableFrom(type))
                     {
                         context.Response.StatusCode = 400;
                         message = ex.Message;

@@ -32,23 +32,45 @@ public class CertificatesController : ControllerBase
     }
 
     [HttpGet]
-    [Route("{userId}/certificates")]
+    [Route("{userId}/certificates/practice")]
     public Task<IEnumerable<PracticeModeCertificate>> ListCertificates([FromRoute] string userId)
         => _mediator.Send(new GetPracticeModeCertificatesQuery(userId, _actingUser.Get()));
 
-    // [HttpGet]
-    // [Route("certificate/{challengeSpecId}/pdf")]
-    // public async Task<FileResult> GetCertificatePdf([FromRoute] string challengeSpecId, CancellationToken cancellationToken)
-    // {
-    //     var html = await _mediator.Send(new GetPracticeModeCertificateHtmlQuery(challengeSpecId, _actingUserService.Get()), cancellationToken);
-    //     return File(await _htmlToPdfService.ToPdf($"{_actingUserService.Get().Id}_{challengeSpecId}", html, 3300, 2550), MimeTypes.ApplicationPdf);
-    // }
+    [HttpPost]
+    [Route("{userId}/certificates/competitive/{gameId}")]
+    public Task<PublishedCertificateViewModel> PublishCompetitiveCertificate([FromRoute] string gameId, CancellationToken cancellationToken)
+        => _mediator.Send(new SetCompetitiveCertificateIsPublishedCommand(gameId, true, _actingUser.Get()), cancellationToken);
+
+    [HttpDelete]
+    [Route("{userId}/certificates/competitive/{gameId}")]
+    public Task<PublishedCertificateViewModel> UnpublishCompetitiveCertificate([FromRoute] string gameId, CancellationToken cancellationToken)
+        => _mediator.Send(new SetCompetitiveCertificateIsPublishedCommand(gameId, false, _actingUser.Get()), cancellationToken);
+
+    [HttpPost]
+    [Route("{userId}/certificates/practice/{challengeSpecId}")]
+    public Task<PublishedCertificateViewModel> PublishPracticeCertificate([FromRoute] string challengeSpecId, CancellationToken cancellationToken)
+        => _mediator.Send(new SetPracticeCertificateIsPublishedCommand(challengeSpecId, true, _actingUser.Get()), cancellationToken);
+
+    [HttpDelete]
+    [Route("{userId}/certificates/practice/{challengeSpecId}")]
+    public Task<PublishedCertificateViewModel> UnpublishPracticeCertificate([FromRoute] string challengeSpecId, CancellationToken cancellationToken)
+        => _mediator.Send(new SetPracticeCertificateIsPublishedCommand(challengeSpecId, false, _actingUser.Get()), cancellationToken);
 
     [HttpGet]
-    [Route("{userId}/certificates/{challengeSpecId}")]
-    public async Task<FileResult> GetCertificatePng([FromRoute] string userId, [FromRoute] string challengeSpecId, CancellationToken cancellationToken)
+    [Route("{userId}/certificates/practice/{awardedForEntityId}")]
+    [AllowAnonymous] // anyone can _try_, but we only serve them the cert if it's published (or if they're the owner)
+    public async Task<FileResult> GetPracticeCertificatePng([FromRoute] string userId, [FromRoute] string awardedForEntityId, CancellationToken cancellationToken)
     {
-        var html = await _mediator.Send(new GetPracticeModeCertificatePngQuery(challengeSpecId, userId, _actingUser.Get()), cancellationToken);
-        return File(await _htmlToImage.ToPng($"{_actingUser.Get().Id}_{challengeSpecId}", html, 3300, 2550), MimeTypes.ImagePng);
+        var html = await _mediator.Send(new GetPracticeModeCertificateHtmlQuery(awardedForEntityId, userId, _actingUser.Get()), cancellationToken);
+        return File(await _htmlToImage.ToPng($"{_actingUser.Get().Id}_{awardedForEntityId}", html, 3300, 2550), MimeTypes.ImagePng);
+    }
+
+    [HttpGet]
+    [Route("{userId}/certificates/competitive/{awardedForEntityId}")]
+    [AllowAnonymous] // anyone can _try_, but we only serve them the cert if it's published (or if they're the owner)
+    public async Task<FileResult> GetCompetitiveCertificatePng([FromRoute] string userId, [FromRoute] string awardedForEntityId, CancellationToken cancellationToken)
+    {
+        var html = await _mediator.Send(new GetCompetitiveModeCertificateHtmlQuery(awardedForEntityId, userId, _actingUser.Get().Id), cancellationToken);
+        return File(await _htmlToImage.ToPng($"{_actingUser.Get().Id}_{awardedForEntityId}", html, 3300, 2550), MimeTypes.ImagePng);
     }
 }

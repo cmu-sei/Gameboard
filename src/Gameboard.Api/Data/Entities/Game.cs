@@ -50,8 +50,9 @@ public class Game : IEntity
     public ICollection<ChallengeSpec> Specs { get; set; } = new List<ChallengeSpec>();
     public ICollection<Player> Players { get; set; } = new List<Player>();
     public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
-    public ICollection<ChallengeGate> Prerequisites { get; set; } = new List<ChallengeGate>();
     public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
+    public ICollection<ChallengeGate> Prerequisites { get; set; } = new List<ChallengeGate>();
+    public ICollection<PublishedCompetitiveCertificate> PublishedCompetitiveCertificates { get; set; }
 
     [NotMapped] public bool RequireSession => SessionMinutes > 0;
     [NotMapped] public bool RequireTeam => MinTeamSize > 1;

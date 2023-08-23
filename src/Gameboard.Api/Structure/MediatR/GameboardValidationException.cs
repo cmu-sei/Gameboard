@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Text;
 
 namespace Gameboard.Api.Structure;
 
-abstract public class GameboardValidationException : ValidationException
+abstract public class GameboardValidationException : Exception
 {
     internal GameboardValidationException(string message, Exception ex = null) : base($"{message}", ex) { }
 }

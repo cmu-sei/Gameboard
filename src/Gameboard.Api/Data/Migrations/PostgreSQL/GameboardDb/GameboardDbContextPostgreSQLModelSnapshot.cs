@@ -688,6 +688,29 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.ToTable("PracticeModeSettings");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.PublishedCertificate", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("OwnerUserId")
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTimeOffset>("PublishedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PublishedCertificate");
+
+                    b.HasDiscriminator<int>("Mode");
+
+                    b.UseTphMappingStrategy();
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Sponsor", b =>
                 {
                     b.Property<string>("Id")
@@ -881,6 +904,36 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.HasKey("Id");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.PublishedCompetitiveCertificate", b =>
+                {
+                    b.HasBaseType("Gameboard.Api.Data.PublishedCertificate");
+
+                    b.Property<string>("GameId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.HasIndex("GameId");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasDiscriminator().HasValue(0);
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.PublishedPracticeCertificate", b =>
+                {
+                    b.HasBaseType("Gameboard.Api.Data.PublishedCertificate");
+
+                    b.Property<string>("ChallengeSpecId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.HasIndex("ChallengeSpecId");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasDiscriminator().HasValue(1);
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.ApiKey", b =>
@@ -1077,6 +1130,38 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.PublishedCompetitiveCertificate", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Game", "Game")
+                        .WithMany("PublishedCompetitiveCertificates")
+                        .HasForeignKey("GameId");
+
+                    b.HasOne("Gameboard.Api.Data.User", "OwnerUser")
+                        .WithMany("PublishedCompetitiveCertificates")
+                        .HasForeignKey("OwnerUserId")
+                        .HasConstraintName("FK_OwnerUserId_Users_Id");
+
+                    b.Navigation("Game");
+
+                    b.Navigation("OwnerUser");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.PublishedPracticeCertificate", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.ChallengeSpec", "ChallengeSpec")
+                        .WithMany("PublishedPracticeCertificates")
+                        .HasForeignKey("ChallengeSpecId");
+
+                    b.HasOne("Gameboard.Api.Data.User", "OwnerUser")
+                        .WithMany("PublishedPracticeCertificates")
+                        .HasForeignKey("OwnerUserId")
+                        .HasConstraintName("FK_OwnerUserId_Users_Id");
+
+                    b.Navigation("ChallengeSpec");
+
+                    b.Navigation("OwnerUser");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
                 {
                     b.Navigation("AwardedManualBonuses");
@@ -1091,6 +1176,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
             modelBuilder.Entity("Gameboard.Api.Data.ChallengeSpec", b =>
                 {
                     b.Navigation("Feedback");
+
+                    b.Navigation("PublishedPracticeCertificates");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Game", b =>
@@ -1102,6 +1189,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Players");
 
                     b.Navigation("Prerequisites");
+
+                    b.Navigation("PublishedCompetitiveCertificates");
 
                     b.Navigation("Specs");
                 });
@@ -1129,6 +1218,10 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("EnteredManualChallengeBonuses");
 
                     b.Navigation("Feedback");
+
+                    b.Navigation("PublishedCompetitiveCertificates");
+
+                    b.Navigation("PublishedPracticeCertificates");
 
                     b.Navigation("UpdatedPracticeModeSettings");
                 });

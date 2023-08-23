@@ -85,7 +85,7 @@ internal class HtmlToImageService : IHtmlToImageService
     private async Task<ToTempImageResult> ToTempImage(string fileName, string htmlString, int? width = null, int? height = null)
     {
         // create temp paths
-        var tempHtmlPath = Path.Combine(_coreOptions.TempDirectory, $"${fileName}.html");
+        var tempHtmlPath = Path.Combine(_coreOptions.TempDirectory, $"{fileName}.html");
         var tempImagePath = Path.Combine(_coreOptions.TempDirectory, $"{fileName}.png");
         await File.WriteAllTextAsync(tempHtmlPath, htmlString);
 

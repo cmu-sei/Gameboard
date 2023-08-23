@@ -195,6 +195,34 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.UserId).HasMaxLength(40);
             });
 
+            builder.Entity<PublishedCertificate>(b =>
+            {
+                b.HasKey(c => c.Id);
+                b.HasDiscriminator(c => c.Mode)
+                    .HasValue<PublishedCompetitiveCertificate>(PublishedCertificateMode.Competitive)
+                    .HasValue<PublishedPracticeCertificate>(PublishedCertificateMode.Practice);
+            });
+
+            builder.Entity<PublishedCompetitiveCertificate>(b =>
+            {
+                b.Property(c => c.GameId).HasStandardGuidLength();
+                b.HasOne(c => c.Game).WithMany(g => g.PublishedCompetitiveCertificates);
+
+                b.HasOne(c => c.OwnerUser)
+                    .WithMany(u => u.PublishedCompetitiveCertificates)
+                    .HasConstraintName("FK_OwnerUserId_Users_Id");
+            });
+
+            builder.Entity<PublishedPracticeCertificate>(b =>
+            {
+                b.Property(c => c.ChallengeSpecId).HasStandardGuidLength();
+                b.HasOne(c => c.ChallengeSpec).WithMany(s => s.PublishedPracticeCertificates);
+
+                b.HasOne(c => c.OwnerUser)
+                    .WithMany(u => u.PublishedPracticeCertificates)
+                    .HasConstraintName("FK_OwnerUserId_Users_Id");
+            });
+
             builder.Entity<PracticeModeSettings>(b =>
             {
                 b.HasKey(m => m.Id);

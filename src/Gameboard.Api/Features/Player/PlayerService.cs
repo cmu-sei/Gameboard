@@ -674,6 +674,7 @@ public class PlayerService
         var player = await Store.List()
             .Include(p => p.Game)
             .Include(p => p.User)
+                .ThenInclude(u => u.PublishedCompetitiveCertificates)
             .FirstOrDefaultAsync(p => p.Id == id);
 
         var playerCount = await Store.DbSet
@@ -697,6 +698,7 @@ public class PlayerService
         var completedSessions = await Store.List()
             .Include(p => p.Game)
             .Include(p => p.User)
+                .ThenInclude(u => u.PublishedCompetitiveCertificates)
             .Where
             (
                 p => p.UserId == uid &&
@@ -744,6 +746,7 @@ public class PlayerService
         return new Api.PlayerCertificate
         {
             Game = Mapper.Map<Game>(player.Game),
+            PublishedOn = player.User.PublishedCompetitiveCertificates.FirstOrDefault(c => c.GameId == player.Game.Id)?.PublishedOn,
             Player = Mapper.Map<Player>(player),
             Html = certificateHTML
         };

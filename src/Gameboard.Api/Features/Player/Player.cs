@@ -198,6 +198,7 @@ public class BoardPlayer
 
 public class PlayerCertificate
 {
+    public required DateTimeOffset? PublishedOn { get; set; }
     public Game Game { get; set; }
     public Player Player { get; set; }
     public string Html { get; set; }

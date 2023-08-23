@@ -12,7 +12,6 @@ namespace Gameboard.Api.Features.Practice;
 public interface IPracticeService
 {
     Task<CanPlayPracticeChallengeResult> GetCanDeployChallenge(string userId, string challengeSpecId, CancellationToken cancellationToken);
-    Task<IEnumerable<PracticeModeCertificate>> GetCertificates(string userId);
     Task<PracticeModeSettings> GetSettings(CancellationToken cancellationToken);
 }
 
@@ -48,52 +47,6 @@ internal class PracticeService : IPracticeService
         }
 
         return CanPlayPracticeChallengeResult.Yes;
-    }
-
-    public async Task<IEnumerable<PracticeModeCertificate>> GetCertificates(string userId)
-    {
-        var challenges = await _store
-            .List<Data.Challenge>()
-                .Include(c => c.Game)
-                .Include(c => c.Player)
-                    .ThenInclude(p => p.User)
-            .Where(c => c.Score >= c.Points)
-            .Where(c => c.PlayerMode == PlayerMode.Practice)
-            .Where(c => c.Player.UserId == userId)
-            .WhereDateIsNotEmpty(c => c.LastScoreTime)
-            .GroupBy(c => c.SpecId)
-            .ToDictionaryAsync(g => g.Key, g => g.ToList().OrderBy(c => c.StartTime).FirstOrDefault());
-
-        var specIds = challenges.Values.Select(c => c.SpecId);
-        var specs = await _store
-            .List<Data.ChallengeSpec>()
-            .Where(s => specIds.Contains(s.Id))
-            .ToDictionaryAsync(s => s.Id, s => s);
-
-        return challenges
-            .Select(entry => entry.Value)
-            .Select(attempt => new PracticeModeCertificate
-            {
-                Challenge = new()
-                {
-                    Id = attempt.Id,
-                    Name = attempt.Name,
-                    Description = specs.ContainsKey(attempt.SpecId) ? specs[attempt.SpecId].Description : string.Empty,
-                    ChallengeSpecId = attempt.SpecId
-                },
-                PlayerName = attempt.Player.User.ApprovedName,
-                Date = attempt.StartTime,
-                Score = attempt.Score,
-                Time = attempt.LastScoreTime - attempt.StartTime,
-                Game = new()
-                {
-                    Id = attempt.GameId,
-                    Name = attempt.Game.Name,
-                    Division = attempt.Game.Competition,
-                    Season = attempt.Game.Season,
-                    Track = attempt.Game.Track
-                }
-            }).ToArray();
     }
 
     public Task<PracticeModeSettings> GetSettings(CancellationToken cancellationToken)

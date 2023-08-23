@@ -13,20 +13,20 @@ public record GetPracticeModeCertificatesQuery(string CertificateOwnerUserId, Us
 
 internal class GetPracticeModeCertificatesHandler : IRequestHandler<GetPracticeModeCertificatesQuery, IEnumerable<PracticeModeCertificate>>
 {
-    private readonly IPracticeService _practiceService;
+    private readonly ICertificatesService _certificatesService;
     private readonly EntityExistsValidator<GetPracticeModeCertificatesQuery, Data.User> _userExists;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
     private readonly IValidatorService<GetPracticeModeCertificatesQuery> _validatorService;
 
     public GetPracticeModeCertificatesHandler
     (
-        IPracticeService practiceService,
+        ICertificatesService certificatesService,
         EntityExistsValidator<GetPracticeModeCertificatesQuery, Data.User> userExists,
         UserRoleAuthorizer userRoleAuthorizer,
         IValidatorService<GetPracticeModeCertificatesQuery> validatorService
     )
     {
-        _practiceService = practiceService;
+        _certificatesService = certificatesService;
         _userExists = userExists;
         _userRoleAuthorizer = userRoleAuthorizer;
         _validatorService = validatorService;
@@ -41,6 +41,6 @@ internal class GetPracticeModeCertificatesHandler : IRequestHandler<GetPracticeM
         _validatorService.AddValidator(_userExists.UseProperty(r => r.CertificateOwnerUserId));
         await _validatorService.Validate(request);
 
-        return await _practiceService.GetCertificates(request.CertificateOwnerUserId);
+        return await _certificatesService.GetPracticeCertificates(request.CertificateOwnerUserId);
     }
 }
