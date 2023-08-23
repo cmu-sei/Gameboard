@@ -25,7 +25,7 @@ public class User : IEntity
     public ICollection<Player> Enrollments { get; set; } = new List<Player>();
     public ICollection<ManualChallengeBonus> EnteredManualChallengeBonuses { get; set; } = new List<ManualChallengeBonus>();
     public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
-    public ICollection<PublishedCompetitiveCertificate> PublishedCompetitiveCertificates { get; set; }
-    public ICollection<PublishedPracticeCertificate> PublishedPracticeCertificates { get; set; }
+    public ICollection<PublishedCompetitiveCertificate> PublishedCompetitiveCertificates { get; set; } = new List<PublishedCompetitiveCertificate>();
+    public ICollection<PublishedPracticeCertificate> PublishedPracticeCertificates { get; set; } = new List<PublishedPracticeCertificate>();
     public PracticeModeSettings UpdatedPracticeModeSettings { get; set; }
 }

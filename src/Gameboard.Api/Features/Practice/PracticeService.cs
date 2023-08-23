@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Certificates;
 using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 

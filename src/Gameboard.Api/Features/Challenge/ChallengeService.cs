@@ -389,8 +389,9 @@ namespace Gameboard.Api.Services
             );
 
             if (result.Score > currentScore)
+            {
                 await Store.UpdateTeam(entity.TeamId);
-
+            }
 
             return Mapper.Map<Challenge>(entity);
         }
