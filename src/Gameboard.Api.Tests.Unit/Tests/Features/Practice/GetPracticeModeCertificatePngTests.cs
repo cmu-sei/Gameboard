@@ -1,30 +1,31 @@
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Certificates;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
-using Microsoft.EntityFrameworkCore.Query;
 
 namespace Gameboard.Api.Tests.Unit;
 
 public class GetPracticeModeCertificateHtmlTests
 {
-    private readonly GetPracticeModeCertificatePngHandler _sut;
+    private readonly GetPracticeModeCertificateHtmlHandler _sut;
 
     public GetPracticeModeCertificateHtmlTests()
     {
-        _sut = new GetPracticeModeCertificatePngHandler
+        _sut = new GetPracticeModeCertificateHtmlHandler
         (
-            A.Fake<EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User>>(options =>
+            A.Fake<EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User>>(options =>
             {
-                options.WithArgumentsForConstructor(() => new EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User>(A.Fake<IStore<Data.User>>()));
+                options.WithArgumentsForConstructor(() => new EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User>(A.Fake<IStore<Data.User>>()));
             }),
-            A.Fake<EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User>>(options =>
+            A.Fake<EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User>>(options =>
             {
-                options.WithArgumentsForConstructor(() => new EntityExistsValidator<GetPracticeModeCertificatePngQuery, Data.User>(A.Fake<IStore<Data.User>>()));
+                options.WithArgumentsForConstructor(() => new EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User>(A.Fake<IStore<Data.User>>()));
             }),
+            A.Fake<ICertificatesService>(),
             A.Fake<CoreOptions>(),
             A.Fake<IPracticeService>(),
-            A.Fake<IValidatorService<GetPracticeModeCertificatePngQuery>>()
+            A.Fake<IValidatorService<GetPracticeModeCertificateHtmlQuery>>()
         );
     }
 
