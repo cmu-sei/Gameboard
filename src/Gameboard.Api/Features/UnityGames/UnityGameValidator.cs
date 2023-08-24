@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;

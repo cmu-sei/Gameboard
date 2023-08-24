@@ -56,7 +56,6 @@ internal class UpdatePracticeModeSettingsValidator : IGameboardRequestValidator<
             return Task.CompletedTask;
         });
 
-
         _validatorService.AddValidator(_userExists.UseProperty(r => r.ActingUser.Id));
 
         await _validatorService.Validate(request);

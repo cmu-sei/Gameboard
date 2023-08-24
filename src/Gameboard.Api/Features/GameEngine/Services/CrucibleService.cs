@@ -11,6 +11,7 @@ using System;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Services;
+using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Features.GameEngine;
 

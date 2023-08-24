@@ -22,6 +22,8 @@ namespace Gameboard.Api.Services;
 
 public class PlayerService
 {
+    private readonly IActingUserService _actingUser;
+    private readonly IPracticeChallengeScoringListener _practiceChallengeScoringListener;
     private readonly TimeSpan _idmapExpiration = new(0, 30, 0);
     private readonly INowService _now;
     private readonly IPracticeService _practiceService;
@@ -39,6 +41,7 @@ public class PlayerService
     IGameEngineService GameEngine { get; }
 
     public PlayerService(
+        IActingUserService actingUser,
         CoreOptions coreOptions,
         ChallengeService challengeService,
         IGuidService guidService,
@@ -47,6 +50,7 @@ public class PlayerService
         IGameService gameService,
         IGameStore gameStore,
         IInternalHubBus hubBus,
+        IPracticeChallengeScoringListener practiceChallengeScoringListener,
         IPracticeService practiceService,
         ITeamService teamService,
         IMapper mapper,
@@ -54,10 +58,12 @@ public class PlayerService
         IGameEngineService gameEngine
     )
     {
-        CoreOptions = coreOptions;
+        _actingUser = actingUser;
         ChallengeService = challengeService;
+        CoreOptions = coreOptions;
         GameService = gameService;
         GuidService = guidService;
+        _practiceChallengeScoringListener = practiceChallengeScoringListener;
         _practiceService = practiceService;
         _now = now;
         HubBus = hubBus;
@@ -274,52 +280,52 @@ public class PlayerService
         return asViewModel;
     }
 
-    public async Task<Player> AdjustSessionEnd(SessionChangeRequest model, User actor, CancellationToken cancellationToken)
-    {
-        var team = await Store.ListTeam(model.TeamId).ToArrayAsync(cancellationToken);
-        var sudo = actor.IsRegistrar;
+    // public async Task<Player> AdjustSessionEnd(SessionChangeRequest model, User actor, CancellationToken cancellationToken)
+    // {
+    //     var team = await Store.ListTeam(model.TeamId).ToArrayAsync(cancellationToken);
+    //     var sudo = actor.IsRegistrar;
 
-        var manager = team.FirstOrDefault(p => p.Role == PlayerRole.Manager);
+    //     var manager = team.FirstOrDefault(p => p.Role == PlayerRole.Manager);
 
-        if (sudo.Equals(false) && manager.IsCompetition)
-            throw new ActionForbidden();
+    //     if (sudo.Equals(false) && manager.IsCompetition)
+    //         throw new ActionForbidden();
 
-        // auto increment for practice sessions
-        if (manager.IsPractice)
-        {
-            DateTimeOffset now = DateTimeOffset.UtcNow;
-            var settings = await _practiceService.GetSettings(cancellationToken);
+    //     // auto increment for practice sessions
+    //     if (manager.IsPractice)
+    //     {
+    //         DateTimeOffset now = DateTimeOffset.UtcNow;
+    //         var settings = await _practiceService.GetSettings(cancellationToken);
 
-            // end session now or extend by configured amount
-            model.SessionEnd = model.SessionEnd.Year == 1
-                ? DateTimeOffset.UtcNow
-                : DateTimeOffset.UtcNow.AddMinutes(manager.SessionMinutes)
-            ;
-            if (settings.MaxPracticeSessionLengthMinutes.HasValue)
-            {
-                var maxTime = manager.SessionBegin.AddMinutes(settings.MaxPracticeSessionLengthMinutes.Value);
-                if (model.SessionEnd > maxTime)
-                    model.SessionEnd = maxTime;
-            }
-        }
+    //         // end session now or extend by one hour (hard value for now, added to practice settings later)
+    //         model.SessionEnd = model.SessionEnd.Year == 1
+    //             ? DateTimeOffset.UtcNow
+    //             : DateTimeOffset.UtcNow.AddMinutes(60)
+    //         ;
+    //         if (settings.MaxPracticeSessionLengthMinutes.HasValue)
+    //         {
+    //             var maxTime = manager.SessionBegin.AddMinutes(settings.MaxPracticeSessionLengthMinutes.Value);
+    //             if (model.SessionEnd > maxTime)
+    //                 model.SessionEnd = maxTime;
+    //         }
+    //     }
 
-        foreach (var player in team)
-            player.SessionEnd = model.SessionEnd;
+    //     foreach (var player in team)
+    //         player.SessionEnd = model.SessionEnd;
 
-        await Store.Update(team);
+    //     await Store.Update(team);
 
-        // push gamespace extension
-        var changes = await Store.DbContext.Challenges
-            .Where(c => c.TeamId == manager.TeamId)
-            .Select(c => GameEngine.ExtendSession(c, model.SessionEnd))
-            .ToArrayAsync();
+    //     // push gamespace extension
+    //     var changes = await Store.DbContext.Challenges
+    //         .Where(c => c.TeamId == manager.TeamId)
+    //         .Select(c => GameEngine.ExtendSession(c, model.SessionEnd))
+    //         .ToArrayAsync();
 
-        await Task.WhenAll(changes);
+    //     await Task.WhenAll(changes);
 
-        var mappedManager = Mapper.Map<Api.Player>(manager);
-        await HubBus.SendTeamUpdated(mappedManager, actor);
-        return mappedManager;
-    }
+    //     var mappedManager = Mapper.Map<Player>(manager);
+    //     await HubBus.SendTeamUpdated(mappedManager, actor);
+    //     return mappedManager;
+    // }
 
     public async Task<Player[]> List(PlayerDataFilter model, bool sudo = false)
     {
@@ -666,6 +672,9 @@ public class PlayerService
         await Store.Create(enrollments);
         await Store.Update(allteams);
     }
+
+    public Task<Player> AdjustSessionEnd(SessionChangeRequest model, User actor, CancellationToken cancellationToken)
+        => _practiceChallengeScoringListener.AdjustSessionEnd(model, actor, cancellationToken);
 
     public async Task<PlayerCertificate> MakeCertificate(string id)
     {

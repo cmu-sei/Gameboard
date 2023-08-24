@@ -69,7 +69,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
         _userRoleAuthorizer.AllowedUserId = request.UserId;
         _userRoleAuthorizer.Authorize();
 
-        // retrieve stuff
+        // retrieve stuff (initial pull from DB side eval)
         var user = await _store
             .List<Data.User>()
             .Select(u => new SimpleEntity { Id = u.Id, Name = u.ApprovedName })
@@ -108,9 +108,15 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
                 c.Player.TeamId,
                 Session = _timeWindowService.CreateWindow(_now.Get(), c.Player.SessionBegin, c.Player.SessionEnd),
                 c.PlayerMode,
-                MaxPossibleScore = c.Points,
-                Score = new decimal(c.Score),
-                c.State,
+                // additional dummy values - we'll get the real attempts and stuff from state
+                ScoreAndAttemptsState = new ActiveChallengeScoreAndAttemptsState
+                {
+                    Score = new decimal(c.Score),
+                    MaxPossibleScore = c.Points,
+                    Attempts = 0,
+                    MaxAttempts = 0
+                },
+                c.State
             })
             .ToListAsync(cancellationToken);
 
@@ -121,6 +127,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
             .Where(s => specIds.Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, s => s, cancellationToken);
 
+        // now do client side eval
         foreach (var challenge in challenges)
         {
             if (specs.ContainsKey(challenge.Spec.Id))
@@ -130,10 +137,16 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
                 challenge.Spec.AverageDeploySeconds = specs[challenge.Spec.Id].AverageDeploySeconds;
             }
 
+            // we need the state json as an object so we don't lose our minds and to make some decisions
+            var state = await _gameEngine.GetChallengeState(challenge.GameEngineType, challenge.State);
+
+            // set attempt info
+            challenge.ScoreAndAttemptsState.Attempts = state.Challenge.Attempts;
+            challenge.ScoreAndAttemptsState.MaxAttempts = state.Challenge.MaxAttempts;
+
             // currently, topomojo sends an empty VM list when the vms are turned off, so we use this to 
             // proxy whether the challenge is deployed. hopefully topo will eventually send VMs with
             // isRunning = false when asked, so we're making these separate concepts on the API surface
-            var state = await _gameEngine.GetChallengeState(challenge.GameEngineType, challenge.State);
             challenge.ChallengeDeployment.IsDeployed = state.Vms.Count() > 0;
             challenge.ChallengeDeployment.Vms = state.Vms;
         }
@@ -147,10 +160,13 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
             ChallengeDeployment = c.ChallengeDeployment,
             TeamId = c.TeamId,
             PlayerMode = c.PlayerMode,
-            Session = c.Session,
-            MaxPossibleScore = c.MaxPossibleScore,
-            Score = c.Score
-        });
+            ScoreAndAttemptsState = c.ScoreAndAttemptsState,
+            Session = c.Session
+        })
+        // now that we have info about points and attempts, we can reason about whether we should return
+        // challenges that are maxed out on score or guesses
+        .Where(c => c.ScoreAndAttemptsState.Score < c.ScoreAndAttemptsState.MaxPossibleScore)
+        .Where(c => c.ScoreAndAttemptsState.Attempts < c.ScoreAndAttemptsState.MaxAttempts);
 
         return new UserActiveChallenges
         {

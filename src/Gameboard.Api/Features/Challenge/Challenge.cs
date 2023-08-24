@@ -60,8 +60,7 @@ public class ActiveChallenge
     public required string TeamId { get; set; }
     public required TimeWindow Session { get; set; }
     public required PlayerMode PlayerMode { get; set; }
-    public required decimal MaxPossibleScore { get; set; }
-    public required decimal Score { get; set; }
+    public required ActiveChallengeScoreAndAttemptsState ScoreAndAttemptsState { get; set; }
 }
 
 public sealed class ActiveChallengeSpec
@@ -75,8 +74,16 @@ public sealed class ActiveChallengeSpec
 public class ActiveChallengeDeployment
 {
     public required string ChallengeId { get; set; }
-    public required Boolean IsDeployed { get; set; }
+    public required bool IsDeployed { get; set; }
     public required IEnumerable<GameEngineVmState> Vms { get; set; }
+}
+
+public class ActiveChallengeScoreAndAttemptsState
+{
+    public required int Attempts { get; set; }
+    public required int MaxAttempts { get; set; }
+    public required decimal Score { get; set; }
+    public required decimal MaxPossibleScore { get; set; }
 }
 
 public class ChallengePlayer

@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Gameboard.Api.Auth;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;

@@ -10,9 +10,17 @@ using Gameboard.Api.Services;
 
 namespace Gameboard.Api.Data;
 
+public interface IChallengeStore : IStore<Challenge>
+{
+    Task<Data.Challenge> Load(NewChallenge model);
+    Task<Data.Challenge> Load(string id);
+    Task UpdateTeam(string teamId);
+    Task UpdateEtd(string specId);
+    Task<int> ChallengeGamespaceCount(string teamId);
+}
+
 public class ChallengeStore : Store<Challenge>, IChallengeStore
 {
-
     public ChallengeStore(
         IGuidService guids,
         GameboardDbContext dbContext) : base(guids, dbContext)
