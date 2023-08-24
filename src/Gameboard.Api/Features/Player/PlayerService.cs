@@ -22,7 +22,6 @@ namespace Gameboard.Api.Services;
 
 public class PlayerService
 {
-    private readonly IActingUserService _actingUser;
     private readonly IPracticeChallengeScoringListener _practiceChallengeScoringListener;
     private readonly TimeSpan _idmapExpiration = new(0, 30, 0);
     private readonly INowService _now;
@@ -41,9 +40,8 @@ public class PlayerService
     IGameEngineService GameEngine { get; }
 
     public PlayerService(
-        IActingUserService actingUser,
-        CoreOptions coreOptions,
         ChallengeService challengeService,
+        CoreOptions coreOptions,
         IGuidService guidService,
         INowService now,
         IPlayerStore store,
@@ -58,7 +56,6 @@ public class PlayerService
         IGameEngineService gameEngine
     )
     {
-        _actingUser = actingUser;
         ChallengeService = challengeService;
         CoreOptions = coreOptions;
         GameService = gameService;

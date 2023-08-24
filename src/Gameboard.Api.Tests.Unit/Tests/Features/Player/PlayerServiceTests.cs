@@ -14,13 +14,14 @@ public class PlayerServiceTests
     class PlayerServiceTestable : PlayerService
     {
         private PlayerServiceTestable(
-            CoreOptions coreOptions,
             ChallengeService challengeService,
+            CoreOptions coreOptions,
             IPlayerStore store,
             IGameService gameService,
             IGameStore gameStore,
             IGuidService guidService,
             IInternalHubBus hubBus,
+            IPracticeChallengeScoringListener practiceChallengeScoringListener,
             IPracticeService practiceService,
             INowService now,
             ITeamService teamService,
@@ -28,14 +29,15 @@ public class PlayerServiceTests
             IMemoryCache localCache,
             GameEngineService gameEngine) : base
             (
-                coreOptions,
                 challengeService,
+                coreOptions,
                 guidService,
                 now,
                 store,
                 gameService,
                 gameStore,
                 hubBus,
+                practiceChallengeScoringListener,
                 practiceService,
                 teamService,
                 mapper,
@@ -55,6 +57,7 @@ public class PlayerServiceTests
             IGuidService? guidService = null,
             INowService? now = null,
             IInternalHubBus? hubBus = null,
+            IPracticeChallengeScoringListener? practiceChallengeScoringListener = null,
             IPracticeService? practiceService = null,
             ITeamService? teamService = null,
             IMapper? mapper = null,
@@ -63,14 +66,15 @@ public class PlayerServiceTests
         {
             return new PlayerService
             (
-                coreOptions ?? A.Fake<CoreOptions>(),
                 challengeService ?? A.Fake<ChallengeService>(),
+                coreOptions ?? A.Fake<CoreOptions>(),
                 guidService ?? A.Fake<IGuidService>(),
                 now ?? A.Fake<INowService>(),
                 store ?? A.Fake<IPlayerStore>(),
                 gameService ?? A.Fake<GameService>(),
                 gameStore ?? A.Fake<IGameStore>(),
                 hubBus ?? A.Fake<IInternalHubBus>(),
+                practiceChallengeScoringListener ?? A.Fake<IPracticeChallengeScoringListener>(),
                 practiceService ?? A.Fake<IPracticeService>(),
                 teamService ?? A.Fake<ITeamService>(),
                 mapper ?? A.Fake<IMapper>(),
