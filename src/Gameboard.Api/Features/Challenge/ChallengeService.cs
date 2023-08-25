@@ -396,17 +396,23 @@ public class ChallengeService : _Service
         if (result.Score > currentScore)
         {
             await Store.UpdateTeam(entity.TeamId);
-
-            // in practice mode, we proactively end their session if they complete the challenge
-            await _practiceChallengeScoringListener.NotifyChallengeScored(entity, CancellationToken.None);
         }
 
-        // also for practice mode:
-        // if they've consumed all of their attempts for a challenge, we proactively end their session as well
-        var typedState = await GameEngine.GetChallengeState(entity.GameEngineType, entity.State);
-        if (typedState.Challenge.Attempts >= typedState.Challenge.MaxAttempts)
+        if (entity.PlayerMode == PlayerMode.Practice)
         {
-            await _practiceChallengeScoringListener.NotifyAttemptsExhausted(entity, CancellationToken.None);
+            if (result.Score >= entity.Points)
+            {
+                // in practice mode, we proactively end their session if they complete the challenge
+                await _practiceChallengeScoringListener.NotifyChallengeScored(entity, CancellationToken.None);
+            }
+
+            // also for practice mode:
+            // if they've consumed all of their attempts for a challenge, we proactively end their session as well
+            var typedState = await GameEngine.GetChallengeState(entity.GameEngineType, entity.State);
+            if (typedState.Challenge.Attempts >= typedState.Challenge.MaxAttempts)
+            {
+                await _practiceChallengeScoringListener.NotifyAttemptsExhausted(entity, CancellationToken.None);
+            }
         }
 
         return Mapper.Map<Challenge>(entity);
