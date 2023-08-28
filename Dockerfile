@@ -9,8 +9,7 @@ ENV ASPNETCORE_URLS=http://*:5000 \
 COPY . /app
 
 # install chromium for PNG generation on the server
-RUN chmod +x ./app/tools/setup-chromium.sh
-RUN ./app/tools/setup-chromium.sh
+RUN apt-get update && apt-get install -y chromium && apt-get clean
 
 WORKDIR /app/src/Gameboard.Api
 RUN dotnet publish -c Release -o /app/dist
