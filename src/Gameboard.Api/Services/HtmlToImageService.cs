@@ -38,6 +38,7 @@ internal class HtmlToImageService : IHtmlToImageService
         var args = new string[]
         {
             "--headless",
+            "--no-sandbox",
             "--disable-gpu",
             "--landscape",
             width != null && height != null ? $"--window-size={width.Value}x{height.Value}" : null,
@@ -93,6 +94,7 @@ internal class HtmlToImageService : IHtmlToImageService
         var args = new string[]
         {
             "--headless",
+            "--no-sandbox",
             "--disable-gpu",
             "--landscape",
             width != null && height != null ? $"--window-size={width.Value}x{height.Value}" : null,
