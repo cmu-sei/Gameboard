@@ -1,4 +1,4 @@
-using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Certificates;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Structure.MediatR;
@@ -16,11 +16,11 @@ public class GetPracticeModeCertificateHtmlTests
         (
             A.Fake<EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User>>(options =>
             {
-                options.WithArgumentsForConstructor(() => new EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User>(A.Fake<IStore<Data.User>>()));
+                options.WithArgumentsForConstructor(() => new EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User>(A.Fake<IStore>()));
             }),
             A.Fake<EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User>>(options =>
             {
-                options.WithArgumentsForConstructor(() => new EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User>(A.Fake<IStore<Data.User>>()));
+                options.WithArgumentsForConstructor(() => new EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User>(A.Fake<IStore>()));
             }),
             A.Fake<ICertificatesService>(),
             A.Fake<CoreOptions>(),
