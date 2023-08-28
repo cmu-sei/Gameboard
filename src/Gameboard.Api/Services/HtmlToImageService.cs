@@ -45,6 +45,7 @@ internal class HtmlToImageService : IHtmlToImageService
             $"--print-to-pdf={pdfPath}",
             "--disable-pdf-tagging",
             "--no-pdf-header-footer",
+            "--disable-dev-shm-usage",
             tempImageResult.TempImagePath
         }
         .Where(arg => !arg.IsEmpty())
@@ -97,6 +98,8 @@ internal class HtmlToImageService : IHtmlToImageService
             "--no-sandbox",
             "--disable-gpu",
             "--landscape",
+            // ask chromium not to use dev shared memory - it defaults to only 64mb on docker
+            "--disable-dev-shm-usage",
             width != null && height != null ? $"--window-size={width.Value}x{height.Value}" : null,
             $"--screenshot={tempImagePath}",
             tempHtmlPath
