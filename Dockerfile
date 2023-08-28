@@ -8,9 +8,6 @@ ENV ASPNETCORE_URLS=http://*:5000 \
 
 COPY . /app
 
-# install chromium for PNG generation on the server
-RUN apt-get update && apt-get install -y chromium && apt-get clean
-
 WORKDIR /app/src/Gameboard.Api
 RUN dotnet publish -c Release -o /app/dist
 CMD ["dotnet", "run"]
@@ -21,6 +18,10 @@ CMD ["dotnet", "run"]
 FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS prod
 ARG commit
 ENV COMMIT=$commit
+
+# install chromium for PNG generation on the server
+RUN apt-get update && apt-get install -y chromium && apt-get clean
+
 COPY --from=dev /app/dist /app
 COPY --from=dev /app/LICENSE.md /app/LICENSE.md
 WORKDIR /app
