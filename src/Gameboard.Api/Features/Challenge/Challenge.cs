@@ -75,6 +75,7 @@ public class ActiveChallengeDeployment
 {
     public required string ChallengeId { get; set; }
     public required bool IsDeployed { get; set; }
+    public required string Markdown { get; set; }
     public required IEnumerable<GameEngineVmState> Vms { get; set; }
 }
 

@@ -102,6 +102,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
                 {
                     ChallengeId = c.Id,
                     // these are dummy values we'll fill out below (can't do it here because we're on the db server side during the query)
+                    Markdown = string.Empty,
                     IsDeployed = false,
                     Vms = Array.Empty<GameEngineVmState>()
                 },
@@ -147,8 +148,10 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
             // currently, topomojo sends an empty VM list when the vms are turned off, so we use this to 
             // proxy whether the challenge is deployed. hopefully topo will eventually send VMs with
             // isRunning = false when asked, so we're making these separate concepts on the API surface
-            challenge.ChallengeDeployment.IsDeployed = state.Vms.Count() > 0;
+            challenge.ChallengeDeployment.IsDeployed = state.Vms.Any();
             challenge.ChallengeDeployment.Vms = state.Vms;
+            // now that we have the state, we can also read the final challenge document (which may different than the spec due to transforms or etc.)
+            challenge.ChallengeDeployment.Markdown = state.Markdown;
         }
 
         var typedChallenges = challenges.Select(c => new ActiveChallenge
