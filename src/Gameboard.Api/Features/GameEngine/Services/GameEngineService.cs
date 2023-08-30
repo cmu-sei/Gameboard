@@ -214,7 +214,7 @@ public class GameEngineService : _Service, IGameEngineService
                 (
                     "",             // audience
                     "",             // scope
-                    1,              // doc
+                    0,              // doc
                     null,           // wants audience?
                     null,           // wants managed?
                     null,           // wants doc?
