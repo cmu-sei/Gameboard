@@ -66,6 +66,15 @@ public class CertificatesController : ControllerBase
     }
 
     [HttpGet]
+    [Route("{userId}/certificates/practice/{awardedForEntityId}/pdf")]
+    [AllowAnonymous] // anyone can _try_, but we only serve them the cert if it's published (or if they're the owner)
+    public async Task<FileResult> GetPracticeCertificatePdf([FromRoute] string userId, [FromRoute] string awardedForEntityId, CancellationToken cancellationToken)
+    {
+        var html = await _mediator.Send(new GetPracticeModeCertificateHtmlQuery(awardedForEntityId, userId, _actingUser.Get()), cancellationToken);
+        return File(await _htmlToImage.ToPdf($"{_actingUser.Get().Id}_{awardedForEntityId}", html, 3300, 2550), MimeTypes.ApplicationPdf);
+    }
+
+    [HttpGet]
     [Route("{userId}/certificates/competitive/{awardedForEntityId}")]
     [AllowAnonymous] // anyone can _try_, but we only serve them the cert if it's published (or if they're the owner)
     public async Task<FileResult> GetCompetitiveCertificatePng([FromRoute] string userId, [FromRoute] string awardedForEntityId, CancellationToken cancellationToken)
