@@ -121,6 +121,8 @@ internal class HtmlToImageService : IHtmlToImageService
         {
             "-f",
             "png",
+            "--quality",
+            "15",
             tempHtmlPath,
             tempImagePath
         };
