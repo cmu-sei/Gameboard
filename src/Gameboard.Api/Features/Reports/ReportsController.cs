@@ -45,11 +45,11 @@ public class ReportsController : ControllerBase
     public Task<IDictionary<DateTimeOffset, EnrollmentReportLineChartGroup>> GetEnrollmentReportLineChart([FromQuery] EnrollmentReportParameters parameters)
         => _mediator.Send(new EnrollmentReportLineChartQuery(parameters));
 
-    [HttpGet("practice-mode")]
+    [HttpGet("practice-area")]
     public async Task<ReportResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>> GetPracticeModeReport([FromQuery] PracticeModeReportParameters parameters, [FromQuery] PagingArgs paging)
         => await _mediator.Send(new PracticeModeReportQuery(parameters, _actingUser, paging));
 
-    [HttpGet("practice-mode/user/{id}/summary")]
+    [HttpGet("practice-area/user/{id}/summary")]
     public async Task<PracticeModeReportPlayerModeSummary> GetPracticeModeReportPlayerModeSummary([FromRoute] string id, [FromQuery] bool isPractice)
         => await _mediator.Send(new PracticeModeReportPlayerModeSummaryQuery(id, isPractice, _actingUser));
 
