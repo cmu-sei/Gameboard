@@ -71,7 +71,7 @@ internal class GetPracticeModeCertificateHtmlHandler : IRequestHandler<GetPracti
             <p>
                 You successfully completed challenge {certificate.Challenge.Name} on {certificate.Date} with
                 a score of {certificate.Score} and a time of {certificate.Time}, but the administrator of this
-                site hasn't configured a certificate template for Practice Mode.
+                site hasn't configured a certificate template for the Practice Area.
             </p>
         """.Trim();
 

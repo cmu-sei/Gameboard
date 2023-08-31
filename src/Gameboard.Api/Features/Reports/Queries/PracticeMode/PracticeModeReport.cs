@@ -31,8 +31,8 @@ internal class PracticeModeReportHandler : IRequestHandler<PracticeModeReportQue
                 PagingArgs = request.PagingArgs,
                 ParameterSummary = null,
                 Records = results.Records,
-                ReportKey = ReportKey.PracticeMode,
-                Title = "Practice Mode Report (Grouped By Challenge)"
+                ReportKey = ReportKey.PracticeArea,
+                Title = "Practice Area Report (Grouped By Challenge)"
             });
         }
         else if (request.Parameters.Grouping == PracticeModeReportGrouping.Player)
@@ -44,8 +44,8 @@ internal class PracticeModeReportHandler : IRequestHandler<PracticeModeReportQue
                 PagingArgs = request.PagingArgs,
                 ParameterSummary = null,
                 Records = results.Records,
-                ReportKey = ReportKey.PracticeMode,
-                Title = "Practice Mode Report (Grouped By Player)",
+                ReportKey = ReportKey.PracticeArea,
+                Title = "Practice Area Report (Grouped By Player)",
             });
         }
         else if (request.Parameters.Grouping == PracticeModeReportGrouping.PlayerModePerformance)
@@ -57,8 +57,8 @@ internal class PracticeModeReportHandler : IRequestHandler<PracticeModeReportQue
                 PagingArgs = request.PagingArgs,
                 ParameterSummary = null,
                 Records = results.Records,
-                ReportKey = ReportKey.PracticeMode,
-                Title = "Practice Mode Report (Grouped By Player Mode Performance)"
+                ReportKey = ReportKey.PracticeArea,
+                Title = "Practice Area Report (Grouped By Player Mode Performance)"
             });
         }
 

@@ -402,11 +402,11 @@ public class ChallengeService : _Service
         {
             if (result.Score >= entity.Points)
             {
-                // in practice mode, we proactively end their session if they complete the challenge
+                // in the practice area, we proactively end their session if they complete the challenge
                 await _practiceChallengeScoringListener.NotifyChallengeScored(entity, CancellationToken.None);
             }
 
-            // also for practice mode:
+            // also for the practice area:
             // if they've consumed all of their attempts for a challenge, we proactively end their session as well
             var typedState = await GameEngine.GetChallengeState(entity.GameEngineType, entity.State);
             if (typedState.Challenge.Attempts >= typedState.Challenge.MaxAttempts)

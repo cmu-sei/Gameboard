@@ -14,7 +14,7 @@ namespace Gameboard.Api.Features.Practice;
 internal class PracticeModeSettingsInvalid : GameboardValidationException
 {
     public PracticeModeSettingsInvalid(string settingName, string settingValue, string description)
-        : base($"""Practice mode setting "{settingName}" with value "{settingValue}" is invalid. {description}""") { }
+        : base($"""Practice Area setting "{settingName}" with value "{settingValue}" is invalid. {description}""") { }
 }
 
 internal class UpdatePracticeModeSettingsValidator : IGameboardRequestValidator<UpdatePracticeModeSettingsCommand>

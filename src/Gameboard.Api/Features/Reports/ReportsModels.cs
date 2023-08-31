@@ -12,7 +12,7 @@ public static class ReportKey
     public static string Challenges { get; } = "challenges";
     public static string Enrollment { get; } = "enrollment";
     public static string Players { get; } = "players";
-    public static string PracticeMode { get; } = "practice-mode";
+    public static string PracticeArea { get; } = "practice-area";
     public static string Support { get; } = "support";
 }
 

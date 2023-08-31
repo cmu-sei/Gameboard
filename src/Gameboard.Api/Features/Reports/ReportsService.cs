@@ -90,8 +90,8 @@ public class ReportsService : IReportsService
             },
             new ReportViewModel
             {
-                Name = "Practice Mode",
-                Key = ReportKey.PracticeMode,
+                Name = "Practice Area",
+                Key = ReportKey.PracticeArea,
                 Description = "Check in on players who are spending free time honing their skills on Gameboard. See which challenges are practiced most, success rates, and which players are logging in to practice.",
                 ExampleFields = new string[]
                 {
