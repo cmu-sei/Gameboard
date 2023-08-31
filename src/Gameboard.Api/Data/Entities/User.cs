@@ -14,11 +14,11 @@ public class User : IEntity
     public string Name { get; set; }
     public string NameStatus { get; set; }
     public string ApprovedName { get; set; }
-    public string Sponsor { get; set; }
     public UserRole Role { get; set; }
     public DateTimeOffset CreatedOn { get; set; }
     public DateTimeOffset? LastLoginDate { get; set; }
     public int LoginCount { get; set; }
+    public bool HasDefaultSponsor { get; set; }
 
     // relational properties
     public ICollection<ApiKey> ApiKeys { get; set; } = new List<ApiKey>();
@@ -27,5 +27,6 @@ public class User : IEntity
     public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
     public ICollection<PublishedCompetitiveCertificate> PublishedCompetitiveCertificates { get; set; } = new List<PublishedCompetitiveCertificate>();
     public ICollection<PublishedPracticeCertificate> PublishedPracticeCertificates { get; set; } = new List<PublishedPracticeCertificate>();
+    public Sponsor Sponsor { get; set; }
     public PracticeModeSettings UpdatedPracticeModeSettings { get; set; }
 }

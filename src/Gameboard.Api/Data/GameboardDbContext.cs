@@ -1,7 +1,6 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System.Reflection.Metadata;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data
@@ -22,8 +21,14 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.Name).HasMaxLength(64);
                 b.Property(u => u.NameStatus).HasMaxLength(40);
                 b.Property(u => u.Email).HasMaxLength(64);
-                b.Property(u => u.Sponsor).HasMaxLength(40);
                 b.Property(u => u.LoginCount).HasDefaultValueSql("0");
+                b.Property(u => u.HasDefaultSponsor)
+                    .HasDefaultValue(true)
+                    .IsRequired();
+
+                // nav properties
+                b.HasOne(u => u.Sponsor).WithMany(s => s.SponsoredUsers)
+                    .IsRequired();
             });
 
             builder.Entity<ApiKey>(k =>
@@ -49,7 +54,7 @@ namespace Gameboard.Api.Data
 
             builder.Entity<Player>(b =>
             {
-                b.HasOne(p => p.User).WithMany(u => u.Enrollments).OnDelete(DeleteBehavior.Cascade);
+                b.HasKey(p => p.Id);
                 b.HasIndex(p => p.TeamId);
                 b.Property(p => p.Id).HasMaxLength(40);
                 b.Property(p => p.TeamId).HasMaxLength(40);
@@ -58,9 +63,14 @@ namespace Gameboard.Api.Data
                 b.Property(p => p.ApprovedName).HasMaxLength(64);
                 b.Property(p => p.Name).HasMaxLength(64);
                 b.Property(p => p.NameStatus).HasMaxLength(40);
-                b.Property(p => p.Sponsor).HasMaxLength(40);
                 b.Property(p => p.TeamSponsors).HasMaxLength(255);
                 b.Property(p => p.InviteCode).HasMaxLength(40);
+
+                // nav properties
+                b.HasOne(p => p.User).WithMany(u => u.Enrollments).OnDelete(DeleteBehavior.Cascade);
+                b
+                    .HasOne(p => p.Sponsor).WithMany(s => s.SponsoredPlayers)
+                    .IsRequired();
             });
 
             builder.Entity<Game>(b =>

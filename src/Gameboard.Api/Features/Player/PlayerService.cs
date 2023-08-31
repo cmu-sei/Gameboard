@@ -508,7 +508,7 @@ public class PlayerService
             throw new RegistrationIsClosed(manager.GameId, "Registration begins in more than a year.");
 
         if (!sudo && manager.Game.RequireSponsoredTeam && !manager.Sponsor.Equals(player.Sponsor))
-            throw new RequiresSameSponsor(manager.GameId, manager.Id, manager.Sponsor, player.Id, player.Sponsor);
+            throw new RequiresSameSponsor(manager.GameId, manager.Id, manager.Sponsor.Name, player.Id, player.Sponsor);
 
         int count = await Store.List().CountAsync(p => p.TeamId == manager.TeamId);
 
@@ -658,7 +658,7 @@ public class PlayerService
                 if (player.IsManager)
                 {
                     player.TeamSponsors = string.Join('|', team
-                        .Select(p => p.Sponsor)
+                        .Select(p => p.Sponsor.Id)
                         .Distinct()
                         .ToArray()
                     );
