@@ -104,7 +104,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
         // between challenge and spec and the fact that specs are deletable)
         // 
         // so load all spec ids and add a clause which excludes challenges with orphaned specIds
-        var allSpecIds = await _store.List<Data.ChallengeSpec>().Select(s => s.Id).ToArrayAsync();
+        var allSpecIds = await _store.List<Data.ChallengeSpec>().Select(s => s.Id).ToArrayAsync(cancellationToken);
         query = query.Where(c => allSpecIds.Contains(c.SpecId));
 
         // query for the raw results
@@ -307,7 +307,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
 
     public async Task<PracticeModeReportResults> GetResultsByPlayerModePerformance(PracticeModeReportParameters parameters, CancellationToken cancellationToken)
     {
-        // the "false" argument here includes competitive records, because we're comparing practice vs competitive performance here
+        // the "true" argument here includes competitive records, because we're comparing practice vs competitive performance here
         var ungroupedResults = await BuildUngroupedResults(parameters, true, cancellationToken);
         var allSpecRawScores = await GetSpecRawScores(ungroupedResults.Challenges.Select(c => c.SpecId).ToArray());
 
@@ -335,6 +335,8 @@ internal class PracticeModeReportService : IPracticeModeReportService
     // the possibility of making the prac/comp thing its own report
     public async Task<PracticeModeReportPlayerModeSummary> GetPlayerModePerformanceSummary(string userId, bool isPractice, CancellationToken cancellationToken)
     {
+        // have to grab the specIds to ensure that no challenges are coming back with orphaned specIds :(
+        var specIds = await _store.List<Data.ChallengeSpec>().Select(s => s.Id).ToArrayAsync(cancellationToken);
         var challenges = await _store
             .List<Data.Challenge>()
                 .Include(c => c.Game)
@@ -342,6 +344,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
                     .ThenInclude(p => p.User)
             .Where(c => c.Player.UserId == userId)
             .Where(c => c.PlayerMode == (isPractice ? PlayerMode.Practice : PlayerMode.Competition))
+            .Where(c => specIds.Contains(c.SpecId))
             .ToListAsync(cancellationToken);
 
         // these will all be the same
