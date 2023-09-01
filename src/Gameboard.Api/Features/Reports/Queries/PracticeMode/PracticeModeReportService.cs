@@ -162,7 +162,13 @@ internal class PracticeModeReportService : IPracticeModeReportService
 
         return new PracticeModeReportByChallengePerformance
         {
-            Players = (sponsor is null ? attempts : attempts.Where(sponsorConstraint)).Select(a => a.Player.ApprovedName).ToArray(),
+            Players = (sponsor is null ? attempts : attempts.Where(sponsorConstraint)).
+                Select
+                (
+                    a => new SimpleEntity { Id = a.Player.UserId, Name = a.Player.ApprovedName }
+                )
+                .DistinctBy(e => e.Id)
+                .ToArray(),
             TotalAttempts = totalAttempts,
             CompleteSolves = completeSolves,
             ScoreHigh = new decimal(attempts.Select(a => a.Score).Max()),
