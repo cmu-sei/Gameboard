@@ -322,13 +322,13 @@ internal class PracticeModeReportService : IPracticeModeReportService
             OverallStats = ungroupedResults.OverallStats,
             Records = ungroupedResults
                 .Challenges
-                .GroupBy(r => new { r.Player.UserId })
+                .GroupBy(r => r.Player.UserId)
                 .Select(g =>
                 {
                     return new PracticeModeReportByPlayerModePerformanceRecord
                     {
                         // this is really more of a user entity than a player entity, but the report uses "player" to refer to users on purpose
-                        Player = new SimpleEntity { Id = g.Key.UserId, Name = g.First().Player?.User?.ApprovedName ?? g.First().Player?.ApprovedName },
+                        Player = new SimpleEntity { Id = g.Key, Name = g.First().Player?.User?.ApprovedName ?? g.First().Player?.ApprovedName },
                         Sponsor = ungroupedResults.Sponsors.FirstOrDefault(s => s.LogoFileName == g.FirstOrDefault()?.Player?.User?.Sponsor),
                         PracticeStats = CalculateByPlayerPerformanceModeSummary(true, g.ToList(), allSpecRawScores),
                         CompetitiveStats = CalculateByPlayerPerformanceModeSummary(false, g.ToList(), allSpecRawScores)
@@ -438,7 +438,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
 
     private PracticeModeReportByPlayerModePerformanceRecordModeSummary CalculateByPlayerPerformanceModeSummary(bool isPractice, IEnumerable<Data.Challenge> challenges, IEnumerable<PracticeModeReportByPlayerModePerformanceChallengeScore> percentileTable)
     {
-        var modeChallenges = challenges.Where(c => c.Game.IsPracticeMode == isPractice);
+        var modeChallenges = challenges.Where(c => isPractice == (c.PlayerMode == PlayerMode.Practice));
         var modePercentiles = percentileTable.Where(p => p.IsPractice == isPractice);
         PracticeModeReportByPlayerModePerformanceRecordModeSummary modeStats = null;
 
