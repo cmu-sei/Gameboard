@@ -217,9 +217,10 @@ internal class EnrollmentReportService : IEnrollmentReportService
                 SponsorId = r.Player.Sponsor.Id,
                 UserId = r.User.Id
             })
+            .DistinctBy(sponsorUser => new { sponsorUser.SponsorId, sponsorUser.UserId })
             .GroupBy(r => r.SponsorId)
             .OrderByDescending(g => g.Count())
-            .ToDictionary(g => g.Key, g => g.Count());
+            .ToDictionary(g => g.Key, g => g.Distinct().Count());
 
         EnrollmentReportStatSummarySponsorPlayerCount sponsorWithMostPlayers = null;
 
