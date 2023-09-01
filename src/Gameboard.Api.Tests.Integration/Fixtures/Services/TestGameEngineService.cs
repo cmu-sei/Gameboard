@@ -38,6 +38,11 @@ internal class TestGameEngineService : IGameEngineService
         return Task.CompletedTask;
     }
 
+    public Task<GameEngineGameState> GetChallengeState(GameEngineType gameEngineType, string stateJson)
+    {
+        return Task.FromResult<GameEngineGameState>(new GameEngineGameState());
+    }
+
     public Task<ConsoleSummary> GetConsole(Api.Data.Challenge entity, ConsoleRequest model, bool observer)
     {
         return Task.FromResult(new ConsoleSummary { });

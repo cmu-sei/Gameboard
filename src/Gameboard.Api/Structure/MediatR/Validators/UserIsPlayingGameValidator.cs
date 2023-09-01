@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Structure.MediatR.Validators;
 
-internal class UserIsPlayingGameValidator<T> : IGameboardValidator<T>
+internal class UserIsPlayingGameValidator<T> : IGameboardValidator<T> where T : class
 {
     private readonly IPlayerStore _store;
 

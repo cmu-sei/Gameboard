@@ -61,7 +61,7 @@ public class TicketController : _Controller
             new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = new TimeSpan(0, 15, 0) }
         );
 
-        return await TicketService.Retrieve(id, Actor.Id);
+        return await TicketService.Retrieve(id);
     }
 
 
@@ -97,7 +97,7 @@ public class TicketController : _Controller
         await Validate(model);
 
         // Retrieve the previous ticket result for comparison soon
-        var prevTicket = await TicketService.Retrieve(model.Id, Actor.Id);
+        var prevTicket = await TicketService.Retrieve(model.Id);
 
         var result = await TicketService.Update(model, Actor.Id, Actor.IsSupport);
         // Ignore labels being different

@@ -3,7 +3,6 @@
 
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
-using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Validators
 {
@@ -56,10 +55,7 @@ namespace Gameboard.Api.Validators
 
         private async Task<bool> Exists(string id)
         {
-            return
-                id.NotEmpty() &&
-                (await _store.Retrieve(id)) is Data.Sponsor
-            ;
+            return id.NotEmpty() && await _store.Exists(id);
         }
 
     }

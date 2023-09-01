@@ -17,12 +17,18 @@ using Gameboard.Api.Auth;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
+using Gameboard.Api.Features.Users;
+using MediatR;
+using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Controllers
 {
     [Authorize]
     public class UserController : _Controller
     {
+        private readonly string _actingUserId;
+        private readonly IMediator _mediator;
+
         UserService UserService { get; }
         CoreOptions Options { get; }
         IHubContext<AppHub, IAppHubEvent> Hub { get; }
@@ -33,12 +39,17 @@ namespace Gameboard.Api.Controllers
             UserValidator validator,
             UserService userService,
             CoreOptions options,
+            IHttpContextAccessor httpContextAccessor,
+            IMediator mediator,
             IHubContext<AppHub, IAppHubEvent> hub
         ) : base(logger, cache, validator)
         {
             UserService = userService;
             Options = options;
             Hub = hub;
+
+            _actingUserId = httpContextAccessor.HttpContext.User.ToActor().Id;
+            _mediator = mediator;
         }
 
         /// <summary>
@@ -49,16 +60,15 @@ namespace Gameboard.Api.Controllers
         /// <returns>User</returns>
         [HttpPost("api/user")]
         [Authorize]
-        public async Task<User> Create([FromBody] NewUser model)
+        public async Task<TryCreateUserResult> TryCreate([FromBody] NewUser model)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsRegistrar,
                 () => model.Id == Actor.Id
             );
 
-            await Validate(model);
-
-            var user = await UserService.Create(model);
+            var result = await UserService.TryCreate(model);
 
             await HttpContext.SignInAsync(
                 AppConstants.MksCookie,
@@ -67,7 +77,7 @@ namespace Gameboard.Api.Controllers
                 )
             );
 
-            return user;
+            return result;
         }
 
         /// <summary>
@@ -125,6 +135,15 @@ namespace Gameboard.Api.Controllers
 
             await UserService.Delete(id);
         }
+
+        /// <summary>
+        /// Get the user's active challenges.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        [HttpGet("/api/user/{userId}/challenges/active")]
+        public Task<UserActiveChallenges> GetUserActiveChallenges([FromRoute] string userId)
+                => _mediator.Send(new GetUserActiveChallengesQuery(userId));
 
         /// <summary>
         /// Find users
@@ -236,5 +255,10 @@ namespace Gameboard.Api.Controllers
                 ActingUser = HubEventActingUserDescription.FromUser(Actor)
             });
         }
+
+        [HttpPut("/api/user/login")]
+        [Authorize]
+        public Task<UpdateUserLoginEventsResult> UpdateUserLoginEvents()
+            => _mediator.Send(new UpdateUserLoginEventsCommand(_actingUserId));
     }
 }

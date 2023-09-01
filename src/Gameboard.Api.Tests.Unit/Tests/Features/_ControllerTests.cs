@@ -8,9 +8,9 @@ namespace Gameboard.Api.Tests.Unit;
 
 // _Controller is inherited by every api controller in GameboardApi. To access some of its implementation for testing, we subclass it here.
 
-public class _ControllerTestable : _Controller
+public class ControllerTestable : _Controller
 {
-    public _ControllerTestable(ILogger logger, IDistributedCache cache, params IModelValidator[] validators)
+    public ControllerTestable(ILogger logger, IDistributedCache cache, params IModelValidator[] validators)
         : base(logger, cache, validators) { }
 
     public void AuthorizeAllTestable(Func<Boolean>[] requirements)
@@ -29,14 +29,14 @@ public class _ControllerTestable : _Controller
     }
 }
 
-public class _ControllerTests
+public class ControllerTests
 {
-    private _ControllerTestable GetControllerTestable(User? withActor = null)
+    private ControllerTestable GetControllerTestable(User? withActor = null)
     {
-        var controllerTestable = new _ControllerTestable(
+        var controllerTestable = new ControllerTestable(
                     A.Fake<ILogger>(),
                     A.Fake<IDistributedCache>(),
-                    new IModelValidator[] { }
+                    Array.Empty<IModelValidator>()
                 );
 
         if (withActor != null)

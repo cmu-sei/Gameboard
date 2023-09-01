@@ -5,9 +5,10 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.Common;
+using Gameboard.Api.Common;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
+using Gameboard.Api.Features.ChallengeBonuses;
 
 namespace Gameboard.Api.Features.Scores;
 
@@ -15,7 +16,6 @@ public interface IScoringService
 {
     Task<TeamChallengeScoreSummary> GetTeamChallengeScore(string challengeId);
     Task<TeamGameScoreSummary> GetTeamGameScore(string teamId);
-    Task<ChallengeScoreSummary> GetChallengeScores(string challengeId);
 }
 
 internal class ScoringService : IScoringService
@@ -43,11 +43,6 @@ internal class ScoringService : IScoringService
         _teamService = teamService;
     }
 
-    public Task<ChallengeScoreSummary> GetChallengeScores(string challengeId)
-    {
-        throw new System.NotImplementedException();
-    }
-
     public async Task<TeamChallengeScoreSummary> GetTeamChallengeScore(string challengeId)
     {
         var challenge = await _challengeStore
@@ -55,10 +50,8 @@ internal class ScoringService : IScoringService
             .Include(c => c.Player)
             .FirstOrDefaultAsync(c => c.Id == challengeId);
 
-        if (challenge == null)
-        {
+        if (challenge is null)
             return null;
-        }
 
         var spec = await _challengeSpecStore.Retrieve(challenge.SpecId);
         var bonuses = await _mapper.ProjectTo<ManualChallengeBonusViewModel>(_challengeBonusStore
@@ -116,7 +109,7 @@ internal class ScoringService : IScoringService
             ChallengeScoreSummaries = specs.Select(spec =>
             {
                 var challenge = challenges.FirstOrDefault(c => c.SpecId == spec.Id);
-                var bonuses = challenge == null ? new ManualChallengeBonus[] { } : challenge.AwardedManualBonuses;
+                var bonuses = challenge == null ? System.Array.Empty<ManualChallengeBonus>() : challenge.AwardedManualBonuses;
                 var bonusesSum = challenge == null ? 0 : challenge.AwardedManualBonuses.Select(b => b.PointValue).Sum();
                 var points = challenge == null ? 0 : challenge.Points;
 

@@ -8,12 +8,15 @@ using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
 using Microsoft.Extensions.Logging;
 using System.IO;
+using System.Collections.Generic;
+using System.Threading;
+using System;
 
 namespace Gameboard.Api.Services
 {
     public class SponsorService : _Service
     {
-        IStore<Data.Sponsor> Store { get; }
+        IStore<Data.Sponsor> _store { get; }
 
         public SponsorService(
             ILogger<SponsorService> logger,
@@ -22,41 +25,41 @@ namespace Gameboard.Api.Services
             IStore<Data.Sponsor> store
         ) : base(logger, mapper, options)
         {
-            Store = store;
+            _store = store;
         }
 
         public async Task<Sponsor> Create(NewSponsor model)
         {
             var entity = Mapper.Map<Data.Sponsor>(model);
-            await Store.Create(entity);
+            await _store.Create(entity);
             return Mapper.Map<Sponsor>(entity);
         }
 
         public async Task<Sponsor> Retrieve(string id)
         {
-            return Mapper.Map<Sponsor>(await Store.Retrieve(id));
+            return Mapper.Map<Sponsor>(await _store.Retrieve(id));
         }
 
         public async Task AddOrUpdate(ChangedSponsor model)
         {
-            var entity = await Store.Retrieve(model.Id);
+            var entity = await _store.Retrieve(model.Id);
 
             if (entity is not null)
             {
                 Mapper.Map(model, entity);
-                await Store.Update(entity);
+                await _store.Update(entity);
                 return;
             }
 
             entity = Mapper.Map<Data.Sponsor>(model);
-            await Store.Create(entity);
+            await _store.Create(entity);
         }
 
         public async Task Delete(string id)
         {
-            var entity = await Store.Retrieve(id);
+            var entity = await _store.Retrieve(id);
 
-            await Store.Delete(id);
+            await _store.Delete(id);
 
             if (entity.Logo.IsEmpty())
                 return;
@@ -69,7 +72,7 @@ namespace Gameboard.Api.Services
 
         public async Task<Sponsor[]> List(SearchFilter model)
         {
-            var q = Store.List(model.Term);
+            var q = _store.List(model.Term);
 
             q = q.OrderBy(p => p.Id);
 
@@ -83,16 +86,16 @@ namespace Gameboard.Api.Services
 
         public async Task<Sponsor> AddOrUpdate(string id, string filename)
         {
-            var entity = await Store.Retrieve(id);
+            var entity = await _store.Retrieve(id);
 
             if (entity is null)
             {
-                entity = await Store.Create(new Data.Sponsor { Id = id });
+                entity = await _store.Create(new Data.Sponsor { Id = id });
             }
 
             entity.Logo = filename;
 
-            await Store.Update(entity);
+            await _store.Update(entity);
 
             return Mapper.Map<Sponsor>(entity);
         }

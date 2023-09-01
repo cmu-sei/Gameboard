@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 
 namespace Gameboard.Api.Data.Abstractions
 {
-
     public interface ITicketStore : IStore<Ticket>
     {
         Task<Data.Ticket> Load(string id);

@@ -4,25 +4,27 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
-namespace Gameboard.Api.Data.Abstractions
-{
-    public interface IStore<TEntity>
-        where TEntity : class, IEntity
-    {
-        GameboardDbContext DbContext { get; }
-        IQueryable<TEntity> DbSet { get; }
+namespace Gameboard.Api.Data.Abstractions;
 
-        IQueryable<TEntity> List(string term = null);
-        Task<TEntity> Create(TEntity entity);
-        Task<IEnumerable<TEntity>> Create(IEnumerable<TEntity> range);
-        Task<bool> Exists(string id);
-        Task<TEntity> Retrieve(string id);
-        Task<TEntity> Retrieve(string id, Func<IQueryable<TEntity>, IQueryable<TEntity>> includes);
-        Task Update(TEntity entity);
-        Task Update(IEnumerable<TEntity> range);
-        Task Delete(string id);
-        Task<int> CountAsync(Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder = null);
-    }
+public interface IStore<TEntity> where TEntity : class, IEntity
+{
+    GameboardDbContext DbContext { get; }
+    IQueryable<TEntity> DbSet { get; }
+
+    Task<bool> AnyAsync();
+    Task<bool> AnyAsync(Expression<Func<TEntity, bool>> predicate);
+    IQueryable<TEntity> List(string term = null);
+    IQueryable<TEntity> ListWithNoTracking();
+    Task<TEntity> Create(TEntity entity);
+    Task<IEnumerable<TEntity>> Create(IEnumerable<TEntity> range);
+    Task<bool> Exists(string id);
+    Task<TEntity> Retrieve(string id);
+    Task<TEntity> Retrieve(string id, Func<IQueryable<TEntity>, IQueryable<TEntity>> includes);
+    Task Update(TEntity entity);
+    Task Update(IEnumerable<TEntity> range);
+    Task Delete(string id);
+    Task<int> CountAsync(Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder = null);
 }

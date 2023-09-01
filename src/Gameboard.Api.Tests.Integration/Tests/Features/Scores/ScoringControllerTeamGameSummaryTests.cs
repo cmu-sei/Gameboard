@@ -1,13 +1,15 @@
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Tests.Shared;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class ScoringControllerTeamGameSummaryTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public ScoringControllerTeamGameSummaryTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public ScoringControllerTeamGameSummaryTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }

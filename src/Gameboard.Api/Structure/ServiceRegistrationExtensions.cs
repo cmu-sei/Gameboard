@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Gameboard.Api.Structure;
@@ -30,6 +29,35 @@ internal static class ServiceRegistrationExtensions
         return RegisterScoped(serviceCollection, types);
     }
 
+    public static IServiceCollection AddInterfacesWithSingleImplementations(this IServiceCollection serviceCollection)
+    {
+        var interfaceTypes = GetRootQuery()
+            .Where(t => t.IsInterface)
+            .ToArray();
+
+        var singleInterfaceTypes = GetRootTypeQuery()
+            .Where(t => t.GetInterfaces().Length == 1)
+            .Where(t => t.GetConstructors().Where(c => c.IsPublic).Any())
+            .GroupBy(t => t.GetInterfaces()[0])
+            .ToDictionary(t => t.Key, t => t.ToList())
+            .Where(entry => entry.Value.Count == 1);
+
+        foreach (var entry in singleInterfaceTypes)
+        {
+            // if it's a type we want to register and it hasn't already been registered by other logic, add it
+            var theInterfaceName = entry.Key.Name;
+            var hasInterface = interfaceTypes.Contains(entry.Key);
+            var isUnRegistered = serviceCollection.FirstOrDefault(s => s.ServiceType == entry.Key) == null;
+
+            if (interfaceTypes.Contains(entry.Key) && serviceCollection.FirstOrDefault(s => s.ServiceType == entry.Key) == null)
+            {
+                serviceCollection.AddScoped(entry.Key, entry.Value[0]);
+            }
+        }
+
+        return serviceCollection;
+    }
+
     public static IServiceCollection AddConcretesFromNamespace(this IServiceCollection serviceCollection, string namespaceExact)
         => AddConcretesFromNamespaceCriterion(serviceCollection, t => t.Namespace == namespaceExact);
 
@@ -38,9 +66,7 @@ internal static class ServiceRegistrationExtensions
 
     private static IServiceCollection AddConcretesFromNamespaceCriterion(this IServiceCollection serviceCollection, Func<Type, bool> matchCriterion)
     {
-        var types = Assembly
-            .GetExecutingAssembly()
-            .GetTypes()
+        var types = GetRootQuery()
             .Where
             (t =>
                 t.IsClass &&
@@ -68,13 +94,15 @@ internal static class ServiceRegistrationExtensions
         return serviceCollection;
     }
 
-    private static Type[] GetRootTypeQuery()
-     => Assembly
-            .GetExecutingAssembly()
+    private static IEnumerable<Type> GetRootQuery()
+      => typeof(Program)
+            .Assembly
             .GetTypes()
-            .Where
-            (t =>
-                t.IsClass & !t.IsAbstract
-            )
+            .Where(t => t.Namespace != null && t.Namespace.StartsWith("Gameboard"))
+            .ToArray();
+
+    private static Type[] GetRootTypeQuery()
+     => GetRootQuery()
+            .Where(t => t.IsClass & !t.IsAbstract)
             .ToArray();
 }

@@ -1,35 +1,53 @@
-using Gameboard.Api;
 using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Tests.Integration.Users;
 
-public class UserControllerTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class UserControllerTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public UserControllerTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public UserControllerTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }
 
-    [Fact]
-    public async Task Create_WhenDoesntExist_IsCreatedWithId()
+    [Theory, InlineAutoData]
+    public async Task Create_WhenDoesntExist_IsCreatedWithIdAndIsNewUser(string id)
     {
         // given 
-        var newUser = new Gameboard.Api.NewUser();
+        var newUser = new NewUser { Id = id };
 
         // when 
         var client = _testContext.CreateHttpClientWithAuthRole(UserRole.Registrar);
         var result = await client
             .PostAsync("api/user", newUser.ToJsonBody())
-            .WithContentDeserializedAs<Gameboard.Api.User>();
+            .WithContentDeserializedAs<TryCreateUserResult>();
 
         // then
-        result?.Id.ShouldNotBeNullOrEmpty();
+        result?.User.Id.ShouldBe(id);
+        result?.IsNewUser.ShouldBeTrue();
     }
 
+    // [Theory, InlineAutoData]
+    // public async Task Create_WhenDoesntExist_IsCreatedWithIdAndIsNewUser(string id)
+    // {
+    //     // given 
+    //     var newUser = new NewUser { Id = id };
+
+    //     // when 
+    //     var client = _testContext.CreateHttpClientWithAuthRole(UserRole.Registrar);
+    //     var result = await client
+    //         .PostAsync("api/user", newUser.ToJsonBody())
+    //         .WithContentDeserializedAs<TryCreateUserResult>();
+
+    //     // then
+    //     result?.User.Id.ShouldBe(id);
+    //     result?.IsNewUser.ShouldBeTrue();
+    // }
+
     [Fact]
-    public async Task Create_WhenExists_Throws()
+    public async Task Create_WhenExists_IsNotNewUser()
     {
         // given
         await _testContext
@@ -49,9 +67,9 @@ public class UserControllerTests : IClassFixture<GameboardTestContext<GameboardD
 
         var result = await client
             .PostAsync("api/user", newUser.ToJsonBody())
-            .WithContentDeserializedAs<Gameboard.Api.User>();
+            .WithContentDeserializedAs<TryCreateUserResult>();
 
         // then
-        // result
+        result?.IsNewUser.ShouldBeFalse();
     }
 }

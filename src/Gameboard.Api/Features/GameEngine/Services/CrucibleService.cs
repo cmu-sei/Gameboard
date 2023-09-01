@@ -11,10 +11,20 @@ using System;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Services;
+using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Features.GameEngine;
 
-public class CrucibleService : _Service
+public interface ICrucibleService
+{
+    Task CompleteGamespace(Data.Challenge entity);
+    Task<GameEngineGameState> GradeChallenge(string challengeId, GameEngineSectionSubmission model);
+    Task<ExternalSpec[]> ListSpecs();
+    Task<GameEngineGameState> PreviewGamespace(string externalId);
+    Task<GameEngineGameState> RegisterGamespace(Data.ChallengeSpec spec, Data.Game game, Data.Player player, Data.Challenge entity);
+}
+
+public class CrucibleService : _Service, ICrucibleService
 {
     IChallengeStore Store { get; }
     IAlloyApiClient Alloy { get; }

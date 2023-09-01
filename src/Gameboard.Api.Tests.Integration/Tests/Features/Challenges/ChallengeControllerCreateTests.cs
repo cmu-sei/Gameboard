@@ -3,11 +3,12 @@ using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class ChallengeControllerCreateTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class ChallengeControllerCreateTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public ChallengeControllerCreateTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public ChallengeControllerCreateTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }
@@ -27,7 +28,7 @@ public class ChallengeControllerCreateTests : IClassFixture<GameboardTestContext
             {
                 spec.Id = challengeSpecId;
                 spec.Name = specName;
-                spec.Game = new Api.Data.Game
+                spec.Game = new Data.Game
                 {
                     Id = fixture.Create<string>(),
                     Players = new Api.Data.Player[]
@@ -35,7 +36,7 @@ public class ChallengeControllerCreateTests : IClassFixture<GameboardTestContext
                         state.BuildPlayer(p =>
                         {
                             p.Id = playerId;
-                            p.User = new Api.Data.User { Id = userId };
+                            p.User = new Data.User { Id = userId };
                             p.SessionBegin = DateTimeOffset.UtcNow.AddDays(-1);
                             p.SessionEnd = DateTimeOffset.UtcNow.AddDays(1);
                         })

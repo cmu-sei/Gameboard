@@ -26,5 +26,4 @@ namespace Gameboard.Api
         public string Logo { get; set; }
         public bool Approved { get; set; }
     }
-
 }

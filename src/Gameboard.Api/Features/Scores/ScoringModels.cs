@@ -1,5 +1,8 @@
 using System.Collections.Generic;
-using Gameboard.Api.Features.Common;
+using Gameboard.Api.Common;
+using Gameboard.Api.Features.ChallengeBonuses;
+
+namespace Gameboard.Api.Features.Scores;
 
 public class TeamChallengeScoreSummary
 {

@@ -27,7 +27,7 @@ namespace Gameboard.Api.Controllers
             SponsorValidator validator,
             SponsorService sponsorService,
             CoreOptions options
-        ): base(logger, cache, validator)
+        ) : base(logger, cache, validator)
         {
             _logger = logger;
             SponsorService = sponsorService;
@@ -69,7 +69,7 @@ namespace Gameboard.Api.Controllers
         /// <returns>Sponsor</returns>
         [HttpGet("api/sponsor/{id}")]
         [Authorize]
-        public async Task<Sponsor> Retrieve([FromRoute]string id)
+        public async Task<Sponsor> Retrieve([FromRoute] string id)
         {
             return await SponsorService.Retrieve(id);
         }
@@ -84,9 +84,7 @@ namespace Gameboard.Api.Controllers
         public async Task Update([FromBody] ChangedSponsor model)
         {
             await Validate(model);
-
             model.Approved = Actor.IsRegistrar;
-
             await SponsorService.AddOrUpdate(model);
         }
 
@@ -97,7 +95,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpDelete("/api/sponsor/{id}")]
         [Authorize(Policy = AppConstants.RegistrarPolicy)]
-        public async Task Delete([FromRoute]string id)
+        public async Task Delete([FromRoute] string id)
         {
             await SponsorService.Delete(id);
         }

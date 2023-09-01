@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Threading.Tasks;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Player;
 
@@ -9,10 +10,14 @@ namespace Gameboard.Api.Validators
 {
     public class ChallengeValidator : IModelValidator
     {
+        private readonly IStore<Data.ChallengeSpec> _specStore;
         private readonly IChallengeStore _store;
+        private readonly IPlayerStore _playerStore;
 
-        public ChallengeValidator(IChallengeStore store)
+        public ChallengeValidator(IChallengeStore store, IStore<Data.ChallengeSpec> specStore, IPlayerStore playerStore)
         {
+            _playerStore = playerStore;
+            _specStore = specStore;
             _store = store;
         }
 
@@ -37,16 +42,16 @@ namespace Gameboard.Api.Validators
 
         private async Task _validate(Entity model)
         {
-            if ((await Exists(model.Id)).Equals(false))
+            if ((await _store.Exists(model.Id)).Equals(false))
                 throw new ResourceNotFound<Challenge>(model.Id);
         }
 
         private async Task _validate(NewChallenge model)
         {
-            if ((await PlayerExists(model.PlayerId)).Equals(false))
+            if ((await _playerStore.Exists(model.PlayerId)).Equals(false))
                 throw new ResourceNotFound<Data.Player>(model.PlayerId);
 
-            if ((await SpecExists(model.SpecId)).Equals(false))
+            if ((await _specStore.Exists(model.SpecId)).Equals(false))
                 throw new ResourceNotFound<Data.ChallengeSpec>(model.SpecId);
 
             var player = await _store.DbContext.Players.FindAsync(model.PlayerId);
@@ -65,42 +70,10 @@ namespace Gameboard.Api.Validators
 
         private async Task _validate(ChangedChallenge model)
         {
-            if ((await Exists(model.Id)).Equals(false))
+            if ((await _store.Exists(model.Id)).Equals(false))
                 throw new ResourceNotFound<Data.Challenge>(model.Id);
 
             await Task.CompletedTask;
-        }
-
-        private async Task<bool> Exists(string id)
-        {
-            return
-                id.NotEmpty() &&
-                (await _store.Retrieve(id)) is Data.Challenge
-            ;
-        }
-
-        private async Task<bool> GameExists(string id)
-        {
-            return
-                id.NotEmpty() &&
-                (await _store.DbContext.Games.FindAsync(id)) is Data.Game
-            ;
-        }
-
-        private async Task<bool> SpecExists(string id)
-        {
-            return
-                id.NotEmpty() &&
-                (await _store.DbContext.ChallengeSpecs.FindAsync(id)) is Data.ChallengeSpec
-            ;
-        }
-
-        private async Task<bool> PlayerExists(string id)
-        {
-            return
-                id.NotEmpty() &&
-                (await _store.DbContext.Players.FindAsync(id)) is Data.Player
-            ;
         }
     }
 }

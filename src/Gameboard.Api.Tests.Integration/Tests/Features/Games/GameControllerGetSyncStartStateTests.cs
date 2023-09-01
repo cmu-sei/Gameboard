@@ -4,11 +4,12 @@ using Gameboard.Api.Features.Games;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class GameControllerGetSyncStartStateTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public GameControllerGetSyncStartStateTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public GameControllerGetSyncStartStateTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }

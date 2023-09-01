@@ -12,7 +12,7 @@ using YamlDotNet.Serialization.NamingConventions;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
-using Gameboard.Api.Features.Common;
+using Gameboard.Api.Common;
 using Gameboard.Api.Features.Games;
 
 namespace Gameboard.Api.Services;
@@ -26,7 +26,7 @@ public interface IGameService
     Task HandleSyncStartStateChanged(string gameId, User actor);
     Task<Game> Import(GameSpecImport model);
     IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool sudo = false);
-    Task<IEnumerable<Game>> List(GameSearchFilter model, bool sudo);
+    Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false);
     Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo);
     Task ReRank(string id);
     Task<Game> Retrieve(string id, bool accessHidden = true);
@@ -118,6 +118,12 @@ public class GameService : _Service, IGameService
         if (model == null)
             return q;
 
+        if (model.WantsCompetitive)
+            q = q.Where(g => g.PlayerMode == PlayerMode.Competition);
+
+        if (model.WantsPractice)
+            q = q.Where(g => g.PlayerMode == PlayerMode.Practice);
+
         if (model.WantsPresent)
             q = q.Where(g => g.GameEnd > now && g.GameStart < now);
 
@@ -140,6 +146,11 @@ public class GameService : _Service, IGameService
         return q;
     }
 
+    public Task<IEnumerable<GameSearchResult>> Search(GameSearchQuery query)
+    {
+        throw new NotImplementedException();
+    }
+
     public async Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false)
     {
         var games = await BuildQuery(model, sudo)
@@ -153,11 +164,14 @@ public class GameService : _Service, IGameService
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;
 
-        var q = Store.List(model.Term);
+        var q = Store
+            .List(model.Term);
 
         if (!sudo)
             q = q.Where(g => g.IsPublished);
 
+        if (model.WantsCompetitive)
+            q = q.Where(g => g.PlayerMode == PlayerMode.Competition);
         if (model.WantsPresent)
             q = q.Where(g => g.GameEnd > now && g.GameStart < now);
         if (model.WantsFuture)

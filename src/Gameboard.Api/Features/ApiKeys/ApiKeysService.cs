@@ -15,6 +15,7 @@ public interface IApiKeysService
     Task<Data.User> Authenticate(string headerValue);
     Task<CreateApiKeyResult> Create(NewApiKey newApiKey);
     Task Delete(string apiKeyId);
+    Task<Data.User> GetUserFromApiKey(string apiKey);
     Task<IEnumerable<ApiKeyViewModel>> ListKeys(string userId);
 }
 
@@ -23,24 +24,21 @@ internal class ApiKeysService : IApiKeysService
     private readonly IGuidService _guids;
     private readonly IMapper _mapper;
     private readonly INowService _now;
-    private readonly IHashService _hasher;
     private readonly IRandomService _rng;
     private readonly IApiKeysStore _store;
     private readonly ApiKeyOptions _options;
-    private readonly IUserStore _userStore;
+    private readonly IStore<Data.User> _userStore;
 
     public ApiKeysService(
         ApiKeyOptions options,
         IGuidService guids,
         IMapper mapper,
         INowService now,
-        IHashService hasher,
         IRandomService rng,
         IApiKeysStore store,
-        IUserStore userStore)
+        IStore<Data.User> userStore)
     {
         _guids = guids;
-        _hasher = hasher;
         _mapper = mapper;
         _now = now;
         _rng = rng;
@@ -50,16 +48,12 @@ internal class ApiKeysService : IApiKeysService
     }
 
     public async Task<Data.User> Authenticate(string headerValue)
-    {
-        var apiKey = headerValue.Trim();
-
-        return await _store.GetFromApiKey(apiKey);
-    }
+        => await GetUserFromApiKey(headerValue.Trim());
 
     public async Task<CreateApiKeyResult> Create(NewApiKey newApiKey)
     {
         var user = await _userStore.Retrieve(newApiKey.UserId);
-        if (user == null)
+        if (user is null)
             throw new ResourceNotFound<User>(newApiKey.UserId);
 
         var generatedKey = GenerateKey();
@@ -85,6 +79,18 @@ internal class ApiKeysService : IApiKeysService
     public async Task Delete(string apiKeyId)
         => await _store.Delete(apiKeyId);
 
+    public async Task<Data.User> GetUserFromApiKey(string apiKey)
+    {
+        var hashedKey = apiKey.ToSha256();
+
+        return await _userStore
+            .ListWithNoTracking()
+            .Include(u => u.ApiKeys)
+            // we use SingleOrDefaultAsync to ensure that we only get one result -
+            // if we get more than one, some weird stuff is happening and we need to know.
+            .SingleOrDefaultAsync(u => u.ApiKeys.Any(k => k.Key == hashedKey));
+    }
+
     public async Task<IEnumerable<ApiKeyViewModel>> ListKeys(string userId)
     {
         return await _mapper
@@ -98,7 +104,7 @@ internal class ApiKeysService : IApiKeysService
         return keyRaw.Substring(0, Math.Min(keyRaw.Length, _options.RandomCharactersLength));
     }
 
-    internal bool IsValidKey(string hashedKey, Data.ApiKey candidate)
+    internal bool IsValidKey(string hashedKey, ApiKey candidate)
         => hashedKey == candidate.Key &&
         (
             candidate.ExpiresOn == null ||

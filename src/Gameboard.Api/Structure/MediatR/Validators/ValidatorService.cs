@@ -38,7 +38,7 @@ internal class ValidatorService<TModel> : IValidatorService<TModel>
             await task(model, context);
         }
 
-        if (context.ValidationExceptions.Count() > 0)
+        if (context.ValidationExceptions.Any())
         {
             throw GameboardAggregatedValidationExceptions.FromValidationExceptions(context.ValidationExceptions);
         }

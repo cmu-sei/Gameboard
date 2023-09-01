@@ -10,6 +10,9 @@ public static class GameboardTestContextDefaultEntityExtensions
         return entity;
     }
 
+    // eventually will replace these with registrations in the customization (like the integration test project does)
+    private static string GenerateTestGuid() => Guid.NewGuid().ToString("n");
+
     public static void AddChallengeSpec(this IDataStateBuilder dataStateBuilder, Action<Data.ChallengeSpec>? specBuilder = null)
         => dataStateBuilder.Add(BuildChallengeSpec(dataStateBuilder, specBuilder));
 
@@ -18,7 +21,7 @@ public static class GameboardTestContextDefaultEntityExtensions
         (
             new Data.ChallengeSpec
             {
-                Id = TestIds.Generate(),
+                Id = GenerateTestGuid(),
                 Game = BuildGame(dataStateBuilder),
                 Name = "Integration Test Challenge Spec",
                 AverageDeploySeconds = 1,
@@ -51,7 +54,7 @@ public static class GameboardTestContextDefaultEntityExtensions
         (
             new Data.Game
             {
-                Id = TestIds.Generate(),
+                Id = GenerateTestGuid(),
                 Name = "Test game",
                 Competition = "Test competition",
                 Season = "1",
@@ -72,14 +75,14 @@ public static class GameboardTestContextDefaultEntityExtensions
     public static Data.Player BuildPlayer(this IDataStateBuilder dataStateBuilder, Action<Data.Player>? playerBuilder = null)
     {
         // TODO: this is potentially urky if the testing dev sets userid but not user's id
-        var userId = TestIds.Generate();
+        var userId = GenerateTestGuid();
 
         return BuildEntity
         (
             new Data.Player
             {
-                Id = TestIds.Generate(),
-                TeamId = TestIds.Generate(),
+                Id = GenerateTestGuid(),
+                TeamId = GenerateTestGuid(),
                 ApprovedName = "Integration Test Player",
                 Sponsor = "Integration Test Sponsor",
                 Role = Gameboard.Api.PlayerRole.Manager,
@@ -184,7 +187,7 @@ public static class GameboardTestContextDefaultEntityExtensions
         (
             new Data.User
             {
-                Id = TestIds.Generate(),
+                Id = GenerateTestGuid(),
                 Username = "integrationtester",
                 Email = "integration@test.com",
                 Name = "integrationtester",
@@ -198,7 +201,7 @@ public static class GameboardTestContextDefaultEntityExtensions
     public static IEnumerable<Data.Player> BuildTeam(this IDataStateBuilder builder, int teamSize = 5, Action<Data.Player>? playerBuilder = null)
     {
         var team = new List<Data.Player>();
-        var teamId = TestIds.Generate();
+        var teamId = GenerateTestGuid();
 
         for (var i = 0; i < teamSize; i++)
         {

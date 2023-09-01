@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Identity.Client;
 
 namespace Gameboard.Api
 {
@@ -69,9 +70,13 @@ namespace Gameboard.Api
 
     public class GameSearchFilter : SearchFilter
     {
-        public const string PastFilter = "past";
-        public const string PresentFilter = "present";
-        public const string FutureFilter = "future";
+        private const string CompetitiveFilter = "competitive";
+        private const string PracticeFilter = "practice";
+        private const string PastFilter = "past";
+        private const string PresentFilter = "present";
+        private const string FutureFilter = "future";
+        public bool WantsCompetitive => Filter.Contains(CompetitiveFilter);
+        public bool WantsPractice => Filter.Contains(PracticeFilter);
         public bool WantsPresent => Filter.Contains(PresentFilter);
         public bool WantsPast => Filter.Contains(PastFilter);
         public bool WantsFuture => Filter.Contains(FutureFilter);
@@ -95,6 +100,18 @@ namespace Gameboard.Api
         public bool IsPracticeMode { get; set; }
         public ICollection<BoardSpec> Specs { get; set; } = new List<BoardSpec>();
         public ICollection<ChallengeGate> Prerequisites { get; set; } = new List<ChallengeGate>();
+    }
+
+    public sealed class GameSearchQuery
+    {
+        public bool? PlayerMode { get; set; }
+        public string SearchTerm { get; set; }
+    }
+
+    public class GameSearchResult
+    {
+        public required string Id { get; set; }
+        public required string Name { get; set; }
     }
 
     public class UploadedFile

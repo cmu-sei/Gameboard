@@ -37,7 +37,7 @@ namespace Gameboard.Api.Validators
         {
             return
                 id.NotEmpty() &&
-                (await _store.Retrieve(id)) is Data.Game
+                (await _store.Retrieve(id)) is not null
             ;
         }
 

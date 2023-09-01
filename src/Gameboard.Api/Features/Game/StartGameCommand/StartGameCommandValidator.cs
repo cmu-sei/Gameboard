@@ -2,7 +2,6 @@ using System.Threading.Tasks;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 
 namespace Gameboard.Api.Features.Games;
@@ -11,8 +10,6 @@ internal class StartGameCommandValidator : IGameboardRequestValidator<StartGameC
 {
     private readonly EntityExistsValidator<StartGameCommand, Data.Game> _gameExists;
     private readonly IGameService _gameService;
-    private readonly INowService _nowService;
-    private readonly UserRoleAuthorizer _roleAuthorizer;
     private readonly ITeamService _teamService;
     private readonly IValidatorService<StartGameCommand> _validatorService;
 
@@ -20,16 +17,12 @@ internal class StartGameCommandValidator : IGameboardRequestValidator<StartGameC
     (
         EntityExistsValidator<StartGameCommand, Data.Game> gameExists,
         IGameService gameService,
-        INowService nowService,
-        UserRoleAuthorizer roleAuthorizer,
         ITeamService teamService,
         IValidatorService<StartGameCommand> validatorService
     )
     {
         _gameExists = gameExists;
         _gameService = gameService;
-        _nowService = nowService;
-        _roleAuthorizer = roleAuthorizer;
         _teamService = teamService;
         _validatorService = validatorService;
     }

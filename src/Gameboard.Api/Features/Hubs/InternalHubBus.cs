@@ -1,9 +1,9 @@
 using System.Threading.Tasks;
 using AutoMapper;
-using Gameboard.Api;
-using Gameboard.Api.Features.Games;
-using Gameboard.Api.Hubs;
+using Gameboard.Api.Features.Teams;
 using Microsoft.AspNetCore.SignalR;
+
+namespace Gameboard.Api.Hubs;
 
 /// <summary>
 /// This is separate from AppHub because it encapsulates hub management functionality that we want to be available server side

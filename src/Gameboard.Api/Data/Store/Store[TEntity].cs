@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Services;
@@ -25,10 +26,23 @@ public class Store<TEntity> : IStore<TEntity> where TEntity : class, IEntity
     public GameboardDbContext DbContext { get; private set; }
     public IQueryable<TEntity> DbSet { get; private set; }
 
+    public Task<bool> AnyAsync()
+        => DbContext.Set<TEntity>().AnyAsync();
+
+    public Task<bool> AnyAsync(Expression<Func<TEntity, bool>> predicate)
+        => DbContext.Set<TEntity>().AnyAsync(predicate);
+
     public virtual IQueryable<TEntity> List(string term = null)
     {
         return DbContext.Set<TEntity>();
     }
+
+    public IQueryable<TEntity> ListWithNoTracking()
+        => DbContext.
+            Set<TEntity>()
+            .AsNoTracking()
+            .AsQueryable();
+
 
     public virtual async Task<TEntity> Create(TEntity entity)
     {
@@ -88,17 +102,11 @@ public class Store<TEntity> : IStore<TEntity> where TEntity : class, IEntity
         await DbContext.SaveChangesAsync();
     }
 
-    public virtual async Task Delete(string id)
-    {
-        var entity = await DbContext.Set<TEntity>().FindAsync(id);
-
-        if (entity is TEntity)
-        {
-            DbContext.Set<TEntity>().Remove(entity);
-
-            await DbContext.SaveChangesAsync();
-        }
-    }
+    public async Task Delete(string id)
+        => await DbContext
+            .Set<TEntity>()
+            .Where(e => e.Id == id)
+            .ExecuteDeleteAsync();
 
     public virtual async Task<int> CountAsync(Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder = null)
     {

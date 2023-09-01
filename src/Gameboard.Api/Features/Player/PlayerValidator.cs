@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Teams;
 
 namespace Gameboard.Api.Validators
 {
@@ -87,7 +88,7 @@ namespace Gameboard.Api.Validators
         {
             DateTimeOffset ts = DateTimeOffset.UtcNow;
             bool active = await _store.DbSet.AnyAsync(p => p.TeamId == model.TeamId && p.SessionEnd > ts);
-            if (active.Equals(false))
+            if (model.SessionEnd > DateTimeOffset.MinValue && active.Equals(false))
                 throw new SessionNotAdjustable();
 
             await Task.CompletedTask;

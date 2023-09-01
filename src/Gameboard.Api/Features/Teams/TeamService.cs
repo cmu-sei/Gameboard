@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Hubs;
+using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Teams;
@@ -14,6 +16,7 @@ public interface ITeamService
     Task<int> GetSessionCount(string teamId, string gameId);
     Task<Team> GetTeam(string id);
     Task<Data.Player> ResolveCaptain(string teamId);
+    Task<Data.Player> ResolveCaptain(IEnumerable<Data.Player> players);
     Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser);
     Task UpdateTeamSponsors(string teamId);
 }
@@ -25,11 +28,13 @@ internal class TeamService : ITeamService
     private readonly IInternalHubBus _teamHubService;
     private readonly IPlayerStore _store;
 
-    public TeamService(
+    public TeamService
+    (
         IMapper mapper,
         INowService now,
         IInternalHubBus teamHubService,
-        IPlayerStore store)
+        IPlayerStore store
+    )
     {
         _mapper = mapper;
         _now = now;
@@ -38,9 +43,7 @@ internal class TeamService : ITeamService
     }
 
     public async Task<bool> GetExists(string teamId)
-    {
-        return (await _store.ListTeam(teamId).CountAsync()) > 0;
-    }
+        => await _store.ListTeam(teamId).AnyAsync();
 
     public async Task<int> GetSessionCount(string teamId, string gameId)
     {
@@ -60,17 +63,12 @@ internal class TeamService : ITeamService
     public async Task<Team> GetTeam(string id)
     {
         var players = await _store.ListTeam(id).ToArrayAsync();
-        if (players.Count() == 0)
+        if (players.Length == 0)
             return null;
 
-        var team = _mapper.Map<Team>(
-            players.First(p => p.IsManager)
-        );
+        var team = _mapper.Map<Team>(players.First(p => p.IsManager));
 
-        team.Members = _mapper.Map<TeamMember[]>(
-            players.Select(p => p.User)
-        );
-
+        team.Members = _mapper.Map<TeamMember[]>(players.Select(p => p.User));
         team.TeamSponsors = string.Join("|", players.Select(p => p.Sponsor));
 
         return team;
@@ -109,16 +107,25 @@ internal class TeamService : ITeamService
                 throw new PromotionFailed(teamId, newCaptainPlayerId, affectedPlayers);
 
             await UpdateTeamSponsors(teamId);
-
             await transaction.CommitAsync();
         }
 
         await _teamHubService.SendPlayerRoleChanged(_mapper.Map<Api.Player>(newCaptain), actingUser);
     }
 
-    public async Task<Data.Player> ResolveCaptain(string teamId)
+    public Task<Data.Player> ResolveCaptain(string teamId)
     {
-        var players = await _store
+        return ResolveCaptain(teamId, null);
+    }
+
+    public Task<Data.Player> ResolveCaptain(IEnumerable<Data.Player> players)
+    {
+        return ResolveCaptain(null, players);
+    }
+
+    private async Task<Data.Player> ResolveCaptain(string teamId, IEnumerable<Data.Player> players)
+    {
+        players ??= await _store
             .List()
             .Where(p => p.TeamId == teamId)
             .ToListAsync();
@@ -153,9 +160,9 @@ internal class TeamService : ITeamService
             .Where(p => p.TeamId == teamId)
             .Select(p => new
             {
-                Id = p.Id,
-                Sponsor = p.Sponsor,
-                IsManager = p.IsManager
+                p.Id,
+                p.Sponsor,
+                p.IsManager
             })
             .ToArrayAsync();
 

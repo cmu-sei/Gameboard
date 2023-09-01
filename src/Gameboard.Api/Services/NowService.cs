@@ -1,5 +1,7 @@
 using System;
 
+namespace Gameboard.Api.Services;
+
 public interface INowService
 {
     public DateTimeOffset Get();

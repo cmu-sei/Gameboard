@@ -7,16 +7,16 @@ using System.Text.Json.Serialization;
 
 namespace Gameboard.Api
 {
-    public class JsonDateTimeConverter : JsonConverter<DateTime>
+    public class JsonDateTimeOffsetConverter : JsonConverter<DateTimeOffset>
     {
-        public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        public override DateTimeOffset Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            return DateTime.Parse(reader.GetString());
+            return DateTimeOffset.Parse(reader.GetString()).ToUniversalTime();
         }
 
-        public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
+        public override void Write(Utf8JsonWriter writer, DateTimeOffset value, JsonSerializerOptions options)
         {
-            writer.WriteStringValue(DateTime.SpecifyKind(value, DateTimeKind.Utc));
+            writer.WriteStringValue(value.ToUniversalTime());
         }
     }
 }

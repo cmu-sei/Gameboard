@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>{{title}}</title>
+</head>
+
+<body>
+    <style>
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        @media print {
+            @page {
+                margin: 0;
+                padding: 0;
+                size: 2550px 3300px landscape;
+            }
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            height: 2550px;
+            width: 3300px;
+        }
+
+        .gameboard-print-html {
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+    <div class="gameboard-print-html">
+        {{bodyContent}}
+    </div>
+</body>
+
+</html>

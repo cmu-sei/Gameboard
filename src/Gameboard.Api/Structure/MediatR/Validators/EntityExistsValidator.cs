@@ -1,17 +1,18 @@
 using System;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Structure.MediatR.Validators;
 
-internal class EntityExistsValidator<TModel, TEntity> : IGameboardValidator<TModel>
+public class EntityExistsValidator<TModel, TEntity> : IGameboardValidator<TModel>
+    where TModel : class
     where TEntity : class, IEntity
 {
-    private readonly IStore<TEntity> _store;
+    private readonly IStore _store;
     private Func<TModel, string> _idProperty;
 
-    public EntityExistsValidator(IStore<TEntity> store)
+    public EntityExistsValidator(IStore store)
     {
         _store = store;
     }
@@ -21,7 +22,7 @@ internal class EntityExistsValidator<TModel, TEntity> : IGameboardValidator<TMod
         return async (model, context) =>
         {
             var id = _idProperty(model);
-            if (!(await _store.Exists(id)))
+            if (!await _store.List<TEntity>().AnyAsync(e => e.Id == id))
                 context.AddValidationException(new ResourceNotFound<TEntity>(id));
         };
     }

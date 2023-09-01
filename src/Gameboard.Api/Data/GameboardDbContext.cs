@@ -1,6 +1,7 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System.Reflection.Metadata;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data
@@ -22,6 +23,7 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.NameStatus).HasMaxLength(40);
                 b.Property(u => u.Email).HasMaxLength(64);
                 b.Property(u => u.Sponsor).HasMaxLength(40);
+                b.Property(u => u.LoginCount).HasDefaultValueSql("0");
             });
 
             builder.Entity<ApiKey>(k =>
@@ -191,6 +193,45 @@ namespace Gameboard.Api.Data
                 b.Property(u => u.PlayerId).HasMaxLength(40);
                 b.Property(p => p.PlayerName).HasMaxLength(64);
                 b.Property(u => u.UserId).HasMaxLength(40);
+            });
+
+            builder.Entity<PublishedCertificate>(b =>
+            {
+                b.HasKey(c => c.Id);
+                b.HasDiscriminator(c => c.Mode)
+                    .HasValue<PublishedCompetitiveCertificate>(PublishedCertificateMode.Competitive)
+                    .HasValue<PublishedPracticeCertificate>(PublishedCertificateMode.Practice);
+            });
+
+            builder.Entity<PublishedCompetitiveCertificate>(b =>
+            {
+                b.Property(c => c.GameId).HasStandardGuidLength();
+                b.HasOne(c => c.Game).WithMany(g => g.PublishedCompetitiveCertificates);
+
+                b.HasOne(c => c.OwnerUser)
+                    .WithMany(u => u.PublishedCompetitiveCertificates)
+                    .HasConstraintName("FK_OwnerUserId_Users_Id");
+            });
+
+            builder.Entity<PublishedPracticeCertificate>(b =>
+            {
+                b.Property(c => c.ChallengeSpecId).HasStandardGuidLength();
+                b.HasOne(c => c.ChallengeSpec).WithMany(s => s.PublishedPracticeCertificates);
+
+                b.HasOne(c => c.OwnerUser)
+                    .WithMany(u => u.PublishedPracticeCertificates)
+                    .HasConstraintName("FK_OwnerUserId_Users_Id");
+            });
+
+            builder.Entity<PracticeModeSettings>(b =>
+            {
+                b.HasKey(m => m.Id);
+                b.Property(m => m.Id).HasStandardGuidLength();
+                b.Property(m => m.IntroTextMarkdown).HasMaxLength(4000);
+                b
+                    .HasOne(m => m.UpdatedByUser)
+                    .WithOne(u => u.UpdatedPracticeModeSettings)
+                    .IsRequired(false);
             });
 
             builder.Entity<Ticket>(b =>

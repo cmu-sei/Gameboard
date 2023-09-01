@@ -14,14 +14,15 @@ namespace Gameboard.Api.Services
     public class ChallengeSpecService : _Service
     {
         IStore<Data.ChallengeSpec> Store { get; }
-        GameEngineService GameEngine { get; }
+        IGameEngineService GameEngine { get; }
 
-        public ChallengeSpecService(
+        public ChallengeSpecService
+        (
             ILogger<ChallengeSpecService> logger,
             IMapper mapper,
             CoreOptions options,
             IStore<Data.ChallengeSpec> store,
-            GameEngineService gameEngine
+            IGameEngineService gameEngine
         ) : base(logger, mapper, options)
         {
             Store = store;
@@ -30,12 +31,13 @@ namespace Gameboard.Api.Services
 
         public async Task<ChallengeSpec> AddOrUpdate(NewChallengeSpec model)
         {
-            var entity = await Store.List().FirstOrDefaultAsync(s =>
+            var entity = await Store.List().FirstOrDefaultAsync
+            (s =>
                 s.ExternalId == model.ExternalId &&
                 s.GameId == model.GameId
             );
 
-            if (entity is Data.ChallengeSpec)
+            if (entity is not null)
             {
                 Mapper.Map(model, entity);
                 await Store.Update(entity);
@@ -88,34 +90,6 @@ namespace Gameboard.Api.Services
             }
 
             await Store.DbContext.SaveChangesAsync();
-        }
-
-        internal async Task<ChallengeSpecSummary[]> Browse(SearchFilter model)
-        {
-            var q = Store.List()
-                .Include(s => s.Game)
-                .Where(s => s.Game.PlayerMode == PlayerMode.Practice)
-                .AsNoTracking();
-
-            if (model.HasTerm)
-            {
-                string term = model.Term.ToLower();
-                q = q.Where(s =>
-                    s.Id.Equals(term) ||
-                    s.Name.ToLower().Contains(term) ||
-                    s.Description.ToLower().Contains(term) ||
-                    s.Game.Name.ToLower().Contains(term) ||
-                    s.Text.ToLower().Contains(term)
-                );
-            }
-
-            q = q.OrderBy(s => s.Name);
-            q = q.Skip(model.Skip);
-
-            if (model.Take > 0)
-                q = q.Take(model.Take);
-
-            return await Mapper.ProjectTo<ChallengeSpecSummary>(q).ToArrayAsync();
         }
     }
 }

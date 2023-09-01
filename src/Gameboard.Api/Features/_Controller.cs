@@ -12,7 +12,6 @@ namespace Gameboard.Api.Controllers
 {
     public class _Controller : ControllerBase, IActionFilter
     {
-
         public _Controller(
             ILogger logger,
             IDistributedCache cache,
@@ -25,13 +24,15 @@ namespace Gameboard.Api.Controllers
         }
 
         protected User Actor { get; set; }
+        protected string AuthenticatedGraderForChallengeId { get; set; }
         protected ILogger Logger { get; private set; }
         protected IDistributedCache Cache { get; private set; }
-        private IModelValidator[] _validators;
+        private readonly IModelValidator[] _validators;
 
         public virtual void OnActionExecuting(ActionExecutingContext context)
         {
             Actor = User.ToActor();
+            AuthenticatedGraderForChallengeId = User.ToAuthenticatedGraderForChallengeId();
         }
 
         public void OnActionExecuted(ActionExecutedContext context)

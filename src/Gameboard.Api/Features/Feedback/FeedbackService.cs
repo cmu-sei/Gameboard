@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -87,7 +88,7 @@ namespace Gameboard.Api.Services
         {
             var q = Store.List(model.Term);
 
-            if (model.GameId.HasValue())
+            if (model.GameId.NotEmpty())
                 q = q.Where(u => u.GameId == model.GameId);
 
             if (model.WantsGame)

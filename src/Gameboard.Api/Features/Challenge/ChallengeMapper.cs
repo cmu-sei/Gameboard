@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoMapper;
+using Gameboard.Api.Common;
 using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api.Services
@@ -27,6 +28,7 @@ namespace Gameboard.Api.Services
 
             CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
 
+            CreateMap<Data.Challenge, SimpleEntity>();
             CreateMap<Data.Challenge, TeamChallenge>();
             CreateMap<Data.Challenge, ChallengeOverview>()
                 .ForMember(d => d.Score, opt => opt.MapFrom(s => (int)Math.Floor(s.Score)))
@@ -121,7 +123,7 @@ namespace Gameboard.Api.Services
                 .ForMember(d => d.Consoles, opt => opt.MapFrom(s =>
                     JsonSerializer.Deserialize<TopoMojo.Api.Client.GameState>(s.State, JsonOptions).Vms)
                 )
-                .ForMember(d => d.isActive, opt => opt.MapFrom(s =>
+                .ForMember(d => d.IsActive, opt => opt.MapFrom(s =>
                     JsonSerializer.Deserialize<TopoMojo.Api.Client.GameState>(s.State, JsonOptions).IsActive)
                 )
             ;

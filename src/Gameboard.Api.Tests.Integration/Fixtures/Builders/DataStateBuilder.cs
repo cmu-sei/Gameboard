@@ -2,14 +2,11 @@ using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
-internal class DataStateBuilder<TDbContext> : IDataStateBuilder where TDbContext : GameboardDbContext
+internal class DataStateBuilder : IDataStateBuilder
 {
-    private readonly TDbContext _DbContext;
+    private readonly GameboardDbContext _DbContext;
 
-    public DataStateBuilder(TDbContext dbContext)
-    {
-        _DbContext = dbContext;
-    }
+    public DataStateBuilder(GameboardDbContext dbContext) => _DbContext = dbContext;
 
     public IDataStateBuilder Add<TEntity>(TEntity entity, Action<TEntity>? entityBuilder = null) where TEntity : class, IEntity
     {

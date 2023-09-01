@@ -3,8 +3,7 @@
 
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.ApiKeys;
-using Gameboard.Api.Features.Users;
+using Gameboard.Api.Services;
 
 namespace Gameboard.Api.Validators
 {
@@ -12,11 +11,11 @@ namespace Gameboard.Api.Validators
     public class UserValidator : IModelValidator
     {
         private readonly INowService _now;
-        private readonly IUserStore _store;
+        private readonly IStore<Data.User> _store;
 
         public UserValidator(
             INowService now,
-            IUserStore store
+            IStore<Data.User> store
         )
         {
             _now = now;
@@ -28,9 +27,6 @@ namespace Gameboard.Api.Validators
             if (model is Entity)
                 return _validate(model as Entity);
 
-            if (model is NewUser)
-                return _validate(model as NewUser);
-
             if (model is ChangedUser)
                 return _validate(model as ChangedUser);
 
@@ -39,7 +35,7 @@ namespace Gameboard.Api.Validators
 
         private async Task _validate(Entity model)
         {
-            if ((await Exists(model.Id)).Equals(false))
+            if (!await _store.Exists(model.Id))
                 throw new ResourceNotFound<User>(model.Id);
 
             await Task.CompletedTask;
@@ -50,11 +46,6 @@ namespace Gameboard.Api.Validators
             if ((await Exists(model.Id)).Equals(false))
                 throw new ResourceNotFound<User>(model.Id);
 
-            await Task.CompletedTask;
-        }
-
-        private async Task _validate(NewUser model)
-        {
             await Task.CompletedTask;
         }
 

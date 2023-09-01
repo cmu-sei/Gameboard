@@ -11,7 +11,8 @@ namespace Microsoft.Extensions.DependencyInjection
 {
     public static class DataStartupExtensions
     {
-        public static IServiceCollection AddGameboardData(
+        public static IServiceCollection AddGameboardData
+        (
             this IServiceCollection services,
             string provider,
             string connstr
@@ -19,7 +20,6 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             switch (provider.ToLower())
             {
-
                 case "sqlserver":
                     services.AddDbContext<GameboardDbContext, GameboardDbContextSqlServer>(
                         builder => builder.UseSqlServer(connstr)
@@ -30,8 +30,8 @@ namespace Microsoft.Extensions.DependencyInjection
                     services.AddDbContext<GameboardDbContext, GameboardDbContextPostgreSQL>(
                         builder => builder.UseNpgsql(connstr)
                     );
-                    break;
 
+                    break;
                 default:
                     services.AddDbContext<GameboardDbContext, GameboardDbContextInMemory>(
                         builder => builder.UseInMemoryDatabase("Gameboard_Db")

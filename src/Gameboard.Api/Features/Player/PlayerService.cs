@@ -4,14 +4,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Teams;
-using MediatR;
+using Gameboard.Api.Hubs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -19,61 +22,62 @@ namespace Gameboard.Api.Services;
 
 public class PlayerService
 {
+    private readonly IPracticeChallengeScoringListener _practiceChallengeScoringListener;
+    private readonly TimeSpan _idmapExpiration = new(0, 30, 0);
+    private readonly INowService _now;
+    private readonly IPracticeService _practiceService;
+
     CoreOptions CoreOptions { get; }
     ChallengeService ChallengeService { get; set; }
     IPlayerStore Store { get; }
     IGameService GameService { get; }
     IGameStore GameStore { get; }
-    IGameHubBus GameHubBus { get; set; }
     IGuidService GuidService { get; }
-    IMediator MediatorBus { get; }
     IInternalHubBus HubBus { get; }
     ITeamService TeamService { get; }
-    IUserStore UserStore { get; }
     IMapper Mapper { get; }
     IMemoryCache LocalCache { get; }
-    TimeSpan _idmapExpiration = new TimeSpan(0, 30, 0);
-    GameEngineService GameEngine { get; }
+    IGameEngineService GameEngine { get; }
 
     public PlayerService(
-        CoreOptions coreOptions,
         ChallengeService challengeService,
+        CoreOptions coreOptions,
         IGuidService guidService,
-        IMediator mediator,
+        INowService now,
         IPlayerStore store,
-        IUserStore userStore,
-        IGameHubBus gameHubBus,
         IGameService gameService,
         IGameStore gameStore,
         IInternalHubBus hubBus,
+        IPracticeChallengeScoringListener practiceChallengeScoringListener,
+        IPracticeService practiceService,
         ITeamService teamService,
         IMapper mapper,
         IMemoryCache localCache,
-        GameEngineService gameEngine
+        IGameEngineService gameEngine
     )
     {
-        CoreOptions = coreOptions;
         ChallengeService = challengeService;
+        CoreOptions = coreOptions;
         GameService = gameService;
         GuidService = guidService;
-        MediatorBus = mediator;
-        GameHubBus = gameHubBus;
+        _practiceChallengeScoringListener = practiceChallengeScoringListener;
+        _practiceService = practiceService;
+        _now = now;
         HubBus = hubBus;
         Store = store;
         GameStore = gameStore;
         TeamService = teamService;
-        UserStore = userStore;
         Mapper = mapper;
         LocalCache = localCache;
         GameEngine = gameEngine;
     }
 
-    public async Task<Player> Enroll(NewPlayer model, User actor)
+    public async Task<Player> Enroll(NewPlayer model, User actor, CancellationToken cancellationToken)
     {
         var game = await GameStore.Retrieve(model.GameId);
 
         if (game.IsPracticeMode)
-            return await RegisterPracticeSession(model);
+            return await RegisterPracticeSession(model, cancellationToken);
 
         if (!actor.IsRegistrar && !game.RegistrationActive)
             throw new RegistrationIsClosed(model.GameId);
@@ -169,9 +173,8 @@ public class PlayerService
             .Include(p => p.Game)
             .SingleAsync(p => p.Id == args.PlayerId);
 
-        // unlike unenroll, we archive the entire team's challenges, but only if this reset is manual and we're not unenrolling them
-        if (args.IsManualReset && !args.UnenrollTeam)
-            await ChallengeService.ArchiveTeamChallenges(player.TeamId);
+        // always archive challenges
+        await ChallengeService.ArchiveTeamChallenges(player.TeamId);
 
         // delete the entire team if requested
         if (args.UnenrollTeam)
@@ -268,65 +271,65 @@ public class PlayerService
             await Store.DbContext.SaveChangesAsync();
         }
 
-        var asViewModel = Mapper.Map<Api.Player>(player);
+        var asViewModel = Mapper.Map<Player>(player);
         await HubBus.SendTeamSessionStarted(asViewModel, actor);
 
         return asViewModel;
     }
 
-    public async Task<Player> AdjustSessionEnd(SessionChangeRequest model, User actor)
-    {
-        var team = await Store.ListTeam(model.TeamId).ToArrayAsync();
-        var sudo = actor.IsRegistrar;
+    // public async Task<Player> AdjustSessionEnd(SessionChangeRequest model, User actor, CancellationToken cancellationToken)
+    // {
+    //     var team = await Store.ListTeam(model.TeamId).ToArrayAsync(cancellationToken);
+    //     var sudo = actor.IsRegistrar;
 
-        var manager = team.FirstOrDefault(p =>
-            p.Role == PlayerRole.Manager
-        );
+    //     var manager = team.FirstOrDefault(p => p.Role == PlayerRole.Manager);
 
-        if (sudo.Equals(false) && manager.IsCompetition)
-            throw new ActionForbidden();
+    //     if (sudo.Equals(false) && manager.IsCompetition)
+    //         throw new ActionForbidden();
 
-        // auto increment for practice sessions
-        if (manager.IsPractice)
-        {
-            DateTimeOffset now = DateTimeOffset.UtcNow;
-            // end session now or extend by configured amount
-            model.SessionEnd = model.SessionEnd.Year == 1
-                ? DateTimeOffset.UtcNow
-                : DateTimeOffset.UtcNow.AddMinutes(manager.SessionMinutes)
-            ;
-            if (CoreOptions.MaxPracticeSessionMinutes > 0)
-            {
-                var maxTime = manager.SessionBegin.AddMinutes(CoreOptions.MaxPracticeSessionMinutes);
-                if (model.SessionEnd > maxTime)
-                    model.SessionEnd = maxTime;
-            }
-        }
+    //     // auto increment for practice sessions
+    //     if (manager.IsPractice)
+    //     {
+    //         DateTimeOffset now = DateTimeOffset.UtcNow;
+    //         var settings = await _practiceService.GetSettings(cancellationToken);
 
-        foreach (var player in team)
-            player.SessionEnd = model.SessionEnd;
+    //         // end session now or extend by one hour (hard value for now, added to practice settings later)
+    //         model.SessionEnd = model.SessionEnd.Year == 1
+    //             ? DateTimeOffset.UtcNow
+    //             : DateTimeOffset.UtcNow.AddMinutes(60)
+    //         ;
+    //         if (settings.MaxPracticeSessionLengthMinutes.HasValue)
+    //         {
+    //             var maxTime = manager.SessionBegin.AddMinutes(settings.MaxPracticeSessionLengthMinutes.Value);
+    //             if (model.SessionEnd > maxTime)
+    //                 model.SessionEnd = maxTime;
+    //         }
+    //     }
 
-        await Store.Update(team);
+    //     foreach (var player in team)
+    //         player.SessionEnd = model.SessionEnd;
 
-        // push gamespace extension
-        var changes = await Store.DbContext.Challenges
-            .Where(c => c.TeamId == manager.TeamId)
-            .Select(c => GameEngine.ExtendSession(c, model.SessionEnd))
-            .ToArrayAsync();
+    //     await Store.Update(team);
 
-        await Task.WhenAll(changes);
+    //     // push gamespace extension
+    //     var changes = await Store.DbContext.Challenges
+    //         .Where(c => c.TeamId == manager.TeamId)
+    //         .Select(c => GameEngine.ExtendSession(c, model.SessionEnd))
+    //         .ToArrayAsync();
 
-        var mappedManager = Mapper.Map<Api.Player>(manager);
-        await HubBus.SendTeamUpdated(mappedManager, actor);
-        return mappedManager;
-    }
+    //     await Task.WhenAll(changes);
+
+    //     var mappedManager = Mapper.Map<Player>(manager);
+    //     await HubBus.SendTeamUpdated(mappedManager, actor);
+    //     return mappedManager;
+    // }
 
     public async Task<Player[]> List(PlayerDataFilter model, bool sudo = false)
     {
         if (!sudo && !model.WantsGame && !model.WantsTeam)
-            return new Player[] { };
+            return Array.Empty<Player>();
 
-        var q = _List(model);
+        var q = BuildListQuery(model);
 
         return await Mapper.ProjectTo<Player>(q).ToArrayAsync();
     }
@@ -334,7 +337,7 @@ public class PlayerService
     public async Task<Standing[]> Standings(PlayerDataFilter model)
     {
         if (model.gid.IsEmpty())
-            return new Standing[] { };
+            return Array.Empty<Standing>();
 
         model.Filter = model.Filter
             .Append(PlayerDataFilter.FilterScoredOnly)
@@ -343,12 +346,12 @@ public class PlayerService
 
         model.mode = PlayerMode.Competition.ToString();
 
-        var q = _List(model);
+        var q = BuildListQuery(model);
 
         return await Mapper.ProjectTo<Standing>(q).ToArrayAsync();
     }
 
-    private IQueryable<Data.Player> _List(PlayerDataFilter model)
+    private IQueryable<Data.Player> BuildListQuery(PlayerDataFilter model)
     {
         var ts = DateTimeOffset.UtcNow;
 
@@ -396,8 +399,6 @@ public class PlayerService
 
         if (model.WantsScored)
             q = q.WhereIsScoringPlayer();
-
-
 
         if (model.Term.NotEmpty())
         {
@@ -486,15 +487,13 @@ public class PlayerService
 
         var player = await Store.DbSet.FirstOrDefaultAsync(p => p.Id == model.PlayerId);
 
-        if (player == null)
+        if (player is null)
         {
             throw new ResourceNotFound<Player>(model.PlayerId);
         }
 
         if (player.GameId != manager.GameId)
-        {
             throw new NotYetRegistered(player.Id, manager.GameId);
-        }
 
         if (manager is not Data.Player)
             throw new InvalidInvitationCode(model.Code, "Couldn't find the manager record.");
@@ -671,11 +670,15 @@ public class PlayerService
         await Store.Update(allteams);
     }
 
+    public Task<Player> AdjustSessionEnd(SessionChangeRequest model, User actor, CancellationToken cancellationToken)
+        => _practiceChallengeScoringListener.AdjustSessionEnd(model, actor, cancellationToken);
+
     public async Task<PlayerCertificate> MakeCertificate(string id)
     {
         var player = await Store.List()
             .Include(p => p.Game)
             .Include(p => p.User)
+                .ThenInclude(u => u.PublishedCompetitiveCertificates)
             .FirstOrDefaultAsync(p => p.Id == id);
 
         var playerCount = await Store.DbSet
@@ -699,7 +702,9 @@ public class PlayerService
         var completedSessions = await Store.List()
             .Include(p => p.Game)
             .Include(p => p.User)
-            .Where(
+                .ThenInclude(u => u.PublishedCompetitiveCertificates)
+            .Where
+            (
                 p => p.UserId == uid &&
                 p.SessionEnd > DateTimeOffset.MinValue &&
                 p.Game.GameEnd < now &&
@@ -724,7 +729,7 @@ public class PlayerService
         )).ToArray();
     }
 
-    private Api.PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount)
+    private PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount)
     {
         string certificateHTML = player.Game.CertificateTemplate;
         if (certificateHTML.IsEmpty())
@@ -745,18 +750,24 @@ public class PlayerService
         return new Api.PlayerCertificate
         {
             Game = Mapper.Map<Game>(player.Game),
+            PublishedOn = player.User.PublishedCompetitiveCertificates.FirstOrDefault(c => c.GameId == player.Game.Id)?.PublishedOn,
             Player = Mapper.Map<Player>(player),
             Html = certificateHTML
         };
     }
 
-    private async Task<Player> RegisterPracticeSession(NewPlayer model)
+    private async Task<Player> RegisterPracticeSession(NewPlayer model, CancellationToken cancellationToken)
     {
+        // load practice settings
+        var settings = await _practiceService.GetSettings(cancellationToken);
+
         // check for existing sessions
+        var nowStamp = _now.Get();
+
         var players = await Store.DbContext.Players.Where(p =>
             p.UserId == model.UserId &&
             p.Mode == PlayerMode.Practice &&
-            p.SessionEnd > DateTimeOffset.UtcNow
+            p.SessionEnd > nowStamp
         ).ToArrayAsync();
 
         if (players.Any(p => p.GameId == model.GameId))
@@ -775,21 +786,20 @@ public class PlayerService
             throw new GamespaceLimitReached();
 
         // don't exceed global configured limit
-        if (CoreOptions.MaxPracticeSessions > 0)
+        if (settings.MaxConcurrentPracticeSessions.HasValue)
         {
             int count = await Store.DbSet.CountAsync(p =>
                 p.Mode == PlayerMode.Practice &&
-                p.SessionEnd > DateTimeOffset.UtcNow
-            );
+                p.SessionEnd > nowStamp, cancellationToken);
 
-            if (count >= CoreOptions.MaxPracticeSessions)
-                throw new PracticeSessionLimitReached(model.UserId, count, CoreOptions.MaxPracticeSessions);
+            if (count >= settings.MaxConcurrentPracticeSessions.Value)
+                throw new PracticeSessionLimitReached(model.UserId, count, settings.MaxConcurrentPracticeSessions.Value);
         }
 
-        var entity = await InitializePlayer(model, CoreOptions.PracticeSessionMinutes);
+        var entity = await InitializePlayer(model, settings.DefaultPracticeSessionLengthMinutes);
 
         // start session
-        entity.SessionBegin = DateTimeOffset.UtcNow;
+        entity.SessionBegin = nowStamp;
         entity.SessionEnd = entity.SessionBegin.AddMinutes(entity.SessionMinutes);
         entity.Mode = PlayerMode.Practice;
 
@@ -809,6 +819,7 @@ public class PlayerService
         entity.Name = user.ApprovedName;
         entity.Sponsor = user.Sponsor;
         entity.SessionMinutes = duration;
+        entity.WhenCreated = _now.Get();
 
         return entity;
     }

@@ -1,10 +1,10 @@
 using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
-using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
-using MediatR;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Api.Tests.Unit;
@@ -14,31 +14,31 @@ public class PlayerServiceTests
     class PlayerServiceTestable : PlayerService
     {
         private PlayerServiceTestable(
-            CoreOptions coreOptions,
             ChallengeService challengeService,
+            CoreOptions coreOptions,
             IPlayerStore store,
-            IUserStore userStore,
-            IGameHubBus gameHubBus,
             IGameService gameService,
             IGameStore gameStore,
             IGuidService guidService,
-            IMediator mediator,
             IInternalHubBus hubBus,
+            IPracticeChallengeScoringListener practiceChallengeScoringListener,
+            IPracticeService practiceService,
+            INowService now,
             ITeamService teamService,
             IMapper mapper,
             IMemoryCache localCache,
             GameEngineService gameEngine) : base
             (
-                coreOptions,
                 challengeService,
+                coreOptions,
                 guidService,
-                mediator,
+                now,
                 store,
-                userStore,
-                gameHubBus,
                 gameService,
                 gameStore,
                 hubBus,
+                practiceChallengeScoringListener,
+                practiceService,
                 teamService,
                 mapper,
                 localCache,
@@ -52,13 +52,13 @@ public class PlayerServiceTests
             CoreOptions? coreOptions = null,
             ChallengeService? challengeService = null,
             IPlayerStore? store = null,
-            IUserStore? userStore = null,
-            IGameHubBus? gameHubBus = null,
             IGameService? gameService = null,
             IGameStore? gameStore = null,
             IGuidService? guidService = null,
-            IMediator? mediator = null,
+            INowService? now = null,
             IInternalHubBus? hubBus = null,
+            IPracticeChallengeScoringListener? practiceChallengeScoringListener = null,
+            IPracticeService? practiceService = null,
             ITeamService? teamService = null,
             IMapper? mapper = null,
             IMemoryCache? localCache = null,
@@ -66,16 +66,16 @@ public class PlayerServiceTests
         {
             return new PlayerService
             (
-                coreOptions ?? A.Fake<CoreOptions>(),
                 challengeService ?? A.Fake<ChallengeService>(),
+                coreOptions ?? A.Fake<CoreOptions>(),
                 guidService ?? A.Fake<IGuidService>(),
-                mediator ?? A.Fake<IMediator>(),
+                now ?? A.Fake<INowService>(),
                 store ?? A.Fake<IPlayerStore>(),
-                userStore ?? A.Fake<IUserStore>(),
-                gameHubBus ?? A.Fake<IGameHubBus>(),
                 gameService ?? A.Fake<GameService>(),
                 gameStore ?? A.Fake<IGameStore>(),
                 hubBus ?? A.Fake<IInternalHubBus>(),
+                practiceChallengeScoringListener ?? A.Fake<IPracticeChallengeScoringListener>(),
+                practiceService ?? A.Fake<IPracticeService>(),
                 teamService ?? A.Fake<ITeamService>(),
                 mapper ?? A.Fake<IMapper>(),
                 localCache ?? A.Fake<IMemoryCache>(),
@@ -106,7 +106,7 @@ public class PlayerServiceTests
         var fakeStore = A.Fake<IPlayerStore>();
         var fakePlayers = new Api.Data.Player[]
         {
-            new Api.Data.Player
+            new Data.Player
             {
                 PartialCount = 1,
                 Game = new Api.Data.Game
@@ -138,12 +138,12 @@ public class PlayerServiceTests
         // arrange
         var userId = fixture.Create<string>();
         var fakeStore = A.Fake<IPlayerStore>();
-        var fakePlayers = new Api.Data.Player[]
+        var fakePlayers = new Data.Player[]
         {
-            new Api.Data.Player
+            new Data.Player
             {
                 PartialCount = 0,
-                Game = new Api.Data.Game
+                Game = new Data.Game
                 {
                     CertificateTemplate = fixture.Create<string>(),
                     GameEnd = DateTimeOffset.Now - TimeSpan.FromDays(1)
@@ -151,7 +151,7 @@ public class PlayerServiceTests
                 Score = 1,
                 SessionEnd = DateTimeOffset.Now - TimeSpan.FromDays(2),
                 UserId = userId,
-                User = new Api.Data.User { Id = userId }
+                User = new Data.User { Id = userId }
             }
         }.ToList().BuildMock();
 

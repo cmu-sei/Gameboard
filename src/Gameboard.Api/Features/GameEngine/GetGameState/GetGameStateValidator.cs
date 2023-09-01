@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Structure.MediatR;
 using Microsoft.EntityFrameworkCore;
 

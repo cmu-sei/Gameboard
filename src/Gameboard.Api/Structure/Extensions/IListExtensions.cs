@@ -7,7 +7,6 @@ public static class IListExtensions
 {
     public static IList<TItem> AddIf<TItem>(this IList<TItem> list, TItem item, Func<TItem, bool> condition) where TItem : class
     {
-        var conditionResult = condition(item);
         if (condition(item))
             list.Add(item);
 

@@ -152,6 +152,25 @@
                 "EF: Undo Migration (MS)"
             ],
             "problemMatcher": []
+        },
+        {
+            "label": "EF: Update Database (PG)",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "build"
+            ],
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "ef",
+                "database",
+                "update",
+                "--project",
+                "${workspaceFolder}/src/Gameboard.Api",
+                "--context",
+                "GameboardDbContextPostgreSql"
+            ],
+            "problemMatcher": []
         }
     ],
     "inputs": [

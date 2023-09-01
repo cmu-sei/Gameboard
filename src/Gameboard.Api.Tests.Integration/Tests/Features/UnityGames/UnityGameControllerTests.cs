@@ -3,17 +3,18 @@ using Gameboard.Api.Features.UnityGames;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class UnityGameControllerTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class UnityGameControllerTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public UnityGameControllerTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public UnityGameControllerTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }
 
-    [Fact]
-    public async Task UnityGameController_CreateChallenge_DoesntReturnGraderKey()
+    [Theory, GbIntegrationAutoData]
+    public async Task UnityGameController_CreateChallenge_DoesntReturnGraderKey(string playerId, string gameId, string teamId)
     {
         // arrange
         await _testContext
@@ -21,21 +22,21 @@ public class UnityGameControllerTests : IClassFixture<GameboardTestContext<Gameb
             {
                 state.Add(state.BuildPlayer(), p =>
                 {
-                    p.Id = "playerId";
+                    p.Id = playerId;
                     p.Game = state.BuildGame(g =>
                     {
-                        g.Id = "gameId";
+                        g.Id = gameId;
                         g.Specs = new List<Data.ChallengeSpec> { state.BuildChallengeSpec() };
                     });
-                    p.TeamId = "teamId";
+                    p.TeamId = teamId;
                 });
             });
 
         var newChallenge = new NewUnityChallenge()
         {
-            GameId = "gameId",
-            PlayerId = "playerId",
-            TeamId = "teamId",
+            GameId = gameId,
+            PlayerId = playerId,
+            TeamId = teamId,
             MaxPoints = 50,
             GamespaceId = "gamespace",
             Vms = new UnityGameVm[]
@@ -49,7 +50,7 @@ public class UnityGameControllerTests : IClassFixture<GameboardTestContext<Gameb
            }
         };
 
-        var httpClient = _testContext.CreateHttpClientWithAuthRole(Api.UserRole.Admin);
+        var httpClient = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
 
         // act
         var challenge = await httpClient

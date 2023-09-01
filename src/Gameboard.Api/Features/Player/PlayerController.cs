@@ -3,10 +3,11 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Features.Games;
-using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
@@ -22,7 +23,6 @@ namespace Gameboard.Api.Controllers
     public class PlayerController : _Controller
     {
         PlayerService PlayerService { get; }
-        IInternalHubBus Hub { get; }
         IMapper Mapper { get; }
         IMediator Mediator { get; }
         ITeamService TeamService { get; set; }
@@ -33,13 +33,11 @@ namespace Gameboard.Api.Controllers
             PlayerValidator validator,
             IMediator mediator,
             PlayerService playerService,
-            IInternalHubBus hub,
             IMapper mapper,
             ITeamService teamService
         ) : base(logger, cache, validator)
         {
             PlayerService = playerService;
-            Hub = hub;
             Mapper = mapper;
             Mediator = mediator;
             TeamService = teamService;
@@ -49,18 +47,20 @@ namespace Gameboard.Api.Controllers
         /// Enrolls a user in a game.
         /// </summary>
         /// <param name="model"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns>A player record which represents an instance of the user playing a given game.</returns>
         [HttpPost("api/player")]
         [Authorize]
-        public async Task<Player> Enroll([FromBody] NewPlayer model)
+        public async Task<Player> Enroll([FromBody] NewPlayer model, CancellationToken cancellationToken)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsRegistrar,
                 () => model.UserId == Actor.Id
             );
 
             await Validate(model);
-            return await PlayerService.Enroll(model, Actor);
+            return await PlayerService.Enroll(model, Actor, cancellationToken);
         }
 
         /// <summary>
@@ -133,10 +133,11 @@ namespace Gameboard.Api.Controllers
         /// Change player session
         /// </summary>
         /// <param name="model"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpPut("api/team/session")]
         [Authorize]
-        public async Task UpdateSession([FromBody] SessionChangeRequest model)
+        public async Task UpdateSession([FromBody] SessionChangeRequest model, CancellationToken cancellationToken)
         {
             await Validate(model);
 
@@ -145,7 +146,7 @@ namespace Gameboard.Api.Controllers
                 () => IsSelf(model.TeamId).Result
             );
 
-            await PlayerService.AdjustSessionEnd(model, Actor);
+            await PlayerService.AdjustSessionEnd(model, Actor, cancellationToken);
         }
 
         /// <summary>
@@ -232,7 +233,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<IEnumerable<TeamChallenge>> GetTeamChallenges([FromRoute] string id)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsAdmin,
                 () => Actor.IsDirector,
                 () => Actor.IsObserver
@@ -284,10 +286,7 @@ namespace Gameboard.Api.Controllers
         public async Task<BoardPlayer> GetBoard([FromRoute] string id)
         {
             await Validate(new Entity { Id = id });
-
-            AuthorizeAny(
-                () => IsSelf(id).Result
-            );
+            AuthorizeAny(() => IsSelf(id).Result);
 
             return await PlayerService.LoadBoard(id);
         }
@@ -343,7 +342,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task PromoteToManager(string teamId, string playerId, [FromBody] PromoteToManagerRequest promoteRequest)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsRegistrar,
                 () => PlayerService.Retrieve(promoteRequest.CurrentManagerPlayerId).Result.UserId == Actor.Id
             );

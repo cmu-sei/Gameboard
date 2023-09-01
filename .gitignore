@@ -4,11 +4,13 @@ appsettings.Development.*
 *.csproj.user
 
 # compiled output
+*/**/bin
+*/**/obj
+/bin
+/obj
 /dist
 /tmp
 /out-tsc
-# Only exists if Bazel was run
-/bazel-out
 
 # dependencies
 /node_modules
@@ -41,3 +43,7 @@ Thumbs.db
 
 # vs code launch (allow for end dev customization)
 .vscode/launch.json
+
+# git-kept
+src/Gameboard.Api/wwwroot/temp/*
+!.gitkeep

@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Services;
@@ -26,7 +25,6 @@ namespace Gameboard.Api.Controllers
         GameService GameService { get; }
         public CoreOptions Options { get; }
         public IHostEnvironment Env { get; }
-        private readonly IHttpClientFactory HttpClientFactory;
         private readonly IMediator _mediator;
 
         public GameController(
@@ -36,14 +34,12 @@ namespace Gameboard.Api.Controllers
             GameValidator validator,
             CoreOptions options,
             IMediator mediator,
-            IHostEnvironment env,
-            IHttpClientFactory factory
+            IHostEnvironment env
         ) : base(logger, cache, validator)
         {
             GameService = gameService;
             Options = options;
             Env = env;
-            HttpClientFactory = factory;
             _mediator = mediator;
         }
 
@@ -114,7 +110,6 @@ namespace Gameboard.Api.Controllers
         public async Task Delete([FromRoute] string id)
         {
             await Validate(new Entity { Id = id });
-
             await GameService.Delete(id);
         }
 
@@ -128,6 +123,13 @@ namespace Gameboard.Api.Controllers
         public async Task<IEnumerable<Game>> List([FromQuery] GameSearchFilter model)
         {
             return await GameService.List(model, Actor.IsDesigner || Actor.IsTester);
+        }
+
+        [HttpGet("api/games/search")]
+        [AllowAnonymous]
+        public async Task<IEnumerable<GameSearchResult>> Search([FromQuery] GameSearchQuery model)
+        {
+            return await GameService.Search(model);
         }
 
         /// <summary>
@@ -145,9 +147,7 @@ namespace Gameboard.Api.Controllers
         [HttpGet("/api/game/{gameId}/ready")]
         [Authorize]
         public async Task<SyncStartState> IsGameReady(string gameId)
-        {
-            return await _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
-        }
+            => await _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
 
         [HttpPost("/api/game/import")]
         [Authorize(AppConstants.DesignerPolicy)]

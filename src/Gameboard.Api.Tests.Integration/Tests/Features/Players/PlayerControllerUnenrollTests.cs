@@ -5,11 +5,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class PlayerControllerUnenrollTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public PlayerControllerUnenrollTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public PlayerControllerUnenrollTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }
@@ -23,7 +24,7 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext<
             {
                 state.AddGame(g =>
                 {
-                    g.Players = new Api.Data.Player[]
+                    g.Players = new Data.Player[]
                     {
                         state.BuildPlayer(p =>
                         {
@@ -44,7 +45,7 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext<
                                 u.Id = memberUserId;
                                 u.Role = UserRole.Member;
                             });
-                            p.Challenges = new Api.Data.Challenge[]
+                            p.Challenges = new Data.Challenge[]
                             {
                                 state.BuildChallenge(c =>
                                 {
