@@ -69,7 +69,7 @@ public class ReportsService : IReportsService
             {
                 Name = "Enrollment",
                 Key = ReportKey.Enrollment,
-                Description = "View a summary of player enrollment - who enrolled when, which sponsors do they a represent, and how many of them actually played challenges.",
+                Description = "View a summary of player enrollment - who enrolled when, which sponsors do they represent, and how many of them actually played challenges.",
                 ExampleFields = new string[]
                 {
                     "Player Info",
