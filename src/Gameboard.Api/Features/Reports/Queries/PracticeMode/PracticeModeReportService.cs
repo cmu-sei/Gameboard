@@ -109,7 +109,6 @@ internal class PracticeModeReportService : IPracticeModeReportService
 
         // query for the raw results
         var challenges = await query.ToListAsync(cancellationToken);
-        var challengesOfInterest = challenges.Where(c => c.SpecId == "126b262bfe274587a35c026416f803b2");
 
         // also load challenge spec data for these challenges (spec can't be joined)
         var specs = await _store
