@@ -4,7 +4,7 @@ using Gameboard.Api.Structure.MediatR.Authorizers;
 
 namespace Gameboard.Api.Features.Reports;
 
-internal class ReportsQueryValidator<T> : IGameboardRequestValidator<IReportQuery>
+internal class ReportsQueryValidator : IGameboardRequestValidator<IReportQuery>
 {
     private readonly UserRoleAuthorizer _roleAuthorizer;
 
@@ -15,7 +15,7 @@ internal class ReportsQueryValidator<T> : IGameboardRequestValidator<IReportQuer
 
     public Task Validate(IReportQuery request)
     {
-        _roleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Director, UserRole.Admin, UserRole.Support };
+        _roleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Registrar, UserRole.Support };
         _roleAuthorizer.Authorize();
 
         return Task.CompletedTask;
