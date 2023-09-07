@@ -178,7 +178,7 @@ public class ChallengeService : _Service
 
     public async Task<ChallengeSummary[]> List(SearchFilter model = null)
     {
-        var q = Store.List(model?.Term ?? null);
+        var q = Store.List(model?.Term?.Trim() ?? null);
 
         // filter out challenge records with no state used to give starting score to player
         q = q.Where(p => p.Name != "_initialscore_" && p.State != null);
@@ -638,8 +638,9 @@ public class ChallengeService : _Service
         challenge.State = _jsonService.Serialize(state);
         challenge.StartTime = state.StartTime;
         challenge.EndTime = state.EndTime;
+        challenge.LastSyncTime = _now.Get();
 
-        challenge.Events.Add(new Data.ChallengeEvent
+        challenge.Events.Add(new ChallengeEvent
         {
             Id = _guids.GetGuid(),
             UserId = actorUserId,
