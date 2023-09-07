@@ -55,7 +55,7 @@ public class ReportsExportController : ControllerBase
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
     }
 
-    [HttpGet("support-report")]
+    [HttpGet("support")]
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> GetSupportReport(SupportReportParameters parameters)
     {
