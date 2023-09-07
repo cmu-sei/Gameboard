@@ -42,14 +42,13 @@ internal class EnrollmentReportService : IEnrollmentReportService
         DateTimeOffset? enrollDateEnd = parameters.EnrollDateEnd.HasValue ? parameters.EnrollDateEnd.Value.ToUniversalTime() : null;
 
         // the fundamental unit of reporting here is really the player record (an "enrollment"), so resolve enrollments that
-        // meet the filter criteria
+        // meet the filter criteria (and have at least one challenge completed in competitive mode)
         var query = _store
             .List<Data.Player>()
             .Include(p => p.Game)
+            .Include(p => p.Challenges.Where(c => c.PlayerMode == PlayerMode.Competition))
             .Include(p => p.User)
-            .Include(p => p.Challenges)
-                .ThenInclude(c => c.AwardedManualBonuses)
-            .Where(p => p.Game.PlayerMode == PlayerMode.Competition);
+            .Where(p => p.Challenges.Any(c => c.PlayerMode == PlayerMode.Competition));
 
         if (enrollDateStart != null)
             query = query
@@ -129,7 +128,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
 
         var teamAndChallengeData = await _store
             .List<Data.Player>()
-            .Include(p => p.Challenges)
+            .Include(p => p.Challenges.Where(c => c.PlayerMode == PlayerMode.Competition))
             .Include(p => p.Game)
             .Include(p => p.User)
             .Where(p => teamIds.Contains(p.TeamId))
