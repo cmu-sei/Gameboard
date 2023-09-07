@@ -241,7 +241,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
         {
             DistinctGameCount = records.Select(r => r.Game.Id).Distinct().Count(),
             DistinctPlayerCount = records.Select(r => r.User.Id).Distinct().Count(),
-            DistinctSponsorCount = usersBySponsor.Keys.Count(),
+            DistinctSponsorCount = usersBySponsor.Keys.Count,
             SponsorWithMostPlayers = sponsorWithMostPlayers,
             DistinctTeamCount = records.Select(p => p.Team.Id).Distinct().Count()
         };
