@@ -7,19 +7,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record PlayersReportExportQuery(PlayersReportQueryParameters Parameters) : IRequest<IEnumerable<PlayersReportExportRecord>>;
+public record PlayersReportExportQuery(PlayersReportQueryParameters Parameters, User ActingUser) : IRequest<IEnumerable<PlayersReportExportRecord>>, IReportQuery;
 
-public class PlayersReportExportHandler : IRequestHandler<PlayersReportExportQuery, IEnumerable<PlayersReportExportRecord>>
+internal class PlayersReportExportHandler : IRequestHandler<PlayersReportExportQuery, IEnumerable<PlayersReportExportRecord>>
 {
+    private readonly ReportsQueryValidator _reportsQueryValidator;
     private readonly IPlayersReportService _reportsService;
 
-    public PlayersReportExportHandler(IPlayersReportService reportsService)
+    public PlayersReportExportHandler(ReportsQueryValidator reportQueryValidator, IPlayersReportService reportsService)
     {
+        _reportsQueryValidator = reportQueryValidator;
         _reportsService = reportsService;
     }
 
     public async Task<IEnumerable<PlayersReportExportRecord>> Handle(PlayersReportExportQuery request, CancellationToken cancellationToken)
     {
+        // validate/authorize
+        await _reportsQueryValidator.Validate(request);
+
+        // base data
         var query = _reportsService.GetPlayersReportBaseQuery(request.Parameters);
 
         return await query.Select(p => new PlayersReportExportRecord
@@ -36,6 +42,6 @@ public class PlayersReportExportHandler : IRequestHandler<PlayersReportExportQue
             PlayerName = p.ApprovedName,
             MaxPossibleScore = p.Game.Specs.Sum(s => s.Points),
             Score = p.Score
-        }).ToArrayAsync();
+        }).ToArrayAsync(cancellationToken);
     }
 }

@@ -38,11 +38,10 @@ public class Store<TEntity> : IStore<TEntity> where TEntity : class, IEntity
     }
 
     public IQueryable<TEntity> ListWithNoTracking()
-        => DbContext.
-            Set<TEntity>()
+        => DbContext
+            .Set<TEntity>()
             .AsNoTracking()
             .AsQueryable();
-
 
     public virtual async Task<TEntity> Create(TEntity entity)
     {

@@ -65,40 +65,37 @@ public class ReportsService : IReportsService
     {
         var reports = new ReportViewModel[]
         {
-            new ReportViewModel
-            {
+            new() {
                 Name = "Enrollment",
                 Key = ReportKey.Enrollment,
                 Description = "View a summary of player enrollment - who enrolled when, which sponsors do they represent, and how many of them actually played challenges.",
                 ExampleFields = new string[]
                 {
-                    "Player Info",
+                    "Player & Sponsor",
                     "Games Enrolled",
-                    "Sessions Launched",
                     "Challenge Performance",
-                    "Sponsor"
                 },
                 ExampleParameters = new string[]
                 {
-                    "Enrollment Date Range",
                     "Season",
                     "Series",
                     "Sponsor",
                     "Track",
-                    "Game & Challenge"
+                    "Game",
+                    "Enrollment Date Range",
                 }
             },
-            new ReportViewModel
-            {
+            new() {
                 Name = "Practice Area",
                 Key = ReportKey.PracticeArea,
                 Description = "Check in on players who are spending free time honing their skills on Gameboard. See which challenges are practiced most, success rates, and which players are logging in to practice.",
                 ExampleFields = new string[]
                 {
                     "Challenge Performance",
-                    "Player Engagement",
+                    "Player Performance",
                     "Scoring",
-                    "Trends"
+                    "Trends",
+                    "Practice vs. Competitive"
                 },
                 ExampleParameters = new string[]
                 {
@@ -110,24 +107,25 @@ public class ReportsService : IReportsService
                     "Sponsor"
                 }
             },
-            new ReportViewModel
-            {
+            new() {
                 Name = "Support",
                 Key = ReportKey.Support,
                 Description = "View a summary of the support tickets that have been created in Gameboard, including closer looks at submission times, ticket categories, and associated challenges.",
                 ExampleFields = new string[]
                 {
-                    "Ticket Category",
+                    "Summary Info",
+                    "Status",
+                    "Label",
                     "Challenge",
                     "Time Windows",
                     "Assignment Info"
                 },
                 ExampleParameters = new string[]
                 {
-                    "Challenge",
+                    "Status & Label",
+                    "Game & Challenge",
                     "Creation Date",
-                    "Ticket Category",
-                    "Time Window",
+                    "Time Since Opened / Updated",
                 }
             },
         };

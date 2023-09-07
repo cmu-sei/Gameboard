@@ -11,13 +11,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record PlayersReportQuery(PlayersReportQueryParameters Parameters) : IRequest<ReportResults<PlayersReportRecord>>;
+public record PlayersReportQuery(PlayersReportQueryParameters Parameters, User ActingUser) : IRequest<ReportResults<PlayersReportRecord>>, IReportQuery;
 
 internal class GetPlayersReportQueryHandler : IRequestHandler<PlayersReportQuery, ReportResults<PlayersReportRecord>>
 {
     private readonly IMapper _mapper;
     private readonly INowService _nowService;
     private readonly IPlayersReportService _reportService;
+    private readonly ReportsQueryValidator _reportsQueryValidator;
     private readonly IStore<Data.Sponsor> _sponsorStore;
 
     public GetPlayersReportQueryHandler
@@ -25,17 +26,22 @@ internal class GetPlayersReportQueryHandler : IRequestHandler<PlayersReportQuery
         IMapper mapper,
         INowService now,
         IPlayersReportService reportService,
+        ReportsQueryValidator reportsQueryValidator,
         IStore<Data.Sponsor> sponsorStore
     )
     {
         _mapper = mapper;
         _nowService = now;
+        _reportsQueryValidator = reportsQueryValidator;
         _reportService = reportService;
         _sponsorStore = sponsorStore;
     }
 
     public async Task<ReportResults<PlayersReportRecord>> Handle(PlayersReportQuery request, CancellationToken cancellationToken)
     {
+        // validate/authorize
+        await _reportsQueryValidator.Validate(request);
+
         var query = _reportService.GetPlayersReportBaseQuery(request.Parameters);
         return await TransformQueryToResults(query);
     }

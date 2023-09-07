@@ -3,7 +3,6 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -143,7 +142,7 @@ namespace Gameboard.Api.Controllers
 
             AuthorizeAny(
                 () => Actor.IsRegistrar,
-                () => IsSelf(model.TeamId).Result
+                () => TeamService.IsOnTeam(model.TeamId, Actor.Id).Result
             );
 
             await PlayerService.AdjustSessionEnd(model, Actor, cancellationToken);
