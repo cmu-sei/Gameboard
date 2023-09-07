@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -7,6 +8,7 @@ using Gameboard.Api.Features.Player;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Api.Features.Teams;
 
@@ -15,6 +17,7 @@ public interface ITeamService
     Task<bool> GetExists(string teamId);
     Task<int> GetSessionCount(string teamId, string gameId);
     Task<Team> GetTeam(string id);
+    Task<bool> IsOnTeam(string teamId, string userId);
     Task<Data.Player> ResolveCaptain(string teamId);
     Task<Data.Player> ResolveCaptain(IEnumerable<Data.Player> players);
     Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser);
@@ -24,6 +27,7 @@ public interface ITeamService
 internal class TeamService : ITeamService
 {
     private readonly IMapper _mapper;
+    private readonly IMemoryCache _memCache;
     private readonly INowService _now;
     private readonly IInternalHubBus _teamHubService;
     private readonly IPlayerStore _store;
@@ -31,12 +35,14 @@ internal class TeamService : ITeamService
     public TeamService
     (
         IMapper mapper,
+        IMemoryCache memCache,
         INowService now,
         IInternalHubBus teamHubService,
         IPlayerStore store
     )
     {
         _mapper = mapper;
+        _memCache = memCache;
         _now = now;
         _store = store;
         _teamHubService = teamHubService;
@@ -72,6 +78,24 @@ internal class TeamService : ITeamService
         team.TeamSponsors = string.Join("|", players.Select(p => p.Sponsor));
 
         return team;
+    }
+
+    public async Task<bool> IsOnTeam(string teamId, string userId)
+    {
+        // simple serialize to indicate whether this user and team are a match
+        var cacheKey = $"{teamId}|{userId}";
+
+        if (_memCache.TryGetValue(cacheKey, out bool cachedIsOnTeam))
+            return cachedIsOnTeam;
+
+        var teamUserIds = await _store
+            .ListTeam(teamId)
+            .Select(p => p.UserId).ToArrayAsync();
+
+        var isOnTeam = teamUserIds.Contains(userId);
+        _memCache.Set(cacheKey, isOnTeam, TimeSpan.FromMinutes(30));
+
+        return isOnTeam;
     }
 
     public async Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser)

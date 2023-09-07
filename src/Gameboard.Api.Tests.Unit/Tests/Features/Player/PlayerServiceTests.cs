@@ -26,8 +26,7 @@ public class PlayerServiceTests
             INowService now,
             ITeamService teamService,
             IMapper mapper,
-            IMemoryCache localCache,
-            GameEngineService gameEngine) : base
+            IMemoryCache localCache) : base
             (
                 challengeService,
                 coreOptions,
@@ -41,8 +40,7 @@ public class PlayerServiceTests
                 practiceService,
                 teamService,
                 mapper,
-                localCache,
-                gameEngine
+                localCache
             )
         {
         }
@@ -78,8 +76,7 @@ public class PlayerServiceTests
                 practiceService ?? A.Fake<IPracticeService>(),
                 teamService ?? A.Fake<ITeamService>(),
                 mapper ?? A.Fake<IMapper>(),
-                localCache ?? A.Fake<IMemoryCache>(),
-                gameEngine ?? A.Fake<GameEngineService>()
+                localCache ?? A.Fake<IMemoryCache>()
             );
         }
     }
