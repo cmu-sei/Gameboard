@@ -288,19 +288,22 @@ internal class PracticeModeReportService : IPracticeModeReportService
                 },
                 MaxPossibleScore = specs[c.Key.SpecId].Points
             },
-            Attempts = c.ToList().Select(attempt => new PracticeModeReportAttempt
-            {
-                Player = new SimpleEntity { Id = attempt.PlayerId, Name = attempt.Player.ApprovedName },
-                Team = teams.ContainsKey(attempt.Player.TeamId) ? teams[attempt.Player.TeamId] : null,
-                Sponsor = ungroupedResults.Sponsors.FirstOrDefault(s => s.LogoFileName == attempt.Player.Sponsor),
-                Start = attempt.StartTime,
-                End = attempt.EndTime,
-                DurationMs = attempt.Player.Time,
-                Result = attempt.Result,
-                Score = attempt.Score,
-                PartiallyCorrectCount = attempt.Player.PartialCount,
-                FullyCorrectCount = attempt.Player.CorrectCount
-            })
+            Attempts = c
+                .ToList()
+                .Select(attempt => new PracticeModeReportAttempt
+                {
+                    Player = new SimpleEntity { Id = attempt.PlayerId, Name = attempt.Player.ApprovedName },
+                    Team = teams.ContainsKey(attempt.Player.TeamId) ? teams[attempt.Player.TeamId] : null,
+                    Sponsor = ungroupedResults.Sponsors.FirstOrDefault(s => s.LogoFileName == attempt.Player.Sponsor),
+                    Start = attempt.StartTime,
+                    End = attempt.EndTime,
+                    DurationMs = attempt.Player.Time,
+                    Result = attempt.Result,
+                    Score = attempt.Score,
+                    PartiallyCorrectCount = attempt.Player.PartialCount,
+                    FullyCorrectCount = attempt.Player.CorrectCount
+                })
+                .OrderBy(a => a.Start)
         });
 
         return new()

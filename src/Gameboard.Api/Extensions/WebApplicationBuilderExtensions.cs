@@ -93,9 +93,9 @@ internal static class WebApplicationBuilderExtensions
         services.AddSignalRHub();
 
         services
-            .AddSingleton<CoreOptions>(_ => settings.Core)
-            .AddSingleton<CrucibleOptions>(_ => settings.Crucible)
-            .AddGameboardData(settings.Database.Provider, settings.Database.ConnectionString)
+            .AddSingleton(_ => settings.Core)
+            .AddSingleton(_ => settings.Crucible)
+            .AddGameboardData(builder.Environment, settings.Database.Provider, settings.Database.ConnectionString)
             .AddGameboardServices(settings)
             .AddConfiguredHttpClients(settings.Core)
             .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath)

@@ -26,7 +26,7 @@ namespace Gameboard.Api
     public class LoggingSettings
     {
         public LogLevel EfCoreLogLevel { get; set; } = LogLevel.Warning;
-        public Boolean EnableHttpLogging { get; set; } = false;
+        public bool EnableHttpLogging { get; set; } = false;
 
         /// <summary>
         /// The maximum number of bytes logged for the request body (in bytes).

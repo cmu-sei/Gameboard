@@ -38,7 +38,7 @@ internal class EnrollmentReportExportHandler : IRequestHandler<EnrollmentReportE
             PlayerId = r.Player.Id,
             PlayerName = r.Player.Name,
             PlayerEnrollDate = r.Player.EnrollDate,
-            PlayerSponsor = r.Player.Sponsor.Name,
+            PlayerSponsor = r.Player.Sponsor?.Name,
 
             // game
             GameId = r.Game.Id,
