@@ -592,7 +592,7 @@ public class PlayerService
             {
                 TeamId = c.TeamId,
                 ApprovedName = c.ApprovedName,
-                Sponsor = c.Sponsor,
+                Sponsor = c.Sponsor.Logo,
                 GameId = c.GameId,
                 SessionBegin = c.SessionBegin,
                 SessionEnd = c.SessionEnd,

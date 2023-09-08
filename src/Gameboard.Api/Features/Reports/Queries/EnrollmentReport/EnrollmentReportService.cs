@@ -150,7 +150,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
                     Id = p.Id,
                     Name = p.ApprovedName,
                     EnrollDate = p.WhenCreated.HasValue() ? p.WhenCreated : null,
-                    Sponsor = sponsors.FirstOrDefault(s => s.LogoFileName == p.Sponsor)
+                    Sponsor = p.Sponsor.ToReportViewModel()
                 },
                 Game = new ReportGameViewModel
                 {
@@ -166,7 +166,10 @@ internal class EnrollmentReportService : IEnrollmentReportService
                     Id = p.TeamId,
                     Name = captain?.Name ?? p.Name,
                     CurrentCaptain = new SimpleEntity { Id = captain?.Id ?? p.Id, Name = captain?.Name ?? p.Name },
-                    Sponsors = sponsors.Where(s => playerTeamSponsorLogos.Contains(s.LogoFileName)).ToArray()
+                    Sponsors = playerTeamChallengeData.Select(p =>
+                    {
+
+                    })
                 },
                 PlayTime = new EnrollmentReportPlayTimeViewModel
                 {
