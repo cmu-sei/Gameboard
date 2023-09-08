@@ -155,6 +155,7 @@ public class ReportsService : IReportsService
 
         var teamPlayers = await _store
             .List<Data.Player>()
+                .Include(p => p.Sponsor)
             .Where(p => playerIds.Contains(p.Id))
             .ToArrayAsync(cancellationToken);
 
@@ -174,11 +175,11 @@ public class ReportsService : IReportsService
                 Players = team.Select(p => new SimpleEntity { Id = p.Id, Name = p.ApprovedName }),
                 Sponsors = team
                     .OrderBy(p => p.IsManager ? 0 : 1)
-                    .Select(p => p.Sponsor.IsEmpty() ? null : new ReportSponsorViewModel
+                    .Select(p => p.Sponsor is null ? null : new ReportSponsorViewModel
                     {
-                        Id = sponsors[p.Sponsor].Id,
-                        Name = sponsors[p.Sponsor].Name,
-                        LogoFileName = p.Sponsor
+                        Id = p.Sponsor.Id,
+                        Name = p.Sponsor.Name,
+                        LogoFileName = p.Sponsor.Logo
                     })
             });
         }

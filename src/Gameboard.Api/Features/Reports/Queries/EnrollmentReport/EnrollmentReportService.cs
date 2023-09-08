@@ -48,6 +48,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
             .Include(p => p.Game)
             .Include(p => p.Challenges.Where(c => c.PlayerMode == PlayerMode.Competition))
             .Include(p => p.User)
+            .Include(p => p.Sponsor)
             .Where(p => p.Challenges.Any(c => c.PlayerMode == PlayerMode.Competition));
 
         if (enrollDateStart != null)
@@ -73,15 +74,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
             query = query.Where(p => trackCriteria.Contains(p.Game.Track.ToLower()));
 
         if (sponsorCriteria.Any())
-        {
-            var sponsors = await _store
-                .List<Data.Sponsor>()
-                .Where(s => sponsorCriteria.Contains(s.Id))
-                .Select(s => s.Logo)
-                .ToArrayAsync(cancellationToken);
-
-            query = query.Where(p => sponsors.Contains(p.Sponsor));
-        }
+            query = query.Where(p => sponsorCriteria.Contains(p.Sponsor.Id));
 
         return query;
     }
@@ -93,17 +86,6 @@ internal class EnrollmentReportService : IEnrollmentReportService
 
         // finalize query - we have to do the rest "client" (application server) side
         var players = await query.ToListAsync(cancellationToken);
-
-        // look up sponsors to build the result set
-        var sponsors = await _store
-            .List<Data.Sponsor>()
-            .Select(s => new ReportSponsorViewModel
-            {
-                Id = s.Id,
-                Name = s.Name,
-                LogoFileName = s.Logo
-            })
-            .ToArrayAsync(cancellationToken);
 
         // This is pretty messy. Here's why:
         //
