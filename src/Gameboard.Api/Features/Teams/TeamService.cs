@@ -194,7 +194,7 @@ internal class TeamService : ITeamService
             return;
 
         var sponsors = string.Join('|', members
-            .Select(p => p.Sponsor)
+            .Select(p => p.Sponsor.Logo)
             .Distinct()
             .ToArray()
         );
