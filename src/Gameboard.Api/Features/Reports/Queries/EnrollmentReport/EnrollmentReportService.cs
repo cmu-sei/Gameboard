@@ -121,17 +121,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
         // To accommodate this, we just group all players by team id, create a dictionary of challenges
         // owned by any player on the team (by TeamId), and report the team's challenges for every player
         // on the team.
-        var teamIds = players
-            .Select(p => p.TeamId)
-            .Distinct()
-            .ToArray();
-
-        var teamAndChallengeData = await _store
-            .List<Data.Player>()
-            .Include(p => p.Challenges.Where(c => c.PlayerMode == PlayerMode.Competition))
-            .Include(p => p.Game)
-            .Include(p => p.User)
-            .Where(p => teamIds.Contains(p.TeamId))
+        var teamChallengeData = players
             .Select(p => new
             {
                 p.Id,
@@ -157,15 +147,15 @@ internal class EnrollmentReportService : IEnrollmentReportService
                 })
             })
             .GroupBy(p => p.TeamId)
-            .ToDictionaryAsync(g => g.Key, g => g.ToList(), cancellationToken);
+            .ToDictionary(g => g.Key, g => g.ToList());
 
         // transform the player records into enrollment report records
         var records = players.Select(p =>
         {
-            var playerTeamChallengeData = teamAndChallengeData[p.TeamId];
+            var playerTeamChallengeData = teamChallengeData[p.TeamId];
             var captain = playerTeamChallengeData.FirstOrDefault(p => p.Role == PlayerRole.Manager);
             var playerTeamSponsorLogos = playerTeamChallengeData.Select(p => p.Sponsor);
-            var challenges = teamAndChallengeData[p.TeamId]
+            var challenges = teamChallengeData[p.TeamId]
                 .SelectMany(c => ChallengeDataToViewModel(c.Challenges))
                 .DistinctBy(c => c.SpecId)
                 .ToArray();
