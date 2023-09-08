@@ -5,21 +5,29 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record ChallengesReportQuery(GetChallengesReportQueryArgs Args) : IRequest<ReportResults<ChallengesReportRecord>>;
+public record ChallengesReportQuery(GetChallengesReportQueryArgs Args, User ActingUser) : IRequest<ReportResults<ChallengesReportRecord>>, IReportQuery;
 
-public class ChallengeReportQueryHandler : IRequestHandler<ChallengesReportQuery, ReportResults<ChallengesReportRecord>>
+internal class ChallengeReportQueryHandler : IRequestHandler<ChallengesReportQuery, ReportResults<ChallengesReportRecord>>
 {
     private readonly INowService _now;
     private readonly IReportsService _reportsService;
+    private readonly ReportsQueryValidator _reportsQueryValidator;
 
-    public ChallengeReportQueryHandler(INowService now, IReportsService reportsService)
+    public ChallengeReportQueryHandler
+    (
+        INowService now,
+        IReportsService reportsService,
+        ReportsQueryValidator reportsQueryValidator
+    )
     {
         _now = now;
         _reportsService = reportsService;
+        _reportsQueryValidator = reportsQueryValidator;
     }
 
     public async Task<ReportResults<ChallengesReportRecord>> Handle(ChallengesReportQuery request, CancellationToken cancellationToken)
     {
+        await _reportsQueryValidator.Validate(request);
         var results = await _reportsService.GetChallengesReportRecords(request.Args);
 
         return new ReportResults<ChallengesReportRecord>

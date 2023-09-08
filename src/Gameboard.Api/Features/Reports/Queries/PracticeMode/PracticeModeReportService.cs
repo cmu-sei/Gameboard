@@ -104,12 +104,11 @@ internal class PracticeModeReportService : IPracticeModeReportService
         // between challenge and spec and the fact that specs are deletable)
         // 
         // so load all spec ids and add a clause which excludes challenges with orphaned specIds
-        var allSpecIds = await _store.List<Data.ChallengeSpec>().Select(s => s.Id).ToArrayAsync();
+        var allSpecIds = await _store.List<Data.ChallengeSpec>().Select(s => s.Id).ToArrayAsync(cancellationToken);
         query = query.Where(c => allSpecIds.Contains(c.SpecId));
 
         // query for the raw results
         var challenges = await query.ToListAsync(cancellationToken);
-        var challengesOfInterest = challenges.Where(c => c.SpecId == "126b262bfe274587a35c026416f803b2");
 
         // also load challenge spec data for these challenges (spec can't be joined)
         var specs = await _store
@@ -162,7 +161,13 @@ internal class PracticeModeReportService : IPracticeModeReportService
 
         return new PracticeModeReportByChallengePerformance
         {
-            Players = (sponsor is null ? attempts : attempts.Where(sponsorConstraint)).Select(a => a.Player.ApprovedName).ToArray(),
+            Players = (sponsor is null ? attempts : attempts.Where(sponsorConstraint)).
+                Select
+                (
+                    a => new SimpleEntity { Id = a.Player.UserId, Name = a.Player.ApprovedName }
+                )
+                .DistinctBy(e => e.Id)
+                .ToArray(),
             TotalAttempts = totalAttempts,
             CompleteSolves = completeSolves,
             ScoreHigh = new decimal(attempts.Select(a => a.Score).Max()),
@@ -283,19 +288,22 @@ internal class PracticeModeReportService : IPracticeModeReportService
                 },
                 MaxPossibleScore = specs[c.Key.SpecId].Points
             },
-            Attempts = c.ToList().Select(attempt => new PracticeModeReportAttempt
-            {
-                Player = new SimpleEntity { Id = attempt.PlayerId, Name = attempt.Player.ApprovedName },
-                Team = teams.ContainsKey(attempt.Player.TeamId) ? teams[attempt.Player.TeamId] : null,
-                Sponsor = ungroupedResults.Sponsors.FirstOrDefault(s => s.LogoFileName == attempt.Player.Sponsor),
-                Start = attempt.StartTime,
-                End = attempt.EndTime,
-                DurationMs = attempt.Player.Time,
-                Result = attempt.Result,
-                Score = attempt.Score,
-                PartiallyCorrectCount = attempt.Player.PartialCount,
-                FullyCorrectCount = attempt.Player.CorrectCount
-            })
+            Attempts = c
+                .ToList()
+                .Select(attempt => new PracticeModeReportAttempt
+                {
+                    Player = new SimpleEntity { Id = attempt.PlayerId, Name = attempt.Player.ApprovedName },
+                    Team = teams.ContainsKey(attempt.Player.TeamId) ? teams[attempt.Player.TeamId] : null,
+                    Sponsor = ungroupedResults.Sponsors.FirstOrDefault(s => s.LogoFileName == attempt.Player.Sponsor),
+                    Start = attempt.StartTime,
+                    End = attempt.EndTime,
+                    DurationMs = attempt.Player.Time,
+                    Result = attempt.Result,
+                    Score = attempt.Score,
+                    PartiallyCorrectCount = attempt.Player.PartialCount,
+                    FullyCorrectCount = attempt.Player.CorrectCount
+                })
+                .OrderBy(a => a.Start)
         });
 
         return new()
@@ -307,7 +315,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
 
     public async Task<PracticeModeReportResults> GetResultsByPlayerModePerformance(PracticeModeReportParameters parameters, CancellationToken cancellationToken)
     {
-        // the "false" argument here includes competitive records, because we're comparing practice vs competitive performance here
+        // the "true" argument here includes competitive records, because we're comparing practice vs competitive performance here
         var ungroupedResults = await BuildUngroupedResults(parameters, true, cancellationToken);
         var allSpecRawScores = await GetSpecRawScores(ungroupedResults.Challenges.Select(c => c.SpecId).ToArray());
 
@@ -316,13 +324,13 @@ internal class PracticeModeReportService : IPracticeModeReportService
             OverallStats = ungroupedResults.OverallStats,
             Records = ungroupedResults
                 .Challenges
-                .GroupBy(r => new { r.Player.UserId })
+                .GroupBy(r => r.Player.UserId)
                 .Select(g =>
                 {
                     return new PracticeModeReportByPlayerModePerformanceRecord
                     {
                         // this is really more of a user entity than a player entity, but the report uses "player" to refer to users on purpose
-                        Player = new SimpleEntity { Id = g.Key.UserId, Name = g.First().Player?.User?.ApprovedName ?? g.First().Player?.ApprovedName },
+                        Player = new SimpleEntity { Id = g.Key, Name = g.First().Player?.User?.ApprovedName ?? g.First().Player?.ApprovedName },
                         Sponsor = ungroupedResults.Sponsors.FirstOrDefault(s => s.LogoFileName == g.FirstOrDefault()?.Player?.User?.Sponsor),
                         PracticeStats = CalculateByPlayerPerformanceModeSummary(true, g.ToList(), allSpecRawScores),
                         CompetitiveStats = CalculateByPlayerPerformanceModeSummary(false, g.ToList(), allSpecRawScores)
@@ -335,6 +343,8 @@ internal class PracticeModeReportService : IPracticeModeReportService
     // the possibility of making the prac/comp thing its own report
     public async Task<PracticeModeReportPlayerModeSummary> GetPlayerModePerformanceSummary(string userId, bool isPractice, CancellationToken cancellationToken)
     {
+        // have to grab the specIds to ensure that no challenges are coming back with orphaned specIds :(
+        var specIds = await _store.List<Data.ChallengeSpec>().Select(s => s.Id).ToArrayAsync(cancellationToken);
         var challenges = await _store
             .List<Data.Challenge>()
                 .Include(c => c.Game)
@@ -342,6 +352,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
                     .ThenInclude(p => p.User)
             .Where(c => c.Player.UserId == userId)
             .Where(c => c.PlayerMode == (isPractice ? PlayerMode.Practice : PlayerMode.Competition))
+            .Where(c => specIds.Contains(c.SpecId))
             .ToListAsync(cancellationToken);
 
         // these will all be the same
@@ -429,7 +440,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
 
     private PracticeModeReportByPlayerModePerformanceRecordModeSummary CalculateByPlayerPerformanceModeSummary(bool isPractice, IEnumerable<Data.Challenge> challenges, IEnumerable<PracticeModeReportByPlayerModePerformanceChallengeScore> percentileTable)
     {
-        var modeChallenges = challenges.Where(c => c.Game.IsPracticeMode == isPractice);
+        var modeChallenges = challenges.Where(c => isPractice == (c.PlayerMode == PlayerMode.Practice));
         var modePercentiles = percentileTable.Where(p => p.IsPractice == isPractice);
         PracticeModeReportByPlayerModePerformanceRecordModeSummary modeStats = null;
 

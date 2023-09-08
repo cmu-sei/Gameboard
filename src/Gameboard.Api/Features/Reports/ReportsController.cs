@@ -35,27 +35,27 @@ public class ReportsController : ControllerBase
 
     [HttpGet("challenges-report")]
     public Task<ReportResults<ChallengesReportRecord>> GetChallengeReport([FromQuery] GetChallengesReportQueryArgs args)
-        => _mediator.Send(new ChallengesReportQuery(args));
+        => _mediator.Send(new ChallengesReportQuery(args, _actingUser));
 
     [HttpGet("enrollment")]
     public Task<ReportResults<EnrollmentReportStatSummary, EnrollmentReportRecord>> GetEnrollmentReport([FromQuery] EnrollmentReportParameters parameters, [FromQuery] PagingArgs paging)
-        => _mediator.Send(new EnrollmentReportQuery(parameters, paging));
+        => _mediator.Send(new EnrollmentReportQuery(parameters, paging, _actingUser));
 
     [HttpGet("enrollment/trend")]
     public Task<IDictionary<DateTimeOffset, EnrollmentReportLineChartGroup>> GetEnrollmentReportLineChart([FromQuery] EnrollmentReportParameters parameters)
-        => _mediator.Send(new EnrollmentReportLineChartQuery(parameters));
+        => _mediator.Send(new EnrollmentReportLineChartQuery(parameters, _actingUser));
 
-    [HttpGet("practice-mode")]
+    [HttpGet("practice-area")]
     public async Task<ReportResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>> GetPracticeModeReport([FromQuery] PracticeModeReportParameters parameters, [FromQuery] PagingArgs paging)
         => await _mediator.Send(new PracticeModeReportQuery(parameters, _actingUser, paging));
 
-    [HttpGet("practice-mode/user/{id}/summary")]
+    [HttpGet("practice-area/user/{id}/summary")]
     public async Task<PracticeModeReportPlayerModeSummary> GetPracticeModeReportPlayerModeSummary([FromRoute] string id, [FromQuery] bool isPractice)
         => await _mediator.Send(new PracticeModeReportPlayerModeSummaryQuery(id, isPractice, _actingUser));
 
     [HttpGet("players-report")]
     public async Task<ReportResults<PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportQueryParameters reportParams)
-        => await _mediator.Send(new PlayersReportQuery(reportParams));
+        => await _mediator.Send(new PlayersReportQuery(reportParams, _actingUser));
 
     [HttpGet("support")]
     public async Task<ReportResults<SupportReportRecord>> GetSupportReport([FromQuery] SupportReportParameters reportParams, [FromQuery] PagingArgs pagingArgs)
@@ -63,7 +63,7 @@ public class ReportsController : ControllerBase
 
     [HttpGet("metaData")]
     public async Task<ReportMetaData> GetReportMetaData([FromQuery] string reportKey)
-        => await _mediator.Send(new GetMetaDataQuery(reportKey));
+        => await _mediator.Send(new GetMetaDataQuery(reportKey, _actingUser));
 
     [HttpGet("parameter/challenge-specs/{gameId?}")]
     public Task<IEnumerable<SimpleEntity>> GetChallengeSpecs(string gameId = null)

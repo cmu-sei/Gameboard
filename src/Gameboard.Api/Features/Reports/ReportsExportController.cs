@@ -27,7 +27,7 @@ public class ReportsExportController : ControllerBase
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> GetChallengesReport(GetChallengesReportQueryArgs parameters)
     {
-        var results = await _mediator.Send(new ChallengesReportExportQuery(parameters));
+        var results = await _mediator.Send(new ChallengesReportExportQuery(parameters, _actingUser));
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
     }
 
@@ -35,7 +35,7 @@ public class ReportsExportController : ControllerBase
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> GetEnrollmentReportExport(EnrollmentReportParameters parameters)
     {
-        var results = await _mediator.Send(new EnrollmentReportExportQuery(parameters));
+        var results = await _mediator.Send(new EnrollmentReportExportQuery(parameters, _actingUser));
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
     }
 
@@ -43,11 +43,11 @@ public class ReportsExportController : ControllerBase
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> GetPlayersReport(PlayersReportQueryParameters parameters)
     {
-        var results = await _mediator.Send(new PlayersReportExportQuery(parameters));
+        var results = await _mediator.Send(new PlayersReportExportQuery(parameters, _actingUser));
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
     }
 
-    [HttpGet("practice-mode")]
+    [HttpGet("practice-area")]
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> GetPracticeModeReportExport(PracticeModeReportParameters parameters, CancellationToken cancellationToken)
     {
@@ -55,7 +55,7 @@ public class ReportsExportController : ControllerBase
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
     }
 
-    [HttpGet("support-report")]
+    [HttpGet("support")]
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> GetSupportReport(SupportReportParameters parameters)
     {

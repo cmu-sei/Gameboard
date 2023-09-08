@@ -32,6 +32,7 @@ internal class PracticeModeReportPlayerModeSummaryHandler : IRequestHandler<Prac
         _validatorService.AddValidator(_userExists.UseProperty(r => r.UserId));
         await _validatorService.Validate(request);
 
-        return await _reportService.GetPlayerModePerformanceSummary(request.UserId, request.IsPractice, cancellationToken);
+        var result = await _reportService.GetPlayerModePerformanceSummary(request.UserId, request.IsPractice, cancellationToken);
+        return result;
     }
 }

@@ -42,14 +42,13 @@ internal class EnrollmentReportService : IEnrollmentReportService
         DateTimeOffset? enrollDateEnd = parameters.EnrollDateEnd.HasValue ? parameters.EnrollDateEnd.Value.ToUniversalTime() : null;
 
         // the fundamental unit of reporting here is really the player record (an "enrollment"), so resolve enrollments that
-        // meet the filter criteria
+        // meet the filter criteria (and have at least one challenge completed in competitive mode)
         var query = _store
             .List<Data.Player>()
             .Include(p => p.Game)
+            .Include(p => p.Challenges.Where(c => c.PlayerMode == PlayerMode.Competition))
             .Include(p => p.User)
-            .Include(p => p.Challenges)
-                .ThenInclude(c => c.AwardedManualBonuses)
-            .Where(p => p.Game.PlayerMode == PlayerMode.Competition);
+            .Where(p => p.Challenges.Any(c => c.PlayerMode == PlayerMode.Competition));
 
         if (enrollDateStart != null)
             query = query
@@ -122,17 +121,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
         // To accommodate this, we just group all players by team id, create a dictionary of challenges
         // owned by any player on the team (by TeamId), and report the team's challenges for every player
         // on the team.
-        var teamIds = players
-            .Select(p => p.TeamId)
-            .Distinct()
-            .ToArray();
-
-        var teamAndChallengeData = await _store
-            .List<Data.Player>()
-            .Include(p => p.Challenges)
-            .Include(p => p.Game)
-            .Include(p => p.User)
-            .Where(p => teamIds.Contains(p.TeamId))
+        var teamChallengeData = players
             .Select(p => new
             {
                 p.Id,
@@ -158,15 +147,15 @@ internal class EnrollmentReportService : IEnrollmentReportService
                 })
             })
             .GroupBy(p => p.TeamId)
-            .ToDictionaryAsync(g => g.Key, g => g.ToList(), cancellationToken);
+            .ToDictionary(g => g.Key, g => g.ToList());
 
         // transform the player records into enrollment report records
         var records = players.Select(p =>
         {
-            var playerTeamChallengeData = teamAndChallengeData[p.TeamId];
+            var playerTeamChallengeData = teamChallengeData[p.TeamId];
             var captain = playerTeamChallengeData.FirstOrDefault(p => p.Role == PlayerRole.Manager);
             var playerTeamSponsorLogos = playerTeamChallengeData.Select(p => p.Sponsor);
-            var challenges = teamAndChallengeData[p.TeamId]
+            var challenges = teamChallengeData[p.TeamId]
                 .SelectMany(c => ChallengeDataToViewModel(c.Challenges))
                 .DistinctBy(c => c.SpecId)
                 .ToArray();
@@ -217,9 +206,10 @@ internal class EnrollmentReportService : IEnrollmentReportService
                 SponsorId = r.Player.Sponsor.Id,
                 UserId = r.User.Id
             })
+            .DistinctBy(sponsorUser => new { sponsorUser.SponsorId, sponsorUser.UserId })
             .GroupBy(r => r.SponsorId)
             .OrderByDescending(g => g.Count())
-            .ToDictionary(g => g.Key, g => g.Count());
+            .ToDictionary(g => g.Key, g => g.Distinct().Count());
 
         EnrollmentReportStatSummarySponsorPlayerCount sponsorWithMostPlayers = null;
 
@@ -241,7 +231,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
         {
             DistinctGameCount = records.Select(r => r.Game.Id).Distinct().Count(),
             DistinctPlayerCount = records.Select(r => r.User.Id).Distinct().Count(),
-            DistinctSponsorCount = usersBySponsor.Keys.Count(),
+            DistinctSponsorCount = usersBySponsor.Keys.Count,
             SponsorWithMostPlayers = sponsorWithMostPlayers,
             DistinctTeamCount = records.Select(p => p.Team.Id).Distinct().Count()
         };

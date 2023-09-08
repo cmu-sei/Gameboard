@@ -10,9 +10,9 @@ public record PracticeModeReportCsvExportQuery(PracticeModeReportParameters Para
 internal class PracticeModeReportCsvExportHandler : IRequestHandler<PracticeModeReportCsvExportQuery, IEnumerable<PracticeModeReportCsvRecord>>
 {
     private readonly IPracticeModeReportService _practiceModeReportService;
-    private readonly ReportsQueryValidator<PracticeModeReportCsvExportQuery> _validator;
+    private readonly ReportsQueryValidator _validator;
 
-    public PracticeModeReportCsvExportHandler(IPracticeModeReportService practiceModeReportService, ReportsQueryValidator<PracticeModeReportCsvExportQuery> validator)
+    public PracticeModeReportCsvExportHandler(IPracticeModeReportService practiceModeReportService, ReportsQueryValidator validator)
     {
         _practiceModeReportService = practiceModeReportService;
         _validator = validator;

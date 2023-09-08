@@ -178,7 +178,7 @@ public class ChallengeService : _Service
 
     public async Task<ChallengeSummary[]> List(SearchFilter model = null)
     {
-        var q = Store.List(model?.Term ?? null);
+        var q = Store.List(model?.Term?.Trim() ?? null);
 
         // filter out challenge records with no state used to give starting score to player
         q = q.Where(p => p.Name != "_initialscore_" && p.State != null);
@@ -402,11 +402,11 @@ public class ChallengeService : _Service
         {
             if (result.Score >= entity.Points)
             {
-                // in practice mode, we proactively end their session if they complete the challenge
+                // in the practice area, we proactively end their session if they complete the challenge
                 await _practiceChallengeScoringListener.NotifyChallengeScored(entity, CancellationToken.None);
             }
 
-            // also for practice mode:
+            // also for the practice area:
             // if they've consumed all of their attempts for a challenge, we proactively end their session as well
             var typedState = await GameEngine.GetChallengeState(entity.GameEngineType, entity.State);
             if (typedState.Challenge.Attempts >= typedState.Challenge.MaxAttempts)
@@ -638,8 +638,9 @@ public class ChallengeService : _Service
         challenge.State = _jsonService.Serialize(state);
         challenge.StartTime = state.StartTime;
         challenge.EndTime = state.EndTime;
+        challenge.LastSyncTime = _now.Get();
 
-        challenge.Events.Add(new Data.ChallengeEvent
+        challenge.Events.Add(new ChallengeEvent
         {
             Id = _guids.GetGuid(),
             UserId = actorUserId,

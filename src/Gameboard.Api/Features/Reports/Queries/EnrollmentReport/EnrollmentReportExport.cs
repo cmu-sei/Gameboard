@@ -7,19 +7,24 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record EnrollmentReportExportQuery(EnrollmentReportParameters Parameters) : IRequest<IEnumerable<EnrollmentReportCsvRecord>>;
+public record EnrollmentReportExportQuery(EnrollmentReportParameters Parameters, User ActingUser) : IRequest<IEnumerable<EnrollmentReportCsvRecord>>, IReportQuery;
 
 internal class EnrollmentReportExportHandler : IRequestHandler<EnrollmentReportExportQuery, IEnumerable<EnrollmentReportCsvRecord>>
 {
     private readonly IEnrollmentReportService _enrollmentReportService;
+    private readonly ReportsQueryValidator _reportsQueryValidator;
 
-    public EnrollmentReportExportHandler(IEnrollmentReportService enrollmentReportService)
+    public EnrollmentReportExportHandler(IEnrollmentReportService enrollmentReportService, ReportsQueryValidator reportsQueryValidator)
     {
         _enrollmentReportService = enrollmentReportService;
+        _reportsQueryValidator = reportsQueryValidator;
     }
 
     public async Task<IEnumerable<EnrollmentReportCsvRecord>> Handle(EnrollmentReportExportQuery request, CancellationToken cancellationToken)
     {
+        // validate
+        await _reportsQueryValidator.Validate(request);
+
         // ignore paging parameters - for file export, we don't page
         var results = await _enrollmentReportService.GetRawResults(request.Parameters, cancellationToken);
 
@@ -33,7 +38,7 @@ internal class EnrollmentReportExportHandler : IRequestHandler<EnrollmentReportE
             PlayerId = r.Player.Id,
             PlayerName = r.Player.Name,
             PlayerEnrollDate = r.Player.EnrollDate,
-            PlayerSponsor = r.Player.Sponsor.Name,
+            PlayerSponsor = r.Player.Sponsor?.Name,
 
             // game
             GameId = r.Game.Id,

@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Practice;
@@ -37,7 +36,6 @@ public class PlayerService
     ITeamService TeamService { get; }
     IMapper Mapper { get; }
     IMemoryCache LocalCache { get; }
-    IGameEngineService GameEngine { get; }
 
     public PlayerService(
         ChallengeService challengeService,
@@ -52,8 +50,7 @@ public class PlayerService
         IPracticeService practiceService,
         ITeamService teamService,
         IMapper mapper,
-        IMemoryCache localCache,
-        IGameEngineService gameEngine
+        IMemoryCache localCache
     )
     {
         ChallengeService = challengeService;
@@ -69,7 +66,6 @@ public class PlayerService
         TeamService = teamService;
         Mapper = mapper;
         LocalCache = localCache;
-        GameEngine = gameEngine;
     }
 
     public async Task<Player> Enroll(NewPlayer model, User actor, CancellationToken cancellationToken)

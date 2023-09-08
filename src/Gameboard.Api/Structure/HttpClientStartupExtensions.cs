@@ -42,6 +42,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .ConfigureHttpClient(client =>
                 {
                     client.DefaultRequestHeaders.Add("x-api-key", config.GamebrainApiKey);
+                    client.Timeout = TimeSpan.FromSeconds(300);
                 });
 
             services.AddHttpClient("identity", client =>

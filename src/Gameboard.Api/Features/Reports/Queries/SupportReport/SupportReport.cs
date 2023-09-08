@@ -11,13 +11,13 @@ internal class SupportReportQueryHandler : IRequestHandler<SupportReportQuery, R
 {
     private readonly IReportsService _reportsService;
     private readonly ISupportReportService _service;
-    private readonly ReportsQueryValidator<PracticeModeReportCsvExportQuery> _validator;
+    private readonly ReportsQueryValidator _validator;
 
     public SupportReportQueryHandler
     (
         IReportsService reportsService,
         ISupportReportService service,
-        ReportsQueryValidator<PracticeModeReportCsvExportQuery> validator
+        ReportsQueryValidator validator
     )
     {
         _reportsService = reportsService;

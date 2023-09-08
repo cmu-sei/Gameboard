@@ -11,31 +11,30 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record EnrollmentReportLineChartQuery(EnrollmentReportParameters Parameters) : IRequest<IDictionary<DateTimeOffset, EnrollmentReportLineChartGroup>>;
+public record EnrollmentReportLineChartQuery(EnrollmentReportParameters Parameters, User ActingUser) : IRequest<IDictionary<DateTimeOffset, EnrollmentReportLineChartGroup>>, IReportQuery;
 
 internal class EnrollmentReportLineChartHandler : IRequestHandler<EnrollmentReportLineChartQuery, IDictionary<DateTimeOffset, EnrollmentReportLineChartGroup>>
 {
-    private readonly UserRoleAuthorizer _authorizer;
     private readonly IEnrollmentReportService _reportService;
+    private readonly ReportsQueryValidator _reportsQueryValidator;
     private readonly EnrollmentReportValidator _validator;
 
     public EnrollmentReportLineChartHandler
     (
-        UserRoleAuthorizer authorizer,
         IEnrollmentReportService reportService,
+        ReportsQueryValidator reportsQueryValidator,
         EnrollmentReportValidator validator
     )
     {
-        _authorizer = authorizer;
         _reportService = reportService;
+        _reportsQueryValidator = reportsQueryValidator;
         _validator = validator;
     }
 
     public async Task<IDictionary<DateTimeOffset, EnrollmentReportLineChartGroup>> Handle(EnrollmentReportLineChartQuery request, CancellationToken cancellationToken)
     {
         // authorize/validate
-        _authorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Director, UserRole.Support };
-        _authorizer.Authorize();
+        await _reportsQueryValidator.Validate(request);
         await _validator.Validate(request.Parameters);
 
         // pull base query but select only what we need

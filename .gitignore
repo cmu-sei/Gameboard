@@ -43,3 +43,7 @@ Thumbs.db
 
 # vs code launch (allow for end dev customization)
 .vscode/launch.json
+
+# git-kept
+src/Gameboard.Api/wwwroot/temp/*
+!.gitkeep

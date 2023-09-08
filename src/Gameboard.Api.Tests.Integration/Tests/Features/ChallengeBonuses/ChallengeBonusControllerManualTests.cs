@@ -23,7 +23,7 @@ public class ChallengeBonusControllerManualTests
             state.AddUser(u =>
             {
                 u.Id = userId;
-                u.Role = Api.UserRole.Support;
+                u.Role = UserRole.Support;
             });
 
             state.AddChallenge(c =>
@@ -41,7 +41,7 @@ public class ChallengeBonusControllerManualTests
         var httpClient = _testContext.CreateHttpClientWithActingUser(u =>
         {
             u.Id = userId;
-            u.Role = Api.UserRole.Support;
+            u.Role = UserRole.Support;
         });
 
         // when
