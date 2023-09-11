@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Data;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;

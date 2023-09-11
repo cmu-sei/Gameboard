@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using Gameboard.Api.Common;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Services;
 

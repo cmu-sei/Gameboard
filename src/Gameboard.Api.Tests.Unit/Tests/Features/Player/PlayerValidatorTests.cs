@@ -1,5 +1,4 @@
-using Gameboard.Api;
-using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Validators;
 
