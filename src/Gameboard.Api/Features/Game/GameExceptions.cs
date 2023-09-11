@@ -1,10 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Gameboard.Api.Common;
 using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.Games;
+
+internal class CantStartGameWithNoPlayers : GameboardException
+{
+    public CantStartGameWithNoPlayers(string gameId) : base($"Can't start game {gameId} - no players are registered.") { }
+}
 
 internal class CantSynchronizeNonSynchronizedGame : GameboardValidationException
 {

@@ -4,11 +4,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
-using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games.External;
-using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Structure;
 using MediatR;
@@ -124,8 +122,7 @@ internal class GameStartService : IGameStartService
         throw new NotImplementedException();
     }
 
-    // we need to build the base of the game start data both in the case of doing the actual launch
-    // or on demand when someone asks for it, so consolidate that here
+    // load the data used for game start
     private async Task<GameModeStartRequest> LoadGameModeStartRequest(Data.Game game, CancellationToken cancellationToken)
     {
         var now = _now.Get();
@@ -137,15 +134,18 @@ internal class GameStartService : IGameStartService
             StartTime = now,
         };
 
+        var players = await _store
+            .ListAsNoTracking<Data.Player>()
+            .Where(p => p.GameId == game.Id)
+            .ToArrayAsync(cancellationToken);
+
+        if (!players.Any())
+            throw new CantStartGameWithNoPlayers(game.Id);
+
         var specs = await _store
             .ListAsNoTracking<Data.ChallengeSpec>()
             .Where(cs => cs.GameId == game.Id)
             .Where(cs => !cs.Disabled)
-            .ToArrayAsync(cancellationToken);
-
-        var players = await _store
-            .ListAsNoTracking<Data.Player>()
-            .Where(p => p.GameId == game.Id)
             .ToArrayAsync(cancellationToken);
 
         var teamCaptains = players
@@ -171,8 +171,8 @@ internal class GameStartService : IGameStartService
             TeamId = p.TeamId
         }));
 
-        Log("Identifying team captains...", game.Id);
         // validate that we have a team captain for every team before we do anything
+        Log("Identifying team captains...", game.Id);
         foreach (var teamId in teamCaptains.Keys)
         {
             if (teamCaptains[teamId] == null)

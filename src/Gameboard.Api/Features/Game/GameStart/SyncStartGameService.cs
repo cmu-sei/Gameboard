@@ -91,6 +91,17 @@ internal class SyncStartGameService : ISyncStartGameService
                 .Where(p => p.GameId == gameId)
         ).ToListAsync();
 
+        // if we have no players, we're not ready to play
+        if (!players.Any())
+        {
+            return new SyncStartState
+            {
+                Game = new SimpleEntity { Id = game.Id, Name = game.Name },
+                Teams = Array.Empty<SyncStartTeam>(),
+                IsReady = false
+            };
+        }
+
         var teams = new List<SyncStartTeam>();
         var teamPlayers = players
             .GroupBy(p => p.TeamId)
