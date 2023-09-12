@@ -234,7 +234,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             var exceptionMessage = $"""EXTERNAL GAME LAUNCH FAILURE (game "{request.GameId}"): {ex.GetType().Name} :: {ex.Message}""";
             _logger.LogError(message: exceptionMessage);
             request.State.Error = exceptionMessage;
-            await this._gameHubBus.SendExternalGameLaunchFailure(request.State);
+            await _gameHubBus.SendExternalGameLaunchFailure(request.State);
         }
 
         return request.State;
