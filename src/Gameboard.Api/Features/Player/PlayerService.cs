@@ -75,7 +75,7 @@ public class PlayerService
         if (game.IsPracticeMode)
             return await RegisterPracticeSession(model, cancellationToken);
 
-        if (!game.RegistrationActive && !(actor.IsDesigner || actor.IsRegistrar || actor.IsTester || actor.IsAdmin))
+        if (!game.RegistrationActive && !(actor.IsRegistrar || actor.IsTester || actor.IsAdmin))
             throw new RegistrationIsClosed(model.GameId);
 
         var user = await Store.GetUserEnrollments(model.UserId);
@@ -272,53 +272,6 @@ public class PlayerService
 
         return asViewModel;
     }
-
-    // public async Task<Player> AdjustSessionEnd(SessionChangeRequest model, User actor, CancellationToken cancellationToken)
-    // {
-    //     var team = await Store.ListTeam(model.TeamId).ToArrayAsync(cancellationToken);
-    //     var sudo = actor.IsRegistrar;
-
-    //     var manager = team.FirstOrDefault(p => p.Role == PlayerRole.Manager);
-
-    //     if (sudo.Equals(false) && manager.IsCompetition)
-    //         throw new ActionForbidden();
-
-    //     // auto increment for practice sessions
-    //     if (manager.IsPractice)
-    //     {
-    //         DateTimeOffset now = DateTimeOffset.UtcNow;
-    //         var settings = await _practiceService.GetSettings(cancellationToken);
-
-    //         // end session now or extend by one hour (hard value for now, added to practice settings later)
-    //         model.SessionEnd = model.SessionEnd.Year == 1
-    //             ? DateTimeOffset.UtcNow
-    //             : DateTimeOffset.UtcNow.AddMinutes(60)
-    //         ;
-    //         if (settings.MaxPracticeSessionLengthMinutes.HasValue)
-    //         {
-    //             var maxTime = manager.SessionBegin.AddMinutes(settings.MaxPracticeSessionLengthMinutes.Value);
-    //             if (model.SessionEnd > maxTime)
-    //                 model.SessionEnd = maxTime;
-    //         }
-    //     }
-
-    //     foreach (var player in team)
-    //         player.SessionEnd = model.SessionEnd;
-
-    //     await Store.Update(team);
-
-    //     // push gamespace extension
-    //     var changes = await Store.DbContext.Challenges
-    //         .Where(c => c.TeamId == manager.TeamId)
-    //         .Select(c => GameEngine.ExtendSession(c, model.SessionEnd))
-    //         .ToArrayAsync();
-
-    //     await Task.WhenAll(changes);
-
-    //     var mappedManager = Mapper.Map<Player>(manager);
-    //     await HubBus.SendTeamUpdated(mappedManager, actor);
-    //     return mappedManager;
-    // }
 
     public async Task<Player[]> List(PlayerDataFilter model, bool sudo = false)
     {
