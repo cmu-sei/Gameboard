@@ -64,7 +64,7 @@ public class GameEngineService : _Service, IGameEngineService
                 {
                     Players = new RegistrationPlayer[]
                     {
-                        new RegistrationPlayer
+                        new()
                         {
                             SubjectId = registration.Player.TeamId,
                             SubjectName = registration.Player.ApprovedName
