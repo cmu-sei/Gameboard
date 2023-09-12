@@ -317,7 +317,7 @@ public class PlayerService
             q = q.Where(p => p.GameId == model.gid);
 
             if (model.WantsOrg)
-                q = q.Where(p => p.Sponsor == model.org);
+                q = q.Where(p => p.SponsorId == model.org);
         }
 
         if (model.WantsUser)
