@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -16,28 +17,27 @@ public class UserService
 {
     private readonly IMapper _mapper;
     private readonly INowService _now;
-    private readonly IStore<Data.User> _store;
-
+    private readonly SponsorService _sponsorService;
+    private readonly IStore<Data.User> _userStore;
     private readonly IMemoryCache _localcache;
     private readonly INameService _namesvc;
-    private readonly Defaults _defaultOptions;
 
     public UserService(
         INowService now,
-        IStore<Data.User> store,
+        IStore store,
+        SponsorService sponsorService,
+        IStore<Data.User> userStore,
         IMapper mapper,
         IMemoryCache cache,
-        INameService namesvc,
-        Defaults defaultOptions
+        INameService namesvc
     )
     {
-        _defaultOptions = defaultOptions;
         _localcache = cache;
         _mapper = mapper;
         _namesvc = namesvc;
         _now = now;
-        // _userStore = userStore;
-        _store = store;
+        _sponsorService = sponsorService;
+        _userStore = userStore;
     }
 
     /// <summary>
@@ -50,7 +50,7 @@ public class UserService
         if (model.Id.IsEmpty())
             throw new ArgumentException(nameof(model.Id));
 
-        var entity = await _store.Retrieve(model.Id);
+        var entity = await _userStore.Retrieve(model.Id);
         if (entity is not null)
         {
             return new TryCreateUserResult
@@ -61,10 +61,10 @@ public class UserService
         }
 
         entity = _mapper.Map<Data.User>(model);
-        entity.Sponsor = _defaultOptions.DefaultSponsor;
+        entity.Sponsor = await _sponsorService.GetDefaultSponsor();
 
         // first user gets admin
-        if (!await _store.AnyAsync())
+        if (!await _userStore.AnyAsync())
             entity.Role = AppConstants.AllRoles;
 
         if (entity.CreatedOn.DoesntHaveValue())
@@ -81,10 +81,10 @@ public class UserService
             entity.Name = entity.ApprovedName;
 
             // check uniqueness
-            found = await _store.AnyAsync(p => p.Id != entity.Id && p.Name == entity.Name);
+            found = await _userStore.AnyAsync(p => p.Id != entity.Id && p.Name == entity.Name);
         } while (found && i++ < 20);
 
-        await _store.Create(entity);
+        await _userStore.Create(entity);
 
         _localcache.Remove(entity.Id);
         return new TryCreateUserResult
@@ -96,12 +96,12 @@ public class UserService
 
     public async Task<User> Retrieve(string id)
     {
-        return _mapper.Map<User>(await _store.Retrieve(id));
+        return _mapper.Map<User>(await _userStore.Retrieve(id));
     }
 
     public async Task Update(ChangedUser model, bool sudo, bool admin = false)
     {
-        var entity = await _store.Retrieve(model.Id);
+        var entity = await _userStore.Retrieve(model.Id);
         bool differentName = entity.Name != model.Name;
 
         if (!sudo)
@@ -127,7 +127,7 @@ public class UserService
         if (differentName)
         {
             // check uniqueness
-            bool found = await _store.DbSet.AnyAsync(p =>
+            bool found = await _userStore.DbSet.AnyAsync(p =>
                 p.Id != entity.Id &&
                 p.Name == entity.Name
             );
@@ -136,19 +136,19 @@ public class UserService
                 entity.NameStatus = AppConstants.NameStatusNotUnique;
         }
 
-        await _store.Update(entity);
+        await _userStore.Update(entity);
         _localcache.Remove(entity.Id);
     }
 
     public async Task Delete(string id)
     {
-        await _store.Delete(id);
+        await _userStore.Delete(id);
         _localcache.Remove(id);
     }
 
     public async Task<IEnumerable<TProject>> List<TProject>(UserSearch model) where TProject : class, IUserViewModel
     {
-        var q = _store.List(model.Term);
+        var q = _userStore.List(model.Term);
 
         if (model.Term.NotEmpty())
         {
@@ -183,7 +183,7 @@ public class UserService
 
     public async Task<UserSimple[]> ListSupport(SearchFilter model)
     {
-        var q = _store.List(model.Term);
+        var q = _userStore.List(model.Term);
 
         // Might want to also include observers if they can be assigned. Or just make possible assignees "Support" roles
         q = q.Where(u => u.Role.HasFlag(UserRole.Support));

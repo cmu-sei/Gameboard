@@ -11,7 +11,7 @@ namespace Gameboard.Api.Features.Reports;
 
 public interface IEnrollmentReportService
 {
-    Task<IQueryable<Data.Player>> GetBaseQuery(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
+    IQueryable<Data.Player> GetBaseQuery(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
     Task<EnrollmentReportRawResults> GetRawResults(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
 }
 
@@ -30,7 +30,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
         _store = store;
     }
 
-    public async Task<IQueryable<Data.Player>> GetBaseQuery(EnrollmentReportParameters parameters, CancellationToken cancellationToken)
+    public IQueryable<Data.Player> GetBaseQuery(EnrollmentReportParameters parameters, CancellationToken cancellationToken)
     {
         // parse multiselect criteria
         var gamesCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Games);

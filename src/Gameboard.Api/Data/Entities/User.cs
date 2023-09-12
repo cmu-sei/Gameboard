@@ -20,13 +20,14 @@ public class User : IEntity
     public int LoginCount { get; set; }
     public bool HasDefaultSponsor { get; set; }
 
-    // relational properties
+    // navigation properties
+    public string SponsorId { get; set; }
+    public Sponsor Sponsor { get; set; }
     public ICollection<ApiKey> ApiKeys { get; set; } = new List<ApiKey>();
     public ICollection<Player> Enrollments { get; set; } = new List<Player>();
     public ICollection<ManualChallengeBonus> EnteredManualChallengeBonuses { get; set; } = new List<ManualChallengeBonus>();
     public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
     public ICollection<PublishedCompetitiveCertificate> PublishedCompetitiveCertificates { get; set; } = new List<PublishedCompetitiveCertificate>();
     public ICollection<PublishedPracticeCertificate> PublishedPracticeCertificates { get; set; } = new List<PublishedPracticeCertificate>();
-    public Sponsor Sponsor { get; set; }
     public PracticeModeSettings UpdatedPracticeModeSettings { get; set; }
 }

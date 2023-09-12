@@ -38,7 +38,7 @@ internal class EnrollmentReportLineChartHandler : IRequestHandler<EnrollmentRepo
         await _validator.Validate(request.Parameters);
 
         // pull base query but select only what we need
-        var query = await _reportService.GetBaseQuery(request.Parameters, cancellationToken);
+        var query = await _reportService.GetBaseQuery(request.Parameters, cancellationToken).ToArrayAsync(cancellationToken);
         var results = await query.Select(p => new EnrollmentReportLineChartPlayer
         {
             Id = p.Id,

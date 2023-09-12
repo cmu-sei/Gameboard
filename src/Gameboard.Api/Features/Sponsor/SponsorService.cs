@@ -8,23 +8,23 @@ using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
 using Microsoft.Extensions.Logging;
 using System.IO;
-using System.Collections.Generic;
-using System.Threading;
-using System;
 
 namespace Gameboard.Api.Services
 {
     public class SponsorService : _Service
     {
+        private readonly Defaults _defaults;
         IStore<Data.Sponsor> _store { get; }
 
         public SponsorService(
             ILogger<SponsorService> logger,
             IMapper mapper,
             CoreOptions options,
+            Defaults defaults,
             IStore<Data.Sponsor> store
         ) : base(logger, mapper, options)
         {
+            _defaults = defaults;
             _store = store;
         }
 
@@ -53,6 +53,18 @@ namespace Gameboard.Api.Services
 
             entity = Mapper.Map<Data.Sponsor>(model);
             await _store.Create(entity);
+        }
+
+        public async Task<Data.Sponsor> GetDefaultSponsor()
+        {
+            var defaultSponsor = await _store
+                .ListWithNoTracking()
+                .FirstOrDefaultAsync(s => s.Logo == _defaults.DefaultSponsor);
+
+            if (_defaults.DefaultSponsor.IsEmpty() || defaultSponsor is null)
+                return await _store.ListWithNoTracking().FirstOrDefaultAsync();
+
+            return defaultSponsor;
         }
 
         public async Task Delete(string id)
@@ -89,14 +101,11 @@ namespace Gameboard.Api.Services
             var entity = await _store.Retrieve(id);
 
             if (entity is null)
-            {
                 entity = await _store.Create(new Data.Sponsor { Id = id });
-            }
 
             entity.Logo = filename;
 
             await _store.Update(entity);
-
             return Mapper.Map<Sponsor>(entity);
         }
     }

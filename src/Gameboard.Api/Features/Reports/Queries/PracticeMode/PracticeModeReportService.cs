@@ -92,11 +92,11 @@ internal class PracticeModeReportService : IPracticeModeReportService
 
         if (parameters.Sponsors is not null && parameters.Sponsors.Any())
         {
-            var sponsorLogos = sponsors
+            var sponsorIds = sponsors
                 .Where(s => parameters.Sponsors.Contains(s.Id))
                 .Select(s => s.LogoFileName);
 
-            query = query.Where(c => sponsorLogos.Contains(c.Player.Sponsor));
+            query = query.Where(c => sponsorIds.Contains(c.Player.Sponsor.Id));
         }
 
         // we have to constrain the query results by eliminating challenges that have a specId
@@ -146,7 +146,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
         // precompute totals so we don't have to do it more than once per spec
         Func<Data.Challenge, bool> sponsorConstraint = (attempts => true);
         if (sponsor is not null)
-            sponsorConstraint = (attempt) => attempt.Player.Sponsor == sponsor.LogoFileName;
+            sponsorConstraint = (attempt) => attempt.Player.SponsorId == sponsor.Id;
 
         var totalAttempts = attempts.Where(sponsorConstraint).Count();
         var completeSolves = attempts

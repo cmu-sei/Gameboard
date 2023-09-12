@@ -33,10 +33,6 @@ public class ReportsController : ControllerBase
     public async Task<IEnumerable<ReportViewModel>> List()
         => await _service.List();
 
-    [HttpGet("challenges-report")]
-    public Task<ReportResults<ChallengesReportRecord>> GetChallengeReport([FromQuery] GetChallengesReportQueryArgs args)
-        => _mediator.Send(new ChallengesReportQuery(args, _actingUser));
-
     [HttpGet("enrollment")]
     public Task<ReportResults<EnrollmentReportStatSummary, EnrollmentReportRecord>> GetEnrollmentReport([FromQuery] EnrollmentReportParameters parameters, [FromQuery] PagingArgs paging)
         => _mediator.Send(new EnrollmentReportQuery(parameters, paging, _actingUser));
@@ -52,10 +48,6 @@ public class ReportsController : ControllerBase
     [HttpGet("practice-area/user/{id}/summary")]
     public async Task<PracticeModeReportPlayerModeSummary> GetPracticeModeReportPlayerModeSummary([FromRoute] string id, [FromQuery] bool isPractice)
         => await _mediator.Send(new PracticeModeReportPlayerModeSummaryQuery(id, isPractice, _actingUser));
-
-    [HttpGet("players-report")]
-    public async Task<ReportResults<PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportQueryParameters reportParams)
-        => await _mediator.Send(new PlayersReportQuery(reportParams, _actingUser));
 
     [HttpGet("support")]
     public async Task<ReportResults<SupportReportRecord>> GetSupportReport([FromQuery] SupportReportParameters reportParams, [FromQuery] PagingArgs pagingArgs)

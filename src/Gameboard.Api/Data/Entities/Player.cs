@@ -34,7 +34,9 @@ public class Player : IEntity
     public Game Game { get; set; }
     public DateTimeOffset WhenCreated { get; set; }
 
+    // navigation properties
     public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
+    public string SponsorId { get; set; }
     public Sponsor Sponsor { get; set; }
 
     [NotMapped] public bool IsManager => Role == PlayerRole.Manager;

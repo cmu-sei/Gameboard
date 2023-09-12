@@ -75,10 +75,10 @@ namespace Gameboard.Api.Services
         {
             var sp = (from sponsors in Store.Sponsors
                       join u in Store.Users on
-                      sponsors.Logo equals u.Sponsor into j
+                      sponsors.Id equals u.SponsorId into j
                       from allSponsors in j.DefaultIfEmpty()
                       select new { sponsors.Id, sponsors.Name, sponsors.Logo }).GroupBy(s => new { s.Id, s.Name, s.Logo })
-                      .Select(g => new SponsorStat { Id = g.Key.Id, Name = g.Key.Name, Logo = g.Key.Logo, Count = g.Count(gr => Store.Users.Any(u => u.Sponsor == gr.Logo)) }).OrderByDescending(g => g.Count).ThenBy(g => g.Name);
+                      .Select(g => new SponsorStat { Id = g.Key.Id, Name = g.Key.Name, Logo = g.Key.Logo, Count = g.Count(gr => Store.Users.Any(u => u.SponsorId == gr.Id)) }).OrderByDescending(g => g.Count).ThenBy(g => g.Name);
 
             SponsorReport sponsorReport = new SponsorReport
             {
@@ -100,7 +100,7 @@ namespace Gameboard.Api.Services
 
             var game = Store.Games.Where(g => g.Id == gameId).Select(g => new { g.Id, g.Name, g.MaxTeamSize }).FirstOrDefault();
 
-            if (game == null)
+            if (game is null)
             {
                 throw new Exception("Invalid game");
             }
@@ -109,8 +109,7 @@ namespace Gameboard.Api.Services
                 .Select(p => new { p.Sponsor, p.TeamId, p.Id, p.UserId }).ToList();
 
             var sponsors = Store.Sponsors;
-
-            List<SponsorStat> sponsorStats = new List<SponsorStat>();
+            var sponsorStats = new List<SponsorStat>();
 
             foreach (Data.Sponsor sponsor in sponsors)
             {
@@ -119,8 +118,8 @@ namespace Gameboard.Api.Services
                     Id = sponsor.Id,
                     Name = sponsor.Name,
                     Logo = sponsor.Logo,
-                    Count = players.Where(p => p.Sponsor == sponsor.Logo).Count(),
-                    TeamCount = players.Where(p => p.Sponsor == sponsor.Logo && (
+                    Count = players.Where(p => p.Sponsor.Id == sponsor.Id).Count(),
+                    TeamCount = players.Where(p => p.Sponsor.Id == sponsor.Id && (
                         // Either every player on a team has the same sponsor, or...
                         players.Where(p2 => p.Id != p2.Id && p.TeamId == p2.TeamId).All(p2 => p.Sponsor == p2.Sponsor) ||
                         // ...the team has only one player on it, so still count them
