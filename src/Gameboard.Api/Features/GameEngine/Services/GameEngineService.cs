@@ -74,7 +74,7 @@ public class GameEngineService : _Service, IGameEngineService
                     Variant = registration.Variant,
                     Points = registration.ChallengeSpec.Points,
                     MaxAttempts = registration.Game.MaxAttempts,
-                    StartGamespace = true,
+                    StartGamespace = registration.StartGamespace,
                     ExpirationTime = registration.Player.SessionEnd,
                     GraderKey = registration.GraderKey,
                     GraderUrl = registration.GraderUrl,
