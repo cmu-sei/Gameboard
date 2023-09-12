@@ -14,6 +14,7 @@ using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ServiceStack;
 
 namespace Gameboard.Api.Features.Games.External;
 
@@ -108,6 +109,15 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
     public async Task<GameStartState> Start(GameModeStartRequest request, CancellationToken cancellationToken)
     {
+        // record the game end time as of launch
+        // NOTE: when we pull external launch data into its own data structure (issue#249), we can revamp the use of game end date
+        // (we shouldn't be using it to reason about the game launch state)
+        var preLaunchEndTime = await _gameStore
+            .ListAsNoTracking()
+            .Where(g => g.Id == request.GameId)
+            .Select(g => g.GameEnd)
+            .FirstOrDefaultAsync();
+
         try
         {
             Log("Gathering data...", request.GameId);
@@ -235,6 +245,14 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             _logger.LogError(message: exceptionMessage);
             request.State.Error = exceptionMessage;
             await _gameHubBus.SendExternalGameLaunchFailure(request.State);
+
+            if (preLaunchEndTime.IsNotEmpty())
+            {
+                await _gameStore
+                    .List()
+                    .Where(g => g.Id == request.GameId)
+                    .ExecuteUpdateAsync(g => g.SetProperty(g => g.GameEnd, preLaunchEndTime));
+            }
         }
 
         return request.State;
