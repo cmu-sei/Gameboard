@@ -4,7 +4,6 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
-using Gameboard.Api.Data;
 using Gameboard.Api.Features.ApiKeys;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
@@ -58,8 +57,8 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
             new ClaimsIdentity
             (
                 new Claim[] {
-                    new Claim(AppConstants.SubjectClaimName, user.Id),
-                    new Claim(AppConstants.NameClaimName, user.Name),
+                    new(AppConstants.SubjectClaimName, user.Id),
+                    new(AppConstants.NameClaimName, user.Name),
                 },
                 Scheme.Name
             )
@@ -79,9 +78,7 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
     internal string ResolveRequestApiKey(HttpRequest request)
     {
         if (request.Headers.TryGetValue(ApiKeyAuthentication.ApiKeyHeaderName, out StringValues headerApiKey))
-        {
             return headerApiKey;
-        }
 
         return null;
     }
