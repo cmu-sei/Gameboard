@@ -1,5 +1,5 @@
 using System.Linq;
-using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;

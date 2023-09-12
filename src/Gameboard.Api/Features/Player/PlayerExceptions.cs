@@ -25,6 +25,11 @@ internal class ManagerCantUnenrollWhileTeammatesRemain : GameboardException
     """) { }
 }
 
+internal class NoPlayerSponsorForGame : GameboardValidationException
+{
+    internal NoPlayerSponsorForGame(string userId, string gameId) : base($"""User "{userId}" hasn't selected a sponsor, so they can't register for game "{gameId}".""") { }
+}
+
 internal class NotOnSameTeam : GameboardException
 {
     internal NotOnSameTeam(string firstPlayerId, string firstPlayerTeamId, string secondPlayerId, string secondPlayerTeamId, string whyItMatters) : base($"""
