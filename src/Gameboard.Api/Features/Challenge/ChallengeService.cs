@@ -15,6 +15,7 @@ using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
@@ -671,7 +672,7 @@ public class ChallengeService : _Service
             GraderUrl = graderUrl,
             Player = player,
             PlayerCount = playerCount,
-            StartGamespace = true,
+            StartGamespace = newChallenge.StartGamespace,
             Variant = variant
         });
 
