@@ -78,7 +78,7 @@ public class PlayerService
         if (game.IsPracticeMode)
             return await RegisterPracticeSession(model, cancellationToken);
 
-        if (!actor.IsRegistrar && !game.RegistrationActive)
+        if (!game.RegistrationActive && !(actor.IsRegistrar || actor.IsTester || actor.IsAdmin))
             throw new RegistrationIsClosed(model.GameId);
 
         var user = await PlayerStore.GetUserEnrollments(model.UserId);
