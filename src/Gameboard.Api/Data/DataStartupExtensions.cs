@@ -4,7 +4,6 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using Gameboard.Api;
 using Gameboard.Api.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
