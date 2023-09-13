@@ -1,6 +1,7 @@
 using Gameboard.Api.Hubs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Gameboard.Api.Extensions;
 
@@ -22,7 +23,7 @@ internal static class WebApplicationExtensions
         if (settings.Headers.UseHsts)
             app.UseHsts();
 
-        if (app.Environment.IsDev())
+        if (app.Environment.IsDevelopment())
             app.UseDeveloperExceptionPage();
 
         app.UseRouting();
