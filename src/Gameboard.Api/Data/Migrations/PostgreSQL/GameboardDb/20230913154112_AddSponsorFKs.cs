@@ -46,11 +46,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 UPDATE "Users" SET "SponsorId" = "Sponsors"."Id"
                 FROM "Sponsors" 
                 WHERE "Sponsors"."Logo" = "Users"."Sponsor"
-                    AND "Users"."Sponsor" IS NOT NULL;
+                    AND COALESCE("Users"."Sponsor", '') != '';
 
-                UPDATE "Users" 
-                SET "SponsorId" = (SELECT "Id" FROM "Sponsors" WHERE "Id" = 'other')
-                WHERE "SponsorId" IS NULL;
+                UPDATE "Users" SET "SponsorId" = 'other' WHERE COALESCE("Sponsor", '') = '';
             """);
 
             migrationBuilder.Sql
@@ -58,11 +56,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 UPDATE "Players" SET "SponsorId" = "Sponsors"."Id"
                 FROM "Sponsors" 
                 WHERE "Sponsors"."Logo" = "Players"."Sponsor"
-                    AND "Players"."Sponsor" IS NOT NULL;
+                    AND COALESCE("Players"."Sponsor", '') != '';
 
-                UPDATE "Players" 
-                SET "SponsorId" = (SELECT "Id" FROM "Sponsors" WHERE "Id" = 'other')
-                WHERE "SponsorId" IS NULL;
+                UPDATE "Players" SET "SponsorId" = 'other' WHERE COALESCE("Sponsor", '') = '';
             """);
 
             // create indices
@@ -149,7 +145,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 WHERE "Sponsors"."Id" = "Users"."SponsorId";
             """);
 
-            // drop new columns
             migrationBuilder.Sql
             ("""
                 UPDATE "Players" SET "Sponsor" = "Sponsors"."Logo"
@@ -157,6 +152,7 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 WHERE "Sponsors"."Id" = "Players"."SponsorId";
             """);
 
+            // drop new columns
             migrationBuilder.DropColumn(
                 name: "SponsorId",
                 table: "Users");
