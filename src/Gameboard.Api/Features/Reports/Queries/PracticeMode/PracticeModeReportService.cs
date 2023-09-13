@@ -91,13 +91,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
             query = query.Where(c => parameters.Games.Contains(c.GameId));
 
         if (parameters.Sponsors is not null && parameters.Sponsors.Any())
-        {
-            var sponsorIds = sponsors
-                .Where(s => parameters.Sponsors.Contains(s.Id))
-                .Select(s => s.LogoFileName);
-
             query = query.Where(c => sponsorIds.Contains(c.Player.Sponsor.Id));
-        }
 
         // we have to constrain the query results by eliminating challenges that have a specId
         // which points at a nonexistent spec. (This is possible due to the non-FK relationship

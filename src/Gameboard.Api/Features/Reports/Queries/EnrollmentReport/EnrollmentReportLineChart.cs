@@ -38,17 +38,18 @@ internal class EnrollmentReportLineChartHandler : IRequestHandler<EnrollmentRepo
         await _validator.Validate(request.Parameters);
 
         // pull base query but select only what we need
-        var query = await _reportService.GetBaseQuery(request.Parameters, cancellationToken).ToArrayAsync(cancellationToken);
-        var results = await query.Select(p => new EnrollmentReportLineChartPlayer
-        {
-            Id = p.Id,
-            Name = p.ApprovedName,
-            EnrollDate = p.WhenCreated,
-            Game = new SimpleEntity { Id = p.GameId, Name = p.Game.Id },
-        })
-        .WhereDateIsNotEmpty(p => p.EnrollDate)
-        .OrderBy(p => p.EnrollDate)
-        .ToListAsync(cancellationToken);
+        var results = await _reportService
+            .GetBaseQuery(request.Parameters)
+            .WhereDateIsNotEmpty(p => p.EnrollDate)
+            .OrderBy(p => p.EnrollDate)
+            .Select(p => new EnrollmentReportLineChartPlayer
+            {
+                Id = p.Id,
+                Name = p.ApprovedName,
+                EnrollDate = p.WhenCreated,
+                Game = new SimpleEntity { Id = p.GameId, Name = p.Game.Id },
+            })
+            .ToArrayAsync(cancellationToken);
 
         // grouping stuff
         var totalEnrolledPlayerCount = 0;

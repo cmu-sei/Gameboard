@@ -307,6 +307,7 @@ public class PlayerService
 
         var q = PlayerStore.List()
             .Include(p => p.User)
+            .Include(p => p.Sponsor)
             .AsNoTracking();
 
         if (model.WantsMode)
@@ -360,7 +361,7 @@ public class PlayerService
                 p.Id.StartsWith(term) ||
                 p.TeamId.StartsWith(term) ||
                 p.UserId.StartsWith(term) ||
-                p.Sponsor.StartsWith(term) ||
+                p.Sponsor.Name.StartsWith(term) ||
                 p.User.Name.ToLower().Contains(term) ||
                 p.User.ApprovedName.ToLower().Contains(term) ||
                 PlayerStore.DbSet.Where(p2 => p2.TeamId == p.TeamId && (p2.UserId.StartsWith(term) || p2.User.ApprovedName.ToLower().Contains(term))).Any()
