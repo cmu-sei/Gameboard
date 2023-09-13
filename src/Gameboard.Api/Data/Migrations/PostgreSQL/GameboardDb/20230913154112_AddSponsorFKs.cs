@@ -32,6 +32,14 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 nullable: false,
                 defaultValue: "other");
 
+            // HasDefaultSponsor is true if the user has a blank or null sponsor before the migration
+            // (and false otherwise)
+            migrationBuilder.Sql
+            ("""
+                UPDATE "Users" 
+                SET "HasDefaultSponsor" = COALESCE("Sponsor", '') = '';
+            """);
+
             // migrate data from old columns
             migrationBuilder.Sql
             ("""
@@ -40,7 +48,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 WHERE "Sponsors"."Logo" = "Users"."Sponsor"
                     AND "Users"."Sponsor" IS NOT NULL;
 
-                UPDATE "Users" SET "SponsorId" = (SELECT "Id" FROM "Sponsors" WHERE "Id" = 'other')
+                UPDATE "Users" 
+                SET "SponsorId" = (SELECT "Id" FROM "Sponsors" WHERE "Id" = 'other')
                 WHERE "SponsorId" IS NULL;
             """);
 
@@ -49,9 +58,10 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 UPDATE "Players" SET "SponsorId" = "Sponsors"."Id"
                 FROM "Sponsors" 
                 WHERE "Sponsors"."Logo" = "Players"."Sponsor"
-                    AND "Players"."Sponsor" IS NOT NULL;;
+                    AND "Players"."Sponsor" IS NOT NULL;
 
-                UPDATE "Players" SET "SponsorId" = (SELECT "Id" FROM "Sponsors" WHERE "Id" = 'other')
+                UPDATE "Players" 
+                SET "SponsorId" = (SELECT "Id" FROM "Sponsors" WHERE "Id" = 'other')
                 WHERE "SponsorId" IS NULL;
             """);
 
