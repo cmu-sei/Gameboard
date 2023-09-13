@@ -15,7 +15,7 @@ public class GameboardCustomization : ICustomization
             Id = fixture.Create<string>(),
             Username = "testuser",
             ApprovedName = "Test User",
-            Sponsor = "Test Sponsor",
+            Sponsor = new Data.Sponsor { Id = fixture.Create<string>(), Name = "Test Sponsor" },
             Role = UserRole.Member
         });
 
@@ -34,7 +34,7 @@ public class GameboardCustomization : ICustomization
             User = fixture.Create<Data.User>(),
             Game = fixture.Create<Data.Game>(),
             ApprovedName = "Test Player",
-            Sponsor = "Test Sponsor",
+            Sponsor = new Data.Sponsor { Id = fixture.Create<string>(), Name = "Test Sponsor" },
             Role = PlayerRole.Manager,
             Score = 0,
             SessionBegin = now,
@@ -86,16 +86,14 @@ public class GameboardCustomization : ICustomization
             IsActive = true,
             Vms = new TopoMojo.Api.Client.VmState[]
             {
-                new TopoMojo.Api.Client.VmState
-                {
+                new() {
                     Id = "10fccb66-6916-45e2-9a39-188d3a692d4a",
                     Name = "VM 1",
                     IsolationId = "vm1",
                     IsRunning = true,
                     IsVisible = true
                 },
-                new TopoMojo.Api.Client.VmState
-                {
+                new() {
                     Id = "8d771689-8b37-48e7-b706-9efe1c64bdca",
                     Name = "VM 2",
                     IsolationId = "vm2",
@@ -117,8 +115,7 @@ public class GameboardCustomization : ICustomization
                 LastScoreTime = DateTimeOffset.Now.AddMinutes(5),
                 Questions = new TopoMojo.Api.Client.QuestionView[]
                 {
-                    new TopoMojo.Api.Client.QuestionView
-                    {
+                    new() {
                         Text = "What is your quest?",
                         Hint = "It's not about swallows or whatever",
                         Answer = "swallows",

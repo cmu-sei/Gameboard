@@ -1,5 +1,4 @@
 using System.Net;
-using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 
 namespace Gameboard.Api.Tests.Integration;
@@ -53,7 +52,7 @@ public class GameControllerGetSyncStartStateTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task GetSyncStartState_WithNotReady_IsNotReady(string gameId, string notReadyPlayerId)
+    public async Task GetSyncStartState_WithNotReady_IsNotReady(string gameId, string notReadyPlayerId, IFixture fixture)
     {
         // given two players registered for the same sync-start game, one not ready
         await _testContext.WithDataState(state =>
@@ -64,18 +63,27 @@ public class GameControllerGetSyncStartStateTests
                 g.RequireSynchronizedStart = true;
             });
 
-            state.AddPlayer(p =>
-            {
-                p.GameId = gameId;
-                p.IsReady = true;
-            });
+            var readyPlayer = fixture.Create<Data.Player>();
+            readyPlayer.GameId = gameId;
+            readyPlayer.IsReady = true;
+            state.Add(readyPlayer);
+            // state.AddPlayer(p =>
+            // {
+            //     p.GameId = gameId;
+            //     p.IsReady = true;
+            // });
 
-            state.AddPlayer(p =>
-            {
-                p.Id = notReadyPlayerId;
-                p.GameId = gameId;
-                p.IsReady = false;
-            });
+            var notReadyPlayer = fixture.Create<Data.Player>();
+            notReadyPlayer.Id = notReadyPlayerId;
+            notReadyPlayer.GameId = gameId;
+            notReadyPlayer.IsReady = false;
+
+            // state.AddPlayer(p =>
+            // {
+            //     p.Id = notReadyPlayerId;
+            //     p.GameId = gameId;
+            //     p.IsReady = false;
+            // });
         });
 
         var http = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);

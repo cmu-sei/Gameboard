@@ -1,5 +1,4 @@
 ﻿using System.Net.Http.Headers;
-using Gameboard.Api.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;

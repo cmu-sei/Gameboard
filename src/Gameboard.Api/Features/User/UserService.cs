@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
-using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -24,7 +23,6 @@ public class UserService
 
     public UserService(
         INowService now,
-        IStore store,
         SponsorService sponsorService,
         IStore<Data.User> userStore,
         IMapper mapper,

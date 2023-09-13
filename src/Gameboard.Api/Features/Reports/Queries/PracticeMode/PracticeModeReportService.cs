@@ -40,12 +40,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
         // load sponsors - we need them for the report data and they can't be joined
         var sponsors = await _store
             .List<Data.Sponsor>()
-            .Select(s => new ReportSponsorViewModel
-            {
-                Id = s.Id,
-                Name = s.Name,
-                LogoFileName = s.Logo
-            })
+            .Select(s => s.ToReportViewModel())
             .ToArrayAsync(cancellationToken);
 
         // process parameters
@@ -156,10 +151,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
         return new PracticeModeReportByChallengePerformance
         {
             Players = (sponsor is null ? attempts : attempts.Where(sponsorConstraint)).
-                Select
-                (
-                    a => new SimpleEntity { Id = a.Player.UserId, Name = a.Player.ApprovedName }
-                )
+                Select(a => new SimpleEntity { Id = a.Player.UserId, Name = a.Player.ApprovedName })
                 .DistinctBy(e => e.Id)
                 .ToArray(),
             TotalAttempts = totalAttempts,
@@ -187,10 +179,10 @@ internal class PracticeModeReportService : IPracticeModeReportService
                 var attempts = g.ToList();
                 var spec = ungroupedResults.Specs[g.Key];
 
-                var sponsorLogosPlayed = attempts.Select(a => a.Player.Sponsor).Distinct();
+                var sponsorIdsPlayed = attempts.Select(a => a.Player.Sponsor.Id).Distinct();
                 var sponsorsPlayed = ungroupedResults
                     .Sponsors
-                    .Where(s => sponsorLogosPlayed.Contains(s.LogoFileName));
+                    .Where(s => sponsorIdsPlayed.Contains(s.Id));
 
                 // overall results across all sponsors
                 var performanceOverall = BuildChallengePerformance(attempts);
@@ -261,9 +253,9 @@ internal class PracticeModeReportService : IPracticeModeReportService
                 Sponsor = ungroupedResults.Sponsors
                     .FirstOrDefault
                     (s =>
-                        s.LogoFileName == c
+                        s.Id == c
                             .OrderByDescending(c => c.StartTime)
-                            .FirstOrDefault(c => c.Player.Sponsor is not null)?.Player?.Sponsor
+                            .FirstOrDefault(c => c.Player.Sponsor is not null)?.Player?.Sponsor?.Id
                     ),
                 HasScoringAttempt = c.Any(c => c.Score > 0)
             },
@@ -288,7 +280,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
                 {
                     Player = new SimpleEntity { Id = attempt.PlayerId, Name = attempt.Player.ApprovedName },
                     Team = teams.ContainsKey(attempt.Player.TeamId) ? teams[attempt.Player.TeamId] : null,
-                    Sponsor = ungroupedResults.Sponsors.FirstOrDefault(s => s.LogoFileName == attempt.Player.Sponsor),
+                    Sponsor = ungroupedResults.Sponsors.FirstOrDefault(s => s.Id == attempt.Player.Sponsor.Id),
                     Start = attempt.StartTime,
                     End = attempt.EndTime,
                     DurationMs = attempt.Player.Time,
@@ -325,7 +317,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
                     {
                         // this is really more of a user entity than a player entity, but the report uses "player" to refer to users on purpose
                         Player = new SimpleEntity { Id = g.Key, Name = g.First().Player?.User?.ApprovedName ?? g.First().Player?.ApprovedName },
-                        Sponsor = ungroupedResults.Sponsors.FirstOrDefault(s => s.LogoFileName == g.FirstOrDefault()?.Player?.User?.Sponsor),
+                        Sponsor = ungroupedResults.Sponsors.FirstOrDefault(s => s.Id == g.FirstOrDefault()?.Player?.User?.Sponsor?.Id),
                         PracticeStats = CalculateByPlayerPerformanceModeSummary(true, g.ToList(), allSpecRawScores),
                         CompetitiveStats = CalculateByPlayerPerformanceModeSummary(false, g.ToList(), allSpecRawScores)
                     };
@@ -352,13 +344,8 @@ internal class PracticeModeReportService : IPracticeModeReportService
         // these will all be the same
         var user = challenges.First().Player.User;
         var sponsor = await _store.List<Data.Sponsor>()
-            .Select(s => new ReportSponsorViewModel
-            {
-                Id = s.Id,
-                Name = s.Name,
-                LogoFileName = s.Logo
-            })
-            .SingleAsync(s => s.LogoFileName == user.Sponsor, cancellationToken);
+            .Select(s => s.ToReportViewModel())
+            .SingleAsync(s => s.Id == user.Sponsor.Id, cancellationToken);
 
         // pull the scores for challenge specs this player played in this mode
         var rawScores = (await GetSpecRawScores(challenges.Select(c => c.SpecId).ToArray())).Where(s => s.IsPractice == isPractice);
@@ -403,7 +390,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
         {
             var sponsor = ungroupedResults
                 .Sponsors
-                .FirstOrDefault(s => s.LogoFileName == c.Player.Sponsor);
+                .FirstOrDefault(s => s.Id == c.Player.Sponsor.Id);
 
             return new PracticeModeReportCsvRecord
             {

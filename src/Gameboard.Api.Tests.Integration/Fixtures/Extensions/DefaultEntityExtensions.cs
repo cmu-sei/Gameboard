@@ -64,7 +64,7 @@ public static class GameboardTestContextDefaultEntityExtensions
                 GameEnd = DateTime.UtcNow + TimeSpan.FromDays(30),
                 RegistrationOpen = DateTimeOffset.UtcNow,
                 RegistrationClose = DateTime.UtcNow + TimeSpan.FromDays(30),
-                RegistrationType = Gameboard.Api.GameRegistrationType.Open,
+                RegistrationType = GameRegistrationType.Open,
             },
             gameBuilder
         );
@@ -84,8 +84,8 @@ public static class GameboardTestContextDefaultEntityExtensions
                 Id = GenerateTestGuid(),
                 TeamId = GenerateTestGuid(),
                 ApprovedName = "Integration Test Player",
-                Sponsor = "Integration Test Sponsor",
-                Role = Gameboard.Api.PlayerRole.Manager,
+                Sponsor = new Data.Sponsor { Id = "integrationTestSponsor", Name = "Integration Test Sponsor" },
+                Role = PlayerRole.Manager,
                 User = new Data.User { Id = userId },
                 UserId = userId
             },
@@ -192,8 +192,8 @@ public static class GameboardTestContextDefaultEntityExtensions
                 Email = "integration@test.com",
                 Name = "integrationtester",
                 ApprovedName = "integrationtester",
-                Sponsor = "SEI",
-                Role = Api.UserRole.Member
+                Sponsor = new Data.Sponsor { Id = "integrationTestSponsor", Name = "Integration Test Sponsor" },
+                Role = UserRole.Member
             },
             userBuilder
         );

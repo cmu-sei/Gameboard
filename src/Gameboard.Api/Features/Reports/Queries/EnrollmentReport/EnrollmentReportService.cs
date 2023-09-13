@@ -163,10 +163,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
                     Id = p.TeamId,
                     Name = captain?.Name ?? p.Name,
                     CurrentCaptain = new SimpleEntity { Id = captain?.Id ?? p.Id, Name = captain?.Name ?? p.Name },
-                    Sponsors = playerTeamChallengeData.Select(p =>
-                    {
-
-                    })
+                    Sponsors = playerTeamChallengeData.Select(p => p.Sponsor.ToReportViewModel())
                 },
                 PlayTime = new EnrollmentReportPlayTimeViewModel
                 {
@@ -191,13 +188,16 @@ internal class EnrollmentReportService : IEnrollmentReportService
             .DistinctBy(sponsorUser => new { sponsorUser.SponsorId, sponsorUser.UserId })
             .GroupBy(r => r.SponsorId)
             .OrderByDescending(g => g.Count())
-            .ToDictionary(g => g.Key, g => g.Distinct().Count());
+            .ToDictionary(g => g.Key, g => g.DistinctBy(su => su.UserId).Count());
 
+        // resolve the sponsor with the most unique users
+        // (it'll be the first one if there are any, because they're ordered by player
+        // count above)
         EnrollmentReportStatSummarySponsorPlayerCount sponsorWithMostPlayers = null;
-
         if (usersBySponsor.Any())
         {
-            var sponsor = sponsors.FirstOrDefault(s => s.Id == usersBySponsor.First().Key);
+            var allSponsors = records.Select(r => r.Player.Sponsor).DistinctBy(s => s.Id);
+            var sponsor = allSponsors.FirstOrDefault(s => s.Id == usersBySponsor.First().Key);
 
             if (sponsor is not null)
             {
