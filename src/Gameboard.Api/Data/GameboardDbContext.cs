@@ -1,7 +1,6 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,9 +23,6 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.NameStatus).HasMaxLength(40);
             b.Property(u => u.Email).HasMaxLength(64);
             b.Property(u => u.LoginCount).HasDefaultValueSql("0");
-            b.Property(u => u.HasDefaultSponsor)
-                .HasDefaultValue(true)
-                .IsRequired();
 
             // nav properties
             b.HasOne(u => u.Sponsor).WithMany(s => s.SponsoredUsers)
