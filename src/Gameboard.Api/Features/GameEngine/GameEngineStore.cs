@@ -42,9 +42,7 @@ internal class GameEngineStore : IGameEngineStore
     private async Task<IEnumerable<GameEngineGameState>> GetGameStates(string playerId = null, string challengeId = null, string challengeSpecId = null, string teamId = null)
     {
         if (playerId.IsEmpty() && challengeId.IsEmpty() && challengeSpecId.IsEmpty() && teamId.IsEmpty())
-        {
             throw new ArgumentException("Can't retrieve game engine type without at least one argument.");
-        }
 
         var query = _db.Challenges.AsQueryable();
 
