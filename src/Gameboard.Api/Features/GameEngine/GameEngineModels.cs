@@ -27,22 +27,21 @@ public class GameEngineGamespaceStartRequest
 
 public class GameEngineGameState
 {
-    [Required] public string Id { get; set; }
-    [Required] public string Name { get; set; }
-    [Required] public string ManagerId { get; set; }
-    [Required] public string ManagerName { get; set; }
-    [Required] public string Markdown { get; set; }
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public string ManagerId { get; set; }
+    public string ManagerName { get; set; }
+    public string Markdown { get; set; }
     public string Audience { get; set; }
-    [Required] public string LaunchpointUrl { get; set; }
-    [Required] public bool IsActive { get; set; }
-
-    [Required] public IEnumerable<GameEnginePlayer> Players { get; set; }
-    [Required] public DateTimeOffset WhenCreated { get; set; }
-    [Required] public DateTimeOffset StartTime { get; set; }
-    [Required] public DateTimeOffset EndTime { get; set; }
-    [Required] public DateTimeOffset ExpirationTime { get; set; }
-    [Required] public IEnumerable<GameEngineVmState> Vms { get; set; }
-    [Required] public GameEngineChallengeView Challenge { get; set; }
+    public string LaunchpointUrl { get; set; }
+    public bool IsActive { get; set; }
+    public IEnumerable<GameEnginePlayer> Players { get; set; }
+    public DateTimeOffset WhenCreated { get; set; }
+    public DateTimeOffset StartTime { get; set; }
+    public DateTimeOffset EndTime { get; set; }
+    public DateTimeOffset ExpirationTime { get; set; }
+    public IEnumerable<GameEngineVmState> Vms { get; set; }
+    public GameEngineChallengeView Challenge { get; set; }
 
     public bool HasDeployedGamespace
     {

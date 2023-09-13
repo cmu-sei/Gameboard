@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Features.Games;
-using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;

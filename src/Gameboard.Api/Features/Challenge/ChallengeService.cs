@@ -15,7 +15,6 @@ using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
@@ -333,34 +332,6 @@ public class ChallengeService : _Service
         }
     }
 
-    // private async Task<Data.Challenge> SyncSucks(Data.Challenge entity, Task<GameEngineGameState> task = null)
-    // {
-    //     // if no task, just load the gamespace (?)
-    //     task ??= GameEngine.LoadGamespace(entity);
-
-    //     try
-    //     {
-    //         var state = await task;
-
-    //         // TODO
-    //         // this is currently awkward because the game state that comes back here has the team ID as the subjectId (because that's what we're passing to Topo - see 
-    //         // GameEngine.RegisterGamespace). it's unclear whether topo cares what we pass as the players argument there, but since we're passing team ID 
-    //         // there we need to NOT overwrite the playerId on the entity during the call to Map. Obviously, we could fix this by setting a rule on the map, 
-    //         // but I'm leaving it here because this is the anomalous case.
-    //         var playerId = entity.PlayerId;
-    //         Mapper.Map(state, entity);
-    //         entity.PlayerId = playerId;
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         entity.LastSyncTime = DateTimeOffset.UtcNow;
-    //         Logger.LogError(ex, message: $"Sync error on {entity.Id} {entity.Name}");
-    //     }
-
-    //     await Store.Update(entity);
-    //     return entity;
-    // }
-
     private void Sync(Data.Challenge challenge, GameEngineGameState state)
         => Sync(new SyncEntry(challenge, state));
 
@@ -489,63 +460,71 @@ public class ChallengeService : _Service
             .Where(c => c.TeamId == teamId)
             .ToArrayAsync();
 
+        Logger.LogInformation($"Cleaning up challenges for team {teamId}.");
         await ArchiveChallenges(challenges);
     }
 
     private async Task ArchiveChallenges(IEnumerable<Data.Challenge> challenges)
     {
-        if (challenges != null && challenges.Any())
+        if (challenges == null || !challenges.Any())
+            return;
+
+        Logger.LogInformation($"Archiving {challenges.Count()} challenges.");
+        var toArchiveIds = challenges.Select(c => c.Id).ToArray();
+        var teamMemberMap = await Store
+            .DbSet
+            .AsNoTracking()
+            .Include(c => c.Player)
+            .Where(c => toArchiveIds.Contains(c.Id))
+            .GroupBy(c => c.Player.TeamId)
+            .ToDictionaryAsync(g => g.Key, g => g.Select(c => c.Player.Id).AsEnumerable());
+
+        var toArchiveTasks = challenges.Select(async challenge =>
         {
-            var toArchiveIds = challenges.Select(c => c.Id).ToArray();
+            var submissions = Array.Empty<GameEngineSectionSubmission>();
 
-            var teamMemberMap = await Store
-                .DbSet
-                .AsNoTracking()
-                .Include(c => c.Player)
-                .Where(c => toArchiveIds.Contains(c.Id))
-                .GroupBy(c => c.Player.TeamId)
-                .ToDictionaryAsync(g => g.Key, g => g.Select(c => c.Player.Id).AsEnumerable());
-
-            var toArchiveTasks = challenges.Select(async challenge =>
+            // gamespace may be deleted in TopoMojo which would cause error and prevent reset
+            try
             {
-                var submissions = Array.Empty<GameEngineSectionSubmission>();
-
-                // gamespace may be deleted in TopoMojo which would cause error and prevent reset
-                try
+                submissions = Mapper.Map<GameEngineSectionSubmission[]>(await GameEngine.AuditChallenge(challenge));
+                if (challenge.HasDeployedGamespace)
                 {
-                    submissions = Mapper.Map<GameEngineSectionSubmission[]>(await GameEngine.AuditChallenge(challenge));
-                    if (challenge.HasDeployedGamespace)
-                        await GameEngine.CompleteGamespace(challenge);
+                    Logger.LogInformation($"Completing gamespace for challenge {challenge.Id}.");
+                    await GameEngine.CompleteGamespace(challenge);
                 }
-                catch
+                else
                 {
-                    // no-op - leave as empty array
+                    Logger.LogInformation($"Challenge {challenge.Id} doesn't have a deployed gamespace - skipping cleanup.");
                 }
+            }
+            catch
+            {
+                // no-op - leave as empty array
+            }
 
-                var mappedChallenge = _mapper.Map<ArchivedChallenge>(challenge);
-                mappedChallenge.Submissions = submissions;
-                mappedChallenge.TeamMembers = teamMemberMap[challenge.TeamId].ToArray();
+            var mappedChallenge = _mapper.Map<ArchivedChallenge>(challenge);
+            mappedChallenge.Submissions = submissions;
+            mappedChallenge.TeamMembers = teamMemberMap.ContainsKey(challenge.TeamId) ? teamMemberMap[challenge.TeamId].ToArray() : Array.Empty<string>();
 
-                return mappedChallenge;
-            }).ToArray();
+            return mappedChallenge;
+        }).ToArray();
 
-            var toArchive = await Task.WhenAll(toArchiveTasks);
+        var toArchive = await Task.WhenAll(toArchiveTasks);
 
-            // this is a backstoppy kind of thing - we aren't quite sure about the conditions under which this happens, but we've had
-            // some stale challenges appear in the archive table and the real challenges table. if for whatever reason we're trying to
-            // archive something that's already in the archive table, instead, delete it, replace it with the updated object
-            var recordsAffected = await Store
-                .DbContext
-                .ArchivedChallenges
-                .Where(c => toArchiveIds.Contains(c.Id))
-                .ExecuteDeleteAsync();
+        // this is a backstoppy kind of thing - we aren't quite sure about the conditions under which this happens, but we've had
+        // some stale challenges appear in the archive table and the real challenges table. if for whatever reason we're trying to
+        // archive something that's already in the archive table, instead, delete it, replace it with the updated object
+        var recordsAffected = await Store
+            .DbContext
+            .ArchivedChallenges
+            .Where(c => toArchiveIds.Contains(c.Id))
+            .ExecuteDeleteAsync();
 
-            if (recordsAffected > 0)
-                Logger.LogWarning($"While attempting to archive challenges (Ids: {string.Join(",", toArchiveIds)}) resulted in the deletion of ${recordsAffected} stale archive records.");
+        if (recordsAffected > 0)
+            Logger.LogWarning($"While attempting to archive challenges (Ids: {string.Join(",", toArchiveIds)}) resulted in the deletion of ${recordsAffected} stale archive records.");
 
-            Store.DbContext.ArchivedChallenges.AddRange(_mapper.Map<Data.ArchivedChallenge[]>(toArchive));
-            await Store.DbContext.SaveChangesAsync();
-        }
+        Store.DbContext.ArchivedChallenges.AddRange(_mapper.Map<Data.ArchivedChallenge[]>(toArchive));
+        await Store.DbContext.SaveChangesAsync();
     }
 
     public async Task<ConsoleSummary> GetConsole(ConsoleRequest model, bool observer)
@@ -646,9 +625,9 @@ public class ChallengeService : _Service
     internal async Task<Api.Data.Challenge> BuildAndRegisterChallenge
     (
         NewChallenge newChallenge,
-        Api.Data.ChallengeSpec spec,
-        Api.Data.Game game,
-        Api.Data.Player player,
+        Data.ChallengeSpec spec,
+        Data.Game game,
+        Data.Player player,
         string actorUserId,
         string graderUrl,
         int playerCount,

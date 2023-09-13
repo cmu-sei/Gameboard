@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
-using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
@@ -14,7 +13,6 @@ using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using ServiceStack;
 
 namespace Gameboard.Api.Features.Games.External;
 
