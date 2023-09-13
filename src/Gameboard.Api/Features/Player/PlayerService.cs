@@ -713,11 +713,13 @@ public class PlayerService
         // check for existing sessions
         var nowStamp = _now.Get();
 
-        var players = await Store.DbContext.Players.Where(p =>
-            p.UserId == model.UserId &&
-            p.Mode == PlayerMode.Practice &&
-            p.SessionEnd > nowStamp
-        ).ToArrayAsync();
+        var players = await Store.DbContext.Players.Where
+        (
+            p =>
+                p.UserId == model.UserId &&
+                p.Mode == PlayerMode.Practice &&
+                p.SessionEnd > nowStamp
+        ).ToArrayAsync(cancellationToken);
 
         if (players.Any(p => p.GameId == model.GameId))
             return Mapper.Map<Player>(players.First(p => p.GameId == model.GameId));
@@ -725,14 +727,15 @@ public class PlayerService
         // find gamespaces across all practice sessions
         var teamIds = players.Select(p => p.TeamId).ToArray();
 
-        bool hasGamespace = await Store.DbContext.Challenges.AnyAsync(c =>
-            teamIds.Contains(c.TeamId) &&
-            c.HasDeployedGamespace == true
+        bool hasGamespace = await Store.DbContext.Challenges.AnyAsync
+        (
+            c => teamIds.Contains(c.TeamId) && c.HasDeployedGamespace == true,
+            cancellationToken
         );
 
         // only 1 practice gamespace at a time
         if (hasGamespace)
-            throw new GamespaceLimitReached();
+            throw new UserLevelPracticeGamespaceLimitReached(model.UserId, model.GameId, teamIds);
 
         // don't exceed global configured limit
         if (settings.MaxConcurrentPracticeSessions.HasValue)

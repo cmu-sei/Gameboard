@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Practice;
 using Microsoft.EntityFrameworkCore;
@@ -86,7 +87,7 @@ public class ChallengeService : _Service
             .FirstOrDefaultAsync();
 
         if (await AtGamespaceLimit(game, player.TeamId))
-            throw new GamespaceLimitReached();
+            throw new GamespaceLimitReached(game.Id, player.TeamId);
 
         if ((await IsUnlocked(player, game, model.SpecId)).Equals(false))
             throw new ChallengeLocked();
@@ -331,7 +332,7 @@ public class ChallengeService : _Service
         var game = await Store.DbContext.Games.FindAsync(entity.GameId);
 
         if (await AtGamespaceLimit(game, entity.TeamId))
-            throw new GamespaceLimitReached();
+            throw new GamespaceLimitReached(game.Id, entity.TeamId);
 
         entity.Events.Add(new Data.ChallengeEvent
         {
