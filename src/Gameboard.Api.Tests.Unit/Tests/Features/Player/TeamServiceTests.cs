@@ -1,4 +1,5 @@
 using AutoMapper;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Hubs;
@@ -21,7 +22,8 @@ public class TeamServiceTests
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
             A.Fake<IInternalHubBus>(),
-            playerStore
+            playerStore,
+            A.Fake<IStore>()
         );
 
         var players = new Data.Player[]
