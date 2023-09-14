@@ -50,7 +50,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<Challenge> Create([FromBody] NewChallenge model)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsDirector,
                 () => IsSelf(model.PlayerId).Result
             );

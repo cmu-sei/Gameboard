@@ -753,7 +753,6 @@ public class PlayerService
         entity.Mode = PlayerMode.Practice;
 
         await Store.Create(entity);
-
         return Mapper.Map<Player>(entity);
     }
 

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
@@ -29,7 +28,6 @@ public sealed class UserActiveChallenges
 internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveChallengesQuery, UserActiveChallenges>
 {
     private readonly IGameEngineService _gameEngine;
-    private readonly IMapper _mapper;
     private readonly INowService _now;
     private readonly IStore _store;
     private readonly ITimeWindowService _timeWindowService;
@@ -40,7 +38,6 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
     public GetUserActiveChallengesHandler
     (
         IGameEngineService gameEngine,
-        IMapper mapper,
         INowService now,
         IStore store,
         ITimeWindowService timeWindowService,
@@ -50,7 +47,6 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
     )
     {
         _gameEngine = gameEngine;
-        _mapper = mapper;
         _now = now;
         _store = store;
         _timeWindowService = timeWindowService;
