@@ -160,9 +160,12 @@ namespace Gameboard.Api.Controllers
         [Authorize(AppConstants.DesignerPolicy)]
         public async Task<string> ExportGameSpec([FromBody] GameSpecExport model)
         {
-
             return await GameService.Export(model);
         }
+
+        [HttpGet("/api/game/{gameId}/team/{teamId}/gamespace-limit")]
+        public Task<TeamGamespaceLimitState> GetTeamGamespaceLimitState([FromRoute] string gameId, [FromRoute] string teamId)
+            => _mediator.Send(new GetTeamGamespaceLimitStateQuery(gameId, teamId, Actor));
 
         [HttpPost("api/game/{id}/{type}")]
         [Authorize]
