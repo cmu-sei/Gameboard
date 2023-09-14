@@ -7,6 +7,7 @@ using System.Reflection;
 using Gameboard.Api.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -16,6 +17,7 @@ namespace Microsoft.Extensions.DependencyInjection
         (
             this IServiceCollection services,
             IWebHostEnvironment env,
+            ILogger logger,
             string provider,
             string connstr
         )
