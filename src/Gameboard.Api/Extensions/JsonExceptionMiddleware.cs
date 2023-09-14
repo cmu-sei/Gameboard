@@ -52,7 +52,7 @@ namespace Gameboard.Api
                         context.Response.StatusCode = 400;
                         message = ex.Message;
                     }
-                    else if (ex is System.InvalidOperationException || type.Namespace.StartsWith("Gameboard"))
+                    else if (ex is InvalidOperationException || type.Namespace.StartsWith("Gameboard"))
                     {
                         context.Response.StatusCode = 400;
                         message = type.Name

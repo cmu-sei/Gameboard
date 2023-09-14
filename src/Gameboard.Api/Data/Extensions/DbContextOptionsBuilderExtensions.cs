@@ -8,7 +8,7 @@ namespace Gameboard.Api.Data;
 
 public static class DbContextOptionsBuilderExtensions
 {
-    public static DbContextOptionsBuilder WithGameboardOptions(this DbContextOptionsBuilder builder, IWebHostEnvironment env, ILogger logger)
+    public static DbContextOptionsBuilder WithGameboardOptions(this DbContextOptionsBuilder builder, IWebHostEnvironment env)
     {
         if (env.IsDevOrTest())
         {
