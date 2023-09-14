@@ -25,6 +25,7 @@ public class PlayerService
     private readonly TimeSpan _idmapExpiration = new(0, 30, 0);
     private readonly INowService _now;
     private readonly IPracticeService _practiceService;
+    private readonly ITeamService _teamService;
 
     CoreOptions CoreOptions { get; }
     ChallengeService ChallengeService { get; set; }
@@ -33,7 +34,6 @@ public class PlayerService
     IGameStore GameStore { get; }
     IGuidService GuidService { get; }
     IInternalHubBus HubBus { get; }
-    ITeamService TeamService { get; }
     IMapper Mapper { get; }
     IMemoryCache LocalCache { get; }
 
@@ -63,7 +63,7 @@ public class PlayerService
         HubBus = hubBus;
         Store = store;
         GameStore = gameStore;
-        TeamService = teamService;
+        _teamService = teamService;
         Mapper = mapper;
         LocalCache = localCache;
     }
@@ -182,7 +182,7 @@ public class PlayerService
             await HubBus.SendTeamDeleted(playerModel, args.ActingUser);
 
             if (!player.IsManager && !player.Game.RequireSponsoredTeam)
-                await TeamService.UpdateTeamSponsors(player.TeamId);
+                await _teamService.UpdateTeamSponsors(player.TeamId);
         }
 
         // update player ready state if game needs it
@@ -471,7 +471,7 @@ public class PlayerService
         await Store.Update(player);
 
         if (manager.Game.AllowTeam && !manager.Game.RequireSponsoredTeam)
-            await TeamService.UpdateTeamSponsors(manager.TeamId);
+            await _teamService.UpdateTeamSponsors(manager.TeamId);
 
         var mappedPlayer = Mapper.Map<Player>(player);
         await HubBus.SendPlayerEnrolled(mappedPlayer, actor);
@@ -489,7 +489,7 @@ public class PlayerService
         await Store.Delete(request.PlayerId);
 
         // manage sponsor info about the team
-        await TeamService.UpdateTeamSponsors(player.TeamId);
+        await _teamService.UpdateTeamSponsors(player.TeamId);
 
         // notify listeners on SignalR (like the team)
         var playerModel = Mapper.Map<Player>(player);
@@ -726,16 +726,13 @@ public class PlayerService
 
         // find gamespaces across all practice sessions
         var teamIds = players.Select(p => p.TeamId).ToArray();
-
-        bool hasGamespace = await Store.DbContext.Challenges.AnyAsync
-        (
-            c => teamIds.Contains(c.TeamId) && c.HasDeployedGamespace == true,
-            cancellationToken
-        );
-
-        // only 1 practice gamespace at a time
-        if (hasGamespace)
-            throw new UserLevelPracticeGamespaceLimitReached(model.UserId, model.GameId, teamIds);
+        var game = await GameStore.Retrieve(model.GameId);
+        foreach (var teamId in teamIds)
+        {
+            // practice mode only allows a single gamespace
+            if (await _teamService.IsAtGamespaceLimit(teamId, game, cancellationToken))
+                throw new UserLevelPracticeGamespaceLimitReached(model.UserId, model.GameId, teamIds);
+        }
 
         // don't exceed global configured limit
         if (settings.MaxConcurrentPracticeSessions.HasValue)
