@@ -10,4 +10,7 @@ public static class GameExtensions
 
     private static bool IsTeamGame(int minTeamSize)
         => minTeamSize > 1;
+
+    public static int GetGamespaceLimit(this Data.Game game)
+        => game.IsPracticeMode ? 1 : game.GamespaceLimitPerSession;
 }

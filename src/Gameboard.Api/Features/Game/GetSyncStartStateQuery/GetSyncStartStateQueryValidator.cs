@@ -32,9 +32,12 @@ internal class GetSyncStartStateQueryValidator : IGameboardRequestValidator<GetS
         _validatorService.AddValidator(_gameExists.UseProperty(r => r.gameId));
 
         // user must have registered for the game
-        _userIsPlayingGame.GetGameId = r => r.gameId;
-        _userIsPlayingGame.GetUser = r => r.ActingUser;
-        _validatorService.AddValidator(_userIsPlayingGame);
+        _validatorService.AddValidator
+        (
+            _userIsPlayingGame
+                .UseGameIdProperty(r => r.gameId)
+                .UseUserIdProperty(r => r.ActingUser)
+        );
 
         // game must be a sync start game
         _validatorService.AddValidator(async (request, context) =>

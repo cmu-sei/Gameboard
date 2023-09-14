@@ -13,6 +13,7 @@ using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Practice;
+using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -34,6 +35,7 @@ public class ChallengeService : _Service
     private readonly IPlayerStore _playerStore;
     private readonly IPracticeChallengeScoringListener _practiceChallengeScoringListener;
     private readonly IStore<Data.ChallengeSpec> _specStore;
+    private readonly ITeamService _teamService;
 
     public ChallengeService(
         ILogger<ChallengeService> logger,
@@ -49,7 +51,8 @@ public class ChallengeService : _Service
         INowService now,
         IPlayerStore playerStore,
         IPracticeChallengeScoringListener practiceChallengeScoringListener,
-        ConsoleActorMap actorMap
+        ConsoleActorMap actorMap,
+        ITeamService teamService
     ) : base(logger, mapper, options)
     {
         Store = store;
@@ -64,6 +67,7 @@ public class ChallengeService : _Service
         _playerStore = playerStore;
         _practiceChallengeScoringListener = practiceChallengeScoringListener;
         _specStore = specStore;
+        _teamService = teamService;
     }
 
     public async Task<Challenge> GetOrCreate(NewChallenge model, string actorId, string graderUrl)
@@ -73,10 +77,10 @@ public class ChallengeService : _Service
         if (entity is not null)
             return Mapper.Map<Challenge>(entity);
 
-        return await Create(model, actorId, graderUrl);
+        return await Create(model, actorId, graderUrl, CancellationToken.None);
     }
 
-    public async Task<Challenge> Create(NewChallenge model, string actorId, string graderUrl)
+    public async Task<Challenge> Create(NewChallenge model, string actorId, string graderUrl, CancellationToken cancellationToken)
     {
         var player = await _playerStore.Retrieve(model.PlayerId);
 
@@ -86,7 +90,7 @@ public class ChallengeService : _Service
             .Where(g => g.Id == player.GameId)
             .FirstOrDefaultAsync();
 
-        if (await AtGamespaceLimit(game, player.TeamId))
+        if (await _teamService.IsAtGamespaceLimit(player.TeamId, game, cancellationToken))
             throw new GamespaceLimitReached(game.Id, player.TeamId);
 
         if ((await IsUnlocked(player, game, model.SpecId)).Equals(false))
@@ -326,12 +330,12 @@ public class ChallengeService : _Service
         return entity;
     }
 
-    public async Task<Challenge> StartGamespace(string id, string actorId)
+    public async Task<Challenge> StartGamespace(string id, string actorId, CancellationToken cancellationToken)
     {
         var entity = await Store.Retrieve(id);
         var game = await Store.DbContext.Games.FindAsync(entity.GameId);
 
-        if (await AtGamespaceLimit(game, entity.TeamId))
+        if (await _teamService.IsAtGamespaceLimit(entity.TeamId, game, cancellationToken))
             throw new GamespaceLimitReached(game.Id, entity.TeamId);
 
         entity.Events.Add(new Data.ChallengeEvent
@@ -660,13 +664,5 @@ public class ChallengeService : _Service
 
         if (state.Challenge is not null && !string.IsNullOrWhiteSpace(state.Challenge.Text))
             state.Challenge.Text = state.Challenge.Text.Replace("](/docs", $"]({Options.ChallengeDocUrl}docs");
-    }
-
-    private async Task<bool> AtGamespaceLimit(Data.Game game, string teamId)
-    {
-        int gamespaceCount = await Store.ChallengeGamespaceCount(teamId);
-        int gamespaceLimit = game.IsCompetitionMode ? game.GamespaceLimitPerSession : 1;
-
-        return gamespaceCount >= gamespaceLimit;
     }
 }
