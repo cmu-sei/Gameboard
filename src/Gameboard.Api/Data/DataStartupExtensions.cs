@@ -27,7 +27,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 case "sqlserver":
                     services.AddDbContext<GameboardDbContext, GameboardDbContextSqlServer>(builder =>
                         builder
-                            .WithGameboardOptions(env)
+                            .WithGameboardOptions(env, logger)
                             .UseSqlServer(connstr)
                     );
                     break;
@@ -35,7 +35,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 case "postgresql":
                     services.AddDbContext<GameboardDbContext, GameboardDbContextPostgreSQL>(builder =>
                         builder
-                            .WithGameboardOptions(env)
+                            .WithGameboardOptions(env, logger)
                             .UseNpgsql(connstr)
                     );
 
@@ -43,7 +43,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 default:
                     services.AddDbContext<GameboardDbContext, GameboardDbContextInMemory>(builder =>
                         builder
-                            .WithGameboardOptions(env)
+                            .WithGameboardOptions(env, logger)
                             .UseInMemoryDatabase("Gameboard_Db")
                     );
                     break;
