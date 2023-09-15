@@ -62,7 +62,7 @@ internal static class WebApplicationBuilderExtensions
         return settings;
     }
 
-    public static void ConfigureServices(this WebApplicationBuilder builder, AppSettings settings)
+    public static void ConfigureServices(this WebApplicationBuilder builder, AppSettings settings, ILogger logger)
     {
         var services = builder.Services;
 
@@ -95,7 +95,7 @@ internal static class WebApplicationBuilderExtensions
         services
             .AddSingleton(_ => settings.Core)
             .AddSingleton(_ => settings.Crucible)
-            .AddGameboardData(builder.Environment, settings.Database.Provider, settings.Database.ConnectionString)
+            .AddGameboardData(settings.Database.Provider, settings.Database.ConnectionString)
             .AddGameboardServices(settings)
             .AddConfiguredHttpClients(settings.Core)
             .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath)
@@ -105,7 +105,8 @@ internal static class WebApplicationBuilderExtensions
         if (!builder.Environment.IsTest())
             services.AddHostedService<JobService>();
 
-        services.AddSingleton<AutoMapper.IMapper>(
+        services.AddSingleton
+        (
             new AutoMapper.MapperConfiguration(cfg =>
             {
                 cfg.AddGameboardMaps();

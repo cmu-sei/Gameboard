@@ -113,7 +113,6 @@ namespace Gameboard.Api
     public class AlreadyExists : Exception { }
     public class ChallengeLocked : Exception { }
     public class ChallengeStartPending : Exception { }
-    public class GamespaceLimitReached : Exception { }
     public class InvalideFeedbackFormat : Exception { }
     public class PlayerIsntOnTeam : Exception { }
     public class PlayerIsntInGame : Exception { }

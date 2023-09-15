@@ -4,9 +4,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using Gameboard.Api;
 using Gameboard.Api.Data;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -16,7 +14,6 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddGameboardData
         (
             this IServiceCollection services,
-            IWebHostEnvironment env,
             string provider,
             string connstr
         )
@@ -24,27 +21,13 @@ namespace Microsoft.Extensions.DependencyInjection
             switch (provider.ToLower())
             {
                 case "sqlserver":
-                    services.AddDbContext<GameboardDbContext, GameboardDbContextSqlServer>(builder =>
-                        builder
-                            .WithGameboardOptions(env)
-                            .UseSqlServer(connstr)
-                    );
+                    services.AddDbContext<GameboardDbContext, GameboardDbContextSqlServer>(builder => builder.UseSqlServer(connstr));
                     break;
-
                 case "postgresql":
-                    services.AddDbContext<GameboardDbContext, GameboardDbContextPostgreSQL>(builder =>
-                        builder
-                            .WithGameboardOptions(env)
-                            .UseNpgsql(connstr)
-                    );
-
+                    services.AddDbContext<GameboardDbContext, GameboardDbContextPostgreSQL>(builder => builder.UseNpgsql(connstr));
                     break;
                 default:
-                    services.AddDbContext<GameboardDbContext, GameboardDbContextInMemory>(builder =>
-                        builder
-                            .WithGameboardOptions(env)
-                            .UseInMemoryDatabase("Gameboard_Db")
-                    );
+                    services.AddDbContext<GameboardDbContext, GameboardDbContextInMemory>(builder => builder.UseInMemoryDatabase("Gameboard_Db"));
                     break;
             }
 

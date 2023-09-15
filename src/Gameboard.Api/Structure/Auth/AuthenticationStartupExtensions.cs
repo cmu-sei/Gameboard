@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Tokens;
 
@@ -26,7 +27,7 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
-            if (environment.IsDev())
+            if (environment.IsDevelopment())
             {
                 IdentityModelEventSource.ShowPII = true;
             }

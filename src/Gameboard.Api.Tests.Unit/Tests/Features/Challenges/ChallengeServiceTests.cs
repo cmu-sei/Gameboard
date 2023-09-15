@@ -3,6 +3,7 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Practice;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -107,7 +108,8 @@ public class ChallengeServiceTests
             A.Fake<INowService>(),
             A.Fake<IPlayerStore>(),
             A.Fake<IPracticeChallengeScoringListener>(),
-            A.Fake<ConsoleActorMap>()
+            A.Fake<ConsoleActorMap>(),
+            A.Fake<ITeamService>()
         );
 
         // when
@@ -224,7 +226,8 @@ public class ChallengeServiceTests
             A.Fake<INowService>(),
             A.Fake<IPlayerStore>(),
             A.Fake<IPracticeChallengeScoringListener>(),
-            A.Fake<ConsoleActorMap>()
+            A.Fake<ConsoleActorMap>(),
+            A.Fake<ITeamService>()
         );
 
         // when
