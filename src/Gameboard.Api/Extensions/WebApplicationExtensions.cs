@@ -1,7 +1,6 @@
 using Gameboard.Api.Hubs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 namespace Gameboard.Api.Extensions;
 
@@ -23,8 +22,12 @@ internal static class WebApplicationExtensions
         if (settings.Headers.UseHsts)
             app.UseHsts();
 
-        if (app.Environment.IsDevelopment())
-            app.UseDeveloperExceptionPage();
+        // We intentionally disable the DeveloperException page by default
+        // because it causes API error behavior to differ between dev and compiled environments.
+        // Only uncomment this on a temporary basis, and only if you really need the stack trace and 
+        // can't use the one provided by your text editor's logging/output tools.
+        // if (app.Environment.IsDevelopment())
+        //     app.UseDeveloperExceptionPage();
 
         app.UseRouting();
         app.UseCors(settings.Headers.Cors.Name);
