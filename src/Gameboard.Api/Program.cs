@@ -33,7 +33,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // load settings and configure services
 var settings = builder.BuildAppSettings(startupLogger);
-builder.ConfigureServices(settings);
+builder.ConfigureServices(settings, startupLogger);
 
 // launch db if db only 
 var dbOnly = args.ToList().Contains("--dbonly")

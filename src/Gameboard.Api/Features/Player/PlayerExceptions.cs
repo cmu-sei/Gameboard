@@ -17,7 +17,7 @@ internal class GameDoesntAllowSessionReset : GameboardException
     internal GameDoesntAllowSessionReset(string playerId, string gameId, DateTimeOffset sessionStartedOn) : base($"Player {playerId} is playing Game {gameId}. This game doesn't allow non-administrative resets after a session has begun, and their session began at {sessionStartedOn}.") { }
 }
 
-internal class ManagerCantUnenrollWhileTeammatesRemain : GameboardException
+internal class ManagerCantUnenrollWhileTeammatesRemain : GameboardValidationException
 {
     internal ManagerCantUnenrollWhileTeammatesRemain(string playerId, string teamId, IEnumerable<string> teammatePlayerIds) : base($"""
         Player {playerId} is the manager of team {teamId}. There are currently {teammatePlayerIds.Count()} players remaining on the team ({string.Join(" | ", teammatePlayerIds)}).
@@ -47,7 +47,7 @@ internal class PromotionFailed : GameboardException
     internal PromotionFailed(string teamId, string playerId, int recordsAffected) : base($"Failed to promote player {playerId} to manager of team {teamId}: Incorrect number of records affected ({recordsAffected}).") { }
 }
 
-internal class SessionAlreadyStarted : GameboardException
+internal class SessionAlreadyStarted : GameboardValidationException
 {
     internal SessionAlreadyStarted(string playerId, string why) : base($"Player {playerId}'s session was started. {why}.") { }
 }

@@ -21,7 +21,8 @@ public class TeamServiceTests
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
             A.Fake<IInternalHubBus>(),
-            playerStore
+            playerStore,
+            A.Fake<IStore>()
         );
 
         var players = new Data.Player[]

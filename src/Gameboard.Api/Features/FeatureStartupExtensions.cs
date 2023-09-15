@@ -8,7 +8,6 @@ using AutoMapper;
 using Gameboard.Api;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure;

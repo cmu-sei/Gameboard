@@ -9,22 +9,33 @@ namespace Gameboard.Api.Structure.MediatR.Validators;
 
 internal class UserIsPlayingGameValidator<T> : IGameboardValidator<T> where T : class
 {
+    private Func<T, string> _gameIdExpression;
+    private Func<T, User> _userExpression;
     private readonly IPlayerStore _store;
-
-    public required Func<T, string> GetGameId { get; set; }
-    public required Func<T, User> GetUser { get; set; }
 
     public UserIsPlayingGameValidator(IPlayerStore store)
     {
         _store = store;
     }
 
+    public UserIsPlayingGameValidator<T> UseGameIdProperty(Func<T, string> gameIdPropertyExpression)
+    {
+        _gameIdExpression = gameIdPropertyExpression;
+        return this;
+    }
+
+    public UserIsPlayingGameValidator<T> UseUserIdProperty(Func<T, User> userPropertyExpression)
+    {
+        _userExpression = userPropertyExpression;
+        return this;
+    }
+
     public Func<T, RequestValidationContext, Task> GetValidationTask()
     {
         return async (model, context) =>
         {
-            var user = GetUser(model);
-            var gameId = GetGameId(model);
+            var user = _userExpression(model);
+            var gameId = _gameIdExpression(model);
 
             if (user.Role.HasFlag(UserRole.Admin) || user.Role.HasFlag(UserRole.Tester))
                 return;

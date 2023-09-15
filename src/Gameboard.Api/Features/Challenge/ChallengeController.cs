@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Hubs;
@@ -49,7 +50,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<Challenge> Create([FromBody] NewChallenge model)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsDirector,
                 () => IsSelf(model.PlayerId).Result
             );
@@ -140,10 +142,11 @@ namespace Gameboard.Api.Controllers
         /// Start a  challenge gamespace
         /// </summary>
         /// <param name="model"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpPut("/api/challenge/start")]
         [Authorize]
-        public async Task<Challenge> StartGamespace([FromBody] ChangedChallenge model)
+        public async Task<Challenge> StartGamespace([FromBody] ChangedChallenge model, CancellationToken cancellationToken)
         {
             AuthorizeAny(
                 () => Actor.IsDirector,
@@ -152,7 +155,7 @@ namespace Gameboard.Api.Controllers
 
             await Validate(model);
 
-            var result = await ChallengeService.StartGamespace(model.Id, Actor.Id);
+            var result = await ChallengeService.StartGamespace(model.Id, Actor.Id, cancellationToken);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
                 new HubEvent<Challenge>

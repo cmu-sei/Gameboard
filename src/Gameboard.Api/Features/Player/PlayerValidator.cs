@@ -193,7 +193,7 @@ namespace Gameboard.Api.Validators
 
         public async Task _validate(PlayerUnenrollRequest request)
         {
-            if (!(await Exists(request.PlayerId)))
+            if (!await Exists(request.PlayerId))
                 throw new ResourceNotFound<Player>(request.PlayerId);
 
             var player = await _store.Retrieve(request.PlayerId);

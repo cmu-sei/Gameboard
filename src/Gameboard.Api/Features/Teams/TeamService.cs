@@ -1,10 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Common;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
@@ -14,9 +18,11 @@ namespace Gameboard.Api.Features.Teams;
 
 public interface ITeamService
 {
+    Task<IEnumerable<SimpleEntity>> GetChallengesWithActiveGamespace(string teamId, string gameId, CancellationToken cancellationToken);
     Task<bool> GetExists(string teamId);
     Task<int> GetSessionCount(string teamId, string gameId);
     Task<Team> GetTeam(string id);
+    Task<bool> IsAtGamespaceLimit(string teamId, Data.Game game, CancellationToken cancellationToken);
     Task<bool> IsOnTeam(string teamId, string userId);
     Task<Data.Player> ResolveCaptain(string teamId);
     Task<Data.Player> ResolveCaptain(IEnumerable<Data.Player> players);
@@ -30,7 +36,8 @@ internal class TeamService : ITeamService
     private readonly IMemoryCache _memCache;
     private readonly INowService _now;
     private readonly IInternalHubBus _teamHubService;
-    private readonly IPlayerStore _store;
+    private readonly IPlayerStore _playerStore;
+    private readonly IStore _store;
 
     public TeamService
     (
@@ -38,24 +45,35 @@ internal class TeamService : ITeamService
         IMemoryCache memCache,
         INowService now,
         IInternalHubBus teamHubService,
-        IPlayerStore store
+        IPlayerStore playerStore,
+        IStore store
     )
     {
         _mapper = mapper;
         _memCache = memCache;
         _now = now;
+        _playerStore = playerStore;
         _store = store;
         _teamHubService = teamHubService;
     }
 
+    public async Task<IEnumerable<SimpleEntity>> GetChallengesWithActiveGamespace(string teamId, string gameId, CancellationToken cancellationToken)
+        => await _store
+            .List<Data.Challenge>()
+            .Where(c => c.TeamId == teamId)
+            .Where(c => c.GameId == gameId)
+            .Where(c => c.HasDeployedGamespace == true)
+            .Select(c => new SimpleEntity { Id = c.Id, Name = c.Name })
+            .ToArrayAsync(cancellationToken);
+
     public async Task<bool> GetExists(string teamId)
-        => await _store.ListTeam(teamId).AnyAsync();
+        => await _playerStore.ListTeam(teamId).AnyAsync();
 
     public async Task<int> GetSessionCount(string teamId, string gameId)
     {
         var now = _now.Get();
 
-        return await _store
+        return await _playerStore
             .List()
             .CountAsync
             (
@@ -68,7 +86,7 @@ internal class TeamService : ITeamService
 
     public async Task<Team> GetTeam(string id)
     {
-        var players = await _store.ListTeam(id).ToArrayAsync();
+        var players = await _playerStore.ListTeam(id).ToArrayAsync();
         if (players.Length == 0)
             return null;
 
@@ -80,6 +98,12 @@ internal class TeamService : ITeamService
         return team;
     }
 
+    public async Task<bool> IsAtGamespaceLimit(string teamId, Data.Game game, CancellationToken cancellationToken)
+    {
+        var activeGameChallenges = await GetChallengesWithActiveGamespace(teamId, game.Id, cancellationToken);
+        return activeGameChallenges.Count() >= game.GetGamespaceLimit();
+    }
+
     public async Task<bool> IsOnTeam(string teamId, string userId)
     {
         // simple serialize to indicate whether this user and team are a match
@@ -88,7 +112,7 @@ internal class TeamService : ITeamService
         if (_memCache.TryGetValue(cacheKey, out bool cachedIsOnTeam))
             return cachedIsOnTeam;
 
-        var teamUserIds = await _store
+        var teamUserIds = await _playerStore
             .ListTeam(teamId)
             .Select(p => p.UserId).ToArrayAsync();
 
@@ -100,7 +124,7 @@ internal class TeamService : ITeamService
 
     public async Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser)
     {
-        var teamPlayers = await _store
+        var teamPlayers = await _playerStore
             .List()
             .AsNoTracking()
             .Where(p => p.TeamId == teamId)
@@ -109,14 +133,14 @@ internal class TeamService : ITeamService
         var oldCaptain = teamPlayers.SingleOrDefault(p => p.Role == PlayerRole.Manager);
         var newCaptain = teamPlayers.Single(p => p.Id == newCaptainPlayerId);
 
-        using (var transaction = await _store.DbContext.Database.BeginTransactionAsync())
+        using (var transaction = await _playerStore.DbContext.Database.BeginTransactionAsync())
         {
-            await _store
+            await _playerStore
                 .List()
                 .Where(p => p.TeamId == teamId)
                 .ExecuteUpdateAsync(p => p.SetProperty(p => p.Role, p => PlayerRole.Member));
 
-            var affectedPlayers = await _store
+            var affectedPlayers = await _playerStore
                 .List()
                 .Where(p => p.Id == newCaptainPlayerId)
                 .ExecuteUpdateAsync
@@ -149,7 +173,7 @@ internal class TeamService : ITeamService
 
     private async Task<Data.Player> ResolveCaptain(string teamId, IEnumerable<Data.Player> players)
     {
-        players ??= await _store
+        players ??= await _playerStore
             .List()
             .Where(p => p.TeamId == teamId)
             .ToListAsync();
@@ -178,7 +202,7 @@ internal class TeamService : ITeamService
 
     public async Task UpdateTeamSponsors(string teamId)
     {
-        var members = await _store
+        var members = await _playerStore
             .List()
             .AsNoTracking()
             .Where(p => p.TeamId == teamId)
@@ -201,7 +225,7 @@ internal class TeamService : ITeamService
 
         var manager = members.FirstOrDefault(p => p.IsManager);
 
-        await _store
+        await _playerStore
             .List()
             .Where(p => p.Id == manager.Id)
             .ExecuteUpdateAsync(p => p

@@ -210,9 +210,9 @@ public class GameService : _Service, IGameService
     {
         var entity = await Store.Load(id);
 
-        return Mapper.Map<ChallengeSpec[]>(
-            entity.Specs
-        );
+        return Mapper.Map<ChallengeSpec[]>(entity.Specs)
+            .OrderBy(s => s.Name)
+            .ToArray();
     }
 
     public async Task<SessionForecast[]> SessionForecast(string id)
