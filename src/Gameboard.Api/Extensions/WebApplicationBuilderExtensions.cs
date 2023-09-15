@@ -105,7 +105,8 @@ internal static class WebApplicationBuilderExtensions
         if (!builder.Environment.IsTest())
             services.AddHostedService<JobService>();
 
-        services.AddSingleton<AutoMapper.IMapper>(
+        services.AddSingleton
+        (
             new AutoMapper.MapperConfiguration(cfg =>
             {
                 cfg.AddGameboardMaps();

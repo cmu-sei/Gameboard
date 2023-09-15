@@ -77,7 +77,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
                 .Include(c => c.Player)
                     .ThenInclude(p => p.User)
             .Where(c => c.Player.SessionBegin >= DateTimeOffset.MinValue)
-            .Where(c => c.Player.SessionEnd > _now.Get() || c.Player.SessionEnd == DateTimeOffset.MinValue)
+            .Where(c => c.Player.SessionEnd > _now.Get())
             .Where(c => c.Player.UserId == request.UserId)
             .OrderByDescending(c => c.Player.SessionEnd)
             .Select(c => new
