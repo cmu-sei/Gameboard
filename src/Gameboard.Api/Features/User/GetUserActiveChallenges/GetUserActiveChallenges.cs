@@ -69,7 +69,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
         var user = await _store
             .List<Data.User>()
             .Select(u => new SimpleEntity { Id = u.Id, Name = u.ApprovedName })
-            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+            .SingleOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
 
         var challenges = await _store
             .List<Data.Challenge>()
