@@ -59,17 +59,21 @@ public class UserService
         }
 
         entity = _mapper.Map<Data.User>(model);
-        entity.Sponsor = await _sponsorService.GetDefaultSponsor();
 
         // first user gets admin
         if (!await _userStore.AnyAsync())
             entity.Role = AppConstants.AllRoles;
 
+        // record creation date and first login
         if (entity.CreatedOn.DoesntHaveValue())
         {
             entity.CreatedOn = _now.Get();
             entity.LastLoginDate = entity.CreatedOn;
         }
+
+        // assign the user to the default sponsor 
+        entity.Sponsor = await _sponsorService.GetDefaultSponsor();
+        entity.HasDefaultSponsor = true;
 
         bool found = false;
         int i = 0;
