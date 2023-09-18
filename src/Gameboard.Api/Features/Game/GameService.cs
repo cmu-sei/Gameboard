@@ -362,7 +362,7 @@ public class GameService : _Service, IGameService
             return new SyncStartState
             {
                 Game = new SimpleEntity { Id = game.Id, Name = game.Name },
-                Teams = new SyncStartTeam[] { },
+                Teams = Array.Empty<SyncStartTeam>(),
                 IsReady = true
             };
         }

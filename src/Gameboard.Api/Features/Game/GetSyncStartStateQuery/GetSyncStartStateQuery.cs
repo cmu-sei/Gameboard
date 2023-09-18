@@ -1,7 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Services;
-using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 
 namespace Gameboard.Api.Features.Games;

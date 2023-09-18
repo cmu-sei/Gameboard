@@ -1,13 +1,14 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using Gameboard.Api.Data.Abstractions;
 using Microsoft.Extensions.Logging;
-using System.IO;
+using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Sponsors;
 
 namespace Gameboard.Api.Services
 {
@@ -58,13 +59,20 @@ namespace Gameboard.Api.Services
         public async Task<Data.Sponsor> GetDefaultSponsor()
         {
             var defaultSponsor = await _store
-                .ListWithNoTracking()
+                .List()
                 .FirstOrDefaultAsync(s => s.Logo == _defaults.DefaultSponsor);
 
             if (_defaults.DefaultSponsor.IsEmpty() || defaultSponsor is null)
-                return await _store.ListWithNoTracking().FirstOrDefaultAsync();
+            {
+                var firstSponsor = await _store
+                    .List()
+                    .FirstOrDefaultAsync();
 
-            return defaultSponsor;
+                if (firstSponsor is not null)
+                    return firstSponsor;
+            }
+
+            throw new CouldntResolveDefaultSponsor();
         }
 
         public async Task Delete(string id)

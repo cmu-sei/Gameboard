@@ -6,11 +6,13 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Scores;
 
+public record TeamChallengeScoreQuery(string ChallengeId) : IRequest<TeamChallengeScoreSummary>;
+
 internal class TeamChallengeScoreQueryHandler : IRequestHandler<TeamChallengeScoreQuery, TeamChallengeScoreSummary>
 {
-    private EntityExistsValidator<TeamChallengeScoreQuery, Data.Challenge> _challengeExists;
-    private IScoringService _scoresService;
-    private IValidatorService<TeamChallengeScoreQuery> _validatorService;
+    private readonly EntityExistsValidator<TeamChallengeScoreQuery, Data.Challenge> _challengeExists;
+    private readonly IScoringService _scoresService;
+    private readonly IValidatorService<TeamChallengeScoreQuery> _validatorService;
 
     public TeamChallengeScoreQueryHandler(
         EntityExistsValidator<TeamChallengeScoreQuery, Data.Challenge> challengeExists,
