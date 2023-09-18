@@ -11,7 +11,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/src/Gameboard.Api/Gameboard.Api.csproj",
+                "${workspaceFolder}/src",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
