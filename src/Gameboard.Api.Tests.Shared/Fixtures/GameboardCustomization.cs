@@ -129,15 +129,15 @@ public class GameboardCustomization : ICustomization
             Name = $"Sponsor {fixture.Create<string>()}",
             Approved = true,
             Logo = "test.svg",
-            SponsoredPlayers = Array.Empty<Data.Player>(),
-            SponsoredUsers = Array.Empty<Data.User>()
+            SponsoredPlayers = new List<Data.Player>(),
+            SponsoredUsers = new List<Data.User>()
         });
 
         fixture.Register(() => new Data.User
         {
             Id = fixture.Create<string>(),
-            Username = "testuser",
-            ApprovedName = "Test User",
+            Username = fixture.Create<string>(),
+            ApprovedName = fixture.Create<string>(),
             Sponsor = new Data.Sponsor { Id = fixture.Create<string>(), Name = "Test Sponsor" },
             Role = UserRole.Member
         });

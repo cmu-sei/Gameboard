@@ -1,4 +1,4 @@
-using Gameboard.Api.Data;
+using Gameboard.Api.Common;
 using Gameboard.Api.Features.UnityGames;
 
 namespace Gameboard.Api.Tests.Integration;
@@ -14,19 +14,19 @@ public class UnityGameControllerTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task UnityGameController_CreateChallenge_DoesntReturnGraderKey(string playerId, string gameId, string teamId)
+    public async Task UnityGameController_CreateChallenge_DoesntReturnGraderKey(string playerId, string gameId, string teamId, IFixture fixture)
     {
         // arrange
         await _testContext
             .WithDataState(state =>
             {
-                state.Add(state.BuildPlayer(), p =>
+                state.Add<Data.Player>(fixture, p =>
                 {
                     p.Id = playerId;
-                    p.Game = state.BuildGame(g =>
+                    p.Game = state.Build<Data.Game>(fixture, g =>
                     {
                         g.Id = gameId;
-                        g.Specs = new List<Data.ChallengeSpec> { state.BuildChallengeSpec() };
+                        g.Specs = state.Build<Data.ChallengeSpec>(fixture).ToCollection();
                     });
                     p.TeamId = teamId;
                 });
@@ -41,7 +41,7 @@ public class UnityGameControllerTests
             GamespaceId = "gamespace",
             Vms = new UnityGameVm[]
            {
-               new UnityGameVm
+               new()
                {
                    Id = "vm",
                    Url = "google.com",
@@ -55,7 +55,7 @@ public class UnityGameControllerTests
         // act
         var challenge = await httpClient
             .PostAsync("/api/unity/challenge", newChallenge.ToJsonBody())
-            .WithContentDeserializedAs<Api.Data.Challenge>();
+            .WithContentDeserializedAs<Data.Challenge>();
 
         // assert
         challenge.ShouldNotBeNull();

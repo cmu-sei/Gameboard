@@ -26,7 +26,7 @@ public class PlayerControllerUnenrollTests
                 {
                     g.Players = new Data.Player[]
                     {
-                        state.BuildPlayer(p =>
+                        state.BuildPlayer(fixture, p =>
                         {
                             p.Id = fixture.Create<string>();
                             p.Name = "A";
@@ -34,13 +34,13 @@ public class PlayerControllerUnenrollTests
                             p.Role = PlayerRole.Manager;
                         }),
 
-                        state.BuildPlayer(p =>
+                        state.BuildPlayer(fixture, p =>
                         {
                             p.Id = memberPlayerId;
                             p.Name = "B";
                             p.Role = PlayerRole.Member;
                             p.TeamId = teamId;
-                            p.User = state.BuildUser(u =>
+                            p.User = state.Build<Data.User>(fixture, u =>
                             {
                                 u.Id = memberUserId;
                                 u.Role = UserRole.Member;
@@ -81,31 +81,33 @@ public class PlayerControllerUnenrollTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task Unenroll_WhenIsManager_Fails(string managerPlayerId, string managerUserId, string memberPlayerId)
+    public async Task Unenroll_WhenIsManager_Fails(IFixture fixture)
     {
         // given
+        var managerUserId = fixture.Create<string>();
+        var managerPlayerId = fixture.Create<string>();
+
         await _testContext
             .WithDataState(state =>
             {
                 state.AddGame(g =>
                 {
-                    g.Players = new Api.Data.Player[]
+                    g.Players = new Data.Player[]
                     {
-                        state.BuildPlayer(p =>
+                        state.BuildPlayer(fixture, p =>
                         {
                             p.Id = managerPlayerId;
                             p.TeamId = "team";
                             p.Role = PlayerRole.Manager;
-                            p.User = state.BuildUser(u =>
+                            p.User = state.Build<Data.User>(fixture, u =>
                             {
-                                u.Id = managerUserId;
+                                u.Id = fixture.Create<string>();
                                 u.Role = UserRole.Member;
                             });
                         }),
 
-                        state.BuildPlayer(p =>
+                        state.BuildPlayer(fixture, p =>
                         {
-                            p.Id = memberPlayerId;
                             p.Role = PlayerRole.Member;
                             p.TeamId = "team";
                         })

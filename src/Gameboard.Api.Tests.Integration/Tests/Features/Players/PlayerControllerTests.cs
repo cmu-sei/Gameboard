@@ -1,5 +1,3 @@
-using Gameboard.Api;
-using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Tests.Integration;
 
@@ -13,8 +11,8 @@ public class PlayerControllerTests
         _testContext = testContext;
     }
 
-    [Fact]
-    public async Task Update_WhenNameNotUniqueInGame_SetsNameNotUnique()
+    [Theory, GbIntegrationAutoData]
+    public async Task Update_WhenNameNotUniqueInGame_SetsNameNotUnique(IFixture fixture)
     {
         // given
         await _testContext
@@ -22,16 +20,16 @@ public class PlayerControllerTests
             {
                 state.AddGame(g =>
                 {
-                    g.Players = new Api.Data.Player[]
+                    g.Players = new Data.Player[]
                     {
-                        state.BuildPlayer(p =>
+                        state.BuildPlayer(fixture, p =>
                         {
                             p.Id = "PlayerA";
                             p.Name = "A";
                             p.TeamId = "team A";
                         }),
 
-                        state.BuildPlayer(p =>
+                        state.BuildPlayer(fixture, p =>
                         {
                             p.Id = "PlayerB";
                             p.Name = "B";
@@ -68,7 +66,8 @@ public class PlayerControllerTests
         string scoringUserId,
         string scoringPlayerId,
         string nonScoringUserId,
-        string nonScoringPlayerId
+        string nonScoringPlayerId,
+        IFixture fixture
     )
     {
         // given
@@ -84,19 +83,19 @@ public class PlayerControllerTests
                 {
                     // i almost broke my brain trying to get GbIntegrationAutoData to work with
                     // inline autodata, so I'm just doing two checks here
-                    state.BuildPlayer(p =>
+                    state.Build<Data.Player>(fixture, p =>
                     {
                         p.Id = scoringPlayerId;
-                        p.User = new Data.User { Id = scoringUserId };
+                        p.User = state.Build<Data.User>(fixture, u => u.Id = scoringUserId);
                         p.UserId = scoringUserId;
                         p.SessionEnd = now - TimeSpan.FromDays(-2);
                         p.TeamId = "teamId";
                         p.Score = score;
                     }),
-                    state.BuildPlayer(p =>
+                    state.Build<Data.Player>(fixture, p =>
                     {
                         p.Id = nonScoringPlayerId;
-                        p.User = new Data.User { Id = nonScoringUserId };
+                        p.User = state.Build<Data.User>(fixture, u => u.Id = nonScoringUserId);
                         p.UserId = nonScoringUserId;
                         p.SessionEnd = now - TimeSpan.FromDays(-2);
                         p.TeamId = "teamId";
@@ -119,7 +118,7 @@ public class PlayerControllerTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task GetCertificates_WithTeamsAndNonScorers_ReturnsExpected(string userId, string playerId)
+    public async Task GetCertificates_WithTeamsAndNonScorers_ReturnsExpected(string userId, string playerId, IFixture fixture)
     {
         // given
         var now = DateTimeOffset.UtcNow;
@@ -129,7 +128,7 @@ public class PlayerControllerTests
         {
             var allPlayers = new List<Data.Player>
             {
-                state.BuildPlayer(p =>
+                state.BuildPlayer(fixture, p =>
                 {
                     p.Id = playerId;
                     p.User = new Data.User { Id = userId };
@@ -139,13 +138,13 @@ public class PlayerControllerTests
                 })
             };
 
-            allPlayers.AddRange(state.BuildTeam(playerBuilder: p =>
+            allPlayers.AddRange(state.BuildTeam(fixture, playerBuilder: p =>
             {
                 p.Score = 5;
                 p.SessionEnd = recentDate;
             }));
 
-            allPlayers.Add(state.BuildPlayer(p =>
+            allPlayers.Add(state.BuildPlayer(fixture, p =>
             {
                 p.SessionEnd = recentDate;
                 p.Score = 0;

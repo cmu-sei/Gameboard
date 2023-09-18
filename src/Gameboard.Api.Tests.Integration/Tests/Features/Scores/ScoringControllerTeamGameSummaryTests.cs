@@ -15,7 +15,8 @@ public class ScoringControllerTeamGameSummaryTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task GetTeamGameSummary_WithFixedTeamAndChallenges_CalculatesScore(
+    public async Task GetTeamGameSummary_WithFixedTeamAndChallenges_CalculatesScore
+    (
         IFixture fixture,
         string teamId,
         string challenge1Id,
@@ -30,7 +31,7 @@ public class ScoringControllerTeamGameSummaryTests
         await _testContext.WithDataState(state =>
         {
             // user adding the bonus points
-            var enteringAdmin = state.BuildUser();
+            var enteringAdmin = state.Build<Data.User>(fixture, u => u.Role = UserRole.Admin);
             state.Add(enteringAdmin);
 
             // build the team and give them one challenge
@@ -41,44 +42,45 @@ public class ScoringControllerTeamGameSummaryTests
             });
 
             // configure points and bonuses for first challenge
-            builtTeam.Challenge!.Points = basePoints1;
-            builtTeam.Challenge.AwardedManualBonuses = new ManualChallengeBonus[]
+            foreach (var challenge in builtTeam.Game.Challenges.Where(c => c.Id == challenge1Id))
             {
-                new ManualChallengeBonus
+                challenge.Points = basePoints1;
+                challenge.AwardedManualBonuses = new ManualChallengeBonus[]
                 {
-                    Id = fixture.Create<string>(),
-                    Description = fixture.Create<String>(),
-                    PointValue = bonus1Points,
-                    EnteredByUserId = enteringAdmin.Id
-                },
-                new ManualChallengeBonus
-                {
-                    Id = fixture.Create<string>(),
-                    Description = fixture.Create<string>(),
-                    PointValue = bonus2Points,
-                    EnteredByUserId = enteringAdmin.Id
-                }
-            };
+                    new()
+                    {
+                        Id = fixture.Create<string>(),
+                        Description = fixture.Create<string>(),
+                        PointValue = bonus1Points,
+                        EnteredByUserId = enteringAdmin.Id
+                    },
+                    new()
+                    {
+                        Id = fixture.Create<string>(),
+                        Description = fixture.Create<string>(),
+                        PointValue = bonus2Points,
+                        EnteredByUserId = enteringAdmin.Id
+                    }
+                };
+            }
 
             // add a second challenge with one bonus
-            state.AddChallenge(c =>
+            foreach (var player in builtTeam.Game.Players)
             {
-                c.Id = challenge2Id;
-                c.TeamId = teamId;
-                c.PlayerId = builtTeam.Challenge.Player.Id;
-                c.Points = basePoints2;
-                c.Game = builtTeam.Game;
-                c.AwardedManualBonuses = new ManualChallengeBonus[]
+                player.Challenges.Add(new Data.Challenge
                 {
-                    new ManualChallengeBonus
+                    Id = challenge2Id,
+                    TeamId = builtTeam.TeamId,
+                    Points = basePoints2,
+                    AwardedManualBonuses = new ManualChallengeBonus
                     {
                         Id = fixture.Create<string>(),
                         Description = fixture.Create<string>(),
                         PointValue = bonus3points,
                         EnteredByUserId = enteringAdmin.Id
-                    }
-                };
-            });
+                    }.ToCollection()
+                });
+            }
         });
 
         // anon access is ok 👍

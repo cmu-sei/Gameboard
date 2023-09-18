@@ -1,4 +1,5 @@
 using System.Net;
+using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Tests.Shared;
 using Microsoft.EntityFrameworkCore;
@@ -32,7 +33,7 @@ public class PlayerControllerSessionResetTests
         if (result == null)
             throw new GbAutomatedTestSetupException("AddTeam failed to return a result.");
 
-        var player = result.Players.First();
+        var player = result.Game.Players.First();
         var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = player.UserId);
 
         // when 
@@ -69,7 +70,7 @@ public class PlayerControllerSessionResetTests
         if (result == null)
             throw new GbAutomatedTestSetupException("AddTeam failed to return a result.");
 
-        var player = result.Players.First();
+        var player = result.Game.Players.First();
         var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = player.UserId);
 
         // when 
@@ -96,11 +97,12 @@ public class PlayerControllerSessionResetTests
             {
                 opts.NumPlayers = 1;
                 opts.TeamId = teamId;
+                opts.Challenge = fixture.Create<SimpleEntity>();
             });
 
             s.Add(new Data.ArchivedChallenge
             {
-                Id = result.Challenge!.Id,
+                Id = result.Game.Players.First().Challenges.First().Id,
                 TeamId = teamId
             });
         });
@@ -111,7 +113,7 @@ public class PlayerControllerSessionResetTests
         var realTHings = await _testContext.GetDbContext().Challenges.Where(c => c.TeamId == teamId).ToListAsync();
         var things = await _testContext.GetDbContext().ArchivedChallenges.Where(c => c.TeamId == teamId).ToListAsync();
 
-        var player = result.Players.First();
+        var player = result.Game.Players.First();
         var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = player.UserId);
 
         // when / then

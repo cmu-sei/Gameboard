@@ -1,6 +1,3 @@
-using Gameboard.Api;
-using Gameboard.Api.Data;
-
 namespace Gameboard.Api.Tests.Integration;
 
 [Collection(TestCollectionNames.DbFixtureTests)]
@@ -31,9 +28,9 @@ public class ChallengeControllerCreateTests
                 spec.Game = new Data.Game
                 {
                     Id = fixture.Create<string>(),
-                    Players = new Api.Data.Player[]
+                    Players = new Data.Player[]
                     {
-                        state.BuildPlayer(p =>
+                        state.BuildPlayer(fixture, p =>
                         {
                             p.Id = playerId;
                             p.User = new Data.User { Id = userId };
