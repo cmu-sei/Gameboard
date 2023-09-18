@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Gameboard.Api.Features.Teams;
 
@@ -54,7 +55,16 @@ public class TeamSummary
     public string Sponsor { get; set; }
     public string TeamSponsors { get; set; }
     public string[] Members { get; set; }
-    public string[] SponsorList => (TeamSponsors ?? Sponsor).Split("|");
+    public string[] SponsorList
+    {
+        get
+        {
+            return (TeamSponsors ?? Sponsor ?? string.Empty)
+                .Split("|")
+                .Where(s => s != string.Empty)
+                .ToArray();
+        }
+    }
 }
 
 public class TeamPlayer
