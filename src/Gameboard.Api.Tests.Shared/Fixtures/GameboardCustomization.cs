@@ -8,15 +8,22 @@ public class GameboardCustomization : ICustomization
     {
         fixture.Customizations.Add(new IdBuilder());
         fixture.Register(() => fixture);
-
         var now = DateTimeOffset.UtcNow;
-        fixture.Register(() => new Data.User
+
+        fixture.Register(() => new Data.Challenge
         {
             Id = fixture.Create<string>(),
-            Username = "testuser",
-            ApprovedName = "Test User",
-            Sponsor = new Data.Sponsor { Id = fixture.Create<string>(), Name = "Test Sponsor" },
-            Role = UserRole.Member
+            Name = "A test challenge",
+            ExternalId = fixture.Create<string>(),
+            SpecId = fixture.Create<string>(),
+            TeamId = fixture.Create<string>(),
+            Player = fixture.Create<Data.Player>(),
+            Points = 50,
+            WhenCreated = now,
+            StartTime = now,
+            EndTime = now.AddDays(1),
+            HasDeployedGamespace = false,
+            GameEngineType = GameEngineType.TopoMojo
         });
 
         fixture.Register(() => new Data.Game
@@ -34,29 +41,13 @@ public class GameboardCustomization : ICustomization
             User = fixture.Create<Data.User>(),
             Game = fixture.Create<Data.Game>(),
             ApprovedName = "Test Player",
-            Sponsor = new Data.Sponsor { Id = fixture.Create<string>(), Name = "Test Sponsor" },
+            Sponsor = fixture.Create<Data.Sponsor>(),
             Role = PlayerRole.Manager,
             Score = 0,
-            SessionBegin = now,
-            SessionEnd = now.AddDays(1),
+            SessionBegin = DateTimeOffset.MinValue,
+            SessionEnd = DateTimeOffset.MinValue,
             TeamId = fixture.Create<string>(),
             Mode = PlayerMode.Competition
-        });
-
-        fixture.Register(() => new Data.Challenge
-        {
-            Id = fixture.Create<string>(),
-            Name = "A test challenge",
-            ExternalId = fixture.Create<string>(),
-            SpecId = fixture.Create<string>(),
-            TeamId = fixture.Create<string>(),
-            Player = fixture.Create<Data.Player>(),
-            Points = 50,
-            WhenCreated = now,
-            StartTime = now,
-            EndTime = now.AddDays(1),
-            HasDeployedGamespace = false,
-            GameEngineType = GameEngineType.TopoMojo
         });
 
         fixture.Register(() => new TopoMojo.Api.Client.GameState
@@ -86,14 +77,16 @@ public class GameboardCustomization : ICustomization
             IsActive = true,
             Vms = new TopoMojo.Api.Client.VmState[]
             {
-                new() {
+                new()
+                {
                     Id = "10fccb66-6916-45e2-9a39-188d3a692d4a",
                     Name = "VM 1",
                     IsolationId = "vm1",
                     IsRunning = true,
                     IsVisible = true
                 },
-                new() {
+                new()
+                {
                     Id = "8d771689-8b37-48e7-b706-9efe1c64bdca",
                     Name = "VM 2",
                     IsolationId = "vm2",
@@ -115,7 +108,8 @@ public class GameboardCustomization : ICustomization
                 LastScoreTime = DateTimeOffset.Now.AddMinutes(5),
                 Questions = new TopoMojo.Api.Client.QuestionView[]
                 {
-                    new() {
+                    new()
+                    {
                         Text = "What is your quest?",
                         Hint = "It's not about swallows or whatever",
                         Answer = "swallows",
@@ -127,6 +121,25 @@ public class GameboardCustomization : ICustomization
                     }
                 }
             }
+        });
+
+        fixture.Register<Data.Sponsor>(() => new()
+        {
+            Id = fixture.Create<string>(),
+            Name = $"Sponsor {fixture.Create<string>()}",
+            Approved = true,
+            Logo = "test.svg",
+            SponsoredPlayers = Array.Empty<Data.Player>(),
+            SponsoredUsers = Array.Empty<Data.User>()
+        });
+
+        fixture.Register(() => new Data.User
+        {
+            Id = fixture.Create<string>(),
+            Username = "testuser",
+            ApprovedName = "Test User",
+            Sponsor = new Data.Sponsor { Id = fixture.Create<string>(), Name = "Test Sponsor" },
+            Role = UserRole.Member
         });
     }
 }
