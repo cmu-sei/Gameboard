@@ -116,13 +116,13 @@ public static class GameboardTestContextDefaultEntityExtensions
         // fill out properties
         var teamName = string.IsNullOrWhiteSpace(options.Name) ? fixture.Create<string>() : options.Name;
 
-        var game = new Api.Data.Game
+        var game = new Data.Game
         {
             Id = fixture.Create<string>(),
             // just to avoid obnoxious overconfig on the other end
             RegistrationClose = DateTimeOffset.UtcNow.AddYears(1),
             RegistrationOpen = DateTimeOffset.UtcNow.AddYears(-1),
-            RegistrationType = Api.GameRegistrationType.Open
+            RegistrationType = GameRegistrationType.Open
         };
 
         options.GameBuilder?.Invoke(game);
@@ -131,7 +131,7 @@ public static class GameboardTestContextDefaultEntityExtensions
         if (options.Challenge != null)
         {
             var specId = fixture.Create<string>();
-            challenge = new Api.Data.Challenge
+            challenge = new Data.Challenge
             {
                 Id = options.Challenge.Id,
                 Name = options.Challenge.Name,
