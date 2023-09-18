@@ -1,6 +1,7 @@
 using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Data;
@@ -14,8 +15,12 @@ public static class DbContextOptionsBuilderExtensions
             Console.WriteLine("Starting in the dev environment. Enabling detailed/sensitive EF logging...");
             builder
                 .EnableDetailedErrors()
-                .EnableSensitiveDataLogging()
                 .LogTo(Console.WriteLine, new[] { DbLoggerCategory.Query.Name }, LogLevel.Debug);
+
+            if (env.IsDevelopment())
+            {
+                builder.EnableSensitiveDataLogging();
+            }
         }
         else
         {
