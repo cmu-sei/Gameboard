@@ -1,6 +1,6 @@
+using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Scores;
-using Gameboard.Api.Tests.Shared;
 
 namespace Gameboard.Api.Tests.Integration;
 
