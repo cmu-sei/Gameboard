@@ -21,6 +21,7 @@ public interface IExternalSyncGameStartService : IGameModeStartService { }
 internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 {
     private readonly ChallengeService _challengeService;
+    private readonly IChallengeStore _challengeStore;
     private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
     private readonly IGamebrainService _gamebrainService;
     private readonly IGameEngineService _gameEngineService;
@@ -39,6 +40,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     public ExternalSyncGameStartService
     (
         ChallengeService challengeService,
+        IChallengeStore challengeStore,
         IStore<Data.ChallengeSpec> challengeSpecStore,
         IGamebrainService gamebrainService,
         IGameEngineService gameEngineService,
@@ -56,6 +58,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     )
     {
         _challengeService = challengeService;
+        _challengeStore = challengeStore;
         _challengeSpecStore = challengeSpecStore;
         _gamebrainService = gamebrainService;
         _gameEngineService = gameEngineService;
@@ -196,6 +199,23 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                     VmUris = vms.Select(vm => vm.Url)
                 });
 
+                // we definitely have to update the challenge entities here so that their state column includes vm info 
+                // (at the time of creation, they don't know about the VMs because the gamespace hasn't been started yet)
+
+                var challenge = await _challengeStore.Retrieve(deployedChallenge.Challenge.Id);
+                challenge.State = _jsonService.Serialize(challengeState);
+                await _challengeStore.Update(challenge);
+
+                // NOTE: tried this with ExecuteUpdateAsync, and weird stuff happened. linked github issue is not an exact
+                // match, seems related but a) is supposed to be fixed in our version, and b) relates only to owned entities
+                // var jsonState = _jsonService.Serialize(challengeState);
+                // var challengeId = deployedChallenge.Challenge.Id;
+                // await _challengeStore
+                //     .List()
+                //     .Where(c => c.Id == challengeId)
+                //     .ExecuteUpdateAsync(c => c.SetProperty(ch => ch.State, jsonState));
+                // https://github.com/dotnet/ecore/issues/30528
+
                 request.State.GamespacesDeployed.Add(challengeState);
                 await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.State);
             }
@@ -244,12 +264,23 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             request.State.Error = exceptionMessage;
             await _gameHubBus.SendExternalGameLaunchFailure(request.State);
 
+            // restore the pre-launch game end time
             if (preLaunchEndTime.IsNotEmpty())
             {
+                _logger.LogInformation($"""Restoring the end time of game "{request.GameId}" to "{preLaunchEndTime}". """);
                 await _gameStore
                     .List()
                     .Where(g => g.Id == request.GameId)
-                    .ExecuteUpdateAsync(g => g.SetProperty(g => g.GameEnd, preLaunchEndTime));
+                    .ExecuteUpdateAsync(g => g.SetProperty(g => g.GameEnd, preLaunchEndTime), cancellationToken);
+            }
+
+            if (request.State.Teams.Any())
+            {
+                _logger.LogInformation($"""Archiving challenges for teams in "{request.GameId}" to "{preLaunchEndTime}". """);
+                foreach (var team in request.State.Teams)
+                {
+                    await _challengeService.ArchiveTeamChallenges(team.Team.Id);
+                }
             }
         }
 

@@ -4,7 +4,6 @@ using Gameboard.Api.Common.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Teams;
 

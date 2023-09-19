@@ -69,7 +69,8 @@ internal class ResetSessionHandler : IRequestHandler<ResetSessionCommand>
                     p => p
                         .SetProperty(p => p.SessionBegin, DateTimeOffset.MinValue)
                         .SetProperty(p => p.SessionEnd, DateTimeOffset.MinValue)
-                        .SetProperty(p => p.SessionMinutes, 0),
+                        .SetProperty(p => p.SessionMinutes, 0)
+                        .SetProperty(p => p.IsReady, false),
                     cancellationToken
                 );
         }

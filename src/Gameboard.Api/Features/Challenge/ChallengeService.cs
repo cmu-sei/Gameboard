@@ -622,7 +622,7 @@ public class ChallengeService : _Service
         return await GameEngine.AuditChallenge(entity);
     }
 
-    internal async Task<Api.Data.Challenge> BuildAndRegisterChallenge
+    internal async Task<Data.Challenge> BuildAndRegisterChallenge
     (
         NewChallenge newChallenge,
         Data.ChallengeSpec spec,
