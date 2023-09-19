@@ -12,12 +12,14 @@ public class User : IUserViewModel
     public string Name { get; set; }
     public string NameStatus { get; set; }
     public string ApprovedName { get; set; }
-    public string Sponsor { get; set; }
     public UserRole Role { get; set; }
     public Player[] Enrollments { get; set; }
     public DateTimeOffset CreatedOn { get; set; }
     public DateTimeOffset? LastLoginDate { get; set; }
     public int LoginCount { get; set; }
+
+    public bool HasDefaultSponsor { get; set; }
+    public Sponsor Sponsor { get; set; }
 
     public bool IsAdmin => Role.HasFlag(UserRole.Admin);
     public bool IsDirector => Role.HasFlag(UserRole.Director);
@@ -39,7 +41,7 @@ public class ChangedUser
     public string Name { get; set; }
     public string NameStatus { get; set; }
     public string ApprovedName { get; set; }
-    public string Sponsor { get; set; }
+    public string SponsorId { get; set; }
     public UserRole Role { get; set; }
 }
 
@@ -47,7 +49,7 @@ public class SelfChangedUser
 {
     public string Id { get; set; }
     public string Name { get; set; }
-    public string Sponsor { get; set; }
+    public string SponsorId { get; set; }
 }
 
 public class TeamMember

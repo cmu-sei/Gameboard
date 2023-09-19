@@ -44,9 +44,9 @@ public class PlayerStat
 
 public class SponsorStat
 {
-    public string Id { get; set; }
-    public string Name { get; set; }
-    public string Logo { get; set; }
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required string Logo { get; set; }
     public int Count { get; set; }
     public int TeamCount { get; set; }
 }

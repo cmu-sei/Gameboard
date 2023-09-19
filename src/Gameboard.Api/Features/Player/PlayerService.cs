@@ -72,7 +72,7 @@ public class PlayerService
     {
         var game = await GameStore.Retrieve(model.GameId);
 
-        if (actor.Sponsor.IsEmpty())
+        if (actor.Sponsor is null)
             throw new NoPlayerSponsorForGame(model.UserId, model.GameId);
 
         if (game.IsPracticeMode)

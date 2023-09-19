@@ -48,7 +48,11 @@ public class UserService
         if (model.Id.IsEmpty())
             throw new ArgumentException(nameof(model.Id));
 
-        var entity = await _userStore.Retrieve(model.Id);
+        var entity = await _userStore
+            .ListWithNoTracking()
+                .Include(u => u.Sponsor)
+            .FirstOrDefaultAsync(u => u.Id == model.Id);
+
         if (entity is not null)
         {
             return new TryCreateUserResult
@@ -101,7 +105,7 @@ public class UserService
         return _mapper.Map<User>(await _userStore.Retrieve(id));
     }
 
-    public async Task Update(ChangedUser model, bool sudo, bool admin = false)
+    public async Task<User> Update(ChangedUser model, bool sudo, bool admin = false)
     {
         var entity = await _userStore.Retrieve(model.Id);
         bool differentName = entity.Name != model.Name;
@@ -140,6 +144,8 @@ public class UserService
 
         await _userStore.Update(entity);
         _localcache.Remove(entity.Id);
+
+        return _mapper.Map<User>(entity);
     }
 
     public async Task Delete(string id)

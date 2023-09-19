@@ -71,22 +71,21 @@ namespace Gameboard.Api.Services
             return Task.FromResult(playerReport);
         }
 
-        internal Task<SponsorReport> GetSponsorStats()
+        internal async Task<SponsorReport> GetSponsorStats()
         {
-            var sp = (from sponsors in Store.Sponsors
-                      join u in Store.Users on
-                      sponsors.Id equals u.SponsorId into j
-                      from allSponsors in j.DefaultIfEmpty()
-                      select new { sponsors.Id, sponsors.Name, sponsors.Logo }).GroupBy(s => new { s.Id, s.Name, s.Logo })
-                      .Select(g => new SponsorStat { Id = g.Key.Id, Name = g.Key.Name, Logo = g.Key.Logo, Count = g.Count(gr => Store.Users.Any(u => u.SponsorId == gr.Id)) }).OrderByDescending(g => g.Count).ThenBy(g => g.Name);
-
-            SponsorReport sponsorReport = new SponsorReport
+            return new SponsorReport
             {
                 Timestamp = DateTime.UtcNow,
-                Stats = sp.ToArray()
+                Stats = await Store.Sponsors.Select(s => new SponsorStat
+                {
+                    Id = s.Id,
+                    Name = s.Name,
+                    Logo = s.Logo,
+                    Count = s.SponsoredUsers.Count
+                })
+                .OrderByDescending(s => s.Count).ThenBy(s => s.Name)
+                .ToArrayAsync()
             };
-
-            return Task.FromResult(sponsorReport);
         }
 
         internal Task<GameSponsorReport> GetGameSponsorsStats(string gameId)
@@ -105,7 +104,8 @@ namespace Gameboard.Api.Services
                 throw new Exception("Invalid game");
             }
 
-            var players = Store.Players.Where(p => p.GameId == gameId)
+            var players = Store
+                .Players.Where(p => p.GameId == gameId)
                 .Select(p => new { p.Sponsor, p.TeamId, p.Id, p.UserId }).ToList();
 
             var sponsors = Store.Sponsors;

@@ -16,7 +16,6 @@ namespace Gameboard.Api
                 Id = principal.FindFirstValue(AppConstants.SubjectClaimName),
                 Name = principal.FindFirstValue(AppConstants.NameClaimName),
                 ApprovedName = principal.FindFirstValue(AppConstants.ApprovedNameClaimName),
-                Sponsor = principal.FindFirstValue(AppConstants.SponsorClaimName),
                 Role = Enum.Parse<UserRole>(principal.FindFirstValue(AppConstants.RoleListClaimName) ?? UserRole.Member.ToString())
             };
         }
