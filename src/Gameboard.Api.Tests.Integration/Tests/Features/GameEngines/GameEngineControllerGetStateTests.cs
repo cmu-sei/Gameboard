@@ -28,7 +28,7 @@ public class GameEngineControllerGetStateTests
         // given 
         await _testContext.WithDataState(state =>
         {
-            state.AddPlayer(fixture, p =>
+            state.Add<Data.Player>(fixture, p =>
             {
                 p.Id = playerId;
                 p.TeamId = teamId;

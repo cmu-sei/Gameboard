@@ -29,21 +29,21 @@ public class PlayerControllerUpdatePlayerReadyTests
         // given
         await _testContext.WithDataState(state =>
         {
-            state.AddGame(g =>
+            state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
                 g.Name = fixture.Create<string>();
                 g.RequireSynchronizedStart = true;
                 g.Players = new List<Data.Player>
                 {
-                    state.BuildPlayer(fixture, p =>
+                    state.Build<Data.Player>(fixture, p =>
                     {
                         p.Id = notReadyPlayer1Id;
                         p.Name = "not ready (but will be)";
                         p.IsReady = false;
-                        p.UserId = readyPlayer1UserId;
+                        p.User = state.Build<Data.User>(fixture, u => u.Id = readyPlayer1UserId);
                     }),
-                    state.BuildPlayer(fixture, p =>
+                    state.Build<Data.Player>(fixture, p =>
                     {
                         p.Id = notReadyPlayer2Id;
                         p.Name = "not ready";
@@ -76,7 +76,7 @@ public class PlayerControllerUpdatePlayerReadyTests
         // given
         await _testContext.WithDataState(state =>
         {
-            state.AddGame(g =>
+            state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
                 g.Name = fixture.Create<string>();

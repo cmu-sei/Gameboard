@@ -10,6 +10,16 @@ public class GameboardCustomization : ICustomization
         fixture.Register(() => fixture);
         var now = DateTimeOffset.UtcNow;
 
+        fixture.Register(() => new Data.ArchivedChallenge
+        {
+            Id = fixture.Create<string>(),
+            Name = $"Archived challenge {fixture.Create<string>()}",
+            Points = fixture.Create<int>(),
+            StartTime = now.AddDays(-2),
+            EndTime = now.AddDays(-1),
+            HasGamespaceDeployed = false
+        });
+        
         fixture.Register(() => new Data.Challenge
         {
             Id = fixture.Create<string>(),
@@ -26,13 +36,26 @@ public class GameboardCustomization : ICustomization
             GameEngineType = GameEngineType.TopoMojo
         });
 
+        fixture.Register(() => new Data.ChallengeSpec
+        {
+            Id = fixture.Create<string>(),
+            Game = fixture.Create<Data.Game>(),
+            Name = fixture.Create<string>(),
+            X = 0,
+            Y = 0,
+            R = 1
+        });
+
         fixture.Register(() => new Data.Game
         {
             Id = fixture.Create<string>(),
-            Name = "A test game",
+            Name = fixture.Create<string>(),
             GameStart = now,
             GameEnd = now.AddDays(1),
-            IsPublished = true
+            IsPublished = true,
+            RegistrationOpen = now,
+            RegistrationClose = now.AddDays(1),
+            RegistrationType = GameRegistrationType.Open
         });
 
         fixture.Register(() => new Data.Player

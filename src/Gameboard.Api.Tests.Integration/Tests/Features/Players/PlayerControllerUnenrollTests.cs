@@ -1,6 +1,5 @@
 using System.Net;
-using Gameboard.Api;
-using Gameboard.Api.Data;
+using Gameboard.Api.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
@@ -22,11 +21,11 @@ public class PlayerControllerUnenrollTests
         await _testContext
             .WithDataState(state =>
             {
-                state.AddGame(g =>
+                state.Add<Data.Game>(fixture, g =>
                 {
-                    g.Players = new Data.Player[]
+                    g.Players = new List<Data.Player>
                     {
-                        state.BuildPlayer(fixture, p =>
+                        state.Build<Data.Player>(fixture, p =>
                         {
                             p.Id = fixture.Create<string>();
                             p.Name = "A";
@@ -34,7 +33,7 @@ public class PlayerControllerUnenrollTests
                             p.Role = PlayerRole.Manager;
                         }),
 
-                        state.BuildPlayer(fixture, p =>
+                        state.Build<Data.Player>(fixture, p =>
                         {
                             p.Id = memberPlayerId;
                             p.Name = "B";
@@ -45,17 +44,14 @@ public class PlayerControllerUnenrollTests
                                 u.Id = memberUserId;
                                 u.Role = UserRole.Member;
                             });
-                            p.Challenges = new Data.Challenge[]
+                            p.Challenges = state.BuildChallenge(c =>
                             {
-                                state.BuildChallenge(c =>
-                                {
-                                    // the challenge is associated with the player but no other team
-                                    // so it should get deleted
-                                    c.Id = challengeId;
-                                    c.PlayerId = memberPlayerId;
-                                    c.TeamId = teamId;
-                                })
-                            };
+                                // the challenge is associated with the player but no other team
+                                // so it should get deleted
+                                c.Id = challengeId;
+                                c.PlayerId = memberPlayerId;
+                                c.TeamId = teamId;
+                            }).ToCollection();
                         })
                     };
                 });
@@ -90,11 +86,11 @@ public class PlayerControllerUnenrollTests
         await _testContext
             .WithDataState(state =>
             {
-                state.AddGame(g =>
+                state.Add<Data.Game>(fixture, g =>
                 {
-                    g.Players = new Data.Player[]
+                    g.Players = new List<Data.Player>
                     {
-                        state.BuildPlayer(fixture, p =>
+                        state.Build<Data.Player>(fixture, p =>
                         {
                             p.Id = managerPlayerId;
                             p.TeamId = "team";
@@ -106,7 +102,7 @@ public class PlayerControllerUnenrollTests
                             });
                         }),
 
-                        state.BuildPlayer(fixture, p =>
+                        state.Build<Data.Player>(fixture, p =>
                         {
                             p.Role = PlayerRole.Member;
                             p.TeamId = "team";

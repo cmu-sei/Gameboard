@@ -18,6 +18,7 @@ public class ScoringControllerTeamChallengeSummaryTests
     public async Task GetChallengeScore_WithFixedTeam_CalculatesExpectedScore
     (
         IFixture fixture,
+        string specId,
         string teamId,
         string challengeId,
         int basePoints,
@@ -30,12 +31,17 @@ public class ScoringControllerTeamChallengeSummaryTests
         {
             var enteringAdmin = state.Build<Data.User>(fixture);
             state.Add(enteringAdmin);
+            
+            // have to add spec separately because of broken FK issue
+            state.Add<Data.ChallengeSpec>(fixture, s => s.Id = specId);
 
             state.Add<Data.Challenge>(fixture, c =>
             {
                 c.Id = challengeId;
                 c.TeamId = teamId;
+                c.Player = state.Build<Data.Player>(fixture, p => p.TeamId = teamId);
                 c.Points = basePoints;
+                c.SpecId = specId;
                 c.AwardedManualBonuses = new List<Data.ManualChallengeBonus>
                 {
                     new()

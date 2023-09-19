@@ -22,14 +22,14 @@ public class GameControllerGetSyncStartStateTests
 
         await _testContext.WithDataState(state =>
         {
-            state.AddGame(g =>
+            state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
                 g.RequireSynchronizedStart = true;
-                g.Players = new Data.Player[]
+                g.Players = new List<Data.Player>
                 {
-                    state.BuildPlayer(fixture, p => p.IsReady = true),
-                    state.BuildPlayer(fixture, p => p.IsReady = true),
+                    state.Build<Data.Player>(fixture, p => p.IsReady = true),
+                    state.Build<Data.Player>(fixture, p => p.IsReady = true),
                 };
             });
         });
@@ -53,18 +53,18 @@ public class GameControllerGetSyncStartStateTests
         // given two players registered for the same sync-start game, one not ready
         await _testContext.WithDataState(state =>
         {
-            state.AddGame(g =>
+            state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
                 g.RequireSynchronizedStart = true;
-                g.Players = new Data.Player[]
+                g.Players = new List<Data.Player>
                 {
-                    state.BuildPlayer(fixture, p =>
+                    state.Build<Data.Player>(fixture, p =>
                     {
                         p.Id = readyPlayerId;
                         p.IsReady = true;
                     }),
-                    state.BuildPlayer(fixture, p =>
+                    state.Build<Data.Player>(fixture, p =>
                     {
                         p.Id = notReadyPlayerId;
                         p.IsReady = false;
@@ -86,8 +86,7 @@ public class GameControllerGetSyncStartStateTests
         result.Teams.Count().ShouldBe(2);
         result
             .Teams
-            .Where(t => !t.IsReady)
-            .Single()
+            .Single(t => !t.IsReady)
             .Players
             .Any(p => p.Id == notReadyPlayerId)
             .ShouldBeTrue();
@@ -100,14 +99,11 @@ public class GameControllerGetSyncStartStateTests
         var gameId = fixture.Create<string>();
         await _testContext.WithDataState(state =>
         {
-            state.AddGame(g =>
+            state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
                 g.RequireSynchronizedStart = false;
-                g.Players = state.BuildPlayer(fixture, p =>
-                {
-                    p.IsReady = false;
-                }).ToCollection();
+                g.Players = state.Build<Data.Player>(fixture, p => p.IsReady = false).ToCollection();
             });
         });
 

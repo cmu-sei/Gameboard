@@ -54,7 +54,8 @@ internal class ScoringService : IScoringService
             return null;
 
         var spec = await _challengeSpecStore.Retrieve(challenge.SpecId);
-        var bonuses = await _mapper.ProjectTo<ManualChallengeBonusViewModel>(_challengeBonusStore
+        var bonuses = await _mapper
+            .ProjectTo<ManualChallengeBonusViewModel>(_challengeBonusStore
             .List()
             .Where(b => b.ChallengeId == challengeId))
             .ToListAsync();

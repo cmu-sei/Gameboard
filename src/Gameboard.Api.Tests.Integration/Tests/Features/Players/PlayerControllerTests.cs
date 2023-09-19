@@ -1,4 +1,3 @@
-
 namespace Gameboard.Api.Tests.Integration;
 
 [Collection(TestCollectionNames.DbFixtureTests)]
@@ -18,18 +17,18 @@ public class PlayerControllerTests
         await _testContext
             .WithDataState(state =>
             {
-                state.AddGame(g =>
+                state.Add<Data.Game>(fixture, g =>
                 {
-                    g.Players = new Data.Player[]
+                    g.Players = new List<Data.Player>
                     {
-                        state.BuildPlayer(fixture, p =>
+                        state.Build<Data.Player>(fixture, p =>
                         {
                             p.Id = "PlayerA";
                             p.Name = "A";
                             p.TeamId = "team A";
                         }),
 
-                        state.BuildPlayer(fixture, p =>
+                        state.Build<Data.Player>(fixture, p =>
                         {
                             p.Id = "PlayerB";
                             p.Name = "B";
@@ -75,11 +74,11 @@ public class PlayerControllerTests
 
         await _testContext.WithDataState(state =>
         {
-            state.AddGame(g =>
+            state.Add<Data.Game>(fixture, g =>
             {
                 g.GameEnd = now - TimeSpan.FromDays(1);
                 g.CertificateTemplate = "This is a template with a {{player_count}}.";
-                g.Players = new Data.Player[]
+                g.Players = new List<Data.Player>
                 {
                     // i almost broke my brain trying to get GbIntegrationAutoData to work with
                     // inline autodata, so I'm just doing two checks here
@@ -118,7 +117,7 @@ public class PlayerControllerTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task GetCertificates_WithTeamsAndNonScorers_ReturnsExpected(string userId, string playerId, IFixture fixture)
+    public async Task GetCertificates_WithTeamsAndNonScorers_ReturnsExpected(string teamId, string userId, IFixture fixture)
     {
         // given
         var now = DateTimeOffset.UtcNow;
@@ -126,35 +125,39 @@ public class PlayerControllerTests
 
         await _testContext.WithDataState(state =>
         {
-            var allPlayers = new List<Data.Player>
+            state.Add<Data.Game>(fixture, g =>
             {
-                state.BuildPlayer(fixture, p =>
-                {
-                    p.Id = playerId;
-                    p.User = new Data.User { Id = userId };
-                    p.UserId = userId;
-                    p.SessionEnd = recentDate;
-                    p.Score = 20;
-                })
-            };
-
-            allPlayers.AddRange(state.BuildTeam(fixture, playerBuilder: p =>
-            {
-                p.Score = 5;
-                p.SessionEnd = recentDate;
-            }));
-
-            allPlayers.Add(state.BuildPlayer(fixture, p =>
-            {
-                p.SessionEnd = recentDate;
-                p.Score = 0;
-            }));
-
-            state.AddGame(g =>
-            {
-                g.GameEnd = now - TimeSpan.FromDays(1);
                 g.CertificateTemplate = "This is a template with a {{player_count}} and a {{team_count}}.";
-                g.Players = allPlayers;
+                g.GameEnd = now - TimeSpan.FromDays(1);
+                
+                g.Players = new List<Data.Player>
+                {
+                    // three players with nonzero score (2 on the same team)
+                    state.Build<Data.Player>(fixture, p =>
+                    {
+                        p.SessionEnd = recentDate;
+                        p.Score = 20;
+                        p.User = state.Build<Data.User>(fixture, u => u.Id = userId);
+                    }),
+                    state.Build<Data.Player>(fixture, p =>
+                    {
+                        p.SessionEnd = recentDate;
+                        p.Score = 30;
+                        p.TeamId = teamId;
+                    }),
+                    state.Build<Data.Player>(fixture, p =>
+                    {
+                        p.SessionEnd = recentDate;
+                        p.Score = 30;
+                        p.TeamId = teamId;
+                    }),
+                    // one player with zero score
+                    state.Build<Data.Player>(fixture, p =>
+                    {
+                        p.SessionEnd = recentDate;
+                        p.Score = 0;
+                    }),
+                };
             });
         });
 
@@ -167,6 +170,6 @@ public class PlayerControllerTests
 
         // then
         certs?.Count().ShouldBe(1);
-        certs?.First().Html.ShouldBe("This is a template with a 6 and a 2.");
+        certs?.First().Html.ShouldBe("This is a template with a 3 and a 2.");
     }
 }
