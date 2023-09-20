@@ -4,6 +4,7 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
+using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 
 namespace Gameboard.Api.Features.Sponsors;
@@ -12,6 +13,7 @@ public record CreateSponsorCommand(NewSponsor Model, User ActingUser) : IRequest
 
 internal class CreateSponsorHandler : IRequestHandler<CreateSponsorCommand, Sponsor>
 {
+    private readonly ContentTypeValidator<CreateSponsorCommand> _legalLogoType;
     private readonly SponsorService _sponsorService;
     private readonly IStore _store;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
@@ -19,12 +21,14 @@ internal class CreateSponsorHandler : IRequestHandler<CreateSponsorCommand, Spon
 
     public CreateSponsorHandler
     (
+        ContentTypeValidator<CreateSponsorCommand> legalLogoType,
         SponsorService sponsorService,
         IStore store,
         UserRoleAuthorizer userRoleAuthorizer,
         IValidatorService<CreateSponsorCommand> validatorService
     )
     {
+        _legalLogoType = legalLogoType;
         _sponsorService = sponsorService;
         _store = store;
         _userRoleAuthorizer = userRoleAuthorizer;
@@ -33,8 +37,16 @@ internal class CreateSponsorHandler : IRequestHandler<CreateSponsorCommand, Spon
 
     public async Task<Sponsor> Handle(CreateSponsorCommand request, CancellationToken cancellationToken)
     {
+        // authorize/validate
         _userRoleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Registrar };
         _userRoleAuthorizer.Authorize();
+
+        _validatorService.AddValidator
+        (
+            _legalLogoType
+                .HasPermittedTypes(_sponsorService.GetAllowedLogoMimeTypes())
+                .UseProperty(r => r.Model.LogoFile)
+        );
 
         _validatorService.AddValidator((request, context) =>
         {

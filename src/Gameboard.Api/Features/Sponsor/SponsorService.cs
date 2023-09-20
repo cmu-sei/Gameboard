@@ -12,7 +12,9 @@ using Gameboard.Api.Features.Sponsors;
 using Gameboard.Api.Data;
 using Microsoft.AspNetCore.Http;
 using System.Threading;
-using System;
+using Gameboard.Api.Structure;
+using System.Net.Mime;
+using System.Collections.Generic;
 
 namespace Gameboard.Api.Services;
 
@@ -37,11 +39,6 @@ public class SponsorService : _Service
         _store = store;
     }
 
-    public async Task<Sponsor> Retrieve(string id)
-    {
-        return Mapper.Map<Sponsor>(await _sponsorStore.Retrieve(id));
-    }
-
     public async Task AddOrUpdate(ChangedSponsor model)
     {
         var entity = await _sponsorStore.Retrieve(model.Id);
@@ -62,6 +59,18 @@ public class SponsorService : _Service
         string oldLogoPath = Path.Combine(Options.ImageFolder, fileName);
         if (File.Exists(oldLogoPath))
             File.Delete(oldLogoPath);
+    }
+
+    public IEnumerable<string> GetAllowedLogoMimeTypes()
+    {
+        return new string[]
+        {
+            MediaTypeNames.Image.Gif,
+            MediaTypeNames.Image.Jpeg,
+            MimeTypes.ImagePng,
+            MimeTypes.ImageSvg,
+            MimeTypes.ImageWebp
+        };
     }
 
     public async Task<Data.Sponsor> GetDefaultSponsor()
@@ -94,6 +103,11 @@ public class SponsorService : _Service
             q = q.Take(model.Take);
 
         return await Mapper.ProjectTo<Sponsor>(q).ToArrayAsync();
+    }
+
+    public async Task<Sponsor> Retrieve(string id)
+    {
+        return Mapper.Map<Sponsor>(await _sponsorStore.Retrieve(id));
     }
 
     public async Task<string> SetLogo(string sponsorId, IFormFile file, CancellationToken cancellationToken)
