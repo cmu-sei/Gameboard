@@ -2,41 +2,32 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-
-using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Caching.Distributed;
-using Gameboard.Api.Validators;
 using Microsoft.AspNetCore.Http;
-using System.IO;
+using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using Gameboard.Api.Features.Sponsors;
+using Gameboard.Api.Services;
 
 namespace Gameboard.Api.Controllers;
 
 [Authorize]
-public class SponsorController : _Controller
+public class SponsorController
 {
+    private readonly IActingUserService _actingUserService;
     private readonly IMediator _mediator;
-    private readonly ILogger<SponsorController> _logger;
-    SponsorService SponsorService { get; }
-    public CoreOptions Options { get; }
+    private readonly SponsorService _sponsorService;
 
-    public SponsorController(
+    public SponsorController
+    (
+        IActingUserService actingUserService,
         IMediator mediator,
-        ILogger<SponsorController> logger,
-        IDistributedCache cache,
-        SponsorValidator validator,
-        SponsorService sponsorService,
-        CoreOptions options
-    ) : base(logger, cache, validator)
+        SponsorService sponsorService
+    )
     {
+        _actingUserService = actingUserService;
         _mediator = mediator;
-        _logger = logger;
-        SponsorService = sponsorService;
-        Options = options;
+        _sponsorService = sponsorService;
     }
 
     /// <summary>
@@ -52,16 +43,23 @@ public class SponsorController : _Controller
     [HttpPost("api/sponsor")]
     [Authorize(Policy = AppConstants.RegistrarPolicy)]
     public Task<Sponsor> Create([FromForm] string name, [FromForm] IFormFile logoFile)
-        => _mediator.Send(new CreateSponsorRequest(new NewSponsor { LogoFile = logoFile, Name = name }, Actor));
+        => _mediator.Send(new CreateSponsorCommand(new NewSponsor { LogoFile = logoFile, Name = name }, _actingUserService.Get()));
 
+    /// <summary>
+    /// Add multiple sponsors to the application in a btch.
+    /// </summary>
+    /// <remarks>
+    /// This endpoint currently only allows the addition of sponsors by name - logo files and parent sponsors must be managed
+    /// via the UI (or uploaded one by one using the api/sponsor endpoint). The web client doesn't currently use this endpoint.
+    /// </remarks>
+    /// <param name="model"></param>
+    /// <returns></returns>
     [HttpPost("api/sponsors")]
     [Authorize(Policy = AppConstants.RegistrarPolicy)]
     public async Task CreateBatch([FromBody] ChangedSponsor[] model)
     {
         foreach (var s in model)
-        {
-            await SponsorService.AddOrUpdate(s);
-        }
+            await _sponsorService.AddOrUpdate(s);
     }
 
     /// <summary>
@@ -71,23 +69,18 @@ public class SponsorController : _Controller
     /// <returns>Sponsor</returns>
     [HttpGet("api/sponsor/{id}")]
     [Authorize]
-    public async Task<Sponsor> Retrieve([FromRoute] string id)
-    {
-        return await SponsorService.Retrieve(id);
-    }
+    public Task<Sponsor> Retrieve([FromRoute] string id)
+        => _sponsorService.Retrieve(id);
 
     /// <summary>
-    /// Change sponsor
+    /// Update sponsor
     /// </summary>
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPut("api/sponsor")]
     [Authorize(Policy = AppConstants.RegistrarPolicy)]
-    public async Task Update([FromBody] ChangedSponsor model)
-    {
-        await Validate(model);
-        await SponsorService.AddOrUpdate(model);
-    }
+    public Task Update([FromBody] ChangedSponsor model)
+        => _mediator.Send(new UpdateSponsorCommand(model, _actingUserService.Get()));
 
     /// <summary>
     /// Delete sponsor
@@ -96,10 +89,8 @@ public class SponsorController : _Controller
     /// <returns></returns>
     [HttpDelete("/api/sponsor/{id}")]
     [Authorize(Policy = AppConstants.RegistrarPolicy)]
-    public async Task Delete([FromRoute] string id)
-    {
-        await SponsorService.Delete(id);
-    }
+    public Task Delete([FromRoute] string id)
+        => _mediator.Send(new DeleteSponsorCommand(id, _actingUserService.Get()));
 
     /// <summary>
     /// Find sponsors
@@ -108,8 +99,6 @@ public class SponsorController : _Controller
     /// <returns>Sponsor[]</returns>
     [HttpGet("/api/sponsors")]
     [Authorize]
-    public async Task<Sponsor[]> List([FromQuery] SearchFilter model)
-    {
-        return await SponsorService.List(model);
-    }
+    public Task<Sponsor[]> List([FromQuery] SearchFilter model)
+        => _sponsorService.List(model);
 }

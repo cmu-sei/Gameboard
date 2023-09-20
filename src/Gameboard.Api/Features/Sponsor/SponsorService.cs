@@ -12,6 +12,7 @@ using Gameboard.Api.Features.Sponsors;
 using Gameboard.Api.Data;
 using Microsoft.AspNetCore.Http;
 using System.Threading;
+using System;
 
 namespace Gameboard.Api.Services;
 
@@ -56,6 +57,13 @@ public class SponsorService : _Service
         await _sponsorStore.Create(entity);
     }
 
+    public void DeleteLogoFileByName(string fileName)
+    {
+        string oldLogoPath = Path.Combine(Options.ImageFolder, fileName);
+        if (File.Exists(oldLogoPath))
+            File.Delete(oldLogoPath);
+    }
+
     public async Task<Data.Sponsor> GetDefaultSponsor()
     {
         var defaultSponsor = await _sponsorStore
@@ -75,49 +83,6 @@ public class SponsorService : _Service
         throw new CouldntResolveDefaultSponsor();
     }
 
-    public async Task Delete(string id)
-    {
-        // get the sponsor (including its sponsored users and players)
-        // because we need to update their sponsor to the default
-        var entity = await _store
-            .WithNoTracking<Data.Sponsor>()
-            .Include(s => s.SponsoredPlayers)
-            .Include(s => s.SponsoredUsers)
-            .SingleAsync(s => s.Id == id);
-
-        // if this sponsor sponsors any players or users, we need to update them
-        if (entity.SponsoredPlayers.Any() || entity.SponsoredUsers.Any())
-        {
-            var defaultSponsor = await GetDefaultSponsor();
-
-            if (entity.SponsoredPlayers.Any())
-            {
-                await _store
-                    .WithNoTracking<Data.Player>()
-                    .Where(p => p.SponsorId == id)
-                    .ExecuteUpdateAsync(p => p.SetProperty(p => p.SponsorId, defaultSponsor.Id));
-            }
-
-            if (entity.SponsoredUsers.Any())
-            {
-                await _store
-                    .WithNoTracking<Data.User>()
-                    .Where(u => u.SponsorId == id)
-                    .ExecuteUpdateAsync(u => u.SetProperty(u => u.SponsorId, defaultSponsor.Id));
-            }
-        }
-
-        // now delete the entity
-        await _sponsorStore.Delete(id);
-        if (entity.Logo.IsEmpty())
-            return;
-
-        // check for their logo file and delete that too
-        string path = Path.Combine(Options.ImageFolder, entity.Logo);
-        if (File.Exists(path))
-            File.Delete(path);
-    }
-
     public async Task<Sponsor[]> List(SearchFilter model)
     {
         var q = _sponsorStore.List(model.Term);
@@ -129,19 +94,6 @@ public class SponsorService : _Service
             q = q.Take(model.Take);
 
         return await Mapper.ProjectTo<Sponsor>(q).ToArrayAsync();
-    }
-
-    public async Task<Sponsor> AddOrUpdate(string id, string filename)
-    {
-        var entity = await _sponsorStore.Retrieve(id);
-
-        if (entity is null)
-            entity = await _sponsorStore.Create(new Data.Sponsor { Id = id });
-
-        entity.Logo = filename;
-
-        await _sponsorStore.Update(entity);
-        return Mapper.Map<Sponsor>(entity);
     }
 
     public async Task<string> SetLogo(string sponsorId, IFormFile file, CancellationToken cancellationToken)
@@ -170,11 +122,7 @@ public class SponsorService : _Service
 
         // delete the old file if it exists
         if (previousLogo.NotEmpty())
-        {
-            string oldLogoPath = Path.Combine(Options.ImageFolder, previousLogo);
-            if (File.Exists(oldLogoPath))
-                File.Delete(oldLogoPath);
-        }
+            DeleteLogoFileByName(previousLogo);
 
         return logoFileName;
     }

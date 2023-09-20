@@ -11,13 +11,10 @@ namespace Gameboard.Api.Services
         public SponsorMapper()
         {
             CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
-
             CreateMap<Data.Sponsor, Sponsor>();
-
             CreateMap<Sponsor, Data.Sponsor>();
             CreateMap<NewSponsor, Data.Sponsor>();
             CreateMap<ChangedSponsor, Data.Sponsor>();
-
         }
     }
 }

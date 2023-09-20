@@ -5,25 +5,24 @@ using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
-using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Features.Sponsors;
 
-public record CreateSponsorRequest(NewSponsor Model, User ActingUser) : IRequest<Sponsor>;
+public record CreateSponsorCommand(NewSponsor Model, User ActingUser) : IRequest<Sponsor>;
 
-internal class CreateSponsorHandler : IRequestHandler<CreateSponsorRequest, Sponsor>
+internal class CreateSponsorHandler : IRequestHandler<CreateSponsorCommand, Sponsor>
 {
     private readonly SponsorService _sponsorService;
     private readonly IStore _store;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
-    private readonly IValidatorService<CreateSponsorRequest> _validatorService;
+    private readonly IValidatorService<CreateSponsorCommand> _validatorService;
 
     public CreateSponsorHandler
     (
         SponsorService sponsorService,
         IStore store,
         UserRoleAuthorizer userRoleAuthorizer,
-        IValidatorService<CreateSponsorRequest> validatorService
+        IValidatorService<CreateSponsorCommand> validatorService
     )
     {
         _sponsorService = sponsorService;
@@ -32,10 +31,19 @@ internal class CreateSponsorHandler : IRequestHandler<CreateSponsorRequest, Spon
         _validatorService = validatorService;
     }
 
-    public async Task<Sponsor> Handle(CreateSponsorRequest request, CancellationToken cancellationToken)
+    public async Task<Sponsor> Handle(CreateSponsorCommand request, CancellationToken cancellationToken)
     {
         _userRoleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Registrar };
         _userRoleAuthorizer.Authorize();
+
+        _validatorService.AddValidator((request, context) =>
+        {
+            if (request.Model.Name.IsEmpty())
+                context.AddValidationException(new MissingRequiredInput<string>(nameof(request.Model.Name), request.Model.Name));
+
+            return Task.CompletedTask;
+        });
+        await _validatorService.Validate(request);
 
         // create sponsor without logo - we can upload after
         var sponsor = await _store.Create(new Data.Sponsor { Name = request.Model.Name, Approved = true });

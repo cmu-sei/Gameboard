@@ -22,6 +22,5 @@ namespace Gameboard.Api
     {
         public string Id { get; set; }
         public string Name { get; set; }
-        public IFormFile LogoFile { get; set; }
     }
 }
