@@ -20,9 +20,6 @@ namespace Gameboard.Api.Validators
             if (model is Entity)
                 return _validate(model as Entity);
 
-            if (model is NewSponsor)
-                return _validate(model as NewSponsor);
-
             if (model is ChangedSponsor)
                 return _validate(model as ChangedSponsor);
 
@@ -41,14 +38,6 @@ namespace Gameboard.Api.Validators
         {
             if ((await Exists(model.Id)).Equals(false))
                 throw new ResourceNotFound<Sponsor>(model.Id);
-
-            await Task.CompletedTask;
-        }
-
-        private async Task _validate(NewSponsor model)
-        {
-            if ((await Exists(model.Id)).Equals(true))
-                throw new AlreadyExists();
 
             await Task.CompletedTask;
         }

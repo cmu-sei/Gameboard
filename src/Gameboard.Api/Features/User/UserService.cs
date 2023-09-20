@@ -108,32 +108,35 @@ public class UserService
     public async Task<User> Update(ChangedUser model, bool sudo, bool admin = false)
     {
         var entity = await _userStore.Retrieve(model.Id);
-        bool differentName = entity.Name != model.Name;
 
-        if (!sudo)
+        // only admins can alter the roles of users
+        if (model.Role.HasValue && model.Role != entity.Role)
         {
-            _mapper.Map(
-                _mapper.Map<SelfChangedUser>(model),
-                entity
-            );
-
-            entity.NameStatus = entity.Name != entity.ApprovedName
-                ? "pending"
-                : ""
-            ;
-        }
-        else
-        {
-            if (!admin && model.Role != entity.Role)
+            if (!admin)
                 throw new ActionForbidden();
-
-            _mapper.Map(model, entity);
+            else
+                entity.Role = model.Role.Value;
         }
 
-        if (differentName)
+        // everyone can change their sponsor and name
+        if (model.SponsorId.NotEmpty())
         {
+            // the first change of the sponsor knocks off the "Default Sponsor" flag
+            entity.HasDefaultSponsor = false;
+            entity.SponsorId = model.SponsorId;
+        }
+
+        // if we're editing the name...
+        if (model.Name.NotEmpty() && entity.Name != model.Name)
+        {
+            entity.Name = model.Name.Trim();
+
+            // admins change names without the "pending" step
+            entity.NameStatus = sudo ? entity.NameStatus : "pending";
+
+            // if the name is in use, change the namestatus to reflect this fact
             // check uniqueness
-            bool found = await _userStore.DbSet.AnyAsync(p =>
+            var found = await _userStore.DbSet.AnyAsync(p =>
                 p.Id != entity.Id &&
                 p.Name == entity.Name
             );
@@ -144,7 +147,6 @@ public class UserService
 
         await _userStore.Update(entity);
         _localcache.Remove(entity.Id);
-
         return _mapper.Map<User>(entity);
     }
 
@@ -156,7 +158,10 @@ public class UserService
 
     public async Task<IEnumerable<TProject>> List<TProject>(UserSearch model) where TProject : class, IUserViewModel
     {
-        var q = _userStore.List(model.Term);
+        var q = _userStore
+            .List(model.Term)
+            .AsNoTracking()
+            .Include(u => u.Sponsor).Where(u => true);
 
         if (model.Term.NotEmpty())
         {
@@ -178,7 +183,6 @@ public class UserService
             q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus) && !u.NameStatus.Equals(AppConstants.NameStatusPending));
 
         q = q.OrderBy(p => p.ApprovedName);
-
         q = q.Skip(model.Skip);
 
         if (model.Take > 0)

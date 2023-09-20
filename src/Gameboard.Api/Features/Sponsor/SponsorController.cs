@@ -11,130 +11,105 @@ using Microsoft.Extensions.Caching.Distributed;
 using Gameboard.Api.Validators;
 using Microsoft.AspNetCore.Http;
 using System.IO;
+using MediatR;
+using Gameboard.Api.Features.Sponsors;
 
-namespace Gameboard.Api.Controllers
+namespace Gameboard.Api.Controllers;
+
+[Authorize]
+public class SponsorController : _Controller
 {
-    [Authorize]
-    public class SponsorController : _Controller
+    private readonly IMediator _mediator;
+    private readonly ILogger<SponsorController> _logger;
+    SponsorService SponsorService { get; }
+    public CoreOptions Options { get; }
+
+    public SponsorController(
+        IMediator mediator,
+        ILogger<SponsorController> logger,
+        IDistributedCache cache,
+        SponsorValidator validator,
+        SponsorService sponsorService,
+        CoreOptions options
+    ) : base(logger, cache, validator)
     {
-        private readonly ILogger<SponsorController> _logger;
-        SponsorService SponsorService { get; }
-        public CoreOptions Options { get; }
+        _mediator = mediator;
+        _logger = logger;
+        SponsorService = sponsorService;
+        Options = options;
+    }
 
-        public SponsorController(
-            ILogger<SponsorController> logger,
-            IDistributedCache cache,
-            SponsorValidator validator,
-            SponsorService sponsorService,
-            CoreOptions options
-        ) : base(logger, cache, validator)
+    /// <summary>
+    /// Create new sponsor
+    /// </summary>
+    /// <remarks>
+    /// We have to read these values from the form rather than the body because you can only do one at a time in
+    /// .NET Core, and you can't bind IFormFile form the body
+    /// </remarks>
+    /// <param name="name">The display name of the sponsor entity.</param>
+    /// <param name="logoFile">An image file blob.</param>
+    /// <returns>Sponsor</returns>
+    [HttpPost("api/sponsor")]
+    [Authorize(Policy = AppConstants.RegistrarPolicy)]
+    public Task<Sponsor> Create([FromForm] string name, [FromForm] IFormFile logoFile)
+        => _mediator.Send(new CreateSponsorRequest(new NewSponsor { LogoFile = logoFile, Name = name }, Actor));
+
+    [HttpPost("api/sponsors")]
+    [Authorize(Policy = AppConstants.RegistrarPolicy)]
+    public async Task CreateBatch([FromBody] ChangedSponsor[] model)
+    {
+        foreach (var s in model)
         {
-            _logger = logger;
-            SponsorService = sponsorService;
-            Options = options;
+            await SponsorService.AddOrUpdate(s);
         }
+    }
 
-        /// <summary>
-        /// Create new sponsor
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns>Sponsor</returns>
-        [HttpPost("api/sponsor")]
-        [Authorize(Policy = AppConstants.RegistrarPolicy)]
-        public async Task<Sponsor> Create([FromBody] NewSponsor model)
-        {
-            await Validate(model);
+    /// <summary>
+    /// Retrieve sponsor
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns>Sponsor</returns>
+    [HttpGet("api/sponsor/{id}")]
+    [Authorize]
+    public async Task<Sponsor> Retrieve([FromRoute] string id)
+    {
+        return await SponsorService.Retrieve(id);
+    }
 
-            model.Approved = Actor.IsRegistrar;
+    /// <summary>
+    /// Change sponsor
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpPut("api/sponsor")]
+    [Authorize(Policy = AppConstants.RegistrarPolicy)]
+    public async Task Update([FromBody] ChangedSponsor model)
+    {
+        await Validate(model);
+        await SponsorService.AddOrUpdate(model);
+    }
 
-            return await SponsorService.Create(model);
-        }
+    /// <summary>
+    /// Delete sponsor
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
+    [HttpDelete("/api/sponsor/{id}")]
+    [Authorize(Policy = AppConstants.RegistrarPolicy)]
+    public async Task Delete([FromRoute] string id)
+    {
+        await SponsorService.Delete(id);
+    }
 
-        [HttpPost("api/sponsors")]
-        [Authorize(Policy = AppConstants.RegistrarPolicy)]
-        public async Task CreateBatch([FromBody] ChangedSponsor[] model)
-        {
-            foreach (var s in model)
-            {
-                s.Approved = Actor.IsRegistrar;
-
-                await SponsorService.AddOrUpdate(s);
-            }
-        }
-
-        /// <summary>
-        /// Retrieve sponsor
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns>Sponsor</returns>
-        [HttpGet("api/sponsor/{id}")]
-        [Authorize]
-        public async Task<Sponsor> Retrieve([FromRoute] string id)
-        {
-            return await SponsorService.Retrieve(id);
-        }
-
-        /// <summary>
-        /// Change sponsor
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpPut("api/sponsor")]
-        [Authorize(Policy = AppConstants.RegistrarPolicy)]
-        public async Task Update([FromBody] ChangedSponsor model)
-        {
-            await Validate(model);
-            model.Approved = Actor.IsRegistrar;
-            await SponsorService.AddOrUpdate(model);
-        }
-
-        /// <summary>
-        /// Delete sponsor
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        [HttpDelete("/api/sponsor/{id}")]
-        [Authorize(Policy = AppConstants.RegistrarPolicy)]
-        public async Task Delete([FromRoute] string id)
-        {
-            await SponsorService.Delete(id);
-        }
-
-        /// <summary>
-        /// Find sponsors
-        /// </summary>
-        /// <param name="model">DataFilter</param>
-        /// <returns>Sponsor[]</returns>
-        [HttpGet("/api/sponsors")]
-        [Authorize]
-        public async Task<Sponsor[]> List([FromQuery] SearchFilter model)
-        {
-            return await SponsorService.List(model);
-        }
-
-        [HttpPost("api/sponsor/image")]
-        [Authorize(AppConstants.RegistrarPolicy)]
-        public async Task<ActionResult<Sponsor>> UploadImage(IFormFile file)
-        {
-            AuthorizeAny(
-                () => Actor.IsRegistrar
-            );
-
-            string filename = file.FileName.ToLower();
-
-            string path = Path.Combine(Options.ImageFolder, filename);
-
-            using (var stream = new FileStream(path, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
-
-            await SponsorService.AddOrUpdate(
-                Path.GetFileNameWithoutExtension(filename),
-                filename
-            );
-
-            return Ok(new UploadedFile { Filename = filename });
-        }
+    /// <summary>
+    /// Find sponsors
+    /// </summary>
+    /// <param name="model">DataFilter</param>
+    /// <returns>Sponsor[]</returns>
+    [HttpGet("/api/sponsors")]
+    [Authorize]
+    public async Task<Sponsor[]> List([FromQuery] SearchFilter model)
+    {
+        return await SponsorService.List(model);
     }
 }

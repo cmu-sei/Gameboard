@@ -42,7 +42,7 @@ public class ChangedUser
     public string NameStatus { get; set; }
     public string ApprovedName { get; set; }
     public string SponsorId { get; set; }
-    public UserRole Role { get; set; }
+    public UserRole? Role { get; set; }
 }
 
 public class SelfChangedUser
@@ -87,7 +87,7 @@ public class UserOnly : IUserViewModel
     public string Name { get; set; }
     public string NameStatus { get; set; }
     public string ApprovedName { get; set; }
-    public string Sponsor { get; set; }
+    public Sponsor Sponsor { get; set; }
     public DateTimeOffset CreatedOn { get; set; }
     public DateTimeOffset? LastLoginDate { get; set; }
     public int LoginCount { get; set; }

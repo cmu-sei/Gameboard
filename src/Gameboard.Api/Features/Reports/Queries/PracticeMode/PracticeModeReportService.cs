@@ -56,6 +56,8 @@ internal class PracticeModeReportService : IPracticeModeReportService
             .List<Data.Challenge>()
                 .Include(c => c.Game)
                 .Include(c => c.Player)
+                    .ThenInclude(p => p.Sponsor)
+                .Include(c => c.Player)
                     .ThenInclude(p => p.User)
             .Where(c => includeCompetitive || c.PlayerMode == PlayerMode.Practice);
 
@@ -336,6 +338,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
                 .Include(c => c.Game)
                 .Include(c => c.Player)
                     .ThenInclude(p => p.User)
+                        .ThenInclude(u => u.Sponsor)
             .Where(c => c.Player.UserId == userId)
             .Where(c => c.PlayerMode == (isPractice ? PlayerMode.Practice : PlayerMode.Competition))
             .Where(c => specIds.Contains(c.SpecId))
@@ -343,9 +346,6 @@ internal class PracticeModeReportService : IPracticeModeReportService
 
         // these will all be the same
         var user = challenges.First().Player.User;
-        var sponsor = await _store.List<Data.Sponsor>()
-            .Select(s => s.ToReportViewModel())
-            .SingleAsync(s => s.Id == user.Sponsor.Id, cancellationToken);
 
         // pull the scores for challenge specs this player played in this mode
         var rawScores = (await GetSpecRawScores(challenges.Select(c => c.SpecId).ToArray())).Where(s => s.IsPractice == isPractice);
@@ -356,7 +356,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
             {
                 Id = user.Id,
                 Name = user.ApprovedName,
-                Sponsor = sponsor,
+                Sponsor = user.Sponsor.ToReportViewModel(),
                 HasScoringAttempt = challenges.Any(c => c.Score > 0)
             },
             Challenges = challenges.Select(c => new PracticeModeReportPlayerModeSummaryChallenge
