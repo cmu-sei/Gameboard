@@ -627,10 +627,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
-                    b.Property<string>("TeamSponsors")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
                     b.Property<long>("Time")
                         .HasColumnType("bigint");
 

@@ -11,7 +11,9 @@ namespace Gameboard.Api.Data.Migrations;
 // migration removal without a conn string. It's on EF's backlog.
 public class GameboardDbContextSqlServerFactory : IDesignTimeDbContextFactory<GameboardDbContextSqlServer>
 {
-    private readonly IWebHostEnvironment _env;
+    private readonly IWebHostEnvironment _env = null;
+
+    public GameboardDbContextSqlServerFactory() { }
 
     public GameboardDbContextSqlServerFactory(IWebHostEnvironment env)
     {

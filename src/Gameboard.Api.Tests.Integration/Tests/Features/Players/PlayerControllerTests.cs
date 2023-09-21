@@ -44,15 +44,13 @@ public class PlayerControllerTests
             Id = "PlayerB",
             // tries to update `playerB` to have the same name as `playerA`
             Name = "A",
-            ApprovedName = "B",
-            Sponsor = "sponsor",
-            Role = PlayerRole.Member
+            ApprovedName = "B"
         };
 
         // when
         var updatedPlayer = await httpClient
             .PutAsync("/api/player", sutParams.ToJsonBody())
-            .WithContentDeserializedAs<Api.Player>();
+            .WithContentDeserializedAs<Player>();
 
         // assert
         updatedPlayer?.NameStatus.ShouldBe(AppConstants.NameStatusNotUnique);
@@ -129,7 +127,7 @@ public class PlayerControllerTests
             {
                 g.CertificateTemplate = "This is a template with a {{player_count}} and a {{team_count}}.";
                 g.GameEnd = now - TimeSpan.FromDays(1);
-                
+
                 g.Players = new List<Data.Player>
                 {
                     // three players with nonzero score (2 on the same team)

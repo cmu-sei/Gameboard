@@ -19,6 +19,7 @@ public class User : IUserViewModel
     public int LoginCount { get; set; }
 
     public bool HasDefaultSponsor { get; set; }
+    public string SponsorId { get; set; }
     public Sponsor Sponsor { get; set; }
 
     public bool IsAdmin => Role.HasFlag(UserRole.Admin);

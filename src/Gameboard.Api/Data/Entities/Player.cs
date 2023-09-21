@@ -16,7 +16,6 @@ public class Player : IEntity
     public string ApprovedName { get; set; }
     public string Name { get; set; }
     public string NameStatus { get; set; }
-    public string TeamSponsors { get; set; }
     public string InviteCode { get; set; }
     public bool IsReady { get; set; }
     public PlayerRole Role { get; set; }

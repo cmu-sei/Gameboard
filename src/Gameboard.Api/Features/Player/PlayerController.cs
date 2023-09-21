@@ -120,7 +120,6 @@ namespace Gameboard.Api.Controllers
             {
                 ActingUser = Actor,
                 PlayerId = playerId,
-                IsManualReset = request.IsManualReset,
                 UnenrollTeam = request.UnenrollTeam
             };
 
@@ -251,9 +250,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<TeamSummary[]> GetTeams([FromRoute] string id)
         {
-            AuthorizeAny(
-                () => Actor.IsRegistrar
-            );
+            AuthorizeAny(() => Actor.IsRegistrar);
 
             return await PlayerService.LoadTeams(id, Actor.IsRegistrar);
         }

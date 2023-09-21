@@ -28,13 +28,9 @@ public class TeamAdvancement
 
 public class Team
 {
-    private static readonly char SPONSOR_STRING_DELIMITER = '|';
-
     public string TeamId { get; set; }
     public string ApprovedName { get; set; }
     public string GameId { get; set; }
-    public string Sponsor { get; set; }
-    public string TeamSponsors { get; set; }
     public DateTimeOffset SessionBegin { get; set; }
     public DateTimeOffset SessionEnd { get; set; }
     public int Rank { get; set; }
@@ -45,7 +41,7 @@ public class Team
     public bool Advanced { get; set; }
     public IEnumerable<TeamChallenge> Challenges { get; set; } = new List<TeamChallenge>();
     public IEnumerable<TeamMember> Members { get; set; } = new List<TeamMember>();
-    public string[] SponsorList => (TeamSponsors ?? Sponsor).Split(SPONSOR_STRING_DELIMITER);
+    public IEnumerable<Sponsor> Sponsors { get; set; } = new List<Sponsor>();
 }
 
 public class TeamSummary
@@ -77,7 +73,7 @@ public class TeamPlayer
     public string UserName { get; set; }
     public string UserApprovedName { get; set; }
     public string UserNameStatus { get; set; }
-    public string Sponsor { get; set; }
+    public Sponsor Sponsor { get; set; }
     public PlayerRole Role { get; set; }
     public bool IsManager => Role == PlayerRole.Manager;
 }

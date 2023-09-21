@@ -117,7 +117,7 @@ namespace Gameboard.Api.Hubs
                 return await _gameService.GetSyncStartState(game.Id);
             }
 
-            // this isn't a failure, we just don't send anything down if sync start isn't needed
+            // this isn't a failure; we just don't send anything down if sync start isn't needed
             return null;
         }
 
@@ -136,6 +136,7 @@ namespace Gameboard.Api.Hubs
                 .Where(p => p.TeamId == teamId)
                 .Include(p => p.Game)
                 .Include(p => p.User)
+                .Include(p => p.Sponsor)
                 .ToArrayAsync();
 
             return teamPlayers;

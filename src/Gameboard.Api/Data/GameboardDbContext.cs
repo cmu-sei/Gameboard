@@ -70,7 +70,6 @@ public class GameboardDbContext : DbContext
             b.Property(p => p.ApprovedName).HasMaxLength(64);
             b.Property(p => p.Name).HasMaxLength(64);
             b.Property(p => p.NameStatus).HasMaxLength(40);
-            b.Property(p => p.TeamSponsors).HasMaxLength(255);
             b.Property(p => p.InviteCode).HasMaxLength(40);
 
             // nav properties

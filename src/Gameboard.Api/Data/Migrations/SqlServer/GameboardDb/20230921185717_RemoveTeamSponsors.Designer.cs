@@ -4,6 +4,7 @@ using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 {
     [DbContext(typeof(GameboardDbContextSqlServer))]
-    partial class GameboardDbContextSqlServerModelSnapshot : ModelSnapshot
+    [Migration("20230921185717_RemoveTeamSponsors")]
+    partial class RemoveTeamSponsors
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

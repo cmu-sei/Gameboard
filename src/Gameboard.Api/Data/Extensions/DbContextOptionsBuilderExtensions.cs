@@ -10,6 +10,14 @@ public static class DbContextOptionsBuilderExtensions
 {
     public static DbContextOptionsBuilder WithGameboardOptions(this DbContextOptionsBuilder builder, IWebHostEnvironment env)
     {
+        // we accommodate for the case that the environment is null (as it is during the creation of migrations)
+        // by assuming that we don't need any detailed/sensitive logging - the environment must explicitly be set
+        // to activate these behaviors
+        if (env is null)
+        {
+            return builder.LogTo(Console.WriteLine, new[] { DbLoggerCategory.Query.Name }, LogLevel.Debug);
+        }
+
         if (env.IsDevOrTest())
         {
             Console.WriteLine("Starting in the dev environment. Enabling detailed/sensitive EF logging...");

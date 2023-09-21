@@ -1,8 +1,5 @@
 using System.Net;
-using Fare;
 using Gameboard.Api.Common;
-using Gameboard.Api.Data;
-using Gameboard.Api.Tests.Shared;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
@@ -18,7 +15,7 @@ public class PlayerControllerSessionResetTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ResetSession_WithManualReset_DeletesChallengeData
+    public async Task ResetSession_WithNoUnenroll_DeletesChallengeData
     (
         IFixture fixture,
         string playerId,
@@ -42,7 +39,6 @@ public class PlayerControllerSessionResetTests
         // when 
         var response = await httpClient.PostAsync($"api/player/{playerId}/session", new SessionResetRequest
         {
-            IsManualReset = true,
             UnenrollTeam = true
         }.ToJsonBody());
 
@@ -57,7 +53,7 @@ public class PlayerControllerSessionResetTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ResetSession_WithManualReset_ArchivesChallenges
+    public async Task ResetSession_WithUnenroll_ArchivesChallenges
     (
         IFixture fixture,
         string playerId,
@@ -82,13 +78,12 @@ public class PlayerControllerSessionResetTests
         // when 
         var response = await httpClient.PostAsync($"api/player/{playerId}/session", new SessionResetRequest
         {
-            IsManualReset = true,
             UnenrollTeam = true
         }.ToJsonBody());
 
         // then
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        
+
         var hasArchivedChallenges = await _testContext.GetDbContext().ArchivedChallenges.AnyAsync(c => c.TeamId == teamId);
         hasArchivedChallenges.ShouldBeTrue();
     }
@@ -96,9 +91,9 @@ public class PlayerControllerSessionResetTests
     [Theory, GbIntegrationAutoData]
     public async Task ResetSession_WithAlreadyArchivedChallenges_DoesntChoke
     (
-        IFixture fixture, 
-        string challengeId, 
-        string teamId, 
+        IFixture fixture,
+        string challengeId,
+        string teamId,
         string playerId,
         string playerUserId
     )
@@ -116,7 +111,7 @@ public class PlayerControllerSessionResetTests
                     c.Id = challengeId;
                 }).ToCollection();
             });
-            s.Add<Data.ArchivedChallenge>(fixture,  c  => 
+            s.Add<Data.ArchivedChallenge>(fixture, c =>
             {
                 c.Id = challengeId;
                 c.TeamId = teamId;
@@ -128,7 +123,6 @@ public class PlayerControllerSessionResetTests
         // when / then
         await Should.NotThrowAsync(httpClient.PostAsync($"api/player/{playerId}/session", new SessionResetRequest
         {
-            IsManualReset = true,
             UnenrollTeam = false
         }.ToJsonBody()));
 
