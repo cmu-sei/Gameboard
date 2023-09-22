@@ -15,6 +15,7 @@ using System.Threading;
 using Gameboard.Api.Structure;
 using System.Net.Mime;
 using System.Collections.Generic;
+using System;
 
 namespace Gameboard.Api.Services;
 
@@ -39,6 +40,7 @@ public class SponsorService : _Service
         _store = store;
     }
 
+    [Obsolete("This is an old signature used for bulk upload of sponsors. Transition to using single-upload endpoints (e.g. POST /sponsor)")]
     public async Task AddOrUpdate(ChangedSponsor model)
     {
         var entity = await _sponsorStore.Retrieve(model.Id);
@@ -92,17 +94,19 @@ public class SponsorService : _Service
         throw new CouldntResolveDefaultSponsor();
     }
 
-    public async Task<Sponsor[]> List(SearchFilter model)
+    public async Task<Sponsor[]> List(SponsorSearch model)
     {
-        var q = _sponsorStore.List(model.Term);
+        var query = _store.WithNoTracking<Data.Sponsor>();
 
-        q = q.OrderBy(p => p.Name);
-        q = q.Skip(model.Skip);
+        if (model.HasParent.HasValue)
+        {
+            var hasParentBool = model.HasParent.Value;
+            query = query.Where(s => (s.ParentSponsorId != null) == hasParentBool);
+        }
 
-        if (model.Take > 0)
-            q = q.Take(model.Take);
+        query = query.OrderBy(s => s.Name);
 
-        return await Mapper.ProjectTo<Sponsor>(q).ToArrayAsync();
+        return await Mapper.ProjectTo<Sponsor>(query).ToArrayAsync();
     }
 
     public async Task<Sponsor> Retrieve(string id)

@@ -158,6 +158,8 @@ public class GameboardDbContext : DbContext
         {
             b.Property(u => u.Id).HasMaxLength(40);
             b.Property(u => u.Name).HasMaxLength(128);
+            b.HasOne(s => s.ParentSponsor)
+                .WithMany(p => p.ChildSponsors);
         });
 
         builder.Entity<Feedback>(b =>

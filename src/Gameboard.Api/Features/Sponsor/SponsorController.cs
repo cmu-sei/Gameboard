@@ -1,6 +1,7 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using Gameboard.Api.Features.Sponsors;
 using Gameboard.Api.Services;
+using System.Threading;
 
 namespace Gameboard.Api.Controllers;
 
@@ -31,6 +33,26 @@ public class SponsorController
     }
 
     /// <summary>
+    /// Find sponsors
+    /// </summary>
+    /// <param name="model">DataFilter</param>
+    /// <returns>Sponsor[]</returns>
+    [HttpGet("/api/sponsors")]
+    [Authorize]
+    public Task<Sponsor[]> List([FromQuery] SponsorSearch model)
+        => _sponsorService.List(model);
+
+    /// <summary>
+    /// Find sponsors
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Sponsor[]</returns>
+    [HttpGet("/api/sponsors/by-parent")]
+    [Authorize]
+    public Task<GetSponsorsByParentResponse> ListByParent(CancellationToken cancellationToken)
+        => _mediator.Send(new GetSponsorsByParentQuery(), cancellationToken);
+
+    /// <summary>
     /// Create new sponsor
     /// </summary>
     /// <remarks>
@@ -38,15 +60,16 @@ public class SponsorController
     /// .NET Core, and you can't bind IFormFile form the body
     /// </remarks>
     /// <param name="name">The display name of the sponsor entity.</param>
+    /// <param name="parentSponsorId">Optional parent sponsor of this sponsor.</param>
     /// <param name="logoFile">An image file blob.</param>
     /// <returns>Sponsor</returns>
     [HttpPost("api/sponsor")]
     [Authorize(Policy = AppConstants.RegistrarPolicy)]
-    public Task<Sponsor> Create([FromForm] string name, [FromForm] IFormFile logoFile)
-        => _mediator.Send(new CreateSponsorCommand(new NewSponsor { LogoFile = logoFile, Name = name }, _actingUserService.Get()));
+    public Task<SponsorWithParentSponsor> Create([FromForm] string name, [FromForm] string parentSponsorId, [FromForm] IFormFile logoFile)
+        => _mediator.Send(new CreateSponsorCommand(new NewSponsor { LogoFile = logoFile, Name = name, ParentSponsorId = parentSponsorId }, _actingUserService.Get()));
 
     /// <summary>
-    /// Add multiple sponsors to the application in a btch.
+    /// Add multiple sponsors to the application in a batch.
     /// </summary>
     /// <remarks>
     /// This endpoint currently only allows the addition of sponsors by name - logo files and parent sponsors must be managed
@@ -56,6 +79,7 @@ public class SponsorController
     /// <returns></returns>
     [HttpPost("api/sponsors")]
     [Authorize(Policy = AppConstants.RegistrarPolicy)]
+    [Obsolete]
     public async Task CreateBatch([FromBody] ChangedSponsor[] model)
     {
         foreach (var s in model)
@@ -91,14 +115,4 @@ public class SponsorController
     [Authorize(Policy = AppConstants.RegistrarPolicy)]
     public Task Delete([FromRoute] string id)
         => _mediator.Send(new DeleteSponsorCommand(id, _actingUserService.Get()));
-
-    /// <summary>
-    /// Find sponsors
-    /// </summary>
-    /// <param name="model">DataFilter</param>
-    /// <returns>Sponsor[]</returns>
-    [HttpGet("/api/sponsors")]
-    [Authorize]
-    public Task<Sponsor[]> List([FromQuery] SearchFilter model)
-        => _sponsorService.List(model);
 }

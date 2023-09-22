@@ -3,6 +3,7 @@
 
 using System;
 using System.Linq;
+using Gameboard.Api.Features.Sponsors;
 
 namespace Gameboard.Api;
 

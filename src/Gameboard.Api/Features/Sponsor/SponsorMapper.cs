@@ -12,6 +12,7 @@ namespace Gameboard.Api.Services
         {
             CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
             CreateMap<Data.Sponsor, Sponsor>();
+            CreateMap<Data.Sponsor, SponsorWithChildSponsors>();
             CreateMap<Sponsor, Data.Sponsor>();
             CreateMap<NewSponsor, Data.Sponsor>();
             CreateMap<ChangedSponsor, Data.Sponsor>();

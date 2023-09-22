@@ -46,6 +46,12 @@ internal class UpdateSponsorHandler : IRequestHandler<UpdateSponsorCommand>
         var sponsor = await _store
             .WithNoTracking<Data.Sponsor>()
             .Where(s => s.Id == request.Model.Id)
-            .ExecuteUpdateAsync(s => s.SetProperty(s => s.Name, request.Model.Name), cancellationToken: cancellationToken);
+            .ExecuteUpdateAsync
+            (
+                s => s
+                    .SetProperty(s => s.Name, request.Model.Name)
+                    .SetProperty(s => s.ParentSponsorId, request.Model.ParentSponsorId),
+                    cancellationToken: cancellationToken
+            );
     }
 }
