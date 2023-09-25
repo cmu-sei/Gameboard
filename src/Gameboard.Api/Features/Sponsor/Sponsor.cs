@@ -11,6 +11,7 @@ public class Sponsor
     public required string Id { get; set; }
     public required string Name { get; set; }
     public required string Logo { get; set; }
+    public required string ParentSponsorId { get; set; }
 }
 
 public class SponsorWithParentSponsor
@@ -31,12 +32,11 @@ public class SponsorWithChildSponsors
 
 public class NewSponsor
 {
-    public IFormFile LogoFile { get; set; }
     public string Name { get; set; }
     public string ParentSponsorId { get; set; }
 }
 
-public class ChangedSponsor
+public class UpdateSponsorRequest
 {
     public string Id { get; set; }
     public string Name { get; set; }

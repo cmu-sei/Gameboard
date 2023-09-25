@@ -59,14 +59,12 @@ public class SponsorController
     /// We have to read these values from the form rather than the body because you can only do one at a time in
     /// .NET Core, and you can't bind IFormFile form the body
     /// </remarks>
-    /// <param name="name">The display name of the sponsor entity.</param>
-    /// <param name="parentSponsorId">Optional parent sponsor of this sponsor.</param>
-    /// <param name="logoFile">An image file blob.</param>
+    /// <param name="newSponsor">A requets containing the new sponsor's name and (optionally) its parentSponsorId.</param>
     /// <returns>Sponsor</returns>
     [HttpPost("api/sponsor")]
     [Authorize(Policy = AppConstants.RegistrarPolicy)]
-    public Task<SponsorWithParentSponsor> Create([FromForm] string name, [FromForm] string parentSponsorId, [FromForm] IFormFile logoFile)
-        => _mediator.Send(new CreateSponsorCommand(new NewSponsor { LogoFile = logoFile, Name = name, ParentSponsorId = parentSponsorId }, _actingUserService.Get()));
+    public Task<SponsorWithParentSponsor> Create([FromBody] NewSponsor newSponsor)
+        => _mediator.Send(new CreateSponsorCommand(newSponsor, _actingUserService.Get()));
 
     /// <summary>
     /// Add multiple sponsors to the application in a batch.
@@ -79,8 +77,7 @@ public class SponsorController
     /// <returns></returns>
     [HttpPost("api/sponsors")]
     [Authorize(Policy = AppConstants.RegistrarPolicy)]
-    [Obsolete]
-    public async Task CreateBatch([FromBody] ChangedSponsor[] model)
+    public async Task CreateBatch([FromBody] UpdateSponsorRequest[] model)
     {
         foreach (var s in model)
             await _sponsorService.AddOrUpdate(s);
@@ -103,8 +100,13 @@ public class SponsorController
     /// <returns></returns>
     [HttpPut("api/sponsor")]
     [Authorize(Policy = AppConstants.RegistrarPolicy)]
-    public Task Update([FromBody] ChangedSponsor model)
+    public Task<Sponsor> Update([FromBody] UpdateSponsorRequest model)
         => _mediator.Send(new UpdateSponsorCommand(model, _actingUserService.Get()));
+
+    [HttpPut("api/sponsor/{sponsorId}/avatar")]
+    [Authorize(Policy = AppConstants.RegistrarPolicy)]
+    public Task UpdateSponsorAvatar([FromRoute] string sponsorId, [FromForm] IFormFile avatarFile, CancellationToken cancellationToken)
+        => _mediator.Send(new SetSponsorAvatarCommand(sponsorId, avatarFile, _actingUserService.Get()), cancellationToken);
 
     /// <summary>
     /// Delete sponsor

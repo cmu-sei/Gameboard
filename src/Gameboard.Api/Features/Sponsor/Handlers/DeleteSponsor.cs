@@ -76,7 +76,13 @@ internal class DeleteSponsorHandler : IRequestHandler<DeleteSponsorCommand>
                 await _store
                     .WithNoTracking<Data.User>()
                     .Where(u => u.SponsorId == request.SponsorId)
-                    .ExecuteUpdateAsync(u => u.SetProperty(u => u.SponsorId, defaultSponsor.Id), cancellationToken);
+                    .ExecuteUpdateAsync
+                    (
+                        u => u
+                            .SetProperty(u => u.SponsorId, defaultSponsor.Id)
+                            .SetProperty(u => u.HasDefaultSponsor, true),
+                        cancellationToken
+                    );
             }
         }
 

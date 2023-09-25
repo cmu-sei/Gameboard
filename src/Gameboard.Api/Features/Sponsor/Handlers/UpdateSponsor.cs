@@ -1,7 +1,9 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoMapper;
 using Gameboard.Api.Data;
+using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
@@ -10,10 +12,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Sponsors;
 
-public record UpdateSponsorCommand(ChangedSponsor Model, User ActingUser) : IRequest;
+public record UpdateSponsorCommand(UpdateSponsorRequest Model, User ActingUser) : IRequest<Sponsor>;
 
-internal class UpdateSponsorHandler : IRequestHandler<UpdateSponsorCommand>
+internal class UpdateSponsorHandler : IRequestHandler<UpdateSponsorCommand, Sponsor>
 {
+    private readonly IMapper _mapper;
     private readonly EntityExistsValidator<UpdateSponsorCommand, Data.Sponsor> _sponsorExists;
     private readonly IStore _store;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
@@ -21,19 +24,21 @@ internal class UpdateSponsorHandler : IRequestHandler<UpdateSponsorCommand>
 
     public UpdateSponsorHandler
     (
+        IMapper mapper,
         EntityExistsValidator<UpdateSponsorCommand, Data.Sponsor> sponsorExists,
         IStore store,
         UserRoleAuthorizer userRoleAuthorizer,
         IValidatorService<UpdateSponsorCommand> validatorService
     )
     {
+        _mapper = mapper;
         _sponsorExists = sponsorExists;
         _store = store;
         _userRoleAuthorizer = userRoleAuthorizer;
         _validatorService = validatorService;
     }
 
-    public async Task Handle(UpdateSponsorCommand request, CancellationToken cancellationToken)
+    public async Task<Sponsor> Handle(UpdateSponsorCommand request, CancellationToken cancellationToken)
     {
         // validate/authorize
         _userRoleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Registrar };
@@ -53,5 +58,7 @@ internal class UpdateSponsorHandler : IRequestHandler<UpdateSponsorCommand>
                     .SetProperty(s => s.ParentSponsorId, request.Model.ParentSponsorId),
                     cancellationToken: cancellationToken
             );
+
+        return _mapper.Map<Sponsor>(await _store.SingleAsync<Data.Sponsor>(request.Model.Id, cancellationToken));
     }
 }

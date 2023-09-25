@@ -1,21 +1,22 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Mime;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Sponsors;
 using Gameboard.Api.Data;
-using Microsoft.AspNetCore.Http;
-using System.Threading;
 using Gameboard.Api.Structure;
-using System.Net.Mime;
-using System.Collections.Generic;
-using System;
+using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Services;
 
@@ -40,8 +41,7 @@ public class SponsorService : _Service
         _store = store;
     }
 
-    [Obsolete("This is an old signature used for bulk upload of sponsors. Transition to using single-upload endpoints (e.g. POST /sponsor)")]
-    public async Task AddOrUpdate(ChangedSponsor model)
+    public async Task AddOrUpdate(UpdateSponsorRequest model)
     {
         var entity = await _sponsorStore.Retrieve(model.Id);
 
@@ -77,19 +77,22 @@ public class SponsorService : _Service
 
     public async Task<Data.Sponsor> GetDefaultSponsor()
     {
-        var defaultSponsor = await _sponsorStore
-            .List()
-            .FirstOrDefaultAsync(s => s.Logo == _defaults.DefaultSponsor);
-
-        if (_defaults.DefaultSponsor.IsEmpty() || defaultSponsor is null)
+        if (_defaults.DefaultSponsor.IsNotEmpty())
         {
-            var firstSponsor = await _sponsorStore
+            var defaultSponsor = await _sponsorStore
+                .List()
+                .FirstOrDefaultAsync(s => s.Id == _defaults.DefaultSponsor);
+
+            if (defaultSponsor is not null)
+                return defaultSponsor;
+        }
+
+        var firstSponsor = await _sponsorStore
                 .List()
                 .FirstOrDefaultAsync();
 
-            if (firstSponsor is not null)
-                return firstSponsor;
-        }
+        if (firstSponsor is not null)
+            return firstSponsor;
 
         throw new CouldntResolveDefaultSponsor();
     }
@@ -109,39 +112,11 @@ public class SponsorService : _Service
         return await Mapper.ProjectTo<Sponsor>(query).ToArrayAsync();
     }
 
+    public string ResolveSponsorAvatarUri(string avatarFileName)
+        => Path.Combine(Options.ImageFolder, avatarFileName);
+
     public async Task<Sponsor> Retrieve(string id)
     {
         return Mapper.Map<Sponsor>(await _sponsorStore.Retrieve(id));
-    }
-
-    public async Task<string> SetLogo(string sponsorId, IFormFile file, CancellationToken cancellationToken)
-    {
-        // upload the new file
-        string logoFileName = file.FileName.ToLower();
-        string logoPath = Path.Combine(Options.ImageFolder, logoFileName);
-
-        using (var stream = new FileStream(logoPath, FileMode.Create))
-        {
-            await file.CopyToAsync(stream, cancellationToken);
-        }
-
-        // record the sponsor's previous logo, if any, so we can delete it
-        // if this succeeds
-        var sponsor = await _store
-            .WithNoTracking<Data.Sponsor>()
-            .SingleAsync(s => s.Id == sponsorId, cancellationToken);
-        var previousLogo = sponsor.Logo;
-
-        // update the sponsor
-        await _store
-            .WithNoTracking<Data.Sponsor>()
-            .Where(s => s.Id == sponsorId)
-            .ExecuteUpdateAsync(s => s.SetProperty(s => s.Logo, logoFileName));
-
-        // delete the old file if it exists
-        if (previousLogo.NotEmpty())
-            DeleteLogoFileByName(previousLogo);
-
-        return logoFileName;
     }
 }

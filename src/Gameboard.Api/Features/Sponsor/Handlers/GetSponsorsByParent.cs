@@ -45,7 +45,7 @@ internal class GetSponsorsByParentHandler : IRequestHandler<GetSponsorsByParentQ
         {
             DefaultSponsor = _mapper.Map<Sponsor>(await _sponsorService.GetDefaultSponsor()),
             ParentSponsors = _mapper.Map<IEnumerable<SponsorWithChildSponsors>>(allSponsors.Where(s => s.ChildSponsors is not null && s.ChildSponsors.Count > 0)),
-            NonParentSponsors = _mapper.Map<IEnumerable<Sponsor>>(allSponsors.Where(s => s.ChildSponsors is null || !s.ChildSponsors.Any()))
+            NonParentSponsors = _mapper.Map<IEnumerable<Sponsor>>(allSponsors.Where(s => s.ParentSponsor is null && (s.ChildSponsors is null || !s.ChildSponsors.Any())))
         };
     }
 }

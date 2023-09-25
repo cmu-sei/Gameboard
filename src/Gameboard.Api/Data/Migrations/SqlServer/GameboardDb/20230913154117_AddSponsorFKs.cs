@@ -32,6 +32,15 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                 nullable: false,
                 defaultValue: "");
 
+            // insert the default sponsor "other"
+            migrationBuilder.Sql
+            ("""
+                IF NOT EXISTS(SELECT * FROM Sponsors WHERE Id = 'other') BEGIN;
+                    INSERT INTO Sponsors(Id, Name, Approved)
+                    SELECT 'other', 'Other Department/Agency', 1
+                END;
+            """);
+
             // HasDefaultSponsor is true if the user has a blank or null sponsor before the migration
             // (and false otherwise)
             migrationBuilder.Sql

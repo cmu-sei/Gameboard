@@ -15,7 +15,7 @@ namespace Gameboard.Api.Services
             CreateMap<Data.Sponsor, SponsorWithChildSponsors>();
             CreateMap<Sponsor, Data.Sponsor>();
             CreateMap<NewSponsor, Data.Sponsor>();
-            CreateMap<ChangedSponsor, Data.Sponsor>();
+            CreateMap<UpdateSponsorRequest, Data.Sponsor>();
         }
     }
 }

@@ -81,6 +81,9 @@ public class PlayerService
             .Include(u => u.Enrollments.Where(p => p.GameId == model.GameId))
             .SingleAsync(u => u.Id == model.UserId, cancellationToken);
 
+        if (user.HasDefaultSponsor)
+            throw new CantEnrollWithDefaultSponsor(model.UserId, model.GameId);
+
         if (user.SponsorId.IsEmpty())
             throw new NoPlayerSponsorForGame(model.UserId, model.GameId);
 

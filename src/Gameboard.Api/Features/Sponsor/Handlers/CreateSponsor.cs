@@ -3,10 +3,8 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Data;
-using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
-using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,26 +14,20 @@ public record CreateSponsorCommand(NewSponsor Model, User ActingUser) : IRequest
 
 internal class CreateSponsorHandler : IRequestHandler<CreateSponsorCommand, SponsorWithParentSponsor>
 {
-    private readonly ContentTypeValidator<CreateSponsorCommand> _legalLogoType;
     private readonly IMapper _mapper;
-    private readonly SponsorService _sponsorService;
     private readonly IStore _store;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
     private readonly IValidatorService<CreateSponsorCommand> _validatorService;
 
     public CreateSponsorHandler
     (
-        ContentTypeValidator<CreateSponsorCommand> legalLogoType,
         IMapper mapper,
-        SponsorService sponsorService,
         IStore store,
         UserRoleAuthorizer userRoleAuthorizer,
         IValidatorService<CreateSponsorCommand> validatorService
     )
     {
-        _legalLogoType = legalLogoType;
         _mapper = mapper;
-        _sponsorService = sponsorService;
         _store = store;
         _userRoleAuthorizer = userRoleAuthorizer;
         _validatorService = validatorService;
@@ -46,13 +38,6 @@ internal class CreateSponsorHandler : IRequestHandler<CreateSponsorCommand, Spon
         // authorize/validate
         _userRoleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Registrar };
         _userRoleAuthorizer.Authorize();
-
-        _validatorService.AddValidator
-        (
-            _legalLogoType
-                .HasPermittedTypes(_sponsorService.GetAllowedLogoMimeTypes())
-                .UseProperty(r => r.Model.LogoFile)
-        );
 
         _validatorService.AddValidator((request, context) =>
         {
@@ -71,16 +56,11 @@ internal class CreateSponsorHandler : IRequestHandler<CreateSponsorCommand, Spon
             ParentSponsorId = request.Model.ParentSponsorId.IsNotEmpty() ? request.Model.ParentSponsorId : null
         });
 
-        // if they have a logo file, add that and clean up the old one
-        var logoFileName = string.Empty;
-        if (request.Model.LogoFile is not null)
-            logoFileName = await _sponsorService.SetLogo(sponsor.Id, request.Model.LogoFile, cancellationToken);
-
         var response = new SponsorWithParentSponsor
         {
             Id = sponsor.Id,
             Name = sponsor.Name,
-            Logo = logoFileName,
+            Logo = string.Empty,
             ParentSponsor = null
         };
 
