@@ -77,8 +77,8 @@ public class PlayerService
         var user = await _store
             .WithNoTracking<Data.User>()
             .Include(u => u.Sponsor)
-            // include registrations for this game so we validate/throw later
-            .Include(u => u.Enrollments.Where(p => p.GameId == model.GameId))
+            // include registrations for this game and type (because we validate whether they have active registrations later)
+            .Include(u => u.Enrollments.Where(p => p.GameId == model.GameId && p.Mode == game.PlayerMode))
             .SingleAsync(u => u.Id == model.UserId, cancellationToken);
 
         if (user.HasDefaultSponsor)
@@ -93,7 +93,9 @@ public class PlayerService
         if (!game.RegistrationActive && !(actor.IsRegistrar || actor.IsTester || actor.IsAdmin))
             throw new RegistrationIsClosed(model.GameId);
 
-        if (user.Enrollments.Any())
+        // while this collection will always only contain the correct player records (because of the filtered include above),
+        // we have to specify our criteria again here because mock providers for unit tests seem to ignore filtered includes
+        if (user.Enrollments.Any(p => p.GameId == game.Id && p.Mode == game.PlayerMode))
             throw new AlreadyRegistered(model.UserId, model.GameId);
 
         var entity = InitializePlayer(model, user, game.SessionMinutes);
