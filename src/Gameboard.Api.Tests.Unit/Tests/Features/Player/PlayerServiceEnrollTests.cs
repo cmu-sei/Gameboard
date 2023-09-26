@@ -1,3 +1,4 @@
+using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Player;
@@ -7,9 +8,9 @@ namespace Gameboard.Api.Tests.Unit;
 public class PlayerServiceEnrollTests
 {
     [Theory, GameboardAutoData]
-    public async Task Enroll_WithNoSponsor_ThrowsExpected(string gameId, string userId)
+    public async Task Enroll_WithNoSponsor_ThrowsExpected(string gameId, string userId, IFixture fixture)
     {
-        // arrange
+        // given
         var gameStore = A.Fake<IGameStore>();
         A
             .CallTo(() => gameStore.Retrieve(gameId))
@@ -22,16 +23,24 @@ public class PlayerServiceEnrollTests
                 RegistrationClose = DateTimeOffset.UtcNow.AddDays(1)
             });
 
-        var playerStore = A.Fake<IPlayerStore>();
+        var store = A.Fake<IStore>();
         A
-            .CallTo(() => playerStore.GetUserEnrollments(userId))
+            .CallTo(() => store.WithNoTracking<Data.User>())
             .WithAnyArguments()
-            .Returns(new Data.User { Id = userId, });
+            .Returns(new Data.User
+            {
+                Id = userId,
+                Enrollments = new Data.Player()
+                {
+                    Id = fixture.Create<string>()
+                }.ToCollection()
+            }.ToCollection().BuildMock());
+
 
         var sut = PlayerServiceTestHelpers.GetTestableSut
         (
             gameStore: gameStore,
-            playerStore: playerStore
+            store: store
         );
 
         var request = new NewPlayer
