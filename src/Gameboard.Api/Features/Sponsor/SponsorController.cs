@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -47,10 +48,10 @@ public class SponsorController
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Sponsor[]</returns>
-    [HttpGet("/api/sponsors/by-parent")]
+    [HttpGet("/api/sponsors/with-children")]
     [Authorize]
-    public Task<GetSponsorsByParentResponse> ListByParent(CancellationToken cancellationToken)
-        => _mediator.Send(new GetSponsorsByParentQuery(), cancellationToken);
+    public Task<IEnumerable<SponsorWithChildSponsors>> ListWithChildren(CancellationToken cancellationToken)
+        => _mediator.Send(new GetSponsorsWithChildrenQuery(), cancellationToken);
 
     /// <summary>
     /// Create new sponsor
