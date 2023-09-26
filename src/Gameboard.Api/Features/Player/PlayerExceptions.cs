@@ -6,6 +6,11 @@ using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.Player;
 
+internal class CantResolveTeamFromCode : GameboardException
+{
+    internal CantResolveTeamFromCode(string code, string[] teamIds) : base($"""Couldn't resolve a unique team from invitation code "{code}": {teamIds.Count()} have this code ({string.Join(",", teamIds)}). """) { }
+}
+
 internal class InvalidExtendSessionRequest : GameboardException
 {
     internal InvalidExtendSessionRequest(DateTimeOffset currentSessionEnd, DateTimeOffset requestedSessionEnd)

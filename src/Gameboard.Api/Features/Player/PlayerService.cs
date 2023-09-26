@@ -466,32 +466,31 @@ public class PlayerService
         };
     }
 
-    public async Task<Player> Enlist(PlayerEnlistment model, User actor)
+    public async Task<Player> Enlist(PlayerEnlistment model, User actor, CancellationToken cancellationToken)
     {
         var sudo = actor.IsRegistrar;
-        var manager = await PlayerStore.List()
-            .Include(p => p.Game)
-            .FirstOrDefaultAsync(
-                p => p.InviteCode == model.Code
-            );
 
-        var player = await PlayerStore.DbSet.FirstOrDefaultAsync(p => p.Id == model.PlayerId);
+        var player = await PlayerStore.DbSet.FirstOrDefaultAsync(p => p.Id == model.PlayerId) ?? throw new ResourceNotFound<Player>(model.PlayerId);
+        var playersWithThisCode = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.InviteCode == model.Code)
+            .ToArrayAsync();
 
-        if (player is null)
-        {
-            throw new ResourceNotFound<Player>(model.PlayerId);
-        }
+        var teamIds = playersWithThisCode.Select(p => p.TeamId).Distinct().ToArray();
+        if (teamIds.Length != 1)
+            throw new CantResolveTeamFromCode(model.Code, teamIds);
+
+        var manager = await _teamService.ResolveCaptain(playersWithThisCode);
 
         if (player.GameId != manager.GameId)
             throw new NotYetRegistered(player.Id, manager.GameId);
 
-        if (manager is not Data.Player)
-            throw new InvalidInvitationCode(model.Code, "Couldn't find the manager record.");
-
         if (player.Id == manager.Id)
             return Mapper.Map<Player>(player);
 
-        if (!sudo && !manager.Game.RegistrationActive)
+        var game = await _store.SingleAsync<Data.Game>(manager.GameId, cancellationToken);
+
+        if (!sudo && !game.RegistrationActive)
             throw new RegistrationIsClosed(manager.GameId);
 
         if (!sudo && manager.SessionBegin.Year > 1)
