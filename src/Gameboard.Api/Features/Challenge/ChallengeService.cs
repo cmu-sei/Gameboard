@@ -454,6 +454,8 @@ public class ChallengeService : _Service
 
     public async Task ArchiveTeamChallenges(string teamId)
     {
+        Logger.LogInformation($"Archiving challenges for team {teamId}...");
+
         var challenges = await Store
             .List()
             .AsNoTracking()

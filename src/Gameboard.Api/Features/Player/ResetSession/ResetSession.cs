@@ -8,6 +8,7 @@ using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Teams;
 
@@ -17,6 +18,7 @@ internal class ResetSessionHandler : IRequestHandler<ResetSessionCommand>
 {
     private readonly ChallengeService _challengeService;
     private readonly IGameStartService _gameStartService;
+    private readonly ILogger<ResetSessionHandler> _logger;
     private readonly IStore _store;
     private readonly ITeamService _teamService;
     private readonly IGameboardRequestValidator<ResetSessionCommand> _validator;
@@ -25,6 +27,7 @@ internal class ResetSessionHandler : IRequestHandler<ResetSessionCommand>
     (
         ChallengeService challengeService,
         IGameStartService gameStartService,
+        ILogger<ResetSessionHandler> logger,
         IStore store,
         ITeamService teamService,
         IGameboardRequestValidator<ResetSessionCommand> validator
@@ -32,6 +35,7 @@ internal class ResetSessionHandler : IRequestHandler<ResetSessionCommand>
     {
         _challengeService = challengeService;
         _gameStartService = gameStartService;
+        _logger = logger;
         _store = store;
         _teamService = teamService;
         _validator = validator;
@@ -42,6 +46,7 @@ internal class ResetSessionHandler : IRequestHandler<ResetSessionCommand>
         await _validator.Validate(request, cancellationToken);
 
         // clean up all challenges
+        _logger.LogInformation($"Resetting session for team {request.TeamId}");
         await _challengeService.ArchiveTeamChallenges(request.TeamId);
 
         // we need to look up whether the game is sync start first, because we're about to delete the
