@@ -4,52 +4,51 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Gameboard.Api
+namespace Gameboard.Api;
+
+public class JobService : BackgroundService, IDisposable
 {
-    public class JobService : IHostedService
+    private int _runCount = 0;
+    private readonly ILogger _logger;
+    private readonly IServiceProvider _services;
+
+    public JobService
+    (
+        ILogger<JobService> logger,
+        IServiceProvider serviceProvider
+    )
     {
-        private Timer _timer;
-        private readonly ILogger _logger;
-        private readonly IServiceProvider _services;
+        _logger = logger;
+        _services = serviceProvider;
+    }
 
-        public JobService(ILogger<JobService> logger, IServiceProvider serviceProvider)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
         {
-            _logger = logger;
-            _services = serviceProvider;
-        }
-
-        public Task StartAsync(CancellationToken cancellationToken)
-        {
-            _timer = new Timer(RunTasks, null, 32000, 64000);
-
-            return Task.FromResult(0);
-        }
-
-        private void RunTasks(object state)
-        {
+            Interlocked.Increment(ref _runCount);
+            _logger.LogInformation(message: $"Running the {nameof(JobService)} (this is run #{_runCount})...");
             using var scope = _services.CreateScope();
+
+            var svc = scope.ServiceProvider.GetRequiredService<IChallengeSyncService>();
+
             try
             {
-                var svc = scope.ServiceProvider.GetRequiredService<ChallengeService>();
-                svc.SyncExpired().Wait();
-
-                var consoleMap = scope.ServiceProvider.GetRequiredService<ConsoleActorMap>();
-                consoleMap.Prune();
+                await svc.SyncExpired(stoppingToken);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error running job");
+                _logger.LogError(ex, $"Error running the job service.");
             }
-        }
 
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            return Task.FromResult(0);
+            _logger.LogInformation(message: $"{nameof(JobService)} run #{_runCount} complete. Waiting for next run...");
+            await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken);
         }
     }
 }

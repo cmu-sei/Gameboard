@@ -14,6 +14,7 @@ using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Teams;
+using Microsoft.AspNetCore.Authentication.OAuth.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -35,6 +36,7 @@ public class ChallengeService : _Service
     private readonly IPlayerStore _playerStore;
     private readonly IPracticeChallengeScoringListener _practiceChallengeScoringListener;
     private readonly IStore<Data.ChallengeSpec> _specStore;
+    private readonly IChallengeSyncService _challengeSyncService;
     private readonly ITeamService _teamService;
 
     public ChallengeService(
@@ -52,6 +54,7 @@ public class ChallengeService : _Service
         IPlayerStore playerStore,
         IPracticeChallengeScoringListener practiceChallengeScoringListener,
         ConsoleActorMap actorMap,
+        IChallengeSyncService challengeSyncService,
         ITeamService teamService
     ) : base(logger, mapper, options)
     {
@@ -67,6 +70,7 @@ public class ChallengeService : _Service
         _playerStore = playerStore;
         _practiceChallengeScoringListener = practiceChallengeScoringListener;
         _specStore = specStore;
+        _challengeSyncService = challengeSyncService;
         _teamService = teamService;
     }
 
@@ -118,6 +122,7 @@ public class ChallengeService : _Service
         try
         {
             var challenge = await BuildAndRegisterChallenge(model, spec, game, player, actorId, graderUrl, playerCount, model.Variant);
+
             await Store.Create(challenge);
             await Store.UpdateEtd(challenge.SpecId);
 
@@ -137,7 +142,7 @@ public class ChallengeService : _Service
 
     private async Task<bool> IsUnlocked(Data.Player player, Data.Game game, string specId)
     {
-        bool result = true;
+        var result = true;
 
         foreach (var prereq in game.Prerequisites.Where(p => p.TargetId == specId))
         {
@@ -285,164 +290,106 @@ public class ChallengeService : _Service
         return result;
     }
 
-    public async Task SyncExpired()
-    {
-        var ts = DateTimeOffset.UtcNow;
-
-        var challenges = await Store.DbSet
-            .Where(c =>
-                c.LastSyncTime < c.Player.SessionEnd &&
-                c.Player.SessionEnd < ts
-            )
-            .ToArrayAsync()
-        ;
-
-        foreach (var challenge in challenges)
-            _actorMap.RemoveTeam(challenge.TeamId);
-
-        var tasks = challenges.Select(
-            c => Sync(c)
-        );
-
-        await Task.WhenAll(tasks);
-    }
-
-    private async Task<Data.Challenge> Sync(Data.Challenge entity, Task<GameEngineGameState> task = null)
-    {
-        task ??= GameEngine.LoadGamespace(entity);
-
-        try
-        {
-            var state = await task;
-
-            // TODO
-            // this is currently awkward because the game state that comes back here has the team ID as the subjectId (because that's what we're passing to Topo - see 
-            // GameEngine.RegisterGamespace). it's unclear whether topo cares what we pass as the players argument there, but since we're passing team ID 
-            // there we need to NOT overwrite the playerId on the entity during the call to Map. Obviously, we could fix this by setting a rule on the map, 
-            // but I'm leaving it here because this is the anomalous case.
-            var playerId = entity.PlayerId;
-            Mapper.Map(state, entity);
-            entity.PlayerId = playerId;
-        }
-        catch (Exception ex)
-        {
-            entity.LastSyncTime = DateTimeOffset.UtcNow;
-            Logger.LogError(message: $"Sync error on {entity.Id} {entity.Name}: {ex.Message}", ex);
-        }
-
-        await Store.Update(entity);
-        return entity;
-    }
-
     public async Task<Challenge> StartGamespace(string id, string actorId, CancellationToken cancellationToken)
     {
-        var entity = await Store.Retrieve(id);
-        var game = await Store.DbContext.Games.FindAsync(entity.GameId);
+        var challenge = await Store.Retrieve(id);
+        var game = await Store.DbContext.Games.FindAsync(challenge.GameId);
 
-        if (await _teamService.IsAtGamespaceLimit(entity.TeamId, game, cancellationToken))
-            throw new GamespaceLimitReached(game.Id, entity.TeamId);
+        if (await _teamService.IsAtGamespaceLimit(challenge.TeamId, game, cancellationToken))
+            throw new GamespaceLimitReached(game.Id, challenge.TeamId);
 
-        entity.Events.Add(new Data.ChallengeEvent
+        challenge.Events.Add(new Data.ChallengeEvent
         {
             Id = _guids.GetGuid(),
             UserId = actorId,
-            TeamId = entity.TeamId,
+            TeamId = challenge.TeamId,
             Timestamp = DateTimeOffset.UtcNow,
             Type = ChallengeEventType.GamespaceOn
         });
 
-        await Sync(
-            entity,
-            GameEngine.StartGamespace(entity)
-        );
+        var state = await GameEngine.StartGamespace(new GameEngineGamespaceStartRequest { ChallengeId = challenge.Id, GameEngineType = challenge.GameEngineType });
+        await _challengeSyncService.Sync(challenge, state, cancellationToken);
 
-        return Mapper.Map<Challenge>(entity);
+        return Mapper.Map<Challenge>(challenge);
     }
 
     public async Task<Challenge> StopGamespace(string id, string actorId)
     {
-        var entity = await Store.Retrieve(id);
+        var challenge = await Store.Retrieve(id);
 
-        await Sync
-        (
-            entity,
-            GameEngine.StopGamespace(entity)
-        );
-
-        entity.Events.Add(new Data.ChallengeEvent
+        challenge.Events.Add(new Data.ChallengeEvent
         {
             Id = _guids.GetGuid(),
             UserId = actorId,
-            TeamId = entity.TeamId,
+            TeamId = challenge.TeamId,
             Timestamp = DateTimeOffset.UtcNow,
             Type = ChallengeEventType.GamespaceOff
         });
 
-        return Mapper.Map<Challenge>(entity);
+        var state = await GameEngine.StopGamespace(challenge);
+        await _challengeSyncService.Sync(challenge, state, CancellationToken.None);
+
+        return Mapper.Map<Challenge>(challenge);
     }
 
     public async Task<Challenge> Grade(GameEngineSectionSubmission model, string actorId)
     {
-        var entity = await Store.Retrieve(model.Id);
+        var challenge = await Store.Retrieve(model.Id);
 
-        entity.Events.Add(new Data.ChallengeEvent
+        challenge.Events.Add(new Data.ChallengeEvent
         {
             Id = _guids.GetGuid(),
             UserId = actorId,
-            TeamId = entity.TeamId,
+            TeamId = challenge.TeamId,
             Timestamp = _now.Get(),
             Type = ChallengeEventType.Submission
         });
 
-        double currentScore = entity.Score;
+        // record the score so we can update team score if needed
+        double currentScore = challenge.Score;
 
-        var gradingTask = GameEngine.GradeChallenge(entity, model);
-        var result = await Sync(
-            entity,
-            gradingTask
-        );
+        var state = await GameEngine.GradeChallenge(challenge, model);
+        await _challengeSyncService.Sync(challenge, state, CancellationToken.None);
 
-        if (result.Score > currentScore)
+        if (challenge.Score > currentScore)
         {
-            await Store.UpdateTeam(entity.TeamId);
+            await Store.UpdateTeam(challenge.TeamId);
         }
 
-        if (entity.PlayerMode == PlayerMode.Practice)
+        if (challenge.PlayerMode == PlayerMode.Practice)
         {
-            if (result.Score >= entity.Points)
+            if (challenge.Score >= challenge.Points)
             {
                 // in the practice area, we proactively end their session if they complete the challenge
-                await _practiceChallengeScoringListener.NotifyChallengeScored(entity, CancellationToken.None);
+                await _practiceChallengeScoringListener.NotifyChallengeScored(challenge, CancellationToken.None);
             }
 
             // also for the practice area:
             // if they've consumed all of their attempts for a challenge, we proactively end their session as well
-            var typedState = await GameEngine.GetChallengeState(entity.GameEngineType, entity.State);
+            var typedState = await GameEngine.GetChallengeState(challenge.GameEngineType, challenge.State);
             if (typedState.Challenge.Attempts >= typedState.Challenge.MaxAttempts)
             {
-                await _practiceChallengeScoringListener.NotifyAttemptsExhausted(entity, CancellationToken.None);
+                await _practiceChallengeScoringListener.NotifyAttemptsExhausted(challenge, CancellationToken.None);
             }
         }
 
-        return Mapper.Map<Challenge>(entity);
+        return Mapper.Map<Challenge>(challenge);
     }
 
     public async Task<Challenge> Regrade(string id)
     {
-        var entity = await Store.Retrieve(id);
+        var challenge = await Store.Retrieve(id);
+        double currentScore = challenge.Score;
+        var state = await GameEngine.RegradeChallenge(challenge);
+        await _challengeSyncService.Sync(challenge, state, CancellationToken.None);
 
-        double currentScore = entity.Score;
+        // update the team, award automatic bonuses, etc.        
+        if (challenge.Score > currentScore)
+            await Store.UpdateTeam(challenge.TeamId);
 
-        var result = await Sync(
-            entity,
-            GameEngine.RegradeChallenge(entity)
-        );
+        await _practiceChallengeScoringListener.NotifyChallengeScored(challenge, CancellationToken.None);
 
-        if (result.Score > currentScore)
-            await Store.UpdateTeam(entity.TeamId);
-
-        await _practiceChallengeScoringListener.NotifyChallengeScored(entity, CancellationToken.None);
-        return Mapper.Map<Challenge>(entity);
+        return Mapper.Map<Challenge>(challenge);
     }
 
     public async Task ArchivePlayerChallenges(Data.Player player)
