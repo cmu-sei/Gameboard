@@ -493,12 +493,12 @@ public class ChallengeService : _Service
                 try
                 {
                     submissions = Mapper.Map<GameEngineSectionSubmission[]>(await GameEngine.AuditChallenge(challenge));
-                    if (challenge.HasDeployedGamespace)
-                        await GameEngine.CompleteGamespace(challenge);
+                    Logger.LogInformation($"Completing gamespace for challenge {challenge.Id}.");
+                    await GameEngine.CompleteGamespace(challenge);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // no-op - leave as empty array
+                    Logger.LogWarning($"Exception thrown during attempted cleanup of gamespace (type: {ex.GetType().Name}, message: {ex.Message})", ex);
                 }
 
                 var mappedChallenge = _mapper.Map<ArchivedChallenge>(challenge);
