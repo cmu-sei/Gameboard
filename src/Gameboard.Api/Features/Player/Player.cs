@@ -43,7 +43,6 @@ public class NewPlayer
     public string UserId { get; set; }
     public string GameId { get; set; }
     public string Name { get; set; }
-    public string Sponsor { get; set; }
 }
 
 public class ChangedPlayer
