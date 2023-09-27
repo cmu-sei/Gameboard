@@ -210,8 +210,15 @@ public class ChallengeService : _Service
 
         foreach (var summary in summaries)
         {
-            var teamPlayers = teamPlayerMap[summary.TeamId];
-            summary.Players = teamPlayers.Select(p => _mapper.Map<ChallengePlayer>(p));
+            if (teamPlayerMap.ContainsKey(summary.TeamId))
+            {
+                var teamPlayers = teamPlayerMap[summary.TeamId];
+                summary.Players = teamPlayers.Select(p => _mapper.Map<ChallengePlayer>(p));
+            }
+            else
+            {
+                summary.Players = Array.Empty<ChallengePlayer>();
+            }
         }
 
         return summaries;
