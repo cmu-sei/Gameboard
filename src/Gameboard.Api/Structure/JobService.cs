@@ -17,10 +17,7 @@ namespace Gameboard.Api
         private readonly ILogger _logger;
         private readonly IServiceProvider _services;
 
-        public JobService(
-            ILogger<JobService> logger,
-            IServiceProvider serviceProvider
-        )
+        public JobService(ILogger<JobService> logger, IServiceProvider serviceProvider)
         {
             _logger = logger;
             _services = serviceProvider;

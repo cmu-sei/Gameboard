@@ -88,7 +88,7 @@ public class ChallengeService : _Service
             .List()
             .Include(g => g.Prerequisites)
             .Where(g => g.Id == player.GameId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (await _teamService.IsAtGamespaceLimit(player.TeamId, game, cancellationToken))
             throw new GamespaceLimitReached(game.Id, player.TeamId);
@@ -272,10 +272,7 @@ public class ChallengeService : _Service
         var challenge = Mapper.Map<Data.Challenge>(spec);
 
         var result = Mapper.Map<Challenge>(challenge);
-        GameEngineGameState state = new()
-        {
-            Markdown = spec.Text
-        };
+        GameEngineGameState state = new() { Markdown = spec.Text };
         Transform(state);
         result.State = state;
         return result;
