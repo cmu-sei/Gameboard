@@ -8,6 +8,7 @@ using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Features.Challenges;
 
@@ -88,6 +89,10 @@ internal class ChallengeSyncService : IChallengeSyncService
                 _consoleActorMap.RemoveTeam(challenge.TeamId);
                 await Sync(challenge, state, cancellationToken);
                 _logger.LogInformation($"The challenge sync service sync'd data for challenge {challenge.Id}.");
+            }
+            catch (ApiException apiEx)
+            {
+                _logger.LogError(apiEx, $"""Game engine API responded with an error for challenge {challenge.Id}.""");
             }
             catch (Exception ex)
             {
