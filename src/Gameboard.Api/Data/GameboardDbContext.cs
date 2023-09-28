@@ -141,6 +141,7 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.Id).HasMaxLength(40);
             b.Property(u => u.GameId).HasMaxLength(40);
             b.Property(u => u.ExternalId).HasMaxLength(40);
+            b.Property(u => u.SolutionGuideUrl).HasMaxLength(1000);
 
             b.HasOne(p => p.Game).WithMany(u => u.Specs).OnDelete(DeleteBehavior.Cascade);
         });

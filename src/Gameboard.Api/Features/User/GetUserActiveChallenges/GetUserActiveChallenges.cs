@@ -88,7 +88,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
                     Id = c.SpecId,
                     Name = null,
                     Tag = null,
-                    AverageDeploySeconds = 0
+                    AverageDeploySeconds = 0,
                 },
                 Game = new SimpleEntity { Id = c.GameId, Name = c.Game.Name },
                 c.GameEngineType,

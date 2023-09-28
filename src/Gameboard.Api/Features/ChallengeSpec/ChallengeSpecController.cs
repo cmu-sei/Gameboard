@@ -2,7 +2,6 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Threading.Tasks;
-using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
 using Microsoft.AspNetCore.Authorization;
@@ -48,10 +47,8 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("api/challengespec/{id}")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task<ChallengeSpec> Retrieve([FromRoute] string id)
-        {
-            return await ChallengeSpecService.Retrieve(id);
-        }
+        public Task<ChallengeSpec> Retrieve([FromRoute] string id)
+            => ChallengeSpecService.Retrieve(id);
 
         /// <summary>
         /// Change challengespec
@@ -60,11 +57,8 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPut("api/challengespec")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task Update([FromBody] ChangedChallengeSpec model)
-        {
-            await ChallengeSpecService.Update(model);
-            return;
-        }
+        public Task Update([FromBody] ChangedChallengeSpec model)
+            => ChallengeSpecService.Update(model);
 
         /// <summary>
         /// Delete challengespec
@@ -73,11 +67,8 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpDelete("/api/challengespec/{id}")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task Delete([FromRoute] string id)
-        {
-            await ChallengeSpecService.Delete(id);
-            return;
-        }
+        public Task Delete([FromRoute] string id)
+            => ChallengeSpecService.Delete(id);
 
         /// <summary>
         /// Find challengespecs
@@ -86,10 +77,8 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("/api/challengespecs")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task<ExternalSpec[]> List([FromQuery] SearchFilter model)
-        {
-            return await ChallengeSpecService.List(model);
-        }
+        public Task<ExternalSpec[]> List([FromQuery] SearchFilter model)
+            => ChallengeSpecService.List(model);
 
         /// <summary>
         /// Sync challengespec name/description with external source
@@ -98,9 +87,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPost("/api/challengespecs/sync/{id}")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task Sync([FromRoute] string id)
-        {
-            await ChallengeSpecService.Sync(id);
-        }
+        public Task Sync([FromRoute] string id)
+            => ChallengeSpecService.Sync(id);
     }
 }

@@ -10,6 +10,7 @@ public class ExternalSpec
     public string Description { get; set; }
     public string Text { get; set; }
     public GameEngineType GameEngineType { get; set; }
+    public string SolutionGuideUrl { get; set; }
 }
 
 public class SpecDetail : ExternalSpec
@@ -63,4 +64,5 @@ public sealed class ChallengeSpecSummary
     public required string GameName { get; set; }
     public required string GameLogo { get; set; }
     public required int AverageDeploySeconds { get; set; }
+    public string SolutionGuideUrl { get; set; }
 }

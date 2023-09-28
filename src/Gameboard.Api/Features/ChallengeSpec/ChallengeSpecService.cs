@@ -56,10 +56,10 @@ namespace Gameboard.Api.Services
             return Mapper.Map<ChallengeSpec>(await Store.Retrieve(id));
         }
 
-        public async Task Update(ChangedChallengeSpec account)
+        public async Task Update(ChangedChallengeSpec spec)
         {
-            var entity = await Store.Retrieve(account.Id);
-            Mapper.Map(account, entity);
+            var entity = await Store.Retrieve(spec.Id);
+            Mapper.Map(spec, entity);
 
             await Store.Update(entity);
         }
