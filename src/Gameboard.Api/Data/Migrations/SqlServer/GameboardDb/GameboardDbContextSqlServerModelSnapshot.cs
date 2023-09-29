@@ -677,6 +677,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<int?>("MaxPracticeSessionLengthMinutes")
                         .HasColumnType("int");
 
+                    b.Property<string>("SuggestedSearches")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("UpdatedByUserId")
                         .HasColumnType("nvarchar(40)");
 

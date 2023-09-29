@@ -17,18 +17,15 @@ namespace Gameboard.Api.Features.Practice;
 public class PracticeController : ControllerBase
 {
     private readonly IActingUserService _actingUserService;
-    private readonly IHtmlToImageService _htmlToPdfService;
     private readonly IMediator _mediator;
 
     public PracticeController
     (
         IActingUserService actingUserService,
-        IHtmlToImageService htmlToPdfService,
         IMediator mediator
     )
     {
         _actingUserService = actingUserService;
-        _htmlToPdfService = htmlToPdfService;
         _mediator = mediator;
     }
 
@@ -49,11 +46,11 @@ public class PracticeController : ControllerBase
 
     [HttpGet]
     [Route("settings")]
-    public Task<PracticeModeSettings> GetSettings()
+    public Task<PracticeModeSettingsApiModel> GetSettings()
         => _mediator.Send(new GetPracticeModeSettingsQuery(_actingUserService.Get()));
 
     [HttpPut]
     [Route("settings")]
-    public Task UpdateSettings([FromBody] UpdatePracticeModeSettings settings)
+    public Task UpdateSettings([FromBody] PracticeModeSettingsApiModel settings)
         => _mediator.Send(new UpdatePracticeModeSettingsCommand(settings, _actingUserService.Get()));
 }

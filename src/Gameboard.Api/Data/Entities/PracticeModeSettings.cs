@@ -10,6 +10,7 @@ public class PracticeModeSettings : IEntity
     public string IntroTextMarkdown { get; set; }
     public int? MaxConcurrentPracticeSessions { get; set; }
     public int? MaxPracticeSessionLengthMinutes { get; set; }
+    public string SuggestedSearches { get; set; }
     public DateTimeOffset? UpdatedOn { get; set; }
 
     public User UpdatedByUser { get; set; }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -10,6 +11,8 @@ namespace Gameboard.Api.Features.Practice;
 
 public interface IPracticeService
 {
+    string EscapeSuggestedSearches(IEnumerable<string> input);
+    IEnumerable<string> UnescapeSuggestedSearches(string input);
     Task<CanPlayPracticeChallengeResult> GetCanDeployChallenge(string userId, string challengeSpecId, CancellationToken cancellationToken);
     Task<PracticeModeSettings> GetSettings(CancellationToken cancellationToken);
 }
@@ -31,6 +34,30 @@ internal class PracticeService : IPracticeService
         _now = now;
         _store = store;
     }
+
+    // To avoid needing a table that literally just displays a list of strings, we store the list of suggested searches as a 
+    // pipe-delimited string in the PracticeModeSettings table (which has only one record). Terms that have a pipe
+    // in them have that escaped to have a double pipe
+    public string EscapeSuggestedSearches(IEnumerable<string> input)
+    {
+        return string.Join(Environment.NewLine, input.Select(search => search.Trim()));
+    }
+
+    // same deal here - we temporarily move the double pipes out of the way and then replace them with
+    // the single pipe 
+    public IEnumerable<string> UnescapeSuggestedSearches(string input)
+    {
+        if (input.IsEmpty())
+            return Array.Empty<string>();
+
+        return input
+            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+            .Select(search => search.Trim())
+            .ToArray();
+    }
+
+    public string GetEscapeTempToken()
+        => "{escape}";
 
     public async Task<CanPlayPracticeChallengeResult> GetCanDeployChallenge(string userId, string challengeSpecId, CancellationToken cancellationToken)
     {
