@@ -110,6 +110,7 @@ public class ChallengeServiceTests
             A.Fake<IPlayerStore>(),
             A.Fake<IPracticeChallengeScoringListener>(),
             A.Fake<ConsoleActorMap>(),
+            A.Fake<IChallengeDocsService>(),
             A.Fake<IChallengeSyncService>(),
             A.Fake<ITeamService>()
         );
@@ -229,6 +230,7 @@ public class ChallengeServiceTests
             A.Fake<IPlayerStore>(),
             A.Fake<IPracticeChallengeScoringListener>(),
             A.Fake<ConsoleActorMap>(),
+            A.Fake<IChallengeDocsService>(),
             A.Fake<IChallengeSyncService>(),
             A.Fake<ITeamService>()
         );
