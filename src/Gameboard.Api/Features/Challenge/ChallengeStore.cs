@@ -37,6 +37,7 @@ public class ChallengeStore : Store<Challenge>, IChallengeStore
             q = q.Where(c =>
                 c.Id.StartsWith(term) || // Challenge Id
                 c.Tag.ToLower().StartsWith(term) || // Challenge Tag
+                c.PlayerId.StartsWith(term) || // PlayerId
                 c.Player.UserId.StartsWith(term) || // User Id
                 c.Name.ToLower().Contains(term) || // Challenge Title
                 c.Player.ApprovedName.ToLower().Contains(term) // Team Name (or indiv. Player Name)
