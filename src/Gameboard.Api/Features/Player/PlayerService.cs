@@ -79,6 +79,7 @@ public class PlayerService
         HubBus = hubBus;
         LocalCache = memCache;
         Mapper = mapper;
+        PlayerStore = playerStore;
         _store = store;
         _teamService = teamService;
     }

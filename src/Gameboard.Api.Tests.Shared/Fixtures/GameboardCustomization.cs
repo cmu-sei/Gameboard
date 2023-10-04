@@ -20,6 +20,7 @@ public class GameboardCustomization : ICustomization
             EndTime = now.AddDays(-1),
             HasGamespaceDeployed = false
         });
+
         fixture.Register(() => new Data.Challenge
         {
             Id = fixture.Create<string>(),
