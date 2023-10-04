@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Challenges;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,12 +14,20 @@ public record SearchPracticeChallengesQuery(SearchFilter Filter) : IRequest<Sear
 
 internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeChallengesQuery, SearchPracticeChallengesResult>
 {
+    private readonly IChallengeDocsService _challengeDocsService;
     private readonly IMapper _mapper;
     private readonly IPagingService _pagingService;
     private readonly IStore _store;
 
-    public SearchPracticeChallengesHandler(IMapper mapper, IPagingService pagingService, IStore store)
+    public SearchPracticeChallengesHandler
+    (
+        IChallengeDocsService challengeDocsService,
+        IMapper mapper,
+        IPagingService pagingService,
+        IStore store
+    )
     {
+        _challengeDocsService = challengeDocsService;
         _mapper = mapper;
         _pagingService = pagingService;
         _store = store;
@@ -45,6 +54,12 @@ internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeC
 
         q = q.OrderBy(s => s.Name);
         var results = await _mapper.ProjectTo<ChallengeSpecSummary>(q).ToArrayAsync(cancellationToken);
+
+        // fix up relative urls
+        foreach (var result in results)
+        {
+            result.Text = _challengeDocsService.ReplaceRelativeUris(result.Text);
+        }
 
         // resolve paging arguments
         var pageSize = request.Filter.Take > 0 ? request.Filter.Take : 100;
