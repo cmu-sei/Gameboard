@@ -71,7 +71,8 @@ internal class UpdatePracticeModeSettingsHandler : IRequestHandler<UpdatePractic
     private readonly INowService _now;
     private readonly IPracticeService _practiceService;
     private readonly IStore _store;
-    private readonly UpdatePracticeModeSettingsValidator _validator;
+    private readonly IGameboardValidator<UpdatePracticeModeSettingsCommand> _validator;
+    private readonly IValidatorService<UpdatePracticeModeSettingsCommand> _validatorService;
 
     public UpdatePracticeModeSettingsHandler
     (
@@ -79,7 +80,7 @@ internal class UpdatePracticeModeSettingsHandler : IRequestHandler<UpdatePractic
         INowService now,
         IPracticeService practiceService,
         IStore store,
-        UpdatePracticeModeSettingsValidator validator
+        IGameboardValidator<UpdatePracticeModeSettingsCommand> validator
     )
     {
         _mapper = mapper;
@@ -91,7 +92,8 @@ internal class UpdatePracticeModeSettingsHandler : IRequestHandler<UpdatePractic
 
     public async Task Handle(UpdatePracticeModeSettingsCommand request, CancellationToken cancellationToken)
     {
-        await _validator.Validate(request, cancellationToken);
+        _validatorService.AddValidator(_validator);
+        await _validatorService.Validate(request, cancellationToken);
 
         var currentSettings = await _store.FirstOrDefaultAsync<PracticeModeSettings>(cancellationToken);
         var updatedSettings = _mapper.Map<PracticeModeSettings>(request.Settings);

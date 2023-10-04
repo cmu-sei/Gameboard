@@ -20,7 +20,6 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
     private readonly IMapper _mapper;
     private readonly IScoringService _scoringService;
     private readonly IStore _store;
-    private readonly EntityExistsValidator<Data.ChallengeSpec> _specExists;
     private readonly IValidatorService<UpdateTeamChallengeBaseScoreCommand> _validator;
     private readonly GameboardDbContext _dbContext;
 
@@ -30,7 +29,6 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
         IGuidService guidService,
         IMapper mapper,
         IScoringService scoringService,
-        EntityExistsValidator<Data.ChallengeSpec> specExists,
         IStore store,
         IValidatorService<UpdateTeamChallengeBaseScoreCommand> validator,
         GameboardDbContext dbContext
@@ -40,7 +38,6 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
         _guidService = guidService;
         _mapper = mapper;
         _scoringService = scoringService;
-        _specExists = specExists;
         _store = store;
         _validator = validator;
         _dbContext = dbContext;
@@ -67,7 +64,14 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
             }
         );
 
-        _validator.AddValidator(_specExists.UseValue(challenge.SpecId));
+        _validator.AddValidator
+        (
+            async (req, context) =>
+            {
+                if (!await _store.WithNoTracking<Data.ChallengeSpec>().AnyAsync(s => s.Id == challenge.SpecId))
+                    context.AddValidationException(new ResourceNotFound<Data.ChallengeSpec>(challenge.SpecId));
+            }
+        );
 
         // can't change the team's score if they've already received a bonus
         if (challenge.Score > 0)

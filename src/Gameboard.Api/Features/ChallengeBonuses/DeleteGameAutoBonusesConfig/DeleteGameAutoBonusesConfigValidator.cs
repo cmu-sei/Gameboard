@@ -37,7 +37,7 @@ internal class DeleteGameAutoBonusesConfigValidator : IGameboardRequestValidator
     public async Task Validate(DeleteGameAutoBonusesConfigCommand request, CancellationToken cancellationToken)
     {
         var gameId = _gameIdPropertyExpression(request);
-        _validatorService.AddValidator(_gameExists.UseProperty(_gameIdPropertyExpression));
+        _validatorService.AddValidator(_gameExists.UseProperty(r => r.GameId));
         _validatorService.AddValidator
         (
             async (req, context) =>

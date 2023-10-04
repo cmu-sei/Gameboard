@@ -1,6 +1,8 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Data;
+using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -12,18 +14,18 @@ public record DeleteGameAutoBonusesConfigCommand(string GameId) : IRequest;
 internal class DeleteGameAutoBonusesConfigHandler : IRequestHandler<DeleteGameAutoBonusesConfigCommand>
 {
     private readonly UserRoleAuthorizer _authorizer;
-    private readonly IChallengeBonusStore _challengeBonusStore;
-    private readonly DeleteGameAutoBonusesConfigValidator _validator;
+    private readonly IStore _store;
+    private readonly IGameboardRequestValidator<DeleteGameAutoBonusesConfigCommand> _validator;
 
     public DeleteGameAutoBonusesConfigHandler
     (
         UserRoleAuthorizer authorizer,
-        IChallengeBonusStore challengeBonusStore,
-        DeleteGameAutoBonusesConfigValidator validator
+        IStore store,
+        IGameboardRequestValidator<DeleteGameAutoBonusesConfigCommand> validator
     )
     {
         _authorizer = authorizer;
-        _challengeBonusStore = challengeBonusStore;
+        _store = store;
         _validator = validator;
     }
 
@@ -32,15 +34,11 @@ internal class DeleteGameAutoBonusesConfigHandler : IRequestHandler<DeleteGameAu
         _authorizer
             .AllowRoles(UserRole.Admin, UserRole.Designer, UserRole.Tester)
             .Authorize();
-        _authorizer.Authorize();
 
-        await _validator
-            .UseGameIdProperty(r => r.GameId)
-            .Validate(request, cancellationToken);
+        await _validator.Validate(request, cancellationToken);
 
-        await _challengeBonusStore
-            .DbContext
-            .ChallengeBonuses
+        await _store
+            .WithNoTracking<Data.ChallengeBonus>()
             .Where(s => s.ChallengeSpec.GameId == request.GameId)
             .ExecuteDeleteAsync(cancellationToken);
     }

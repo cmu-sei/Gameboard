@@ -9,10 +9,13 @@ using Gameboard.Api;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.External;
+using Gameboard.Api.Features.Games.Validators;
+using Gameboard.Api.Features.Reports;
 using Gameboard.Api.Features.UnityGames;
-using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
+using Gameboard.Api.Structure.MediatR;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -24,7 +27,6 @@ public static class ServiceStartupExtensions
 
         // add special case services
         services
-            .AddSingleton<ConsoleActorMap>()
             .AddHttpContextAccessor()
             .AddScoped<IExternalGameHostAccessTokenProvider, HttpContextAccessTokenProvider>()
             .AddSingleton(_ => settings.Core)
@@ -36,6 +38,12 @@ public static class ServiceStartupExtensions
             .AddConcretesFromNamespace("Gameboard.Api.Structure.Authorizers")
             .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators")
             .AddScoped(typeof(IStore<>), typeof(Store<>))
+            .AddScoped(typeof(UserIsPlayingGameValidator<>))
+            .AddImplementationsOf<IGameboardRequestValidator<IReportQuery>>()
+            // these aren't picked up right now because they implement multiple interfaces,
+            // but allowing multiple-interface classes causes things like IReportQuery implementers to get snagged
+            .AddScoped<IExternalSyncGameStartService, ExternalSyncGameStartService>()
+            .AddScoped<IGameHubBus, GameHubBus>()
             // so close to fixing this, but it's a very special snowflake of a binding
             .AddScoped<IUnityStore, UnityStore>()
             .AddInterfacesWithSingleImplementations();

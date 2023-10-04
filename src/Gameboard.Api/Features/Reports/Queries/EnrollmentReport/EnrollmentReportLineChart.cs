@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Common;
 using Gameboard.Api.Data;
+using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,13 +16,13 @@ internal class EnrollmentReportLineChartHandler : IRequestHandler<EnrollmentRepo
 {
     private readonly IEnrollmentReportService _reportService;
     private readonly ReportsQueryValidator _reportsQueryValidator;
-    private readonly EnrollmentReportValidator _validator;
+    private readonly IGameboardRequestValidator<EnrollmentReportParameters> _validator;
 
     public EnrollmentReportLineChartHandler
     (
         IEnrollmentReportService reportService,
         ReportsQueryValidator reportsQueryValidator,
-        EnrollmentReportValidator validator
+        IGameboardRequestValidator<EnrollmentReportParameters> validator
     )
     {
         _reportService = reportService;

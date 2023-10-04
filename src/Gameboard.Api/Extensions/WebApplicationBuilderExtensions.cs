@@ -84,6 +84,7 @@ internal static class WebApplicationBuilderExtensions
             .AddSingleton(_ => settings.Core)
             .AddSingleton(_ => settings.Crucible)
             .AddGameboardData(settings.Database.Provider, settings.Database.ConnectionString)
+            .AddGameboardMediatR()
             .AddGameboardServices(settings)
             .AddConfiguredHttpClients(settings.Core)
             .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath);

@@ -1,10 +1,6 @@
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using AutoMapper;
-using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Hubs;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Api.Features.Games;
 
@@ -31,13 +27,7 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
 
     public GameboardHubGroupType GroupType { get => GameboardHubGroupType.Game; }
 
-    public GameHubBus
-    (
-        IHubContext<GameHub, IGameHubEvent> hubContext
-    )
-    {
-        _hubContext = hubContext;
-    }
+    public GameHubBus(IHubContext<GameHub, IGameHubEvent> hubContext) => _hubContext = hubContext;
 
     public async Task SendExternalGameChallengesDeployStart(GameStartState state)
     {
