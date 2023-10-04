@@ -18,27 +18,27 @@ public record ConfigureGameAutoBonusesCommand(ConfigureGameAutoBonusesCommandPar
 
 internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAutoBonusesCommand, GameScoringConfig>
 {
-    private readonly IChallengeBonusStore _challengeBonusStore;
     private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
     private readonly IGuidService _guids;
     private readonly IScoringService _scoringService;
+    private readonly IStore _store;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
     private readonly IGameboardValidator<ConfigureGameAutoBonusesCommand> _validator;
     private readonly IValidatorService<ConfigureGameAutoBonusesCommand> _validatorService;
 
     public ConfigureGameAutoBonusesHandler(
-        IChallengeBonusStore challengeBonusStore,
         IStore<Data.ChallengeSpec> challengeSpecStore,
         IGuidService guids,
         IScoringService scoringService,
+        IStore store,
         UserRoleAuthorizer userRoleAuthorizer,
         IGameboardValidator<ConfigureGameAutoBonusesCommand> validator,
         IValidatorService<ConfigureGameAutoBonusesCommand> validatorService)
     {
-        _challengeBonusStore = challengeBonusStore;
         _challengeSpecStore = challengeSpecStore;
         _guids = guids;
         _scoringService = scoringService;
+        _store = store;
         _userRoleAuthorizer = userRoleAuthorizer;
         _validator = validator;
         _validatorService = validatorService;
@@ -56,8 +56,8 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
         await _validatorService.Validate(request, cancellationToken);
 
         // and go (with a transaction to maintain atomicity)
-        var specs = await _challengeSpecStore
-            .ListAsNoTracking()
+        var specs = await _store
+            .WithNoTracking<Data.ChallengeSpec>()
             .Where(s => s.GameId == request.Parameters.GameId)
             .Select(s => new { s.Id, s.Tag })
             .ToArrayAsync(cancellationToken);
@@ -85,18 +85,17 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
                     );
                 }
 
-                await UpdateDatabase(_challengeBonusStore.DbContext, spec.Id, newBonuses);
+                // NOTE: ExecuteDeleteAsync seems to mess with the transaction stuff - may be a
+                // postgres implementation problem, or may be by design
+                //
+                // then delete all existing bonuses from the db
+                // await _challengeSpecStore
+                //     .DbContext
+                //     .ChallengeBonuses
+                //     .Where(b => b.ChallengeSpecId == spec.Id)
+                //     .ExecuteDeleteAsync();
+                await UpdateDatabase(spec.Id, newBonuses);
             }
-
-            // NOTE: ExecuteDeleteAsync seems to mess with the transaction stuff - may be a
-            // postgres implementation problem, or may be by design
-            //
-            // then delete all existing bonuses from the db
-            // await _challengeSpecStore
-            //     .DbContext
-            //     .ChallengeBonuses
-            //     .Where(b => b.ChallengeSpecId == spec.Id)
-            //     .ExecuteDeleteAsync();
 
             scope.Complete();
         }
@@ -104,7 +103,7 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
         return await _scoringService.GetGameScoringConfig(request.Parameters.GameId);
     }
 
-    private async Task UpdateDatabase(GameboardDbContext ctx, string specId, IEnumerable<GameAutomaticBonusSolveRank> bonuses)
+    private async Task UpdateDatabase(string specId, IEnumerable<GameAutomaticBonusSolveRank> bonuses)
     {
         var newBonusEntities = bonuses.Select(b => new Data.ChallengeBonusCompleteSolveRank
         {
@@ -116,18 +115,15 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
             ChallengeSpecId = specId
         } as Data.ChallengeBonus).ToArray();
 
-        var currentBonuses = await ctx
-            .ChallengeBonuses
+        var currentBonuses = await _store
+            .WithTracking<Data.ChallengeBonus>()
             .Where(b => b.ChallengeSpecId == specId)
             .ToArrayAsync();
 
-        ctx.RemoveRange(currentBonuses);
+        // delete old bonuses
+        await _store.Delete(currentBonuses);
 
         // then insert new ones attached by specId
-        ctx
-            .ChallengeBonuses
-            .AddRange(newBonusEntities);
-
-        ctx.SaveChanges();
+        await _store.Save(newBonusEntities);
     }
 }

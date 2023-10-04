@@ -1,7 +1,7 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
@@ -13,6 +13,7 @@ namespace Gameboard.Api.Features.GameEngine;
 internal class GetGameStateValidator : IGameboardRequestValidator<GetGameStateQuery>
 {
     private readonly User _actingUser;
+    // TODO: replace playerstore with ITeamService
     private readonly IPlayerStore _playerStore;
     private readonly UserRoleAuthorizer _roleAuthorizer;
     private readonly IValidatorService<GetGameStateQuery> _validatorService;

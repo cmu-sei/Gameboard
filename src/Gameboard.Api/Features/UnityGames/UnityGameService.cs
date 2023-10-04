@@ -24,7 +24,7 @@ public interface IUnityGameService
     Task<Data.ChallengeEvent> CreateMissionEvent(UnityMissionUpdate model, Api.User actor);
     Task<Data.Challenge> HasChallengeData(string gamespaceId);
     Task DeleteChallengeData(string gameId);
-    bool IsUnityGame(Games.Game game);
+    bool IsUnityGame(Game game);
     bool IsUnityGame(Data.Game game);
     Regex GetMissionCompleteEventRegex();
     string GetMissionCompleteDefinitionString(string missionId);
@@ -247,7 +247,7 @@ internal class UnityGameService : _Service, IUnityGameService
     }
 
     public bool IsUnityGame(Data.Game game) => game.Mode == GetUnityModeString();
-    public bool IsUnityGame(Games.Game game) => game.Mode == GetUnityModeString();
+    public bool IsUnityGame(Api.Game game) => game.Mode == GetUnityModeString();
     public string GetUnityModeString() => "unity";
 
     public Regex GetMissionCompleteEventRegex()

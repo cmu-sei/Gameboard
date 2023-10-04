@@ -38,7 +38,8 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!Request.Headers.TryGetValue(ApiKeyAuthentication.ApiKeyHeaderName, out StringValues requestApiKey))
+        var requestApiKey = ResolveRequestApiKey(Request);
+        if (requestApiKey.IsEmpty())
         {
             return AuthenticateResult.NoResult();
         }
@@ -53,10 +54,11 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
         }
 
         var principal = new ClaimsPrincipal(
-            new ClaimsIdentity(
+            new ClaimsIdentity
+            (
                 new Claim[] {
-                    new Claim(AppConstants.SubjectClaimName, user.Id),
-                    new Claim(AppConstants.NameClaimName, user.Name),
+                    new(AppConstants.SubjectClaimName, user.Id),
+                    new(AppConstants.NameClaimName, user.Name),
                 },
                 Scheme.Name
             )
@@ -76,9 +78,7 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
     internal string ResolveRequestApiKey(HttpRequest request)
     {
         if (request.Headers.TryGetValue(ApiKeyAuthentication.ApiKeyHeaderName, out StringValues headerApiKey))
-        {
             return headerApiKey;
-        }
 
         return null;
     }

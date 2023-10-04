@@ -1,56 +1,10 @@
-using AutoMapper;
-using Gameboard.Api.Common.Services;
-using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.GameEngine;
-using Gameboard.Api.Features.Games;
-using Gameboard.Api.Features.Games.Start;
-using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Data;
 using Gameboard.Api.Services;
-using MediatR;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Api.Tests.Unit;
 
 public class PlayerServiceTests
 {
-    // TODO: reflection helper
-    internal static PlayerService GetTestable(
-        CoreOptions? coreOptions = null,
-        ChallengeService? challengeService = null,
-        IPlayerStore? store = null,
-        IUserStore? userStore = null,
-        IGameService? gameService = null,
-        IGameStartService? gameStartService = null,
-        IGameStore? gameStore = null,
-        IGuidService? guidService = null,
-        IMediator? mediator = null,
-        IInternalHubBus? hubBus = null,
-        ITeamService? teamService = null,
-        IMapper? mapper = null,
-        IMemoryCache? localCache = null,
-        GameEngineService? gameEngine = null,
-        INowService? now = null)
-    {
-        return new PlayerService
-        (
-            coreOptions ?? A.Fake<CoreOptions>(),
-            challengeService ?? A.Fake<ChallengeService>(),
-            gameStartService ?? A.Fake<IGameStartService>(),
-            guidService ?? A.Fake<IGuidService>(),
-            mediator ?? A.Fake<IMediator>(),
-            store ?? A.Fake<IPlayerStore>(),
-            userStore ?? A.Fake<IUserStore>(),
-            gameService ?? A.Fake<GameService>(),
-            gameStore ?? A.Fake<IGameStore>(),
-            hubBus ?? A.Fake<IInternalHubBus>(),
-            now ?? A.Fake<INowService>(),
-            teamService ?? A.Fake<ITeamService>(),
-            mapper ?? A.Fake<IMapper>(),
-            localCache ?? A.Fake<IMemoryCache>(),
-            gameEngine ?? A.Fake<GameEngineService>()
-        );
-    }
-
     [Theory, GameboardAutoData]
     public async Task Standings_WhenGameIdIsEmpty_ReturnsEmptyArray(IFixture fixture)
     {
@@ -71,12 +25,12 @@ public class PlayerServiceTests
         // arrange
         var userId = fixture.Create<string>();
         var fakeStore = A.Fake<IPlayerStore>();
-        var fakePlayers = new Api.Data.Player[]
+        var fakePlayers = new Data.Player[]
         {
-            new Api.Data.Player
+            new Data.Player
             {
                 PartialCount = 1,
-                Game = new Api.Data.Game
+                Game = new Data.Game
                 {
                     CertificateTemplate = fixture.Create<string>(),
                     GameEnd = DateTimeOffset.Now - TimeSpan.FromDays(1)
@@ -90,7 +44,7 @@ public class PlayerServiceTests
         A.CallTo(() => fakeStore.List(null)).Returns(fakePlayers);
         A.CallTo(() => fakeStore.DbSet).Returns(fakePlayers);
 
-        var sut = GetTestable(store: fakeStore);
+        var sut = PlayerServiceTestHelpers.GetTestableSut(playerStore: fakeStore);
 
         // act
         var result = await sut.MakeCertificates(userId);
@@ -105,12 +59,12 @@ public class PlayerServiceTests
         // arrange
         var userId = fixture.Create<string>();
         var fakeStore = A.Fake<IPlayerStore>();
-        var fakePlayers = new Api.Data.Player[]
+        var fakePlayers = new Data.Player[]
         {
-            new Api.Data.Player
+            new()
             {
                 PartialCount = 0,
-                Game = new Api.Data.Game
+                Game = new Data.Game
                 {
                     CertificateTemplate = fixture.Create<string>(),
                     GameEnd = DateTimeOffset.Now - TimeSpan.FromDays(1)
@@ -118,14 +72,14 @@ public class PlayerServiceTests
                 Score = 1,
                 SessionEnd = DateTimeOffset.Now - TimeSpan.FromDays(2),
                 UserId = userId,
-                User = new Api.Data.User { Id = userId }
+                User = new Data.User { Id = userId }
             }
         }.ToList().BuildMock();
 
         A.CallTo(() => fakeStore.List(null)).Returns(fakePlayers);
         A.CallTo(() => fakeStore.DbSet).Returns(fakePlayers);
 
-        var sut = GetTestable(store: fakeStore);
+        var sut = PlayerServiceTestHelpers.GetTestableSut(playerStore: fakeStore);
 
         // act
         var result = await sut.MakeCertificates(userId);

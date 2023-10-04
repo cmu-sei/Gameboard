@@ -1,8 +1,9 @@
 using AutoMapper;
-using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Teams;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Api.Tests.Unit;
 
@@ -12,17 +13,26 @@ public class TeamServiceTests
     public void ResolveCaptain_WhenMultiplePlayersFromSameTeam_ResolvesExpected()
     {
         // arrange
-        var sut = new TeamService(A.Fake<IMapper>(), A.Fake<INowService>(), A.Fake<IInternalHubBus>(), A.Fake<IStore>());
+        var playerStore = A.Fake<IPlayerStore>();
+        var sut = new TeamService
+        (
+            A.Fake<IMapper>(),
+            A.Fake<IMemoryCache>(),
+            A.Fake<INowService>(),
+            A.Fake<IInternalHubBus>(),
+            playerStore,
+            A.Fake<IStore>()
+        );
 
-        var players = new Api.Player[]
+        var players = new Data.Player[]
         {
-            new Player
+            new()
             {
                 Name = "The manager",
                 Role = PlayerRole.Manager,
                 TeamId = "team"
             },
-            new Player
+            new()
             {
                 Name = "The member",
                 Role = PlayerRole.Member,
@@ -31,7 +41,7 @@ public class TeamServiceTests
         }.AsEnumerable();
 
         // act
-        var result = sut.ResolveCaptain("team", players);
+        var result = sut.ResolveCaptain(players);
 
         // assert
         result.Name.ShouldBe("The manager");

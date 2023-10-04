@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.CubespaceScoreboard;
 using Gameboard.Api.Features.UnityGames;
@@ -146,7 +147,7 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
                     {
                         Id = p.Id,
                         Name = p.User.ApprovedName,
-                        Sponsor = _scoreboardCache.Sponsors.First(sp => sp.LogoUri == p.Sponsor)
+                        Sponsor = _scoreboardCache.Sponsors.First(sp => sp.LogoUri == p.Sponsor.Logo)
                     });
 
                 if (teamPlayers.Count() > 0)

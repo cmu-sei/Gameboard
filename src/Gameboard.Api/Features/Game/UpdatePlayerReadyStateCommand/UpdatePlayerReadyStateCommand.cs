@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
@@ -19,7 +19,7 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
     private readonly IGameStartService _gameStartService;
     private readonly IMediator _mediator;
     private readonly EntityExistsValidator<UpdatePlayerReadyStateCommand, Data.Player> _playerExists;
-    private readonly IPlayerStore _playerStore;
+    private readonly IStore _store;
     private readonly ISyncStartGameService _syncStartGameService;
     private readonly IValidatorService _validatorService;
 
@@ -29,7 +29,7 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
         IGameStartService gameStartService,
         IMediator mediator,
         EntityExistsValidator<UpdatePlayerReadyStateCommand, Data.Player> playerExists,
-        IPlayerStore playerStore,
+        IStore store,
         ISyncStartGameService syncStartGameService,
         IValidatorServiceFactory validatorServiceFactory)
     {
@@ -37,7 +37,7 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
         _gameStartService = gameStartService;
         _mediator = mediator;
         _playerExists = playerExists;
-        _playerStore = playerStore;
+        _store = store;
         _syncStartGameService = syncStartGameService;
         _validatorService = validatorServiceFactory.Get();
     }
@@ -46,7 +46,8 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
     {
         // validate
         // grab the player, we need it later anyway
-        var player = await _playerStore.ListAsNoTracking().FirstOrDefaultAsync(p => p.Id == request.PlayerId, cancellationToken);
+        var player = await _store.FirstOrDefaultAsync<Data.Player>(p => p.Id == request.PlayerId, cancellationToken);
+
         _validatorService.AddValidator(ctx =>
         {
             if (player == null)

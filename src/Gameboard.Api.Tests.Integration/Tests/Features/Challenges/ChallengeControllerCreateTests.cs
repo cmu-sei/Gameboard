@@ -1,13 +1,13 @@
-using Gameboard.Api;
-using Gameboard.Api.Data;
+using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class ChallengeControllerCreateTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class ChallengeControllerCreateTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public ChallengeControllerCreateTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public ChallengeControllerCreateTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }
@@ -22,30 +22,25 @@ public class ChallengeControllerCreateTests : IClassFixture<GameboardTestContext
         IFixture fixture)
     {
         // arrange
-        await _testContext
-            .WithTestServices(services => services.AddGbIntegrationTestAuth(u => u.Id = userId))
-            .WithDataState(state =>
+        await _testContext.WithDataState(state =>
+        {
+            state.Add<Data.ChallengeSpec>(fixture, spec =>
             {
-                state.AddChallengeSpec(spec =>
+                spec.Id = challengeSpecId;
+                spec.Name = specName;
+                spec.Game = state.Build<Data.Game>(fixture, g =>
                 {
-                    spec.Id = challengeSpecId;
-                    spec.Name = specName;
-                    spec.Game = new Api.Data.Game
+                    g.Id = fixture.Create<string>();
+                    g.Players = state.Build<Data.Player>(fixture, p =>
                     {
-                        Id = fixture.Create<string>(),
-                        Players = new Api.Data.Player[]
-                        {
-                            state.BuildPlayer(p =>
-                            {
-                                p.Id = playerId;
-                                p.User = new Api.Data.User { Id = userId };
-                                p.SessionBegin = DateTimeOffset.UtcNow.AddDays(-1);
-                                p.SessionEnd = DateTimeOffset.UtcNow.AddDays(1);
-                            })
-                        }
-                    };
+                        p.Id = playerId;
+                        p.User = state.Build<Data.User>(fixture, u => u.Id = userId);
+                        p.SessionBegin = DateTimeOffset.UtcNow.AddDays(-1);
+                        p.SessionEnd = DateTimeOffset.UtcNow.AddDays(1);
+                    }).ToCollection();
                 });
             });
+        });
 
         var model = new NewChallenge
         {
@@ -56,7 +51,7 @@ public class ChallengeControllerCreateTests : IClassFixture<GameboardTestContext
 
         // act
         var challenge = await _testContext
-            .Http
+            .CreateDefaultClient()
             .PostAsync("/api/challenge", model.ToJsonBody())
             .WithContentDeserializedAs<Api.Challenge>();
 

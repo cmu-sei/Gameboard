@@ -98,9 +98,6 @@ internal class ValidatorService<TModel> : IValidatorService<TModel>
         foreach (var task in _validationTasks)
             await task(model, context);
 
-        foreach (var task in _nonModelValidationTasks)
-            await task(context);
-
         if (context.ValidationExceptions.Any())
         {
             throw GameboardAggregatedValidationExceptions.FromValidationExceptions(context.ValidationExceptions);

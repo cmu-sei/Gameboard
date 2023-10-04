@@ -4,10 +4,12 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using AutoMapper;
 using Microsoft.Extensions.Logging;
+using AutoMapper;
+using Alloy.Api.Client;
 using TopoMojo.Api.Client;
 using Gameboard.Api.Services;
+using Gameboard.Api.Common.Services;
 using System.Linq;
 
 namespace Gameboard.Api.Features.GameEngine;
@@ -18,12 +20,12 @@ public interface IGameEngineService
     Task CompleteGamespace(Data.Challenge entity);
     Task DeleteGamespace(Data.Challenge entity);
     Task ExtendSession(Data.Challenge entity, DateTimeOffset sessionEnd);
+    Task<GameEngineGameState> GetChallengeState(GameEngineType gameEngineType, string stateJson);
     Task<ConsoleSummary> GetConsole(Data.Challenge entity, ConsoleRequest model, bool observer);
     Task<GameEngineGameState> GetPreview(Data.ChallengeSpec spec);
     IEnumerable<GameEngineGamespaceVm> GetGamespaceVms(GameEngineGameState state);
     Task<GameEngineGameState> GradeChallenge(Data.Challenge entity, GameEngineSectionSubmission model);
     Task<ExternalSpec[]> ListSpecs(SearchFilter model);
-
     Task<GameEngineGameState> LoadGamespace(Data.Challenge entity);
     Task<GameEngineGameState> RegisterGamespace(GameEngineChallengeRegistration registration);
     Task<GameEngineGameState> RegradeChallenge(Data.Challenge entity);
@@ -34,25 +36,30 @@ public interface IGameEngineService
 public class GameEngineService : _Service, IGameEngineService
 {
     ITopoMojoApiClient Mojo { get; }
-    CrucibleService Crucible { get; }
+    IAlloyApiClient Alloy { get; }
 
+    private readonly ICrucibleService _crucible;
     private readonly IGameEngineStore _store;
+    private readonly IJsonService _jsonService;
     private readonly IVmUrlResolver _vmUrlResolver;
 
     public GameEngineService(
+        IJsonService jsonService,
         ILogger<GameEngineService> logger,
         IGameEngineStore store,
         IMapper mapper,
         CoreOptions options,
         ITopoMojoApiClient mojo,
-        CrucibleService crucible,
+        IAlloyApiClient alloy,
+        ICrucibleService crucible,
         IVmUrlResolver vmUrlResolver
     ) : base(logger, mapper, options)
     {
+        _jsonService = jsonService;
+        _crucible = crucible;
         Mojo = mojo;
         _store = store;
         _vmUrlResolver = vmUrlResolver;
-        Crucible = crucible;
     }
 
     public async Task<GameEngineGameState> RegisterGamespace(GameEngineChallengeRegistration registration)
@@ -83,10 +90,19 @@ public class GameEngineService : _Service, IGameEngineService
 
                 return Mapper.Map<GameEngineGameState>(topoState);
             case GameEngineType.Crucible:
-                return await Crucible.RegisterGamespace(registration.ChallengeSpec, registration.Game, registration.Player, registration.Challenge);
+                return await _crucible.RegisterGamespace(registration.ChallengeSpec, registration.Game, registration.Player, registration.Challenge);
             default:
                 throw new NotImplementedException();
         }
+    }
+
+    public Task<GameEngineGameState> GetChallengeState(GameEngineType gameEngineType, string stateJson)
+    {
+        return gameEngineType switch
+        {
+            GameEngineType.TopoMojo => Task.FromResult(Mapper.Map<GameEngineGameState>(_jsonService.Deserialize<GameState>(stateJson))),
+            _ => throw new NotImplementedException(),
+        };
     }
 
     public async Task<GameEngineGameState> GetPreview(Data.ChallengeSpec spec)
@@ -97,7 +113,7 @@ public class GameEngineService : _Service, IGameEngineService
                 var topoState = await Mojo.PreviewGamespaceAsync(spec.ExternalId);
                 return Mapper.Map<GameEngineGameState>(topoState);
             case GameEngineType.Crucible:
-                return await Crucible.PreviewGamespace(spec.ExternalId);
+                return await _crucible.PreviewGamespace(spec.ExternalId);
             default:
                 throw new NotImplementedException();
         }
@@ -114,7 +130,7 @@ public class GameEngineService : _Service, IGameEngineService
                 var gradingResult = await Mojo.GradeChallengeAsync(Mapper.Map<TopoMojo.Api.Client.SectionSubmission>(model));
                 return Mapper.Map<GameEngineGameState>(gradingResult);
             case GameEngineType.Crucible:
-                return await Crucible.GradeChallenge(entity.Id, model);
+                return await _crucible.GradeChallenge(entity.Id, model);
             default:
                 throw new NotImplementedException();
         }
@@ -141,7 +157,6 @@ public class GameEngineService : _Service, IGameEngineService
                         _ => throw new NotImplementedException(),
                     };
                 }
-
             case ConsoleAction.Reset:
                 {
                     switch (entity.GameEngineType)
@@ -226,7 +241,7 @@ public class GameEngineService : _Service, IGameEngineService
                 tasks.Add(mojoTask);
             }
 
-            crucibleTask = Crucible.ListSpecs();
+            crucibleTask = _crucible.ListSpecs();
             tasks.Add(crucibleTask);
 
             await Task.WhenAll(tasks);
@@ -248,13 +263,11 @@ public class GameEngineService : _Service, IGameEngineService
 
     public async Task<GameEngineGameState> LoadGamespace(Data.Challenge entity)
     {
-        switch (entity.GameEngineType)
+        return entity.GameEngineType switch
         {
-            case GameEngineType.TopoMojo:
-                return Mapper.Map<GameEngineGameState>(await Mojo.LoadGamespaceAsync(entity.Id));
-            default:
-                throw new NotImplementedException();
-        }
+            GameEngineType.TopoMojo => Mapper.Map<GameEngineGameState>(await Mojo.LoadGamespaceAsync(entity.Id)),
+            _ => throw new NotImplementedException(),
+        };
     }
 
     public async Task<GameEngineGameState> StartGamespace(GameEngineGamespaceStartRequest request)
@@ -282,7 +295,6 @@ public class GameEngineService : _Service, IGameEngineService
             case GameEngineType.TopoMojo:
                 await Mojo.DeleteGamespaceAsync(entity.Id);
                 break;
-
             default:
                 throw new NotImplementedException();
         }
@@ -297,7 +309,7 @@ public class GameEngineService : _Service, IGameEngineService
                 break;
 
             case GameEngineType.Crucible:
-                await Crucible.CompleteGamespace(entity);
+                await _crucible.CompleteGamespace(entity);
                 break;
 
             default:

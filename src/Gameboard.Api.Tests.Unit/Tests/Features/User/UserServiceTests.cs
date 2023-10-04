@@ -8,17 +8,35 @@ namespace Gameboard.Api.Tests.Unit;
 
 public class UserServiceTests
 {
+    private UserService GetTestableSut
+    (
+        INowService? now = null,
+        SponsorService? sponsorService = null,
+        IStore<Data.User>? userStore = null,
+        IMapper? mapper = null,
+        IMemoryCache? cache = null,
+        INameService? namesvc = null
+    ) => new UserService
+    (
+        now ?? A.Fake<INowService>(),
+        sponsorService ?? A.Fake<SponsorService>(),
+        userStore ?? A.Fake<IStore<Data.User>>(),
+        mapper ?? A.Fake<IMapper>(),
+        cache ?? A.Fake<IMemoryCache>(),
+        namesvc ?? A.Fake<INameService>()
+    );
+
     [Theory]
     [InlineData(UserRole.Admin, UserRole.Admin)]
     [InlineData(UserRole.Admin | UserRole.Registrar, UserRole.Registrar)]
     public void HasRole_WithMatchingRole_ReturnsTrue(UserRole usersRoles, UserRole targetRole)
     {
         // given
-        var userService = new UserService(A.Fake<IUserStore>(), A.Fake<IMapper>(), A.Fake<IMemoryCache>(), A.Fake<INameService>(), A.Fake<Defaults>());
+        var sut = GetTestableSut();
         var user = new User() { Role = usersRoles };
 
         // when
-        var result = userService.HasRole(user, targetRole);
+        var result = sut.HasRole(user, targetRole);
 
         // then
         result.ShouldBeTrue();
@@ -31,54 +49,13 @@ public class UserServiceTests
     public void HasRole_WithoutMatchingRole_ReturnsFalse(UserRole usersRoles, UserRole targetRole)
     {
         // given
-        var userService = new UserService(A.Fake<IUserStore>(), A.Fake<IMapper>(), A.Fake<IMemoryCache>(), A.Fake<INameService>(), A.Fake<Defaults>());
+        var sut = GetTestableSut();
         var user = new User() { Role = usersRoles };
 
         // when
-        var result = userService.HasRole(user, targetRole);
+        var result = sut.HasRole(user, targetRole);
 
         // then
         result.ShouldBeFalse();
     }
-
-    // [Theory, GameboardAutoData]
-    // public async Task Create_WhenIsntInStore_SetsNameProperties(IFixture fixture)
-    // {
-    //     // given
-    //     var userId = fixture.Create<string>();
-    //     var name = fixture.Create<string>();
-
-    //     var nameSvc = A.Fake<INameService>();
-    //     A.CallTo(() => nameSvc.GetRandomName()).Returns(name);
-
-    //     var store = A.Fake<IUserStore>();
-    //     A.CallTo(() => store.Retrieve(userId)).Returns(null as Api.Data.User);
-
-    //     var sut = fixture.Build<UserService>()
-    //         .FromFactory<INameService>
-    //         (
-    //             nameSvc =>
-    //             new UserService
-    //             (
-    //                 store,
-    //                 A.Fake<IMapper>(),
-    //                 A.Fake<IMemoryCache>(),
-    //                 nameSvc,
-    //                 A.Fake<Defaults>()
-    //             )
-    //         ).Create();
-
-    //     // when
-    //     var result = await sut.Create(new Api.NewUser
-    //     {
-    //         Id = fixture.Create<string>(),
-    //         Name = "this will be overwritten",
-    //         Sponsor = fixture.Create<string>()
-    //     });
-
-    //     // then
-    //     result.ShouldNotBeNull();
-    //     result.ApprovedName.ShouldNotBeNullOrWhiteSpace();
-    //     result.Name.ShouldNotBeNullOrWhiteSpace();
-    // }
 }

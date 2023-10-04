@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.Start;
@@ -112,7 +111,6 @@ namespace Gameboard.Api.Controllers
         public async Task Delete([FromRoute] string id)
         {
             await Validate(new Entity { Id = id });
-
             await GameService.Delete(id);
         }
 
@@ -126,6 +124,13 @@ namespace Gameboard.Api.Controllers
         public async Task<IEnumerable<Game>> List([FromQuery] GameSearchFilter model)
         {
             return await GameService.List(model, Actor.IsDesigner || Actor.IsTester);
+        }
+
+        [HttpGet("api/games/search")]
+        [AllowAnonymous]
+        public async Task<IEnumerable<GameSearchResult>> Search([FromQuery] GameSearchQuery model)
+        {
+            return await GameService.Search(model);
         }
 
         /// <summary>
@@ -143,9 +148,7 @@ namespace Gameboard.Api.Controllers
         [HttpGet("/api/game/{gameId}/ready")]
         [Authorize]
         public async Task<SyncStartState> IsGameReady(string gameId)
-        {
-            return await _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
-        }
+            => await _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
 
         [HttpGet("/api/game/{gameId}/start-phase")]
         [Authorize]
@@ -166,9 +169,12 @@ namespace Gameboard.Api.Controllers
         [Authorize(AppConstants.DesignerPolicy)]
         public async Task<string> ExportGameSpec([FromBody] GameSpecExport model)
         {
-
             return await GameService.Export(model);
         }
+
+        [HttpGet("/api/game/{gameId}/team/{teamId}/gamespace-limit")]
+        public Task<TeamGamespaceLimitState> GetTeamGamespaceLimitState([FromRoute] string gameId, [FromRoute] string teamId)
+            => _mediator.Send(new GetTeamGamespaceLimitStateQuery(gameId, teamId, Actor));
 
         [HttpPost("api/game/{id}/{type}")]
         [Authorize]

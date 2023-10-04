@@ -27,6 +27,8 @@ internal static class WebApplicationBuilderExtensions
             settings.Core.ImageFolder ?? ""
         );
 
+        settings.Core.WebHostRoot = builder.Environment.ContentRootPath;
+
         if (settings.Core.ChallengeDocUrl.IsEmpty())
             settings.Core.ChallengeDocUrl = settings.PathBase;
 
@@ -34,6 +36,18 @@ internal static class WebApplicationBuilderExtensions
             settings.Core.ChallengeDocUrl += "/";
 
         Directory.CreateDirectory(settings.Core.ImageFolder);
+
+        settings.Core.TempDirectory = Path.Combine
+        (
+            builder.Environment.ContentRootPath,
+            settings.Core.TempDirectory = "wwwroot/temp"
+        );
+
+        settings.Core.TemplatesDirectory = Path.Combine
+        (
+            builder.Environment.ContentRootPath,
+            settings.Core.TemplatesDirectory ?? "wwwroot/templates"
+        );
 
         CsvConfig<Tuple<string, string>>.OmitHeaders = true;
         CsvConfig<Tuple<string, string, string>>.OmitHeaders = true;
@@ -46,7 +60,7 @@ internal static class WebApplicationBuilderExtensions
         return settings;
     }
 
-    public static void ConfigureServices(this WebApplicationBuilder builder, AppSettings settings)
+    public static void ConfigureServices(this WebApplicationBuilder builder, AppSettings settings, ILogger logger)
     {
         var services = builder.Services;
 
@@ -67,18 +81,24 @@ internal static class WebApplicationBuilderExtensions
             .PersistKeys(() => settings.Cache);
 
         services
-            .AddSingleton<CoreOptions>(_ => settings.Core)
-            .AddSingleton<CrucibleOptions>(_ => settings.Crucible)
-            .AddGameboardData(settings.Database.Provider, new GameboardDataStoreConfig
-            {
-                ConnectionString = settings.Database.ConnectionString,
-                EnableSensitiveDataLogging = builder.Environment.IsDev(),
-                MinimumLogLevel = builder.Environment.IsDev() ? LogLevel.Information : LogLevel.Warning
-            })
-            .AddGameboardServices(builder.Environment, settings)
+            .AddSingleton(_ => settings.Core)
+            .AddSingleton(_ => settings.Crucible)
+            .AddGameboardData(settings.Database.Provider, settings.Database.ConnectionString)
+            .AddGameboardServices(settings)
             .AddConfiguredHttpClients(settings.Core)
             .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath);
 
+        // don't add the job service during test - we don't want it to interfere with CI
+        if (!builder.Environment.IsTest())
+            services.AddHostedService<JobService>();
+
+        services.AddSingleton
+        (
+            new AutoMapper.MapperConfiguration(cfg =>
+            {
+                cfg.AddGameboardMaps();
+            }).CreateMapper()
+        );
         // configuring SignalR involves acting on the builder as well as its services
         builder.AddGameboardSignalRServices();
 

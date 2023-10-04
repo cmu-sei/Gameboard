@@ -120,7 +120,6 @@ namespace Gameboard.Api.Extensions
             var text = File.ReadAllText(seedFilePath);
             var extension = Path.GetExtension(seedFilePath).ToLower();
 
-
             switch (extension)
             {
                 case ".json":

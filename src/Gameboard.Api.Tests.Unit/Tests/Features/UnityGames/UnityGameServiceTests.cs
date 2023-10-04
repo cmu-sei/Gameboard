@@ -1,5 +1,4 @@
 using Gameboard.Api.Features.UnityGames;
-using Gameboard.Api.Tests.Unit.Fixtures;
 
 namespace Gameboard.Api.Tests.Unit;
 

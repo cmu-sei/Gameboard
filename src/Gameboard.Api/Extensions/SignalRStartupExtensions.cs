@@ -1,11 +1,10 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Gameboard.Api.Common.Services;
-using Gameboard.Api.Features.Games;
 using Gameboard.Api.Hubs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Extensions;
@@ -16,7 +15,7 @@ internal static class SignalRStartupExtensions
     {
         // set log level for SignalR depending on the environment/config
         var logLevel = LogLevel.Error;
-        if (builder.Environment.IsDev())
+        if (builder.Environment.IsDevelopment())
             logLevel = LogLevel.Trace;
         else if (builder.Environment.IsTest())
             logLevel = LogLevel.Information;

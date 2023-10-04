@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 using AutoMapper;
-using Gameboard.Api.Common;
+using Gameboard.Api.Features.Teams;
 
 namespace Gameboard.Api.Services;
 
@@ -19,6 +19,8 @@ public class PlayerMapper : Profile
         CreateMap<Data.Player, Standing>();
         CreateMap<Data.Player, TeamPlayer>();
         CreateMap<Data.Player, TeamMember>();
+        CreateMap<Data.Player, SimpleEntity>()
+            .ForMember(d => d.Name, opts => opts.MapFrom(p => p.ApprovedName));
         CreateMap<TeamPlayer, Data.Player>();
         CreateMap<Data.Player, PlayerOverview>();
         CreateMap<Player, TeamPlayer>();
@@ -35,12 +37,13 @@ public class PlayerMapper : Profile
         CreateMap<Data.Player, Team>()
             .AfterMap((player, team) => team.Members = new List<TeamMember>
             {
-                        new TeamMember()
-                        {
-                            Id = player.Id,
-                            ApprovedName = player.ApprovedName,
-                            Role = player.Role
-                        }
+                new TeamMember()
+                {
+                    Id = player.Id,
+                    ApprovedName = player.ApprovedName,
+                    Role = player.Role,
+                    UserId = player.UserId
+                }
             });
     }
 }

@@ -7,12 +7,21 @@ namespace Gameboard.Api.Common.Services;
 public interface IJsonService
 {
     string Serialize<T>(T obj) where T : class;
-    T Deserialize<T>(string json) where T : class, new();
+    T Deserialize<T>(string json) where T : new();
 }
 
 internal class JsonService : IJsonService
 {
-    internal static Action<JsonSerializerOptions> BuildJsonSerializerOptions()
+    public JsonService() { }
+
+    public static JsonSerializerOptions GetJsonSerializerOptions()
+    {
+        var options = new JsonSerializerOptions();
+        BuildJsonSerializerOptions()(options);
+        return options;
+    }
+
+    public static Action<JsonSerializerOptions> BuildJsonSerializerOptions()
     {
         return options =>
         {
@@ -21,12 +30,12 @@ internal class JsonService : IJsonService
             options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             options.ReferenceHandler = ReferenceHandler.IgnoreCycles;
             options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
-            options.Converters.Add(new JsonDateTimeConverter());
+            options.Converters.Add(new JsonDateTimeOffsetConverter());
         };
     }
 
-    internal static JsonService WithGameboardSerializerOptions()
-        => new JsonService(BuildJsonSerializerOptions());
+    public static JsonService WithGameboardSerializerOptions()
+        => new(BuildJsonSerializerOptions());
 
     public JsonSerializerOptions Options { get; private set; }
 
@@ -41,8 +50,11 @@ internal class JsonService : IJsonService
         Options = options;
     }
 
-    public T Deserialize<T>(string json) where T : class, new()
+    public T Deserialize<T>(string json) where T : new()
     {
+        if (json.IsEmpty())
+            return default;
+
         return JsonSerializer.Deserialize<T>(json, Options);
     }
 

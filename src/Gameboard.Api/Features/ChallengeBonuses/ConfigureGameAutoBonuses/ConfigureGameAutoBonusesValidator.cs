@@ -36,7 +36,7 @@ internal class ConfigureGameAutoBonusesValidator : IGameboardValidator<Configure
             if (request.Parameters.Config.SpecificChallengesBonuses is not null && request.Parameters.Config.SpecificChallengesBonuses.Any())
             {
                 var specs = await _store
-                .ListAsNoTracking<Data.ChallengeSpec>()
+                .WithNoTracking<Data.ChallengeSpec>()
                 .Include(s => s.Bonuses)
                 .Where(s => s.GameId == request.Parameters.GameId)
                 .ToArrayAsync();

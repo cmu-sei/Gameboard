@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 using AutoMapper;
-using Gameboard.Api.Common;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Hubs;
 using Microsoft.AspNetCore.SignalR;
 

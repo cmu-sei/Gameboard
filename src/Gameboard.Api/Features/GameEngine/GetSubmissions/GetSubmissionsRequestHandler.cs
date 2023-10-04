@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Data;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
@@ -10,8 +10,8 @@ namespace Gameboard.Api.Features.GameEngine.Requests;
 
 internal class GetSubmissionsRequestHandler : IRequestHandler<GetSubmissionsQuery, IEnumerable<GameEngineSectionSubmission>>
 {
-    private readonly IChallengeStore _challengeStore;
     private readonly IGameEngineService _gameEngine;
+    private readonly IStore _store;
 
     // validators
     private readonly IGameboardRequestValidator<GetSubmissionsQuery> _validator;
@@ -21,15 +21,15 @@ internal class GetSubmissionsRequestHandler : IRequestHandler<GetSubmissionsQuer
 
     public GetSubmissionsRequestHandler
     (
-        IChallengeStore challengeStore,
         IGameEngineService gameEngine,
         UserRoleAuthorizer roleAuthorizer,
+        IStore store,
         IGameboardRequestValidator<GetSubmissionsQuery> validator
     )
     {
-        _challengeStore = challengeStore;
         _gameEngine = gameEngine;
         _roleAuthorizer = roleAuthorizer;
+        _store = store;
         _validator = validator;
     }
 
@@ -41,7 +41,7 @@ internal class GetSubmissionsRequestHandler : IRequestHandler<GetSubmissionsQuer
 
         await _validator.Validate(request, cancellationToken);
 
-        var challenge = await _challengeStore.Retrieve(request.ChallengeId);
+        var challenge = await _store.FirstOrDefaultAsync<Data.Challenge>(c => c.Id == request.ChallengeId, cancellationToken);
         return await _gameEngine.AuditChallenge(challenge);
     }
 }

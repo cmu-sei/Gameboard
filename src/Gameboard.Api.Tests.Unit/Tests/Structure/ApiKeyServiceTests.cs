@@ -7,16 +7,16 @@ namespace Gameboard.Api.Tests.Unit;
 
 public class ApiKeyServiceTests
 {
-    private ApiKeysService GetSut(ApiKeyOptions? options = null, IRandomService? random = null, IUserStore? userStore = null)
-        => new(
-            options ?? A.Fake<ApiKeyOptions>(),
-            A.Fake<IGuidService>(),
-            A.Fake<IMapper>(),
-            A.Fake<INowService>(),
-            random ?? A.Fake<IRandomService>(),
-            A.Fake<IApiKeysStore>(),
-            userStore ?? A.Fake<IUserStore>()
-        );
+    private ApiKeysService GetSut(ApiKeyOptions? options = null, IRandomService? random = null, IStore<Data.User>? userStore = null) => new
+    (
+        options ?? new ApiKeyOptions { RandomCharactersLength = 15 },
+        A.Fake<IGuidService>(),
+        A.Fake<IMapper>(),
+        A.Fake<INowService>(),
+        random ?? A.Fake<IRandomService>(),
+        A.Fake<IApiKeysStore>(),
+        userStore ?? A.Fake<IStore<Data.User>>()
+    );
 
     [Theory, InlineAutoData(3)]
     public void GeneratePlainKey_WithRandomnessLength_GeneratesExpectedLength(int randomnessLength, string randomness)
@@ -64,12 +64,12 @@ public class ApiKeyServiceTests
     public void GetUserFromApiKey_WithUserAssignedKey_ResolvesUser(string apiKey, IFixture fixture)
     {
         // given
-        var userStore = A.Fake<IUserStore>();
+        var userStore = A.Fake<IStore<Data.User>>();
         var fakeUsers = new Data.User[]
         {
             new ()
             {
-                ApiKeys = new Data.ApiKey []
+                ApiKeys = new Data.ApiKey[]
                 {
                     new ()
                     {
@@ -84,7 +84,7 @@ public class ApiKeyServiceTests
             }
         }.BuildMock();
 
-        A.CallTo(() => userStore.ListAsNoTracking()).Returns(fakeUsers);
+        A.CallTo(() => userStore.ListWithNoTracking()).Returns(fakeUsers);
         var sut = GetSut(userStore: userStore);
 
         // when

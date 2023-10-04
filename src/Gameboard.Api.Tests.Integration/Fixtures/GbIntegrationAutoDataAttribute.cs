@@ -1,3 +1,5 @@
+using Gameboard.Api.Tests.Shared.Fixtures;
+
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
 file static class GbFixtureCustomizationFactory
@@ -10,10 +12,13 @@ file static class GbFixtureCustomizationFactory
 
 public class GbIntegrationAutoDataAttribute : AutoDataAttribute
 {
-    public GbIntegrationAutoDataAttribute() : base(() => GbFixtureCustomizationFactory.Fixture) { }
-}
+    private static readonly IFixture FIXTURE = new Fixture()
+        .Customize(new GameboardCustomization());
 
-public class GbIntegrationInlineAutoDataAttribute : InlineAutoDataAttribute
-{
-    public GbIntegrationInlineAutoDataAttribute(params object[] args) : base(new GbIntegrationAutoDataAttribute(), args) { }
+    public GbIntegrationAutoDataAttribute() : base(() =>
+    {
+        FIXTURE.Customizations.Add(new IdBuilder());
+        return FIXTURE;
+    })
+    { }
 }

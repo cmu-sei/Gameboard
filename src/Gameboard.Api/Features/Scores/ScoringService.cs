@@ -5,10 +5,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
-using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.ChallengeSpecs;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,7 +22,6 @@ public interface IScoringService
 
 internal class ScoringService : IScoringService
 {
-    private readonly IStore<ManualChallengeBonus> _challengeManualBonusStore;
     private readonly IChallengeStore _challengeStore;
     private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
     private readonly IGameStore _gameStore;
@@ -32,14 +29,12 @@ internal class ScoringService : IScoringService
     private readonly ITeamService _teamService;
 
     public ScoringService(
-        IStore<ManualChallengeBonus> challengeManualBonusStore,
         IChallengeStore challengeStore,
         IStore<Data.ChallengeSpec> challengeSpecStore,
         IGameStore gameStore,
         IMapper mapper,
         ITeamService teamService)
     {
-        _challengeManualBonusStore = challengeManualBonusStore;
         _challengeStore = challengeStore;
         _challengeSpecStore = challengeSpecStore;
         _gameStore = gameStore;
@@ -94,7 +89,7 @@ internal class ScoringService : IScoringService
             .Include(c => c.AwardedManualBonuses)
             .FirstOrDefaultAsync(c => c.Id == challengeId);
 
-        if (challenge == null)
+        if (challenge is null)
             return null;
 
         // get the specId so we can pull other competing challenges if there are bonuses
@@ -102,7 +97,6 @@ internal class ScoringService : IScoringService
             .List()
             .Where(c => c.SpecId == challenge.SpecId)
             .ToArrayAsync();
-
         var spec = await _challengeSpecStore.Retrieve(challenge.SpecId);
         var unawardedBonuses = ResolveUnawardedBonuses(new Data.ChallengeSpec[] { spec }, allChallenges);
 

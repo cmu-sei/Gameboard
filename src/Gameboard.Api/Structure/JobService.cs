@@ -4,6 +4,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -35,13 +36,11 @@ public class JobService : BackgroundService, IDisposable
             _logger.LogInformation(message: $"Running the {nameof(JobService)} (this is run #{_runCount})...");
             using var scope = _services.CreateScope();
 
-            var svc = scope.ServiceProvider.GetRequiredService<ChallengeService>();
-            var consoleMap = scope.ServiceProvider.GetRequiredService<ConsoleActorMap>();
+            var svc = scope.ServiceProvider.GetRequiredService<IChallengeSyncService>();
 
             try
             {
-                await svc.SyncExpired();
-                consoleMap.Prune();
+                await svc.SyncExpired(stoppingToken);
             }
             catch (Exception ex)
             {

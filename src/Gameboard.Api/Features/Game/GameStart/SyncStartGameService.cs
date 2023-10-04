@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
-using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +25,7 @@ internal class SyncStartGameService : ISyncStartGameService
     private readonly ILockService _lockService;
     private readonly IMapper _mapper;
     private readonly IPlayerStore _playerStore;
+    private readonly IStore _store;
     private readonly ITeamService _teamService;
 
     public SyncStartGameService
@@ -34,6 +35,7 @@ internal class SyncStartGameService : ISyncStartGameService
         ILockService lockService,
         IMapper mapper,
         IPlayerStore playerStore,
+        IStore store,
         ITeamService teamService
     )
     {
@@ -42,6 +44,7 @@ internal class SyncStartGameService : ISyncStartGameService
         _mapper = mapper;
         _playerStore = playerStore;
         _gameStore = gameStore;
+        _store = store;
         _teamService = teamService;
     }
 
@@ -83,13 +86,10 @@ internal class SyncStartGameService : ISyncStartGameService
         // var allTeamsReady = teamPlayers.All(team => team.Value.All(p => p.IsReady));
 
         // out of time, so for now, manually group on returned players
-        var players = await _mapper.ProjectTo<Api.Player>
-        (
-            _playerStore
-                .List()
-                .AsNoTracking()
-                .Where(p => p.GameId == gameId)
-        ).ToListAsync();
+        var players = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.GameId == gameId)
+            .ToArrayAsync();
 
         // if we have no players, we're not ready to play
         if (!players.Any())
@@ -114,7 +114,7 @@ internal class SyncStartGameService : ISyncStartGameService
             Teams = teamPlayers.Keys.Select(teamId => new SyncStartTeam
             {
                 Id = teamId,
-                Name = _teamService.ResolveCaptain(teamId, teamPlayers[teamId]).ApprovedName,
+                Name = _teamService.ResolveCaptain(teamPlayers[teamId]).ApprovedName,
                 Players = teamPlayers[teamId].Select(p => new SyncStartPlayer
                 {
                     Id = p.Id,

@@ -52,7 +52,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<Player> Enroll([FromBody] NewPlayer model, CancellationToken cancellationToken)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsRegistrar,
                 () => model.UserId == Actor.Id
             );
@@ -110,19 +111,20 @@ namespace Gameboard.Api.Controllers
         /// Change player session
         /// </summary>
         /// <param name="model"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpPut("api/team/session")]
         [Authorize]
-        public async Task UpdateSession([FromBody] SessionChangeRequest model)
+        public async Task UpdateSession([FromBody] SessionChangeRequest model, CancellationToken cancellationToken)
         {
             await Validate(model);
 
             AuthorizeAny(
                 () => Actor.IsRegistrar,
-                () => IsSelf(model.TeamId).Result
+                () => TeamService.IsOnTeam(model.TeamId, Actor.Id).Result
             );
 
-            await PlayerService.AdjustSessionEnd(model, Actor);
+            await PlayerService.AdjustSessionEnd(model, Actor, cancellationToken);
         }
 
         /// <summary>
@@ -210,7 +212,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<IEnumerable<TeamChallenge>> GetTeamChallenges([FromRoute] string id)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsAdmin,
                 () => Actor.IsDirector,
                 () => Actor.IsObserver
@@ -228,9 +231,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<TeamSummary[]> GetTeams([FromRoute] string id)
         {
-            AuthorizeAny(
-                () => Actor.IsRegistrar
-            );
+            AuthorizeAny(() => Actor.IsRegistrar);
 
             return await PlayerService.LoadTeams(id, Actor.IsRegistrar);
         }
@@ -262,10 +263,7 @@ namespace Gameboard.Api.Controllers
         public async Task<BoardPlayer> GetBoard([FromRoute] string id)
         {
             await Validate(new Entity { Id = id });
-
-            AuthorizeAny(
-                () => IsSelf(id).Result
-            );
+            AuthorizeAny(() => IsSelf(id).Result);
 
             return await PlayerService.LoadBoard(id);
         }
@@ -302,10 +300,11 @@ namespace Gameboard.Api.Controllers
         /// Enlists the user into a player team
         /// </summary>
         /// <param name="model">EnlistingPlayer</param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpPost("/api/player/enlist")]
         [Authorize]
-        public async Task<Player> Enlist([FromBody] PlayerEnlistment model)
+        public async Task<Player> Enlist([FromBody] PlayerEnlistment model, CancellationToken cancellationToken)
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
@@ -314,14 +313,15 @@ namespace Gameboard.Api.Controllers
             );
 
             await Validate(model);
-            return await PlayerService.Enlist(model, Actor);
+            return await PlayerService.Enlist(model, Actor, cancellationToken);
         }
 
         [HttpPut("/api/team/{teamId}/manager/{playerId}")]
         [Authorize]
         public async Task PromoteToManager(string teamId, string playerId, [FromBody] PromoteToManagerRequest promoteRequest, CancellationToken cancellationToken)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsRegistrar,
                 () => PlayerService.Retrieve(promoteRequest.CurrentManagerPlayerId).Result.UserId == Actor.Id
             );

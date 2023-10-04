@@ -1,12 +1,14 @@
 using AutoMapper;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.ChallengeSpecs;
+using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Features.Practice;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -58,11 +60,11 @@ public class ChallengeServiceTests
         {
             Id = gameId,
             MaxTeamSize = 1,
-            Prerequisites = new Api.Data.ChallengeGate[] { }
+            Prerequisites = Array.Empty<Data.ChallengeGate>()
         };
-        var fakeGames = new Api.Data.Game[] { fakeGame }.BuildMock();
+        var fakeGames = new Data.Game[] { fakeGame }.BuildMock();
 
-        var fakeSpec = new Api.Data.ChallengeSpec
+        var fakeSpec = new Data.ChallengeSpec
         {
             Id = specId,
             ExternalId = specExternalId
@@ -81,7 +83,7 @@ public class ChallengeServiceTests
                     GraderKey = graderKey,
                     GraderUrl = graderUrl,
                     PlayerCount = 1,
-                    StartGamespace = true,
+                    StartGamespace = false,
                     Variant = 0
                 }
             ))
@@ -99,22 +101,25 @@ public class ChallengeServiceTests
 
         var sut = new ChallengeService
         (
-            A.Fake<ILogger<ChallengeService>>(),
-            A.Fake<IMapper>(),
+            A.Fake<ConsoleActorMap>(),
             A.Fake<CoreOptions>(),
             A.Fake<IChallengeStore>(),
             A.Fake<IStore<Data.ChallengeSpec>>(),
+            A.Fake<IChallengeSyncService>(),
             fakeGameEngineService,
             A.Fake<IGameStore>(),
             A.Fake<IGuidService>(),
             A.Fake<IHttpContextAccessor>(),
             A.Fake<IJsonService>(),
             A.Fake<LinkGenerator>(),
+            A.Fake<ILogger<ChallengeService>>(),
+            A.Fake<IMapper>(),
             A.Fake<IMediator>(),
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
             A.Fake<IPlayerStore>(),
-            A.Fake<ConsoleActorMap>()
+            A.Fake<IPracticeChallengeScoringListener>(),
+            A.Fake<ITeamService>()
         );
 
         // when
@@ -132,5 +137,128 @@ public class ChallengeServiceTests
 
         // then
         result.Id.ShouldBe(gamespaceId);
+    }
+
+    /// <summary>
+    /// When a challenge is created, its ID should match the gamespaceId returned by the game engine.
+    /// </summary>
+    /// <param name="gameId"></param>
+    /// <param name="playerId"></param>
+    /// <param name="gamespaceId"></param>
+    /// <param name="graderUrl"></param>
+    /// <param name="specId"></param>
+    /// <param name="specExternalId"></param>
+    /// <param name="teamId"></param>
+    /// <param name="userId"></param>
+    [Theory, GameboardAutoData]
+    public async Task BuildAndRegister_WithGamePlayerModePractice_ShouldProducePracticeModeChallenge
+    (
+        string gameId,
+        string playerId,
+        string gamespaceId,
+        string graderKey,
+        string graderUrl,
+        string specId,
+        string specExternalId,
+        string teamId,
+        string userId
+    )
+    {
+        // given 
+        var newChallenge = new NewChallenge
+        {
+            PlayerId = playerId,
+            SpecId = specId
+        };
+
+        var fakePlayer = new Api.Data.Player
+        {
+            Id = playerId,
+            GameId = gameId,
+            TeamId = teamId
+        };
+
+        var fakeGame = new Data.Game
+        {
+            Id = gameId,
+            MaxTeamSize = 1,
+            PlayerMode = PlayerMode.Practice,
+            Prerequisites = Array.Empty<Data.ChallengeGate>()
+        };
+        var fakeGames = new Data.Game[] { fakeGame }.BuildMock();
+
+        var fakeSpec = new Data.ChallengeSpec
+        {
+            Id = specId,
+            ExternalId = specExternalId
+        };
+
+        var fakeGameEngineService = A.Fake<IGameEngineService>();
+        A
+            .CallTo(() => fakeGameEngineService.RegisterGamespace
+            (
+                new GameEngineChallengeRegistration
+                {
+                    Challenge = new Api.Data.Challenge { },
+                    ChallengeSpec = fakeSpec,
+                    Game = fakeGame,
+                    Player = fakePlayer,
+                    GraderKey = graderKey,
+                    GraderUrl = graderUrl,
+                    PlayerCount = 1,
+                    StartGamespace = false,
+                    Variant = 0
+                }
+            ))
+            .WithAnyArguments()
+            .Returns
+            (
+                new GameEngineGameState
+                {
+                    Id = gamespaceId,
+                    IsActive = true,
+                    StartTime = DateTimeOffset.Now,
+                    EndTime = DateTimeOffset.Now.AddDays(1),
+                }
+            );
+
+        var sut = new ChallengeService
+        (
+            A.Fake<ConsoleActorMap>(),
+            A.Fake<CoreOptions>(),
+            A.Fake<IChallengeStore>(),
+            A.Fake<IStore<Data.ChallengeSpec>>(),
+            A.Fake<IChallengeSyncService>(),
+            fakeGameEngineService,
+            A.Fake<IGameStore>(),
+            A.Fake<IGuidService>(),
+            A.Fake<IHttpContextAccessor>(),
+            A.Fake<IJsonService>(),
+            A.Fake<LinkGenerator>(),
+            A.Fake<ILogger<ChallengeService>>(),
+            A.Fake<IMapper>(),
+            A.Fake<IMediator>(),
+            A.Fake<IMemoryCache>(),
+            A.Fake<INowService>(),
+            A.Fake<IPlayerStore>(),
+            A.Fake<IPracticeChallengeScoringListener>(),
+            A.Fake<ITeamService>()
+        );
+
+        // when
+        var result = await sut.BuildAndRegisterChallenge
+        (
+            newChallenge,
+            fakeSpec,
+            fakeGame,
+            fakePlayer,
+            userId,
+            graderUrl,
+            1,
+            0
+        );
+
+        // then
+        result.PlayerMode.ShouldBe(PlayerMode.Practice);
     }
 }

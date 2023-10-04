@@ -1,62 +1,58 @@
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.ChallengeBonuses;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class ChallengeBonusListTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class ChallengeBonusListTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public ChallengeBonusListTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public ChallengeBonusListTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task List_WithTwo_Succeeds(string challengeId, string userId, string bonusOneId, string bonusTwoId, string description)
+    public async Task List_WithTwo_Succeeds(string challengeId, string userId, string bonusOneId, string bonusTwoId, string description, IFixture fixture)
     {
         // given
-        await _testContext
-            .WithTestServices(services => services.AddGbIntegrationTestAuth(u =>
+        await _testContext.WithDataState(state =>
+        {
+            state.Add<Data.User>(fixture, u =>
             {
                 u.Id = userId;
                 u.Role = UserRole.Support;
-            }))
-            .WithDataState(state =>
-            {
-                state.AddUser(u =>
-                {
-                    u.Id = userId;
-                    u.Role = Api.UserRole.Support;
-                });
+            });
 
-                state.AddChallenge(c =>
+            state.AddChallenge(c =>
+            {
+                c.Id = challengeId;
+                c.AwardedManualBonuses = new ManualChallengeBonus[]
                 {
-                    c.Id = challengeId;
-                    c.AwardedManualBonuses = new ManualChallengeBonus[]
-                    {
-                        new ManualChallengeBonus
-                        {
-                            Id = bonusOneId,
-                            Description = description,
-                            EnteredByUserId = userId,
-                            PointValue = 10
-                        },
-                        new ManualChallengeBonus
-                        {
-                            Id = bonusTwoId,
-                            Description = description,
-                            EnteredByUserId = userId,
-                            PointValue = 40
-                        },
-                    };
-                });
+                    new() {
+                        Id = bonusOneId,
+                        Description = description,
+                        EnteredByUserId = userId,
+                        PointValue = 10
+                    },
+                    new() {
+                        Id = bonusTwoId,
+                        Description = description,
+                        EnteredByUserId = userId,
+                        PointValue =  40
+                    },
+                };
             });
 
 
+        });
+
+        var http = _testContext.CreateDefaultClient();
+
         // when
-        var bonuses = await _testContext
-            .Http
+        var bonuses = await http
             .GetAsync($"api/challenge/{challengeId}/bonus/manual")
             .WithContentDeserializedAs<IEnumerable<ManualChallengeBonusViewModel>>();
 

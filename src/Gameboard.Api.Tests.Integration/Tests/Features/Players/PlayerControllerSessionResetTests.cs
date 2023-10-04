@@ -1,44 +1,45 @@
 using System.Net;
-using Gameboard.Api.Data;
-using Gameboard.Api.Tests.Shared;
+using Gameboard.Api.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class PlayerControllerSessionResetTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public PlayerControllerSessionResetTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public PlayerControllerSessionResetTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ResetSession_WithNoTeamUnenroll_DeletesChallengeData(IFixture fixture, string teamId)
+    public async Task ResetSession_WithNoUnenroll_DeletesChallengeData
+    (
+        IFixture fixture,
+        string playerId,
+        string teamId,
+        string userId
+    )
     {
         // given
-        TeamBuilderResult? result = null;
-        await _testContext
-            .WithTestServices(s => s.AddGbIntegrationTestAuth(UserRole.Admin))
-            .WithDataState(s =>
+        await _testContext.WithDataState(s =>
+        {
+            s.Add<Data.Player>(fixture, p =>
             {
-                result = s.AddTeam(fixture, opts =>
-                {
-                    opts.NumPlayers = 1;
-                    opts.TeamId = teamId;
-                });
+                p.Id = playerId;
+                p.TeamId = teamId;
+                p.User = s.Build<Data.User>(fixture, u => u.Id = userId);
             });
+        });
 
-        if (result == null)
-            throw new GbAutomatedTestSetupException("AddTeam failed to return a result.");
-
-        var player = result.Players.First();
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = userId);
 
         // when 
-        var response = await _testContext.Http.PostAsync($"api/team/{player.TeamId}/session", new SessionResetRequest
+        var response = await httpClient.PostAsync($"api/player/{playerId}/session", new SessionResetRequest
         {
-            Unenroll = true
+            UnenrollTeam = true
         }.ToJsonBody());
 
         // then
@@ -52,30 +53,32 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ResetSession_WithNoTeamUnenroll_ArchivesChallenges(IFixture fixture, string teamId)
+    public async Task ResetSession_WithUnenroll_ArchivesChallenges
+    (
+        IFixture fixture,
+        string playerId,
+        string teamId,
+        string userId
+    )
     {
         // given
-        TeamBuilderResult? result = null;
-        await _testContext
-            .WithTestServices(s => s.AddGbIntegrationTestAuth(UserRole.Admin))
-            .WithDataState(s =>
+        await _testContext.WithDataState(s =>
+        {
+            s.Add<Data.Player>(fixture, p =>
             {
-                result = s.AddTeam(fixture, opts =>
-                {
-                    opts.NumPlayers = 1;
-                    opts.TeamId = teamId;
-                });
+                p.Id = playerId;
+                p.TeamId = teamId;
+                p.User = s.Build<Data.User>(fixture, u => u.Id = userId);
+                p.Challenges = s.Build<Data.Challenge>(fixture, c => c.TeamId = teamId).ToCollection();
             });
+        });
 
-        if (result is null)
-            throw new GbAutomatedTestSetupException("AddTeam failed to return a result.");
-
-        var player = result.Players.First();
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = userId);
 
         // when 
-        var response = await _testContext.Http.PostAsync($"api/team/{player.TeamId}/session", new SessionResetRequest
+        var response = await httpClient.PostAsync($"api/player/{playerId}/session", new SessionResetRequest
         {
-            Unenroll = true
+            UnenrollTeam = true
         }.ToJsonBody());
 
         // then
@@ -86,73 +89,41 @@ public class PlayerControllerSessionResetTests : IClassFixture<GameboardTestCont
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ResetSession_WithNoTeamUnenroll_PreservesTeam(IFixture fixture, string teamId)
+    public async Task ResetSession_WithAlreadyArchivedChallenges_DoesntChoke
+    (
+        IFixture fixture,
+        string challengeId,
+        string teamId,
+        string playerId,
+        string playerUserId
+    )
     {
         // given
-        TeamBuilderResult? result = null;
-        await _testContext
-            .WithTestServices(s => s.AddGbIntegrationTestAuth(UserRole.Admin))
-            .WithDataState(s =>
-            {
-                result = s.AddTeam(fixture, opts =>
-                {
-                    opts.NumPlayers = 1;
-                    opts.TeamId = teamId;
-                });
-            });
-
-        if (result is null)
-            throw new GbAutomatedTestSetupException("AddTeam failed to return a result.");
-
-        var player = result.Players.First();
-
-        // when 
-        var response = await _testContext.Http.PostAsync($"api/team/{player.TeamId}/session", new SessionResetRequest
+        await _testContext.WithDataState(s =>
         {
-            Unenroll = false
-        }.ToJsonBody());
-
-        // then
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
-
-        var teamPreserved = (await _testContext.GetDbContext().Players.FirstOrDefaultAsync(p => p.TeamId == teamId));
-        teamPreserved.ShouldNotBeNull();
-    }
-
-    [Theory, GbIntegrationAutoData]
-    public async Task ResetSession_WithAlreadyArchivedChallenges_DoesntChoke(IFixture fixture, string teamId)
-    {
-        // given
-        TeamBuilderResult? result = null;
-        await _testContext
-            .WithTestServices(s => s.AddGbIntegrationTestAuth(UserRole.Admin))
-            .WithDataState(s =>
+            s.Add<Data.Player>(fixture, p =>
             {
-                result = s.AddTeam(fixture, opts =>
+                p.Id = playerId;
+                p.TeamId = teamId;
+                p.User = s.Build<Data.User>(fixture, u => u.Id = playerUserId);
+                p.Challenges = s.Build<Data.Challenge>(fixture, c =>
                 {
-                    opts.NumPlayers = 1;
-                    opts.TeamId = teamId;
-                });
-
-                s.Add(new Data.ArchivedChallenge
-                {
-                    Id = result.Challenge!.Id,
-                    TeamId = teamId
-                });
+                    c.Id = challengeId;
+                }).ToCollection();
             });
+            s.Add<Data.ArchivedChallenge>(fixture, c =>
+            {
+                c.Id = challengeId;
+                c.TeamId = teamId;
+            });
+        });
 
-        if (result is null)
-            throw new GbAutomatedTestSetupException("AddTeam failed to return a result.");
-
-        var challenges = await _testContext.GetDbContext().Challenges.Where(c => c.TeamId == teamId).ToListAsync();
-        var archivedChallenges = await _testContext.GetDbContext().ArchivedChallenges.Where(c => c.TeamId == teamId).ToListAsync();
-
-        var player = result.Players.First();
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = playerUserId);
 
         // when / then
-        await Should.NotThrowAsync(_testContext.Http.PostAsync($"api/team/{player.TeamId}/session", new SessionResetRequest
+        await Should.NotThrowAsync(httpClient.PostAsync($"api/player/{playerId}/session", new SessionResetRequest
         {
-            Unenroll = true
+            UnenrollTeam = false
         }.ToJsonBody()));
 
         var archivedChallengeCount = await _testContext.GetDbContext().ArchivedChallenges.Where(c => c.TeamId == teamId).CountAsync();

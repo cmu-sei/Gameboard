@@ -43,7 +43,7 @@ internal class DeleteGameAutoBonusesConfigValidator : IGameboardRequestValidator
             async (req, context) =>
             {
                 var awardedBonusIds = await _store
-                    .ListAsNoTracking<AwardedChallengeBonus>()
+                    .WithNoTracking<AwardedChallengeBonus>()
                     .Include(ab => ab.ChallengeBonus)
                         .ThenInclude(b => b.ChallengeSpec)
                     .Where(b => b.ChallengeBonus.ChallengeSpec.GameId == gameId)

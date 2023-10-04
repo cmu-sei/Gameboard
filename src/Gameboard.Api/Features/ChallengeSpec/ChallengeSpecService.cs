@@ -3,128 +3,105 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
-using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Gameboard.Api.Services
+namespace Gameboard.Api.Services;
+
+public class ChallengeSpecService : _Service
 {
-    public class ChallengeSpecService : _Service
+    private readonly IStore _store;
+    IGameEngineService GameEngine { get; }
+
+    public ChallengeSpecService
+    (
+        ILogger<ChallengeSpecService> logger,
+        IMapper mapper,
+        CoreOptions options,
+        IStore store,
+        IGameEngineService gameEngine
+    ) : base(logger, mapper, options)
     {
-        IStore<Data.ChallengeSpec> Store { get; }
-        GameEngineService GameEngine { get; }
+        _store = store;
+        GameEngine = gameEngine;
+    }
 
-        public ChallengeSpecService(
-            ILogger<ChallengeSpecService> logger,
-            IMapper mapper,
-            CoreOptions options,
-            IStore<Data.ChallengeSpec> store,
-            GameEngineService gameEngine
-        ) : base(logger, mapper, options)
-        {
-            Store = store;
-            GameEngine = gameEngine;
-        }
-
-        public async Task<ChallengeSpec> AddOrUpdate(NewChallengeSpec model)
-        {
-            var entity = await Store.List().FirstOrDefaultAsync(s =>
-                s.ExternalId == model.ExternalId &&
-                s.GameId == model.GameId
+    public async Task<ChallengeSpec> AddOrUpdate(NewChallengeSpec model)
+    {
+        var entity = await _store
+            .WithTracking<Data.ChallengeSpec>()
+            .FirstOrDefaultAsync
+            (
+                s =>
+                    s.ExternalId == model.ExternalId &&
+                    s.GameId == model.GameId
             );
 
-            if (entity is Data.ChallengeSpec)
-            {
-                Mapper.Map(model, entity);
-                await Store.Update(entity);
-            }
-            else
-            {
-                entity = Mapper.Map<Data.ChallengeSpec>(model);
-                await Store.Create(entity);
-            }
-
-            return Mapper.Map<ChallengeSpec>(entity);
-        }
-
-        public async Task<ChallengeSpec> Retrieve(string id)
+        if (entity is not null)
         {
-            return Mapper.Map<ChallengeSpec>(await Store.Retrieve(id));
+            Mapper.Map(model, entity);
+            await _store.Update(entity, CancellationToken.None);
         }
-
-        public async Task Update(ChangedChallengeSpec account)
+        else
         {
-            var entity = await Store.Retrieve(account.Id);
-            Mapper.Map(account, entity);
-
-            await Store.Update(entity);
+            entity = Mapper.Map<Data.ChallengeSpec>(model);
+            await _store.Create(entity);
         }
 
-        public async Task Delete(string id)
-        {
-            await Store.Delete(id);
-        }
+        return Mapper.Map<ChallengeSpec>(entity);
+    }
 
-        public async Task<ExternalSpec[]> List(SearchFilter model)
-        {
-            return await GameEngine.ListSpecs(model);
-        }
+    public async Task<ChallengeSpec> Retrieve(string id)
+        => Mapper.Map<ChallengeSpec>(await _store.FirstOrDefaultAsync<Data.ChallengeSpec>(s => s.Id == id, CancellationToken.None));
 
-        public async Task<IEnumerable<BoardSpec>> ListGameSpecs(string gameId)
-            => await Mapper.ProjectTo<BoardSpec>
-            (
-                Store
-                .ListAsNoTracking()
+    public async Task Update(ChangedChallengeSpec spec)
+    {
+        var entity = await _store.SingleAsync<Data.ChallengeSpec>(spec.Id, CancellationToken.None); ;
+        Mapper.Map(spec, entity);
+
+        await _store.Update<Data.ChallengeSpec>(entity, CancellationToken.None);
+    }
+
+    public Task Delete(string id)
+        => _store.Delete<Data.ChallengeSpec>(id);
+
+    public async Task<ExternalSpec[]> List(SearchFilter model)
+    {
+        return await GameEngine.ListSpecs(model);
+    }
+
+    public async Task<IEnumerable<BoardSpec>> ListGameSpecs(string gameId)
+        => await Mapper.ProjectTo<BoardSpec>
+        (
+            _store
+                .WithNoTracking<Data.ChallengeSpec>()
                 .Where(s => s.GameId == gameId)
-            ).ToArrayAsync();
+        ).ToArrayAsync();
 
-        public async Task Sync(string id)
-        {
-            var externals = (await List(new SearchFilter()))
+    public async Task Sync(string id)
+    {
+        var externals = (await GameEngine.ListSpecs(new SearchFilter()))
                 .ToDictionary(o => o.ExternalId);
 
-            foreach (var spec in Store.DbSet.Where(s => s.GameId == id))
-            {
-                if (externals.ContainsKey(spec.ExternalId).Equals(false))
-                    continue;
+        var specs = _store
+            .WithTracking<Data.ChallengeSpec>()
+            .Where(g => g.GameId == id);
 
-                spec.Name = externals[spec.ExternalId].Name;
-                spec.Description = externals[spec.ExternalId].Description;
-                spec.Text = externals[spec.ExternalId].Text;
-            }
-
-            await Store.DbContext.SaveChangesAsync();
-        }
-
-        internal async Task<ChallengeSpecSummary[]> Browse(SearchFilter model)
+        foreach (var spec in specs)
         {
-            var q = Store.List()
-                .Include(s => s.Game)
-                .Where(s => s.Game.PlayerMode == PlayerMode.Practice)
-                .AsNoTracking();
+            if (externals.ContainsKey(spec.ExternalId).Equals(false))
+                continue;
 
-            if (model.HasTerm)
-            {
-                string term = model.Term.ToLower();
-                q = q.Where(s =>
-                    s.Id.Equals(term) ||
-                    s.Name.ToLower().Contains(term) ||
-                    s.Description.ToLower().Contains(term) ||
-                    s.Game.Name.ToLower().Contains(term) ||
-                    s.Text.ToLower().Contains(term)
-                );
-            }
-
-            q = q.OrderBy(s => s.Name);
-            q = q.Skip(model.Skip);
-
-            if (model.Take > 0)
-                q = q.Take(model.Take);
-
-            return await Mapper.ProjectTo<ChallengeSpecSummary>(q).ToArrayAsync();
+            spec.Name = externals[spec.ExternalId].Name;
+            spec.Description = externals[spec.ExternalId].Description;
+            spec.Text = externals[spec.ExternalId].Text;
         }
+
+        await _store.Save(specs.ToArray());
     }
 }

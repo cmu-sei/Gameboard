@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using Gameboard.Api.Common;
 using Gameboard.Api.Features.Games.Validators;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
@@ -71,7 +69,12 @@ public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
 
         // validate
         var validator = _validatorServiceFactory.Get();
-        validator.AddValidator(_userIsPlayingGame.UseValues(request.GameId, Context.UserIdentifier));
+        validator.AddValidator
+        (
+            _userIsPlayingGame
+                .UseGameId(request.GameId)
+                .UseUserId(Context.UserIdentifier)
+        );
         await validator.Validate();
 
         // join
@@ -100,7 +103,12 @@ public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
     {
         // validate
         var validator = _validatorServiceFactory.Get();
-        validator.AddValidator(_userIsPlayingGame.UseValues(request.GameId, Context.UserIdentifier));
+        validator.AddValidator
+        (
+            _userIsPlayingGame
+                .UseGameId(request.GameId)
+                .UseUserId(Context.UserIdentifier)
+        );
 
         // leave
         await this.LeaveGroup(request.GameId);

@@ -4,11 +4,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class ChallengeControllerGradeAutoBonusTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public ChallengeControllerGradeAutoBonusTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public ChallengeControllerGradeAutoBonusTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }
@@ -29,29 +30,28 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
 
         // given
         await _testContext
-            .WithTestServices(services =>
-            {
-                services.AddGbIntegrationTestAuth(UserRole.Admin);
-                services.AddTransient<ITestGradingResultService>(factory =>
-                    new TestGradingResultService(state =>
-                    {
-                        state.Id = challengeId;
-                        state.Challenge = new GameEngineChallengeView
-                        {
-                            MaxPoints = baseScore,
-                            Score = baseScore // full solve
-                        };
-                    }));
-            })
+            // .WithTestServices(services =>
+            // {
+            //     services.AddTransient<ITestGradingResultService>(factory =>
+            //         new TestGradingResultService(state =>
+            //         {
+            //             state.Id = challengeId;
+            //             state.Challenge = new GameEngineChallengeView
+            //             {
+            //                 MaxPoints = baseScore,
+            //                 Score = baseScore // full solve
+            //             };
+            //         }));
+            // })
             .WithDataState(state =>
             {
-                state.AddGame(gameId);
-                state.AddChallengeSpec(spec =>
+                state.Add<Data.Game>(fixture, g => g.Id = gameId);
+                state.Add<Data.ChallengeSpec>(fixture, spec =>
                 {
                     spec.Id = challengeSpecId;
                     spec.GameId = gameId;
                     spec.Points = (int)baseScore;
-                    spec.Bonuses = new ChallengeBonus[]
+                    spec.Bonuses = new List<Data.ChallengeBonus>()
                     {
                         new ChallengeBonusCompleteSolveRank
                         {
@@ -79,9 +79,10 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
         var submission = fixture.Create<GameEngineSectionSubmission>();
         submission.Id = challengeId;
 
+        var http = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
+
         // when
-        await _testContext
-            .Http
+        await http
             .PutAsync("/api/challenge/grade", submission.ToJsonBody())
             .WithContentDeserializedAs<Api.Challenge>();
 
@@ -116,24 +117,23 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
 
         // given
         await _testContext
-            .WithTestServices(services =>
-            {
-                services.AddGbIntegrationTestAuth(UserRole.Admin);
-                services.AddTransient<ITestGradingResultService>(factory =>
-                    new TestGradingResultService(state =>
-                    {
-                        state.Id = challengeId;
-                        state.Challenge = new GameEngineChallengeView
-                        {
-                            MaxPoints = fullSolveScore,
-                            Score = baseScore // partial solve
-                        };
-                    }));
-            })
+            // .WithTestServices(services =>
+            // {
+            //     services.AddTransient<ITestGradingResultService>(factory =>
+            //         new TestGradingResultService(state =>
+            //         {
+            //             state.Id = challengeId;
+            //             state.Challenge = new GameEngineChallengeView
+            //             {
+            //                 MaxPoints = fullSolveScore,
+            //                 Score = baseScore // partial solve
+            //             };
+            //         }));
+            // })
             .WithDataState(state =>
             {
-                state.AddGame(gameId);
-                state.AddChallengeSpec(spec =>
+                state.Add<Data.Game>(fixture, g => g.Id = gameId);
+                state.Add<Data.ChallengeSpec>(fixture, spec =>
                 {
                     spec.Id = challengeSpecId;
                     spec.GameId = gameId;
@@ -149,7 +149,7 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
                     };
                 });
 
-                state.AddChallenge(c =>
+                state.Add<Data.Challenge>(fixture, c =>
                 {
                     c.Id = challengeId;
                     c.GameId = gameId;
@@ -167,9 +167,10 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
         var submission = fixture.Create<GameEngineSectionSubmission>();
         submission.Id = challengeId;
 
+        var http = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
+
         // when
-        await _testContext
-            .Http
+        await http
             .PutAsync("/api/challenge/grade", submission.ToJsonBody())
             .WithContentDeserializedAs<Challenge>();
 
@@ -206,29 +207,29 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
 
         // given
         await _testContext
-            .WithTestServices(services =>
-            {
-                services.AddGbIntegrationTestAuth(UserRole.Admin);
-                services.AddTransient<ITestGradingResultService>(factory =>
-                    new TestGradingResultService(state =>
-                    {
-                        state.Id = unawardedChallengeId;
-                        state.Challenge = new GameEngineChallengeView
-                        {
-                            MaxPoints = baseScore,
-                            Score = baseScore // full solve
-                        };
-                    }));
-            })
+            // .WithTestServices(services =>
+            // {
+            //     services.AddGbIntegrationTestAuth(UserRole.Admin);
+            //     services.AddTransient<ITestGradingResultService>(factory =>
+            //         new TestGradingResultService(state =>
+            //         {
+            //             state.Id = unawardedChallengeId;
+            //             state.Challenge = new GameEngineChallengeView
+            //             {
+            //                 MaxPoints = baseScore,
+            //                 Score = baseScore // full solve
+            //             };
+            //         }));
+            // })
             .WithDataState(state =>
             {
-                state.AddGame(g => { g.Id = gameId; });
-                state.AddChallengeSpec(spec =>
+                state.Add<Data.Game>(fixture, g => g.Id = gameId);
+                state.Add<Data.ChallengeSpec>(fixture, spec =>
                 {
                     spec.Id = challengeSpecId;
                     spec.GameId = gameId;
                     spec.Points = baseScore;
-                    spec.Bonuses = new ChallengeBonus[]
+                    spec.Bonuses = new List<Data.ChallengeBonus>
                     {
                         new ChallengeBonusCompleteSolveRank
                         {
@@ -260,7 +261,7 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
                     c.StartTime = DateTimeOffset.UtcNow;
                     c.EndTime = c.StartTime.AddSeconds(30);
                     c.TeamId = awardedTeamId;
-                    c.AwardedBonuses = new AwardedChallengeBonus[] { new AwardedChallengeBonus { Id = awardedBonusId } };
+                    c.AwardedBonuses = new List<AwardedChallengeBonus> { new AwardedChallengeBonus { Id = awardedBonusId } };
                 });
 
                 state.AddChallenge(c =>
@@ -281,9 +282,10 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
         var submission = fixture.Create<GameEngineSectionSubmission>();
         submission.Id = unawardedChallengeId;
 
+        var http = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
+
         // when
-        await _testContext
-            .Http
+        await http
             .PutAsync("/api/challenge/grade", submission.ToJsonBody())
             .WithContentDeserializedAs<Api.Challenge>();
 

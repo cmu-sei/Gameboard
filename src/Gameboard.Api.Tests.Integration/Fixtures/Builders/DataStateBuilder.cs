@@ -1,38 +1,42 @@
 using Gameboard.Api.Data;
+using Gameboard.Api.Tests.Shared;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
 public interface IDataStateBuilder
 {
-    IDataStateBuilder Add<TEntity>(TEntity entity, Action<TEntity>? entityBuilder = null) where TEntity : class, Data.IEntity;
-    IDataStateBuilder AddRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : class, Data.IEntity;
+    IDataStateBuilder Add<TEntity>(IFixture fixture) where TEntity : class, IEntity;
+    IDataStateBuilder Add<TEntity>(IFixture fixture, Action<TEntity> entityBuilder) where TEntity : class, IEntity;
+    IDataStateBuilder Add<TEntity>(TEntity entity, Action<TEntity>? entityBuilder = null) where TEntity : class, IEntity;
+    IDataStateBuilder AddRange<TEntity>(ICollection<TEntity> entities) where TEntity : class, IEntity;
 }
 
-internal class DataStateBuilder<TDbContext> : IDataStateBuilder where TDbContext : GameboardDbContext
+internal class DataStateBuilder : IDataStateBuilder
 {
-    private readonly TDbContext _DbContext;
+    private readonly GameboardDbContext _DbContext;
 
-    public DataStateBuilder(TDbContext dbContext)
+    public DataStateBuilder(GameboardDbContext dbContext) => _DbContext = dbContext;
+
+    public IDataStateBuilder Add<TEntity>(IFixture fixture) where TEntity : class, IEntity
+        => Add<TEntity>(fixture, null);
+
+    public IDataStateBuilder Add<TEntity>(IFixture fixture, Action<TEntity>? entityBuilder) where TEntity : class, IEntity
     {
-        _DbContext = dbContext;
+        var entity = fixture.Create<TEntity>() ?? throw new GbAutomatedTestSetupException($"The test fixture can't create entity of type {typeof(TEntity)}");
+        entityBuilder?.Invoke(entity);
+        _DbContext.Add(entity);
+
+        return this;
     }
 
     public IDataStateBuilder Add<TEntity>(TEntity entity, Action<TEntity>? entityBuilder = null) where TEntity : class, IEntity
     {
         entityBuilder?.Invoke(entity);
-
-        try
-        {
-            _DbContext.Add(entity);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"ex:{ex.Message}");
-        }
+        _DbContext.Add(entity);
         return this;
     }
 
-    public IDataStateBuilder AddRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : class, IEntity
+    public IDataStateBuilder AddRange<TEntity>(ICollection<TEntity> entities) where TEntity : class, IEntity
     {
         foreach (var entity in entities)
             Add(entity);

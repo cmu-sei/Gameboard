@@ -1,6 +1,5 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Common;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Services;
@@ -14,6 +13,7 @@ public record StartStandardNonSyncGameCommand(string GameId, User ActingUser) : 
 
 internal class StartStandardNonSyncGameHandler : IRequestHandler<StartStandardNonSyncGameCommand, StartStandardNonSyncGameResult>
 {
+    private readonly EntityExistsValidator<StartStandardNonSyncGameCommand, Data.Game> _gameExists;
     private readonly IGameService _gameService;
     private readonly IGameStore _gameStore;
     private readonly PlayerService _playerService;
@@ -21,12 +21,14 @@ internal class StartStandardNonSyncGameHandler : IRequestHandler<StartStandardNo
 
     public StartStandardNonSyncGameHandler
     (
+        EntityExistsValidator<StartStandardNonSyncGameCommand, Data.Game> gameExists,
         IGameService gameService,
         IGameStore gameStore,
         PlayerService playerService,
         IValidatorService<StartStandardNonSyncGameCommand> validator
     )
     {
+        _gameExists = gameExists;
         _gameService = gameService;
         _gameStore = gameStore;
         _playerService = playerService;
@@ -36,31 +38,31 @@ internal class StartStandardNonSyncGameHandler : IRequestHandler<StartStandardNo
     public async Task<StartStandardNonSyncGameResult> Handle(StartStandardNonSyncGameCommand request, CancellationToken cancellationToken)
     {
         // validate
-        _validator.AddValidator(new EntityExistsValidator<StartStandardNonSyncGameCommand, Data.Game>(_gameStore).UseProperty(r => r.GameId));
-        _validator.AddValidator
-        (
-            ((req, ctx) =>
-            {
-                if (req.ActingUser == null)
-                    ctx.AddValidationException(new CantStartStandardGameWithoutActingUserParameter(req.GameId));
+        _validator
+            .AddValidator(_gameExists.UseProperty(r => r.GameId))
+            .AddValidator
+            (
+                ((req, ctx) =>
+                {
+                    if (req.ActingUser == null)
+                        ctx.AddValidationException(new CantStartStandardGameWithoutActingUserParameter(req.GameId));
 
-                return Task.CompletedTask;
-            })
-        );
+                    return Task.CompletedTask;
+                })
+            )
+            .AddValidator
+            (
+                async (req, ctx) =>
+                {
+                    var player = await _playerService.RetrieveByUserId(req.ActingUser.Id);
 
-        _validator.AddValidator
-        (
-            (async (req, ctx) =>
-            {
-                var player = await _playerService.RetrieveByUserId((string)req.ActingUser.Id);
+                    if (player == null)
+                        ctx.AddValidationException(new UserIsntPlayingGame(req.ActingUser.Id, req.GameId, $"""Can't start standard nonsync game "{req.GameId}" because user "{req.ActingUser.Id}" hasn't registered to play it."""));
 
-                if (player == null)
-                    ctx.AddValidationException(new UserIsntPlayingGame((string)req.ActingUser.Id, req.GameId, $"""Can't start standard nonsync game "{req.GameId}" because user "{req.ActingUser.Id}" hasn't registered to play it."""));
-
-                if (player.SessionBegin.IsNotEmpty())
-                    ctx.AddValidationException(new SessionAlreadyStarted((string)player.Id, $"""Can't start player "{player.Id}"'s session for standard nonsync game "{req.GameId}" because it's already started ({player.SessionBegin})"""));
-            })
-        );
+                    if (player.SessionBegin.IsNotEmpty())
+                        ctx.AddValidationException(new SessionAlreadyStarted(player.Id, $"""Can't start player "{player.Id}"'s session for standard nonsync game "{req.GameId}" because it's already started ({player.SessionBegin})"""));
+                }
+            );
 
         await _validator.Validate(request, cancellationToken);
 

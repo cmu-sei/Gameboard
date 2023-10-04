@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
@@ -10,11 +11,20 @@ namespace Gameboard.Api.Data.Migrations;
 // migration removal without a conn string. It's on EF's backlog.
 public class GameboardDbContextSqlServerFactory : IDesignTimeDbContextFactory<GameboardDbContextSqlServer>
 {
+    private readonly IWebHostEnvironment _env = null;
+
+    public GameboardDbContextSqlServerFactory() { }
+
+    public GameboardDbContextSqlServerFactory(IWebHostEnvironment env)
+    {
+        _env = env;
+    }
+
     public GameboardDbContextSqlServer CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<GameboardDbContextSqlServer>();
         optionsBuilder.UseSqlServer();
 
-        return new GameboardDbContextSqlServer(optionsBuilder.Options);
+        return new GameboardDbContextSqlServer(optionsBuilder.Options, _env);
     }
 }

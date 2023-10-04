@@ -1,36 +1,37 @@
 using System;
+using Gameboard.Api.Common.Services;
 
-namespace Gameboard.Api.Common.Services;
+namespace Gameboard.Api.Features.Player;
 
 public class TimeWindow
 {
-    public DateTimeOffset Now { get; }
-    public DateTimeOffset Start { get; }
-    public DateTimeOffset End { get; }
-    public TimeSpan Duration { get; private set; }
+    public double Now { get; }
+    public double? Start { get; }
+    public double? End { get; }
+    public double? DurationMs { get; private set; }
     public TimeWindowState State { get; private set; }
-    public TimeSpan? TimeUntilStart { get; private set; }
-    public TimeSpan? TimeUntilEnd { get; private set; }
+    public double? MsTilStart { get; private set; }
+    public double? MsTilEnd { get; private set; }
 
-    public TimeWindow(DateTimeOffset now, DateTimeOffset start, DateTimeOffset end)
+    public TimeWindow(DateTimeOffset now, DateTimeOffset? start, DateTimeOffset? end)
     {
-        Now = now;
-        Start = start;
-        End = end;
+        Now = now.ToUnixTimeMilliseconds();
+        Start = start?.ToUnixTimeMilliseconds();
+        End = end?.ToUnixTimeMilliseconds();
 
         State = TimeWindowState.Before;
-        if (now >= start && now < end)
+        if (start != null && now >= start && (end is null || now < end))
         {
             State = TimeWindowState.During;
         }
-        else if (now >= end)
+        else if (end != null && now >= end)
         {
             State = TimeWindowState.After;
         }
 
-        TimeUntilStart = (now < start ? start - now : null);
-        TimeUntilEnd = (now < end ? end - now : null);
-        Duration = end - start;
+        MsTilStart = start is null ? null : (Start - Now);
+        MsTilEnd = end is null ? null : (End - Now);
+        DurationMs = start == null ? null : ((End ?? Now) - Start);
     }
 }
 
@@ -44,6 +45,7 @@ public enum TimeWindowState
 public interface ITimeWindowService
 {
     TimeWindow CreateWindow(DateTimeOffset start, DateTimeOffset end);
+    TimeWindow CreateWindow(DateTimeOffset now, DateTimeOffset start, DateTimeOffset end);
 }
 
 public class TimeWindowService : ITimeWindowService
@@ -56,10 +58,16 @@ public class TimeWindowService : ITimeWindowService
     }
 
     public TimeWindow CreateWindow(DateTimeOffset start, DateTimeOffset end)
+        => CreateWindow(_now.Get(), start, end);
+
+    public TimeWindow CreateWindow(DateTimeOffset now, DateTimeOffset start, DateTimeOffset end)
     {
-        if (start >= end)
+        DateTimeOffset? finalStart = start == DateTimeOffset.MinValue ? null : start;
+        DateTimeOffset? finalEnd = end == DateTimeOffset.MinValue ? null : end;
+
+        if (finalStart != null && finalEnd != null && finalStart.Value >= finalEnd.Value)
             throw new ArgumentException("Can't create a time window with end date occurring before the start date.");
 
-        return new TimeWindow(_now.Get(), start, end);
+        return new TimeWindow(now, finalStart, finalEnd);
     }
 }

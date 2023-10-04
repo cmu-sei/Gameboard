@@ -26,7 +26,7 @@ namespace Gameboard.Api
     public class LoggingSettings
     {
         public LogLevel EfCoreLogLevel { get; set; } = LogLevel.Warning;
-        public Boolean EnableHttpLogging { get; set; } = false;
+        public bool EnableHttpLogging { get; set; } = false;
 
         /// <summary>
         /// The maximum number of bytes logged for the request body (in bytes).
@@ -170,12 +170,12 @@ namespace Gameboard.Api
         public string SupportUploadsRequestPath { get; set; } = "supportfiles";
         public string SupportUploadsFolder { get; set; } = "wwwroot/supportfiles";
         public string ChallengeDocUrl { get; set; }
+        public string TempDirectory { get; set; } = "wwwroot/temp";
+        public string TemplatesDirectory { get; set; } = "wwwroot/templates";
         public string SafeNamesFile { get; set; } = "names.json";
         public string KeyPrefix { get; set; } = "GB";
         public string GamebrainApiKey { get; set; }
-        public int MaxPracticeSessions { get; set; } = 0;
-        public int PracticeSessionMinutes { get; set; } = 60;
-        public int MaxPracticeSessionMinutes { get; set; } = 0;
+        public string WebHostRoot { get; set; }
     }
 
     public class CrucibleOptions

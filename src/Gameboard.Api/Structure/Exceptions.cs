@@ -33,6 +33,11 @@ namespace Gameboard.Api
         internal InvalidParameterValue(string parameterName, string ruleDescription, T value) : base($"""Parameter "{parameterName}" requires a value which complies with: "{ruleDescription}". Its value was "{value}". """) { }
     }
 
+    internal class MissingRequiredDate : GameboardValidationException
+    {
+        public MissingRequiredDate(string propertyName) : base($"The date property {propertyName} is required.") { }
+    }
+
     internal class NotYetRegistered : GameboardException
     {
         internal NotYetRegistered(string playerId, string gameId)
@@ -42,21 +47,21 @@ namespace Gameboard.Api
     internal class RegistrationIsClosed : GameboardException
     {
         internal RegistrationIsClosed(string gameId, string addlMessage = null) :
-            base($"Registration for game {gameId} is closed.{(addlMessage.HasValue() ? $" [{addlMessage}]" : string.Empty)}")
+            base($"Registration for game {gameId} is closed.{(addlMessage.NotEmpty() ? $" [{addlMessage}]" : string.Empty)}")
         { }
     }
 
     internal class ResourceAlreadyExists<T> : GameboardException where T : class, IEntity
     {
         internal ResourceAlreadyExists(string id, string addlMessage = null) :
-            base($"Couldn't create resource '{id}' of type {typeof(T).Name} because it already exists.{(addlMessage.HasValue() ? $" {addlMessage}" : string.Empty)}")
+            base($"Couldn't create resource '{id}' of type {typeof(T).Name} because it already exists.{(addlMessage.NotEmpty() ? $" {addlMessage}" : string.Empty)}")
         { }
     }
 
     internal class ResourceNotFound<T> : GameboardValidationException where T : class
     {
         internal ResourceNotFound(string id, string addlMessage = null)
-            : base($"Couldn't find resource {id} of type {typeof(T).Name}.{(addlMessage.HasValue() ? $" [{addlMessage}]" : string.Empty)}") { }
+            : base($"Couldn't find resource {id} of type {typeof(T).Name}.{(addlMessage.NotEmpty() ? $" [{addlMessage}]" : string.Empty)}") { }
     }
 
     internal class RequiresSameSponsor : GameboardException
@@ -68,6 +73,11 @@ namespace Gameboard.Api
     internal class SimpleValidatorException : GameboardValidationException
     {
         public SimpleValidatorException(string message, Exception ex = null) : base(message, ex) { }
+    }
+
+    internal class StartDateOccursAfterEndDate : GameboardValidationException
+    {
+        public StartDateOccursAfterEndDate(DateTimeOffset start, DateTimeOffset end) : base($"Invalid start/end date values supplied. Start date {start} occurs after End date {end}.") { }
     }
 
     internal class ValidationTypeFailure<TValidator> : GameboardException where TValidator : IModelValidator
@@ -92,7 +102,6 @@ namespace Gameboard.Api
     public class AlreadyExists : Exception { }
     public class ChallengeLocked : Exception { }
     public class ChallengeStartPending : Exception { }
-    public class GamespaceLimitReached : Exception { }
     public class InvalideFeedbackFormat : Exception { }
     public class PlayerIsntInGame : Exception { }
     public class InvalidPlayerMode : Exception { }

@@ -1,11 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Gameboard.Api.Common;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.Player;
+
+internal class CantResolveTeamFromCode : GameboardException
+{
+    internal CantResolveTeamFromCode(string code, string[] teamIds) : base($"""Couldn't resolve a unique team from invitation code "{code}": {teamIds.Count()} have this code ({string.Join(",", teamIds)}). """) { }
+}
 
 internal class InvalidExtendSessionRequest : GameboardException
 {
@@ -13,12 +17,22 @@ internal class InvalidExtendSessionRequest : GameboardException
         : base($"Can't extend the session: The current session ends at {currentSessionEnd:u}, and the request would extend it to {requestedSessionEnd:u} (before the current session is set to end).") { }
 }
 
-internal class ManagerCantUnenrollWhileTeammatesRemain : GameboardException
+internal class ManagerCantUnenrollWhileTeammatesRemain : GameboardValidationException
 {
     internal ManagerCantUnenrollWhileTeammatesRemain(string playerId, string teamId, IEnumerable<string> teammatePlayerIds) : base($"""
         Player {playerId} is the manager of team {teamId}. There are currently {teammatePlayerIds.Count()} players remaining on the team ({string.Join(" | ", teammatePlayerIds)}).
         In order to unenroll, this player must designate a teammate as the replacement manager (or wait until all other team memberes have unenrolled).
     """) { }
+}
+
+internal class CantEnrollWithDefaultSponsor : GameboardValidationException
+{
+    internal CantEnrollWithDefaultSponsor(string userId, string gameId) : base($"""User "{userId}" can't enroll in game "{gameId}": User still has the default sponsor. """) { }
+}
+
+internal class NoPlayerSponsorForGame : GameboardValidationException
+{
+    internal NoPlayerSponsorForGame(string userId, string gameId) : base($"""User "{userId}" hasn't selected a sponsor, so they can't register for game "{gameId}".""") { }
 }
 
 internal class PlayerIsntManager : GameboardException

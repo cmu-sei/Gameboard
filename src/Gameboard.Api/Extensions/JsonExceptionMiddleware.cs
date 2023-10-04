@@ -45,26 +45,21 @@ namespace Gameboard.Api
 
                     if (typeof(GameboardException).IsAssignableFrom(type))
                     {
-                        context.Response.StatusCode = 400;
+                        context.Response.StatusCode = 500;
                         message = ex.Message;
                     }
-                    else if (typeof(GameboardValidationException).IsAssignableFrom(type))
+                    else if (typeof(GameboardValidationException).IsAssignableFrom(type) || typeof(GameboardAggregatedValidationExceptions).IsAssignableFrom(type))
                     {
                         context.Response.StatusCode = 400;
                         message = ex.Message;
                     }
-                    else if
-                    (
-                        ex is System.InvalidOperationException
-                        || type.Namespace.StartsWith("Gameboard")
-                    )
+                    else if (ex is InvalidOperationException || type.Namespace.StartsWith("Gameboard"))
                     {
                         context.Response.StatusCode = 400;
                         message = type.Name
                             .Split('.')
                             .Last()
                             .Replace("Exception", "");
-
                     }
 
                     await context.Response.WriteAsync(JsonSerializer.Serialize(new { message = message }));

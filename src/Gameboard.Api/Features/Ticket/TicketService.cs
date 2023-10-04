@@ -22,8 +22,9 @@ namespace Gameboard.Api.Services
         private readonly INowService _now;
         ITicketStore Store { get; }
 
-        public TicketService
-        (
+        internal static char LABELS_DELIMITER = ' ';
+
+        public TicketService(
             IFileUploadService fileUploadService,
             IGuidService guids,
             ILogger<TicketService> logger,
@@ -39,14 +40,14 @@ namespace Gameboard.Api.Services
             _now = now;
         }
 
-        public async Task<Ticket> Retrieve(string id, string actorId)
+        public async Task<Ticket> Retrieve(string id)
         {
             var entity = await Store.LoadDetails(id);
             entity.Activity = entity.Activity.OrderByDescending(a => a.Timestamp).ToList();
             return TransformInPlace(Mapper.Map<Ticket>(entity));
         }
 
-        public async Task<Ticket> Retrieve(int id, string actorId)
+        public async Task<Ticket> Retrieve(int id)
         {
             var entity = await Store.LoadDetails(id);
             entity.Activity = entity.Activity.OrderByDescending(a => a.Timestamp).ToList();
@@ -246,7 +247,7 @@ namespace Gameboard.Api.Services
 
             var b = tickets
                 .Where(t => !t.Label.IsEmpty())
-                .SelectMany(t => t.Label.Split(" "))
+                .SelectMany(t => TransformTicketLabels(t.Label))
                 .OrderBy(t => t)
                 .ToHashSet().ToArray();
 
@@ -315,6 +316,19 @@ namespace Gameboard.Api.Services
             if (ticket.RequesterId == userId && ticket.Created > updateUntilTime)
                 return true;
             return false;
+        }
+
+        internal IEnumerable<string> TransformTicketLabels(string labels)
+        {
+            if (labels.IsEmpty())
+                return Array.Empty<string>();
+
+            return labels.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        internal string TransformTicketKey(int key)
+        {
+            return Options.KeyPrefix + "-" + key.ToString();
         }
 
         private async Task UpdatedSessionContext(Data.Ticket entity)
@@ -386,7 +400,7 @@ namespace Gameboard.Api.Services
 
         private Ticket TransformInPlace(Ticket ticket)
         {
-            ticket.FullKey = FullKey(ticket.Key);
+            ticket.FullKey = TransformTicketKey(ticket.Key);
             return ticket;
         }
 

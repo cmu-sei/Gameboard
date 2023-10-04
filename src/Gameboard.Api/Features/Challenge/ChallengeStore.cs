@@ -5,17 +5,26 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using AutoMapper;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Common.Services;
 
 namespace Gameboard.Api.Data;
 
-internal class ChallengeStore : Store<Challenge>, IChallengeStore
+public interface IChallengeStore : IStore<Challenge>
+{
+    Task<Data.Challenge> Load(NewChallenge model);
+    Task<Data.Challenge> Load(string id);
+    Task UpdateTeam(string teamId);
+    Task UpdateEtd(string specId);
+    Task<int> ChallengeGamespaceCount(string teamId);
+}
+
+public class ChallengeStore : Store<Challenge>, IChallengeStore
 {
     public ChallengeStore(
         IGuidService guids,
-        GameboardDbContext dbContext) : base(dbContext, guids) { }
+        GameboardDbContext dbContext) : base(dbContext, guids)
+    { }
 
     public override IQueryable<Challenge> List(string term)
     {

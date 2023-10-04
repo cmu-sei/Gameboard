@@ -142,7 +142,7 @@ public class GameEngineMapsTests
             StartTime = fixture.Create<DateTimeOffset>(),
             EndTime = fixture.Create<DateTimeOffset>(),
             ExpirationTime = fixture.Create<DateTimeOffset>(),
-            Vms = new GameEngineVmState[] { }
+            Vms = Array.Empty<GameEngineVmState>()
         };
 
         var mapperConfig = new MapperConfiguration(cfg => cfg.AddProfile(new GameEngineMaps()));

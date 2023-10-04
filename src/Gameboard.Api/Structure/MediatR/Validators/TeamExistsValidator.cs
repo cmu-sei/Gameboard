@@ -10,15 +10,24 @@ namespace Gameboard.Api.Structure.MediatR.Validators;
 internal class TeamExistsValidator<TModel> : IGameboardValidator<TModel>
 {
     private readonly IStore _store;
-    public required Func<TModel, string> TeamIdProperty { get; set; }
+    private Func<TModel, string> _teamIdProperty;
 
-    public TeamExistsValidator(IStore store) => _store = store;
+    public TeamExistsValidator(IStore store)
+    {
+        _store = store;
+    }
+
+    public TeamExistsValidator<TModel> UseProperty(Func<TModel, string> propertyExpression)
+    {
+        _teamIdProperty = propertyExpression;
+        return this;
+    }
 
     public Func<TModel, RequestValidationContext, Task> GetValidationTask()
     {
         return async (model, context) =>
         {
-            var teamId = TeamIdProperty(model);
+            var teamId = _teamIdProperty(model);
 
             if (string.IsNullOrEmpty(teamId))
                 context.AddValidationException(new MissingRequiredInput<string>(nameof(teamId), teamId));
@@ -26,7 +35,7 @@ internal class TeamExistsValidator<TModel> : IGameboardValidator<TModel>
             // grab the gameId as a representation of each player, because we also need to know if they're somehow
             // in different games
             var players = await _store
-                .ListAsNoTracking<Data.Player>()
+                .WithNoTracking<Data.Player>()
                 .Where(p => p.TeamId == teamId)
                 .ToListAsync();
 
@@ -41,11 +50,5 @@ internal class TeamExistsValidator<TModel> : IGameboardValidator<TModel>
             if (teamIds.Distinct().Count() > 1)
                 context.AddValidationException(new PlayersAreFromMultipleTeams(teamIds));
         };
-    }
-
-    public TeamExistsValidator<TModel> UseProperty(Func<TModel, string> propertyExpression)
-    {
-        TeamIdProperty = propertyExpression;
-        return this;
     }
 }

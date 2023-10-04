@@ -1,13 +1,15 @@
+using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration.ChallengeBonuses;
 
-public class ChallengeBonusControllerAutoDeleteTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class ChallengeBonusControllerAutoDeleteTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public ChallengeBonusControllerAutoDeleteTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public ChallengeBonusControllerAutoDeleteTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }
@@ -17,11 +19,10 @@ public class ChallengeBonusControllerAutoDeleteTests : IClassFixture<GameboardTe
     {
         // given: a configured challenge
         await _testContext
-            .WithTestServices(s => s.AddGbIntegrationTestAuth(UserRole.Designer))
             .WithDataState(state =>
             {
-                state.AddGame(gameId);
-                state.AddChallengeSpec(spec =>
+                state.Add<Data.Game>(fixture, g => g.Id = gameId);
+                state.Add<Data.ChallengeSpec>(fixture, spec =>
                 {
                     spec.GameId = gameId;
                     spec.Bonuses = new ChallengeBonus[]
@@ -37,10 +38,10 @@ public class ChallengeBonusControllerAutoDeleteTests : IClassFixture<GameboardTe
                 });
             });
 
+        var httpClient = _testContext.CreateHttpClientWithAuthRole(UserRole.Designer);
+
         // when delete is called
-        await _testContext
-            .Http
-            .DeleteAsync($"api/game/{gameId}/bonus/config");
+        await httpClient.DeleteAsync($"api/game/{gameId}/bonus/config");
 
         // then there should be no challenges assigned to a spec with the given gameId
         var count = await _testContext
@@ -59,17 +60,16 @@ public class ChallengeBonusControllerAutoDeleteTests : IClassFixture<GameboardTe
     {
         // given: a game with awarded challenge bonuses
         await _testContext
-            .WithTestServices(s => s.AddGbIntegrationTestAuth(UserRole.Designer))
             .WithDataState(state =>
             {
-                state.AddGame(gameId);
-                state.AddChallenge(c =>
+                state.Add<Data.Game>(fixture, g => g.Id = gameId);
+                state.Add<Data.Challenge>(fixture, c =>
                 {
                     c.Id = challengeId;
                     c.GameId = gameId;
                 });
 
-                state.AddChallengeSpec(spec =>
+                state.Add<Data.ChallengeSpec>(fixture, spec =>
                 {
                     spec.GameId = gameId;
                     spec.Bonuses = new ChallengeBonus[]
@@ -90,8 +90,10 @@ public class ChallengeBonusControllerAutoDeleteTests : IClassFixture<GameboardTe
                 });
             });
 
+        var httpClient = _testContext.CreateHttpClientWithAuthRole(UserRole.Designer);
+
         // when delete is called, then it should fail validation
-        var isValidationException = await _testContext.Http
+        var isValidationException = await httpClient
             .DeleteAsync($"api/game/{gameId}/bonus/config")
             .YieldsGameboardValidationException();
 

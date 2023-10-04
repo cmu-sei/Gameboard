@@ -1,4 +1,4 @@
-using Gameboard.Api.Tests.Shared;
+using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 

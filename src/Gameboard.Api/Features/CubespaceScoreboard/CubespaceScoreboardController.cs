@@ -1,27 +1,24 @@
 using System.Threading.Tasks;
 using Gameboard.Api.Controllers;
-using Gameboard.Api.Features.CubespaceScoreboard;
 using Gameboard.Api.Features.UnityGames;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 
+namespace Gameboard.Api.Features.CubespaceScoreboard;
+
 public class CubespaceScoreboardController : _Controller
 {
     private readonly ICubespaceScoreboardService _cubespaceScoreboardService;
-    private readonly IUnityGameService _unityGameService;
 
-    public CubespaceScoreboardController(
+    public CubespaceScoreboardController
+    (
         IDistributedCache cache,
         ILogger<CubespaceScoreboardController> logger,
         UnityGamesValidator validator,
-        ICubespaceScoreboardService cubespaceScoreboardService,
-        IUnityGameService unityGameService) : base(logger, cache, validator)
-    {
-        _cubespaceScoreboardService = cubespaceScoreboardService;
-        _unityGameService = unityGameService;
-    }
+        ICubespaceScoreboardService cubespaceScoreboardService
+    ) : base(logger, cache, validator) => (_cubespaceScoreboardService) = (cubespaceScoreboardService);
 
     [HttpPost("/api/cubespace/scoreboard")]
     [AllowAnonymous]

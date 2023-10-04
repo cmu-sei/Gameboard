@@ -11,13 +11,6 @@ namespace Gameboard.Api
 {
     public static class StringExtensions
     {
-        public static string ToHash(this string str)
-        {
-            return BitConverter.ToString(
-                SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(str))
-            ).Replace("-", "").ToLower();
-        }
-
         public static string[] AsHashTag(this string str)
         {
             var chars = str.ToLower().ToCharArray()
@@ -29,19 +22,24 @@ namespace Gameboard.Api
         }
 
         public static string ToSha256(this string input)
+            => BitConverter.ToString(SHA256.HashData(Encoding.UTF8.GetBytes(input)))
+                .Replace("-", "")
+                .ToLower();
+
+
+        public static bool HasValue(this DateTimeOffset ts)
         {
-            using (SHA256 alg = SHA256.Create())
-            {
-                return BitConverter.ToString(alg
-                    .ComputeHash(Encoding.UTF8.GetBytes(input)))
-                    .Replace("-", "")
-                    .ToLower();
-            }
+            return ts.Year > 1;
+        }
+
+        public static bool DoesntHaveValue(this DateTimeOffset ts)
+        {
+            return !HasValue(ts);
         }
 
         public static string Tag(this string s)
         {
-            if (s.HasValue())
+            if (s.NotEmpty())
             {
                 int x = s.IndexOf("#");
                 if (x >= 0)
@@ -53,7 +51,7 @@ namespace Gameboard.Api
         //strips hashtag+ from string
         public static string Untagged(this string s)
         {
-            if (s.HasValue())
+            if (s.NotEmpty())
             {
                 int x = s.IndexOf("#");
                 if (x >= 0)
@@ -62,17 +60,14 @@ namespace Gameboard.Api
             return s;
         }
 
-        public static bool HasValue(this string str)
-        {
-            return !string.IsNullOrEmpty(str);
-        }
         public static bool IsEmpty(this string str)
         {
-            return string.IsNullOrEmpty(str);
+            return string.IsNullOrWhiteSpace(str);
         }
+
         public static bool NotEmpty(this string str)
         {
-            return str.IsEmpty().Equals(false);
+            return !IsEmpty(str);
         }
 
         public static string Sanitize(this string target, char[] exclude)

@@ -1,48 +1,43 @@
 using System.Net;
-using Gameboard.Api.Data;
+using Gameboard.Api.Common;
 using Gameboard.Api.Features.Games;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class GameControllerGetSyncStartStateTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public GameControllerGetSyncStartStateTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public GameControllerGetSyncStartStateTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task GetSyncStartState_WithAllReady_IsReady(string gameId)
+    public async Task GetSyncStartState_WithAllReady_IsReady(IFixture fixture)
     {
         // given two players registered for the same sync-start game, both ready
-        await _testContext
-            .WithTestServices(services => services.AddGbIntegrationTestAuth(UserRole.Admin))
-            .WithDataState(state =>
+        var gameId = fixture.Create<string>();
+
+        await _testContext.WithDataState(state =>
+        {
+            state.Add<Data.Game>(fixture, g =>
             {
-                state.AddGame(g =>
+                g.Id = gameId;
+                g.RequireSynchronizedStart = true;
+                g.Players = new List<Data.Player>
                 {
-                    g.Id = gameId;
-                    g.RequireSynchronizedStart = true;
-                });
-
-                state.AddPlayer(p =>
-                {
-                    p.GameId = gameId;
-                    p.IsReady = true;
-                });
-
-                state.AddPlayer(p =>
-                {
-                    p.GameId = gameId;
-                    p.IsReady = true;
-                });
+                    state.Build<Data.Player>(fixture, p => p.IsReady = true),
+                    state.Build<Data.Player>(fixture, p => p.IsReady = true),
+                };
             });
+        });
+
+        var http = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
 
         // when
-        var result = await _testContext
-            .Http
+        var result = await http
             .GetAsync($"/api/game/{gameId}/ready")
             .WithContentDeserializedAs<SyncStartState>();
 
@@ -53,36 +48,35 @@ public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestC
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task GetSyncStartState_WithNotReady_IsNotReady(string gameId, string notReadyPlayerId)
+    public async Task GetSyncStartState_WithNotReady_IsNotReady(string gameId, string readyPlayerId, string notReadyPlayerId, IFixture fixture)
     {
         // given two players registered for the same sync-start game, one not ready
-        await _testContext
-            .WithTestServices(services => services.AddGbIntegrationTestAuth(UserRole.Admin))
-            .WithDataState(state =>
+        await _testContext.WithDataState(state =>
+        {
+            state.Add<Data.Game>(fixture, g =>
             {
-                state.AddGame(g =>
+                g.Id = gameId;
+                g.RequireSynchronizedStart = true;
+                g.Players = new List<Data.Player>
                 {
-                    g.Id = gameId;
-                    g.RequireSynchronizedStart = true;
-                });
-
-                state.AddPlayer(p =>
-                {
-                    p.GameId = gameId;
-                    p.IsReady = true;
-                });
-
-                state.AddPlayer(p =>
-                {
-                    p.Id = notReadyPlayerId;
-                    p.GameId = gameId;
-                    p.IsReady = false;
-                });
+                    state.Build<Data.Player>(fixture, p =>
+                    {
+                        p.Id = readyPlayerId;
+                        p.IsReady = true;
+                    }),
+                    state.Build<Data.Player>(fixture, p =>
+                    {
+                        p.Id = notReadyPlayerId;
+                        p.IsReady = false;
+                    }),
+                };
             });
+        });
+
+        var http = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
 
         // when 
-        var result = await _testContext
-            .Http
+        var result = await http
             .GetAsync($"/api/game/{gameId}/ready")
             .WithContentDeserializedAs<SyncStartState>();
 
@@ -92,36 +86,29 @@ public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestC
         result.Teams.Count().ShouldBe(2);
         result
             .Teams
-            .Where(t => !t.IsReady)
-            .Single()
+            .Single(t => !t.IsReady)
             .Players
             .Any(p => p.Id == notReadyPlayerId)
             .ShouldBeTrue();
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task GetSyncStartState_WithNotRequiredSyncStart_IsReady(string gameId)
+    public async Task GetSyncStartState_WithNotRequiredSyncStart_IsReady(IFixture fixture)
     {
         // given a player registered for a game which doesn't require sync start
-        await _testContext
-            .WithTestServices(services => services.AddGbIntegrationTestAuth(UserRole.Admin))
-            .WithDataState(state =>
+        var gameId = fixture.Create<string>();
+        await _testContext.WithDataState(state =>
+        {
+            state.Add<Data.Game>(fixture, g =>
             {
-                state.AddGame(g =>
-                {
-                    g.Id = gameId;
-                    g.RequireSynchronizedStart = false;
-                });
-
-                state.AddPlayer(p =>
-                {
-                    p.GameId = gameId;
-                    p.IsReady = false;
-                });
+                g.Id = gameId;
+                g.RequireSynchronizedStart = false;
+                g.Players = state.Build<Data.Player>(fixture, p => p.IsReady = false).ToCollection();
             });
+        });
 
         var yieldsValidationFailure = await _testContext
-            .Http
+            .CreateDefaultClient()
             .GetAsync($"/api/game/{gameId}/ready")
             .YieldsGameboardValidationException();
 

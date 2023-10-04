@@ -1,41 +1,33 @@
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.ChallengeBonuses;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class ChallengeBonusControllerManualTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class ChallengeBonusControllerManualTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public ChallengeBonusControllerManualTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public ChallengeBonusControllerManualTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task AddManual_WithValidData_Succeeds(string challengeId, string userId, string description, double pointsValue)
+    public async Task AddManual_WithValidData_Succeeds(string challengeId, string userId, string description, double pointsValue, IFixture fixture)
     {
         // given
-        await _testContext
-            .WithTestServices(s => s.AddGbIntegrationTestAuth(u =>
+        await _testContext.WithDataState(state =>
+        {
+            state.Add<Data.User>(fixture, u =>
             {
                 u.Id = userId;
                 u.Role = UserRole.Support;
-            }))
-            .WithDataState(state =>
-            {
-                state.AddUser(u =>
-                {
-                    u.Id = userId;
-                    u.Role = Api.UserRole.Support;
-                });
-
-                state.AddChallenge(c =>
-                {
-                    c.Id = challengeId;
-                    c.Game = state.BuildGame();
-                });
             });
+
+            state.Add<Data.Challenge>(fixture, c => c.Id = challengeId);
+        });
 
         var bonus = new CreateManualChallengeBonus
         {
@@ -43,8 +35,14 @@ public class ChallengeBonusControllerManualTests : IClassFixture<GameboardTestCo
             PointValue = pointsValue
         };
 
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u =>
+        {
+            u.Id = userId;
+            u.Role = UserRole.Support;
+        });
+
         // when
-        await _testContext.Http.PostAsync($"api/challenge/{challengeId}/bonus/manual", bonus.ToJsonBody());
+        await httpClient.PostAsync($"api/challenge/{challengeId}/bonus/manual", bonus.ToJsonBody());
 
         // then
         var storedBonus = await _testContext

@@ -9,11 +9,11 @@ public interface IActingUserService
 
 internal class ActingUserService : IActingUserService
 {
-    private readonly User _actingUser;
+    private readonly User _actingUser = null;
 
     public ActingUserService(IHttpContextAccessor httpContextAccessor)
     {
-        _actingUser = httpContextAccessor.HttpContext.User.ToActor();
+        _actingUser = httpContextAccessor?.HttpContext?.User?.ToActor();
     }
 
     public User Get()

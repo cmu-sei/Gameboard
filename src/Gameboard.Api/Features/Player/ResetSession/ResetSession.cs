@@ -52,7 +52,7 @@ internal class ResetSessionHandler : IRequestHandler<ResetSessionCommand>
         // we need to look up whether the game is sync start first, because we're about to delete the
         // team, possibly
         var game = await _store
-            .ListAsNoTracking<Data.Player>()
+            .WithNoTracking<Data.Player>()
                 .Include(p => p.Game)
             .Where(p => p.TeamId == request.TeamId)
             .Select(p => p.Game)
@@ -67,7 +67,7 @@ internal class ResetSessionHandler : IRequestHandler<ResetSessionCommand>
         {
             // if we're not deleting the team, we still reset the session properties
             await _store
-                .ListAsNoTracking<Data.Player>()
+                .WithNoTracking<Data.Player>()
                 .Where(p => p.TeamId == request.TeamId)
                 .ExecuteUpdateAsync
                 (

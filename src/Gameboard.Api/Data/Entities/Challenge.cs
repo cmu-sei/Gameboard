@@ -4,12 +4,11 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
-using Gameboard.Api.Common;
 
-namespace Gameboard.Api.Data
+namespace Gameboard.Api.Data;
+
+public class Challenge : IEntity
 {
-    public class Challenge : IEntity
-    {
         public string Id { get; set; }
         public string Name { get; set; }
         public string SpecId { get; set; }
@@ -20,6 +19,7 @@ namespace Gameboard.Api.Data
         public string State { get; set; }
         public int Points { get; set; }
         public double Score { get; set; }
+        public PlayerMode PlayerMode { get; set; }
         public DateTimeOffset LastScoreTime { get; set; }
         public DateTimeOffset LastSyncTime { get; set; }
         public DateTimeOffset WhenCreated { get; set; }
@@ -52,5 +52,4 @@ namespace Gameboard.Api.Data
         public ICollection<ChallengeEvent> Events { get; set; } = new List<ChallengeEvent>();
         public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
         public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
-    }
 }

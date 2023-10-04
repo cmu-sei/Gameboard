@@ -26,14 +26,14 @@ ConfToEnv.Load("appsettings.conf");
 ConfToEnv.Load($"appsettings.{envname}.conf");
 ConfToEnv.Load(appSettingsPath);
 
-startupLogger.LogInformation($"Starting Gameboard in {envname} configuration.");
+startupLogger.LogInformation(message: $"Starting Gameboard in {envname} configuration.");
 
 // create an application builder
 var builder = WebApplication.CreateBuilder(args);
 
 // load settings and configure services
 var settings = builder.BuildAppSettings(startupLogger);
-builder.ConfigureServices(settings);
+builder.ConfigureServices(settings, startupLogger);
 
 // launch db if db only 
 var dbOnly = args.ToList().Contains("--dbonly")

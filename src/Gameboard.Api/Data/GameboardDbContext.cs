@@ -1,13 +1,24 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data;
 
 public class GameboardDbContext : DbContext
 {
-    public GameboardDbContext(DbContextOptions options) : base(options) { }
+    private readonly IWebHostEnvironment _env;
+
+    public GameboardDbContext(DbContextOptions options, IWebHostEnvironment env) : base(options)
+    {
+        _env = env;
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.WithGameboardOptions(_env);
+    }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -31,23 +42,23 @@ public class GameboardDbContext : DbContext
             k.Property(k => k.Key).HasMaxLength(100);
 
             k.Property(k => k.ExpiresOn)
-                .HasDefaultValueSql("NULL")
-                .ValueGeneratedOnAdd();
+                    .HasDefaultValueSql("NULL")
+                    .ValueGeneratedOnAdd();
 
             // NOTE: Must be edited manually in the MSSQL migration to 
             // compatible syntax
             k.Property(k => k.GeneratedOn)
-                .HasDefaultValueSql("NOW()")
-                .ValueGeneratedOnAdd();
+                    .HasDefaultValueSql("NOW()")
+                    .ValueGeneratedOnAdd();
 
             k.HasOne(k => k.Owner)
-                .WithMany(u => u.ApiKeys)
-                .OnDelete(DeleteBehavior.Cascade);
+                    .WithMany(u => u.ApiKeys)
+                    .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<Player>(b =>
         {
-            b.HasOne(p => p.User).WithMany(u => u.Enrollments).OnDelete(DeleteBehavior.Cascade);
+            b.HasKey(p => p.Id);
             b.HasIndex(p => p.TeamId);
             b.Property(p => p.Id).HasMaxLength(40);
             b.Property(p => p.TeamId).HasMaxLength(40);
@@ -56,9 +67,13 @@ public class GameboardDbContext : DbContext
             b.Property(p => p.ApprovedName).HasMaxLength(64);
             b.Property(p => p.Name).HasMaxLength(64);
             b.Property(p => p.NameStatus).HasMaxLength(40);
-            b.Property(p => p.Sponsor).HasMaxLength(40);
-            b.Property(p => p.TeamSponsors).HasMaxLength(255);
             b.Property(p => p.InviteCode).HasMaxLength(40);
+
+            // nav properties
+            b.HasOne(p => p.User).WithMany(u => u.Enrollments).OnDelete(DeleteBehavior.Cascade);
+            b
+                .HasOne(p => p.Sponsor).WithMany(s => s.SponsoredPlayers)
+                .IsRequired();
         });
 
         builder.Entity<Game>(b =>
@@ -150,6 +165,7 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.Id).HasMaxLength(40);
             b.Property(u => u.GameId).HasMaxLength(40);
             b.Property(u => u.ExternalId).HasMaxLength(40);
+            b.Property(u => u.SolutionGuideUrl).HasMaxLength(1000);
 
             b.HasOne(p => p.Game).WithMany(u => u.Specs).OnDelete(DeleteBehavior.Cascade);
         });
@@ -167,6 +183,8 @@ public class GameboardDbContext : DbContext
         {
             b.Property(u => u.Id).HasMaxLength(40);
             b.Property(u => u.Name).HasMaxLength(128);
+            b.HasOne(s => s.ParentSponsor)
+                .WithMany(p => p.ChildSponsors);
         });
 
         builder.Entity<Feedback>(b =>
@@ -198,6 +216,45 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.PlayerId).HasMaxLength(40);
             b.Property(p => p.PlayerName).HasMaxLength(64);
             b.Property(u => u.UserId).HasMaxLength(40);
+        });
+
+        builder.Entity<PublishedCertificate>(b =>
+        {
+            b.HasKey(c => c.Id);
+            b.HasDiscriminator(c => c.Mode)
+                .HasValue<PublishedCompetitiveCertificate>(PublishedCertificateMode.Competitive)
+                .HasValue<PublishedPracticeCertificate>(PublishedCertificateMode.Practice);
+        });
+
+        builder.Entity<PublishedCompetitiveCertificate>(b =>
+        {
+            b.Property(c => c.GameId).HasStandardGuidLength();
+            b.HasOne(c => c.Game).WithMany(g => g.PublishedCompetitiveCertificates);
+
+            b.HasOne(c => c.OwnerUser)
+                .WithMany(u => u.PublishedCompetitiveCertificates)
+                .HasConstraintName("FK_OwnerUserId_Users_Id");
+        });
+
+        builder.Entity<PublishedPracticeCertificate>(b =>
+        {
+            b.Property(c => c.ChallengeSpecId).HasStandardGuidLength();
+            b.HasOne(c => c.ChallengeSpec).WithMany(s => s.PublishedPracticeCertificates);
+
+            b.HasOne(c => c.OwnerUser)
+                .WithMany(u => u.PublishedPracticeCertificates)
+                .HasConstraintName("FK_OwnerUserId_Users_Id");
+        });
+
+        builder.Entity<PracticeModeSettings>(b =>
+        {
+            b.HasKey(m => m.Id);
+            b.Property(m => m.Id).HasStandardGuidLength();
+            b.Property(m => m.IntroTextMarkdown).HasMaxLength(4000);
+            b
+                .HasOne(m => m.UpdatedByUser)
+                .WithOne(u => u.UpdatedPracticeModeSettings)
+                .IsRequired(false);
         });
 
         builder.Entity<Ticket>(b =>

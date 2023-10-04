@@ -116,7 +116,7 @@ internal class GameStartService : IGameStartService
         //     await _mediator.Send(new StartStandardNonSyncGameCommand(gameId, actingUser));
         // }
 
-        if (game.Mode == GameMode.External && game.RequireSynchronizedStart)
+        if (game.Mode == GameEngineMode.External && game.RequireSynchronizedStart)
             return _externalSyncGameStartService;
 
         throw new NotImplementedException();
@@ -135,7 +135,7 @@ internal class GameStartService : IGameStartService
         };
 
         var players = await _store
-            .ListAsNoTracking<Data.Player>()
+            .WithNoTracking<Data.Player>()
             .Where(p => p.GameId == game.Id)
             .ToArrayAsync(cancellationToken);
 
@@ -143,7 +143,7 @@ internal class GameStartService : IGameStartService
             throw new CantStartGameWithNoPlayers(game.Id);
 
         var specs = await _store
-            .ListAsNoTracking<Data.ChallengeSpec>()
+            .WithNoTracking<Data.ChallengeSpec>()
             .Where(cs => cs.GameId == game.Id)
             .Where(cs => !cs.Disabled)
             .ToArrayAsync(cancellationToken);
@@ -153,11 +153,7 @@ internal class GameStartService : IGameStartService
             .ToDictionary
             (
                 g => g.Key,
-                g => _teamService.ResolveCaptain
-                (
-                    g.Key,
-                    _mapper.Map<IEnumerable<Api.Player>>(g.ToList())
-                )
+                g => _teamService.ResolveCaptain(g.ToList())
             );
 
         // update state object

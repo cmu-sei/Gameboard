@@ -5,39 +5,37 @@ using System;
 using System.Security.Claims;
 using Gameboard.Api.Structure.Auth;
 
-namespace Gameboard.Api
+namespace Gameboard.Api;
+
+public static class ClaimsPrincipalExtension
 {
-    public static class ClaimsPrincipalExtension
+    public static User ToActor(this ClaimsPrincipal principal)
     {
-        public static User ToActor(this ClaimsPrincipal principal)
+        return new User
         {
-            return new User
-            {
-                Id = principal.FindFirstValue(AppConstants.SubjectClaimName),
-                Name = principal.FindFirstValue(AppConstants.NameClaimName),
-                ApprovedName = principal.FindFirstValue(AppConstants.ApprovedNameClaimName),
-                Sponsor = principal.FindFirstValue(AppConstants.SponsorClaimName),
-                Role = Enum.Parse<UserRole>(principal.FindFirstValue(AppConstants.RoleListClaimName) ?? UserRole.Member.ToString())
-            };
-        }
+            Id = principal.FindFirstValue(AppConstants.SubjectClaimName),
+            Name = principal.FindFirstValue(AppConstants.NameClaimName),
+            ApprovedName = principal.FindFirstValue(AppConstants.ApprovedNameClaimName),
+            Role = Enum.Parse<UserRole>(principal.FindFirstValue(AppConstants.RoleListClaimName) ?? UserRole.Member.ToString()),
+            SponsorId = principal.FindFirstValue(AppConstants.SponsorClaimName)
+        };
+    }
 
-        public static string ToAuthenticatedGraderForChallengeId(this ClaimsPrincipal principal)
-        {
-            if (!principal.HasClaim(claim => claim.Type == GraderKeyAuthentication.GraderKeyChallengeIdClaimName))
-                return null;
+    public static string ToAuthenticatedGraderForChallengeId(this ClaimsPrincipal principal)
+    {
+        if (!principal.HasClaim(claim => claim.Type == GraderKeyAuthentication.GraderKeyChallengeIdClaimName))
+            return null;
 
-            return principal.FindFirstValue(GraderKeyAuthentication.GraderKeyChallengeIdClaimName);
-        }
+        return principal.FindFirstValue(GraderKeyAuthentication.GraderKeyChallengeIdClaimName);
+    }
 
-        public static string Subject(this ClaimsPrincipal principal)
-        {
-            return principal.FindFirstValue(AppConstants.SubjectClaimName);
-        }
+    public static string Subject(this ClaimsPrincipal principal)
+    {
+        return principal.FindFirstValue(AppConstants.SubjectClaimName);
+    }
 
-        public static string Name(this ClaimsPrincipal principal)
-        {
-            return principal.FindFirstValue(AppConstants.NameClaimName);
-        }
-
+    public static string Name(this ClaimsPrincipal principal)
+    {
+        return principal.FindFirstValue(AppConstants.NameClaimName);
     }
 }

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games.Start;
@@ -26,13 +27,13 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     private readonly IGamebrainService _gamebrainService;
     private readonly IGameEngineService _gameEngineService;
     private readonly IGameHubBus _gameHubBus;
-    private readonly IGameStore _gameStore;
     private readonly IJsonService _jsonService;
     private readonly ILockService _lockService;
     private readonly ILogger<ExternalSyncGameStartService> _logger;
     private readonly IMapper _mapper;
     private readonly IPlayerStore _playerStore;
     private readonly INowService _now;
+    private readonly IStore _store;
     private readonly ISyncStartGameService _syncStartGameService;
     private readonly ITeamService _teamService;
     private readonly IValidatorService<GameModeStartRequest> _validator;
@@ -45,13 +46,13 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         IGamebrainService gamebrainService,
         IGameEngineService gameEngineService,
         IGameHubBus gameHubBus,
-        IGameStore gameStore,
         IJsonService jsonService,
         ILockService lockService,
         ILogger<ExternalSyncGameStartService> logger,
         IMapper mapper,
         INowService now,
         IPlayerStore playerStore,
+        IStore store,
         ISyncStartGameService syncStartGameService,
         ITeamService teamService,
         IValidatorService<GameModeStartRequest> validator
@@ -63,13 +64,13 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         _gamebrainService = gamebrainService;
         _gameEngineService = gameEngineService;
         _gameHubBus = gameHubBus;
-        _gameStore = gameStore;
         _jsonService = jsonService;
         _lockService = lockService;
         _logger = logger;
         _mapper = mapper;
         _now = now;
         _playerStore = playerStore;
+        _store = store;
         _syncStartGameService = syncStartGameService;
         _teamService = teamService;
         _validator = validator;
@@ -82,7 +83,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         _validator.AddValidator(async (req, ctx) =>
         {
             // just do exists here since we need the game for other checks anyway
-            var game = await _gameStore.Retrieve(req.GameId);
+            var game = await _store.FirstOrDefaultAsync<Data.Game>(g => g.Id == req.GameId, cancellationToken);
+
             if (game == null)
             {
                 ctx.AddValidationException(new ResourceNotFound<Data.Game>(req.GameId));
@@ -92,7 +94,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             if (!game.RequireSynchronizedStart)
                 ctx.AddValidationException(new GameIsNotSyncStart(game.Id, $"""{nameof(ExternalSyncGameStartService)} can't start this game because it's not sync-start."""));
 
-            if (game.Mode != GameMode.External)
+            if (game.Mode != GameEngineMode.External)
                 ctx.AddValidationException(new GameModeIsntExternal(game.Id, $"""{nameof(ExternalSyncGameStartService)} can't start this game because it's not an external game."""));
         });
 
@@ -113,11 +115,11 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // record the game end time as of launch
         // NOTE: when we pull external launch data into its own data structure (issue#249), we can revamp the use of game end date
         // (we shouldn't be using it to reason about the game launch state)
-        var preLaunchEndTime = await _gameStore
-            .ListAsNoTracking()
+        var preLaunchEndTime = await _store
+            .WithNoTracking<Data.Game>()
             .Where(g => g.Id == request.GameId)
             .Select(g => g.GameEnd)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         try
         {
@@ -126,8 +128,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
             // update the game start/end time to now so we can reason better about whether the game has actually
             // started launching or not
-            await _gameStore
-                .List()
+            await _store
+                .WithNoTracking<Data.Game>()
                 .Where(g => g.Id == request.GameId)
                 .ExecuteUpdateAsync
                 (
@@ -164,7 +166,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                             Variant = 0
                         },
                         team.Captain.UserId,
-                        _challengeService.BuildGraderUrl()
+                        _challengeService.BuildGraderUrl(),
+                        cancellationToken
                     );
 
                     request.State.ChallengesCreated.Add(_mapper.Map<GameStartStateChallenge>(challenge));
@@ -239,8 +242,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
             // update game end time after deployment
             var gameEndTime = request.State.StartTime.AddMinutes(request.Context.SessionLengthMinutes);
-            await _gameStore
-                .List()
+            await _store
+                .WithNoTracking<Data.Game>()
                 .Where(g => g.Id == request.GameId)
                 .ExecuteUpdateAsync(g => g.SetProperty(g => g.GameEnd, gameEndTime), cancellationToken);
 
@@ -268,8 +271,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             if (preLaunchEndTime.IsNotEmpty())
             {
                 _logger.LogInformation($"""Restoring the end time of game "{request.GameId}" to "{preLaunchEndTime}". """);
-                await _gameStore
-                    .List()
+                await _store
+                    .WithNoTracking<Data.Game>()
                     .Where(g => g.Id == request.GameId)
                     .ExecuteUpdateAsync(g => g.SetProperty(g => g.GameEnd, preLaunchEndTime), cancellationToken);
             }
@@ -289,7 +292,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
     public async Task<GameStartPhase> GetStartPhase(string gameId, CancellationToken cancellationToken)
     {
-        var game = await _gameStore.ListAsNoTracking().FirstOrDefaultAsync(g => g.Id == gameId, cancellationToken);
+        var game = await _store.WithNoTracking<Data.Game>().FirstOrDefaultAsync(g => g.Id == gameId, cancellationToken);
         var hasStart = game.GameStart.IsNotEmpty();
         var hasEnd = game.GameEnd.IsNotEmpty();
         var now = _now.Get();

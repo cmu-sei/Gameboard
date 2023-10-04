@@ -42,7 +42,7 @@ internal class ResetSessionCommandValidator : IGameboardRequestValidator<ResetSe
         // get the game first - we need it to know if we need to update the sync start state later,
         // and we need to validate that it can be reset
         var players = await _store
-            .ListAsNoTracking<Data.Player>()
+            .WithNoTracking<Data.Player>()
                 .Include(p => p.Game)
             .Where(p => p.TeamId == request.TeamId)
             .ToArrayAsync(cancellationToken);

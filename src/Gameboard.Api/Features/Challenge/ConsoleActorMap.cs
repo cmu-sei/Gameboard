@@ -11,7 +11,7 @@ namespace Gameboard.Api.Services
 {
     public class ConsoleActorMap
     {
-        ConcurrentDictionary<string, ConsoleActor> _cache = new ConcurrentDictionary<string, ConsoleActor>();
+        private readonly ConcurrentDictionary<string, ConsoleActor> _cache = new();
 
         public ConsoleActorMap()
         {
@@ -46,7 +46,7 @@ namespace Gameboard.Api.Services
 
         public ConsoleActor[] Find(string gid = "")
         {
-            var q = gid.HasValue()
+            var q = gid.NotEmpty()
                 ? _cache.Values.Where(a => a.GameId == gid)
                 : _cache.Values
             ;
@@ -63,8 +63,8 @@ namespace Gameboard.Api.Services
                 string key = $"{a.ChallengeId}#{a.VmName}";
                 if (vmToActor.ContainsKey(key))
                     vmToActor[key].Add(a.UserName);
-                else 
-                    vmToActor.Add(key, new List<string>{a.UserName});
+                else
+                    vmToActor.Add(key, new List<string> { a.UserName });
             }
             return vmToActor;
         }

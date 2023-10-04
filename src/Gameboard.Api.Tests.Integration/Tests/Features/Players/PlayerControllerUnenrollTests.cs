@@ -1,15 +1,15 @@
 using System.Net;
-using Gameboard.Api;
-using Gameboard.Api.Data;
+using Gameboard.Api.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class PlayerControllerUnenrollTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public PlayerControllerUnenrollTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public PlayerControllerUnenrollTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }
@@ -19,14 +19,13 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext<
     {
         // given
         await _testContext
-            .WithTestServices(s => s.AddGbIntegrationTestAuth(u => u.Id = memberUserId))
             .WithDataState(state =>
             {
-                state.AddGame(g =>
+                state.Add<Data.Game>(fixture, g =>
                 {
-                    g.Players = new Api.Data.Player[]
+                    g.Players = new List<Data.Player>
                     {
-                        state.BuildPlayer(p =>
+                        state.Build<Data.Player>(fixture, p =>
                         {
                             p.Id = fixture.Create<string>();
                             p.Name = "A";
@@ -34,28 +33,25 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext<
                             p.Role = PlayerRole.Manager;
                         }),
 
-                        state.BuildPlayer(p =>
+                        state.Build<Data.Player>(fixture, p =>
                         {
                             p.Id = memberPlayerId;
                             p.Name = "B";
                             p.Role = PlayerRole.Member;
                             p.TeamId = teamId;
-                            p.User = state.BuildUser(u =>
+                            p.User = state.Build<Data.User>(fixture, u =>
                             {
                                 u.Id = memberUserId;
                                 u.Role = UserRole.Member;
                             });
-                            p.Challenges = new Api.Data.Challenge[]
+                            p.Challenges = state.BuildChallenge(c =>
                             {
-                                state.BuildChallenge(c =>
-                                {
-                                    // the challenge is associated with the player but no other team
-                                    // so it should get deleted
-                                    c.Id = challengeId;
-                                    c.PlayerId = memberPlayerId;
-                                    c.TeamId = teamId;
-                                })
-                            };
+                                // the challenge is associated with the player but no other team
+                                // so it should get deleted
+                                c.Id = challengeId;
+                                c.PlayerId = memberPlayerId;
+                                c.TeamId = teamId;
+                            }).ToCollection();
                         })
                     };
                 });
@@ -64,7 +60,9 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext<
         var reqParams = new PlayerUnenrollRequest { PlayerId = memberPlayerId };
 
         // when
-        var response = await _testContext.Http.DeleteAsync($"/api/player/{memberPlayerId}?{reqParams.ToQueryString()}");
+        var response = await _testContext
+            .CreateHttpClientWithActingUser(u => u.Id = memberUserId)
+            .DeleteAsync($"/api/player/{memberPlayerId}?{reqParams.ToQueryString()}");
 
         // then
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -77,32 +75,33 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext<
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task Unenroll_WhenIsManager_Fails(string managerPlayerId, string managerUserId, string memberPlayerId)
+    public async Task Unenroll_WhenIsManager_Fails(IFixture fixture)
     {
         // given
+        var managerUserId = fixture.Create<string>();
+        var managerPlayerId = fixture.Create<string>();
+
         await _testContext
-            .WithTestServices(s => s.AddGbIntegrationTestAuth(u => u.Id = managerUserId))
             .WithDataState(state =>
             {
-                state.AddGame(g =>
+                state.Add<Data.Game>(fixture, g =>
                 {
-                    g.Players = new Api.Data.Player[]
+                    g.Players = new List<Data.Player>
                     {
-                        state.BuildPlayer(p =>
+                        state.Build<Data.Player>(fixture, p =>
                         {
                             p.Id = managerPlayerId;
                             p.TeamId = "team";
                             p.Role = PlayerRole.Manager;
-                            p.User = state.BuildUser(u =>
+                            p.User = state.Build<Data.User>(fixture, u =>
                             {
-                                u.Id = managerUserId;
+                                u.Id = fixture.Create<string>();
                                 u.Role = UserRole.Member;
                             });
                         }),
 
-                        state.BuildPlayer(p =>
+                        state.Build<Data.Player>(fixture, p =>
                         {
-                            p.Id = memberPlayerId;
                             p.Role = PlayerRole.Member;
                             p.TeamId = "team";
                         })
@@ -113,7 +112,9 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext<
         var reqParams = new PlayerUnenrollRequest { PlayerId = managerPlayerId };
 
         // when / then
-        var response = await _testContext.Http.DeleteAsync($"/api/player/{managerPlayerId}?{reqParams.ToQueryString()}");
+        var response = await _testContext
+            .CreateHttpClientWithActingUser(u => u.Id = managerUserId)
+            .DeleteAsync($"/api/player/{managerPlayerId}?{reqParams.ToQueryString()}");
 
         // then
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);

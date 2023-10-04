@@ -27,7 +27,7 @@ internal class ApiKeysService : IApiKeysService
     private readonly IRandomService _rng;
     private readonly IApiKeysStore _store;
     private readonly ApiKeyOptions _options;
-    private readonly IUserStore _userStore;
+    private readonly IStore<Data.User> _userStore;
 
     public ApiKeysService(
         ApiKeyOptions options,
@@ -36,7 +36,7 @@ internal class ApiKeysService : IApiKeysService
         INowService now,
         IRandomService rng,
         IApiKeysStore store,
-        IUserStore userStore)
+        IStore<Data.User> userStore)
     {
         _guids = guids;
         _mapper = mapper;
@@ -84,7 +84,7 @@ internal class ApiKeysService : IApiKeysService
         var hashedKey = apiKey.ToSha256();
 
         return await _userStore
-            .ListAsNoTracking()
+            .ListWithNoTracking()
             .Include(u => u.ApiKeys)
             // we use SingleOrDefaultAsync to ensure that we only get one result -
             // if we get more than one, some weird stuff is happening and we need to know.
@@ -104,7 +104,7 @@ internal class ApiKeysService : IApiKeysService
         return keyRaw.Substring(0, Math.Min(keyRaw.Length, _options.RandomCharactersLength));
     }
 
-    internal bool IsValidKey(string hashedKey, Data.ApiKey candidate)
+    internal bool IsValidKey(string hashedKey, ApiKey candidate)
         => hashedKey == candidate.Key &&
         (
             candidate.ExpiresOn == null ||

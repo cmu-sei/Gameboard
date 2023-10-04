@@ -15,26 +15,28 @@ namespace Gameboard.Api.Services;
 
 public class UserService
 {
-    IUserStore Store { get; }
-    IMapper Mapper { get; }
-
+    private readonly IMapper _mapper;
+    private readonly INowService _now;
+    private readonly SponsorService _sponsorService;
+    private readonly IStore<Data.User> _userStore;
     private readonly IMemoryCache _localcache;
     private readonly INameService _namesvc;
-    private readonly Defaults _defaultOptions;
 
     public UserService(
-        IUserStore store,
+        INowService now,
+        SponsorService sponsorService,
+        IStore<Data.User> userStore,
         IMapper mapper,
         IMemoryCache cache,
-        INameService namesvc,
-        Defaults defaultOptions
+        INameService namesvc
     )
     {
-        Store = store;
-        Mapper = mapper;
         _localcache = cache;
+        _mapper = mapper;
         _namesvc = namesvc;
-        _defaultOptions = defaultOptions;
+        _now = now;
+        _sponsorService = sponsorService;
+        _userStore = userStore;
     }
 
     /// <summary>
@@ -42,79 +44,100 @@ public class UserService
     /// </summary>
     /// <param name="model"></param>
     /// <returns></returns>
-    public async Task<User> Create(NewUser model)
+    public async Task<TryCreateUserResult> TryCreate(NewUser model)
     {
-        var entity = await Store.Retrieve(model.Id);
+        if (model.Id.IsEmpty())
+            throw new ArgumentException(nameof(model.Id));
 
-        if (entity is Data.User && entity.Id.HasValue())
-        {
-            // entity.Name = model.Name;
-            // // entity.Email = model.Email;
-            // // entity.Username = model.Username;
-            // await Store.Update(entity);
-        }
-        else
-        {
-            entity = Mapper.Map<Data.User>(model);
+        var entity = await _userStore
+            .ListWithNoTracking()
+                .Include(u => u.Sponsor)
+            .FirstOrDefaultAsync(u => u.Id == model.Id);
 
-            bool found = false;
-            int i = 0;
-            do
+        if (entity is not null)
+        {
+            return new TryCreateUserResult
             {
-                entity.ApprovedName = _namesvc.GetRandomName();
-                entity.Name = entity.ApprovedName;
-
-                // check uniqueness
-                found = await Store.DbSet.AnyAsync(p =>
-                    p.Id != entity.Id &&
-                    p.Name == entity.Name
-                );
-            } while (found && i++ < 20);
-
-            entity.Sponsor = _defaultOptions.DefaultSponsor;
-
-            await Store.Create(entity);
+                IsNewUser = false,
+                User = _mapper.Map<User>(entity)
+            };
         }
+
+        entity = _mapper.Map<Data.User>(model);
+
+        // first user gets admin
+        if (!await _userStore.AnyAsync())
+            entity.Role = AppConstants.AllRoles;
+
+        // record creation date and first login
+        if (entity.CreatedOn.DoesntHaveValue())
+        {
+            entity.CreatedOn = _now.Get();
+            entity.LastLoginDate = entity.CreatedOn;
+        }
+
+        // assign the user to the default sponsor 
+        entity.Sponsor = await _sponsorService.GetDefaultSponsor();
+        entity.HasDefaultSponsor = true;
+
+        bool found = false;
+        int i = 0;
+        do
+        {
+            entity.ApprovedName = _namesvc.GetRandomName();
+            entity.Name = entity.ApprovedName;
+
+            // check uniqueness
+            found = await _userStore.AnyAsync(p => p.Id != entity.Id && p.Name == entity.Name);
+        } while (found && i++ < 20);
+
+        await _userStore.Create(entity);
 
         _localcache.Remove(entity.Id);
-
-        return Mapper.Map<User>(entity);
+        return new TryCreateUserResult
+        {
+            IsNewUser = true,
+            User = _mapper.Map<User>(entity)
+        };
     }
 
     public async Task<User> Retrieve(string id)
     {
-        return Mapper.Map<User>(await Store.Retrieve(id));
+        return _mapper.Map<User>(await _userStore.Retrieve(id));
     }
 
-    public async Task Update(ChangedUser model, bool sudo, bool admin = false)
+    public async Task<User> Update(ChangedUser model, bool sudo, bool admin = false)
     {
-        var entity = await Store.Retrieve(model.Id);
-        bool differentName = entity.Name != model.Name;
+        var entity = await _userStore.Retrieve(model.Id);
 
-        if (!sudo)
+        // only admins can alter the roles of users
+        if (model.Role.HasValue && model.Role != entity.Role)
         {
-            Mapper.Map(
-                Mapper.Map<SelfChangedUser>(model),
-                entity
-            );
-
-            entity.NameStatus = entity.Name != entity.ApprovedName
-                ? "pending"
-                : ""
-            ;
-        }
-        else
-        {
-            if (!admin && model.Role != entity.Role)
+            if (!admin)
                 throw new ActionForbidden();
-
-            Mapper.Map(model, entity);
+            else
+                entity.Role = model.Role.Value;
         }
 
-        if (differentName)
+        // everyone can change their sponsor and name
+        if (model.SponsorId.NotEmpty())
         {
+            // the first change of the sponsor knocks off the "Default Sponsor" flag
+            entity.HasDefaultSponsor = false;
+            entity.SponsorId = model.SponsorId;
+        }
+
+        // if we're editing the name...
+        if (model.Name.NotEmpty() && entity.Name != model.Name)
+        {
+            entity.Name = model.Name.Trim();
+
+            // admins change names without the "pending" step
+            entity.NameStatus = sudo ? entity.NameStatus : "pending";
+
+            // if the name is in use, change the namestatus to reflect this fact
             // check uniqueness
-            bool found = await Store.DbSet.AnyAsync(p =>
+            var found = await _userStore.DbSet.AnyAsync(p =>
                 p.Id != entity.Id &&
                 p.Name == entity.Name
             );
@@ -123,23 +146,25 @@ public class UserService
                 entity.NameStatus = AppConstants.NameStatusNotUnique;
         }
 
-        await Store.Update(entity);
-
+        await _userStore.Update(entity);
         _localcache.Remove(entity.Id);
-
+        return _mapper.Map<User>(entity);
     }
 
     public async Task Delete(string id)
     {
-        await Store.Delete(id);
+        await _userStore.Delete(id);
         _localcache.Remove(id);
     }
 
     public async Task<IEnumerable<TProject>> List<TProject>(UserSearch model) where TProject : class, IUserViewModel
     {
-        var q = Store.List(model.Term);
+        var q = _userStore
+            .List(model.Term)
+            .AsNoTracking()
+            .Include(u => u.Sponsor).Where(u => true);
 
-        if (model.Term.HasValue())
+        if (model.Term.NotEmpty())
         {
             model.Term = model.Term.ToLower();
             q = q.Where(u =>
@@ -159,25 +184,24 @@ public class UserService
             q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus) && !u.NameStatus.Equals(AppConstants.NameStatusPending));
 
         q = q.OrderBy(p => p.ApprovedName);
-
         q = q.Skip(model.Skip);
 
         if (model.Take > 0)
             q = q.Take(model.Take);
 
-        return await Mapper
+        return await _mapper
             .ProjectTo<TProject>(q)
             .ToArrayAsync();
     }
 
     public async Task<UserSimple[]> ListSupport(SearchFilter model)
     {
-        var q = Store.List(model.Term);
+        var q = _userStore.List(model.Term);
 
         // Might want to also include observers if they can be assigned. Or just make possible assignees "Support" roles
         q = q.Where(u => u.Role.HasFlag(UserRole.Support));
 
-        if (model.Term.HasValue())
+        if (model.Term.NotEmpty())
         {
             model.Term = model.Term.ToLower();
             q = q.Where(u =>
@@ -187,20 +211,7 @@ public class UserService
             );
         }
 
-        return await Mapper.ProjectTo<UserSimple>(q).ToArrayAsync();
-    }
-
-    internal string ResolveRandomName(IUserStore store, INameService nameSvc, User entity)
-    {
-        var randomName = nameSvc.GetRandomName();
-        var existing = store.DbSet.AnyAsync(p => p.Id != entity.Id && p.Name == entity.Name);
-
-        if (existing != null)
-        {
-            return $"{randomName}_${DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
-        }
-
-        return randomName;
+        return await _mapper.ProjectTo<UserSimple>(q).ToArrayAsync();
     }
 
     internal bool HasRole(User user, UserRole role)

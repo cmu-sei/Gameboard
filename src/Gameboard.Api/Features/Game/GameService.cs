@@ -2,19 +2,17 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using Gameboard.Api.Data.Abstractions;
+using Microsoft.Extensions.Logging;
+using AutoMapper;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
-using Gameboard.Api.Common.Services;
+using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Games;
-using Gameboard.Api.Features.Games.External;
 
 namespace Gameboard.Api.Services;
 
@@ -27,7 +25,7 @@ public interface IGameService
     bool IsGameStartSuperUser(User user);
     IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool sudo = false);
     Task<bool> IsUserPlaying(string gameId, string userId);
-    Task<IEnumerable<Game>> List(GameSearchFilter model, bool sudo);
+    Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false);
     Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo);
     Task ReRank(string id);
     Task<Game> Retrieve(string id, bool accessHidden = true);
@@ -69,7 +67,7 @@ public class GameService : _Service, IGameService
 
         // default to standard-mode challenges
         if (model.Mode.IsEmpty())
-            model.Mode = GameMode.Standard;
+            model.Mode = GameEngineMode.Standard;
 
         var entity = Mapper.Map<Data.Game>(model);
 
@@ -89,7 +87,7 @@ public class GameService : _Service, IGameService
 
     public async Task Update(ChangedGame game)
     {
-        if (game.Mode != GameMode.External)
+        if (game.Mode != GameEngineMode.External)
         {
             game.ExternalGameStartupUrl = null;
         }
@@ -116,6 +114,12 @@ public class GameService : _Service, IGameService
         if (model == null)
             return q;
 
+        if (model.WantsCompetitive)
+            q = q.Where(g => g.PlayerMode == PlayerMode.Competition);
+
+        if (model.WantsPractice)
+            q = q.Where(g => g.PlayerMode == PlayerMode.Practice);
+
         if (model.WantsPresent)
             q = q.Where(g => (g.GameEnd > now || g.GameEnd == AppConstants.NULL_DATE) && g.GameStart < now);
 
@@ -138,6 +142,11 @@ public class GameService : _Service, IGameService
         return q;
     }
 
+    public Task<IEnumerable<GameSearchResult>> Search(GameSearchQuery query)
+    {
+        throw new NotImplementedException();
+    }
+
     public async Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false)
     {
         var games = await BuildQuery(model, sudo)
@@ -156,6 +165,8 @@ public class GameService : _Service, IGameService
         if (!sudo)
             q = q.Where(g => g.IsPublished);
 
+        if (model.WantsCompetitive)
+            q = q.Where(g => g.PlayerMode == PlayerMode.Competition);
         if (model.WantsPresent)
             q = q.Where(g => g.GameEnd > now && g.GameStart < now);
         if (model.WantsFuture)
@@ -203,9 +214,9 @@ public class GameService : _Service, IGameService
     {
         var entity = await _store.Load(id);
 
-        return Mapper.Map<ChallengeSpec[]>(
-            entity.Specs
-        );
+        return Mapper.Map<ChallengeSpec[]>(entity.Specs)
+            .OrderBy(s => s.Name)
+            .ToArray();
     }
 
     public async Task<SessionForecast[]> SessionForecast(string id)

@@ -1,38 +1,24 @@
-using DotNet.Testcontainers.Builders;
-using DotNet.Testcontainers.Configurations;
-using DotNet.Testcontainers.Containers;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games.External;
-using Gameboard.Api.Structure;
+using Gameboard.Api.Features.UnityGames;
+using Gameboard.Api.Tests.Shared;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using Testcontainers.PostgreSql;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
-public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, IAsyncLifetime where TDbContext : GameboardDbContext
-{
-    internal Action<IServiceCollection> _testServicesBuilder = serviceCollection => { };
-    private readonly TestcontainerDatabase _dbContainer;
+[CollectionDefinition(TestCollectionNames.DbFixtureTests)]
+public class DbTestCollection : ICollectionFixture<GameboardTestContext> { }
 
-    public GameboardTestContext()
-    {
-        _dbContainer = new TestcontainersBuilder<PostgreSqlTestcontainer>()
-            .WithDatabase(new PostgreSqlTestcontainerConfiguration
-            {
-                Database = "GameboardIntegrationTestDb",
-                Username = "gameboard",
-                Password = "gameboard",
-            })
-            .WithImage("postgres:latest")
-            .WithCleanUp(true)
-            .Build();
-    }
+public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifetime
+{
+    private PostgreSqlContainer? _container;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -40,18 +26,29 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
 
         builder.ConfigureServices(services =>
         {
+            if (_container is null)
+                throw new GbAutomatedTestSetupException("Couldn't initialize the test context - the database contianer hasn't been resolved.");
+
             // Add DB context with connection to the container
-            services.RemoveService<TDbContext>();
-            services.AddDbContext<TDbContext>(options => options.UseGameboardPostgreSql(new GameboardDataStoreConfig
+            services.RemoveService<DbContext>();
+            // services.AddDbContext<GameboardDbContext, GameboardTestDbContext>(builder => builder.UseNpgsql(_container.GetConnectionString()));
+            services.AddDbContext<GameboardDbContext, GameboardDbContextPostgreSQL>(builder =>
             {
-                ConnectionString = _dbContainer.ConnectionString,
-                EnableSensitiveDataLogging = true,
-                MinimumLogLevel = LogLevel.Warning
-            }));
+                builder.UseNpgsql(_container.GetConnectionString(), opts => opts.MigrationsAssembly("Gameboard.Api"));
+            });
+
+            // migrate the database (forces a blocking call)
+            // get the dbcontext type and use it to migrate (stand up) the database
+            // var builder = new DbContextOptionsBuilder<GameboardTestDbContext>().UseNpgsql(_container.GetConnectionString());
+            // var dbContext = new GameboardTestDbContext(builder.Options);
+            // dbContext.Database.Migrate();
 
             // Some services (like the stores) in Gameboard inject with GameboardDbContext rather than DbContext,
             // so we need to add an additional binding for them
-            services.AddTransient<GameboardDbContext, TDbContext>();
+            // services.AddTransient<GameboardDbContext, TDbContext>();
+            services.AddScoped<GameboardDbContextPostgreSQL>();
+            // var testDbContext = services.FindService<GameboardTestDbContext>();
+            services.AddScoped<GameboardDbContext, GameboardDbContextPostgreSQL>();
 
             // add user claims transformation that lets them all through
             services.ReplaceService<IClaimsTransformation, TestClaimsTransformation>(allowMultipleReplace: true);
@@ -68,36 +65,27 @@ public class GameboardTestContext<TDbContext> : WebApplicationFactory<Program>, 
         });
     }
 
-    public TDbContext GetDbContext()
-    {
-        return Services.GetRequiredService<TDbContext>();
-    }
-
-    public HttpClient Http
-    {
-        get => this
-            .WithWebHostBuilder(host => host.ConfigureTestServices(_testServicesBuilder))
-            .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-    }
+    public GameboardDbContext GetDbContext() => Services.GetRequiredService<GameboardDbContext>();
 
     public async Task InitializeAsync()
     {
+        _container = new PostgreSqlBuilder()
+            .WithHostname("localhost")
+            .WithPortBinding(5433)
+            .WithUsername("foundry")
+            .WithPassword("foundry")
+            .WithImage("postgres:latest")
+            .WithAutoRemove(true)
+            .WithCleanUp(true)
+            .Build();
+
         // start up our testcontainer with the db
-        await _dbContainer.StartAsync();
-
-        // get the dbcontext type and use it to migrate (stand up) the database
-        var dbContext = Services.GetRequiredService<TDbContext>();
-        if (dbContext == null)
-        {
-            throw new MissingServiceException<TDbContext>("Attempting to stand up the testcontainers database but hit a missing dbContext service.");
-        }
-
-        // ensure database migration
-        await Services.GetRequiredService<TDbContext>().Database.MigrateAsync();
+        await _container.StartAsync();
     }
 
     public new async Task DisposeAsync()
     {
-        await _dbContainer.DisposeAsync();
+        if (_container is not null)
+            await _container.DisposeAsync();
     }
 }

@@ -2,7 +2,6 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using AutoMapper;
-using Gameboard.Api.Common;
 using Gameboard.Api.Features.Games;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -51,6 +50,8 @@ namespace Gameboard.Api.Services
             CreateMap<Game, Data.Game>();
             CreateMap<NewGame, Data.Game>();
             CreateMap<ChangedGame, Data.Game>();
+
+            // FROM Data.Game
             CreateMap<Data.Game, SimpleEntity>();
 
             // Game Start maps

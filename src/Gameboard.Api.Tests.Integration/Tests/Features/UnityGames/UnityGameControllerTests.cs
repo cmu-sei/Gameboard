@@ -1,47 +1,47 @@
-using Gameboard.Api.Data;
+using Gameboard.Api.Common;
 using Gameboard.Api.Features.UnityGames;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class UnityGameControllerTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class UnityGameControllerTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public UnityGameControllerTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public UnityGameControllerTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }
 
-    [Fact]
-    public async Task UnityGameController_CreateChallenge_DoesntReturnGraderKey()
+    [Theory, GbIntegrationAutoData]
+    public async Task UnityGameController_CreateChallenge_DoesntReturnGraderKey(string playerId, string gameId, string teamId, IFixture fixture)
     {
         // arrange
         await _testContext
-            .WithTestServices(s => s.AddGbIntegrationTestAuth(UserRole.Admin))
             .WithDataState(state =>
             {
-                state.Add(state.BuildPlayer(), p =>
+                state.Add<Data.Player>(fixture, p =>
                 {
-                    p.Id = "playerId";
-                    p.Game = state.BuildGame(g =>
+                    p.Id = playerId;
+                    p.Game = state.Build<Data.Game>(fixture, g =>
                     {
-                        g.Id = "gameId";
-                        g.Specs = new List<Data.ChallengeSpec> { state.BuildChallengeSpec() };
+                        g.Id = gameId;
+                        g.Specs = state.Build<Data.ChallengeSpec>(fixture).ToCollection();
                     });
-                    p.TeamId = "teamId";
+                    p.TeamId = teamId;
                 });
             });
 
         var newChallenge = new NewUnityChallenge()
         {
-            GameId = "gameId",
-            PlayerId = "playerId",
-            TeamId = "teamId",
+            GameId = gameId,
+            PlayerId = playerId,
+            TeamId = teamId,
             MaxPoints = 50,
             GamespaceId = "gamespace",
             Vms = new UnityGameVm[]
            {
-               new UnityGameVm
+               new()
                {
                    Id = "vm",
                    Url = "google.com",
@@ -50,11 +50,12 @@ public class UnityGameControllerTests : IClassFixture<GameboardTestContext<Gameb
            }
         };
 
+        var httpClient = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
+
         // act
-        var challenge = await _testContext
-            .Http
+        var challenge = await httpClient
             .PostAsync("/api/unity/challenge", newChallenge.ToJsonBody())
-            .WithContentDeserializedAs<Api.Data.Challenge>();
+            .WithContentDeserializedAs<Data.Challenge>();
 
         // assert
         challenge.ShouldNotBeNull();

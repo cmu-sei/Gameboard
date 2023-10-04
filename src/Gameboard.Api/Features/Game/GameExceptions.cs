@@ -45,7 +45,7 @@ internal class GameIsNotSyncStart : GameboardValidationException
 
 public class GameModeIsntExternal : GameboardValidationException
 {
-    public GameModeIsntExternal(string gameId, string mode) : base($"Can't boot external game with id '{gameId}' because its mode ('{mode}') isn't set to '{GameMode.External}'.") { }
+    public GameModeIsntExternal(string gameId, string mode) : base($"Can't boot external game with id '{gameId}' because its mode ('{mode}') isn't set to '{GameEngineMode.External}'.") { }
 }
 
 public class GameDoesntAllowReset : GameboardValidationException

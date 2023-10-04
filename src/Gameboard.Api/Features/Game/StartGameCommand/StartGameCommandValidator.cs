@@ -4,7 +4,6 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 
 namespace Gameboard.Api.Features.Games;
@@ -46,9 +45,12 @@ internal class StartGameCommandValidator : IGameboardRequestValidator<StartGameC
         (
             async (request, context) =>
             {
-                var sessionCount = await _teamService.GetSessionCount(request.TeamId, request.GameId, cancellationToken);
-                if (game.SessionLimit > 0 && sessionCount > game.SessionLimit)
-                    context.AddValidationException(new SessionLimitReached(request.TeamId, request.GameId, sessionCount, game.SessionLimit));
+                if (game.PlayerMode != PlayerMode.Competition)
+                {
+                    var sessionCount = await _teamService.GetSessionCount(request.TeamId, request.GameId, cancellationToken);
+                    if (game.SessionLimit > 0 && sessionCount > game.SessionLimit)
+                        context.AddValidationException(new SessionLimitReached(request.TeamId, request.GameId, sessionCount, game.SessionLimit));
+                }
             }
         );
 

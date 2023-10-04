@@ -7,6 +7,7 @@ internal class UserRoleAuthorizer : IAuthorizer
 {
     private readonly User _actor;
     private IEnumerable<UserRole> _allowedRoles { get; set; } = new List<UserRole> { UserRole.Admin };
+    private string _allowUserId;
 
     public UserRoleAuthorizer(IHttpContextAccessor httpContextAccessor)
     {
@@ -22,8 +23,17 @@ internal class UserRoleAuthorizer : IAuthorizer
         return this;
     }
 
+    public UserRoleAuthorizer AllowUserId(string userId)
+    {
+        _allowUserId = userId;
+        return this;
+    }
+
     public bool WouldAuthorize()
     {
+        if (_allowUserId.NotEmpty() && _actor.Id == _allowUserId)
+            return true;
+
         foreach (var role in _allowedRoles)
         {
             if (_actor.Role.HasFlag(role))

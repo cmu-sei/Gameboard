@@ -1,37 +1,34 @@
-using Gameboard.Api;
-using Gameboard.Api.Data;
-
 namespace Gameboard.Api.Tests.Integration;
 
-public class PlayerControllerTests : IClassFixture<GameboardTestContext<GameboardDbContextPostgreSQL>>
+[Collection(TestCollectionNames.DbFixtureTests)]
+public class PlayerControllerTests
 {
-    private readonly GameboardTestContext<GameboardDbContextPostgreSQL> _testContext;
+    private readonly GameboardTestContext _testContext;
 
-    public PlayerControllerTests(GameboardTestContext<GameboardDbContextPostgreSQL> testContext)
+    public PlayerControllerTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
     }
 
-    [Fact]
-    public async Task Update_WhenNameNotUniqueInGame_SetsNameNotUnique()
+    [Theory, GbIntegrationAutoData]
+    public async Task Update_WhenNameNotUniqueInGame_SetsNameNotUnique(IFixture fixture)
     {
         // given
         await _testContext
-            .WithTestServices(s => s.AddGbIntegrationTestAuth(UserRole.Admin))
             .WithDataState(state =>
             {
-                state.AddGame(g =>
+                state.Add<Data.Game>(fixture, g =>
                 {
-                    g.Players = new Api.Data.Player[]
+                    g.Players = new List<Data.Player>
                     {
-                        state.BuildPlayer(p =>
+                        state.Build<Data.Player>(fixture, p =>
                         {
                             p.Id = "PlayerA";
                             p.Name = "A";
                             p.TeamId = "team A";
                         }),
 
-                        state.BuildPlayer(p =>
+                        state.Build<Data.Player>(fixture, p =>
                         {
                             p.Id = "PlayerB";
                             p.Name = "B";
@@ -46,115 +43,131 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext<Gameboar
             Id = "PlayerB",
             // tries to update `playerB` to have the same name as `playerA`
             Name = "A",
-            ApprovedName = "B",
-            Sponsor = "sponsor",
-            Role = PlayerRole.Member
+            ApprovedName = "B"
         };
 
         // when
         var updatedPlayer = await _testContext
-            .Http
+            .CreateHttpClientWithAuthRole(UserRole.Admin)
             .PutAsync("/api/player", sutParams.ToJsonBody())
-            .WithContentDeserializedAs<Api.Player>();
+            .WithContentDeserializedAs<Player>();
 
         // assert
         updatedPlayer?.NameStatus.ShouldBe(AppConstants.NameStatusNotUnique);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    public async Task GetCertificates_WhenScoreConstrained_ReturnsExpectedCount(int score)
+    [Theory, GbIntegrationAutoData]
+    public async Task GetCertificates_WhenScoreConstrained_ReturnsExpectedCount
+    (
+        int score,
+        string scoringUserId,
+        string scoringPlayerId,
+        string nonScoringUserId,
+        string nonScoringPlayerId,
+        IFixture fixture
+    )
     {
         // given
         var now = DateTimeOffset.UtcNow;
-        var userId = TestIds.Generate();
 
-        await _testContext
-            .WithTestServices(s => s.AddGbIntegrationTestAuth(u => u.Id = userId))
-            .WithDataState(state =>
+        await _testContext.WithDataState(state =>
+        {
+            state.Add<Data.Game>(fixture, g =>
             {
-                state.AddGame(g =>
+                g.GameEnd = now - TimeSpan.FromDays(1);
+                g.CertificateTemplate = "This is a template with a {{player_count}}.";
+                g.Players = new List<Data.Player>
                 {
-                    g.GameEnd = now - TimeSpan.FromDays(1);
-                    g.CertificateTemplate = "This is a template with a {{player_count}}.";
-                    g.Players = new Api.Data.Player[]
+                    // i almost broke my brain trying to get GbIntegrationAutoData to work with
+                    // inline autodata, so I'm just doing two checks here
+                    state.Build<Data.Player>(fixture, p =>
                     {
-                        state.BuildPlayer(p =>
-                        {
-                            p.Id = TestIds.Generate();
-                            p.User = new Api.Data.User { Id = userId };
-                            p.UserId = userId;
-                            p.SessionEnd = now - TimeSpan.FromDays(-2);
-                            p.TeamId = "teamId";
-                            p.Score = score;
-                        })
-                    };
-                });
+                        p.Id = scoringPlayerId;
+                        p.User = state.Build<Data.User>(fixture, u => u.Id = scoringUserId);
+                        p.UserId = scoringUserId;
+                        p.SessionEnd = now - TimeSpan.FromDays(-2);
+                        p.TeamId = "teamId";
+                        p.Score = score;
+                    }),
+                    state.Build<Data.Player>(fixture, p =>
+                    {
+                        p.Id = nonScoringPlayerId;
+                        p.User = state.Build<Data.User>(fixture, u => u.Id = nonScoringUserId);
+                        p.UserId = nonScoringUserId;
+                        p.SessionEnd = now - TimeSpan.FromDays(-2);
+                        p.TeamId = "teamId";
+                        p.Score = score;
+                    })
+                };
             });
+        });
+
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = scoringUserId);
 
         // when
-        var certs = await _testContext
-            .Http
-            .GetAsync("/api/certificates")
-            .WithContentDeserializedAs<IEnumerable<PlayerCertificate>>();
-
-        // then
-        certs?.Count().ShouldBe(score == 0 ? 0 : 1);
-    }
-
-    [Fact]
-    public async Task GetCertificates_WithTeamsAndNonScorers_ReturnsExpected()
-    {
-        // given
-        var now = DateTimeOffset.UtcNow;
-        var userId = TestIds.Generate();
-        var playerId = TestIds.Generate();
-        var recentDate = DateTime.UtcNow.AddDays(-1);
-
-        await _testContext
-            .WithTestServices(s => s.AddGbIntegrationTestAuth(u => u.Id = userId))
-            .WithDataState(state =>
-            {
-                var allPlayers = new List<Api.Data.Player>();
-
-                allPlayers.Add(state.BuildPlayer(p =>
-                {
-                    p.Id = TestIds.Generate();
-                    p.User = new Api.Data.User { Id = userId };
-                    p.UserId = userId;
-                    p.SessionEnd = recentDate;
-                    p.Score = 20;
-                }));
-
-                allPlayers.AddRange(state.BuildTeam(playerBuilder: p =>
-                {
-                    p.Score = 5;
-                    p.SessionEnd = recentDate;
-                }));
-
-                allPlayers.Add(state.BuildPlayer(p =>
-                {
-                    p.SessionEnd = recentDate;
-                    p.Score = 0;
-                }));
-
-                state.AddGame(g =>
-                {
-                    g.GameEnd = now - TimeSpan.FromDays(1);
-                    g.CertificateTemplate = "This is a template with a {{player_count}} and a {{team_count}}.";
-                    g.Players = allPlayers;
-                });
-            });
-
-        // when
-        var certs = await _testContext
-            .Http
+        var certs = await httpClient
             .GetAsync("/api/certificates")
             .WithContentDeserializedAs<IEnumerable<PlayerCertificate>>();
 
         // then
         certs?.Count().ShouldBe(1);
-        certs?.First().Html.ShouldBe("This is a template with a 6 and a 2.");
+        certs?.First().Player.Id.ShouldBe(scoringPlayerId);
+    }
+
+    [Theory, GbIntegrationAutoData]
+    public async Task GetCertificates_WithTeamsAndNonScorers_ReturnsExpected(string teamId, string userId, IFixture fixture)
+    {
+        // given
+        var now = DateTimeOffset.UtcNow;
+        var recentDate = DateTime.UtcNow.AddDays(-1);
+
+        await _testContext.WithDataState(state =>
+        {
+            state.Add<Data.Game>(fixture, g =>
+            {
+                g.CertificateTemplate = "This is a template with a {{player_count}} and a {{team_count}}.";
+                g.GameEnd = now - TimeSpan.FromDays(1);
+
+                g.Players = new List<Data.Player>
+                {
+                    // three players with nonzero score (2 on the same team)
+                    state.Build<Data.Player>(fixture, p =>
+                    {
+                        p.SessionEnd = recentDate;
+                        p.Score = 20;
+                        p.User = state.Build<Data.User>(fixture, u => u.Id = userId);
+                    }),
+                    state.Build<Data.Player>(fixture, p =>
+                    {
+                        p.SessionEnd = recentDate;
+                        p.Score = 30;
+                        p.TeamId = teamId;
+                    }),
+                    state.Build<Data.Player>(fixture, p =>
+                    {
+                        p.SessionEnd = recentDate;
+                        p.Score = 30;
+                        p.TeamId = teamId;
+                    }),
+                    // one player with zero score
+                    state.Build<Data.Player>(fixture, p =>
+                    {
+                        p.SessionEnd = recentDate;
+                        p.Score = 0;
+                    }),
+                };
+            });
+        });
+
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = userId);
+
+        // when
+        var certs = await httpClient
+            .GetAsync("/api/certificates")
+            .WithContentDeserializedAs<IEnumerable<PlayerCertificate>>();
+
+        // then
+        certs?.Count().ShouldBe(1);
+        certs?.First().Html.ShouldBe("This is a template with a 3 and a 2.");
     }
 }
