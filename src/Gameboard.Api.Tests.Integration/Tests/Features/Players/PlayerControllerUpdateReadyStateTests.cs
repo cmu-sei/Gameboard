@@ -95,30 +95,32 @@ public class PlayerControllerUpdatePlayerReadyTests
                     },
                     new()
                     {
-                        p.Id = readyPlayerId;
-                p.Name = "ready";
-                p.IsReady = true;
-                p.Role = PlayerRole.Manager;
-            }
-                });
-    });
+                        Id = readyPlayerId,
+                        Name = "ready",
+                        IsReady = true,
+                        Role = PlayerRole.Manager,
+                        TeamId = fixture.Create<string>()
+                    }
+                };
+            });
+        });
 
         var client = _testContext.CreateHttpClientWithActingUser(u => u.Id = notReadyPlayerUserId);
 
-    // when
-    var response = await client
-        .PutAsync($"/api/player/{notReadyPlayerId}/ready", new PlayerReadyUpdate { IsReady = true }.ToJsonBody());
+        // when
+        var response = await client
+            .PutAsync($"/api/player/{notReadyPlayerId}/ready", new PlayerReadyUpdate { IsReady = true }.ToJsonBody());
 
-    // then
-    response.StatusCode.ShouldBe(HttpStatusCode.OK);
-response.ShouldNotBeNull();
+        // then
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.ShouldNotBeNull();
 
-var gameSyncStartState = await _testContext
-    .CreateHttpClientWithAuthRole(UserRole.Admin)
-    .GetAsync($"/api/game/{gameId}/ready")
-    .WithContentDeserializedAs<SyncStartState>();
+        var gameSyncStartState = await _testContext
+            .CreateHttpClientWithAuthRole(UserRole.Admin)
+            .GetAsync($"/api/game/{gameId}/ready")
+            .WithContentDeserializedAs<SyncStartState>();
 
-    gameSyncStartState.ShouldNotBeNull();
-gameSyncStartState.IsReady.ShouldBeTrue();
+        gameSyncStartState.ShouldNotBeNull();
+        gameSyncStartState.IsReady.ShouldBeTrue();
     }
 }
