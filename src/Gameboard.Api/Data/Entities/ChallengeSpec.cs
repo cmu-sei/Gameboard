@@ -21,7 +21,6 @@ public class ChallengeSpec : IEntity
         public float R { get; set; }
         public GameEngineType GameEngineType { get; set; }
         public string SolutionGuideUrl { get; set; }
-        public string SolutionGuideUrl { get; set; }
 
         // nav properties
         public string GameId { get; set; }

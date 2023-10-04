@@ -32,32 +32,21 @@ public class Game : IEntity
     public int MinTeamSize { get; set; } = 1;
     public int MaxTeamSize { get; set; } = 1;
     public int MaxAttempts { get; set; } = 0;
-    public bool RequireSponsoredTeam { get; set; }
     public int SessionMinutes { get; set; } = 60;
     public int SessionLimit { get; set; } = 0;
     public int GamespaceLimitPerSession { get; set; } = 1;
     public bool IsPublished { get; set; }
+    public bool RequireSponsoredTeam { get; set; }
+    public bool RequireSynchronizedStart { get; set; } = false;
     public bool AllowPreview { get; set; }
     public bool AllowReset { get; set; }
     public string Key { get; set; }
     public string CardText1 { get; set; }
     public string CardText2 { get; set; }
     public string CardText3 { get; set; }
-
-    // mode stuff
-    public string ExternalGameClientUrl { get; set; }
-    public string ExternalGameStartupUrl { get; set; }
     public string Mode { get; set; }
     public PlayerMode PlayerMode { get; set; }
-    public bool RequireSynchronizedStart { get; set; } = false;
 
-
-    public ICollection<ChallengeSpec> Specs { get; set; } = new List<ChallengeSpec>();
-    public ICollection<Player> Players { get; set; } = new List<Player>();
-    public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
-    public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
-    public ICollection<ChallengeGate> Prerequisites { get; set; } = new List<ChallengeGate>();
-    public ICollection<PublishedCompetitiveCertificate> PublishedCompetitiveCertificates { get; set; }
     public ICollection<ChallengeSpec> Specs { get; set; } = new List<ChallengeSpec>();
     public ICollection<Player> Players { get; set; } = new List<Player>();
     public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
@@ -68,15 +57,7 @@ public class Game : IEntity
     [NotMapped] public bool RequireSession => SessionMinutes > 0;
     [NotMapped] public bool RequireTeam => MinTeamSize > 1;
     [NotMapped] public bool AllowTeam => MaxTeamSize > 1;
-    [NotMapped] public bool RequireSession => SessionMinutes > 0;
-    [NotMapped] public bool RequireTeam => MinTeamSize > 1;
-    [NotMapped] public bool AllowTeam => MaxTeamSize > 1;
 
-    [NotMapped]
-    public bool IsLive =>
-        GameStart != DateTimeOffset.MinValue &&
-        GameStart.CompareTo(DateTimeOffset.UtcNow) < 0 &&
-        GameEnd.CompareTo(DateTimeOffset.UtcNow) > 0;
     [NotMapped]
     public bool IsLive =>
         GameStart != DateTimeOffset.MinValue &&
@@ -86,23 +67,13 @@ public class Game : IEntity
     [NotMapped]
     public bool HasEnded =>
         GameEnd.CompareTo(DateTimeOffset.UtcNow) < 0;
-    [NotMapped]
-    public bool HasEnded =>
-        GameEnd.CompareTo(DateTimeOffset.UtcNow) < 0;
 
     [NotMapped]
     public bool RegistrationActive =>
         RegistrationType != GameRegistrationType.None &&
         RegistrationOpen.CompareTo(DateTimeOffset.UtcNow) < 0 &&
         RegistrationClose.CompareTo(DateTimeOffset.UtcNow) > 0;
-    [NotMapped]
-    public bool RegistrationActive =>
-        RegistrationType != GameRegistrationType.None &&
-        RegistrationOpen.CompareTo(DateTimeOffset.UtcNow) < 0 &&
-        RegistrationClose.CompareTo(DateTimeOffset.UtcNow) > 0;
 
-    [NotMapped] public bool IsCompetitionMode => PlayerMode == PlayerMode.Competition;
-    [NotMapped] public bool IsPracticeMode => PlayerMode == PlayerMode.Practice;
     [NotMapped] public bool IsCompetitionMode => PlayerMode == PlayerMode.Competition;
     [NotMapped] public bool IsPracticeMode => PlayerMode == PlayerMode.Practice;
 }

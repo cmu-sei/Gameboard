@@ -11,8 +11,6 @@ namespace Gameboard.Api.Features.ChallengeBonuses;
 
 public record AddManualBonusCommand(string ChallengeId, CreateManualChallengeBonus Model) : IRequest;
 
-public record AddManualBonusCommand(string ChallengeId, CreateManualChallengeBonus Model) : IRequest;
-
 internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
 {
     private readonly IStore<ManualChallengeBonus> _challengeBonusStore;

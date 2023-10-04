@@ -1,19 +1,14 @@
 using System.Net;
 using Gameboard.Api.Features.Games;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration.Players;
 
 [Collection(TestCollectionNames.DbFixtureTests)]
 public class PlayerControllerUpdatePlayerReadyTests
-[Collection(TestCollectionNames.DbFixtureTests)]
-public class PlayerControllerUpdatePlayerReadyTests
 {
     private readonly GameboardTestContext _testContext;
-    private readonly GameboardTestContext _testContext;
 
-    public PlayerControllerUpdatePlayerReadyTests(GameboardTestContext testContext)
     public PlayerControllerUpdatePlayerReadyTests(GameboardTestContext testContext)
     {
         _testContext = testContext;
@@ -35,15 +30,12 @@ public class PlayerControllerUpdatePlayerReadyTests
         await _testContext.WithDataState(state =>
         {
             state.Add<Data.Game>(fixture, g =>
-            state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
                 g.Name = fixture.Create<string>();
                 g.RequireSynchronizedStart = true;
                 g.Players = new List<Data.Player>
-                g.Players = new List<Data.Player>
                 {
-                    state.Build<Data.Player>(fixture, p =>
                     state.Build<Data.Player>(fixture, p =>
                     {
                         p.Id = notReadyPlayer1Id;
@@ -52,63 +44,46 @@ public class PlayerControllerUpdatePlayerReadyTests
                         p.User = state.Build<Data.User>(fixture, u => u.Id = readyPlayer1UserId);
                     }),
                     state.Build<Data.Player>(fixture, p =>
-                        p.Id = notReadyPlayer1Id;
-                p.Name = "not ready (but will be)";
-                p.IsReady = false;
-                p.User = state.Build<Data.User>(fixture, u => u.Id = readyPlayer1UserId);
-            }),
-                    state.Build<Data.Player>(fixture, p =>
                     {
                         p.Id = notReadyPlayer2Id;
                         p.Name = "not ready";
                         p.IsReady = false;
                     })
-                        p.Id = notReadyPlayer2Id;
-            p.Name = "not ready";
-            p.IsReady = false;
-        })
                 };
-});
+            });
         });
 
-var http = _testContext.CreateHttpClientWithActingUser(u => u.Id = readyPlayer1UserId);
+        var http = _testContext.CreateHttpClientWithActingUser(u => u.Id = readyPlayer1UserId);
 
-// when
-var response = await http
-    .PutAsync($"/api/player/{notReadyPlayer1Id}/ready", new PlayerReadyUpdate { IsReady = true }.ToJsonBody());
+        // when
+        var response = await http
+            .PutAsync($"/api/player/{notReadyPlayer1Id}/ready", new PlayerReadyUpdate { IsReady = true }.ToJsonBody());
 
-// then
-// only way to validate is to check for an upcoming session for the game
-var finalPlayer1 = await _testContext
-    .GetDbContext()
-    .Players
-    .SingleOrDefaultAsync(p => p.Id == notReadyPlayer1Id);
-var finalPlayer1 = await _testContext
-    .GetDbContext()
-    .Players
-    .SingleOrDefaultAsync(p => p.Id == notReadyPlayer1Id);
+        // then
+        // only way to validate is to check for an upcoming session for the game
+        var finalPlayer1 = await _testContext
+            .GetDbContext()
+            .Players
+            .SingleOrDefaultAsync(p => p.Id == notReadyPlayer1Id);
 
-response.StatusCode.ShouldBe(HttpStatusCode.OK);
-finalPlayer1.ShouldNotBeNull();
-finalPlayer1.SessionBegin.ShouldBe(DateTimeOffset.MinValue);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        finalPlayer1.ShouldNotBeNull();
+        finalPlayer1.SessionBegin.ShouldBe(DateTimeOffset.MinValue);
     }
 
     [Theory, GbIntegrationAutoData]
-public async Task UpdatePlayerReady_WithAllReadyPlayersAndExternalSyncGame_ReturnsStartedSession(IFixture fixture, string gameId, string readyPlayerId, string notReadyPlayerUserId, string notReadyPlayerId)
-{
-    // given
-    await _testContext.WithDataState(state =>
+    public async Task UpdatePlayerReady_WithAllReadyPlayersAndExternalSyncGame_ReturnsStartedSession(IFixture fixture, string gameId, string readyPlayerId, string notReadyPlayerUserId, string notReadyPlayerId)
     {
-        state.Add<Data.Game>(fixture, g =>
-        state.Add<Data.Game>(fixture, g =>
+        // given
+        await _testContext.WithDataState(state =>
         {
-            g.Id = gameId;
-            g.Name = fixture.Create<string>();
-            g.RequireSynchronizedStart = true;
-            g.Players = new List<Data.Player>
-
-            g.Players = new List<Data.Player>
+            state.Add<Data.Game>(fixture, g =>
             {
+                g.Id = gameId;
+                g.Name = fixture.Create<string>();
+                g.RequireSynchronizedStart = true;
+                g.Players = new List<Data.Player>
+                {
                     new()
                     {
                         Id = notReadyPlayerId,
@@ -121,23 +96,21 @@ public async Task UpdatePlayerReady_WithAllReadyPlayersAndExternalSyncGame_Retur
                     new()
                     {
                         p.Id = readyPlayerId;
-            p.Name = "ready";
-            p.IsReady = true;
-            p.Role = PlayerRole.Manager;
-        })
+                p.Name = "ready";
+                p.IsReady = true;
+                p.Role = PlayerRole.Manager;
+            }
+                });
+    });
 
-            };
-});
-        });
+        var client = _testContext.CreateHttpClientWithActingUser(u => u.Id = notReadyPlayerUserId);
 
-var client = _testContext.CreateHttpClientWithActingUser(u => u.Id = notReadyPlayerUserId);
+    // when
+    var response = await client
+        .PutAsync($"/api/player/{notReadyPlayerId}/ready", new PlayerReadyUpdate { IsReady = true }.ToJsonBody());
 
-// when
-var response = await client
-    .PutAsync($"/api/player/{notReadyPlayerId}/ready", new PlayerReadyUpdate { IsReady = true }.ToJsonBody());
-
-// then
-response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    // then
+    response.StatusCode.ShouldBe(HttpStatusCode.OK);
 response.ShouldNotBeNull();
 
 var gameSyncStartState = await _testContext
@@ -145,7 +118,7 @@ var gameSyncStartState = await _testContext
     .GetAsync($"/api/game/{gameId}/ready")
     .WithContentDeserializedAs<SyncStartState>();
 
-gameSyncStartState.ShouldNotBeNull();
+    gameSyncStartState.ShouldNotBeNull();
 gameSyncStartState.IsReady.ShouldBeTrue();
     }
 }

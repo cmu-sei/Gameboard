@@ -80,7 +80,8 @@ internal class UpdatePracticeModeSettingsHandler : IRequestHandler<UpdatePractic
         INowService now,
         IPracticeService practiceService,
         IStore store,
-        IGameboardValidator<UpdatePracticeModeSettingsCommand> validator
+        IGameboardValidator<UpdatePracticeModeSettingsCommand> validator,
+        IValidatorService<UpdatePracticeModeSettingsCommand> validatorService
     )
     {
         _mapper = mapper;
@@ -88,6 +89,7 @@ internal class UpdatePracticeModeSettingsHandler : IRequestHandler<UpdatePractic
         _practiceService = practiceService;
         _store = store;
         _validator = validator;
+        _validatorService = validatorService;
     }
 
     public async Task Handle(UpdatePracticeModeSettingsCommand request, CancellationToken cancellationToken)
