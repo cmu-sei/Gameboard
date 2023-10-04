@@ -58,7 +58,16 @@ public class Game : IEntity
     public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
     public ICollection<ChallengeGate> Prerequisites { get; set; } = new List<ChallengeGate>();
     public ICollection<PublishedCompetitiveCertificate> PublishedCompetitiveCertificates { get; set; }
+    public ICollection<ChallengeSpec> Specs { get; set; } = new List<ChallengeSpec>();
+    public ICollection<Player> Players { get; set; } = new List<Player>();
+    public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
+    public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
+    public ICollection<ChallengeGate> Prerequisites { get; set; } = new List<ChallengeGate>();
+    public ICollection<PublishedCompetitiveCertificate> PublishedCompetitiveCertificates { get; set; }
 
+    [NotMapped] public bool RequireSession => SessionMinutes > 0;
+    [NotMapped] public bool RequireTeam => MinTeamSize > 1;
+    [NotMapped] public bool AllowTeam => MaxTeamSize > 1;
     [NotMapped] public bool RequireSession => SessionMinutes > 0;
     [NotMapped] public bool RequireTeam => MinTeamSize > 1;
     [NotMapped] public bool AllowTeam => MaxTeamSize > 1;
@@ -68,7 +77,15 @@ public class Game : IEntity
         GameStart != DateTimeOffset.MinValue &&
         GameStart.CompareTo(DateTimeOffset.UtcNow) < 0 &&
         GameEnd.CompareTo(DateTimeOffset.UtcNow) > 0;
+    [NotMapped]
+    public bool IsLive =>
+        GameStart != DateTimeOffset.MinValue &&
+        GameStart.CompareTo(DateTimeOffset.UtcNow) < 0 &&
+        GameEnd.CompareTo(DateTimeOffset.UtcNow) > 0;
 
+    [NotMapped]
+    public bool HasEnded =>
+        GameEnd.CompareTo(DateTimeOffset.UtcNow) < 0;
     [NotMapped]
     public bool HasEnded =>
         GameEnd.CompareTo(DateTimeOffset.UtcNow) < 0;
@@ -78,7 +95,14 @@ public class Game : IEntity
         RegistrationType != GameRegistrationType.None &&
         RegistrationOpen.CompareTo(DateTimeOffset.UtcNow) < 0 &&
         RegistrationClose.CompareTo(DateTimeOffset.UtcNow) > 0;
+    [NotMapped]
+    public bool RegistrationActive =>
+        RegistrationType != GameRegistrationType.None &&
+        RegistrationOpen.CompareTo(DateTimeOffset.UtcNow) < 0 &&
+        RegistrationClose.CompareTo(DateTimeOffset.UtcNow) > 0;
 
+    [NotMapped] public bool IsCompetitionMode => PlayerMode == PlayerMode.Competition;
+    [NotMapped] public bool IsPracticeMode => PlayerMode == PlayerMode.Practice;
     [NotMapped] public bool IsCompetitionMode => PlayerMode == PlayerMode.Competition;
     [NotMapped] public bool IsPracticeMode => PlayerMode == PlayerMode.Practice;
 }

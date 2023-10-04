@@ -32,9 +32,12 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.Name).HasMaxLength(64);
             b.Property(u => u.NameStatus).HasMaxLength(40);
             b.Property(u => u.Email).HasMaxLength(64);
-            b.Property(u => u.Sponsor).HasMaxLength(40);
-        });
+            b.Property(u => u.LoginCount).HasDefaultValueSql("0");
 
+            // nav properties
+            b.HasOne(u => u.Sponsor).WithMany(s => s.SponsoredUsers)
+                .IsRequired();
+        });
         builder.Entity<ApiKey>(k =>
         {
             k.Property(k => k.Id).HasMaxLength(40);
@@ -42,18 +45,18 @@ public class GameboardDbContext : DbContext
             k.Property(k => k.Key).HasMaxLength(100);
 
             k.Property(k => k.ExpiresOn)
-                    .HasDefaultValueSql("NULL")
-                    .ValueGeneratedOnAdd();
+                .HasDefaultValueSql("NULL")
+                .ValueGeneratedOnAdd();
 
             // NOTE: Must be edited manually in the MSSQL migration to 
             // compatible syntax
             k.Property(k => k.GeneratedOn)
-                    .HasDefaultValueSql("NOW()")
-                    .ValueGeneratedOnAdd();
+                .HasDefaultValueSql("NOW()")
+                .ValueGeneratedOnAdd();
 
             k.HasOne(k => k.Owner)
-                    .WithMany(u => u.ApiKeys)
-                    .OnDelete(DeleteBehavior.Cascade);
+                .WithMany(u => u.ApiKeys)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<Player>(b =>
@@ -297,6 +300,7 @@ public class GameboardDbContext : DbContext
     public DbSet<Game> Games { get; set; }
     public DbSet<ManualChallengeBonus> ManualChallengeBonuses { get; set; }
     public DbSet<Player> Players { get; set; }
+    public DbSet<PublishedCertificate> PublishedCertificates { get; set; }
     public DbSet<Sponsor> Sponsors { get; set; }
     public DbSet<Ticket> Tickets { get; set; }
     public DbSet<TicketActivity> TicketActivity { get; set; }

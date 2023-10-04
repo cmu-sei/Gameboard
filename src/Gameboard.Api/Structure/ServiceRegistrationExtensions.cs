@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Gameboard.Api.Structure;
@@ -40,7 +39,6 @@ internal static class ServiceRegistrationExtensions
 
         var singleInterfaceTypes = GetRootTypeQuery()
             .Where(t => t.GetInterfaces().Length == 1)
-            // .Where(t => t.GetInterfaces().Length >= 1)
             .Where(t => t.GetConstructors().Where(c => c.IsPublic).Any())
             .GroupBy(t => t.GetInterfaces()[0])
             .ToDictionary(t => t.Key, t => t.ToList());

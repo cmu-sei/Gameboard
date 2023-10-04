@@ -20,7 +20,6 @@ public class GameboardCustomization : ICustomization
             EndTime = now.AddDays(-1),
             HasGamespaceDeployed = false
         });
-
         fixture.Register(() => new Data.Challenge
         {
             Id = fixture.Create<string>(),
@@ -164,7 +163,6 @@ public class GameboardCustomization : ICustomization
             Sponsor = new Data.Sponsor { Id = fixture.Create<string>(), Name = "Test Sponsor" },
             Role = UserRole.Member
         });
-
 
         fixture.Register(() => new GameEngineSectionSubmission
         {

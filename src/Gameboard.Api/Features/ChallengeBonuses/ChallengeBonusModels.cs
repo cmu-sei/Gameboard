@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Gameboard.Api.Common;
 
 public sealed class ConfigureGameAutoBonusesCommandParameters
 {

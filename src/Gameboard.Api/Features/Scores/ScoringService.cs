@@ -9,6 +9,7 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
+using Gameboard.Api.Features.ChallengeBonuses;
 
 namespace Gameboard.Api.Features.Scores;
 

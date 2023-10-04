@@ -13,6 +13,7 @@ using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Services;
 

@@ -640,4 +640,139 @@ public class ChallengeService : _Service
         if (state.Challenge is not null && !string.IsNullOrWhiteSpace(state.Challenge.Text))
             state.Challenge.Text = state.Challenge.Text.Replace("](/docs", $"]({Options.ChallengeDocUrl}docs");
     }
+
+    public async Task<ConsoleSummary> GetConsole(ConsoleRequest model, bool observer)
+    {
+        var entity = await Store.Retrieve(model.SessionId);
+        var challenge = Mapper.Map<Challenge>(entity);
+
+        if (!challenge.State.Vms.Any(v => v.Name == model.Name))
+            throw new ResourceNotFound<GameEngineVmState>("n/a", $"VMS for challenge {model.Name}");
+
+        var console = await GameEngine.GetConsole(entity, model, observer);
+        return console ?? throw new InvalidConsoleAction();
+    }
+
+    public async Task<List<ObserveChallenge>> GetChallengeConsoles(string gameId)
+    {
+        var q = Store.DbContext.Challenges
+            .Where(c => c.GameId == gameId &&
+                c.HasDeployedGamespace)
+            .Include(c => c.Player)
+            .OrderBy(c => c.Player.Name)
+            .ThenBy(c => c.Name);
+        var challenges = Mapper.Map<ObserveChallenge[]>(await q.ToArrayAsync());
+        var result = new List<ObserveChallenge>();
+        foreach (var challenge in challenges.Where(c => c.IsActive))
+        {
+            challenge.Consoles = challenge.Consoles
+                .Where(v => v.IsVisible)
+                .ToArray();
+            result.Add(challenge);
+        }
+        return result;
+    }
+
+    public ConsoleActor[] GetConsoleActors(string gameId)
+    {
+        return _actorMap.Find(gameId);
+    }
+
+    public ConsoleActor GetConsoleActor(string userId)
+    {
+        return _actorMap.FindActor(userId);
+    }
+
+    internal async Task<ConsoleActor> SetConsoleActor(ConsoleRequest model, string id, string name)
+    {
+        var entity = await Store.DbSet
+            .Include(c => c.Player)
+            .FirstOrDefaultAsync(c => c.Id == model.SessionId);
+
+        return new ConsoleActor
+        {
+            UserId = id,
+            UserName = name,
+            PlayerName = entity.Player.Name,
+            ChallengeName = entity.Name,
+            ChallengeId = model.SessionId,
+            GameId = entity.GameId,
+            TeamId = entity.TeamId,
+            VmName = model.Name,
+            Timestamp = DateTimeOffset.UtcNow
+        };
+    }
+
+    internal async Task<IEnumerable<GameEngineSectionSubmission>> Audit(string id)
+    {
+        var entity = await Store.Load(id);
+        return await GameEngine.AuditChallenge(entity);
+    }
+
+    internal async Task<Data.Challenge> BuildAndRegisterChallenge
+    (
+        NewChallenge newChallenge,
+        Data.ChallengeSpec spec,
+        Data.Game game,
+        Data.Player player,
+        string actorUserId,
+        string graderUrl,
+        int playerCount,
+        int variant
+    )
+    {
+        var graderKey = _guids.GetGuid();
+        var challenge = Mapper.Map<Data.Challenge>(newChallenge);
+
+        Mapper.Map(spec, challenge);
+        challenge.PlayerId = player.Id;
+        challenge.TeamId = player.TeamId;
+        challenge.GraderKey = graderKey.ToSha256();
+        challenge.PlayerMode = game.PlayerMode;
+        challenge.WhenCreated = _now.Get();
+
+        var state = await GameEngine.RegisterGamespace(new GameEngineChallengeRegistration
+        {
+            Challenge = challenge,
+            ChallengeSpec = spec,
+            Game = game,
+            GraderKey = graderKey,
+            GraderUrl = graderUrl,
+            Player = player,
+            PlayerCount = playerCount,
+            Variant = variant
+        });
+
+        Transform(state);
+
+        // manually map here - we need the player object and other references to stay the same for
+        // db add
+        challenge.Id = state.Id;
+        challenge.ExternalId = spec.ExternalId;
+        challenge.HasDeployedGamespace = state.IsActive;
+        challenge.State = _jsonService.Serialize(state);
+        challenge.StartTime = state.StartTime;
+        challenge.EndTime = state.EndTime;
+        challenge.LastSyncTime = _now.Get();
+
+        challenge.Events.Add(new ChallengeEvent
+        {
+            Id = _guids.GetGuid(),
+            UserId = actorUserId,
+            TeamId = challenge.TeamId,
+            Timestamp = DateTimeOffset.UtcNow,
+            Type = ChallengeEventType.Started
+        });
+
+        return challenge;
+    }
+
+    private void Transform(GameEngineGameState state)
+    {
+        if (!string.IsNullOrWhiteSpace(state.Markdown))
+            state.Markdown = state.Markdown.Replace("](/docs", $"]({Options.ChallengeDocUrl}docs");
+
+        if (state.Challenge is not null && !string.IsNullOrWhiteSpace(state.Challenge.Text))
+            state.Challenge.Text = state.Challenge.Text.Replace("](/docs", $"]({Options.ChallengeDocUrl}docs");
+    }
 }

@@ -36,6 +36,7 @@ public class PlayerService
     CoreOptions CoreOptions { get; }
     ChallengeService ChallengeService { get; set; }
     IPlayerStore PlayerStore { get; }
+    IPlayerStore PlayerStore { get; }
     IGameService GameService { get; }
     IGameStartService GameStartService { get; }
     IGameStore GameStore { get; }
@@ -98,12 +99,26 @@ public class PlayerService
 
         if (user.SponsorId.IsEmpty())
             throw new NoPlayerSponsorForGame(model.UserId, model.GameId);
+        var user = await _store
+            .WithNoTracking<Data.User>()
+            .Include(u => u.Sponsor)
+            // include registrations for this game and type (because we validate whether they have active registrations later)
+            .Include(u => u.Enrollments.Where(p => p.GameId == model.GameId && p.Mode == game.PlayerMode))
+            .SingleAsync(u => u.Id == model.UserId, cancellationToken);
+
+        if (user.HasDefaultSponsor)
+            throw new CantEnrollWithDefaultSponsor(model.UserId, model.GameId);
+
+        if (user.SponsorId.IsEmpty())
+            throw new NoPlayerSponsorForGame(model.UserId, model.GameId);
 
         if (game.IsPracticeMode)
             return await RegisterPracticeSession(model, user, cancellationToken);
+        return await RegisterPracticeSession(model, user, cancellationToken);
 
         if (!game.RegistrationActive && !(actor.IsRegistrar || actor.IsTester || actor.IsAdmin))
-            throw new RegistrationIsClosed(model.GameId);
+            if (!game.RegistrationActive && !(actor.IsRegistrar || actor.IsTester || actor.IsAdmin))
+                throw new RegistrationIsClosed(model.GameId);
 
         // while this collection will always only contain the correct player records (because of the filtered include above),
         // we have to specify our criteria again here because mock providers for unit tests seem to ignore filtered includes
@@ -111,13 +126,26 @@ public class PlayerService
             throw new AlreadyRegistered(model.UserId, model.GameId);
 
         var entity = InitializePlayer(model, user, game.SessionMinutes);
+        var entity = InitializePlayer(model, user, game.SessionMinutes);
 
+        await PlayerStore.Create(entity);
+        await HubBus.SendPlayerEnrolled(Mapper.Map<Player>(entity), actor);
         await PlayerStore.Create(entity);
         await HubBus.SendPlayerEnrolled(Mapper.Map<Player>(entity), actor);
 
         if (game.RequireSynchronizedStart)
             await GameStartService.HandleSyncStartStateChanged(entity.GameId, cancellationToken);
 
+        // the initialized Data.Player only has the SponsorId, and we want to send down the complete
+        // sponsor object. We could just manually attach it, but for now we're just going to reload
+        // the entity from the DB to handle future property wireups
+        return Mapper.Map<Player>
+        (
+            await _store
+                .WithNoTracking<Data.Player>()
+                .Include(p => p.Sponsor)
+                .SingleAsync(p => p.Id == entity.Id)
+        );
         // the initialized Data.Player only has the SponsorId, and we want to send down the complete
         // sponsor object. We could just manually attach it, but for now we're just going to reload
         // the entity from the DB to handle future property wireups
@@ -142,6 +170,7 @@ public class PlayerService
             return userId;
 
         userId = (await PlayerStore.Retrieve(playerId))?.UserId;
+        userId = (await PlayerStore.Retrieve(playerId))?.UserId;
         LocalCache.Set(playerId, userId, _idmapExpiration);
 
         return userId;
@@ -157,10 +186,12 @@ public class PlayerService
     public async Task<Player> Retrieve(string id)
     {
         return Mapper.Map<Player>(await PlayerStore.Retrieve(id));
+        return Mapper.Map<Player>(await PlayerStore.Retrieve(id));
     }
 
     public async Task<Player> Update(ChangedPlayer model, User actor, bool sudo = false)
     {
+        var entity = await PlayerStore.Retrieve(model.Id);
         var entity = await PlayerStore.Retrieve(model.Id);
         var prev = Mapper.Map<Player>(entity);
 
@@ -182,6 +213,7 @@ public class PlayerService
         {
             // check uniqueness
             bool found = await PlayerStore.DbSet.AnyAsync(p =>
+            bool found = await PlayerStore.DbSet.AnyAsync(p =>
                 p.GameId == entity.GameId &&
                 p.TeamId != entity.TeamId &&
                 p.Name == entity.Name
@@ -193,14 +225,18 @@ public class PlayerService
 
         await PlayerStore.Update(entity);
         await HubBus.SendTeamUpdated(Mapper.Map<Player>(entity), actor);
+        await PlayerStore.Update(entity);
+        await HubBus.SendTeamUpdated(Mapper.Map<Player>(entity), actor);
         return Mapper.Map<Player>(entity);
     }
 
     public async Task<Player> StartSession(SessionStartRequest model, User actor, bool sudo)
     {
         var team = await PlayerStore.ListTeamByPlayer(model.PlayerId);
+        var team = await PlayerStore.ListTeamByPlayer(model.PlayerId);
 
         var player = team.First();
+        var game = await PlayerStore.DbContext.Games.SingleOrDefaultAsync(g => g.Id == player.GameId);
         var game = await PlayerStore.DbContext.Games.SingleOrDefaultAsync(g => g.Id == player.GameId);
 
         // rule: game's execution period has to be open
@@ -228,6 +264,7 @@ public class PlayerService
             var ts = DateTimeOffset.UtcNow;
 
             int sessionCount = await PlayerStore.DbSet
+            int sessionCount = await PlayerStore.DbSet
                 .CountAsync(p =>
                     p.GameId == game.Id &&
                     p.Role == PlayerRole.Manager &&
@@ -248,6 +285,7 @@ public class PlayerService
         }
 
         await PlayerStore.Update(team);
+        await PlayerStore.Update(team);
 
         if (player.Score > 0)
         {
@@ -263,6 +301,8 @@ public class PlayerService
                 Score = player.Score,
             };
 
+            PlayerStore.DbContext.Add(challenge);
+            await PlayerStore.DbContext.SaveChangesAsync();
             PlayerStore.DbContext.Add(challenge);
             await PlayerStore.DbContext.SaveChangesAsync();
         }
@@ -284,7 +324,35 @@ public class PlayerService
     {
         if (!sudo && !model.WantsGame && !model.WantsTeam)
             return Array.Empty<Player>();
+        return Array.Empty<Player>();
 
+        var q = BuildListQuery(model);
+        var players = await Mapper.ProjectTo<Player>(q).ToArrayAsync();
+        var queriedPlayerIds = players.Select(p => p.Id).ToArray();
+
+        // We used to store the team's sponsors (technically, the logo files of their sponsors)
+        // in the players table as a delimited string column. This had the advantage of making it easy to pull back
+        // a team's logos alongside a player record (useful in some views), but resulted in the
+        // need to manually maintain the column and got complicated if the logo file changed or something.
+        // As part of our change to the Sponsor schema, we now just query player sponsors by team Id and 
+        // append logos here.
+        var teamSponsors = await _store
+            .WithNoTracking<Data.Player>()
+                .Include(p => p.Sponsor)
+            .Where(p => queriedPlayerIds.Contains(p.Id))
+            .Select(p => new
+            {
+                p.TeamId,
+                SponsorLogoFileNames = p.Sponsor.Logo
+            })
+            .GroupBy(g => g.TeamId)
+            .ToDictionaryAsync(g => g.Key, g => g.Select(thing => thing.SponsorLogoFileNames).ToArray());
+
+        foreach (var player in players)
+            if (teamSponsors.ContainsKey(player.TeamId))
+                player.TeamSponsorLogos = teamSponsors[player.TeamId];
+
+        return players;
         var q = BuildListQuery(model);
         var players = await Mapper.ProjectTo<Player>(q).ToArrayAsync();
         var queriedPlayerIds = players.Select(p => p.Id).ToArray();
@@ -318,20 +386,25 @@ public class PlayerService
     {
         if (model.gid.IsEmpty())
             return Array.Empty<Standing>();
+        return Array.Empty<Standing>();
 
         model.Filter = model.Filter
             .Append(PlayerDataFilter.FilterScoredOnly)
             .ToArray();
+            .ToArray();
 
         model.mode = PlayerMode.Competition.ToString();
 
+        var q = BuildListQuery(model);
         var q = BuildListQuery(model);
 
         return await Mapper.ProjectTo<Standing>(q).ToArrayAsync();
     }
 
     private IQueryable<Data.Player> BuildListQuery(PlayerDataFilter model)
+    private IQueryable<Data.Player> BuildListQuery(PlayerDataFilter model)
     {
+        var ts = _now.Get();
         var ts = _now.Get();
 
         var q = PlayerStore.List()
@@ -466,11 +539,12 @@ public class PlayerService
             .Where(p => p.InviteCode == model.Code)
             .ToArrayAsync();
 
-        var teamIds = playersWithThisCode.Select(p => p.TeamId).Distinct().ToArray();
-        if (teamIds.Length != 1)
-            throw new CantResolveTeamFromCode(model.Code, teamIds);
+        var player = await Store.DbSet.FirstOrDefaultAsync(p => p.Id == model.PlayerId);
 
-        var manager = _teamService.ResolveCaptain(playersWithThisCode);
+        if (player == null)
+        {
+            throw new ResourceNotFound<Player>(model.PlayerId);
+        }
 
         if (player.GameId != manager.GameId)
             throw new NotYetRegistered(player.Id, manager.GameId);

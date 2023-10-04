@@ -8,6 +8,7 @@ namespace Gameboard.Api.Tests.Integration.Fixtures;
 internal static class GameboardTestContextExtensions
 {
     private static WebApplicationFactory<Program> BuildAuthentication(this GameboardTestContext testContext, TestAuthenticationUser? actingUser = null)
+    private static WebApplicationFactory<Program> BuildAuthentication(this GameboardTestContext testContext, TestAuthenticationUser? actingUser = null)
     {
         return testContext
             .WithWebHostBuilder(builder =>
@@ -38,14 +39,17 @@ internal static class GameboardTestContextExtensions
     }
 
     public static HttpClient CreateHttpClientWithActingUser(this GameboardTestContext testContext, Action<TestAuthenticationUser>? userBuilder = null)
+    public static HttpClient CreateHttpClientWithActingUser(this GameboardTestContext testContext, Action<TestAuthenticationUser>? userBuilder = null)
     {
         var user = new TestAuthenticationUser();
         userBuilder?.Invoke(user);
 
         return BuildAuthentication(testContext, user)
             .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+            .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
     }
 
+    public static HttpClient CreateHttpClientWithActingUser(this GameboardTestContext testContext, Data.User user)
     public static HttpClient CreateHttpClientWithActingUser(this GameboardTestContext testContext, Data.User user)
     {
         var client = testContext
@@ -61,12 +65,15 @@ internal static class GameboardTestContextExtensions
     }
 
     public static HttpClient CreateHttpClientWithAuthRole(this GameboardTestContext testContext, UserRole role)
+    public static HttpClient CreateHttpClientWithAuthRole(this GameboardTestContext testContext, UserRole role)
         => CreateHttpClientWithActingUser(testContext, u => u.Role = role);
 
+    public static async Task WithDataState(this GameboardTestContext context, Action<IDataStateBuilder> builderAction)
     public static async Task WithDataState(this GameboardTestContext context, Action<IDataStateBuilder> builderAction)
     {
         var dbContext = context.GetDbContext();
 
+        var builderInstance = new DataStateBuilder(dbContext);
         var builderInstance = new DataStateBuilder(dbContext);
         builderAction.Invoke(builderInstance);
 

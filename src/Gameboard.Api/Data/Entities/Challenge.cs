@@ -20,6 +20,7 @@ public class Challenge : IEntity
         public int Points { get; set; }
         public double Score { get; set; }
         public PlayerMode PlayerMode { get; set; }
+        public PlayerMode PlayerMode { get; set; }
         public DateTimeOffset LastScoreTime { get; set; }
         public DateTimeOffset LastSyncTime { get; set; }
         public DateTimeOffset WhenCreated { get; set; }

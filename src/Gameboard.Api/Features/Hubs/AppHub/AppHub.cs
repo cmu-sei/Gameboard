@@ -101,6 +101,7 @@ namespace Gameboard.Api.Hubs
                 .Where(p => p.TeamId == teamId)
                 .Include(p => p.Game)
                 .Include(p => p.User)
+                .Include(p => p.Sponsor)
                 .ToArrayAsync();
 
             return teamPlayers;
