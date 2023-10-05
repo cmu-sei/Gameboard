@@ -51,7 +51,7 @@ public class ChallengeControllerCreateTests
 
         // act
         var challenge = await _testContext
-            .CreateDefaultClient()
+            .CreateHttpClientWithActingUser(u => u.Id = userId)
             .PostAsync("/api/challenge", model.ToJsonBody())
             .WithContentDeserializedAs<Api.Challenge>();
 

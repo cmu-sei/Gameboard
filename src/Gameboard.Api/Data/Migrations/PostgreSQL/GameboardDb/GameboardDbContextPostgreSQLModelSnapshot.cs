@@ -777,7 +777,7 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("PublishedCertificates");
+                    b.ToTable("PublishedCertificate");
 
                     b.HasDiscriminator<int>("Mode");
 

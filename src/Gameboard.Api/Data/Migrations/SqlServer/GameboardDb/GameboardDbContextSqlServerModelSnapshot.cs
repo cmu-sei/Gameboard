@@ -779,7 +779,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("PublishedCertificates");
+                    b.ToTable("PublishedCertificate");
 
                     b.HasDiscriminator<int>("Mode");
 

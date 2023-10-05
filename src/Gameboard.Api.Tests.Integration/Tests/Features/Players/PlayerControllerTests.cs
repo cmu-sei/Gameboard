@@ -127,7 +127,6 @@ public class PlayerControllerTests
             {
                 g.CertificateTemplate = "This is a template with a {{player_count}} and a {{team_count}}.";
                 g.GameEnd = now - TimeSpan.FromDays(1);
-
                 g.Players = new List<Data.Player>
                 {
                     // three players with nonzero score (2 on the same team)
@@ -162,12 +161,14 @@ public class PlayerControllerTests
         var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = userId);
 
         // when
-        var certs = await httpClient
+        var certsResponse = await httpClient
             .GetAsync("/api/certificates")
             .WithContentDeserializedAs<IEnumerable<PlayerCertificate>>();
 
         // then
-        certs?.Count().ShouldBe(1);
-        certs?.First().Html.ShouldBe("This is a template with a 3 and a 2.");
+        var certs = certsResponse.ToArray();
+        certs.ShouldNotBeNull();
+        certs.Count().ShouldBe(1);
+        certs.First().Html.ShouldBe("This is a template with a 3 and a 2.");
     }
 }

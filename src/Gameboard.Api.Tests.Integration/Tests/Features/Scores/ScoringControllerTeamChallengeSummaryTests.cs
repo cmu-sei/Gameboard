@@ -36,9 +36,6 @@ public class ScoringControllerTeamChallengeSummaryTests
             // have to add spec separately because of broken FK issue
             state.Add<Data.ChallengeSpec>(fixture, s => s.Id = specId);
 
-            // have to add spec separately because of broken FK issue
-            state.Add<Data.ChallengeSpec>(fixture, s => s.Id = specId);
-
             state.Add<Data.Challenge>(fixture, c =>
             {
                 c.Id = challengeId;

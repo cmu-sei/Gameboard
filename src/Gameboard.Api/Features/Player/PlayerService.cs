@@ -679,7 +679,7 @@ public class PlayerService
             .OrderByDescending(p => p.Game.GameEnd)
             .ToArrayAsync();
 
-        return completedSessions.Select(c => CertificateFromTemplate(c,
+return completedSessions.Select(c => CertificateFromTemplate(c,
             PlayerStore.DbSet
                 .Where(p => p.Game == c.Game &&
                     p.SessionEnd > DateTimeOffset.MinValue)
@@ -695,7 +695,7 @@ public class PlayerService
 
     private PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount)
     {
-        string certificateHTML = player.Game.CertificateTemplate;
+        var certificateHTML = player.Game.CertificateTemplate;
         if (certificateHTML.IsEmpty())
             return null;
 

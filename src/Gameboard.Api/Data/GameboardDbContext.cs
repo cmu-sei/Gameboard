@@ -300,7 +300,7 @@ public class GameboardDbContext : DbContext
     public DbSet<Game> Games { get; set; }
     public DbSet<ManualChallengeBonus> ManualChallengeBonuses { get; set; }
     public DbSet<Player> Players { get; set; }
-    public DbSet<PublishedCertificate> PublishedCertificates { get; set; }
+    public DbSet<PublishedCertificate> PublishedCertificate { get; set; }
     public DbSet<Sponsor> Sponsors { get; set; }
     public DbSet<Ticket> Tickets { get; set; }
     public DbSet<TicketActivity> TicketActivity { get; set; }
