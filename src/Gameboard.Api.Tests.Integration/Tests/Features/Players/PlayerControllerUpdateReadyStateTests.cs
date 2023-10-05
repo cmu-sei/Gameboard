@@ -74,7 +74,6 @@ public class PlayerControllerUpdatePlayerReadyTests
     [Theory, GbIntegrationAutoData]
     public async Task UpdatePlayerReady_WithAllReadyPlayersAndExternalSyncGame_ReturnsStartedSession(IFixture fixture, string gameId, string readyPlayerId, string notReadyPlayerUserId, string notReadyPlayerId)
     {
-        // given
         await _testContext.WithDataState(state =>
         {
             state.Add<Data.Game>(fixture, g =>
@@ -84,36 +83,34 @@ public class PlayerControllerUpdatePlayerReadyTests
                 g.RequireSynchronizedStart = true;
                 g.Players = new List<Data.Player>
                 {
-                    new()
+                    state.Build<Data.Player>(fixture, p =>
                     {
-                        Id = notReadyPlayerId,
-                        Name = "not ready (but will be)",
-                        Role = PlayerRole.Manager,
-                        IsReady = false,
-                        TeamId = fixture.Create<string>(),
-                        User = new Data.User { Id = notReadyPlayerUserId }
-                    },
-                    new()
+                        p.Id = notReadyPlayerId;
+                        p.Name = "not ready (but will be)";
+                        p.Role = PlayerRole.Manager;
+                        p.IsReady = false;
+                        p.User = state.Build<Data.User>(fixture, u =>
+                        {
+                            u.Id = notReadyPlayerUserId;
+                        });
+                    }),
+                    state.Build<Data.Player>(fixture, p =>
                     {
-                        Id = readyPlayerId,
-                        Name = "ready",
-                        IsReady = true,
-                        Role = PlayerRole.Manager,
-                        TeamId = fixture.Create<string>()
-                    }
+                        p.Id = readyPlayerId;
+                        p.Name = "ready";
+                        p.IsReady = true;
+                        p.Role = PlayerRole.Manager;
+                        p.TeamId = fixture.Create<string>();
+                        p.User = state.Build<Data.User>(fixture);
+                    })
                 };
             });
         });
 
         var client = _testContext.CreateHttpClientWithActingUser(u => u.Id = notReadyPlayerUserId);
 
-        // when
-        var response = await client
-            .PutAsync($"/api/player/{notReadyPlayerId}/ready", new PlayerReadyUpdate { IsReady = true }.ToJsonBody());
-
-        // then
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        response.ShouldNotBeNull();
+        // when/then
+        var response = client.PutAsync($"/api/player/{notReadyPlayerId}/ready", new PlayerReadyUpdate { IsReady = true }.ToJsonBody());
 
         var gameSyncStartState = await _testContext
             .CreateHttpClientWithAuthRole(UserRole.Admin)

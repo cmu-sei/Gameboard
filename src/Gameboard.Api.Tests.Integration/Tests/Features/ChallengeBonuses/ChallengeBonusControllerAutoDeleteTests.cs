@@ -62,31 +62,21 @@ public class ChallengeBonusControllerAutoDeleteTests
         await _testContext
             .WithDataState(state =>
             {
-                state.Add<Data.Game>(fixture, g => g.Id = gameId);
-                state.Add<Data.Challenge>(fixture, c =>
+                state.Add<Data.Game>(fixture, g =>
                 {
-                    c.Id = challengeId;
-                    c.GameId = gameId;
-                });
-
-                state.Add<Data.ChallengeSpec>(fixture, spec =>
-                {
-                    spec.GameId = gameId;
-                    spec.Bonuses = new ChallengeBonus[]
+                    g.Id = gameId;
+                    g.Challenges = state.Build<Data.Challenge>(fixture, c => c.Id = challengeId).ToCollection();
+                    g.Specs = state.Build<Data.ChallengeSpec>(fixture, s =>
                     {
-                        new ChallengeBonusCompleteSolveRank
+                        s.Bonuses = new ChallengeBonusCompleteSolveRank
                         {
                             Id = fixture.Create<string>(),
                             Description = fixture.Create<string>(),
                             PointValue = fixture.Create<int>(),
                             ChallengeBonusType = ChallengeBonusType.CompleteSolveRank,
-                            AwardedTo = new AwardedChallengeBonus
-                            {
-                                Id = fixture.Create<string>(),
-                                ChallengeId = challengeId
-                            }.ToCollection()
-                        }
-                    };
+                            AwardedTo = new AwardedChallengeBonus { Id = fixture.Create<string>(), ChallengeId = challengeId }.ToCollection()
+                        }.ToCollection<Data.ChallengeBonus>();
+                    }).ToCollection();
                 });
             });
 

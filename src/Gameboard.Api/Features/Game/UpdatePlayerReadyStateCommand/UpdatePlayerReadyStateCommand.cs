@@ -7,7 +7,6 @@ using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using Gameboard.Api.Validation;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games;
 
@@ -46,7 +45,7 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
     {
         // validate
         // grab the player, we need it later anyway
-        var player = await _store.FirstOrDefaultAsync<Data.Player>(p => p.Id == request.PlayerId, cancellationToken);
+        var player = await _store.SingleOrDefaultAsync<Data.Player>(p => p.Id == request.PlayerId, cancellationToken);
 
         _validatorService.AddValidator(ctx =>
         {

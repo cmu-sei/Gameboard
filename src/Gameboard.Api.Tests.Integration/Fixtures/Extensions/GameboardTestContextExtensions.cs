@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 

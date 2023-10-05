@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Teams;
 
-public record ResetSessionCommand(string TeamId, bool Unenroll, User ActingUser = null) : IRequest;
+public record ResetSessionCommand(string TeamId, bool UnenrollTeam, User ActingUser = null) : IRequest;
 
 internal class ResetSessionHandler : IRequestHandler<ResetSessionCommand>
 {
@@ -59,7 +59,7 @@ internal class ResetSessionHandler : IRequestHandler<ResetSessionCommand>
             .FirstAsync(cancellationToken);
 
         // delete players from the team iff. requested
-        if (request.Unenroll)
+        if (request.UnenrollTeam)
         {
             await _teamService.DeleteTeam(request.TeamId, null, cancellationToken);
         }

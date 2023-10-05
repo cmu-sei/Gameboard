@@ -11,7 +11,7 @@ public class UserControllerTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task Create_WhenDoesntExist_IsCreatedWithIdAndIsNewUser(string id, IFixture fixture)
+    public async Task Create_WhenDoesntExist_IsCreatedWithIdAndIsNewUser(string userId, IFixture fixture)
     {
         // given 
         await _testContext
@@ -19,16 +19,16 @@ public class UserControllerTests
             {
                 state.Add(fixture.Create<Data.Sponsor>());
             });
-        var newUser = new NewUser { Id = id };
+        var newUser = new NewUser { Id = userId };
 
         // when 
         var result = await _testContext
-            .CreateDefaultClient()
+            .CreateHttpClientWithActingUser(u => u.Id = userId)
             .PostAsync("api/user", newUser.ToJsonBody())
             .WithContentDeserializedAs<TryCreateUserResult>();
 
         // then
-        result?.User.Id.ShouldBe(id);
+        result?.User.Id.ShouldBe(userId);
         result?.IsNewUser.ShouldBeTrue();
     }
 

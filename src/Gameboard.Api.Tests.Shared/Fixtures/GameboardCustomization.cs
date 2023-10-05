@@ -7,8 +7,17 @@ public class GameboardCustomization : ICustomization
 {
     public void Customize(IFixture fixture)
     {
-        fixture.Customizations.Add(new IdBuilder());
         fixture.Register(() => fixture);
+
+        // this is necessary for us because we use EF with multiple navigation properties
+        // which ultimately result in circular references. We ignore the behavior in
+        // autofixture because it breaks tests which autofix entities with these references
+        // and we already know about the circular references - they're by design.
+        // fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
+        //     .ForEach(b => fixture.Behaviors.Remove(b));
+        // fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+
+        fixture.Customizations.Add(new IdBuilder());
         var now = DateTimeOffset.UtcNow;
 
         fixture.Register(() => new Data.ArchivedChallenge
@@ -58,6 +67,16 @@ public class GameboardCustomization : ICustomization
             RegistrationType = GameRegistrationType.Open
         });
 
+        fixture.Register<Data.Sponsor>(() => new()
+        {
+            Id = fixture.Create<string>(),
+            Name = $"Sponsor {fixture.Create<string>()}",
+            Approved = true,
+            Logo = "test.svg",
+            SponsoredPlayers = new List<Data.Player>(),
+            SponsoredUsers = new List<Data.User>()
+        });
+
         fixture.Register(() => new Data.Player
         {
             Id = fixture.Create<string>(),
@@ -82,9 +101,9 @@ public class GameboardCustomization : ICustomization
             Markdown = "Here is some markdown _stuff_.",
             Audience = "gameboard",
             LaunchpointUrl = "https://google.com",
-            Players = new TopoMojo.Api.Client.Player[]
+            Players = new List<TopoMojo.Api.Client.Player>
             {
-                new TopoMojo.Api.Client.Player
+                new()
                 {
                     GamespaceId = "33b9cf31-8686-4d95-b5a8-9fb1b7f8ce71",
                     SubjectId = "f4390dff-420d-47da-90c8-4c982eeab822",
@@ -129,7 +148,7 @@ public class GameboardCustomization : ICustomization
                 SectionScore = 50,
                 SectionText = "The best one",
                 LastScoreTime = DateTimeOffset.Now.AddMinutes(5),
-                Questions = new TopoMojo.Api.Client.QuestionView[]
+                Questions = new List<TopoMojo.Api.Client.QuestionView>
                 {
                     new()
                     {
@@ -146,22 +165,12 @@ public class GameboardCustomization : ICustomization
             }
         });
 
-        fixture.Register<Data.Sponsor>(() => new()
-        {
-            Id = fixture.Create<string>(),
-            Name = $"Sponsor {fixture.Create<string>()}",
-            Approved = true,
-            Logo = "test.svg",
-            SponsoredPlayers = new List<Data.Player>(),
-            SponsoredUsers = new List<Data.User>()
-        });
-
         fixture.Register(() => new Data.User
         {
             Id = fixture.Create<string>(),
             Username = fixture.Create<string>(),
             ApprovedName = fixture.Create<string>(),
-            Sponsor = new Data.Sponsor { Id = fixture.Create<string>(), Name = "Test Sponsor" },
+            Sponsor = fixture.Create<Data.Sponsor>(),
             Role = UserRole.Member
         });
 

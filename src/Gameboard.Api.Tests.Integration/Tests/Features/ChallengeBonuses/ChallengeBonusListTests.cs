@@ -49,7 +49,7 @@ public class ChallengeBonusListTests
 
         });
 
-        var http = _testContext.CreateDefaultClient();
+        var http = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
 
         // when
         var bonuses = await http

@@ -100,7 +100,7 @@ internal class GameStartService : IGameStartService
             return;
 
         // for now, we're assuming the "happy path" of sync start games being external games, but we'll separate them later
-        // var session = await StartSynchronizedSession(gameId); ;
+        // var session = await StartSynchronizedSession(gameId);
         await Start(new GameStartRequest { GameId = state.Game.Id }, cancellationToken);
     }
 

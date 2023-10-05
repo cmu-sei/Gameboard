@@ -44,9 +44,6 @@ namespace Gameboard.Api.Validators
             if (model is PromoteToManagerRequest)
                 return _validate(model as PromoteToManagerRequest);
 
-            if (model is SessionResetCommandArgs)
-                return _validate(model as SessionResetCommandArgs);
-
             if (model is SessionStartRequest)
                 return _validate(model as SessionStartRequest);
 
@@ -163,33 +160,6 @@ namespace Gameboard.Api.Validators
                 throw new ResourceNotFound<Data.Game>(model.NextGameId, "The next game");
 
             await Task.CompletedTask;
-        }
-
-        public async Task _validate(SessionResetCommandArgs args)
-        {
-            if (!(await Exists(args.PlayerId)))
-                throw new ResourceNotFound<Player>(args.PlayerId);
-
-            if (IsActingAsAdmin(args.ActingUser))
-                return;
-
-            // non-admin validation
-            var player = await _store
-                .Retrieve
-                (
-                    args.PlayerId,
-                    q =>
-                        q.AsNoTracking()
-                        .Include(p => p.Game)
-                );
-
-            var actAsElevated = args.ActingUser.IsTester || args.ActingUser.IsAdmin;
-            if (!actAsElevated && !player.Game.AllowReset && player.SessionBegin.Year > 1)
-                throw new GameDoesntAllowReset(player.GameId);
-
-            // TODO: rethink AsAdmin, see https://github.com/cmu-sei/Gameboard/issues/158
-            if (!actAsElevated && !player.Game.RegistrationActive)
-                throw new RegistrationIsClosed(player.GameId, "Registration is closed, and players can't reset their sessions after registration has closed.");
         }
 
         public async Task _validate(PlayerUnenrollRequest request)

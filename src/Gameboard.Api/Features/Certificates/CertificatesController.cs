@@ -3,7 +3,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Practice;
-using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;

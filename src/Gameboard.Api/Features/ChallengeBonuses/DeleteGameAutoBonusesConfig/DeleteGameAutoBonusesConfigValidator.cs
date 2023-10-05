@@ -36,7 +36,6 @@ internal class DeleteGameAutoBonusesConfigValidator : IGameboardRequestValidator
 
     public async Task Validate(DeleteGameAutoBonusesConfigCommand request, CancellationToken cancellationToken)
     {
-        var gameId = _gameIdPropertyExpression(request);
         _validatorService.AddValidator(_gameExists.UseProperty(r => r.GameId));
         _validatorService.AddValidator
         (
@@ -46,12 +45,12 @@ internal class DeleteGameAutoBonusesConfigValidator : IGameboardRequestValidator
                     .WithNoTracking<AwardedChallengeBonus>()
                     .Include(ab => ab.ChallengeBonus)
                         .ThenInclude(b => b.ChallengeSpec)
-                    .Where(b => b.ChallengeBonus.ChallengeSpec.GameId == gameId)
+                    .Where(b => b.ChallengeBonus.ChallengeSpec.GameId == request.GameId)
                     .Select(ab => ab.ChallengeBonusId)
                     .ToArrayAsync(cancellationToken);
 
                 if (awardedBonusIds.Length > 0)
-                    context.AddValidationException(new CantDeleteAutoBonusIfAwarded(gameId, awardedBonusIds));
+                    context.AddValidationException(new CantDeleteAutoBonusIfAwarded(request.GameId, awardedBonusIds));
             }
         );
 

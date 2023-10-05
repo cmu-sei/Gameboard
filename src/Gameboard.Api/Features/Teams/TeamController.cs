@@ -32,6 +32,6 @@ public class TeamController : ControllerBase
     [Authorize]
     public async Task ResetSession([FromRoute] string teamId, [FromBody] ResetSessionCommand request, CancellationToken cancellationToken)
     {
-        await _mediator.Send(new ResetSessionCommand(teamId, request.Unenroll, _actingUserService.Get()), cancellationToken);
+        await _mediator.Send(new ResetSessionCommand(teamId, request.UnenrollTeam, _actingUserService.Get()), cancellationToken);
     }
 }

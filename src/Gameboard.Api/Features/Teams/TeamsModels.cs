@@ -13,6 +13,11 @@ public class PromoteToManagerRequest
     public string TeamId { get; set; }
 }
 
+public class ResetTeamSessionRequest
+{
+    public required bool UnenrollTeam { get; set; }
+}
+
 public class TeamInvitation
 {
     public string Code { get; set; }

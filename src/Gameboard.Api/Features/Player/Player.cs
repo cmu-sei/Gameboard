@@ -89,18 +89,6 @@ public class PlayerUnenrollRequest
     public required string PlayerId { get; set; }
 }
 
-public class SessionResetRequest
-{
-    public required bool UnenrollTeam { get; set; } = true;
-}
-
-public class SessionResetCommandArgs
-{
-    public required User ActingUser { get; set; }
-    public required string PlayerId { get; set; }
-    public required bool UnenrollTeam { get; set; } = true;
-}
-
 public class Standing
 {
     public string TeamId { get; set; }

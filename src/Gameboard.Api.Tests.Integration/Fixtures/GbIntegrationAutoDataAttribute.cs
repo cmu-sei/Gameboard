@@ -22,9 +22,3 @@ public class GbIntegrationAutoDataAttribute : AutoDataAttribute
     })
     { }
 }
-
-// public class GbIntegrationInlineAutoDataAttribute : CompositeDataAttribute
-// {
-//     public GbIntegrationInlineAutoDataAttribute(params object[] fixedValues)
-//         : base(new InlineAutoDataAttribute(fixedValues), new GbIntegrationAutoDataAttribute()) { }
-// }

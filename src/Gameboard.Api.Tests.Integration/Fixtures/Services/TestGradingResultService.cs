@@ -31,9 +31,9 @@ internal class TestGradingResultService : ITestGradingResultService
             ManagerId = challenge.PlayerId,
             ManagerName = challenge.Player?.Name,
             IsActive = true,
-            Players = new GameEnginePlayer[]
+            Players = new List<GameEnginePlayer>
             {
-                new GameEnginePlayer
+                new()
                 {
                     GamespaceId = challenge.Id,
                     SubjectId = challenge.PlayerId,
