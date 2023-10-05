@@ -25,7 +25,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Services;
 
-public class ChallengeService : _Service
+public partial class ChallengeService : _Service
 {
     private readonly ConsoleActorMap _actorMap;
     private readonly IChallengeStore _challengeStore;
@@ -42,6 +42,8 @@ public class ChallengeService : _Service
     private readonly INowService _now;
     private readonly IPlayerStore _playerStore;
     private readonly IPracticeChallengeScoringListener _practiceChallengeScoringListener;
+    private readonly IStore<Data.ChallengeSpec> _specStore;
+    private readonly IChallengeDocsService _challengeDocsService;
     private readonly IChallengeSyncService _challengeSyncService;
     private readonly ITeamService _teamService;
 
@@ -49,6 +51,7 @@ public class ChallengeService : _Service
         ConsoleActorMap actorMap,
         CoreOptions coreOptions,
         IChallengeStore challengeStore,
+        IChallengeDocsService challengeDocsService,
         IStore<Data.ChallengeSpec> specStore,
         IChallengeSyncService challengeSyncService,
         IGameEngineService gameEngine,
@@ -70,6 +73,7 @@ public class ChallengeService : _Service
         _actorMap = actorMap;
         _challengeStore = challengeStore;
         _challengeSpecStore = specStore;
+        _challengeDocsService = challengeDocsService;
         _challengeSyncService = challengeSyncService;
         _gameEngine = gameEngine;
         _gameStore = gameStore;
@@ -83,6 +87,7 @@ public class ChallengeService : _Service
         _now = now;
         _playerStore = playerStore;
         _practiceChallengeScoringListener = practiceChallengeScoringListener;
+        _specStore = specStore;
         _teamService = teamService;
     }
 
@@ -328,7 +333,7 @@ public class ChallengeService : _Service
         if (await _teamService.IsAtGamespaceLimit(challenge.TeamId, game, cancellationToken))
             throw new GamespaceLimitReached(game.Id, challenge.TeamId);
 
-        challenge.Events.Add(new Data.ChallengeEvent
+        challenge.Events.Add(new ChallengeEvent
         {
             Id = _guids.GetGuid(),
             UserId = actorId,
@@ -347,7 +352,7 @@ public class ChallengeService : _Service
     {
         var challenge = await _challengeStore.Retrieve(id);
 
-        challenge.Events.Add(new Data.ChallengeEvent
+        challenge.Events.Add(new ChallengeEvent
         {
             Id = _guids.GetGuid(),
             UserId = actorId,
@@ -366,7 +371,7 @@ public class ChallengeService : _Service
     {
         var challenge = await _challengeStore.Retrieve(model.Id);
 
-        challenge.Events.Add(new Data.ChallengeEvent
+        challenge.Events.Add(new ChallengeEvent
         {
             Id = _guids.GetGuid(),
             UserId = actorId,
@@ -634,10 +639,9 @@ public class ChallengeService : _Service
 
     private void Transform(GameEngineGameState state)
     {
-        if (!string.IsNullOrWhiteSpace(state.Markdown))
-            state.Markdown = state.Markdown.Replace("](/docs", $"]({Options.ChallengeDocUrl}docs");
+        state.Markdown = _challengeDocsService.ReplaceRelativeUris(state.Markdown);
 
-        if (state.Challenge is not null && !string.IsNullOrWhiteSpace(state.Challenge.Text))
-            state.Challenge.Text = state.Challenge.Text.Replace("](/docs", $"]({Options.ChallengeDocUrl}docs");
+        if (state.Challenge is not null)
+            state.Challenge.Text = _challengeDocsService.ReplaceRelativeUris(state.Challenge.Text);
     }
 }

@@ -36,15 +36,13 @@ internal class PracticeService : IPracticeService
     }
 
     // To avoid needing a table that literally just displays a list of strings, we store the list of suggested searches as a 
-    // pipe-delimited string in the PracticeModeSettings table (which has only one record). Terms that have a pipe
-    // in them have that escaped to have a double pipe
+    // newline-delimited string in the PracticeModeSettings table (which has only one record). 
     public string EscapeSuggestedSearches(IEnumerable<string> input)
     {
         return string.Join(Environment.NewLine, input.Select(search => search.Trim()));
     }
 
-    // same deal here - we temporarily move the double pipes out of the way and then replace them with
-    // the single pipe 
+    // same deal here - split on newline
     public IEnumerable<string> UnescapeSuggestedSearches(string input)
     {
         if (input.IsEmpty())

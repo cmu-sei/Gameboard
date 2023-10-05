@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using Gameboard.Api.Common;
 
@@ -9,7 +8,7 @@ public sealed class SearchPracticeChallengesResult
     public required PagedEnumerable<ChallengeSpecSummary> Results { get; set; }
 }
 
-    public sealed class PracticeModeSettingsApiModel
+public sealed class PracticeModeSettingsApiModel
 {
     public required string CertificateHtmlTemplate { get; set; }
     public required int DefaultPracticeSessionLengthMinutes { get; set; }
