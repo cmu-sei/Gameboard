@@ -1,3 +1,4 @@
+using System;
 using System.Text.RegularExpressions;
 
 namespace Gameboard.Api.Features.Challenges;
@@ -26,7 +27,13 @@ internal partial class ChallengeDocsService : IChallengeDocsService
         {
             if (m.Groups.Count == 3)
             {
-                return @$"[{m.Groups[1]}]({challengeDocUrl}/{m.Groups[2]})";
+                // we've hit a markdown url. if it's a relative url, make it relative to the challenge docs
+                // setting. if not, leave it alone.
+                var uriString = m.Groups[2].ToString();
+                if (!Uri.TryCreate(uriString, UriKind.Absolute, out var uri))
+                    uri = new Uri($"{challengeDocUrl}/{m.Groups[2]}");
+
+                return @$"[{m.Groups[1]}]({uri.ToString()})";
             }
 
             return m.ToString();
