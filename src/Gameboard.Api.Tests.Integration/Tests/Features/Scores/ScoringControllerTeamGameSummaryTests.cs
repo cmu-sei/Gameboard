@@ -1,6 +1,6 @@
+using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Scores;
-using Gameboard.Api.Tests.Shared;
 
 namespace Gameboard.Api.Tests.Integration;
 
@@ -15,8 +15,10 @@ public class ScoringControllerTeamGameSummaryTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task GetTeamGameSummary_WithFixedTeamAndChallenges_CalculatesScore(
+    public async Task GetTeamGameSummary_WithFixedTeamAndChallenges_CalculatesScore
+    (
         IFixture fixture,
+        string gameId,
         string teamId,
         string challenge1Id,
         string challenge2Id,
@@ -24,60 +26,64 @@ public class ScoringControllerTeamGameSummaryTests
         int basePoints2,
         int bonus1Points,
         int bonus2Points,
-        int bonus3points)
+        int bonus3Points)
     {
         // GIVEN
         await _testContext.WithDataState(state =>
         {
             // user adding the bonus points
-            var enteringAdmin = state.BuildUser();
+            var enteringAdmin = state.Build<Data.User>(fixture, u => u.Role = UserRole.Admin);
             state.Add(enteringAdmin);
 
-            // build the team and give them one challenge
-            var builtTeam = state.AddTeam(fixture, t =>
+            // build the game - 1 player, 2 challenges, 3 bonuses across all
+            state.Add<Data.Game>(fixture, g =>
             {
-                t.Challenge = new SimpleEntity { Id = challenge1Id, Name = fixture.Create<string>() };
-                t.TeamId = teamId;
-            });
-
-            // configure points and bonuses for first challenge
-            builtTeam.Challenge!.Points = basePoints1;
-            builtTeam.Challenge.AwardedManualBonuses = new ManualChallengeBonus[]
-            {
-                new ManualChallengeBonus
+                g.Id = gameId;
+                g.Players = state.Build<Data.Player>(fixture, p =>
                 {
-                    Id = fixture.Create<string>(),
-                    Description = fixture.Create<String>(),
-                    PointValue = bonus1Points,
-                    EnteredByUserId = enteringAdmin.Id
-                },
-                new ManualChallengeBonus
-                {
-                    Id = fixture.Create<string>(),
-                    Description = fixture.Create<string>(),
-                    PointValue = bonus2Points,
-                    EnteredByUserId = enteringAdmin.Id
-                }
-            };
-
-            // add a second challenge with one bonus
-            state.AddChallenge(c =>
-            {
-                c.Id = challenge2Id;
-                c.TeamId = teamId;
-                c.PlayerId = builtTeam.Challenge.Player.Id;
-                c.Points = basePoints2;
-                c.Game = builtTeam.Game;
-                c.AwardedManualBonuses = new ManualChallengeBonus[]
-                {
-                    new ManualChallengeBonus
+                    p.TeamId = teamId;
+                    p.Challenges = new List<Data.Challenge>
                     {
-                        Id = fixture.Create<string>(),
-                        Description = fixture.Create<string>(),
-                        PointValue = bonus3points,
-                        EnteredByUserId = enteringAdmin.Id
-                    }
-                };
+                        state.Build<Data.Challenge>(fixture, c =>
+                        {
+                            c.Id = challenge1Id;
+                            c.Points = basePoints1;
+                            c.GameId = gameId;
+                            c.TeamId = teamId;
+                            c.AwardedManualBonuses = new List<ManualChallengeBonus>()
+                            {
+                                new()
+                                {
+                                    Id = fixture.Create<string>(),
+                                    Description = fixture.Create<string>(),
+                                    PointValue = bonus1Points,
+                                    EnteredByUserId = enteringAdmin.Id
+                                },
+                                new()
+                                {
+                                    Id = fixture.Create<string>(),
+                                    Description = fixture.Create<string>(),
+                                    PointValue = bonus2Points,
+                                    EnteredByUserId = enteringAdmin.Id
+                                }
+                            };
+                        }),
+                        state.Build<Data.Challenge>(fixture, c =>
+                        {
+                            c.Id = challenge2Id;
+                            c.Points = basePoints2;
+                            c.GameId = gameId;
+                            c.TeamId = teamId;
+                            c.AwardedManualBonuses = new ManualChallengeBonus
+                            {
+                                Id = fixture.Create<string>(),
+                                Description = fixture.Create<string>(),
+                                PointValue = bonus3Points,
+                                EnteredByUserId = enteringAdmin.Id
+                            }.ToCollection();
+                        })
+                    };
+                }).ToCollection();
             });
         });
 
@@ -91,6 +97,6 @@ public class ScoringControllerTeamGameSummaryTests
 
         // then
         result.ShouldNotBeNull();
-        result.TotalScore.ShouldBe(basePoints1 + basePoints2 + bonus1Points + bonus2Points + bonus3points);
+        result.TotalScore.ShouldBe(basePoints1 + basePoints2 + bonus1Points + bonus2Points + bonus3Points);
     }
 }

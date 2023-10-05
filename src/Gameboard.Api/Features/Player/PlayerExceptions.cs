@@ -6,6 +6,11 @@ using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.Player;
 
+internal class CantResolveTeamFromCode : GameboardException
+{
+    internal CantResolveTeamFromCode(string code, string[] teamIds) : base($"""Couldn't resolve a unique team from invitation code "{code}": {teamIds.Count()} have this code ({string.Join(",", teamIds)}). """) { }
+}
+
 internal class InvalidExtendSessionRequest : GameboardException
 {
     internal InvalidExtendSessionRequest(DateTimeOffset currentSessionEnd, DateTimeOffset requestedSessionEnd)
@@ -23,6 +28,16 @@ internal class ManagerCantUnenrollWhileTeammatesRemain : GameboardValidationExce
         Player {playerId} is the manager of team {teamId}. There are currently {teammatePlayerIds.Count()} players remaining on the team ({string.Join(" | ", teammatePlayerIds)}).
         In order to unenroll, this player must designate a teammate as the replacement manager (or wait until all other team memberes have unenrolled).
     """) { }
+}
+
+internal class CantEnrollWithDefaultSponsor : GameboardValidationException
+{
+    internal CantEnrollWithDefaultSponsor(string userId, string gameId) : base($"""User "{userId}" can't enroll in game "{gameId}": User still has the default sponsor. """) { }
+}
+
+internal class NoPlayerSponsorForGame : GameboardValidationException
+{
+    internal NoPlayerSponsorForGame(string userId, string gameId) : base($"""User "{userId}" hasn't selected a sponsor, so they can't register for game "{gameId}".""") { }
 }
 
 internal class NotOnSameTeam : GameboardException

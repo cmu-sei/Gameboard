@@ -17,7 +17,6 @@ public interface IReportsService
 {
     ReportResults<TRecord> BuildResults<TRecord>(ReportRawResults<TRecord> rawResults);
     ReportResults<TOverallStats, TRecord> BuildResults<TOverallStats, TRecord>(ReportRawResults<TOverallStats, TRecord> rawResults);
-    Task<IEnumerable<ChallengesReportRecord>> GetChallengesReportRecords(GetChallengesReportQueryArgs parameters);
     Task<IDictionary<string, ReportTeamViewModel>> GetTeamsByPlayerIds(IEnumerable<string> playerIds, CancellationToken cancellationToken);
     Task<IEnumerable<ReportViewModel>> List();
     Task<IEnumerable<SimpleEntity>> ListChallengeSpecs(string gameId = null);
@@ -155,6 +154,7 @@ public class ReportsService : IReportsService
 
         var teamPlayers = await _store
             .List<Data.Player>()
+                .Include(p => p.Sponsor)
             .Where(p => playerIds.Contains(p.Id))
             .ToArrayAsync(cancellationToken);
 
@@ -174,11 +174,11 @@ public class ReportsService : IReportsService
                 Players = team.Select(p => new SimpleEntity { Id = p.Id, Name = p.ApprovedName }),
                 Sponsors = team
                     .OrderBy(p => p.IsManager ? 0 : 1)
-                    .Select(p => p.Sponsor.IsEmpty() ? null : new ReportSponsorViewModel
+                    .Select(p => p.Sponsor is null ? null : new ReportSponsorViewModel
                     {
-                        Id = sponsors[p.Sponsor].Id,
-                        Name = sponsors[p.Sponsor].Name,
-                        LogoFileName = p.Sponsor
+                        Id = p.Sponsor.Id,
+                        Name = p.Sponsor.Name,
+                        LogoFileName = p.Sponsor.Logo
                     })
             });
         }
@@ -283,151 +283,6 @@ public class ReportsService : IReportsService
             OverallStats = rawResults.OverallStats,
             Paging = pagedResults.Paging,
             Records = pagedResults.Items
-        };
-    }
-
-    public async Task<IEnumerable<ChallengesReportRecord>> GetChallengesReportRecords(GetChallengesReportQueryArgs args)
-    {
-        // TODO: validation
-        var hasCompetition = args.Competition.NotEmpty();
-        var hasGameId = args.GameId.NotEmpty();
-        var hasSpecId = args.ChallengeSpecId.NotEmpty();
-        var hasTrack = args.TrackName.NotEmpty();
-
-        // parameters resolve to challenge specs
-        var specs = await _store.List<Data.ChallengeSpec>()
-            .Include(s => s.Game)
-            .Where(s => !hasCompetition || s.Game.Competition == args.Competition)
-            .Where(s => !hasGameId || s.GameId == args.GameId)
-            .Where(s => !hasTrack || s.Game.Track == args.TrackName)
-            .Where(s => !hasSpecId || s.Id == args.ChallengeSpecId)
-            .ToDictionaryAsync
-            (
-                s => s.Id,
-                s => new ChallengesReportSpec
-                {
-                    Id = s.Id,
-                    Game = new SimpleEntity { Id = s.GameId, Name = s.Game.Name },
-                    Name = s.Name,
-                    MaxPoints = s.Points
-                }
-            );
-
-        var specIds = specs.Keys;
-        var gameIds = specs.Values.Select(v => v.Game.Id).Distinct();
-
-        // this separate because players may be registered but not deploy this challenge, and we need to know that for reporting
-        var allPlayers = await _store.List<Data.Player>()
-            .Where(p => gameIds.Contains(p.GameId))
-            .ToArrayAsync();
-
-        var challenges = await _store.List<Data.Challenge>()
-            .Include(c => c.Game)
-            .Include(c => c.Player)
-            .Include(c => c.Tickets)
-            .Where(c => specIds.Contains(c.SpecId))
-            .Select(c => new ChallengesReportChallenge
-            {
-                Challenge = _mapper.Map<SimpleEntity>(c),
-                Game = _mapper.Map<SimpleEntity>(c.Game),
-                Player = new ChallengesReportPlayer
-                {
-                    Player = new SimpleEntity { Id = c.PlayerId, Name = c.Player.ApprovedName },
-                    StartTime = c.Player.SessionBegin,
-                    EndTime = c.Player.SessionEnd,
-                    Result = c.Result,
-                    SolveTimeMs =
-                    (
-                        c.StartTime == DateTimeOffset.MinValue || c.LastScoreTime == DateTimeOffset.MinValue ?
-                        null :
-                        (c.LastScoreTime - c.StartTime).TotalMilliseconds
-                    ),
-                    Score = c.Player.Score
-                },
-                SpecId = c.SpecId,
-                TicketCount = c.Tickets.Count()
-            }).ToArrayAsync();
-
-        var challengesBySpec = challenges
-            .GroupBy(c => c.SpecId)
-            .ToDictionary(c => c.Key, c => c.ToList());
-
-        // computed columns
-        var meanStats = challenges
-            .Where(c => c.Player.SolveTimeMs != null)
-            .GroupBy(c => c.SpecId)
-            .ToDictionary
-            (
-                c => c.Key,
-                c =>
-                {
-                    var playersCompleteSolved = c.Where(p => p.Player.Result == ChallengeResult.Success);
-
-                    var meanCompleteSolveTime = playersCompleteSolved.Any() ? playersCompleteSolved.Average(p => p.Player.SolveTimeMs.Value) : null as double?;
-                    var meanScore = c.Any() ? c.Average(c => c.Player.Score) : null as double?;
-
-                    return new ChallengesReportMeanChallengeStats
-                    {
-                        MeanCompleteSolveTimeMs = meanCompleteSolveTime,
-                        MeanScore = meanScore
-                    };
-                }
-            );
-
-        var fastestSolves = challenges
-            .Where(c => c.Player.SolveTimeMs != null)
-            .Select(c => new
-            {
-                c.SpecId,
-                c.Player.Player,
-                SolveTime = c.Player.SolveTimeMs.Value
-            })
-            .GroupBy(specPlayerSolve => specPlayerSolve.SpecId)
-            .ToDictionary(c => c.Key, c => c.Select(c => new ChallengesReportPlayerSolve
-            {
-                Player = c.Player,
-                SolveTimeMs = c.SolveTime
-            }).ToList().FirstOrDefault());
-
-        return specs.Values.Select(spec => BuildRecord(spec, allPlayers, challengesBySpec, fastestSolves, meanStats));
-    }
-
-    private ChallengesReportRecord BuildRecord
-    (
-        ChallengesReportSpec spec,
-        Data.Player[] allPlayers,
-        Dictionary<string, List<ChallengesReportChallenge>> challengesBySpec,
-        Dictionary<string, ChallengesReportPlayerSolve> fastestSolves,
-        Dictionary<string, ChallengesReportMeanChallengeStats> meanStats
-    )
-    {
-        var hasChallenges = challengesBySpec.ContainsKey(spec.Id);
-        var challenge = hasChallenges ? challengesBySpec[spec.Id].Where(s => s.Game.Id == spec.Game.Id).FirstOrDefault() : null;
-        var hasSolves = fastestSolves.ContainsKey(spec.Id);
-        var hasStats = meanStats.ContainsKey(spec.Id);
-
-        return new ChallengesReportRecord
-        {
-            ChallengeSpec = new SimpleEntity { Id = spec.Id, Name = spec.Name },
-            Game = new SimpleEntity { Id = spec.Game.Id, Name = spec.Game.Name },
-            Challenge = challenge == null ? null : new SimpleEntity { Id = challenge.Challenge.Id, Name = challenge.Challenge.Name },
-            PlayersEligible = allPlayers
-                .Where(p => p.GameId == spec.Game.Id)
-                .Count(),
-            PlayersStarted = !hasChallenges ? 0 : challengesBySpec[spec.Id]
-                .Where(c => c.Player.StartTime > DateTimeOffset.MinValue)
-                .Count(),
-            PlayersWithCompleteSolve = !hasChallenges ? 0 : challengesBySpec[spec.Id]
-                .Where(p => p.Player.Result == ChallengeResult.Success)
-                .Count(),
-            PlayersWithPartialSolve = !hasChallenges ? 0 : challengesBySpec[spec.Id]
-                .Where(p => p.Player.Result == ChallengeResult.Partial)
-                .Count(),
-            FastestSolve = !hasSolves ? null : fastestSolves[spec.Id],
-            MaxPossibleScore = spec.MaxPoints,
-            MeanCompleteSolveTimeMs = !hasStats ? null : meanStats[spec.Id].MeanCompleteSolveTimeMs,
-            MeanScore = !hasStats ? null : meanStats[spec.Id].MeanScore,
-            TicketCount = hasChallenges ? challengesBySpec[spec.Id].Select(c => c.TicketCount).Sum() : 0
         };
     }
 

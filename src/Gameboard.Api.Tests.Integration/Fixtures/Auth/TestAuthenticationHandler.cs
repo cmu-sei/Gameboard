@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
-using Gameboard.Api;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -31,11 +30,12 @@ internal class TestAuthenticationHandler : AuthenticationHandler<TestAuthenticat
     {
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.Name, _actingUser.Name),
-            new Claim(ClaimTypes.NameIdentifier, _actingUser.Id),
-            new Claim(AppConstants.SubjectClaimName, _actingUser.Id),
-            new Claim(AppConstants.ApprovedNameClaimName, _actingUser.Name),
-            new Claim(AppConstants.RoleListClaimName, _actingUser.Role.ToString())
+            new(ClaimTypes.Name, _actingUser.Name),
+            new(ClaimTypes.NameIdentifier, _actingUser.Id),
+            new(AppConstants.SubjectClaimName, _actingUser.Id),
+            new(AppConstants.ApprovedNameClaimName, _actingUser.Name),
+            new(AppConstants.RoleListClaimName, _actingUser.Role.ToString()),
+            new(AppConstants.SponsorClaimName, _actingUser.SponsorId)
         };
 
         var identity = new ClaimsIdentity(claims, AuthScheme.Name);

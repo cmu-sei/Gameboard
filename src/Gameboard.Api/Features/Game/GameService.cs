@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using Gameboard.Api.Common;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Services;
 
@@ -361,7 +362,7 @@ public class GameService : _Service, IGameService
             return new SyncStartState
             {
                 Game = new SimpleEntity { Id = game.Id, Name = game.Name },
-                Teams = new SyncStartTeam[] { },
+                Teams = Array.Empty<SyncStartTeam>(),
                 IsReady = true
             };
         }

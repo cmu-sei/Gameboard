@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Gameboard.Api.Features.Sponsors;
 
 namespace Gameboard.Api;
 
@@ -20,8 +21,8 @@ public class Player
     public string TeamName { get; set; }
     public string Name { get; set; }
     public string NameStatus { get; set; }
-    public string Sponsor { get; set; }
-    public string TeamSponsors { get; set; }
+    public Sponsor Sponsor { get; set; }
+    public string[] TeamSponsorLogos { get; set; }
     public PlayerRole Role { get; set; }
     public DateTimeOffset SessionBegin { get; set; }
     public DateTimeOffset SessionEnd { get; set; }
@@ -35,7 +36,6 @@ public class Player
     public bool IsManager { get; set; }
     public bool IsReady { get; set; }
     public PlayerMode Mode { get; set; }
-    public string[] SponsorList => (TeamSponsors ?? Sponsor ?? "").Split("|");
 }
 
 public class NewPlayer
@@ -43,7 +43,6 @@ public class NewPlayer
     public string UserId { get; set; }
     public string GameId { get; set; }
     public string Name { get; set; }
-    public string Sponsor { get; set; }
 }
 
 public class ChangedPlayer
@@ -52,8 +51,6 @@ public class ChangedPlayer
     public string Name { get; set; }
     public string NameStatus { get; set; }
     public string ApprovedName { get; set; }
-    public string Sponsor { get; set; }
-    public PlayerRole Role { get; set; }
 }
 
 public class PlayerReadyUpdate
@@ -94,14 +91,12 @@ public class PlayerUnenrollRequest
 
 public class SessionResetRequest
 {
-    public required bool IsManualReset { get; set; } = false;
     public required bool UnenrollTeam { get; set; } = true;
 }
 
 public class SessionResetCommandArgs
 {
     public required User ActingUser { get; set; }
-    public required bool IsManualReset { get; set; } = false;
     public required string PlayerId { get; set; }
     public required bool UnenrollTeam { get; set; } = true;
 }

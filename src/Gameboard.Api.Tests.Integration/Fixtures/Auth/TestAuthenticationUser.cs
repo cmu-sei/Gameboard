@@ -9,4 +9,5 @@ internal class TestAuthenticationUser
     public string Id { get; set; } = DEFAULT_USERID;
     public string Name { get; set; } = "";
     public UserRole Role { get; set; } = UserRole.Member;
+    public string SponsorId { get; set; } = string.Empty;
 }

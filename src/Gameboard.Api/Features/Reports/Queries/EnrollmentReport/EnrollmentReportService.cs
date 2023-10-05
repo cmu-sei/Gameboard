@@ -11,7 +11,7 @@ namespace Gameboard.Api.Features.Reports;
 
 public interface IEnrollmentReportService
 {
-    Task<IQueryable<Data.Player>> GetBaseQuery(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
+    IQueryable<Data.Player> GetBaseQuery(EnrollmentReportParameters parameters);
     Task<EnrollmentReportRawResults> GetRawResults(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
 }
 
@@ -30,7 +30,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
         _store = store;
     }
 
-    public async Task<IQueryable<Data.Player>> GetBaseQuery(EnrollmentReportParameters parameters, CancellationToken cancellationToken)
+    public IQueryable<Data.Player> GetBaseQuery(EnrollmentReportParameters parameters)
     {
         // parse multiselect criteria
         var gamesCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Games);
@@ -48,6 +48,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
             .Include(p => p.Game)
             .Include(p => p.Challenges.Where(c => c.PlayerMode == PlayerMode.Competition))
             .Include(p => p.User)
+            .Include(p => p.Sponsor)
             .Where(p => p.Challenges.Any(c => c.PlayerMode == PlayerMode.Competition));
 
         if (enrollDateStart != null)
@@ -73,37 +74,15 @@ internal class EnrollmentReportService : IEnrollmentReportService
             query = query.Where(p => trackCriteria.Contains(p.Game.Track.ToLower()));
 
         if (sponsorCriteria.Any())
-        {
-            var sponsors = await _store
-                .List<Data.Sponsor>()
-                .Where(s => sponsorCriteria.Contains(s.Id))
-                .Select(s => s.Logo)
-                .ToArrayAsync(cancellationToken);
-
-            query = query.Where(p => sponsors.Contains(p.Sponsor));
-        }
+            query = query.Where(p => sponsorCriteria.Contains(p.Sponsor.Id));
 
         return query;
     }
 
     public async Task<EnrollmentReportRawResults> GetRawResults(EnrollmentReportParameters parameters, CancellationToken cancellationToken)
     {
-        // load query
-        var query = await GetBaseQuery(parameters, cancellationToken);
-
         // finalize query - we have to do the rest "client" (application server) side
-        var players = await query.ToListAsync(cancellationToken);
-
-        // look up sponsors to build the result set
-        var sponsors = await _store
-            .List<Data.Sponsor>()
-            .Select(s => new ReportSponsorViewModel
-            {
-                Id = s.Id,
-                Name = s.Name,
-                LogoFileName = s.Logo
-            })
-            .ToArrayAsync(cancellationToken);
+        var players = await GetBaseQuery(parameters).ToListAsync(cancellationToken);
 
         // This is pretty messy. Here's why:
         //
@@ -168,7 +147,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
                     Id = p.Id,
                     Name = p.ApprovedName,
                     EnrollDate = p.WhenCreated.HasValue() ? p.WhenCreated : null,
-                    Sponsor = sponsors.FirstOrDefault(s => s.LogoFileName == p.Sponsor)
+                    Sponsor = p.Sponsor.ToReportViewModel()
                 },
                 Game = new ReportGameViewModel
                 {
@@ -184,7 +163,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
                     Id = p.TeamId,
                     Name = captain?.Name ?? p.Name,
                     CurrentCaptain = new SimpleEntity { Id = captain?.Id ?? p.Id, Name = captain?.Name ?? p.Name },
-                    Sponsors = sponsors.Where(s => playerTeamSponsorLogos.Contains(s.LogoFileName)).ToArray()
+                    Sponsors = playerTeamChallengeData.Select(p => p.Sponsor.ToReportViewModel())
                 },
                 PlayTime = new EnrollmentReportPlayTimeViewModel
                 {
@@ -209,13 +188,16 @@ internal class EnrollmentReportService : IEnrollmentReportService
             .DistinctBy(sponsorUser => new { sponsorUser.SponsorId, sponsorUser.UserId })
             .GroupBy(r => r.SponsorId)
             .OrderByDescending(g => g.Count())
-            .ToDictionary(g => g.Key, g => g.Distinct().Count());
+            .ToDictionary(g => g.Key, g => g.DistinctBy(su => su.UserId).Count());
 
+        // resolve the sponsor with the most unique users
+        // (it'll be the first one if there are any, because they're ordered by player
+        // count above)
         EnrollmentReportStatSummarySponsorPlayerCount sponsorWithMostPlayers = null;
-
         if (usersBySponsor.Any())
         {
-            var sponsor = sponsors.FirstOrDefault(s => s.Id == usersBySponsor.First().Key);
+            var allSponsors = records.Select(r => r.Player.Sponsor).DistinctBy(s => s.Id);
+            var sponsor = allSponsors.FirstOrDefault(s => s.Id == usersBySponsor.First().Key);
 
             if (sponsor is not null)
             {

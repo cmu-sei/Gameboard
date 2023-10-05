@@ -147,7 +147,7 @@ public class CubespaceScoreboardService : ICubespaceScoreboardService
                     {
                         Id = p.Id,
                         Name = p.User.ApprovedName,
-                        Sponsor = _scoreboardCache.Sponsors.First(sp => sp.LogoUri == p.Sponsor)
+                        Sponsor = _scoreboardCache.Sponsors.First(sp => sp.LogoUri == p.Sponsor.Logo)
                     });
 
                 if (teamPlayers.Count() > 0)

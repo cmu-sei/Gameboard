@@ -6,7 +6,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using AutoMapper;
-using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
@@ -117,7 +117,7 @@ namespace Gameboard.Api.Hubs
                 return await _gameService.GetSyncStartState(game.Id);
             }
 
-            // this isn't a failure, we just don't send anything down if sync start isn't needed
+            // this isn't a failure; we just don't send anything down if sync start isn't needed
             return null;
         }
 
@@ -136,6 +136,7 @@ namespace Gameboard.Api.Hubs
                 .Where(p => p.TeamId == teamId)
                 .Include(p => p.Game)
                 .Include(p => p.User)
+                .Include(p => p.Sponsor)
                 .ToArrayAsync();
 
             return teamPlayers;

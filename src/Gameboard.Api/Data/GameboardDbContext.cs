@@ -32,10 +32,12 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.Name).HasMaxLength(64);
             b.Property(u => u.NameStatus).HasMaxLength(40);
             b.Property(u => u.Email).HasMaxLength(64);
-            b.Property(u => u.Sponsor).HasMaxLength(40);
             b.Property(u => u.LoginCount).HasDefaultValueSql("0");
-        });
 
+            // nav properties
+            b.HasOne(u => u.Sponsor).WithMany(s => s.SponsoredUsers)
+                .IsRequired();
+        });
         builder.Entity<ApiKey>(k =>
         {
             k.Property(k => k.Id).HasMaxLength(40);
@@ -59,7 +61,7 @@ public class GameboardDbContext : DbContext
 
         builder.Entity<Player>(b =>
         {
-            b.HasOne(p => p.User).WithMany(u => u.Enrollments).OnDelete(DeleteBehavior.Cascade);
+            b.HasKey(p => p.Id);
             b.HasIndex(p => p.TeamId);
             b.Property(p => p.Id).HasMaxLength(40);
             b.Property(p => p.TeamId).HasMaxLength(40);
@@ -68,9 +70,13 @@ public class GameboardDbContext : DbContext
             b.Property(p => p.ApprovedName).HasMaxLength(64);
             b.Property(p => p.Name).HasMaxLength(64);
             b.Property(p => p.NameStatus).HasMaxLength(40);
-            b.Property(p => p.Sponsor).HasMaxLength(40);
-            b.Property(p => p.TeamSponsors).HasMaxLength(255);
             b.Property(p => p.InviteCode).HasMaxLength(40);
+
+            // nav properties
+            b.HasOne(p => p.User).WithMany(u => u.Enrollments).OnDelete(DeleteBehavior.Cascade);
+            b
+                .HasOne(p => p.Sponsor).WithMany(s => s.SponsoredPlayers)
+                .IsRequired();
         });
 
         builder.Entity<Game>(b =>
@@ -135,6 +141,7 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.Id).HasMaxLength(40);
             b.Property(u => u.GameId).HasMaxLength(40);
             b.Property(u => u.ExternalId).HasMaxLength(40);
+            b.Property(u => u.SolutionGuideUrl).HasMaxLength(1000);
 
             b.HasOne(p => p.Game).WithMany(u => u.Specs).OnDelete(DeleteBehavior.Cascade);
         });
@@ -152,6 +159,8 @@ public class GameboardDbContext : DbContext
         {
             b.Property(u => u.Id).HasMaxLength(40);
             b.Property(u => u.Name).HasMaxLength(128);
+            b.HasOne(s => s.ParentSponsor)
+                .WithMany(p => p.ChildSponsors);
         });
 
         builder.Entity<Feedback>(b =>

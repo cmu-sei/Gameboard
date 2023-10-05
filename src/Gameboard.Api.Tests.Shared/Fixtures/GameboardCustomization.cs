@@ -8,41 +8,18 @@ public class GameboardCustomization : ICustomization
     {
         fixture.Customizations.Add(new IdBuilder());
         fixture.Register(() => fixture);
-
         var now = DateTimeOffset.UtcNow;
-        fixture.Register(() => new Data.User
+
+        fixture.Register(() => new Data.ArchivedChallenge
         {
             Id = fixture.Create<string>(),
-            Username = "testuser",
-            ApprovedName = "Test User",
-            Sponsor = "Test Sponsor",
-            Role = UserRole.Member
+            Name = $"Archived challenge {fixture.Create<string>()}",
+            Points = fixture.Create<int>(),
+            StartTime = now.AddDays(-2),
+            EndTime = now.AddDays(-1),
+            HasGamespaceDeployed = false
         });
-
-        fixture.Register(() => new Data.Game
-        {
-            Id = fixture.Create<string>(),
-            Name = "A test game",
-            GameStart = now,
-            GameEnd = now.AddDays(1),
-            IsPublished = true
-        });
-
-        fixture.Register(() => new Data.Player
-        {
-            Id = fixture.Create<string>(),
-            User = fixture.Create<Data.User>(),
-            Game = fixture.Create<Data.Game>(),
-            ApprovedName = "Test Player",
-            Sponsor = "Test Sponsor",
-            Role = PlayerRole.Manager,
-            Score = 0,
-            SessionBegin = now,
-            SessionEnd = now.AddDays(1),
-            TeamId = fixture.Create<string>(),
-            Mode = PlayerMode.Competition
-        });
-
+        
         fixture.Register(() => new Data.Challenge
         {
             Id = fixture.Create<string>(),
@@ -57,6 +34,43 @@ public class GameboardCustomization : ICustomization
             EndTime = now.AddDays(1),
             HasDeployedGamespace = false,
             GameEngineType = GameEngineType.TopoMojo
+        });
+
+        fixture.Register(() => new Data.ChallengeSpec
+        {
+            Id = fixture.Create<string>(),
+            Game = fixture.Create<Data.Game>(),
+            Name = fixture.Create<string>(),
+            X = 0,
+            Y = 0,
+            R = 1
+        });
+
+        fixture.Register(() => new Data.Game
+        {
+            Id = fixture.Create<string>(),
+            Name = fixture.Create<string>(),
+            GameStart = now,
+            GameEnd = now.AddDays(1),
+            IsPublished = true,
+            RegistrationOpen = now,
+            RegistrationClose = now.AddDays(1),
+            RegistrationType = GameRegistrationType.Open
+        });
+
+        fixture.Register(() => new Data.Player
+        {
+            Id = fixture.Create<string>(),
+            User = fixture.Create<Data.User>(),
+            Game = fixture.Create<Data.Game>(),
+            ApprovedName = "Test Player",
+            Sponsor = fixture.Create<Data.Sponsor>(),
+            Role = PlayerRole.Manager,
+            Score = 0,
+            SessionBegin = DateTimeOffset.MinValue,
+            SessionEnd = DateTimeOffset.MinValue,
+            TeamId = fixture.Create<string>(),
+            Mode = PlayerMode.Competition
         });
 
         fixture.Register(() => new TopoMojo.Api.Client.GameState
@@ -86,7 +100,7 @@ public class GameboardCustomization : ICustomization
             IsActive = true,
             Vms = new TopoMojo.Api.Client.VmState[]
             {
-                new TopoMojo.Api.Client.VmState
+                new()
                 {
                     Id = "10fccb66-6916-45e2-9a39-188d3a692d4a",
                     Name = "VM 1",
@@ -94,7 +108,7 @@ public class GameboardCustomization : ICustomization
                     IsRunning = true,
                     IsVisible = true
                 },
-                new TopoMojo.Api.Client.VmState
+                new()
                 {
                     Id = "8d771689-8b37-48e7-b706-9efe1c64bdca",
                     Name = "VM 2",
@@ -117,7 +131,7 @@ public class GameboardCustomization : ICustomization
                 LastScoreTime = DateTimeOffset.Now.AddMinutes(5),
                 Questions = new TopoMojo.Api.Client.QuestionView[]
                 {
-                    new TopoMojo.Api.Client.QuestionView
+                    new()
                     {
                         Text = "What is your quest?",
                         Hint = "It's not about swallows or whatever",
@@ -130,6 +144,25 @@ public class GameboardCustomization : ICustomization
                     }
                 }
             }
+        });
+
+        fixture.Register<Data.Sponsor>(() => new()
+        {
+            Id = fixture.Create<string>(),
+            Name = $"Sponsor {fixture.Create<string>()}",
+            Approved = true,
+            Logo = "test.svg",
+            SponsoredPlayers = new List<Data.Player>(),
+            SponsoredUsers = new List<Data.User>()
+        });
+
+        fixture.Register(() => new Data.User
+        {
+            Id = fixture.Create<string>(),
+            Username = fixture.Create<string>(),
+            ApprovedName = fixture.Create<string>(),
+            Sponsor = new Data.Sponsor { Id = fixture.Create<string>(), Name = "Test Sponsor" },
+            Role = UserRole.Member
         });
     }
 }

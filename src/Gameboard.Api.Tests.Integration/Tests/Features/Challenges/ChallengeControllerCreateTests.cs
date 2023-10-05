@@ -1,5 +1,4 @@
-using Gameboard.Api;
-using Gameboard.Api.Data;
+using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Tests.Integration;
 
@@ -24,24 +23,21 @@ public class ChallengeControllerCreateTests
         // arrange
         await _testContext.WithDataState(state =>
         {
-            state.AddChallengeSpec(spec =>
+            state.Add<Data.ChallengeSpec>(fixture, spec =>
             {
                 spec.Id = challengeSpecId;
                 spec.Name = specName;
-                spec.Game = new Data.Game
+                spec.Game = state.Build<Data.Game>(fixture, g =>
                 {
-                    Id = fixture.Create<string>(),
-                    Players = new Api.Data.Player[]
+                    g.Id = fixture.Create<string>();
+                    g.Players = state.Build<Data.Player>(fixture, p =>
                     {
-                        state.BuildPlayer(p =>
-                        {
-                            p.Id = playerId;
-                            p.User = new Data.User { Id = userId };
-                            p.SessionBegin = DateTimeOffset.UtcNow.AddDays(-1);
-                            p.SessionEnd = DateTimeOffset.UtcNow.AddDays(1);
-                        })
-                    }
-                };
+                        p.Id = playerId;
+                        p.User = state.Build<Data.User>(fixture, u => u.Id = userId);
+                        p.SessionBegin = DateTimeOffset.UtcNow.AddDays(-1);
+                        p.SessionEnd = DateTimeOffset.UtcNow.AddDays(1);
+                    }).ToCollection();
+                });
             });
         });
 

@@ -1,5 +1,5 @@
 using System.Net;
-using Gameboard.Api.Data;
+using Gameboard.Api.Common;
 using Gameboard.Api.Features.Games;
 
 namespace Gameboard.Api.Tests.Integration;
@@ -15,27 +15,22 @@ public class GameControllerGetSyncStartStateTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task GetSyncStartState_WithAllReady_IsReady(string gameId)
+    public async Task GetSyncStartState_WithAllReady_IsReady(IFixture fixture)
     {
         // given two players registered for the same sync-start game, both ready
+        var gameId = fixture.Create<string>();
+
         await _testContext.WithDataState(state =>
         {
-            state.AddGame(g =>
+            state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
                 g.RequireSynchronizedStart = true;
-            });
-
-            state.AddPlayer(p =>
-            {
-                p.GameId = gameId;
-                p.IsReady = true;
-            });
-
-            state.AddPlayer(p =>
-            {
-                p.GameId = gameId;
-                p.IsReady = true;
+                g.Players = new List<Data.Player>
+                {
+                    state.Build<Data.Player>(fixture, p => p.IsReady = true),
+                    state.Build<Data.Player>(fixture, p => p.IsReady = true),
+                };
             });
         });
 
@@ -53,28 +48,28 @@ public class GameControllerGetSyncStartStateTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task GetSyncStartState_WithNotReady_IsNotReady(string gameId, string notReadyPlayerId)
+    public async Task GetSyncStartState_WithNotReady_IsNotReady(string gameId, string readyPlayerId, string notReadyPlayerId, IFixture fixture)
     {
         // given two players registered for the same sync-start game, one not ready
         await _testContext.WithDataState(state =>
         {
-            state.AddGame(g =>
+            state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
                 g.RequireSynchronizedStart = true;
-            });
-
-            state.AddPlayer(p =>
-            {
-                p.GameId = gameId;
-                p.IsReady = true;
-            });
-
-            state.AddPlayer(p =>
-            {
-                p.Id = notReadyPlayerId;
-                p.GameId = gameId;
-                p.IsReady = false;
+                g.Players = new List<Data.Player>
+                {
+                    state.Build<Data.Player>(fixture, p =>
+                    {
+                        p.Id = readyPlayerId;
+                        p.IsReady = true;
+                    }),
+                    state.Build<Data.Player>(fixture, p =>
+                    {
+                        p.Id = notReadyPlayerId;
+                        p.IsReady = false;
+                    }),
+                };
             });
         });
 
@@ -91,29 +86,24 @@ public class GameControllerGetSyncStartStateTests
         result.Teams.Count().ShouldBe(2);
         result
             .Teams
-            .Where(t => !t.IsReady)
-            .Single()
+            .Single(t => !t.IsReady)
             .Players
             .Any(p => p.Id == notReadyPlayerId)
             .ShouldBeTrue();
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task GetSyncStartState_WithNotRequiredSyncStart_IsReady(string gameId)
+    public async Task GetSyncStartState_WithNotRequiredSyncStart_IsReady(IFixture fixture)
     {
         // given a player registered for a game which doesn't require sync start
+        var gameId = fixture.Create<string>();
         await _testContext.WithDataState(state =>
         {
-            state.AddGame(g =>
+            state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
                 g.RequireSynchronizedStart = false;
-            });
-
-            state.AddPlayer(p =>
-            {
-                p.GameId = gameId;
-                p.IsReady = false;
+                g.Players = state.Build<Data.Player>(fixture, p => p.IsReady = false).ToCollection();
             });
         });
 

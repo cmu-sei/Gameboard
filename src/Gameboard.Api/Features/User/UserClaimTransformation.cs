@@ -50,7 +50,8 @@ namespace Gameboard.Api
                 new Claim(AppConstants.SubjectClaimName, user.Id),
                 new Claim(AppConstants.NameClaimName, user.Name ?? ""),
                 new Claim(AppConstants.ApprovedNameClaimName, user.ApprovedName ?? ""),
-                new Claim(AppConstants.RoleListClaimName, user.Role.ToString())
+                new Claim(AppConstants.RoleListClaimName, user.Role.ToString()),
+                new Claim(AppConstants.SponsorClaimName, user.SponsorId)
             };
 
             foreach (string role in user.Role.ToString().Replace(" ", "").Split(','))

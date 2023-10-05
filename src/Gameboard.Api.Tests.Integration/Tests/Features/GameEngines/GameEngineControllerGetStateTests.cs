@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api.Tests.Integration;
@@ -22,13 +21,14 @@ public class GameEngineControllerGetStateTests
         string challenge1Id,
         TopoMojo.Api.Client.GameState state1,
         string challenge2Id,
-        TopoMojo.Api.Client.GameState state2
+        TopoMojo.Api.Client.GameState state2,
+        IFixture fixture
     )
     {
         // given 
         await _testContext.WithDataState(state =>
         {
-            state.AddPlayer(p =>
+            state.Add<Data.Player>(fixture, p =>
             {
                 p.Id = playerId;
                 p.TeamId = teamId;

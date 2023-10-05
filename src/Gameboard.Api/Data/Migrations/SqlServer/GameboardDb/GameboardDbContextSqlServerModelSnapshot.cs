@@ -326,6 +326,10 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<float>("R")
                         .HasColumnType("real");
 
+                    b.Property<string>("SolutionGuideUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<string>("Tag")
                         .HasColumnType("nvarchar(max)");
 
@@ -620,17 +624,13 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<int>("SessionMinutes")
                         .HasColumnType("int");
 
-                    b.Property<string>("Sponsor")
-                        .HasMaxLength(40)
+                    b.Property<string>("SponsorId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("TeamId")
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
-
-                    b.Property<string>("TeamSponsors")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
 
                     b.Property<long>("Time")
                         .HasColumnType("bigint");
@@ -645,6 +645,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.HasKey("Id");
 
                     b.HasIndex("GameId");
+
+                    b.HasIndex("SponsorId");
 
                     b.HasIndex("TeamId");
 
@@ -674,6 +676,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.Property<int?>("MaxPracticeSessionLengthMinutes")
                         .HasColumnType("int");
+
+                    b.Property<string>("SuggestedSearches")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UpdatedByUserId")
                         .HasColumnType("nvarchar(40)");
@@ -729,7 +734,12 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<string>("ParentSponsorId")
+                        .HasColumnType("nvarchar(40)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("ParentSponsorId");
 
                     b.ToTable("Sponsors");
                 });
@@ -874,6 +884,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<bool>("HasDefaultSponsor")
+                        .HasColumnType("bit");
+
                     b.Property<DateTimeOffset?>("LastLoginDate")
                         .HasColumnType("datetimeoffset");
 
@@ -893,8 +906,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<int>("Role")
                         .HasColumnType("int");
 
-                    b.Property<string>("Sponsor")
-                        .HasMaxLength(40)
+                    b.Property<string>("SponsorId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("Username")
@@ -902,6 +915,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasColumnType("nvarchar(64)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SponsorId");
 
                     b.ToTable("Users");
                 });
@@ -1054,12 +1069,20 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .WithMany("Players")
                         .HasForeignKey("GameId");
 
+                    b.HasOne("Gameboard.Api.Data.Sponsor", "Sponsor")
+                        .WithMany("SponsoredPlayers")
+                        .HasForeignKey("SponsorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Gameboard.Api.Data.User", "User")
                         .WithMany("Enrollments")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Game");
+
+                    b.Navigation("Sponsor");
 
                     b.Navigation("User");
                 });
@@ -1071,6 +1094,15 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasForeignKey("Gameboard.Api.Data.PracticeModeSettings", "UpdatedByUserId");
 
                     b.Navigation("UpdatedByUser");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.Sponsor", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Sponsor", "ParentSponsor")
+                        .WithMany("ChildSponsors")
+                        .HasForeignKey("ParentSponsorId");
+
+                    b.Navigation("ParentSponsor");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Ticket", b =>
@@ -1128,6 +1160,17 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("Ticket");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.User", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Sponsor", "Sponsor")
+                        .WithMany("SponsoredUsers")
+                        .HasForeignKey("SponsorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sponsor");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.PublishedCompetitiveCertificate", b =>
@@ -1202,6 +1245,15 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("Feedback");
 
                     b.Navigation("Tickets");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.Sponsor", b =>
+                {
+                    b.Navigation("ChildSponsors");
+
+                    b.Navigation("SponsoredPlayers");
+
+                    b.Navigation("SponsoredUsers");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Ticket", b =>

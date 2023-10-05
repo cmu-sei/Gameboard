@@ -1,6 +1,7 @@
 using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Teams;
@@ -109,6 +110,8 @@ public class ChallengeServiceTests
             A.Fake<IPlayerStore>(),
             A.Fake<IPracticeChallengeScoringListener>(),
             A.Fake<ConsoleActorMap>(),
+            A.Fake<IChallengeDocsService>(),
+            A.Fake<IChallengeSyncService>(),
             A.Fake<ITeamService>()
         );
 
@@ -227,6 +230,8 @@ public class ChallengeServiceTests
             A.Fake<IPlayerStore>(),
             A.Fake<IPracticeChallengeScoringListener>(),
             A.Fake<ConsoleActorMap>(),
+            A.Fake<IChallengeDocsService>(),
+            A.Fake<IChallengeSyncService>(),
             A.Fake<ITeamService>()
         );
 

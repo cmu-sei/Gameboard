@@ -106,7 +106,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPut("api/user")]
         [Authorize]
-        public async Task Update([FromBody] ChangedUser model)
+        public async Task<User> Update([FromBody] ChangedUser model)
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
@@ -114,8 +114,7 @@ namespace Gameboard.Api.Controllers
             );
 
             await Validate(model);
-
-            await UserService.Update(model, Actor.IsRegistrar || Actor.IsAdmin, Actor.IsAdmin);
+            return await UserService.Update(model, Actor.IsRegistrar || Actor.IsAdmin, Actor.IsAdmin);
         }
 
         /// <summary>

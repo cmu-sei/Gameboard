@@ -1,3 +1,4 @@
+using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Reports;
 
@@ -9,15 +10,14 @@ public class EnrollmentReportServiceTests
     public async Task GetResults_WithOnePlayerAndChallenge_ReportsCompleteSolve(IFixture fixture)
     {
         // given 
-        var sponsors = new List<Data.Sponsor>
+        var sponsors = new Data.Sponsor
         {
-            new Data.Sponsor
-            {
-                Id = "good-people",
-                Name = "The Good People",
-                Logo = "good-people.jpg"
-            }
-        }.BuildMock();
+            Id = "good-people",
+            Name = "The Good People",
+            Logo = "good-people.jpg"
+        }
+        .ToEnumerable()
+        .BuildMock();
 
         var challenge = fixture.Create<Data.Challenge>();
         challenge.Points = 50;
@@ -27,7 +27,7 @@ public class EnrollmentReportServiceTests
         var player = fixture.Create<Data.Player>();
         player.Challenges = new Data.Challenge[] { challenge };
         player.Game.PlayerMode = PlayerMode.Competition;
-        player.Sponsor = sponsors.First().Logo;
+        player.Sponsor = sponsors.First();
 
         var players = new List<Data.Player> { player }.BuildMock();
 
@@ -80,7 +80,7 @@ public class EnrollmentReportServiceTests
         var player1 = fixture.Create<Data.Player>();
         player1.Challenges = new Data.Challenge[] { challenge };
         player1.Game.PlayerMode = PlayerMode.Competition;
-        player1.Sponsor = sponsors.First().Logo;
+        player1.Sponsor = sponsors.First();
         player1.Role = PlayerRole.Manager;
 
         var player2 = fixture.Create<Data.Player>();
@@ -88,7 +88,7 @@ public class EnrollmentReportServiceTests
         player2.Game = player1.Game;
         player2.GameId = player1.GameId;
         player2.TeamId = player1.TeamId;
-        player2.Sponsor = "bad-eggs.jpg";
+        player2.Sponsor = sponsors.ToArray()[1];
 
         var players = new List<Data.Player> { player1, player2 }.BuildMock();
 
@@ -134,7 +134,7 @@ public class EnrollmentReportServiceTests
         var player = fixture.Create<Data.Player>();
         player.Challenges = new Data.Challenge[] { challenge };
         player.Game.PlayerMode = PlayerMode.Practice;
-        player.Sponsor = sponsors.First().Logo;
+        player.Sponsor = sponsors.First();
 
         var players = new List<Data.Player> { player }.BuildMock();
 

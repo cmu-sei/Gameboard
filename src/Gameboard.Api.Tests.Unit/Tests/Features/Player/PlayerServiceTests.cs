@@ -1,86 +1,10 @@
-using AutoMapper;
-using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.GameEngine;
-using Gameboard.Api.Features.Practice;
-using Gameboard.Api.Features.Teams;
-using Gameboard.Api.Hubs;
+using Gameboard.Api.Data;
 using Gameboard.Api.Services;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Api.Tests.Unit;
 
 public class PlayerServiceTests
 {
-    class PlayerServiceTestable : PlayerService
-    {
-        private PlayerServiceTestable(
-            ChallengeService challengeService,
-            CoreOptions coreOptions,
-            IPlayerStore store,
-            IGameService gameService,
-            IGameStore gameStore,
-            IGuidService guidService,
-            IInternalHubBus hubBus,
-            IPracticeChallengeScoringListener practiceChallengeScoringListener,
-            IPracticeService practiceService,
-            INowService now,
-            ITeamService teamService,
-            IMapper mapper,
-            IMemoryCache localCache) : base
-            (
-                challengeService,
-                coreOptions,
-                guidService,
-                now,
-                store,
-                gameService,
-                gameStore,
-                hubBus,
-                practiceChallengeScoringListener,
-                practiceService,
-                teamService,
-                mapper,
-                localCache
-            )
-        {
-        }
-
-        // TODO: reflection helper
-        internal static PlayerService GetTestable(
-            CoreOptions? coreOptions = null,
-            ChallengeService? challengeService = null,
-            IPlayerStore? store = null,
-            IGameService? gameService = null,
-            IGameStore? gameStore = null,
-            IGuidService? guidService = null,
-            INowService? now = null,
-            IInternalHubBus? hubBus = null,
-            IPracticeChallengeScoringListener? practiceChallengeScoringListener = null,
-            IPracticeService? practiceService = null,
-            ITeamService? teamService = null,
-            IMapper? mapper = null,
-            IMemoryCache? localCache = null,
-            GameEngineService? gameEngine = null)
-        {
-            return new PlayerService
-            (
-                challengeService ?? A.Fake<ChallengeService>(),
-                coreOptions ?? A.Fake<CoreOptions>(),
-                guidService ?? A.Fake<IGuidService>(),
-                now ?? A.Fake<INowService>(),
-                store ?? A.Fake<IPlayerStore>(),
-                gameService ?? A.Fake<GameService>(),
-                gameStore ?? A.Fake<IGameStore>(),
-                hubBus ?? A.Fake<IInternalHubBus>(),
-                practiceChallengeScoringListener ?? A.Fake<IPracticeChallengeScoringListener>(),
-                practiceService ?? A.Fake<IPracticeService>(),
-                teamService ?? A.Fake<ITeamService>(),
-                mapper ?? A.Fake<IMapper>(),
-                localCache ?? A.Fake<IMemoryCache>()
-            );
-        }
-    }
-
     [Theory, GameboardAutoData]
     public async Task Standings_WhenGameIdIsEmpty_ReturnsEmptyArray(IFixture fixture)
     {
@@ -92,7 +16,7 @@ public class PlayerServiceTests
         var result = await sut.Standings(filterParams);
 
         // assert
-        result.ShouldBe(new Standing[] { });
+        result.ShouldBe(Array.Empty<Standing>());
     }
 
     [Theory, GameboardAutoData]
@@ -101,12 +25,12 @@ public class PlayerServiceTests
         // arrange
         var userId = fixture.Create<string>();
         var fakeStore = A.Fake<IPlayerStore>();
-        var fakePlayers = new Api.Data.Player[]
+        var fakePlayers = new Data.Player[]
         {
             new Data.Player
             {
                 PartialCount = 1,
-                Game = new Api.Data.Game
+                Game = new Data.Game
                 {
                     CertificateTemplate = fixture.Create<string>(),
                     GameEnd = DateTimeOffset.Now - TimeSpan.FromDays(1)
@@ -120,13 +44,13 @@ public class PlayerServiceTests
         A.CallTo(() => fakeStore.List(null)).Returns(fakePlayers);
         A.CallTo(() => fakeStore.DbSet).Returns(fakePlayers);
 
-        var sut = PlayerServiceTestable.GetTestable(store: fakeStore);
+        var sut = PlayerServiceTestHelpers.GetTestableSut(playerStore: fakeStore);
 
         // act
         var result = await sut.MakeCertificates(userId);
 
         // assert
-        result.ShouldBe(new PlayerCertificate[] { });
+        result.ShouldBe(Array.Empty<PlayerCertificate>());
     }
 
     [Theory, GameboardAutoData]
@@ -137,7 +61,7 @@ public class PlayerServiceTests
         var fakeStore = A.Fake<IPlayerStore>();
         var fakePlayers = new Data.Player[]
         {
-            new Data.Player
+            new()
             {
                 PartialCount = 0,
                 Game = new Data.Game
@@ -155,7 +79,7 @@ public class PlayerServiceTests
         A.CallTo(() => fakeStore.List(null)).Returns(fakePlayers);
         A.CallTo(() => fakeStore.DbSet).Returns(fakePlayers);
 
-        var sut = PlayerServiceTestable.GetTestable(store: fakeStore);
+        var sut = PlayerServiceTestHelpers.GetTestableSut(playerStore: fakeStore);
 
         // act
         var result = await sut.MakeCertificates(userId);

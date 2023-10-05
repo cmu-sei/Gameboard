@@ -7,7 +7,10 @@ internal class PracticeMaps : Profile
 {
     public PracticeMaps()
     {
-        CreateMap<PracticeModeSettings, UpdatePracticeModeSettings>();
-        CreateMap<UpdatePracticeModeSettings, PracticeModeSettings>();
+        CreateMap<PracticeModeSettings, PracticeModeSettingsApiModel>()
+            .ForMember(s => s.SuggestedSearches, o => o.Ignore());
+
+        CreateMap<PracticeModeSettingsApiModel, PracticeModeSettings>()
+            .ForMember(s => s.SuggestedSearches, o => o.Ignore());
     }
 }

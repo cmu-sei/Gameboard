@@ -15,15 +15,15 @@ public class ChallengeBonusListTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task List_WithTwo_Succeeds(string challengeId, string userId, string bonusOneId, string bonusTwoId, string description)
+    public async Task List_WithTwo_Succeeds(string challengeId, string userId, string bonusOneId, string bonusTwoId, string description, IFixture fixture)
     {
         // given
         await _testContext.WithDataState(state =>
         {
-            state.AddUser(u =>
+            state.Add<Data.User>(fixture, u =>
             {
                 u.Id = userId;
-                u.Role = Api.UserRole.Support;
+                u.Role = UserRole.Support;
             });
 
             state.AddChallenge(c =>
@@ -31,19 +31,17 @@ public class ChallengeBonusListTests
                 c.Id = challengeId;
                 c.AwardedManualBonuses = new ManualChallengeBonus[]
                 {
-                    new ManualChallengeBonus
-                    {
+                    new() {
                         Id = bonusOneId,
                         Description = description,
                         EnteredByUserId = userId,
                         PointValue = 10
                     },
-                    new ManualChallengeBonus
-                    {
+                    new() {
                         Id = bonusTwoId,
                         Description = description,
                         EnteredByUserId = userId,
-                        PointValue = 40
+                        PointValue =  40
                     },
                 };
             });

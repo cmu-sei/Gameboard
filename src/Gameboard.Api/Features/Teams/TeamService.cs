@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Hubs;
@@ -27,7 +26,6 @@ public interface ITeamService
     Task<Data.Player> ResolveCaptain(string teamId);
     Task<Data.Player> ResolveCaptain(IEnumerable<Data.Player> players);
     Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser);
-    Task UpdateTeamSponsors(string teamId);
 }
 
 internal class TeamService : ITeamService
@@ -93,7 +91,7 @@ internal class TeamService : ITeamService
         var team = _mapper.Map<Team>(players.First(p => p.IsManager));
 
         team.Members = _mapper.Map<TeamMember[]>(players.Select(p => p.User));
-        team.TeamSponsors = string.Join("|", players.Select(p => p.Sponsor));
+        team.Sponsors = _mapper.Map<Sponsor[]>(players.Select(p => p.Sponsor));
 
         return team;
     }
@@ -145,16 +143,13 @@ internal class TeamService : ITeamService
                 .Where(p => p.Id == newCaptainPlayerId)
                 .ExecuteUpdateAsync
                 (
-                    p => p
-                        .SetProperty(p => p.Role, p => PlayerRole.Manager)
-                        .SetProperty(p => p.TeamSponsors, p => oldCaptain.TeamSponsors ?? p.TeamSponsors)
+                    p => p.SetProperty(p => p.Role, p => PlayerRole.Manager)
                 );
 
             // this automatically rolls back the transaction
             if (affectedPlayers != 1)
                 throw new PromotionFailed(teamId, newCaptainPlayerId, affectedPlayers);
 
-            await UpdateTeamSponsors(teamId);
             await transaction.CommitAsync();
         }
 
@@ -198,37 +193,5 @@ internal class TeamService : ITeamService
         }
 
         return players.OrderBy(p => p.ApprovedName).First();
-    }
-
-    public async Task UpdateTeamSponsors(string teamId)
-    {
-        var members = await _playerStore
-            .List()
-            .AsNoTracking()
-            .Where(p => p.TeamId == teamId)
-            .Select(p => new
-            {
-                p.Id,
-                p.Sponsor,
-                p.IsManager
-            })
-            .ToArrayAsync();
-
-        if (members.Length == 0)
-            return;
-
-        var sponsors = string.Join('|', members
-            .Select(p => p.Sponsor)
-            .Distinct()
-            .ToArray()
-        );
-
-        var manager = members.FirstOrDefault(p => p.IsManager);
-
-        await _playerStore
-            .List()
-            .Where(p => p.Id == manager.Id)
-            .ExecuteUpdateAsync(p => p
-                .SetProperty(p => p.TeamSponsors, sponsors));
     }
 }

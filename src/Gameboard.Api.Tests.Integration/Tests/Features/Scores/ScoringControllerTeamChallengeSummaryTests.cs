@@ -1,6 +1,6 @@
+using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Scores;
-using Gameboard.Api.Tests.Shared;
 
 namespace Gameboard.Api.Tests.Integration;
 
@@ -15,45 +15,51 @@ public class ScoringControllerTeamChallengeSummaryTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task GetChallengeScore_WithFixedTeam_CalculatesScore
+    public async Task GetChallengeScore_WithFixedTeam_CalculatesExpectedScore
     (
         IFixture fixture,
+        string specId,
         string teamId,
         string challengeId,
         int basePoints,
         int bonus1Points,
-        int bonus2Points)
+        int bonus2Points
+    )
     {
         // given
         await _testContext.WithDataState(state =>
         {
-            var builtTeam = state.AddTeam(fixture, t =>
-            {
-                t.Challenge = new SimpleEntity { Id = challengeId, Name = fixture.Create<string>() };
-                t.TeamId = teamId;
-            });
-
-            var enteringAdmin = state.BuildUser();
+            var enteringAdmin = state.Build<Data.User>(fixture);
             state.Add(enteringAdmin);
+            
+            // have to add spec separately because of broken FK issue
+            state.Add<Data.ChallengeSpec>(fixture, s => s.Id = specId);
 
-            builtTeam.Challenge!.Points = basePoints;
-            builtTeam.Challenge!.AwardedManualBonuses = new ManualChallengeBonus[]
+            state.Add<Data.Challenge>(fixture, c =>
             {
-                new ManualChallengeBonus
+                c.Id = challengeId;
+                c.TeamId = teamId;
+                c.Player = state.Build<Data.Player>(fixture, p => p.TeamId = teamId);
+                c.Points = basePoints;
+                c.SpecId = specId;
+                c.AwardedManualBonuses = new List<Data.ManualChallengeBonus>
                 {
-                    Id = fixture.Create<string>(),
-                    Description = fixture.Create<String>(),
-                    PointValue = bonus1Points,
-                    EnteredByUserId = enteringAdmin.Id
-                },
-                new ManualChallengeBonus
-                {
-                    Id = fixture.Create<string>(),
-                    Description = fixture.Create<string>(),
-                    PointValue = bonus2Points,
-                    EnteredByUserId = enteringAdmin.Id
-                }
-            };
+                    new()
+                    {
+                        Id = fixture.Create<string>(),
+                        Description = fixture.Create<string>(),
+                        PointValue = bonus1Points,
+                        EnteredByUserId = enteringAdmin.Id
+                    },
+                    new()
+                    {
+                        Id = fixture.Create<string>(),
+                        Description = fixture.Create<string>(),
+                        PointValue = bonus2Points,
+                        EnteredByUserId = enteringAdmin.Id
+                    }
+                };
+            });
         });
 
         var httpClient = _testContext.CreateClient();

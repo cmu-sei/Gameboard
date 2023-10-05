@@ -1,5 +1,4 @@
 using System.Net;
-using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,28 +29,26 @@ public class PlayerControllerUpdatePlayerReadyTests
         // given
         await _testContext.WithDataState(state =>
         {
-            state.AddGame(g =>
+            state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
                 g.Name = fixture.Create<string>();
                 g.RequireSynchronizedStart = true;
-                g.Players = new Data.Player[]
+                g.Players = new List<Data.Player>
                 {
-                    new Data.Player
+                    state.Build<Data.Player>(fixture, p =>
                     {
-                        Id = notReadyPlayer1Id,
-                        Name = "not ready (but will be)",
-                        IsReady = false,
-                        TeamId = fixture.Create<string>(),
-                        User = new Data.User { Id = readyPlayer1UserId }
-                    },
-                    new Data.Player
+                        p.Id = notReadyPlayer1Id;
+                        p.Name = "not ready (but will be)";
+                        p.IsReady = false;
+                        p.User = state.Build<Data.User>(fixture, u => u.Id = readyPlayer1UserId);
+                    }),
+                    state.Build<Data.Player>(fixture, p =>
                     {
-                        Id = notReadyPlayer2Id,
-                        Name = "not ready",
-                        IsReady = false,
-                        TeamId = fixture.Create<string>()
-                    }
+                        p.Id = notReadyPlayer2Id;
+                        p.Name = "not ready";
+                        p.IsReady = false;
+                    })
                 };
             });
         });
@@ -63,7 +60,6 @@ public class PlayerControllerUpdatePlayerReadyTests
 
         // then
         // only way to validate is to check for an upcoming session for the game
-
         var finalPlayer1 = await _testContext
             .GetDbContext()
             .Players
@@ -80,30 +76,28 @@ public class PlayerControllerUpdatePlayerReadyTests
         // given
         await _testContext.WithDataState(state =>
         {
-            state.AddGame(g =>
+            state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
                 g.Name = fixture.Create<string>();
                 g.RequireSynchronizedStart = true;
-                g.Players = new Data.Player[]
+                g.Players = new List<Data.Player>
                 {
-                    new Data.Player
+                    state.Build<Data.Player>(fixture, p =>
                     {
-                        Id = notReadyPlayerId,
-                        Name = "not ready (but will be)",
-                        Role = PlayerRole.Manager,
-                        IsReady = false,
-                        TeamId = fixture.Create<string>(),
-                        User = new Data.User { Id = notReadyPlayerUserId }
-                    },
-                    new Data.Player
+                        p.Id = notReadyPlayerId;
+                        p.Name = "not ready (but will be)";
+                        p.Role = PlayerRole.Manager;
+                        p.IsReady = false;
+                        p.User = state.Build<Data.User>(fixture, u => u.Id = notReadyPlayerUserId);
+                    }),
+                    state.Build<Data.Player>(fixture, p =>
                     {
-                        Id = readyPlayerId,
-                        Name = "ready",
-                        IsReady = true,
-                        Role = PlayerRole.Manager,
-                        TeamId = fixture.Create<string>()
-                    }
+                        p.Id = readyPlayerId;
+                        p.Name = "ready";
+                        p.IsReady = true;
+                        p.Role = PlayerRole.Manager;
+                    })
                 };
             });
         });

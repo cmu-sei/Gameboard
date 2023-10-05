@@ -62,12 +62,13 @@ internal class UpdatePracticeModeSettingsValidator : IGameboardRequestValidator<
     }
 }
 
-public record UpdatePracticeModeSettingsCommand(UpdatePracticeModeSettings Settings, User ActingUser) : IRequest;
+public record UpdatePracticeModeSettingsCommand(PracticeModeSettingsApiModel Settings, User ActingUser) : IRequest;
 
 internal class UpdatePracticeModeSettingsHandler : IRequestHandler<UpdatePracticeModeSettingsCommand>
 {
     private readonly IMapper _mapper;
     private readonly INowService _now;
+    private readonly IPracticeService _practiceService;
     private readonly IStore _store;
     private readonly UpdatePracticeModeSettingsValidator _validator;
 
@@ -75,12 +76,14 @@ internal class UpdatePracticeModeSettingsHandler : IRequestHandler<UpdatePractic
     (
         IMapper mapper,
         INowService now,
+        IPracticeService practiceService,
         IStore store,
         UpdatePracticeModeSettingsValidator validator
     )
     {
         _mapper = mapper;
         _now = now;
+        _practiceService = practiceService;
         _store = store;
         _validator = validator;
     }
@@ -90,7 +93,8 @@ internal class UpdatePracticeModeSettingsHandler : IRequestHandler<UpdatePractic
         await _validator.Validate(request);
 
         var currentSettings = await _store.FirstOrDefaultAsync<PracticeModeSettings>(cancellationToken);
-        var updatedSettings = _mapper.Map<Data.PracticeModeSettings>(request.Settings);
+        var updatedSettings = _mapper.Map<PracticeModeSettings>(request.Settings);
+        updatedSettings.SuggestedSearches = _practiceService.EscapeSuggestedSearches(request.Settings.SuggestedSearches);
         updatedSettings.Id = currentSettings.Id;
         updatedSettings.UpdatedOn = _now.Get();
         updatedSettings.UpdatedByUserId = request.ActingUser.Id;

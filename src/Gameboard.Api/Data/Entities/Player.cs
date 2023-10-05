@@ -16,8 +16,6 @@ public class Player : IEntity
     public string ApprovedName { get; set; }
     public string Name { get; set; }
     public string NameStatus { get; set; }
-    public string Sponsor { get; set; }
-    public string TeamSponsors { get; set; }
     public string InviteCode { get; set; }
     public bool IsReady { get; set; }
     public PlayerRole Role { get; set; }
@@ -33,8 +31,12 @@ public class Player : IEntity
     public PlayerMode Mode { get; set; }
     public User User { get; set; }
     public Game Game { get; set; }
-    public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
     public DateTimeOffset WhenCreated { get; set; }
+
+    // navigation properties
+    public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
+    public string SponsorId { get; set; }
+    public Sponsor Sponsor { get; set; }
 
     [NotMapped] public bool IsManager => Role == PlayerRole.Manager;
     [NotMapped] public bool IsPractice => Mode == PlayerMode.Practice;

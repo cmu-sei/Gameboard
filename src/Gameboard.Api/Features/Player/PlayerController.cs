@@ -120,7 +120,6 @@ namespace Gameboard.Api.Controllers
             {
                 ActingUser = Actor,
                 PlayerId = playerId,
-                IsManualReset = request.IsManualReset,
                 UnenrollTeam = request.UnenrollTeam
             };
 
@@ -251,9 +250,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<TeamSummary[]> GetTeams([FromRoute] string id)
         {
-            AuthorizeAny(
-                () => Actor.IsRegistrar
-            );
+            AuthorizeAny(() => Actor.IsRegistrar);
 
             return await PlayerService.LoadTeams(id, Actor.IsRegistrar);
         }
@@ -322,10 +319,11 @@ namespace Gameboard.Api.Controllers
         /// Enlists the user into a player team
         /// </summary>
         /// <param name="model">EnlistingPlayer</param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpPost("/api/player/enlist")]
         [Authorize]
-        public async Task<Player> Enlist([FromBody] PlayerEnlistment model)
+        public async Task<Player> Enlist([FromBody] PlayerEnlistment model, CancellationToken cancellationToken)
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
@@ -334,7 +332,7 @@ namespace Gameboard.Api.Controllers
             );
 
             await Validate(model);
-            return await PlayerService.Enlist(model, Actor);
+            return await PlayerService.Enlist(model, Actor, cancellationToken);
         }
 
         [HttpPut("/api/team/{teamId}/manager/{playerId}")]

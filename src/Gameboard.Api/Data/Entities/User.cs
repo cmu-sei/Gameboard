@@ -14,13 +14,15 @@ public class User : IEntity
     public string Name { get; set; }
     public string NameStatus { get; set; }
     public string ApprovedName { get; set; }
-    public string Sponsor { get; set; }
     public UserRole Role { get; set; }
     public DateTimeOffset CreatedOn { get; set; }
     public DateTimeOffset? LastLoginDate { get; set; }
     public int LoginCount { get; set; }
+    public bool HasDefaultSponsor { get; set; }
 
-    // relational properties
+    // navigation properties
+    public string SponsorId { get; set; }
+    public Sponsor Sponsor { get; set; }
     public ICollection<ApiKey> ApiKeys { get; set; } = new List<ApiKey>();
     public ICollection<Player> Enrollments { get; set; } = new List<Player>();
     public ICollection<ManualChallengeBonus> EnteredManualChallengeBonuses { get; set; } = new List<ManualChallengeBonus>();
