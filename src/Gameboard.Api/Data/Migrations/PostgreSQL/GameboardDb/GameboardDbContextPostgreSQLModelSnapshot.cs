@@ -325,6 +325,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<float>("R")
                         .HasColumnType("real");
 
+                    b.Property<bool>("ShowSolutionGuideInCompetitiveMode")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("SolutionGuideUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");

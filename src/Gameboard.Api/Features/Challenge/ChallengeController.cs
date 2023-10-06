@@ -4,10 +4,12 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -16,9 +18,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Controllers
 {
+
     [Authorize]
     public class ChallengeController : _Controller
     {
+        private readonly IMediator _mediator;
+
         ChallengeService ChallengeService { get; }
         PlayerService PlayerService { get; }
         IHubContext<AppHub, IAppHubEvent> Hub { get; }
@@ -29,6 +34,7 @@ namespace Gameboard.Api.Controllers
             IDistributedCache cache,
             ChallengeValidator validator,
             ChallengeService challengeService,
+            IMediator mediator,
             PlayerService playerService,
             IHubContext<AppHub, IAppHubEvent> hub,
             ConsoleActorMap actormap
@@ -37,6 +43,7 @@ namespace Gameboard.Api.Controllers
             ChallengeService = challengeService;
             PlayerService = playerService;
             Hub = hub;
+            _mediator = mediator;
             ActorMap = actormap;
         }
 
@@ -363,6 +370,11 @@ namespace Gameboard.Api.Controllers
             );
             return ChallengeService.GetConsoleActor(uid);
         }
+
+        [HttpGet("api/challenge/{challengeId}/solution-guide")]
+        [Authorize]
+        public Task<ChallengeSolutionGuide> GetSolutionGuide([FromRoute] string challengeId)
+            => _mediator.Send(new GetChallengeSolutionGuideQuery(challengeId));
 
         /// <summary>
         /// Find challenges

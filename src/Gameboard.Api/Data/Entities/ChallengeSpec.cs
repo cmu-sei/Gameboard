@@ -21,6 +21,7 @@ namespace Gameboard.Api.Data
         public float R { get; set; }
         public GameEngineType GameEngineType { get; set; }
         public string SolutionGuideUrl { get; set; }
+        public bool ShowSolutionGuideInCompetitiveMode { get; set; }
 
         // nav properties
         public string GameId { get; set; }
