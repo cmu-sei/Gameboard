@@ -20,11 +20,10 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
 {
     private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
     private readonly IGuidService _guids;
+    private readonly IGameboardRequestValidator<ConfigureGameAutoBonusesCommand> _requestValidator;
     private readonly IScoringService _scoringService;
     private readonly IStore _store;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
-    private readonly IGameboardValidator<ConfigureGameAutoBonusesCommand> _validator;
-    private readonly IValidatorService<ConfigureGameAutoBonusesCommand> _validatorService;
 
     public ConfigureGameAutoBonusesHandler(
         IStore<Data.ChallengeSpec> challengeSpecStore,
@@ -32,16 +31,14 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
         IScoringService scoringService,
         IStore store,
         UserRoleAuthorizer userRoleAuthorizer,
-        IGameboardValidator<ConfigureGameAutoBonusesCommand> validator,
-        IValidatorService<ConfigureGameAutoBonusesCommand> validatorService)
+        IGameboardRequestValidator<ConfigureGameAutoBonusesCommand> requestValidator)
     {
         _challengeSpecStore = challengeSpecStore;
+        _requestValidator = requestValidator;
         _guids = guids;
         _scoringService = scoringService;
         _store = store;
         _userRoleAuthorizer = userRoleAuthorizer;
-        _validator = validator;
-        _validatorService = validatorService;
     }
 
     public async Task<GameScoringConfig> Handle(ConfigureGameAutoBonusesCommand request, CancellationToken cancellationToken)
@@ -52,8 +49,7 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
             .Authorize();
 
         // validate
-        _validatorService.AddValidator(_validator);
-        await _validatorService.Validate(request, cancellationToken);
+        await _requestValidator.Validate(request, cancellationToken);
 
         // and go (with a transaction to maintain atomicity)
         var specs = await _store

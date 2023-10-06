@@ -9,7 +9,6 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
-using Gameboard.Api.Features.ChallengeBonuses;
 
 namespace Gameboard.Api.Features.Scores;
 
@@ -73,10 +72,14 @@ internal class ScoringService : IScoringService
                 {
                     ChallengeSpec = new SimpleEntity { Id = s.Id, Name = s.Description },
                     CompletionScore = s.Points,
-                    PossibleBonuses = s.Bonuses.Select(b => _mapper.Map<GameScoringConfigChallengeBonus>(b)),
+                    PossibleBonuses = s.Bonuses
+                        .Select(b => _mapper.Map<GameScoringConfigChallengeBonus>(b))
+                        .OrderByDescending(b => b.PointValue)
+                            .ThenBy(b => b.Description),
                     MaxPossibleScore = maxPossibleScore
                 };
-            })
+            }).
+            OrderBy(config => config.ChallengeSpec.Name)
         };
     }
 
