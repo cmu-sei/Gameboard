@@ -97,7 +97,6 @@ public class ChallengeControllerGradeAutoBonusTests
         IFixture fixture
     )
     {
-        var baseScore = 100;
         var fullSolveScore = 150;
         var bonus = 20;
 
