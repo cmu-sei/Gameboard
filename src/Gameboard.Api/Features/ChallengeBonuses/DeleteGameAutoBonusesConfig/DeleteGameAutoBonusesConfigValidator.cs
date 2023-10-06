@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +11,6 @@ namespace Gameboard.Api.Features.ChallengeBonuses;
 internal class DeleteGameAutoBonusesConfigValidator : IGameboardRequestValidator<DeleteGameAutoBonusesConfigCommand>
 {
     private readonly EntityExistsValidator<DeleteGameAutoBonusesConfigCommand, Data.Game> _gameExists;
-    private Func<DeleteGameAutoBonusesConfigCommand, string> _gameIdPropertyExpression;
     private readonly IStore _store;
     private readonly IValidatorService<DeleteGameAutoBonusesConfigCommand> _validatorService;
 
@@ -26,12 +24,6 @@ internal class DeleteGameAutoBonusesConfigValidator : IGameboardRequestValidator
         _gameExists = gameExists;
         _store = store;
         _validatorService = validatorService;
-    }
-
-    public IGameboardRequestValidator<DeleteGameAutoBonusesConfigCommand> UseGameIdProperty(Func<DeleteGameAutoBonusesConfigCommand, string> gameIdPropertyExpression)
-    {
-        _gameIdPropertyExpression = gameIdPropertyExpression;
-        return this;
     }
 
     public async Task Validate(DeleteGameAutoBonusesConfigCommand request, CancellationToken cancellationToken)
