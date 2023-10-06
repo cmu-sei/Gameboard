@@ -34,11 +34,12 @@ internal class GetChallengeSolutionGuideHandler : IRequestHandler<GetChallengeSo
 
     public async Task<ChallengeSolutionGuide> Handle(GetChallengeSolutionGuideQuery request, CancellationToken cancellationToken)
     {
-        _userRoleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Member };
-        _userRoleAuthorizer.Authorize();
+        _userRoleAuthorizer
+            .AllowRoles(UserRole.Member)
+            .Authorize();
 
         _validatorService.AddValidator(_challengeExists.UseProperty(r => r.ChallengeId));
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
 
         var challenge = await _store.SingleAsync<Data.Challenge>(request.ChallengeId, cancellationToken);
         var spec = await _store.SingleAsync<Data.ChallengeSpec>(challenge.SpecId, cancellationToken);
