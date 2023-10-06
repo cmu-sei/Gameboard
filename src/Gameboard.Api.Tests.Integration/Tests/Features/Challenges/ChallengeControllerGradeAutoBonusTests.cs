@@ -30,19 +30,6 @@ public class ChallengeControllerGradeAutoBonusTests
 
         // given
         await _testContext
-            // .WithTestServices(services =>
-            // {
-            //     services.AddTransient<ITestGradingResultService>(factory =>
-            //         new TestGradingResultService(state =>
-            //         {
-            //             state.Id = challengeId;
-            //             state.Challenge = new GameEngineChallengeView
-            //             {
-            //                 MaxPoints = baseScore,
-            //                 Score = baseScore // full solve
-            //             };
-            //         }));
-            // })
             .WithDataState(state =>
             {
                 state.Add<Data.Game>(fixture, g => g.Id = gameId);
@@ -66,11 +53,10 @@ public class ChallengeControllerGradeAutoBonusTests
                 {
                     c.Id = challengeId;
                     c.GameId = gameId;
-                    c.Player = new Data.Player
+                    c.Player = state.Build<Data.Player>(fixture, p =>
                     {
-                        Id = fixture.Create<string>(),
-                        TeamId = teamId
-                    };
+                        p.TeamId = teamId;
+                    });
                     c.SpecId = challengeSpecId;
                     c.TeamId = teamId;
                 });
@@ -117,19 +103,6 @@ public class ChallengeControllerGradeAutoBonusTests
 
         // given
         await _testContext
-            // .WithTestServices(services =>
-            // {
-            //     services.AddTransient<ITestGradingResultService>(factory =>
-            //         new TestGradingResultService(state =>
-            //         {
-            //             state.Id = challengeId;
-            //             state.Challenge = new GameEngineChallengeView
-            //             {
-            //                 MaxPoints = fullSolveScore,
-            //                 Score = baseScore // partial solve
-            //             };
-            //         }));
-            // })
             .WithDataState(state =>
             {
                 state.Add<Data.Game>(fixture, g => g.Id = gameId);
@@ -138,7 +111,7 @@ public class ChallengeControllerGradeAutoBonusTests
                     spec.Id = challengeSpecId;
                     spec.GameId = gameId;
                     spec.Points = fullSolveScore;
-                    spec.Bonuses = new ChallengeBonus[]
+                    spec.Bonuses = new List<Data.ChallengeBonus>
                     {
                         new ChallengeBonusCompleteSolveRank
                         {
@@ -153,11 +126,10 @@ public class ChallengeControllerGradeAutoBonusTests
                 {
                     c.Id = challengeId;
                     c.GameId = gameId;
-                    c.Player = new Data.Player
+                    c.Player = state.Build<Data.Player>(fixture, p =>
                     {
-                        Id = fixture.Create<string>(),
-                        TeamId = teamId
-                    };
+                        p.TeamId = teamId;
+                    });
                     c.Points = fullSolveScore;
                     c.SpecId = challengeSpecId;
                     c.TeamId = teamId;
@@ -207,20 +179,6 @@ public class ChallengeControllerGradeAutoBonusTests
 
         // given
         await _testContext
-            // .WithTestServices(services =>
-            // {
-            //     services.AddGbIntegrationTestAuth(UserRole.Admin);
-            //     services.AddTransient<ITestGradingResultService>(factory =>
-            //         new TestGradingResultService(state =>
-            //         {
-            //             state.Id = unawardedChallengeId;
-            //             state.Challenge = new GameEngineChallengeView
-            //             {
-            //                 MaxPoints = baseScore,
-            //                 Score = baseScore // full solve
-            //             };
-            //         }));
-            // })
             .WithDataState(state =>
             {
                 state.Add<Data.Game>(fixture, g => g.Id = gameId);
@@ -251,12 +209,11 @@ public class ChallengeControllerGradeAutoBonusTests
                 {
                     c.Id = awardedChallengeId;
                     c.GameId = gameId;
-                    c.Player = new Data.Player
+                    c.Player = state.Build<Data.Player>(fixture, p =>
                     {
-                        Id = fixture.Create<string>(),
-                        GameId = gameId,
-                        TeamId = awardedTeamId,
-                    };
+                        p.GameId = gameId;
+                        p.TeamId = awardedTeamId;
+                    });
                     c.SpecId = challengeSpecId;
                     c.StartTime = DateTimeOffset.UtcNow;
                     c.EndTime = c.StartTime.AddSeconds(30);
@@ -268,12 +225,11 @@ public class ChallengeControllerGradeAutoBonusTests
                 {
                     c.Id = unawardedChallengeId;
                     c.GameId = gameId;
-                    c.Player = new Data.Player
+                    c.Player = state.Build<Data.Player>(fixture, p =>
                     {
-                        Id = fixture.Create<string>(),
-                        GameId = gameId,
-                        TeamId = unawardedTeamId,
-                    };
+                        p.GameId = gameId;
+                        p.TeamId = unawardedTeamId;
+                    });
                     c.SpecId = challengeSpecId;
                     c.TeamId = unawardedTeamId;
                 });
