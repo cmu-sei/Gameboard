@@ -136,6 +136,13 @@ public class ChallengeOverview
     public bool AllowTeam { get; set; }
 }
 
+public sealed class ChallengeSolutionGuide
+{
+    public required string ChallengeSpecId { get; set; }
+    public required bool ShowInCompetitiveMode { get; set; }
+    public required string Url { get; set; }
+}
+
 public class ObserveChallenge
 {
     public string Id { get; set; }

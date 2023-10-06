@@ -312,6 +312,7 @@ public class PlayerService
             if (teamSponsors.ContainsKey(player.TeamId))
                 player.TeamSponsorLogos = teamSponsors[player.TeamId];
 
+        var importantPlayer = players.FirstOrDefault(p => p.Id == "ded8b5e2ca924d0ebe3f5b5a2de7df03");
         return players;
     }
 
