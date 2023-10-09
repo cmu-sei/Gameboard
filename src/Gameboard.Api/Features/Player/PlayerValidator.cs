@@ -166,7 +166,7 @@ namespace Gameboard.Api.Validators
 
         public async Task _validate(SessionResetCommandArgs args)
         {
-            if (!(await Exists(args.PlayerId)))
+            if (!await Exists(args.PlayerId))
                 throw new ResourceNotFound<Player>(args.PlayerId);
 
             if (IsActingAsAdmin(args.ActingUser))
