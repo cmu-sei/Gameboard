@@ -35,11 +35,6 @@ namespace Gameboard.Api.Validators
             throw new System.NotImplementedException();
         }
 
-        private Task _validate(PlayerDataFilter model)
-        {
-            return Task.CompletedTask;
-        }
-
         private async Task _validate(Entity model)
         {
             if ((await _store.Exists(model.Id)).Equals(false))
