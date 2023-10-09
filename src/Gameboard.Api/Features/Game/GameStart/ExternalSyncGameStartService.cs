@@ -204,7 +204,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
                 // we definitely have to update the challenge entities here so that their state column includes vm info 
                 // (at the time of creation, they don't know about the VMs because the gamespace hasn't been started yet)
-
                 var challenge = await _challengeStore.Retrieve(deployedChallenge.Challenge.Id);
                 challenge.State = _jsonService.Serialize(challengeState);
                 await _challengeStore.Update(challenge);

@@ -142,10 +142,18 @@ public class PlayerService
         if (LocalCache.TryGetValue(playerId, out string userId))
             return userId;
 
-        userId = (await PlayerStore.Retrieve(playerId))?.UserId;
-        LocalCache.Set(playerId, userId, _idmapExpiration);
+        var playerIdWithUserId = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.Id == playerId)
+            .Select(p => new { PlayerId = p.Id, p.UserId })
+            .SingleOrDefaultAsync();
 
-        return userId;
+        if (playerIdWithUserId is not null)
+        {
+            LocalCache.Set(playerIdWithUserId.PlayerId, playerIdWithUserId.UserId, _idmapExpiration);
+        }
+
+        return playerIdWithUserId?.UserId;
     }
 
     public async Task<Data.Player> RetrieveByUserId(string userId)
@@ -511,18 +519,28 @@ public class PlayerService
     {
         // they probably don't have challenge data on an unenroll, but in case an admin does this
         // or something, we'll clean up their challenges
-        var player = await PlayerStore.Retrieve(request.PlayerId, players => players.Include(p => p.Game));
+        var player = await _store
+            .WithNoTracking<Data.Player>()
+            .Include(p => p.Game)
+            .SingleAsync(p => p.Id == request.PlayerId, cancellationToken);
+        // record sync start state because we need to raise events after we're done if the game is sync start
+        var gameIsSyncStart = player.Game.RequireSynchronizedStart;
+
+        // archive challenges and delete the player
         await ChallengeService.ArchivePlayerChallenges(player);
 
         // delete the player record
-        await PlayerStore.Delete(request.PlayerId);
+        await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.Id == request.PlayerId)
+            .ExecuteDeleteAsync(cancellationToken);
 
         // notify listeners on SignalR (like the team)
         var playerModel = Mapper.Map<Player>(player);
         await HubBus.SendPlayerLeft(playerModel, request.Actor);
 
         // update sync start if needed
-        if (player.Game.RequireSynchronizedStart)
+        if (gameIsSyncStart)
             await GameStartService.HandleSyncStartStateChanged(playerModel.GameId, cancellationToken);
     }
 
@@ -680,18 +698,18 @@ public class PlayerService
             .OrderByDescending(p => p.Game.GameEnd)
             .ToArrayAsync();
 
-return completedSessions.Select(c => CertificateFromTemplate(c,
-            PlayerStore.DbSet
-                .Where(p => p.Game == c.Game &&
-                    p.SessionEnd > DateTimeOffset.MinValue)
-                .WhereIsScoringPlayer()
-                .Count(),
-            PlayerStore.DbSet
-                .Where(p => p.Game == c.Game &&
-                    p.SessionEnd > DateTimeOffset.MinValue)
-                .WhereIsScoringPlayer()
-                .GroupBy(p => p.TeamId).Count()
-        )).ToArray();
+        return completedSessions.Select(c => CertificateFromTemplate(c,
+                    PlayerStore.DbSet
+                        .Where(p => p.Game == c.Game &&
+                            p.SessionEnd > DateTimeOffset.MinValue)
+                        .WhereIsScoringPlayer()
+                        .Count(),
+                    PlayerStore.DbSet
+                        .Where(p => p.Game == c.Game &&
+                            p.SessionEnd > DateTimeOffset.MinValue)
+                        .WhereIsScoringPlayer()
+                        .GroupBy(p => p.TeamId).Count()
+                )).ToArray();
     }
 
     private PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount)

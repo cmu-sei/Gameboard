@@ -13,21 +13,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Player;
 
-internal class ResetSessionCommandValidator : IGameboardRequestValidator<ResetSessionCommand>
+internal class ResetSessionCommandValidator : IGameboardRequestValidator<ResetTeamSessionCommand>
 {
     private readonly PlayerService _playerService;
     private readonly IStore _store;
-    private readonly TeamExistsValidator<ResetSessionCommand> _teamExistsValidator;
+    private readonly TeamExistsValidator<ResetTeamSessionCommand> _teamExistsValidator;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
-    private readonly IValidatorService<ResetSessionCommand> _validatorService;
+    private readonly IValidatorService<ResetTeamSessionCommand> _validatorService;
 
     public ResetSessionCommandValidator
     (
         PlayerService playerService,
         IStore store,
-        TeamExistsValidator<ResetSessionCommand> teamExistsValidator,
+        TeamExistsValidator<ResetTeamSessionCommand> teamExistsValidator,
         UserRoleAuthorizer userRoleAuthorizer,
-        IValidatorService<ResetSessionCommand> validatorService
+        IValidatorService<ResetTeamSessionCommand> validatorService
     )
     {
         _playerService = playerService;
@@ -37,7 +37,7 @@ internal class ResetSessionCommandValidator : IGameboardRequestValidator<ResetSe
         _validatorService = validatorService;
     }
 
-    public async Task Validate(ResetSessionCommand request, CancellationToken cancellationToken)
+    public async Task Validate(ResetTeamSessionCommand request, CancellationToken cancellationToken)
     {
         // get the game first - we need it to know if we need to update the sync start state later,
         // and we need to validate that it can be reset

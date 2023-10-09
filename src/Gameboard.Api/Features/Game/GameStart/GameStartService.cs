@@ -217,7 +217,7 @@ internal class GameStartService : IGameStartService
 
     private async Task ResetSession(GameStartState ctx, string teamId)
     {
-        await _mediator.Send(new ResetSessionCommand(teamId, false));
+        await _mediator.Send(new ResetTeamSessionCommand(teamId, false));
     }
 
     private void Log(string message, string gameId)

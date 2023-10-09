@@ -12,25 +12,25 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Teams;
 
-public record ResetSessionCommand(string TeamId, bool UnenrollTeam, User ActingUser = null) : IRequest;
+public record ResetTeamSessionCommand(string TeamId, bool UnenrollTeam, User ActingUser = null) : IRequest;
 
-internal class ResetSessionHandler : IRequestHandler<ResetSessionCommand>
+internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand>
 {
     private readonly ChallengeService _challengeService;
     private readonly IGameStartService _gameStartService;
-    private readonly ILogger<ResetSessionHandler> _logger;
+    private readonly ILogger<ResetTeamSessionHandler> _logger;
     private readonly IStore _store;
     private readonly ITeamService _teamService;
-    private readonly IGameboardRequestValidator<ResetSessionCommand> _validator;
+    private readonly IGameboardRequestValidator<ResetTeamSessionCommand> _validator;
 
-    public ResetSessionHandler
+    public ResetTeamSessionHandler
     (
         ChallengeService challengeService,
         IGameStartService gameStartService,
-        ILogger<ResetSessionHandler> logger,
+        ILogger<ResetTeamSessionHandler> logger,
         IStore store,
         ITeamService teamService,
-        IGameboardRequestValidator<ResetSessionCommand> validator
+        IGameboardRequestValidator<ResetTeamSessionCommand> validator
     )
     {
         _challengeService = challengeService;
@@ -41,7 +41,7 @@ internal class ResetSessionHandler : IRequestHandler<ResetSessionCommand>
         _validator = validator;
     }
 
-    public async Task Handle(ResetSessionCommand request, CancellationToken cancellationToken)
+    public async Task Handle(ResetTeamSessionCommand request, CancellationToken cancellationToken)
     {
         await _validator.Validate(request, cancellationToken);
 

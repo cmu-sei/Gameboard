@@ -30,8 +30,8 @@ public class TeamController : ControllerBase
 
     [HttpPost("{teamId}/session")]
     [Authorize]
-    public async Task ResetSession([FromRoute] string teamId, [FromBody] ResetSessionCommand request, CancellationToken cancellationToken)
+    public async Task ResetSession([FromRoute] string teamId, [FromBody] ResetTeamSessionCommand request, CancellationToken cancellationToken)
     {
-        await _mediator.Send(new ResetSessionCommand(teamId, request.UnenrollTeam, _actingUserService.Get()), cancellationToken);
+        await _mediator.Send(new ResetTeamSessionCommand(teamId, request.UnenrollTeam, _actingUserService.Get()), cancellationToken);
     }
 }

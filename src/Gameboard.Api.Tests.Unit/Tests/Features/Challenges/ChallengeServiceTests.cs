@@ -120,6 +120,7 @@ public class ChallengeServiceTests
             A.Fake<INowService>(),
             A.Fake<IPlayerStore>(),
             A.Fake<IPracticeChallengeScoringListener>(),
+            A.Fake<IStore>(),
             A.Fake<ITeamService>()
         );
 
@@ -244,6 +245,7 @@ public class ChallengeServiceTests
             A.Fake<INowService>(),
             A.Fake<IPlayerStore>(),
             A.Fake<IPracticeChallengeScoringListener>(),
+            A.Fake<IStore>(),
             A.Fake<ITeamService>()
         );
 

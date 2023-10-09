@@ -45,6 +45,7 @@ public partial class ChallengeService : _Service
     private readonly IStore<Data.ChallengeSpec> _specStore;
     private readonly IChallengeDocsService _challengeDocsService;
     private readonly IChallengeSyncService _challengeSyncService;
+    private readonly IStore _store;
     private readonly ITeamService _teamService;
 
     public ChallengeService(
@@ -67,6 +68,7 @@ public partial class ChallengeService : _Service
         INowService now,
         IPlayerStore playerStore,
         IPracticeChallengeScoringListener practiceChallengeScoringListener,
+        IStore store,
         ITeamService teamService
     ) : base(logger, mapper, coreOptions)
     {
@@ -88,6 +90,7 @@ public partial class ChallengeService : _Service
         _playerStore = playerStore;
         _practiceChallengeScoringListener = practiceChallengeScoringListener;
         _specStore = specStore;
+        _store = store;
         _teamService = teamService;
     }
 
@@ -462,13 +465,12 @@ public partial class ChallengeService : _Service
 
         Logger.LogInformation($"Archiving {challenges.Count()} challenges.");
         var toArchiveIds = challenges.Select(c => c.Id).ToArray();
-        var teamMemberMap = await _challengeStore
-            .DbSet
-            .AsNoTracking()
-            .Include(c => c.Player)
+        var teamMemberMap = await _store
+            .WithNoTracking<Data.Challenge>()
+                .Include(c => c.Player)
             .Where(c => toArchiveIds.Contains(c.Id))
-            .GroupBy(c => c.Player.TeamId)
-            .ToDictionaryAsync(g => g.Key, g => g.Select(c => c.Player.Id).AsEnumerable());
+            .GroupBy(c => c.TeamId)
+            .ToDictionaryAsync(g => g.Key, g => g.Select(c => c.PlayerId).ToList());
 
         var toArchiveTasks = challenges.Select(async challenge =>
         {
@@ -508,6 +510,7 @@ public partial class ChallengeService : _Service
             Logger.LogWarning($"While attempting to archive challenges (Ids: {string.Join(",", toArchiveIds)}) resulted in the deletion of ${recordsAffected} stale archive records.");
 
         _challengeStore.DbContext.ArchivedChallenges.AddRange(_mapper.Map<Data.ArchivedChallenge[]>(toArchive));
+        _challengeStore.DbContext.Challenges.RemoveRange(challenges);
         await _challengeStore.DbContext.SaveChangesAsync();
     }
 

@@ -8,16 +8,17 @@ using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Games;
 
 namespace Gameboard.Api.Validators
 {
     public class PlayerValidator : IModelValidator
     {
-        private readonly IPlayerStore _store;
+        private readonly IPlayerStore _playerStore;
+        private readonly IStore _store;
 
-        public PlayerValidator(IPlayerStore store)
+        public PlayerValidator(IPlayerStore playerStore, IStore store)
         {
+            _playerStore = playerStore;
             _store = store;
         }
 
@@ -56,10 +57,8 @@ namespace Gameboard.Api.Validators
             throw new ValidationTypeFailure<PlayerValidator>(model.GetType());
         }
 
-        private async Task _validate(PlayerDataFilter model)
-        {
-            await Task.CompletedTask;
-        }
+        private Task _validate(PlayerDataFilter model)
+            => Task.CompletedTask;
 
         private async Task _validate(Entity model)
         {
@@ -74,7 +73,7 @@ namespace Gameboard.Api.Validators
             if ((await Exists(model.PlayerId)).Equals(false))
                 throw new ResourceNotFound<Player>(model.PlayerId);
 
-            var player = await _store.Retrieve(model.PlayerId);
+            var player = await _playerStore.Retrieve(model.PlayerId);
 
             if (player.SessionBegin.Year > 1)
                 throw new SessionAlreadyStarted(model.PlayerId, $"Player {model.PlayerId}'s session has already started.");
@@ -85,7 +84,7 @@ namespace Gameboard.Api.Validators
         private async Task _validate(SessionChangeRequest model)
         {
             DateTimeOffset ts = DateTimeOffset.UtcNow;
-            bool active = await _store.DbSet.AnyAsync(p => p.TeamId == model.TeamId && p.SessionEnd > ts);
+            bool active = await _playerStore.DbSet.AnyAsync(p => p.TeamId == model.TeamId && p.SessionEnd > ts);
             if (model.SessionEnd > DateTimeOffset.MinValue && active.Equals(false))
                 throw new SessionNotAdjustable();
 
@@ -132,7 +131,7 @@ namespace Gameboard.Api.Validators
         private async Task _validate(PromoteToManagerRequest model)
         {
             // INDEPENDENT OF ADMIN
-            var currentManager = await _store.List().SingleOrDefaultAsync(p => p.Id == model.CurrentManagerPlayerId);
+            var currentManager = await _playerStore.List().SingleOrDefaultAsync(p => p.Id == model.CurrentManagerPlayerId);
 
             if (currentManager == null)
                 throw new ResourceNotFound<Player>(model.CurrentManagerPlayerId, $"Couldn't resolve the player record for current manager {model.CurrentManagerPlayerId}.");
@@ -140,7 +139,7 @@ namespace Gameboard.Api.Validators
             if (!currentManager.IsManager)
                 throw new PlayerIsntManager(model.CurrentManagerPlayerId, "Calls to this endpoint must supply the correct ID of the current manager.");
 
-            var newManager = await _store.List().SingleOrDefaultAsync(p => p.Id == model.NewManagerPlayerId);
+            var newManager = await _playerStore.List().SingleOrDefaultAsync(p => p.Id == model.NewManagerPlayerId);
             if (newManager == null)
                 throw new ResourceNotFound<Player>(model.NewManagerPlayerId, $"Couldn't resolve the player record for new manager {model.NewManagerPlayerId}");
 
@@ -164,10 +163,12 @@ namespace Gameboard.Api.Validators
 
         public async Task _validate(PlayerUnenrollRequest request)
         {
-            if (!await Exists(request.PlayerId))
-                throw new ResourceNotFound<Player>(request.PlayerId);
+            var player = await _store
+                .WithNoTracking<Data.Player>()
+                .SingleOrDefaultAsync(p => p.Id == request.PlayerId);
 
-            var player = await _store.Retrieve(request.PlayerId);
+            if (player is null)
+                throw new ResourceNotFound<Player>(request.PlayerId);
 
             if (!IsActingAsAdmin(request.Actor) && player.SessionBegin > DateTimeOffset.MinValue)
                 throw new SessionAlreadyStarted(request.PlayerId, "Non-admins can't unenroll from a game once they've started a session.");
@@ -177,15 +178,15 @@ namespace Gameboard.Api.Validators
                 return;
 
             var teammateIds = await _store
-                .List()
+                .WithNoTracking<Data.Player>()
                 .Where(p =>
                     p.TeamId == player.TeamId &&
                     p.Id != request.PlayerId
                 )
                 .Select(p => p.Id)
-                .ToListAsync();
+                .ToArrayAsync();
 
-            if (teammateIds.Count() > 0)
+            if (teammateIds.Any())
                 throw new ManagerCantUnenrollWhileTeammatesRemain(player.Id, player.TeamId, teammateIds);
         }
 
@@ -195,16 +196,18 @@ namespace Gameboard.Api.Validators
         private async Task<bool> Exists(string id)
         {
             return
-                id.NotEmpty() &&
-                (await _store.Retrieve(id)) is Data.Player
-            ;
+                id.NotEmpty() && await _playerStore
+                    .DbContext
+                    .Players
+                    .Where(p => p.Id == id)
+                    .AnyAsync();
         }
 
         private async Task<bool> GameExists(string id)
         {
             return
                 id.NotEmpty() &&
-                (await _store.DbContext.Games.FindAsync(id)) is Data.Game
+                (await _playerStore.DbContext.Games.FindAsync(id)) is Data.Game
             ;
         }
 
@@ -212,7 +215,7 @@ namespace Gameboard.Api.Validators
         {
             return
                 id.NotEmpty() &&
-                (await _store.DbContext.Users.FindAsync(id)) is Data.User
+                (await _playerStore.DbContext.Users.FindAsync(id)) is Data.User
             ;
         }
     }
