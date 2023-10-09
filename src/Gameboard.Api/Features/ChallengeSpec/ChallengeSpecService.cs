@@ -45,7 +45,7 @@ public class ChallengeSpecService : _Service
         if (entity is not null)
         {
             Mapper.Map(model, entity);
-            await _store.Update(entity, CancellationToken.None);
+            await _store.SaveUpdate(entity, CancellationToken.None);
         }
         else
         {
@@ -64,7 +64,7 @@ public class ChallengeSpecService : _Service
         var entity = await _store.SingleAsync<Data.ChallengeSpec>(spec.Id, CancellationToken.None); ;
         Mapper.Map(spec, entity);
 
-        await _store.Update<Data.ChallengeSpec>(entity, CancellationToken.None);
+        await _store.SaveUpdate(entity, CancellationToken.None);
     }
 
     public Task Delete(string id)
@@ -102,6 +102,6 @@ public class ChallengeSpecService : _Service
             spec.Text = externals[spec.ExternalId].Text;
         }
 
-        await _store.Save(specs.ToArray());
+        await _store.SaveUpdateRange(specs.ToArray());
     }
 }

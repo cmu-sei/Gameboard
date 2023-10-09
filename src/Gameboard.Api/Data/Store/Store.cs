@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
@@ -30,13 +31,15 @@ public interface IStore
     IQueryable<TEntity> List<TEntity>(bool enableTracking = false) where TEntity : class, IEntity;
     Task<TEntity> Retrieve<TEntity>(string id, bool enableTracking = false) where TEntity : class, IEntity;
     Task<TEntity> Retrieve<TEntity>(string id, Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder, bool enableTracking = false) where TEntity : class, IEntity;
-    Task Save<TEntity>(params TEntity[] entities) where TEntity : class, IEntity;
+    Task<TEntity> SaveAdd<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity;
+    Task<IEnumerable<TEntity>> SaveAddRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity;
+    Task<TEntity> SaveUpdate<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity;
+    Task SaveUpdateRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity;
     Task<TEntity> SingleAsync<TEntity>(string id, CancellationToken cancellationToken) where TEntity : class, IEntity;
     Task<TEntity> SingleOrDefaultAsync<TEntity>(CancellationToken cancellationToken) where TEntity : class, IEntity;
     Task<TEntity> SingleOrDefaultAsync<TEntity>(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) where TEntity : class, IEntity;
     IQueryable<TEntity> WithNoTracking<TEntity>() where TEntity : class, IEntity;
     IQueryable<TEntity> WithTracking<TEntity>() where TEntity : class, IEntity;
-    Task<TEntity> Update<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity;
 }
 
 internal class Store : IStore
@@ -147,12 +150,6 @@ internal class Store : IStore
         return query.FirstOrDefaultAsync(e => e.Id == id);
     }
 
-    public Task Save<TEntity>(params TEntity[] entities) where TEntity : class, IEntity
-    {
-        _dbContext.AddRange(entities);
-        return _dbContext.SaveChangesAsync();
-    }
-
     public Task<TEntity> SingleAsync<TEntity>(string id, CancellationToken cancellationToken) where TEntity : class, IEntity
         => GetQueryBase<TEntity>().SingleAsync(e => e.Id == id, cancellationToken);
 
@@ -162,14 +159,36 @@ internal class Store : IStore
     public Task<TEntity> SingleOrDefaultAsync<TEntity>(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) where TEntity : class, IEntity
         => GetQueryBase<TEntity>().SingleOrDefaultAsync(predicate, cancellationToken);
 
-    public async Task<TEntity> Update<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity
+    public async Task<TEntity> SaveAdd<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity
     {
-        if (_dbContext.Entry(entity).State == EntityState.Detached)
-            _dbContext.Attach(entity);
-
-        _dbContext.Update(entity);
-        await _dbContext.SaveChangesAsync();
+        _dbContext.Add(entity);
+        await _dbContext.SaveChangesAsync(cancellationToken);
         return entity;
+    }
+
+    public async Task<IEnumerable<TEntity>> SaveAddRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity
+    {
+        _dbContext.AddRange(entities);
+        await _dbContext.SaveChangesAsync();
+        return entities;
+    }
+
+    public async Task<TEntity> SaveUpdate<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity
+    {
+        await SaveUpdateRange(entity);
+        return entity;
+    }
+
+    public Task SaveUpdateRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity
+    {
+        foreach (var entity in entities)
+        {
+            if (_dbContext.Entry(entity).State == EntityState.Detached)
+                _dbContext.Attach(entity);
+        }
+
+        _dbContext.UpdateRange(entities);
+        return _dbContext.SaveChangesAsync();
     }
 
     public IQueryable<TEntity> WithNoTracking<TEntity>() where TEntity : class, IEntity

@@ -65,7 +65,7 @@ internal class ChallengeSyncService : IChallengeSyncService
             _mapper.Map(entry.State, entry.Challenge);
             entry.Challenge.PlayerId = playerId;
             entry.Challenge.LastSyncTime = _now.Get();
-            await _store.Update(entry.Challenge, cancellationToken);
+            await _store.SaveUpdate(entry.Challenge, cancellationToken);
         }
     }
 

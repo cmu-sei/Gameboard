@@ -104,6 +104,6 @@ internal class UpdatePracticeModeSettingsHandler : IRequestHandler<UpdatePractic
         if (updatedSettings.DefaultPracticeSessionLengthMinutes <= 0)
             updatedSettings.DefaultPracticeSessionLengthMinutes = 60;
 
-        await _store.Update(updatedSettings, cancellationToken);
+        await _store.SaveUpdate(updatedSettings, cancellationToken);
     }
 }

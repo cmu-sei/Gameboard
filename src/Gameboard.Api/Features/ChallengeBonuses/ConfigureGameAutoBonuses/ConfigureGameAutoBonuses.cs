@@ -120,6 +120,6 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
         await _store.Delete(currentBonuses);
 
         // then insert new ones attached by specId
-        await _store.Save(newBonusEntities);
+        await _store.SaveAddRange(newBonusEntities);
     }
 }
