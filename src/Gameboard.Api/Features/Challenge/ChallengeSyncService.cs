@@ -81,6 +81,7 @@ internal class ChallengeSyncService : IChallengeSyncService
             .Where(c => c.LastSyncTime < c.Player.SessionEnd && c.Player.SessionEnd < now)
             .ToArrayAsync(cancellationToken);
 
+        _logger.LogInformation($"Syncing data for {challenges.Length} expired challenges...");
         foreach (var challenge in challenges)
         {
             try
