@@ -250,9 +250,7 @@ public class GameEngineService : _Service, IGameEngineService
 
         if (mojoTask != null && mojoTask.IsCompletedSuccessfully)
         {
-            resultsList.AddRange(Mapper.Map<ExternalSpec[]>(
-                mojoTask.Result
-            ));
+            resultsList.AddRange(Mapper.Map<ExternalSpec[]>(mojoTask.Result));
         }
 
         if (crucibleTask != null && crucibleTask.IsCompletedSuccessfully)

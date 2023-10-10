@@ -3,7 +3,6 @@
 
 using Alloy.Api.Client;
 using AutoMapper;
-using Gameboard.Api.Common;
 using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
@@ -23,13 +22,11 @@ namespace Gameboard.Api.Services
 
             CreateMap<WorkspaceSummary, ExternalSpec>()
                 .ForMember(d => d.ExternalId, opt => opt.MapFrom(s => s.Id))
-                .ForMember(d => d.GameEngineType, opt => opt.MapFrom(s => GameEngineType.TopoMojo))
-            ;
+                .ForMember(d => d.GameEngineType, opt => opt.MapFrom(s => GameEngineType.TopoMojo));
 
             CreateMap<EventTemplate, ExternalSpec>()
                 .ForMember(d => d.ExternalId, opt => opt.MapFrom(s => s.Id))
-                .ForMember(d => d.GameEngineType, opt => opt.MapFrom(s => GameEngineType.Crucible))
-            ;
+                .ForMember(d => d.GameEngineType, opt => opt.MapFrom(s => GameEngineType.Crucible));
         }
     }
 }
