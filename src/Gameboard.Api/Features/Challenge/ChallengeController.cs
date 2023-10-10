@@ -212,6 +212,7 @@ namespace Gameboard.Api.Controllers
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
+        [HttpPost("/api/challenge/grade")]
         [HttpPut("/api/challenge/grade")]
         [Authorize(AppConstants.GraderPolicy)]
         public async Task<Challenge> Grade([FromBody] GameEngineSectionSubmission model)
