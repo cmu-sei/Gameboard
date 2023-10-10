@@ -9,8 +9,8 @@ public sealed class ConfigureGameAutoBonusesCommandParameters
 
 public class GameAutomaticBonusesConfig
 {
-    public IEnumerable<GameAutomaticBonusSolveRank> AllChallengesBonuses { get; set; }
-    public IEnumerable<PerChallengeAutomaticBonusSolveRank> SpecificChallengesBonuses { get; set; }
+    public IEnumerable<GameAutomaticBonusSolveRank> AllChallengesBonuses { get; set; } = new List<GameAutomaticBonusSolveRank>();
+    public IEnumerable<PerChallengeAutomaticBonusSolveRank> SpecificChallengesBonuses { get; set; } = new List<PerChallengeAutomaticBonusSolveRank>();
 }
 
 public sealed class GameAutomaticBonusSolveRank

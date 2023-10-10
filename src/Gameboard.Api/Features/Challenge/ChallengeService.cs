@@ -415,12 +415,17 @@ public partial class ChallengeService : _Service
     {
         // load and regrade
         var challenge = await _challengeStore.Retrieve(id);
+        // preserve the score prior to regrade
         double currentScore = challenge.Score;
+
         var state = await _gameEngine.RegradeChallenge(challenge);
         await _challengeSyncService.Sync(challenge, state, CancellationToken.None);
 
         // update the team score and award automatic bonuses
-        await _mediator.Send(new UpdateTeamChallengeBaseScoreCommand(challenge.Id, challenge.Score));
+        if (state.Challenge.Score != currentScore)
+            await _mediator.Send(new UpdateTeamChallengeBaseScoreCommand(challenge.Id, challenge.Score));
+        else
+            Logger.LogWarning($"Regrade of challenge {id} didn't result in a score change.");
 
         return Mapper.Map<Challenge>(challenge);
     }

@@ -24,7 +24,6 @@ public class ScoringController : ControllerBase
     public async Task<GameScore> GetGameScore([FromRoute] string gameId)
         => await _mediator.Send(new GameScoreQuery(gameId));
 
-    // TODO: more rest-correct url? [HttpGet("team/{teamId}/score/{challengeId}")]
     [HttpGet("challenge/{challengeId}/score")]
     public async Task<TeamChallengeScoreSummary> GetTeamChallengeScoreSummary([FromRoute] string challengeId)
         => await _mediator.Send(new TeamChallengeScoreQuery(challengeId));

@@ -18,7 +18,6 @@ public record ConfigureGameAutoBonusesCommand(ConfigureGameAutoBonusesCommandPar
 
 internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAutoBonusesCommand, GameScoringConfig>
 {
-    private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
     private readonly IGuidService _guids;
     private readonly IGameboardRequestValidator<ConfigureGameAutoBonusesCommand> _requestValidator;
     private readonly IScoringService _scoringService;
@@ -26,14 +25,12 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
 
     public ConfigureGameAutoBonusesHandler(
-        IStore<Data.ChallengeSpec> challengeSpecStore,
         IGuidService guids,
         IScoringService scoringService,
         IStore store,
         UserRoleAuthorizer userRoleAuthorizer,
         IGameboardRequestValidator<ConfigureGameAutoBonusesCommand> requestValidator)
     {
-        _challengeSpecStore = challengeSpecStore;
         _requestValidator = requestValidator;
         _guids = guids;
         _scoringService = scoringService;

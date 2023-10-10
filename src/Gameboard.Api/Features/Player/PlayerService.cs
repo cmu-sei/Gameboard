@@ -336,7 +336,6 @@ public class PlayerService
         model.mode = PlayerMode.Competition.ToString();
 
         var q = BuildListQuery(model);
-
         return await Mapper.ProjectTo<Standing>(q).ToArrayAsync();
     }
 

@@ -99,7 +99,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
         await _validator.Validate(request, cancellationToken);
 
         // load additional data
-        // note: right now, we're only awarding solve rank bonuses right now
+        // note: right now, there's only one type of automatic bonus (which is based on solve rank) 
         var spec = await _store
             .WithNoTracking<Data.ChallengeSpec>()
             .Include
@@ -123,7 +123,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
 
         // award points
         // treating this as a dbcontext savechanges to preserve atomicity
-        var updateChallenge = await _dbContext.Challenges.FirstAsync(c => c.Id == request.ChallengeId, cancellationToken);
+        var updateChallenge = await _dbContext.Challenges.SingleAsync(c => c.Id == request.ChallengeId, cancellationToken);
         updateChallenge.Score = request.Score;
 
         // if they have a full solve, compute their ordinal rank by time and award them the appropriate challenge bonus
