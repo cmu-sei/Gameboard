@@ -26,6 +26,13 @@ public sealed class PagingParameters
     public required int PageSize { get; set; }
 }
 
+public class PlayerWithAvatar
+{
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public string AvatarFileName { get; set; }
+}
+
 public class SimpleEntity
 {
     public string Id { get; set; }

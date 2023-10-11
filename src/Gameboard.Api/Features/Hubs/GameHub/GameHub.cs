@@ -53,7 +53,7 @@ public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
     {
         this.LogOnConnected(_logger, Context);
         // add user to a group of themselves for easy addressing
-        await this.Groups.AddToGroupAsync(Context.ConnectionId, Context.User.Name());
+        await Groups.AddToGroupAsync(Context.ConnectionId, Context.User.Name());
         await base.OnConnectedAsync();
     }
 

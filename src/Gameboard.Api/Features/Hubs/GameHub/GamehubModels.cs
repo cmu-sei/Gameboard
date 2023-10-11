@@ -1,5 +1,4 @@
 using System.Threading.Tasks;
-using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Features.Games;
 

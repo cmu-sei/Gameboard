@@ -103,6 +103,7 @@ internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAu
             Id = _guids.GetGuid(),
             Description = b.Description,
             PointValue = b.PointValue,
+            SolveRank = b.SolveRank,
             ChallengeBonusType = ChallengeBonusType.CompleteSolveRank,
             AwardedTo = new List<AwardedChallengeBonus>(),
             ChallengeSpecId = specId

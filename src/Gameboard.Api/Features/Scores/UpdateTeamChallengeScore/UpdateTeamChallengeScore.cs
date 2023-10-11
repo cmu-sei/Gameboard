@@ -4,8 +4,8 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Players;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,28 +15,28 @@ public record UpdateTeamChallengeBaseScoreCommand(string ChallengeId, double Sco
 
 internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamChallengeBaseScoreCommand, TeamChallengeScore>
 {
-    private readonly EntityExistsValidator<UpdateTeamChallengeBaseScoreCommand, Data.Challenge> _challengeExists;
     private readonly IGuidService _guidService;
     private readonly IMapper _mapper;
+    private readonly IPlayersTableDenormalizationService _playersTableDenormalizationService;
     private readonly IScoringService _scoringService;
     private readonly IStore _store;
-    private readonly IValidatorService<UpdateTeamChallengeBaseScoreCommand> _validator;
+    private readonly IGameboardRequestValidator<UpdateTeamChallengeBaseScoreCommand> _validator;
     private readonly GameboardDbContext _dbContext;
 
     public UpdateTeamChallengeBaseScoreHandler
     (
-        EntityExistsValidator<UpdateTeamChallengeBaseScoreCommand, Data.Challenge> challengeExists,
         IGuidService guidService,
         IMapper mapper,
+        IPlayersTableDenormalizationService playersTableDenormalizationService,
         IScoringService scoringService,
         IStore store,
-        IValidatorService<UpdateTeamChallengeBaseScoreCommand> validator,
+        IGameboardRequestValidator<UpdateTeamChallengeBaseScoreCommand> validator,
         GameboardDbContext dbContext
     )
     {
-        _challengeExists = challengeExists;
         _guidService = guidService;
         _mapper = mapper;
+        _playersTableDenormalizationService = playersTableDenormalizationService;
         _scoringService = scoringService;
         _store = store;
         _validator = validator;
@@ -46,59 +46,14 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
     public async Task<TeamChallengeScore> Handle(UpdateTeamChallengeBaseScoreCommand request, CancellationToken cancellationToken)
     {
         // validate
-        var challenge = await _store
-            .WithNoTracking<Data.Challenge>()
-            .Include(c => c.Game)
-            .Include(c => c.AwardedBonuses)
-                .ThenInclude(b => b.ChallengeBonus)
-            .FirstOrDefaultAsync(c => c.Id == request.ChallengeId, cancellationToken);
-
-        // TODO: validator may need to be able to one-off validate, because all of this will fail without a challenge id
-        _validator.AddValidator(_challengeExists.UseProperty(c => c.ChallengeId));
-        _validator.AddValidator
-        (
-            (req, context) =>
-            {
-                if (request.Score < 0)
-                    context.AddValidationException(new CantAwardNegativePointValue(challenge.Id, challenge.TeamId, request.Score));
-            }
-        );
-
-        _validator.AddValidator
-        (
-            async (req, context) =>
-            {
-                if (!await _store.WithNoTracking<Data.ChallengeSpec>().AnyAsync(s => s.Id == challenge.SpecId))
-                    context.AddValidationException(new ResourceNotFound<Data.ChallengeSpec>(challenge.SpecId));
-            }
-        );
-
-        // can't change the team's score if they've already received a bonus
-        if (challenge.Score > 0)
-        {
-            _validator.AddValidator
-            (
-                (req, context) =>
-                {
-                    var awardedBonus = challenge.AwardedBonuses.FirstOrDefault(b => b.ChallengeBonus.PointValue > 0);
-
-                    if (challenge.AwardedBonuses.Any(b => b.ChallengeBonus.PointValue > 0))
-                        context.AddValidationException(new CantRescoreChallengeWithANonZeroBonus
-                        (
-                            request.ChallengeId,
-                            challenge.TeamId,
-                            awardedBonus.Id,
-                            awardedBonus.ChallengeBonus.PointValue
-                        ));
-
-                    return Task.CompletedTask;
-                }
-            );
-        }
-
         await _validator.Validate(request, cancellationToken);
 
         // load additional data
+        var challenge = await _store
+            .WithNoTracking<Data.Challenge>()
+            .Include(c => c.Game)
+            .FirstOrDefaultAsync(c => c.Id == request.ChallengeId, cancellationToken);
+
         // note: right now, there's only one type of automatic bonus (which is based on solve rank) 
         var spec = await _store
             .WithNoTracking<Data.ChallengeSpec>()
@@ -144,7 +99,11 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
         // commit it
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        // query manual bonuses to compose a complete score
+        // also update the players table
+        // (this is a denormalization of the data in the Challenges table)
+        await _playersTableDenormalizationService.UpdateTeamData(challenge.TeamId, cancellationToken);
+
+        // have to query the scoring service to compose a complete score (which includes manual bonuses)
         return _mapper.Map<TeamChallengeScore>(await _scoringService.GetTeamChallengeScore(challenge.Id));
     }
 }

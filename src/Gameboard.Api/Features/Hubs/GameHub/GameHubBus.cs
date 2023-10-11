@@ -173,7 +173,7 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
             .User(userId)
             .YouJoined(new GameHubEvent<YouJoinedEvent>
             {
-                GameId = null,
+                GameId = model.GameId,
                 EventType = GameHubEventType.YouJoined,
                 Data = model
             });

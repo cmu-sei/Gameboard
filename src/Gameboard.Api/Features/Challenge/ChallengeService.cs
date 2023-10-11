@@ -435,28 +435,26 @@ public partial class ChallengeService : _Service
         // for this, we need to make sure that we're not cleaning up any challenges
         // that still belong to other members of the player's team (if they)
         // have any
-        var candidateChallenges = await _challengeStore
-            .List()
-            .AsNoTracking()
+        var candidateChallenges = await _store
+            .WithNoTracking<Data.Challenge>()
             .Where(c => c.PlayerId == player.Id)
             .ToArrayAsync();
 
-        var teamChallenges = await _challengeStore
-            .List()
-            .AsNoTracking()
+        var teamChallenges = await _store
+            .WithNoTracking<Data.Challenge>()
             .Where(c => c.TeamId == player.TeamId && c.PlayerId != player.Id)
             .ToArrayAsync();
 
-        var playerOnlyChallenges = candidateChallenges.Where(c => !teamChallenges.Any(tc => tc.Id == c.Id));
+        var playerOnlyChallenges = candidateChallenges
+            .Where(c => !teamChallenges.Any(tc => tc.Id == c.Id));
 
         await ArchiveChallenges(playerOnlyChallenges);
     }
 
     public async Task ArchiveTeamChallenges(string teamId)
     {
-        var challenges = await _challengeStore
-            .List()
-            .AsNoTracking()
+        var challenges = await _store
+            .WithNoTracking<Data.Challenge>()
             .Where(c => c.TeamId == teamId)
             .ToArrayAsync();
 
@@ -502,12 +500,9 @@ public partial class ChallengeService : _Service
 
         var toArchive = await Task.WhenAll(toArchiveTasks);
 
-        // this is a backstoppy kind of thing - we aren't quite sure about the conditions under which this happens, but we've had
-        // some stale challenges appear in the archive table and the real challenges table. if for whatever reason we're trying to
-        // archive something that's already in the archive table, instead, delete it, replace it with the updated object
-        var recordsAffected = await _challengeStore
-            .DbContext
-            .ArchivedChallenges
+        // handle 
+        var recordsAffected = await _store
+            .WithNoTracking<Data.ArchivedChallenge>()
             .Where(c => toArchiveIds.Contains(c.Id))
             .ExecuteDeleteAsync();
 

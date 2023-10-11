@@ -42,6 +42,27 @@ internal class ScoringService : IScoringService
         _teamService = teamService;
     }
 
+    public Dictionary<string, int> ComputeTeamRanks(IEnumerable<TeamGameScoreSummary> teamScores)
+    {
+        // have to do these synchronously because we can't reuse the dbcontext
+        // TODO: maybe a scoring service function that retrieves all at once and composes
+        var scoreRank = 0;
+        var lastScore = 0;
+        var rankedTeamScores = teamScores.OrderBy(s => s.Score.TotalScore).ToArray();
+        var teamRanks = new Dictionary<string, int>();
+
+        foreach (var teamScore in rankedTeamScores)
+        {
+            if (teamScore.Score.TotalScore != lastScore)
+            {
+                scoreRank += 1;
+            }
+            teamRanks.Add(teamScore.Team.Id, scoreRank);
+        }
+
+        return teamRanks;
+    }
+
     public async Task<GameScoringConfig> GetGameScoringConfig(string gameId)
     {
         var game = await _gameStore.Retrieve(gameId);
@@ -148,6 +169,15 @@ internal class ScoringService : IScoringService
         };
     }
 
+    internal IEnumerable<Data.ChallengeBonus> ResolveUnawardedBonuses(IEnumerable<Data.ChallengeSpec> specs, IEnumerable<Data.Challenge> challenges)
+    {
+        var awardedBonusIds = challenges.SelectMany(c => c.AwardedBonuses).Select(b => b.Id);
+
+        return specs.SelectMany(s => s.Bonuses)
+            .Where(b => !awardedBonusIds.Contains(b.Id))
+            .ToArray();
+    }
+
     internal TeamChallengeScoreSummary BuildTeamChallengeScoreSummary(Data.Challenge challenge, Data.ChallengeSpec spec, IEnumerable<Data.ChallengeBonus> unawardedBonuses)
     {
         var manualBonuses = challenge == null ? new double[] { 0 } : challenge.AwardedManualBonuses.Select(b => b.PointValue).ToArray();
@@ -161,13 +191,18 @@ internal class ScoringService : IScoringService
             Spec = new SimpleEntity { Id = spec.Id, Name = spec.Name },
             Score = score,
             TimeElapsed = BuildChallengeTimeElapsed(challenge),
-            Bonuses = _mapper.Map<IEnumerable<GameScoreAutoChallengeBonus>>(challenge.AwardedBonuses),
+            Bonuses = challenge.AwardedBonuses.Select(ab => new GameScoreAutoChallengeBonus
+            {
+                Id = ab.Id,
+                Description = ab.ChallengeBonus.Description,
+                PointValue = ab.ChallengeBonus.PointValue
+            }),
             ManualBonuses = _mapper.Map<ManualChallengeBonusViewModel[]>(challenge.AwardedManualBonuses),
             UnclaimedBonuses = _mapper.Map<IEnumerable<GameScoreAutoChallengeBonus>>(unawardedBonuses.Where(b => b.ChallengeSpecId == challenge.SpecId))
         };
     }
 
-    internal Nullable<TimeSpan> BuildChallengeTimeElapsed(Data.Challenge c)
+    internal TimeSpan? BuildChallengeTimeElapsed(Data.Challenge c)
     {
         if (c == null || c.EndTime == DateTimeOffset.MinValue || c.StartTime == DateTimeOffset.MinValue)
             return null;
@@ -193,35 +228,5 @@ internal class ScoringService : IScoringService
             ManualBonusScore = manualBonusScore,
             TotalScore = solveScore + bonusScore + manualBonusScore
         };
-    }
-
-    public Dictionary<string, int> ComputeTeamRanks(IEnumerable<TeamGameScoreSummary> teamScores)
-    {
-        // have to do these synchronously because we can't reuse the dbcontext
-        // TODO: maybe a scoring service function that retrieves all at once and composes
-        var scoreRank = 0;
-        var lastScore = 0;
-        var rankedTeamScores = teamScores.OrderBy(s => s.Score.TotalScore).ToArray();
-        var teamRanks = new Dictionary<string, int>();
-
-        foreach (var teamScore in rankedTeamScores)
-        {
-            if (teamScore.Score.TotalScore != lastScore)
-            {
-                scoreRank += 1;
-            }
-            teamRanks.Add(teamScore.Team.Id, scoreRank);
-        }
-
-        return teamRanks;
-    }
-
-    internal IEnumerable<Data.ChallengeBonus> ResolveUnawardedBonuses(IEnumerable<Data.ChallengeSpec> specs, IEnumerable<Data.Challenge> challenges)
-    {
-        var awardedBonusIds = challenges.SelectMany(c => c.AwardedBonuses).Select(b => b.Id);
-
-        return specs.SelectMany(s => s.Bonuses)
-            .Where(b => !awardedBonusIds.Contains(b.Id))
-            .ToArray();
     }
 }

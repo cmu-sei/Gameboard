@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Gameboard.Api.Common;
 
 public sealed class Score
 {
@@ -40,7 +39,7 @@ public class GameScore
 public sealed class GameScoreTeam
 {
     public SimpleEntity Team { get; set; }
-    public IEnumerable<SimpleEntity> Players { get; set; }
+    public IEnumerable<PlayerWithAvatar> Players { get; set; }
     public int Rank { get; set; }
     public IEnumerable<TeamChallengeScoreSummary> Challenges { get; set; }
 }
@@ -56,7 +55,7 @@ public sealed class TeamChallengeScore
 {
     public required SimpleEntity Challenge { get; set; }
     public required SimpleEntity Team { get; set; }
-    public required Nullable<TimeSpan> TimeElapsed { get; set; }
+    public required TimeSpan? TimeElapsed { get; set; }
     public required Score Score { get; set; }
 }
 
@@ -66,7 +65,7 @@ public class TeamChallengeScoreSummary
     public required SimpleEntity Spec { get; set; }
     public required SimpleEntity Team { get; set; }
     public required Score Score { get; set; }
-    public required Nullable<TimeSpan> TimeElapsed { get; set; }
+    public required TimeSpan? TimeElapsed { get; set; }
 
     public required IEnumerable<GameScoreAutoChallengeBonus> Bonuses { get; set; }
     public required IEnumerable<ManualChallengeBonusViewModel> ManualBonuses { get; set; }

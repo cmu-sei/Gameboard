@@ -472,6 +472,7 @@ public class PlayerService
         var player = await PlayerStore.DbSet.FirstOrDefaultAsync(p => p.Id == model.PlayerId) ?? throw new ResourceNotFound<Player>(model.PlayerId);
         var playersWithThisCode = await _store
             .WithNoTracking<Data.Player>()
+            .Include(p => p.Game)
             .Where(p => p.InviteCode == model.Code)
             .ToArrayAsync();
 

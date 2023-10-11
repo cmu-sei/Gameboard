@@ -55,6 +55,7 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
         var players = await _playerStore
             .List()
             .AsNoTracking()
+            .Include(p => p.Sponsor)
             .Where(p => p.GameId == request.GameId)
             .GroupBy(p => p.TeamId)
             .Select(g => new { TeamId = g.Key, Players = g.ToList() })
@@ -80,10 +81,15 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
             Teams = players.Keys.Select(teamId => new GameScoreTeam
             {
                 Team = new SimpleEntity { Id = managers[teamId].TeamId, Name = managers[teamId].ApprovedName },
-                Players = _mapper.Map<SimpleEntity[]>(players[teamId]),
+                Players = players[teamId].Select(p => new PlayerWithAvatar
+                {
+                    Id = p.Id,
+                    Name = p.ApprovedName,
+                    AvatarFileName = p.Sponsor.Logo
+                }).ToArray(),
                 Rank = teamRanks[teamId],
                 Challenges = teamScores.First(s => s.Team.Id == teamId).ChallengeScoreSummaries
-            })
+            }).OrderBy(t => t.Rank)
         };
     }
 }
