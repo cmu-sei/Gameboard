@@ -25,6 +25,6 @@ internal class GetSyncStartStateQueryHandler : IRequestHandler<GetSyncStartState
     public async Task<SyncStartState> Handle(GetSyncStartStateQuery request, CancellationToken cancellationToken)
     {
         await _validator.Validate(request, cancellationToken);
-        return await _syncStartGameService.GetSyncStartState(request.GameId);
+        return await _syncStartGameService.GetSyncStartState(request.GameId, cancellationToken);
     }
 }

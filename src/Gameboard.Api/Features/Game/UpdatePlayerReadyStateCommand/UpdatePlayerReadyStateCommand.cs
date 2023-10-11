@@ -7,6 +7,7 @@ using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using Gameboard.Api.Validation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games;
 
@@ -45,7 +46,9 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
     {
         // validate
         // grab the player, we need it later anyway
-        var player = await _store.SingleOrDefaultAsync<Data.Player>(p => p.Id == request.PlayerId, cancellationToken);
+        var player = await _store
+            .WithNoTracking<Data.Player>()
+            .SingleOrDefaultAsync(p => p.Id == request.PlayerId);
 
         _validatorService.AddValidator(ctx =>
         {
@@ -55,15 +58,12 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
         await _validatorService.Validate();
 
         // authorize
-        if (player.UserId != request.Actor.Id)
-        {
-            _authorizer
-                .AllowRoles(UserRole.Designer, UserRole.Tester, UserRole.Admin)
-                .Authorize();
-        }
+        _authorizer
+            .AllowRoles(UserRole.Designer, UserRole.Tester, UserRole.Admin)
+            .AllowUserId(player.UserId);
 
         // update the player's db flag
-        var playerReadyState = await _syncStartGameService.UpdatePlayerReadyState(request.PlayerId, request.IsReady);
+        var playerReadyState = await _syncStartGameService.UpdatePlayerReadyState(request.PlayerId, request.IsReady, cancellationToken);
 
         // notify listeners
         await _gameStartService.HandleSyncStartStateChanged(player.GameId, cancellationToken);

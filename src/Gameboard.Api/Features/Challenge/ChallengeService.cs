@@ -22,6 +22,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
+using Microsoft.VisualBasic;
 
 namespace Gameboard.Api.Services;
 
@@ -124,18 +125,16 @@ public partial class ChallengeService : _Service
 
     public async Task<Challenge> Create(NewChallenge model, string actorId, string graderUrl, CancellationToken cancellationToken)
     {
-        var player = await _playerStore.Retrieve(model.PlayerId);
-
-        var game = await _gameStore
-            .List()
+        var player = await _store.WithNoTracking<Data.Player>().SingleAsync(p => p.Id == model.PlayerId);
+        var game = await _store
+            .WithNoTracking<Data.Game>()
             .Include(g => g.Prerequisites)
-            .Where(g => g.Id == player.GameId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .SingleAsync(g => g.Id == player.GameId, cancellationToken);
 
         if (await _teamService.IsAtGamespaceLimit(player.TeamId, game, cancellationToken))
             throw new GamespaceLimitReached(game.Id, player.TeamId);
 
-        if ((await IsUnlocked(player, game, model.SpecId)).Equals(false))
+        if (!await IsUnlocked(player, game, model.SpecId))
             throw new ChallengeLocked();
 
         var lockkey = $"{player.TeamId}{model.SpecId}";
@@ -149,19 +148,21 @@ public partial class ChallengeService : _Service
         if (locked != lockval)
             throw new ChallengeStartPending();
 
-        var spec = await _challengeSpecStore.Retrieve(model.SpecId);
+        var spec = await _store.WithNoTracking<Data.ChallengeSpec>().SingleAsync(s => s.Id == model.SpecId);
 
         int playerCount = 1;
         if (game.AllowTeam)
         {
-            playerCount = await _playerStore.CountAsync(q => q.Where(p => p.TeamId == player.TeamId));
+            playerCount = await _store
+                .WithNoTracking<Data.Player>()
+                .CountAsync(p => p.TeamId == player.TeamId, cancellationToken);
         }
 
         try
         {
             var challenge = await BuildAndRegisterChallenge(model, spec, game, player, actorId, graderUrl, playerCount, model.Variant);
 
-            await _challengeStore.Create(challenge);
+            await _store.SaveAdd(challenge, cancellationToken);
             await _challengeStore.UpdateEtd(challenge.SpecId);
 
             return Mapper.Map<Challenge>(challenge);

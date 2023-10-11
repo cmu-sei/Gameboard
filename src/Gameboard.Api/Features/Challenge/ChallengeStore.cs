@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Features.Certificates;
 
 namespace Gameboard.Api.Data;
 
@@ -86,11 +87,13 @@ public class ChallengeStore : Store<Challenge>, IChallengeStore
             m.Started.Subtract(m.Created).TotalSeconds
         );
 
-        var spec = await DbContext.ChallengeSpecs.FindAsync(specId);
-
-        spec.AverageDeploySeconds = avg;
-
-        await DbContext.SaveChangesAsync();
+        await DbContext
+            .ChallengeSpecs
+            .Where(s => s.Id == specId)
+            .ExecuteUpdateAsync
+            (
+                s => s.SetProperty(s => s.AverageDeploySeconds, avg)
+            );
     }
 
     public async Task UpdateTeam(string id)

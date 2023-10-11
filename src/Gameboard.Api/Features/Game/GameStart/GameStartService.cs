@@ -92,7 +92,7 @@ internal class GameStartService : IGameStartService
 
     public async Task HandleSyncStartStateChanged(string gameId, CancellationToken cancellationToken)
     {
-        var state = await _syncStartGameService.GetSyncStartState(gameId);
+        var state = await _syncStartGameService.GetSyncStartState(gameId, cancellationToken);
         await _gameHubBus.SendSyncStartGameStateChanged(state);
 
         // IFF everyone is ready, start all sessions and return info about them
