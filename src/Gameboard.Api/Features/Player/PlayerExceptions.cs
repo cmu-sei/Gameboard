@@ -20,8 +20,8 @@ internal class InvalidExtendSessionRequest : GameboardException
 internal class ManagerCantUnenrollWhileTeammatesRemain : GameboardValidationException
 {
     internal ManagerCantUnenrollWhileTeammatesRemain(string playerId, string teamId, IEnumerable<string> teammatePlayerIds) : base($"""
-        Player {playerId} is the manager of team {teamId}. There are currently {teammatePlayerIds.Count()} players remaining on the team ({string.Join(" | ", teammatePlayerIds)}).
-        In order to unenroll, this player must designate a teammate as the replacement manager (or wait until all other team memberes have unenrolled).
+        You're currently the manager of this team. There are currently {teammatePlayerIds.Count()} other player(s) remaining on the team ({string.Join(" | ", teammatePlayerIds)}).
+        In order to unenroll, you'll need to designate a teammate as the replacement manager (or wait until all other team members have unenrolled).
     """) { }
 }
 
