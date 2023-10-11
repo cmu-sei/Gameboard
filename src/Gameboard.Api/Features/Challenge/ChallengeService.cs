@@ -440,13 +440,14 @@ public partial class ChallengeService : _Service
             .Where(c => c.PlayerId == player.Id)
             .ToArrayAsync();
 
-        var teamChallenges = await _store
+        var teamChallengeIds = await _store
             .WithNoTracking<Data.Challenge>()
             .Where(c => c.TeamId == player.TeamId && c.PlayerId != player.Id)
+            .Select(c => c.Id)
             .ToArrayAsync();
 
         var playerOnlyChallenges = candidateChallenges
-            .Where(c => !teamChallenges.Any(tc => tc.Id == c.Id));
+            .Where(c => !teamChallengeIds.Any(tcId => tcId == c.Id));
 
         await ArchiveChallenges(playerOnlyChallenges);
     }
@@ -509,9 +510,12 @@ public partial class ChallengeService : _Service
         if (recordsAffected > 0)
             Logger.LogWarning($"While attempting to archive challenges (Ids: {string.Join(",", toArchiveIds)}) resulted in the deletion of ${recordsAffected} stale archive records.");
 
-        _challengeStore.DbContext.ArchivedChallenges.AddRange(_mapper.Map<Data.ArchivedChallenge[]>(toArchive));
-        _challengeStore.DbContext.Challenges.RemoveRange(challenges);
-        await _challengeStore.DbContext.SaveChangesAsync();
+        await _store.DoTransaction(dbContext =>
+        {
+            dbContext.ArchivedChallenges.AddRange(_mapper.Map<Data.ArchivedChallenge[]>(toArchive));
+            dbContext.Challenges.RemoveRange(challenges);
+            return Task.CompletedTask;
+        }, CancellationToken.None);
     }
 
     public async Task<ConsoleSummary> GetConsole(ConsoleRequest model, bool observer)

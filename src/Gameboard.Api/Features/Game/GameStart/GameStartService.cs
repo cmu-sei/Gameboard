@@ -206,18 +206,13 @@ internal class GameStartService : IGameStartService
         {
             try
             {
-                await ResetSession(ctx, team.Team.Id);
+                await _mediator.Send(new ResetTeamSessionCommand(team.Team.Id, false));
             }
             catch (Exception ex)
             {
                 _logger.LogError(message: $"Cleanup failed for team {team.Team.Id}", exception: ex);
             }
         }
-    }
-
-    private async Task ResetSession(GameStartState ctx, string teamId)
-    {
-        await _mediator.Send(new ResetTeamSessionCommand(teamId, false));
     }
 
     private void Log(string message, string gameId)

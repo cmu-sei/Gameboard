@@ -18,7 +18,7 @@ public interface IStore
     Task<TEntity> Create<TEntity>(TEntity entity) where TEntity : class, IEntity;
     Task Delete<TEntity>(string id) where TEntity : class, IEntity;
     Task Delete<TEntity>(params TEntity[] entity) where TEntity : class, IEntity;
-    Task DoTransaction(Func<Task> operation, CancellationToken cancellationToken);
+    Task DoTransaction(Func<GameboardDbContext, Task> operation, CancellationToken cancellationToken);
     Task<int> ExecuteUpdateAsync<TEntity>
     (
         Expression<Func<TEntity, bool>> predicate,
@@ -28,6 +28,7 @@ public interface IStore
     Task<TEntity> FirstOrDefaultAsync<TEntity>(CancellationToken cancellationToken) where TEntity : class, IEntity;
     Task<TEntity> FirstOrDefaultAsync<TEntity>(bool enableTracking, CancellationToken cancellationToken) where TEntity : class, IEntity;
     Task<TEntity> FirstOrDefaultAsync<TEntity>(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) where TEntity : class, IEntity;
+    GameboardDbContext GetDbContext();
     IQueryable<TEntity> List<TEntity>(bool enableTracking = false) where TEntity : class, IEntity;
     Task<TEntity> Retrieve<TEntity>(string id, bool enableTracking = false) where TEntity : class, IEntity;
     Task<TEntity> Retrieve<TEntity>(string id, Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder, bool enableTracking = false) where TEntity : class, IEntity;
@@ -94,10 +95,10 @@ internal class Store : IStore
         return _dbContext.SaveChangesAsync();
     }
 
-    public async Task DoTransaction(Func<Task> operation, CancellationToken cancellationToken)
+    public async Task DoTransaction(Func<GameboardDbContext, Task> operation, CancellationToken cancellationToken)
     {
         using var transaction = _dbContext.Database.BeginTransaction();
-        await operation();
+        await operation(_dbContext);
         await transaction.CommitAsync(cancellationToken);
     }
 
@@ -136,6 +137,8 @@ internal class Store : IStore
 
         return query.FirstOrDefaultAsync(cancellationToken);
     }
+
+    public GameboardDbContext GetDbContext() => _dbContext;
 
     public IQueryable<TEntity> List<TEntity>(bool enableTracking = false) where TEntity : class, IEntity
         => GetQueryBase<TEntity>(enableTracking);
