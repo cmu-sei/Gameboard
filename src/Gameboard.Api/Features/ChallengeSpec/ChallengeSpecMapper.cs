@@ -1,13 +1,14 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System.Text.RegularExpressions;
 using Alloy.Api.Client;
 using AutoMapper;
 using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {
-    public class ChallengeSpecMapper : Profile
+    public partial class ChallengeSpecMapper : Profile
     {
         public ChallengeSpecMapper()
         {
@@ -22,11 +23,15 @@ namespace Gameboard.Api.Services
 
             CreateMap<WorkspaceSummary, ExternalSpec>()
                 .ForMember(d => d.ExternalId, opt => opt.MapFrom(s => s.Id))
-                .ForMember(d => d.GameEngineType, opt => opt.MapFrom(s => GameEngineType.TopoMojo));
+                .ForMember(d => d.GameEngineType, opt => opt.MapFrom(s => GameEngineType.TopoMojo))
+                .ForMember(d => d.Tags, opt => opt.MapFrom(s => TagsSplitRegex().Split(s.Tags)));
 
             CreateMap<EventTemplate, ExternalSpec>()
                 .ForMember(d => d.ExternalId, opt => opt.MapFrom(s => s.Id))
                 .ForMember(d => d.GameEngineType, opt => opt.MapFrom(s => GameEngineType.Crucible));
         }
+
+        [GeneratedRegex("\\s+")]
+        private static partial Regex TagsSplitRegex();
     }
 }

@@ -36,7 +36,7 @@ internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeC
     public async Task<SearchPracticeChallengesResult> Handle(SearchPracticeChallengesQuery request, CancellationToken cancellationToken)
     {
         var q = _store
-            .List<Data.ChallengeSpec>()
+            .WithNoTracking<Data.ChallengeSpec>()
             .Include(s => s.Game)
             .Where(s => s.Game.PlayerMode == PlayerMode.Practice);
 
