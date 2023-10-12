@@ -24,8 +24,6 @@ namespace Gameboard.Api.Services;
 
 public class PlayerService
 {
-    private readonly IGameEngineService _gameEngine;
-    private readonly IMediator _mediator;
     private readonly IPracticeChallengeScoringListener _practiceChallengeScoringListener;
     private readonly TimeSpan _idmapExpiration = new(0, 30, 0);
     private readonly INowService _now;
@@ -36,7 +34,6 @@ public class PlayerService
     CoreOptions CoreOptions { get; }
     ChallengeService ChallengeService { get; set; }
     IPlayerStore PlayerStore { get; }
-    IGameService GameService { get; }
     IGameStartService GameStartService { get; }
     IGameStore GameStore { get; }
     IGuidService GuidService { get; }
@@ -47,14 +44,11 @@ public class PlayerService
     public PlayerService(
         ChallengeService challengeService,
         CoreOptions coreOptions,
-        IGameEngineService gameEngine,
-        IGameService gameService,
         IGameStartService gameStartService,
         IGameStore gameStore,
         IGuidService guidService,
         IInternalHubBus hubBus,
         IMapper mapper,
-        IMediator mediator,
         IMemoryCache memCache,
         INowService now,
         IPlayerStore playerStore,
@@ -66,11 +60,8 @@ public class PlayerService
     {
         ChallengeService = challengeService;
         CoreOptions = coreOptions;
-        _gameEngine = gameEngine;
         CoreOptions = coreOptions;
-        GameService = gameService;
         GuidService = guidService;
-        _mediator = mediator;
         _practiceChallengeScoringListener = practiceChallengeScoringListener;
         _practiceService = practiceService;
         _now = now;
