@@ -299,6 +299,7 @@ public class PlayerService
             .WithNoTracking<Data.Player>()
                 .Include(p => p.Sponsor)
             .Where(p => queriedPlayerIds.Contains(p.Id))
+            .Where(p => p.TeamId != null)
             .Select(p => new
             {
                 p.TeamId,
@@ -308,8 +309,10 @@ public class PlayerService
             .ToDictionaryAsync(g => g.Key, g => g.Select(thing => thing.SponsorLogoFileNames).ToArray());
 
         foreach (var player in players)
-            if (teamSponsors.ContainsKey(player.TeamId))
+            if (player.TeamId.IsNotEmpty() && teamSponsors.ContainsKey(player.TeamId))
                 player.TeamSponsorLogos = teamSponsors[player.TeamId];
+            else
+                player.TeamSponsorLogos = Array.Empty<string>();
 
         return players;
     }
