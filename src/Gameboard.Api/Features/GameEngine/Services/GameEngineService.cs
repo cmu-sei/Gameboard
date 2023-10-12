@@ -19,6 +19,7 @@ public interface IGameEngineService
     Task<IEnumerable<GameEngineSectionSubmission>> AuditChallenge(Data.Challenge entity);
     Task CompleteGamespace(Data.Challenge entity);
     Task DeleteGamespace(Data.Challenge entity);
+    Task DeleteGamespace(string id, GameEngineType gameEngineType);
     Task ExtendSession(Data.Challenge entity, DateTimeOffset sessionEnd);
     Task<GameEngineGameState> GetChallengeState(GameEngineType gameEngineType, string stateJson);
     Task<ConsoleSummary> GetConsole(Data.Challenge entity, ConsoleRequest model, bool observer);
@@ -286,12 +287,15 @@ public class GameEngineService : _Service, IGameEngineService
         };
     }
 
-    public async Task DeleteGamespace(Data.Challenge entity)
+    public Task DeleteGamespace(Data.Challenge entity)
+        => DeleteGamespace(entity.Id, entity.GameEngineType);
+
+    public async Task DeleteGamespace(string id, GameEngineType gameEngineType)
     {
-        switch (entity.GameEngineType)
+        switch (gameEngineType)
         {
             case GameEngineType.TopoMojo:
-                await Mojo.DeleteGamespaceAsync(entity.Id);
+                await Mojo.DeleteGamespaceAsync(id);
                 break;
             default:
                 throw new NotImplementedException();

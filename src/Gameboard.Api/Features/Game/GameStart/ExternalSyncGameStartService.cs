@@ -178,6 +178,27 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             // notify the teams that something is amiss
             await _gameHubBus.SendExternalGameLaunchFailure(request.State);
 
+            // the challenges don't get created upon failure here (thanks to a db transaction)
+            // but we still need to clean up any created tm gamespaces
+            foreach (var gamespace in request.State.GamespacesDeployed)
+            {
+                try
+                {
+                    var gamespaceChallenge = request.State.ChallengesCreated.SingleOrDefault(c => c.Challenge.Id == gamespace.Id);
+                    if (gamespaceChallenge is null)
+                    {
+                        Log($"Couldn't delete gamespace with id {gamespace.Id} - couldn't locate a matching deployed challenge.", request.GameId);
+                        continue;
+                    }
+
+                    await _gameEngineService.DeleteGamespace(gamespaceChallenge.Challenge.Id, gamespaceChallenge.GameEngineType);
+                }
+                catch (Exception topoGamespaceDeleteEx)
+                {
+                    Log($"Error deleting gamespace with id {request.GameId}: {topoGamespaceDeleteEx.GetType().Name} :: {topoGamespaceDeleteEx.Message} ", request.GameId);
+                }
+            }
+
             // for convenience, reset (but don't unenroll) the teams
             if (request.State.Teams.Any())
             {
