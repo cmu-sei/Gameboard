@@ -19,6 +19,9 @@ public interface IChallengeSyncService
     Task SyncExpired(CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// Used by the Job service to update challenges which have expired
+/// </summary>
 internal class ChallengeSyncService : IChallengeSyncService
 {
     private readonly ConsoleActorMap _consoleActorMap;

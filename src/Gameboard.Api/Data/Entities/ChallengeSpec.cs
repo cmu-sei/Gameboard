@@ -22,6 +22,7 @@ public class ChallengeSpec : IEntity
         public GameEngineType GameEngineType { get; set; }
         public string SolutionGuideUrl { get; set; }
         public bool ShowSolutionGuideInCompetitiveMode { get; set; }
+        public string Tags { get; set; }
 
         // nav properties
         public string GameId { get; set; }

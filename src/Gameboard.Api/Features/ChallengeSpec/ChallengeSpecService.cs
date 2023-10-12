@@ -70,10 +70,8 @@ public class ChallengeSpecService : _Service
     public Task Delete(string id)
         => _store.Delete<Data.ChallengeSpec>(id);
 
-    public async Task<ExternalSpec[]> List(SearchFilter model)
-    {
-        return await GameEngine.ListSpecs(model);
-    }
+    public Task<ExternalSpec[]> List(SearchFilter model)
+        => GameEngine.ListSpecs(model);
 
     public async Task<IEnumerable<BoardSpec>> ListGameSpecs(string gameId)
         => await Mapper.ProjectTo<BoardSpec>
@@ -99,6 +97,7 @@ public class ChallengeSpecService : _Service
 
             spec.Name = externals[spec.ExternalId].Name;
             spec.Description = externals[spec.ExternalId].Description;
+            spec.Tags = externals[spec.ExternalId].Tags;
             spec.Text = externals[spec.ExternalId].Text;
         }
 

@@ -2,7 +2,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
-using Gameboard.Api.Common;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
 using MediatR;
@@ -17,6 +17,7 @@ internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeC
     private readonly IChallengeDocsService _challengeDocsService;
     private readonly IMapper _mapper;
     private readonly IPagingService _pagingService;
+    private readonly ISlugService _slugger;
     private readonly IStore _store;
 
     public SearchPracticeChallengesHandler
@@ -24,12 +25,14 @@ internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeC
         IChallengeDocsService challengeDocsService,
         IMapper mapper,
         IPagingService pagingService,
+        ISlugService slugger,
         IStore store
     )
     {
         _challengeDocsService = challengeDocsService;
         _mapper = mapper;
         _pagingService = pagingService;
+        _slugger = slugger;
         _store = store;
     }
 
@@ -43,12 +46,15 @@ internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeC
         if (request.Filter.HasTerm)
         {
             var term = request.Filter.Term.ToLower();
+            var sluggedTerm = _slugger.Get(term);
+
             q = q.Where(s =>
                 s.Id.Equals(term) ||
                 s.Name.ToLower().Contains(term) ||
                 s.Description.ToLower().Contains(term) ||
                 s.Game.Name.ToLower().Contains(term) ||
-                s.Text.ToLower().Contains(term)
+                s.Text.ToLower().Contains(term) ||
+                s.Tags.Contains(sluggedTerm)
             );
         }
 
