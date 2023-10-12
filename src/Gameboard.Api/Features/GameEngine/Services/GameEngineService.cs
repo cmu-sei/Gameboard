@@ -18,6 +18,7 @@ public interface IGameEngineService
 {
     Task<IEnumerable<GameEngineSectionSubmission>> AuditChallenge(Data.Challenge entity);
     Task CompleteGamespace(Data.Challenge entity);
+    Task CompleteGamespace(string id, GameEngineType gameEngineType);
     Task DeleteGamespace(Data.Challenge entity);
     Task DeleteGamespace(string id, GameEngineType gameEngineType);
     Task ExtendSession(Data.Challenge entity, DateTimeOffset sessionEnd);
@@ -316,6 +317,18 @@ public class GameEngineService : _Service, IGameEngineService
 
             default:
                 throw new NotImplementedException();
+        }
+    }
+
+    public async Task CompleteGamespace(string id, GameEngineType gameEngineType)
+    {
+        switch (gameEngineType)
+        {
+            case GameEngineType.TopoMojo:
+                await Mojo.CompleteGamespaceAsync(id);
+                break;
+            default:
+                throw new NotImplementedException("Crucible's engine doesn't implement this signature. To complete a Crucible gamespace, use the overload that accepts a Challenge argument.");
         }
     }
 

@@ -25,19 +25,21 @@ internal class TestGameEngineService : IGameEngineService
     }
 
     public Task CompleteGamespace(Api.Data.Challenge entity)
+        => CompleteGamespace(entity.Id, entity.GameEngineType);
+
+    public Task CompleteGamespace(string id, GameEngineType gameEngineType)
     {
         return Task.CompletedTask;
     }
+
+    public Task DeleteGamespace(Api.Data.Challenge entity)
+        => DeleteGamespace(entity.Id, entity.GameEngineType);
 
     public Task DeleteGamespace(string id, GameEngineType gameEngineType)
     {
         return Task.CompletedTask;
     }
 
-    public Task DeleteGamespace(Api.Data.Challenge entity)
-    {
-        return Task.CompletedTask;
-    }
 
     public Task ExtendSession(Api.Data.Challenge entity, DateTimeOffset sessionEnd)
     {

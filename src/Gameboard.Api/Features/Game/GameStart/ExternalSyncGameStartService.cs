@@ -187,15 +187,15 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                     var gamespaceChallenge = request.State.ChallengesCreated.SingleOrDefault(c => c.Challenge.Id == gamespace.Id);
                     if (gamespaceChallenge is null)
                     {
-                        Log($"Couldn't delete gamespace with id {gamespace.Id} - couldn't locate a matching deployed challenge.", request.GameId);
+                        Log($"Couldn't completing gamespace with id {gamespace.Id} - couldn't locate a matching deployed challenge.", request.GameId);
                         continue;
                     }
 
-                    await _gameEngineService.DeleteGamespace(gamespaceChallenge.Challenge.Id, gamespaceChallenge.GameEngineType);
+                    await _gameEngineService.CompleteGamespace(gamespaceChallenge.Challenge.Id, gamespaceChallenge.GameEngineType);
                 }
                 catch (Exception topoGamespaceDeleteEx)
                 {
-                    Log($"Error deleting gamespace with id {request.GameId}: {topoGamespaceDeleteEx.GetType().Name} :: {topoGamespaceDeleteEx.Message} ", request.GameId);
+                    Log($"Error completing gamespace with id {request.GameId}: {topoGamespaceDeleteEx.GetType().Name} :: {topoGamespaceDeleteEx.Message} ", request.GameId);
                 }
             }
 
