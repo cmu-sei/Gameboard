@@ -1,5 +1,7 @@
 using System;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 
 namespace Gameboard.Api.Common.Services;
 
@@ -12,18 +14,25 @@ public interface IAppUrlService
 
 internal class AppUrlService : IAppUrlService
 {
+    private readonly IWebHostEnvironment _env;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public AppUrlService(IHttpContextAccessor httpContextAccessor)
+    public AppUrlService(IWebHostEnvironment env, IHttpContextAccessor httpContextAccessor)
     {
+        _env = env;
         _httpContextAccessor = httpContextAccessor;
     }
 
     public string GetBaseUrl()
     {
         var request = _httpContextAccessor.HttpContext.Request;
-        var builder = new UriBuilder(request.Scheme, request.Host.Host, request.Host.Port ?? -1, request.PathBase);
+        var finalPort = -1;
 
+        // in dev, we append the port to make links still work (for when you're working against localhost)
+        if (_env.IsDevelopment())
+            finalPort = request.Host.Port != null ? request.Host.Port.Value : finalPort;
+
+        var builder = new UriBuilder(request.Scheme, request.Host.Host, finalPort, request.PathBase);
         return builder.ToString();
     }
 
@@ -36,7 +45,6 @@ internal class AppUrlService : IAppUrlService
         // does some pretty surprising things (e.g. drops the base path of the base Uri and replaces it with the relative path 
         // of the second). We have to build it manually, unfortunately.
         var finalBaseUrl = baseUrl.TrimEnd('/');
-        // var baseUrl = GetBaseUrl().TrimEnd('/');
 
         if (relativeUrl.IsEmpty())
             return finalBaseUrl;
