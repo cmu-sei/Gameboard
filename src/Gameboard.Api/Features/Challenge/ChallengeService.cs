@@ -22,7 +22,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
-using Microsoft.VisualBasic;
 
 namespace Gameboard.Api.Services;
 
@@ -30,9 +29,7 @@ public partial class ChallengeService : _Service
 {
     private readonly ConsoleActorMap _actorMap;
     private readonly IChallengeStore _challengeStore;
-    private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
     private readonly IGameEngineService _gameEngine;
-    private readonly IGameStore _gameStore;
     private readonly IGuidService _guids;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IJsonService _jsonService;
@@ -42,8 +39,6 @@ public partial class ChallengeService : _Service
     private readonly IMemoryCache _memCache;
     private readonly INowService _now;
     private readonly IPlayerStore _playerStore;
-    private readonly IPracticeChallengeScoringListener _practiceChallengeScoringListener;
-    private readonly IStore<Data.ChallengeSpec> _specStore;
     private readonly IChallengeDocsService _challengeDocsService;
     private readonly IChallengeSyncService _challengeSyncService;
     private readonly IStore _store;
@@ -54,10 +49,8 @@ public partial class ChallengeService : _Service
         CoreOptions coreOptions,
         IChallengeStore challengeStore,
         IChallengeDocsService challengeDocsService,
-        IStore<Data.ChallengeSpec> specStore,
         IChallengeSyncService challengeSyncService,
         IGameEngineService gameEngine,
-        IGameStore gameStore,
         IGuidService guids,
         IHttpContextAccessor httpContextAccessor,
         IJsonService jsonService,
@@ -68,18 +61,15 @@ public partial class ChallengeService : _Service
         IMemoryCache memCache,
         INowService now,
         IPlayerStore playerStore,
-        IPracticeChallengeScoringListener practiceChallengeScoringListener,
         IStore store,
         ITeamService teamService
     ) : base(logger, mapper, coreOptions)
     {
         _actorMap = actorMap;
         _challengeStore = challengeStore;
-        _challengeSpecStore = specStore;
         _challengeDocsService = challengeDocsService;
         _challengeSyncService = challengeSyncService;
         _gameEngine = gameEngine;
-        _gameStore = gameStore;
         _guids = guids;
         _httpContextAccessor = httpContextAccessor;
         _jsonService = jsonService;
@@ -89,8 +79,6 @@ public partial class ChallengeService : _Service
         _memCache = memCache;
         _now = now;
         _playerStore = playerStore;
-        _practiceChallengeScoringListener = practiceChallengeScoringListener;
-        _specStore = specStore;
         _store = store;
         _teamService = teamService;
     }
@@ -371,14 +359,14 @@ public partial class ChallengeService : _Service
         return Mapper.Map<Challenge>(challenge);
     }
 
-    public async Task<Challenge> Grade(GameEngineSectionSubmission model, string actorId)
+    public async Task<Challenge> Grade(GameEngineSectionSubmission model, User actor)
     {
         var challenge = await _challengeStore.Retrieve(model.Id);
 
         challenge.Events.Add(new ChallengeEvent
         {
             Id = _guids.GetGuid(),
-            UserId = actorId,
+            UserId = actor?.Id ?? null,
             TeamId = challenge.TeamId,
             Timestamp = _now.Get(),
             Type = ChallengeEventType.Submission
@@ -398,7 +386,7 @@ public partial class ChallengeService : _Service
             if (challenge.Score >= challenge.Points)
             {
                 // in the practice area, we proactively end their session if they complete the challenge
-                await _practiceChallengeScoringListener.NotifyChallengeScored(challenge, CancellationToken.None);
+                await _teamService.EndSession(challenge.TeamId, actor, CancellationToken.None);
             }
 
             // also for the practice area:
@@ -406,7 +394,7 @@ public partial class ChallengeService : _Service
             var typedState = await _gameEngine.GetChallengeState(challenge.GameEngineType, challenge.State);
             if (typedState.Challenge.Attempts >= typedState.Challenge.MaxAttempts)
             {
-                await _practiceChallengeScoringListener.NotifyAttemptsExhausted(challenge, CancellationToken.None);
+                await _teamService.EndSession(challenge.TeamId, actor, CancellationToken.None);
             }
         }
         return Mapper.Map<Challenge>(challenge);

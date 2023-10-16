@@ -105,10 +105,8 @@ public class ChallengeServiceTests
             A.Fake<CoreOptions>(),
             A.Fake<IChallengeStore>(),
             A.Fake<IChallengeDocsService>(),
-            A.Fake<IStore<Data.ChallengeSpec>>(),
             A.Fake<IChallengeSyncService>(),
             fakeGameEngineService,
-            A.Fake<IGameStore>(),
             A.Fake<IGuidService>(),
             A.Fake<IHttpContextAccessor>(),
             A.Fake<IJsonService>(),
@@ -119,7 +117,6 @@ public class ChallengeServiceTests
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
             A.Fake<IPlayerStore>(),
-            A.Fake<IPracticeChallengeScoringListener>(),
             A.Fake<IStore>(),
             A.Fake<ITeamService>()
         );
@@ -230,10 +227,8 @@ public class ChallengeServiceTests
             A.Fake<CoreOptions>(),
             A.Fake<IChallengeStore>(),
             A.Fake<IChallengeDocsService>(),
-            A.Fake<IStore<Data.ChallengeSpec>>(),
             A.Fake<IChallengeSyncService>(),
             fakeGameEngineService,
-            A.Fake<IGameStore>(),
             A.Fake<IGuidService>(),
             A.Fake<IHttpContextAccessor>(),
             A.Fake<IJsonService>(),
@@ -244,7 +239,6 @@ public class ChallengeServiceTests
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
             A.Fake<IPlayerStore>(),
-            A.Fake<IPracticeChallengeScoringListener>(),
             A.Fake<IStore>(),
             A.Fake<ITeamService>()
         );

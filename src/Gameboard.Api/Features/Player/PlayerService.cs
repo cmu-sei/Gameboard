@@ -16,7 +16,6 @@ using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Teams;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -24,8 +23,11 @@ namespace Gameboard.Api.Services;
 
 public class PlayerService
 {
-    private readonly IPracticeChallengeScoringListener _practiceChallengeScoringListener;
+    private readonly IGameEngineService _gameEngine;
+    private readonly IInternalHubBus _hubBus;
+    private readonly IPracticeChallengeEventsListener _practiceChallengeScoringListener;
     private readonly TimeSpan _idmapExpiration = new(0, 30, 0);
+    private readonly IMapper _mapper;
     private readonly INowService _now;
     private readonly IPracticeService _practiceService;
     private readonly IStore _store;
@@ -37,13 +39,12 @@ public class PlayerService
     IGameStartService GameStartService { get; }
     IGameStore GameStore { get; }
     IGuidService GuidService { get; }
-    IInternalHubBus HubBus { get; }
-    IMapper Mapper { get; }
     IMemoryCache LocalCache { get; }
 
     public PlayerService(
         ChallengeService challengeService,
         CoreOptions coreOptions,
+        IGameEngineService gameEngine,
         IGameStartService gameStartService,
         IGameStore gameStore,
         IGuidService guidService,
@@ -52,7 +53,7 @@ public class PlayerService
         IMemoryCache memCache,
         INowService now,
         IPlayerStore playerStore,
-        IPracticeChallengeScoringListener practiceChallengeScoringListener,
+        IPracticeChallengeEventsListener practiceChallengeScoringListener,
         IPracticeService practiceService,
         IStore store,
         ITeamService teamService
@@ -61,15 +62,16 @@ public class PlayerService
         ChallengeService = challengeService;
         CoreOptions = coreOptions;
         CoreOptions = coreOptions;
+        _gameEngine = gameEngine;
         GuidService = guidService;
         _practiceChallengeScoringListener = practiceChallengeScoringListener;
         _practiceService = practiceService;
         _now = now;
         GameStartService = gameStartService;
         GameStore = gameStore;
-        HubBus = hubBus;
+        _hubBus = hubBus;
         LocalCache = memCache;
-        Mapper = mapper;
+        _mapper = mapper;
         PlayerStore = playerStore;
         _store = store;
         _teamService = teamService;
@@ -105,7 +107,7 @@ public class PlayerService
         var entity = InitializePlayer(model, user, game.SessionMinutes);
 
         await PlayerStore.Create(entity);
-        await HubBus.SendPlayerEnrolled(Mapper.Map<Player>(entity), actor);
+        await _hubBus.SendPlayerEnrolled(_mapper.Map<Player>(entity), actor);
 
         if (game.RequireSynchronizedStart)
             await GameStartService.HandleSyncStartStateChanged(entity.GameId, cancellationToken);
@@ -113,7 +115,7 @@ public class PlayerService
         // the initialized Data.Player only has the SponsorId, and we want to send down the complete
         // sponsor object. We could just manually attach it, but for now we're just going to reload
         // the entity from the DB to handle future property wireups
-        return Mapper.Map<Player>
+        return _mapper.Map<Player>
         (
             await _store
                 .WithNoTracking<Data.Player>()
@@ -156,18 +158,18 @@ public class PlayerService
 
     public async Task<Player> Retrieve(string id)
     {
-        return Mapper.Map<Player>(await PlayerStore.Retrieve(id));
+        return _mapper.Map<Player>(await PlayerStore.Retrieve(id));
     }
 
     public async Task<Player> Update(ChangedPlayer model, User actor, bool sudo = false)
     {
         var entity = await PlayerStore.Retrieve(model.Id);
-        var prev = Mapper.Map<Player>(entity);
+        var prev = _mapper.Map<Player>(entity);
 
         if (!sudo)
         {
-            Mapper.Map(
-                Mapper.Map<SelfChangedPlayer>(model),
+            _mapper.Map(
+                _mapper.Map<SelfChangedPlayer>(model),
                 entity
             );
 
@@ -175,7 +177,7 @@ public class PlayerService
         }
         else
         {
-            Mapper.Map(model, entity);
+            _mapper.Map(model, entity);
         }
 
         if (prev.Name != entity.Name)
@@ -192,8 +194,8 @@ public class PlayerService
         }
 
         await PlayerStore.Update(entity);
-        await HubBus.SendTeamUpdated(Mapper.Map<Player>(entity), actor);
-        return Mapper.Map<Player>(entity);
+        await _hubBus.SendTeamUpdated(_mapper.Map<Player>(entity), actor);
+        return _mapper.Map<Player>(entity);
     }
 
     public async Task<Player> StartSession(SessionStartRequest model, User actor, bool sudo)
@@ -267,8 +269,8 @@ public class PlayerService
             await PlayerStore.DbContext.SaveChangesAsync();
         }
 
-        var asViewModel = Mapper.Map<Player>(player);
-        await HubBus.SendTeamSessionStarted(asViewModel, actor);
+        var asViewModel = _mapper.Map<Player>(player);
+        await _hubBus.SendTeamSessionStarted(asViewModel, actor);
 
         return asViewModel;
     }
@@ -286,7 +288,7 @@ public class PlayerService
             return Array.Empty<Player>();
 
         var q = BuildListQuery(model);
-        var players = await Mapper.ProjectTo<Player>(q).ToArrayAsync();
+        var players = await _mapper.ProjectTo<Player>(q).ToArrayAsync();
         var queriedPlayerIds = players.Select(p => p.Id).ToArray();
 
         // We used to store the team's sponsors (technically, the logo files of their sponsors)
@@ -329,7 +331,7 @@ public class PlayerService
         model.mode = PlayerMode.Competition.ToString();
 
         var q = BuildListQuery(model);
-        return await Mapper.ProjectTo<Standing>(q).ToArrayAsync();
+        return await _mapper.ProjectTo<Standing>(q).ToArrayAsync();
     }
 
     private IQueryable<Data.Player> BuildListQuery(PlayerDataFilter model)
@@ -425,7 +427,7 @@ public class PlayerService
 
     public async Task<BoardPlayer> LoadBoard(string id)
     {
-        var mapped = Mapper.Map<BoardPlayer>(
+        var mapped = _mapper.Map<BoardPlayer>(
             await PlayerStore.LoadBoard(id)
         );
 
@@ -479,7 +481,7 @@ public class PlayerService
             throw new NotYetRegistered(player.Id, manager.GameId);
 
         if (player.Id == manager.Id)
-            return Mapper.Map<Player>(player);
+            return _mapper.Map<Player>(player);
 
         var game = await _store.SingleAsync<Data.Game>(manager.GameId, cancellationToken);
 
@@ -503,8 +505,8 @@ public class PlayerService
 
         await PlayerStore.Update(player);
 
-        var mappedPlayer = Mapper.Map<Player>(player);
-        await HubBus.SendPlayerEnrolled(mappedPlayer, actor);
+        var mappedPlayer = _mapper.Map<Player>(player);
+        await _hubBus.SendPlayerEnrolled(mappedPlayer, actor);
         return mappedPlayer;
     }
 
@@ -529,8 +531,8 @@ public class PlayerService
             .ExecuteDeleteAsync(cancellationToken);
 
         // notify listeners on SignalR (like the team)
-        var playerModel = Mapper.Map<Player>(player);
-        await HubBus.SendPlayerLeft(playerModel, request.Actor);
+        var playerModel = _mapper.Map<Player>(player);
+        await _hubBus.SendPlayerLeft(playerModel, request.Actor);
 
         // update sync start if needed
         if (gameIsSyncStart)
@@ -539,7 +541,7 @@ public class PlayerService
 
     public async Task<TeamChallenge[]> LoadChallengesForTeam(string teamId)
     {
-        return Mapper.Map<TeamChallenge[]>(await PlayerStore.ListTeamChallenges(teamId));
+        return _mapper.Map<TeamChallenge[]>(await PlayerStore.ListTeamChallenges(teamId));
     }
 
     public async Task<TeamSummary[]> LoadTeams(string id, bool sudo)
@@ -582,7 +584,7 @@ public class PlayerService
             {
                 TeamId = c.TeamId,
                 ApprovedName = c.ApprovedName,
-                Sponsors = Mapper.Map<Sponsor[]>(players.Where(p => p.TeamId == c.TeamId).Select(p => p.Sponsor)),
+                Sponsors = _mapper.Map<Sponsor[]>(players.Where(p => p.TeamId == c.TeamId).Select(p => p.Sponsor)),
                 GameId = c.GameId,
                 SessionBegin = c.SessionBegin,
                 SessionEnd = c.SessionEnd,
@@ -645,9 +647,6 @@ public class PlayerService
         await PlayerStore.Create(enrollments);
         await PlayerStore.Update(allteams);
     }
-
-    public Task<Player> AdjustSessionEnd(SessionChangeRequest model, User actor, CancellationToken cancellationToken)
-        => _practiceChallengeScoringListener.AdjustSessionEnd(model, actor, cancellationToken);
 
     public async Task<PlayerCertificate> MakeCertificate(string id)
     {
@@ -725,9 +724,9 @@ public class PlayerService
 
         return new Api.PlayerCertificate
         {
-            Game = Mapper.Map<Game>(player.Game),
+            Game = _mapper.Map<Game>(player.Game),
             PublishedOn = player.User.PublishedCompetitiveCertificates.FirstOrDefault(c => c.GameId == player.Game.Id)?.PublishedOn,
-            Player = Mapper.Map<Player>(player),
+            Player = _mapper.Map<Player>(player),
             Html = certificateHTML
         };
     }
@@ -749,7 +748,7 @@ public class PlayerService
         ).ToArrayAsync(cancellationToken);
 
         if (players.Any(p => p.GameId == model.GameId))
-            return Mapper.Map<Player>(players.First(p => p.GameId == model.GameId));
+            return _mapper.Map<Player>(players.First(p => p.GameId == model.GameId));
 
         // find gamespaces across all practice sessions
         var teamIds = players.Select(p => p.TeamId).ToArray();
@@ -780,7 +779,7 @@ public class PlayerService
         entity.Mode = PlayerMode.Practice;
 
         await PlayerStore.Create(entity);
-        return Mapper.Map<Player>(entity);
+        return _mapper.Map<Player>(entity);
     }
 
     private Data.Player InitializePlayer(NewPlayer model, Data.User user, int duration)

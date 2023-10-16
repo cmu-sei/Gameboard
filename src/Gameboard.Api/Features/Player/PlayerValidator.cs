@@ -48,9 +48,6 @@ namespace Gameboard.Api.Validators
             if (model is SessionStartRequest)
                 return _validate(model as SessionStartRequest);
 
-            if (model is SessionChangeRequest)
-                return _validate(model as SessionChangeRequest);
-
             if (model is TeamAdvancement)
                 return _validate(model as TeamAdvancement);
 
@@ -77,16 +74,6 @@ namespace Gameboard.Api.Validators
 
             if (player.SessionBegin.Year > 1)
                 throw new SessionAlreadyStarted(model.PlayerId, $"Player {model.PlayerId}'s session has already started.");
-
-            await Task.CompletedTask;
-        }
-
-        private async Task _validate(SessionChangeRequest model)
-        {
-            DateTimeOffset ts = DateTimeOffset.UtcNow;
-            bool active = await _playerStore.DbSet.AnyAsync(p => p.TeamId == model.TeamId && p.SessionEnd > ts);
-            if (model.SessionEnd > DateTimeOffset.MinValue && active.Equals(false))
-                throw new SessionNotAdjustable();
 
             await Task.CompletedTask;
         }

@@ -13,6 +13,13 @@ public class PromoteToManagerRequest
     public string TeamId { get; set; }
 }
 
+public sealed class ExtendTeamSessionRequest
+{
+    public required string TeamId { get; set; }
+    public required DateTimeOffset NewSessionEnd { get; set; }
+    public required User Actor { get; set; }
+}
+
 public class ResetTeamSessionRequest
 {
     public required bool UnenrollTeam { get; set; }

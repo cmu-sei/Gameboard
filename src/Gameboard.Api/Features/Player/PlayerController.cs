@@ -108,26 +108,6 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
-        /// Change player session
-        /// </summary>
-        /// <param name="model"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        [HttpPut("api/team/session")]
-        [Authorize]
-        public async Task UpdateSession([FromBody] SessionChangeRequest model, CancellationToken cancellationToken)
-        {
-            await Validate(model);
-
-            AuthorizeAny(
-                () => Actor.IsRegistrar,
-                () => TeamService.IsOnTeam(model.TeamId, Actor.Id).Result
-            );
-
-            await PlayerService.AdjustSessionEnd(model, Actor, cancellationToken);
-        }
-
-        /// <summary>
         /// Start player/team session
         /// </summary>
         /// <param name="playerId"></param>

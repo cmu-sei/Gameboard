@@ -228,7 +228,7 @@ namespace Gameboard.Api.Controllers
 
             await Validate(new Entity { Id = model.Id });
 
-            var result = await ChallengeService.Grade(model, Actor.Id);
+            var result = await ChallengeService.Grade(model, Actor);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
                 new HubEvent<Challenge>
@@ -243,7 +243,7 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
-        /// ReGrade a challenge
+        /// Regrade a challenge
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
@@ -251,9 +251,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<Challenge> Regrade([FromBody] Entity model)
         {
-            AuthorizeAny(
-                () => Actor.IsDirector
-            );
+            AuthorizeAny(() => Actor.IsDirector);
 
             await Validate(model);
 

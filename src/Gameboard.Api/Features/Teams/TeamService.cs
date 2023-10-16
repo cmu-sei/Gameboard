@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Practice;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -16,6 +18,8 @@ namespace Gameboard.Api.Features.Teams;
 public interface ITeamService
 {
     Task DeleteTeam(string teamId, SimpleEntity actingUser, CancellationToken cancellationToken);
+    Task EndSession(string teamId, User actor, CancellationToken cancellationToken);
+    Task<Api.Player> ExtendSession(ExtendTeamSessionRequest request, CancellationToken cancellationToken);
     Task<IEnumerable<SimpleEntity>> GetChallengesWithActiveGamespace(string teamId, string gameId, CancellationToken cancellationToken);
     Task<bool> GetExists(string teamId);
     Task<int> GetSessionCount(string teamId, string gameId, CancellationToken cancellationToken);
@@ -29,27 +33,33 @@ public interface ITeamService
 
 internal class TeamService : ITeamService
 {
+    private readonly IGameEngineService _gameEngine;
     private readonly IMapper _mapper;
     private readonly IMemoryCache _memCache;
     private readonly INowService _now;
     private readonly IInternalHubBus _teamHubService;
     private readonly IPlayerStore _playerStore;
+    private readonly IPracticeService _practiceService;
     private readonly IStore _store;
 
     public TeamService
     (
+        IGameEngineService gameEngine,
         IMapper mapper,
         IMemoryCache memCache,
         INowService now,
         IInternalHubBus teamHubService,
         IPlayerStore playerStore,
+        IPracticeService practiceService,
         IStore store
     )
     {
+        _gameEngine = gameEngine;
         _mapper = mapper;
         _memCache = memCache;
         _now = now;
         _playerStore = playerStore;
+        _practiceService = practiceService;
         _store = store;
         _teamHubService = teamHubService;
     }
@@ -66,6 +76,30 @@ internal class TeamService : ITeamService
 
         // notify hub that the team is deleted /players left so the client can respond
         await _teamHubService.SendTeamDeleted(teamState, actingUser);
+    }
+
+    public Task EndSession(string teamId, User actor, CancellationToken cancellationToken)
+        => UpdateSessionEnd(teamId, _now.Get(), cancellationToken);
+
+    public async Task<Api.Player> ExtendSession(ExtendTeamSessionRequest request, CancellationToken cancellationToken)
+    {
+        // find the team and their captain
+        var captain = await ResolveCaptain(request.TeamId, cancellationToken);
+
+        // in competitive mode, session end is what's requested in the API call
+        var finalSessionEnd = request.NewSessionEnd;
+        // in practice mode, there's special super secret logic (which is currently that the request results in 
+        // a one-hour extension up to a cap defined in settings)
+        if (captain.IsPractice)
+            finalSessionEnd = await _practiceService.GetExtendedSessionEnd(captain.SessionBegin, cancellationToken);
+
+        // update the player entities and gamespaces
+        await UpdateSessionEnd(request.TeamId, finalSessionEnd, cancellationToken);
+
+        // return the updated session via the captain
+        var mappedCaptain = _mapper.Map<Api.Player>(captain);
+        await _teamHubService.SendTeamUpdated(mappedCaptain, request.Actor);
+        return mappedCaptain;
     }
 
     public async Task<IEnumerable<SimpleEntity>> GetChallengesWithActiveGamespace(string teamId, string gameId, CancellationToken cancellationToken)
@@ -221,5 +255,23 @@ internal class TeamService : ITeamService
             SessionEnd = captain.SessionEnd.IsEmpty() ? null : captain.SessionEnd,
             Actor = actor
         };
+    }
+
+    private async Task UpdateSessionEnd(string teamId, DateTimeOffset sessionEnd, CancellationToken cancellationToken)
+    {
+        // update all players
+        await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.TeamId == teamId)
+            .ExecuteUpdateAsync(up => up.SetProperty(p => p.SessionEnd, sessionEnd));
+
+        // and then their gamespaces
+        var gamespaceUpdates = await _store
+            .WithNoTracking<Data.Challenge>()
+            .Where(c => c.TeamId == teamId)
+            .Select(c => _gameEngine.ExtendSession(c, sessionEnd))
+            .ToArrayAsync(cancellationToken);
+
+        await Task.WhenAll(gamespaceUpdates);
     }
 }

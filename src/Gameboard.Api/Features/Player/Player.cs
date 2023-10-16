@@ -65,7 +65,7 @@ public class SessionStartRequest
 public class SessionChangeRequest
 {
     public string TeamId { get; set; }
-    public DateTimeOffset SessionEnd { get; set; }
+    public DateTimeOffset? SessionEnd { get; set; }
 }
 
 public class SelfChangedPlayer

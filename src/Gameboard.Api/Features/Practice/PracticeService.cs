@@ -12,9 +12,12 @@ namespace Gameboard.Api.Features.Practice;
 public interface IPracticeService
 {
     string EscapeSuggestedSearches(IEnumerable<string> input);
-    IEnumerable<string> UnescapeSuggestedSearches(string input);
+    // we're currently not using this, but I'd like to add an endpoint for it so that we can clarify why practice challenges
+    // are unavailable when requested
     Task<CanPlayPracticeChallengeResult> GetCanDeployChallenge(string userId, string challengeSpecId, CancellationToken cancellationToken);
+    Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, CancellationToken cancellationToken);
     Task<PracticeModeSettings> GetSettings(CancellationToken cancellationToken);
+    IEnumerable<string> UnescapeSuggestedSearches(string input);
 }
 
 public enum CanPlayPracticeChallengeResult
@@ -54,8 +57,23 @@ internal class PracticeService : IPracticeService
             .ToArray();
     }
 
-    public string GetEscapeTempToken()
-        => "{escape}";
+    public async Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, CancellationToken cancellationToken)
+    {
+        var now = _now.Get();
+        var settings = await GetSettings(cancellationToken);
+
+        // extend by one hour (hard value for now, added to practice settings later)
+        var newSessionEnd = now.AddMinutes(60);
+
+        if (settings.MaxPracticeSessionLengthMinutes.HasValue)
+        {
+            var maxTime = currentSessionBegin.AddMinutes(settings.MaxPracticeSessionLengthMinutes.Value);
+            if (newSessionEnd > maxTime)
+                newSessionEnd = maxTime;
+        }
+
+        return newSessionEnd;
+    }
 
     public async Task<CanPlayPracticeChallengeResult> GetCanDeployChallenge(string userId, string challengeSpecId, CancellationToken cancellationToken)
     {
