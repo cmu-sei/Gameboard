@@ -1,5 +1,7 @@
 using Gameboard.Api.Common.Services;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 
 namespace Gameboard.Api.Tests.Unit;
 
@@ -10,7 +12,7 @@ public class AppUrlServiceTests
     {
         // given
         var httpContext = A.Fake<HttpContext>();
-        httpContext.Request.Host = new HostString("gameboard.com", 4202);
+        httpContext.Request.Host = new HostString("gameboard.com");
         httpContext.Request.Scheme = "https";
         httpContext.Request.PathBase = "/test/gb";
 
@@ -18,13 +20,13 @@ public class AppUrlServiceTests
         httpContextAccessor.HttpContext = httpContext;
 
         // (sut)
-        var sut = new AppUrlService(httpContextAccessor);
+        var sut = new AppUrlService(A.Fake<IWebHostEnvironment>(), httpContextAccessor);
 
         // when
         var result = sut.GetBaseUrl();
 
         // then
-        result.ShouldBe("https://gameboard.com:4202/test/gb");
+        result.ShouldBe("https://gameboard.com/test/gb");
     }
 
     [Fact]
@@ -32,7 +34,7 @@ public class AppUrlServiceTests
     {
         // given
         var httpContext = A.Fake<HttpContext>();
-        httpContext.Request.Host = new HostString("gameboard.com", 4202);
+        httpContext.Request.Host = new HostString("gameboard.com");
         httpContext.Request.Scheme = "https";
         httpContext.Request.PathBase = "/test/gb";
 
@@ -40,12 +42,12 @@ public class AppUrlServiceTests
         httpContextAccessor.HttpContext = httpContext;
 
         // (sut)
-        var sut = new AppUrlService(httpContextAccessor);
+        var sut = new AppUrlService(A.Fake<IWebHostEnvironment>(), httpContextAccessor);
 
         // when
         var result = sut.ToAppAbsoluteUrl("mks");
 
         // then
-        result.ShouldBe("https://gameboard.com:4202/test/gb/mks");
+        result.ShouldBe("https://gameboard.com/test/gb/mks");
     }
 }
