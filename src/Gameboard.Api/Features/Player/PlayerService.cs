@@ -25,7 +25,6 @@ public class PlayerService
 {
     private readonly IGameEngineService _gameEngine;
     private readonly IInternalHubBus _hubBus;
-    private readonly IPracticeChallengeEventsListener _practiceChallengeScoringListener;
     private readonly TimeSpan _idmapExpiration = new(0, 30, 0);
     private readonly IMapper _mapper;
     private readonly INowService _now;
@@ -53,7 +52,6 @@ public class PlayerService
         IMemoryCache memCache,
         INowService now,
         IPlayerStore playerStore,
-        IPracticeChallengeEventsListener practiceChallengeScoringListener,
         IPracticeService practiceService,
         IStore store,
         ITeamService teamService
@@ -64,7 +62,6 @@ public class PlayerService
         CoreOptions = coreOptions;
         _gameEngine = gameEngine;
         GuidService = guidService;
-        _practiceChallengeScoringListener = practiceChallengeScoringListener;
         _practiceService = practiceService;
         _now = now;
         GameStartService = gameStartService;

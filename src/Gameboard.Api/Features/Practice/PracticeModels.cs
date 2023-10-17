@@ -1,6 +1,13 @@
+using System;
 using System.Collections.Generic;
 
 namespace Gameboard.Api.Features.Practice;
+
+public sealed class AutoExtendPracticeSessionResult
+{
+    public required bool IsExtended { get; set; }
+    public required DateTimeOffset SessionEnd { get; set; }
+}
 
 public sealed class SearchPracticeChallengesResult
 {

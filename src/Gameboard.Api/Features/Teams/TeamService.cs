@@ -97,6 +97,8 @@ internal class TeamService : ITeamService
         await UpdateSessionEnd(request.TeamId, finalSessionEnd, cancellationToken);
 
         // return the updated session via the captain
+        // manually set the new session end here, because this object is stale
+        captain.SessionEnd = finalSessionEnd;
         var mappedCaptain = _mapper.Map<Api.Player>(captain);
         await _teamHubService.SendTeamUpdated(mappedCaptain, request.Actor);
         return mappedCaptain;

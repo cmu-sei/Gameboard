@@ -57,8 +57,6 @@ internal class PracticeChallengeEventsListener : IPracticeChallengeEventsListene
     public Task NotifyChallengeCompleted(Data.Challenge challenge, CancellationToken cancellationToken)
         => _teamService.EndSession(challenge.TeamId, _actingUser.Get(), cancellationToken);
 
-
-
     public Task NotifyAttemptsExhausted(Data.Challenge challenge, CancellationToken cancellationToken)
         => _teamService.EndSession(challenge.TeamId, _actingUser.Get(), cancellationToken);
 }

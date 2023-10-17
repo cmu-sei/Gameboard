@@ -17,6 +17,7 @@ public interface IPracticeService
     Task<CanPlayPracticeChallengeResult> GetCanDeployChallenge(string userId, string challengeSpecId, CancellationToken cancellationToken);
     Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, CancellationToken cancellationToken);
     Task<PracticeModeSettings> GetSettings(CancellationToken cancellationToken);
+    Task<Data.Player> GetUserActivePracticeSession(string userId, CancellationToken cancellationToken);
     IEnumerable<string> UnescapeSuggestedSearches(string input);
 }
 
@@ -41,9 +42,7 @@ internal class PracticeService : IPracticeService
     // To avoid needing a table that literally just displays a list of strings, we store the list of suggested searches as a 
     // newline-delimited string in the PracticeModeSettings table (which has only one record). 
     public string EscapeSuggestedSearches(IEnumerable<string> input)
-    {
-        return string.Join(Environment.NewLine, input.Select(search => search.Trim()));
-    }
+        => string.Join(Environment.NewLine, input.Select(search => search.Trim()));
 
     // same deal here - split on newline
     public IEnumerable<string> UnescapeSuggestedSearches(string input)
@@ -91,6 +90,11 @@ internal class PracticeService : IPracticeService
         return CanPlayPracticeChallengeResult.Yes;
     }
 
+    public Task<Data.Player> GetUserActivePracticeSession(string userId, CancellationToken cancellationToken)
+        => GetActivePracticeSessionsQueryBase()
+            .Where(p => p.UserId == userId)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public Task<PracticeModeSettings> GetSettings(CancellationToken cancellationToken)
         => _store.SingleOrDefaultAsync<PracticeModeSettings>(cancellationToken);
 
@@ -104,5 +108,4 @@ internal class PracticeService : IPracticeService
             .List<Data.Player>()
             .Where(p => p.SessionEnd > _now.Get())
             .Where(p => p.Mode == PlayerMode.Practice);
-
 }

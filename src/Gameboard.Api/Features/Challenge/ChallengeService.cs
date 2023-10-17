@@ -372,9 +372,6 @@ public partial class ChallengeService : _Service
             Type = ChallengeEventType.Submission
         });
 
-        // record the score so we can update team score if needed
-        double currentScore = challenge.Score;
-
         var state = await _gameEngine.GradeChallenge(challenge, model);
         await _challengeSyncService.Sync(challenge, state, CancellationToken.None);
 

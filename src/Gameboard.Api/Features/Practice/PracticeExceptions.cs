@@ -4,6 +4,12 @@ using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.Practice;
 
+internal class CantExtendPracticeSessionNoneActive : GameboardValidationException
+{
+    public CantExtendPracticeSessionNoneActive(string userId)
+        : base($"""Can't extend practice session for user "{userId}": They don't have a practice session active.""") { }
+}
+
 internal class CantExtendNonPracticeSession : GameboardValidationException
 {
     public CantExtendNonPracticeSession(string teamId, IEnumerable<string> nonPracticePlayerIds)
