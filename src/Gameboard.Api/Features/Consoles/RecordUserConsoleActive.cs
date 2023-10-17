@@ -53,7 +53,7 @@ internal class RecordUserConsoleActiveHandler : IRequestHandler<RecordUserConsol
         // determine if this player has an active practice session
         var now = _nowService.Get();
         var player = await _practiceService.GetUserActivePracticeSession(request.ActingUser.Id, cancellationToken);
-        if (!player.IsPractice)
+        if (player is null || !player.IsPractice)
             return new ConsoleActionResponse { Message = null };
 
         // for now, we're hard coding 10 minutes as the threshold - if the player's session has less than
