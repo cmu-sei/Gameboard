@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Consoles;
 
-[Authorize]
+[Authorize(AppConstants.ConsolePolicy)]
 [Route("/api/consoles")]
 public class ConsolesController : ControllerBase
 {
