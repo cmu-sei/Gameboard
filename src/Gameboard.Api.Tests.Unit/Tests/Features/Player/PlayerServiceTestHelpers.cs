@@ -20,7 +20,6 @@ internal static class PlayerServiceTestHelpers
     (
         ChallengeService? challengeService = null,
         CoreOptions? coreOptions = null,
-        IGameEngineService? gameEngine = null,
         IGameStartService? gameStartService = null,
         IGameStore? gameStore = null,
         IGuidService? guidService = null,
@@ -38,7 +37,6 @@ internal static class PlayerServiceTestHelpers
         (
             challengeService ?? A.Fake<ChallengeService>(),
             coreOptions ?? A.Fake<CoreOptions>(),
-            gameEngine ?? A.Fake<IGameEngineService>(),
             gameStartService ?? A.Fake<IGameStartService>(),
             gameStore ?? A.Fake<IGameStore>(),
             guidService ?? A.Fake<IGuidService>(),

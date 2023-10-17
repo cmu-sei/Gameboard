@@ -23,7 +23,6 @@ namespace Gameboard.Api.Services;
 
 public class PlayerService
 {
-    private readonly IGameEngineService _gameEngine;
     private readonly IInternalHubBus _hubBus;
     private readonly TimeSpan _idmapExpiration = new(0, 30, 0);
     private readonly IMapper _mapper;
@@ -43,7 +42,6 @@ public class PlayerService
     public PlayerService(
         ChallengeService challengeService,
         CoreOptions coreOptions,
-        IGameEngineService gameEngine,
         IGameStartService gameStartService,
         IGameStore gameStore,
         IGuidService guidService,
@@ -60,7 +58,6 @@ public class PlayerService
         ChallengeService = challengeService;
         CoreOptions = coreOptions;
         CoreOptions = coreOptions;
-        _gameEngine = gameEngine;
         GuidService = guidService;
         _practiceService = practiceService;
         _now = now;
