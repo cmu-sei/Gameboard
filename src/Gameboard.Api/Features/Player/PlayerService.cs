@@ -545,6 +545,7 @@ public class PlayerService
     public async Task<TeamSummary[]> LoadTeams(string id, bool sudo)
     {
         var players = await PlayerStore.List()
+            .Include(p => p.Sponsor)
             .Where(p => p.GameId == id)
             .ToArrayAsync();
 
