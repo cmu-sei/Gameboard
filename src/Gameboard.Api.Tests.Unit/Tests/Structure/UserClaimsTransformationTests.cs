@@ -10,7 +10,7 @@ namespace Gameboard.Api.Tests.Unit;
 public class UserClaimsTransformationTests
 {
     [Theory, GameboardAutoData]
-    public async Task TransformAsync_WithCacheMiss_SetsRequiredProperties(string sponsorId, string userId)
+    public async Task TransformAsync_WithCacheMiss_SetsInferredClaims(string sponsorId, string userId)
     {
         // arrange
         var cache = A.Fake<IMemoryCache>();
@@ -30,7 +30,6 @@ public class UserClaimsTransformationTests
             .Returns(Array.Empty<Data.User>().BuildMock());
 
         var sut = new UserClaimTransformation(cache, mapper, sponsorService, store);
-        // var claimsPrincipal = new ClaimsPrincipal(A.Fake<IIdentity>());
         var claimsPrincipal = new ClaimsPrincipal();
         claimsPrincipal.AddIdentity(new ClaimsIdentity(new Claim(AppConstants.SubjectClaimName, userId).ToEnumerable()));
 
@@ -38,6 +37,10 @@ public class UserClaimsTransformationTests
         var result = await sut.TransformAsync(claimsPrincipal);
 
         // then
-        result.Claims.Count().ShouldBeGreaterThan(0);
+        result.Claims.Any(c => c.Type == AppConstants.SubjectClaimName).ShouldBeTrue();
+        result.Claims.Any(c => c.Type == AppConstants.NameClaimName).ShouldBeTrue();
+        result.Claims.Any(c => c.Type == AppConstants.ApprovedNameClaimName).ShouldBeTrue();
+        result.Claims.Single(c => c.Type == AppConstants.RoleListClaimName).Value.ShouldBe("Member");
+        result.Claims.Single(c => c.Type == AppConstants.SponsorClaimName).Value.ShouldBe(sponsorId);
     }
 }
