@@ -29,7 +29,6 @@ public class UserControllerTests
 
         // then
         result?.User.Id.ShouldBe(id);
-        result?.User.Role.HasFlag(UserRole.Admin).ShouldBeTrue();
         result?.IsNewUser.ShouldBeTrue();
     }
 

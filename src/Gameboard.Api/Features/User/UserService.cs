@@ -65,6 +65,7 @@ public class UserService
         entity = _mapper.Map<Data.User>(model);
 
         // first user gets admin
+        var allUsers = await _userStore.DbContext.Users.ToArrayAsync();
         if (!await _userStore.AnyAsync(u => u.Id != model.Id))
             entity.Role = AppConstants.AllRoles;
 
