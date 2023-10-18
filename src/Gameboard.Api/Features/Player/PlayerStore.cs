@@ -26,6 +26,7 @@ public class PlayerStore : Store<Data.Player>, IPlayerStore
 
     public IQueryable<Player> ListTeam(string id) =>
         base.List()
+            .Include(player => player.Sponsor)
             .Include(player => player.User)
             .Include(player => player.Game)
             .Where(p => p.TeamId == id);
