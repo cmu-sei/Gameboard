@@ -8,7 +8,6 @@ using System.Net.Mime;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Sponsors;
 using Gameboard.Api.Data;
@@ -17,23 +16,37 @@ using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Services;
 
-public class SponsorService : _Service
+public interface ISponsorService
 {
+    Task AddOrUpdate(UpdateSponsorRequest model);
+    void DeleteLogoFileByName(string fileName);
+    IEnumerable<string> GetAllowedLogoMimeTypes();
+    Task<Data.Sponsor> GetDefaultSponsor();
+    Task<Sponsor[]> List(SponsorSearch model);
+    string ResolveSponsorAvatarUri(string avatarFileName);
+    Task<Sponsor> Retrieve(string id);
+}
+
+public class SponsorService : ISponsorService
+{
+    private readonly CoreOptions _coreOptions;
     private readonly Defaults _defaults;
+    private readonly IMapper _mapper;
     private readonly IStore _store;
     private readonly IStore<Data.Sponsor> _sponsorStore;
 
     public SponsorService
     (
-        ILogger<SponsorService> logger,
-        IMapper mapper,
-        CoreOptions options,
+        CoreOptions coreOptions,
         Defaults defaults,
+        IMapper mapper,
         IStore store,
         IStore<Data.Sponsor> sponsorStore
-    ) : base(logger, mapper, options)
+    )
     {
+        _coreOptions = coreOptions;
         _defaults = defaults;
+        _mapper = mapper;
         _sponsorStore = sponsorStore;
         _store = store;
     }
@@ -44,18 +57,18 @@ public class SponsorService : _Service
 
         if (entity is not null)
         {
-            Mapper.Map(model, entity);
+            _mapper.Map(model, entity);
             await _sponsorStore.Update(entity);
             return;
         }
 
-        entity = Mapper.Map<Data.Sponsor>(model);
+        entity = _mapper.Map<Data.Sponsor>(model);
         await _sponsorStore.Create(entity);
     }
 
     public void DeleteLogoFileByName(string fileName)
     {
-        string oldLogoPath = Path.Combine(Options.ImageFolder, fileName);
+        string oldLogoPath = Path.Combine(_coreOptions.ImageFolder, fileName);
         if (File.Exists(oldLogoPath))
             File.Delete(oldLogoPath);
     }
@@ -106,14 +119,14 @@ public class SponsorService : _Service
 
         query = query.OrderBy(s => s.Name);
 
-        return await Mapper.ProjectTo<Sponsor>(query).ToArrayAsync();
+        return await _mapper.ProjectTo<Sponsor>(query).ToArrayAsync();
     }
 
     public string ResolveSponsorAvatarUri(string avatarFileName)
-        => Path.Combine(Options.ImageFolder, avatarFileName);
+        => Path.Combine(_coreOptions.ImageFolder, avatarFileName);
 
     public async Task<Sponsor> Retrieve(string id)
     {
-        return Mapper.Map<Sponsor>(await _sponsorStore.Retrieve(id));
+        return _mapper.Map<Sponsor>(await _sponsorStore.Retrieve(id));
     }
 }
