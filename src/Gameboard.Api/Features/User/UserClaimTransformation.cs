@@ -14,14 +14,18 @@ namespace Gameboard.Api
     public class UserClaimTransformation : IClaimsTransformation
     {
         private readonly IMemoryCache _cache;
+        private readonly SponsorService _sponsorService;
         private readonly UserService _svc;
 
-        public UserClaimTransformation(
+        public UserClaimTransformation
+        (
             IMemoryCache cache,
+            SponsorService sponsorService,
             UserService svc
         )
         {
             _cache = cache;
+            _sponsorService = sponsorService;
             _svc = svc;
         }
 
@@ -40,6 +44,12 @@ namespace Gameboard.Api
                     Id = subject,
                     Name = principal.Name()
                 };
+
+                if (user.SponsorId.IsEmpty())
+                {
+                    var defaultSponsor = await _sponsorService.GetDefaultSponsor();
+                    user.SponsorId = defaultSponsor.Id;
+                }
 
                 // TODO: implement IChangeToken for this
                 _cache.Set(subject, user, new TimeSpan(0, 5, 0));
