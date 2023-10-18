@@ -18,7 +18,7 @@ public class PlayerControllerGetTeamsTests
     public async Task GetTeams_OnNormalRequest_DoesntThrow(string gameId, IFixture fixture)
     {
         // given a game with a player with associated user and sponsor
-        await _testContext.WithDataState(async state =>
+        await _testContext.WithDataState(state =>
         {
             var sponsor = state.Build<Data.Sponsor>(fixture);
 
