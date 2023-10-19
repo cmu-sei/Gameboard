@@ -4,25 +4,36 @@
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
+using AutoMapper;
+using Gameboard.Api.Data;
 using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Api
 {
     public class UserClaimTransformation : IClaimsTransformation
     {
+        private readonly IMapper _mapper;
         private readonly IMemoryCache _cache;
-        private readonly UserService _svc;
+        private readonly ISponsorService _sponsorService;
+        private readonly IStore _store;
 
-        public UserClaimTransformation(
+        public UserClaimTransformation
+        (
             IMemoryCache cache,
-            UserService svc
+            IMapper mapper,
+            ISponsorService sponsorService,
+            IStore store
         )
         {
             _cache = cache;
-            _svc = svc;
+            _mapper = mapper;
+            _sponsorService = sponsorService;
+            _store = store;
         }
 
         public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
@@ -35,11 +46,24 @@ namespace Gameboard.Api
 
             if (!_cache.TryGetValue(subject, out User user))
             {
-                user = await _svc.Retrieve(subject) ?? new User
+                user = _mapper.Map<User>
+                (
+                    await _store
+                        .WithNoTracking<Data.User>()
+                        .SingleOrDefaultAsync(u => u.Id == subject, CancellationToken.None)
+                );
+
+                user ??= new User
                 {
                     Id = subject,
-                    Name = principal.Name()
+                    Role = UserRole.Member,
                 };
+
+                if (user.SponsorId is null || user.SponsorId.IsEmpty())
+                {
+                    var defaultSponsor = await _sponsorService.GetDefaultSponsor();
+                    user.SponsorId = defaultSponsor.Id;
+                }
 
                 // TODO: implement IChangeToken for this
                 _cache.Set(subject, user, new TimeSpan(0, 5, 0));
@@ -47,11 +71,11 @@ namespace Gameboard.Api
 
             var claims = new List<Claim>
             {
-                new Claim(AppConstants.SubjectClaimName, user.Id),
-                new Claim(AppConstants.NameClaimName, user.Name ?? ""),
-                new Claim(AppConstants.ApprovedNameClaimName, user.ApprovedName ?? ""),
-                new Claim(AppConstants.RoleListClaimName, user.Role.ToString()),
-                new Claim(AppConstants.SponsorClaimName, user.SponsorId)
+                new(AppConstants.SubjectClaimName, user.Id),
+                new(AppConstants.NameClaimName, user.Name ?? ""),
+                new(AppConstants.ApprovedNameClaimName, user.ApprovedName ?? ""),
+                new(AppConstants.RoleListClaimName, user.Role.ToString()),
+                new(AppConstants.SponsorClaimName, user.SponsorId)
             };
 
             foreach (string role in user.Role.ToString().Replace(" ", "").Split(','))
