@@ -29,6 +29,6 @@ public class ScoringController : ControllerBase
         => await _mediator.Send(new TeamChallengeScoreQuery(challengeId));
 
     [HttpGet("team/{teamId}/score")]
-    public async Task<TeamGameScoreSummary> GetTeamGameScoreSummary([FromRoute] string teamId)
+    public async Task<TeamGameScore> GetTeamGameScoreSummary([FromRoute] string teamId)
         => await _mediator.Send(new TeamGameScoreQuery(teamId));
 }

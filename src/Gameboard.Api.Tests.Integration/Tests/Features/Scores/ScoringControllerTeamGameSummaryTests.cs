@@ -93,7 +93,7 @@ public class ScoringControllerTeamGameSummaryTests
         // when
         var result = await httpClient
             .GetAsync($"api/team/{teamId}/score")
-            .WithContentDeserializedAs<TeamGameScoreSummary>();
+            .WithContentDeserializedAs<TeamGameScore>();
 
         // then
         result.ShouldNotBeNull();

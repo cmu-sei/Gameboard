@@ -32,8 +32,15 @@ public class GameScoringConfigChallengeBonus
 
 public class GameScore
 {
-    public required SimpleEntity Game { get; set; }
+    public required GameScoreGameInfo Game { get; set; }
     public required IEnumerable<GameScoreTeam> Teams { get; set; }
+}
+
+public sealed class GameScoreGameInfo
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required bool IsTeamGame { get; set; }
 }
 
 public sealed class GameScoreTeam
@@ -72,12 +79,13 @@ public class TeamChallengeScoreSummary
     public required IEnumerable<GameScoreAutoChallengeBonus> UnclaimedBonuses { get; set; }
 }
 
-public class TeamGameScoreSummary
+public class TeamGameScore
 {
-    public SimpleEntity Game { get; set; }
-    public SimpleEntity Team { get; set; }
-    public Score Score { get; set; }
-    public IEnumerable<TeamChallengeScoreSummary> ChallengeScoreSummaries { get; set; }
+    public required SimpleEntity Game { get; set; }
+    public required SimpleEntity Team { get; set; }
+    public required Score Score { get; set; }
+    public required IEnumerable<TeamChallengeScoreSummary> ChallengeScoreSummaries { get; set; }
+    public required DateTimeOffset? SessionEnd { get; set; }
 }
 
 public class ChallengeScoreSummary
