@@ -51,7 +51,7 @@ public class UserService
         var entity = await _userStore
             .ListWithNoTracking()
                 .Include(u => u.Sponsor)
-            .FirstOrDefaultAsync(u => u.Id == model.Id);
+            .SingleOrDefaultAsync(u => u.Id == model.Id);
 
         if (entity is not null)
         {
@@ -65,7 +65,8 @@ public class UserService
         entity = _mapper.Map<Data.User>(model);
 
         // first user gets admin
-        if (!await _userStore.AnyAsync())
+        var allUsers = await _userStore.DbContext.Users.ToArrayAsync();
+        if (!await _userStore.AnyAsync(u => u.Id != model.Id))
             entity.Role = AppConstants.AllRoles;
 
         // record creation date and first login
