@@ -111,6 +111,7 @@ public class UserService
     {
         var entity = await _userStore.Retrieve(model.Id);
 
+        // with user stuff, there are super-users (sudoers) and admins
         // only admins can alter the roles of users
         if (model.Role.HasValue && model.Role != entity.Role)
         {
@@ -128,13 +129,15 @@ public class UserService
             entity.SponsorId = model.SponsorId;
         }
 
-        // if we're editing the name...
+        // if we're editing the (not-approved) name...
         if (model.Name.NotEmpty() && entity.Name != model.Name)
         {
             entity.Name = model.Name.Trim();
 
-            // admins change names without the "pending" step
+            // sudoers change names without the "pending" step
             entity.NameStatus = sudo ? entity.NameStatus : "pending";
+            // and they automatically copy the requested name to the approved name
+            entity.ApprovedName = sudo ? entity.Name : entity.ApprovedName;
 
             // if the name is in use, change the namestatus to reflect this fact
             // check uniqueness
@@ -145,6 +148,13 @@ public class UserService
 
             if (found)
                 entity.NameStatus = AppConstants.NameStatusNotUnique;
+        }
+
+        // only sudoers can approve names
+        if (sudo && model.ApprovedName.NotEmpty())
+        {
+            entity.ApprovedName = model.ApprovedName;
+            entity.NameStatus = null;
         }
 
         await _userStore.Update(entity);
@@ -205,10 +215,12 @@ public class UserService
         if (model.Term.NotEmpty())
         {
             model.Term = model.Term.ToLower();
-            q = q.Where(u =>
-                u.Id.StartsWith(model.Term) ||
-                u.Name.ToLower().Contains(model.Term) ||
-                u.ApprovedName.ToLower().Contains(model.Term)
+            q = q.Where
+            (
+                u =>
+                    u.Id.StartsWith(model.Term) ||
+                    u.Name.ToLower().Contains(model.Term) ||
+                    u.ApprovedName.ToLower().Contains(model.Term)
             );
         }
 
