@@ -71,13 +71,11 @@ internal class ScoringService : IScoringService
     public async Task<GameScoringConfig> GetGameScoringConfig(string gameId)
     {
         var game = await _store.WithNoTracking<Data.Game>().SingleAsync(g => g.Id == gameId);
-
-        var challengeSpecs = await _challengeSpecStore
-            .List()
-            .AsNoTracking()
+        var challengeSpecs = await _store
+            .WithNoTracking<Data.ChallengeSpec>()
             .Where(s => s.GameId == gameId)
             .Include(s => s.Bonuses)
-            .ToArrayAsync();
+            .ToArrayAsync(CancellationToken.None);
 
         // transform
         return new GameScoringConfig
