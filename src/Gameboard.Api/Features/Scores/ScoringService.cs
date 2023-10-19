@@ -173,9 +173,12 @@ internal class ScoringService : IScoringService
                 spec =>
                 {
                     var challenge = challenges.SingleOrDefault(c => c.SpecId == spec.Id && c.TeamId == captain.TeamId);
+                    if (challenge is null)
+                        return null;
+
                     return BuildTeamChallengeScoreSummary(challenge, spec, unawardedBonuses);
                 }
-            )
+            ).Where(summary => summary is not null)
         };
     }
 

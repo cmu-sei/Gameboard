@@ -35,6 +35,7 @@ public class PracticeController : ControllerBase
 
     [HttpGet]
     [Route("settings")]
+    [AllowAnonymous]
     public Task<PracticeModeSettingsApiModel> GetSettings()
         => _mediator.Send(new GetPracticeModeSettingsQuery(_actingUserService.Get()));
 
