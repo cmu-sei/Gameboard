@@ -37,7 +37,7 @@ public class PlayerControllerEnlistTests
                         p.Role = PlayerRole.Manager;
                         p.TeamId = teamId;
                     }),
-                    // the person joining
+                    // the person joining (on another team implicitly)
                     state.Build<Data.Player>(fixture, p =>
                     {
                         p.Id = joiningPlayerId;
