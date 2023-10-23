@@ -52,6 +52,7 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
 
         // and go
         var game = await _store.WithNoTracking<Data.Game>().SingleAsync(g => g.Id == request.GameId);
+        var scoringConfig = await _scoringService.GetGameScoringConfig(request.GameId);
         var players = await _store
             .WithNoTracking<Data.Player>()
             .Include(p => p.Sponsor)
@@ -68,13 +69,13 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
 
         // have to do these synchronously because we can't reuse the dbcontext
         // TODO: maybe a scoring service function that retrieves all at once and composes
-        var teamScores = new List<TeamGameScore>();
+        var teamScores = new Dictionary<string, GameScoreTeam>();
         foreach (var teamId in captains.Keys)
         {
-            teamScores.Add(await _scoringService.GetTeamGameScore(teamId));
+            teamScores.Add(teamId, await _scoringService.GetTeamGameScore(teamId, 1));
         }
 
-        var teamRanks = _scoringService.ComputeTeamRanks(teamScores);
+        var teamRanks = _scoringService.ComputeTeamRanks(teamScores.Values.ToList());
 
         return new GameScore
         {
@@ -82,21 +83,10 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
             {
                 Id = game.Id,
                 Name = game.Name,
+                Specs = scoringConfig.Specs,
                 IsTeamGame = game.IsTeamGame()
             },
-            Teams = players.Keys.Select(teamId => new GameScoreTeam
-            {
-                Team = new SimpleEntity { Id = captains[teamId].TeamId, Name = captains[teamId].ApprovedName },
-                Players = players[teamId].Select(p => new PlayerWithAvatar
-                {
-                    Id = p.Id,
-                    Name = p.ApprovedName,
-                    AvatarFileName = p.Sponsor.Logo
-                }).ToArray(),
-                Rank = teamRanks[teamId],
-                Challenges = teamScores.First(s => s.Team.Id == teamId).ChallengeScoreSummaries
-            })
-            .OrderBy(t => t.Rank)
+            Teams = players.Keys.Select(teamId => teamScores[teamId]).OrderBy(t => t.Rank)
         };
     }
 }

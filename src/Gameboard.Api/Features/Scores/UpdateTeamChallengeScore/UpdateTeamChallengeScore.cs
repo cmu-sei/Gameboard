@@ -70,6 +70,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
             .WithNoTracking<Data.Challenge>()
             .Include(c => c.AwardedBonuses)
             .Where(c => c.SpecId == spec.Id)
+            .Where(c => c.GameId == challenge.GameId)
             .Where(c => c.TeamId != challenge.TeamId)
             .WhereIsFullySolved()
             // end time of the challenge against game start to get ranks

@@ -22,6 +22,7 @@ public interface ITeamService
     Task<Api.Player> ExtendSession(ExtendTeamSessionRequest request, CancellationToken cancellationToken);
     Task<IEnumerable<SimpleEntity>> GetChallengesWithActiveGamespace(string teamId, string gameId, CancellationToken cancellationToken);
     Task<bool> GetExists(string teamId);
+    Task<string> GetGameId(string teamId, CancellationToken cancellationToken);
     Task<int> GetSessionCount(string teamId, string gameId, CancellationToken cancellationToken);
     Task<Team> GetTeam(string id);
     Task<bool> IsAtGamespaceLimit(string teamId, Data.Game game, CancellationToken cancellationToken);
@@ -115,6 +116,14 @@ internal class TeamService : ITeamService
 
     public async Task<bool> GetExists(string teamId)
         => await _playerStore.ListTeam(teamId).AnyAsync();
+
+    public Task<string> GetGameId(string teamId, CancellationToken cancellationToken)
+        => _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.TeamId == teamId)
+            .Select(p => p.GameId)
+            .Distinct()
+            .SingleAsync(cancellationToken);
 
     public async Task<int> GetSessionCount(string teamId, string gameId, CancellationToken cancellationToken)
     {

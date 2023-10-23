@@ -67,7 +67,7 @@ public class ScoringControllerTeamChallengeSummaryTests
         var result = await _testContext
             .CreateHttpClientWithActingUser(u => u.Id = enteringAdminId)
             .GetAsync($"api/challenge/{challengeId}/score")
-            .WithContentDeserializedAs<TeamChallengeScoreSummary>();
+            .WithContentDeserializedAs<TeamChallengeScore>();
 
         // then
         result.ShouldNotBeNull();

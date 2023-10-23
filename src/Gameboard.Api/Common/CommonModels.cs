@@ -26,14 +26,21 @@ public sealed class PagingParameters
     public required int PageSize { get; set; }
 }
 
-public class PlayerWithAvatar
+public sealed class PlayerWithSponsor
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required SimpleSponsor Sponsor { get; set; }
+}
+
+public sealed class SimpleSponsor
 {
     public string Id { get; set; }
     public string Name { get; set; }
-    public string AvatarFileName { get; set; }
+    public string Logo { get; set; }
 }
 
-public class SimpleEntity
+public sealed class SimpleEntity
 {
     public string Id { get; set; }
     public string Name { get; set; }
