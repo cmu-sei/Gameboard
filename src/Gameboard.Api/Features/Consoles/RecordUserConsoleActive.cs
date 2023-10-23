@@ -58,7 +58,7 @@ internal class RecordUserConsoleActiveHandler : IRequestHandler<RecordUserConsol
 
         // for now, we're hard coding 10 minutes as the threshold - if the player's session has less than
         // 10 minutes left, automatically extend it
-        if (player.SessionEnd - now >= TimeSpan.FromMinutes(10))
+        if (player.SessionEnd - now >= TimeSpan.FromMinutes(58))
             return new ConsoleActionResponse { Message = MESSAGE_NOT_EXTENDED };
 
         // NOTE: due to the way session extension currently works, it actually doesn't matter what you pass
