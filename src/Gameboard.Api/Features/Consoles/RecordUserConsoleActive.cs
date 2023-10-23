@@ -19,6 +19,7 @@ public record RecordUserConsoleActiveCommand(User ActingUser) : IRequest<Console
 
 internal class RecordUserConsoleActiveHandler : IRequestHandler<RecordUserConsoleActiveCommand, ConsoleActionResponse>
 {
+    internal static int EXTEND_THRESHOLD_MINUTES = 58;
     internal static string MESSAGE_EXTENDED = "Session extended.";
     internal static string MESSAGE_NOT_EXTENDED = "Session not extended.";
 
@@ -58,17 +59,18 @@ internal class RecordUserConsoleActiveHandler : IRequestHandler<RecordUserConsol
 
         // for now, we're hard coding 10 minutes as the threshold - if the player's session has less than
         // 10 minutes left, automatically extend it
-        if (player.SessionEnd - now >= TimeSpan.FromMinutes(58))
+        if (player.SessionEnd - now >= TimeSpan.FromMinutes(EXTEND_THRESHOLD_MINUTES))
             return new ConsoleActionResponse { Message = MESSAGE_NOT_EXTENDED };
 
         // NOTE: due to the way session extension currently works, it actually doesn't matter what you pass
         // for the NewSessionEnd here. The team service extends practice sessions by a max of one hour up
         // to a cap for the overall session length. Cleaning up this architecture is on our list.
         var preExtensionSessionEnd = player.SessionEnd;
+        var postExtensionSessionEnd = _nowService.Get().AddHours(1);
         var extensionResult = await _teamService.ExtendSession(new ExtendTeamSessionRequest
         {
             Actor = request.ActingUser,
-            NewSessionEnd = _nowService.Get().AddHours(1),
+            NewSessionEnd = postExtensionSessionEnd,
             TeamId = player.TeamId
         }, cancellationToken);
 
@@ -77,6 +79,6 @@ internal class RecordUserConsoleActiveHandler : IRequestHandler<RecordUserConsol
         // practice mode session extension when the endpoint is meant to be more generally about
         // user activity.
         var isExtended = extensionResult.SessionEnd != preExtensionSessionEnd;
-        return new ConsoleActionResponse { Message = isExtended ? MESSAGE_EXTENDED : MESSAGE_NOT_EXTENDED };
+        return new ConsoleActionResponse { Message = isExtended ? $"{MESSAGE_EXTENDED}: {postExtensionSessionEnd}" : MESSAGE_NOT_EXTENDED };
     }
 }
