@@ -123,7 +123,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
                     .Distinct()
                     .Count(),
                 SponsorCount = challenges
-                    .Select(c => c.Player.Sponsor)
+                    .Select(c => c.Player.SponsorId)
                     .Distinct()
                     .Count()
             },
