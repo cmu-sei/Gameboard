@@ -93,10 +93,10 @@ public class ScoringControllerTeamGameSummaryTests
         // when
         var result = await httpClient
             .GetAsync($"api/team/{teamId}/score")
-            .WithContentDeserializedAs<GameScoreTeam>();
+            .WithContentDeserializedAs<TeamGameScoreQueryResponse>();
 
         // then
         result.ShouldNotBeNull();
-        result.OverallScore.TotalScore.ShouldBe(basePoints1 + basePoints2 + bonus1Points + bonus2Points + bonus3Points);
+        result.Score.OverallScore.TotalScore.ShouldBe(basePoints1 + basePoints2 + bonus1Points + bonus2Points + bonus3Points);
     }
 }

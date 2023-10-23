@@ -86,7 +86,11 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
                 Specs = scoringConfig.Specs,
                 IsTeamGame = game.IsTeamGame()
             },
-            Teams = players.Keys.Select(teamId => teamScores[teamId]).OrderBy(t => t.Rank)
+            Teams = players
+                .Keys
+                .Select(teamId => teamScores[teamId])
+                .OrderBy(t => t.Rank)
+                    .ThenByDescending(t => t.OverallScore.TotalScore)
         };
     }
 }
