@@ -72,7 +72,7 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
         var teamScores = new Dictionary<string, GameScoreTeam>();
         foreach (var teamId in captains.Keys)
         {
-            teamScores.Add(teamId, await _scoringService.GetTeamGameScore(teamId, 1));
+            teamScores.Add(teamId, await _scoringService.GetTeamGameScore(teamId, captains[teamId].Rank));
         }
 
         var teamRanks = _scoringService.ComputeTeamRanks(teamScores.Values.ToList());

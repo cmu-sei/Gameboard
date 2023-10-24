@@ -73,7 +73,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
             .Where(c => c.GameId == challenge.GameId)
             .Where(c => c.TeamId != challenge.TeamId)
             .WhereIsFullySolved()
-            // end time of the challenge against game start to get ranks
+            // end time of the challenge against game start to get ranks for ordinal bonuses
             .OrderBy(c => c.EndTime - challenge.Game.GameStart)
             .ToArrayAsync(cancellationToken);
 

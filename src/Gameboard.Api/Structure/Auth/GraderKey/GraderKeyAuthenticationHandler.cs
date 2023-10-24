@@ -2,9 +2,7 @@ using System;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
-using Gameboard.Api.Auth;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -43,17 +41,17 @@ public static class GraderKeyAuthenticationExtensions
 
 internal class GraderKeyAuthenticationHandler : AuthenticationHandler<GraderKeyAuthenticationOptions>
 {
-    private readonly IChallengeStore _challengeStore;
+    private readonly IStore _store;
     public GraderKeyAuthenticationHandler
     (
         IOptionsMonitor<GraderKeyAuthenticationOptions> options,
         ILoggerFactory loggerFactory,
         UrlEncoder urlEncoder,
-        ISystemClock sysClock,
-        IChallengeStore challengeStore
+        IStore store,
+        ISystemClock sysClock
     ) : base(options, loggerFactory, urlEncoder, sysClock)
     {
-        _challengeStore = challengeStore;
+        _store = store;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -66,9 +64,8 @@ internal class GraderKeyAuthenticationHandler : AuthenticationHandler<GraderKeyA
 
 
         var hashedKey = graderKey.ToString().ToSha256();
-        var challenge = await _challengeStore
-            .List()
-            .AsNoTracking()
+        var challenge = await _store
+            .WithNoTracking<Data.Challenge>()
             .SingleOrDefaultAsync(c => c.GraderKey == hashedKey);
 
         if (challenge is null)
@@ -78,7 +75,7 @@ internal class GraderKeyAuthenticationHandler : AuthenticationHandler<GraderKeyA
         (
             new ClaimsIdentity
             (
-                new Claim[] { new Claim(GraderKeyAuthentication.GraderKeyChallengeIdClaimName, challenge.Id) },
+                new Claim[] { new(GraderKeyAuthentication.GraderKeyChallengeIdClaimName, challenge.Id) },
                 Scheme.Name
             )
         );

@@ -45,7 +45,6 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
             // so we need to add an additional binding for them
             // services.AddTransient<GameboardDbContext, TDbContext>();
             services.AddScoped<GameboardDbContextPostgreSQL>();
-            // var testDbContext = services.FindService<GameboardTestDbContext>();
             services.AddScoped<GameboardDbContext, GameboardDbContextPostgreSQL>();
 
             // add user claims transformation that lets them all through
@@ -59,7 +58,7 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
             services.ReplaceService<IAuthorizationService, TestAuthorizationService>();
 
             // add defaults for services that can be replaced in .ConfigureTestServices
-            services.AddTransient<ITestGradingResultService>(_ => new TestGradingResultService((state) => { }));
+            services.AddSingleton<ITestGradingResultService>(_ => new TestGradingResultService((state) => { }));
         });
     }
 

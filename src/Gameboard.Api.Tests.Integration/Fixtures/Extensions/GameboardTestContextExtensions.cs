@@ -1,14 +1,34 @@
 using System.Net.Http.Headers;
+using Gameboard.Api.Structure.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
 internal static class GameboardTestContextExtensions
 {
-    private static WebApplicationFactory<Program> BuildAuthentication(this GameboardTestContext testContext, TestAuthenticationUser? actingUser = null)
+    private static WebApplicationFactory<Program> GetWebApplicationFactory(this GameboardTestContext testContext)
+    {
+        return testContext
+            .WithWebHostBuilder(builder =>
+            {
+                // builder.ConfigureTestServices(services =>
+                // {
+                //     // fake graderkey auth
+                //     // services
+                //     //     .Configure<TestGraderKeyAuthenticationHandlerOptions>(options =>
+                //     //     {
+                //     //         options.ChallengeGraderKey = graderKey;
+                //     //     })
+                //     //     .AddAuthentication(TestGraderKeyAuthenticationHandler.AuthenticationSchemeName)
+                //     //     .AddScheme<TestGraderKeyAuthenticationHandlerOptions, TestGraderKeyAuthenticationHandler>(TestGraderKeyAuthenticationHandler.AuthenticationSchemeName, options => { });
+                //     services.Configure<GraderKEyAuth                    
+                // });
+            });
+    }
+
+    private static WebApplicationFactory<Program> BuildUserAuthentication(this GameboardTestContext testContext, TestAuthenticationUser? actingUser = null)
     {
         return testContext
             .WithWebHostBuilder(builder =>
@@ -43,7 +63,7 @@ internal static class GameboardTestContextExtensions
         var user = new TestAuthenticationUser();
         userBuilder?.Invoke(user);
 
-        return BuildAuthentication(testContext, user)
+        return BuildUserAuthentication(testContext, user)
             .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
     }
 
@@ -63,6 +83,16 @@ internal static class GameboardTestContextExtensions
 
     public static HttpClient CreateHttpClientWithAuthRole(this GameboardTestContext testContext, UserRole role)
         => CreateHttpClientWithActingUser(testContext, u => u.Role = role);
+
+    public static HttpClient CreateHttpClientWithGraderKey(this GameboardTestContext testContext, string graderKey)
+    {
+        var client = testContext
+            .GetWebApplicationFactory()
+            .CreateDefaultClient();
+
+        client.DefaultRequestHeaders.Add(GraderKeyAuthentication.GraderKeyHeaderName, graderKey);
+        return client;
+    }
 
     public static async Task WithDataState(this GameboardTestContext context, Action<IDataStateBuilder> builderAction)
     {

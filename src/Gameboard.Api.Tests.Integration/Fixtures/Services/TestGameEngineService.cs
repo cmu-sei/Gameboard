@@ -40,15 +40,14 @@ internal class TestGameEngineService : IGameEngineService
         return Task.CompletedTask;
     }
 
-
-    public Task ExtendSession(Api.Data.Challenge entity, DateTimeOffset sessionEnd)
+    public Task ExtendSession(Data.Challenge entity, DateTimeOffset sessionEnd)
     {
         return Task.CompletedTask;
     }
 
     public Task<GameEngineGameState> GetChallengeState(GameEngineType gameEngineType, string stateJson)
     {
-        return Task.FromResult<GameEngineGameState>(new GameEngineGameState());
+        return Task.FromResult(new GameEngineGameState());
     }
 
     public Task<ConsoleSummary> GetConsole(Api.Data.Challenge entity, ConsoleRequest model, bool observer)
@@ -58,7 +57,7 @@ internal class TestGameEngineService : IGameEngineService
 
     public IEnumerable<GameEngineGamespaceVm> GetGamespaceVms(GameEngineGameState state)
     {
-        return new GameEngineGamespaceVm[] { };
+        return Array.Empty<GameEngineGamespaceVm>();
     }
 
     public Task<GameEngineGameState> GetPreview(Api.Data.ChallengeSpec spec)
@@ -73,7 +72,7 @@ internal class TestGameEngineService : IGameEngineService
 
     public Task<ExternalSpec[]> ListSpecs(SearchFilter model)
     {
-        return Task.FromResult(new ExternalSpec[] { });
+        return Task.FromResult(Array.Empty<ExternalSpec>());
     }
 
     public Task<GameEngineGameState> LoadGamespace(Api.Data.Challenge entity)

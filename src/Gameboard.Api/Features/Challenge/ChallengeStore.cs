@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Common.Services;
-using Gameboard.Api.Features.Certificates;
 
 namespace Gameboard.Api.Data;
 
@@ -121,7 +120,7 @@ public class ChallengeStore : Store<Challenge>, IChallengeStore
         await UpdateRanks(players.First().GameId);
     }
 
-    public async Task UpdateRanks(string gameId)
+    private async Task UpdateRanks(string gameId)
     {
         var players = await DbContext.Players
             .Where(p => p.GameId == gameId)

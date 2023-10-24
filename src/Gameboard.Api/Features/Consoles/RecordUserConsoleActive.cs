@@ -19,7 +19,7 @@ public record RecordUserConsoleActiveCommand(User ActingUser) : IRequest<Console
 
 internal class RecordUserConsoleActiveHandler : IRequestHandler<RecordUserConsoleActiveCommand, ConsoleActionResponse>
 {
-    internal static int EXTEND_THRESHOLD_MINUTES = 58;
+    internal static int EXTEND_THRESHOLD_MINUTES = 10;
     internal static string MESSAGE_EXTENDED = "Session extended.";
     internal static string MESSAGE_NOT_EXTENDED = "Session not extended.";
 
@@ -57,8 +57,7 @@ internal class RecordUserConsoleActiveHandler : IRequestHandler<RecordUserConsol
         if (player is null || !player.IsPractice)
             return new ConsoleActionResponse { Message = null };
 
-        // for now, we're hard coding 10 minutes as the threshold - if the player's session has less than
-        // 10 minutes left, automatically extend it
+        // if the player's session has less time remaining than the extension threshold, automatically extend 
         if (player.SessionEnd - now >= TimeSpan.FromMinutes(EXTEND_THRESHOLD_MINUTES))
             return new ConsoleActionResponse { Message = MESSAGE_NOT_EXTENDED };
 

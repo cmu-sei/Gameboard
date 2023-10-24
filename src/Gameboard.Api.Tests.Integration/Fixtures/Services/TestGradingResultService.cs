@@ -45,6 +45,7 @@ internal class TestGradingResultService : ITestGradingResultService
             WhenCreated = challenge.StartTime,
             Challenge = new GameEngineChallengeView
             {
+
                 MaxPoints = challenge.Points,
                 Score = challenge.Score
             }
