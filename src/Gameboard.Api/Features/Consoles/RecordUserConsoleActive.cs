@@ -19,7 +19,7 @@ public record RecordUserConsoleActiveCommand(User ActingUser) : IRequest<Console
 
 internal class RecordUserConsoleActiveHandler : IRequestHandler<RecordUserConsoleActiveCommand, ConsoleActionResponse>
 {
-    internal static int EXTEND_THRESHOLD_MINUTES = 10;
+    internal static int EXTEND_THRESHOLD_MINUTES = 58;
     internal static string MESSAGE_EXTENDED = "Session extended.";
     internal static string MESSAGE_NOT_EXTENDED = "Session not extended.";
 

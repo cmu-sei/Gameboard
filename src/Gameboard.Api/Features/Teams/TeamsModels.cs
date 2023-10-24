@@ -90,14 +90,21 @@ public class TeamPlayer
     public bool IsManager => Role == PlayerRole.Manager;
 }
 
+public class NotificationHubTeamSessionEvent
+{
+    public required string TeamId { get; set; }
+    public required DateTimeOffset SessionBegin { get; set; }
+    public required DateTimeOffset SessionEnd { get; set; }
+}
+
 public class TeamState
 {
-    public string Id { get; set; }
+    public required string Id { get; set; }
     public Api.Player ActingPlayer { get; set; }
-    public string ApprovedName { get; set; }
+    public required string ApprovedName { get; set; }
     public string Name { get; set; }
     public string NameStatus { get; set; }
     public DateTimeOffset? SessionBegin { get; set; }
     public DateTimeOffset? SessionEnd { get; set; }
-    public SimpleEntity Actor { get; set; }
+    public required SimpleEntity Actor { get; set; }
 }

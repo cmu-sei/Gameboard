@@ -18,6 +18,7 @@ public interface IInternalHubBus
     Task SendTeamDeleted(TeamState teamState, SimpleEntity actor);
     Task SendPlayerRoleChanged(Api.Player p, User actor);
     Task SendTeamSessionStarted(Api.Player p, User actor);
+    Task SendTeamSessionExtended(TeamState teamState, User actor);
     Task SendTeamUpdated(Api.Player p, User actor);
 }
 
@@ -85,15 +86,27 @@ internal class InternalHubBus : IInternalHubBus
             });
     }
 
+    public async Task SendTeamSessionExtended(TeamState teamState, User actor)
+        => await _hubContext
+            .Clients
+            .Group(teamState.Id)
+            .TeamEvent(new HubEvent<TeamState>
+            {
+                Action = EventAction.SessionExtended,
+                Model = teamState,
+                ActingUser = new SimpleEntity { Id = actor.Id, Name = actor.ApprovedName }
+            });
+
     public async Task SendTeamSessionStarted(Api.Player p, User actor)
     {
         var teamState = new TeamState
         {
             Id = p.TeamId,
-            Name = p.ApprovedName,
+            ApprovedName = p.ApprovedName,
+            Name = p.Name,
             SessionBegin = p.SessionBegin.IsEmpty() ? null : p.SessionBegin,
             SessionEnd = p.SessionEnd.IsEmpty() ? null : p.SessionEnd,
-            Actor = actor.ToSimpleEntity()
+            Actor = actor.ToSimpleEntity(),
         };
 
         await _hubContext.Clients
@@ -111,7 +124,8 @@ internal class InternalHubBus : IInternalHubBus
         var teamState = new TeamState
         {
             Id = p.TeamId,
-            Name = p.ApprovedName,
+            ApprovedName = p.ApprovedName,
+            Name = p.Name,
             SessionBegin = p.SessionBegin.IsEmpty() ? null : p.SessionBegin,
             SessionEnd = p.SessionEnd.IsEmpty() ? null : p.SessionEnd,
             Actor = new SimpleEntity { Id = actor.Id, Name = actor.ApprovedName }

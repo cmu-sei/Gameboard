@@ -20,6 +20,7 @@ public enum EventAction
     Departed,
     ReadyStateChanged,
     RoleChanged,
+    SessionExtended,
     Started,
     Updated
 }

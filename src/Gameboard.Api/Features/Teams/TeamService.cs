@@ -100,9 +100,22 @@ internal class TeamService : ITeamService
         // return the updated session via the captain
         // manually set the new session end here, because this object is stale
         captain.SessionEnd = finalSessionEnd;
-        var mappedCaptain = _mapper.Map<Api.Player>(captain);
-        await _teamHubService.SendTeamUpdated(mappedCaptain, request.Actor);
-        return mappedCaptain;
+        var captainModel = _mapper.Map<Api.Player>(captain);
+
+        // update the notifications hub on the client side
+        await _teamHubService.SendTeamUpdated(captainModel, request.Actor);
+        await _teamHubService.SendTeamSessionExtended(new TeamState
+        {
+            Id = captain.TeamId,
+            ApprovedName = captain.ApprovedName,
+            Name = captain.Name,
+            SessionBegin = captain.SessionBegin,
+            SessionEnd = finalSessionEnd,
+            Actor = new SimpleEntity { Id = request.Actor.Id, Name = request.Actor.ApprovedName }
+
+        }, request.Actor);
+
+        return captainModel;
     }
 
     public async Task<IEnumerable<SimpleEntity>> GetChallengesWithActiveGamespace(string teamId, string gameId, CancellationToken cancellationToken)
@@ -261,6 +274,7 @@ internal class TeamService : ITeamService
         return new TeamState
         {
             Id = teamId,
+            ApprovedName = captain.ApprovedName,
             Name = captain.Name,
             SessionBegin = captain.SessionBegin.IsEmpty() ? null : captain.SessionBegin,
             SessionEnd = captain.SessionEnd.IsEmpty() ? null : captain.SessionEnd,
