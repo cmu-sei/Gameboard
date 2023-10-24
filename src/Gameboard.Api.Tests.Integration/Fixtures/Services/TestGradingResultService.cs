@@ -9,17 +9,20 @@ public interface ITestGradingResultService
 
 internal class TestGradingResultService : ITestGradingResultService
 {
+    private readonly double _score;
     private readonly Action<GameEngineGameState> _gameStateBuilder;
 
-    public TestGradingResultService(Action<GameEngineGameState> gameStateBuilder)
+    public TestGradingResultService(double score, Action<GameEngineGameState> gameStateBuilder)
     {
         _gameStateBuilder = gameStateBuilder;
+        _score = score;
     }
 
     public GameEngineGameState Get(Data.Challenge challenge)
     {
         var state = BuildChallengeStateFromChallenge(challenge);
         _gameStateBuilder.Invoke(state);
+        state.Challenge.Score = _score;
         return state;
     }
 

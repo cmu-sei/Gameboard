@@ -1,4 +1,5 @@
 using AutoMapper;
+using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.GameEngine;
 
@@ -21,10 +22,10 @@ internal class TestGameEngineService : IGameEngineService
 
     public Task<IEnumerable<GameEngineSectionSubmission>> AuditChallenge(Api.Data.Challenge entity)
     {
-        return Task.FromResult(new GameEngineSectionSubmission[] { } as IEnumerable<GameEngineSectionSubmission>);
+        return Task.FromResult(Array.Empty<GameEngineSectionSubmission>() as IEnumerable<GameEngineSectionSubmission>);
     }
 
-    public Task CompleteGamespace(Api.Data.Challenge entity)
+    public Task CompleteGamespace(Data.Challenge entity)
         => CompleteGamespace(entity.Id, entity.GameEngineType);
 
     public Task CompleteGamespace(string id, GameEngineType gameEngineType)
@@ -32,7 +33,7 @@ internal class TestGameEngineService : IGameEngineService
         return Task.CompletedTask;
     }
 
-    public Task DeleteGamespace(Api.Data.Challenge entity)
+    public Task DeleteGamespace(Data.Challenge entity)
         => DeleteGamespace(entity.Id, entity.GameEngineType);
 
     public Task DeleteGamespace(string id, GameEngineType gameEngineType)
@@ -94,17 +95,14 @@ internal class TestGameEngineService : IGameEngineService
             StartTime = DateTimeOffset.UtcNow,
             EndTime = DateTimeOffset.UtcNow.AddHours(8),
             ExpirationTime = DateTimeOffset.UtcNow.AddHours(8),
-            Vms = new GameEngineVmState[]
+            Vms = new GameEngineVmState
             {
-                new GameEngineVmState()
-                {
-                    Id = _guids.GetGuid(),
-                    Name = "VM1",
-                    IsolationId = registration.ChallengeSpec.Id,
-                    IsRunning = true,
-                    IsVisible = true
-                }
-            },
+                Id = _guids.GetGuid(),
+                Name = "VM1",
+                IsolationId = registration.ChallengeSpec.Id,
+                IsRunning = true,
+                IsVisible = true
+            }.ToCollection(),
             Challenge = new GameEngineChallengeView
             {
                 MaxPoints = 50,
@@ -115,20 +113,17 @@ internal class TestGameEngineService : IGameEngineService
                 SectionIndex = 0,
                 SectionScore = 0,
                 LastScoreTime = DateTimeOffset.MinValue,
-                Questions = new GameEngineQuestionView[]
+                Questions = new GameEngineQuestionView()
                 {
-                    new GameEngineQuestionView
-                    {
-                        Answer = "test answer",
-                        IsCorrect = false,
-                        IsGraded = false
-                    }
-                }
+                    Answer = "test answer",
+                    IsCorrect = false,
+                    IsGraded = false
+                }.ToCollection()
             }
         });
     }
 
-    public Task<GameEngineGameState> RegradeChallenge(Api.Data.Challenge entity)
+    public Task<GameEngineGameState> RegradeChallenge(Data.Challenge entity)
     {
         return Task.FromResult(new GameEngineGameState());
     }
@@ -138,7 +133,7 @@ internal class TestGameEngineService : IGameEngineService
         return Task.FromResult(new GameEngineGameState());
     }
 
-    public Task<GameEngineGameState> StopGamespace(Api.Data.Challenge entity)
+    public Task<GameEngineGameState> StopGamespace(Data.Challenge entity)
     {
         return Task.FromResult(new GameEngineGameState());
     }

@@ -35,15 +35,8 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
                 builder.UseNpgsql(_container.GetConnectionString(), opts => opts.MigrationsAssembly("Gameboard.Api"));
             });
 
-            // migrate the database (forces a blocking call)
-            // get the dbcontext type and use it to migrate (stand up) the database
-            // var builder = new DbContextOptionsBuilder<GameboardTestDbContext>().UseNpgsql(_container.GetConnectionString());
-            // var dbContext = new GameboardTestDbContext(builder.Options);
-            // dbContext.Database.Migrate();
-
             // Some services (like the stores) in Gameboard inject with GameboardDbContext rather than DbContext,
             // so we need to add an additional binding for them
-            // services.AddTransient<GameboardDbContext, TDbContext>();
             services.AddScoped<GameboardDbContextPostgreSQL>();
             services.AddScoped<GameboardDbContext, GameboardDbContextPostgreSQL>();
 
@@ -58,7 +51,7 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
             services.ReplaceService<IAuthorizationService, TestAuthorizationService>();
 
             // add defaults for services that can be replaced in .ConfigureTestServices
-            services.AddSingleton<ITestGradingResultService>(_ => new TestGradingResultService((state) => { }));
+            services.AddScoped<ITestGradingResultService>(_ => new TestGradingResultService(0, (state) => { }));
         });
     }
 

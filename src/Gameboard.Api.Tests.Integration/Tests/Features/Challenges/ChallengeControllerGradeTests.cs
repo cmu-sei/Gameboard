@@ -1,6 +1,5 @@
 using Gameboard.Api.Common;
 using Gameboard.Api.Features.GameEngine;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
@@ -27,53 +26,38 @@ public class ChallengeControllerGradeTests
     {
         // given a team with a standard challenge spec scoring for the first time
         // note: we still have to mock the grading stuff because we're not testing with a real engine
-        var gradingResultService = new TestGradingResultService(b =>
-        {
-            b.Id = challengeId;
-            b.Challenge.MaxPoints = 100;
-            b.Challenge.Score = 100;
-        });
-
-        _testContext.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureTestServices(services =>
+        await _testContext
+            .WithDataState(state =>
             {
-                services.ReplaceService<ITestGradingResultService, TestGradingResultService>(gradingResultService);
-            });
-        });
-
-        var hashedGraderKey = graderKey.ToSha256();
-        await _testContext.WithDataState(state =>
-        {
-            state.Add<Data.Game>(fixture, g =>
-            {
-                g.Specs = state.Build<Data.ChallengeSpec>(fixture, spec =>
+                state.Add<Data.Game>(fixture, g =>
                 {
-                    spec.Id = challengeSpecId;
-                    spec.Points = 100;
-                }).ToCollection();
-
-                g.Challenges = state.Build<Data.Challenge>(fixture, c =>
-                {
-                    c.Id = challengeId;
-                    c.GraderKey = graderKey.ToSha256();
-                    c.Points = 0;
-                    c.Score = 0;
-                    c.SpecId = challengeSpecId;
-                    c.TeamId = teamId;
-                    c.Player = state.Build<Data.Player>(fixture, p =>
+                    g.Specs = state.Build<Data.ChallengeSpec>(fixture, spec =>
                     {
-                        p.Score = 0;
-                        p.Rank = 0;
-                        p.TeamId = teamId;
-                    });
-                }).ToCollection();
+                        spec.Id = challengeSpecId;
+                        spec.Points = 100;
+                    }).ToCollection();
+
+                    g.Challenges = state.Build<Data.Challenge>(fixture, c =>
+                    {
+                        c.Id = challengeId;
+                        c.GraderKey = graderKey.ToSha256();
+                        c.Points = 0;
+                        c.Score = 0;
+                        c.SpecId = challengeSpecId;
+                        c.TeamId = teamId;
+                        c.Player = state.Build<Data.Player>(fixture, p =>
+                        {
+                            p.Score = 0;
+                            p.Rank = 0;
+                            p.TeamId = teamId;
+                        });
+                    }).ToCollection();
+                });
             });
-        });
 
         // when they score
         await _testContext
-            .CreateHttpClientWithGraderKey(graderKey)
+            .CreateHttpClientWithGraderConfig(graderKey, 100)
             .PutAsync("/api/challenge/grade", new GameEngineSectionSubmission
             {
                 Id = challengeId,

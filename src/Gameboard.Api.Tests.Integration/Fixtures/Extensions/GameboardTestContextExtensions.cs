@@ -8,26 +8,6 @@ namespace Gameboard.Api.Tests.Integration.Fixtures;
 
 internal static class GameboardTestContextExtensions
 {
-    private static WebApplicationFactory<Program> GetWebApplicationFactory(this GameboardTestContext testContext)
-    {
-        return testContext
-            .WithWebHostBuilder(builder =>
-            {
-                // builder.ConfigureTestServices(services =>
-                // {
-                //     // fake graderkey auth
-                //     // services
-                //     //     .Configure<TestGraderKeyAuthenticationHandlerOptions>(options =>
-                //     //     {
-                //     //         options.ChallengeGraderKey = graderKey;
-                //     //     })
-                //     //     .AddAuthentication(TestGraderKeyAuthenticationHandler.AuthenticationSchemeName)
-                //     //     .AddScheme<TestGraderKeyAuthenticationHandlerOptions, TestGraderKeyAuthenticationHandler>(TestGraderKeyAuthenticationHandler.AuthenticationSchemeName, options => { });
-                //     services.Configure<GraderKEyAuth                    
-                // });
-            });
-    }
-
     private static WebApplicationFactory<Program> BuildUserAuthentication(this GameboardTestContext testContext, TestAuthenticationUser? actingUser = null)
     {
         return testContext
@@ -84,11 +64,18 @@ internal static class GameboardTestContextExtensions
     public static HttpClient CreateHttpClientWithAuthRole(this GameboardTestContext testContext, UserRole role)
         => CreateHttpClientWithActingUser(testContext, u => u.Role = role);
 
-    public static HttpClient CreateHttpClientWithGraderKey(this GameboardTestContext testContext, string graderKey)
+    public static HttpClient CreateHttpClientWithGraderConfig(this GameboardTestContext testContext, string graderKey, double gradedScore)
     {
         var client = testContext
-            .GetWebApplicationFactory()
-            .CreateDefaultClient();
+            .WithWebHostBuilder(builder =>
+            {
+                builder.ConfigureTestServices(services =>
+                {
+                    var testGradingResult = new TestGradingResultService(gradedScore, builder => builder.Challenge.Score = gradedScore);
+                    services.ReplaceService<ITestGradingResultService, TestGradingResultService>(testGradingResult);
+                });
+            })
+            .CreateClient();
 
         client.DefaultRequestHeaders.Add(GraderKeyAuthentication.GraderKeyHeaderName, graderKey);
         return client;
@@ -104,3 +91,4 @@ internal static class GameboardTestContextExtensions
         await dbContext.SaveChangesAsync();
     }
 }
+
