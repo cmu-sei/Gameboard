@@ -92,7 +92,7 @@ internal class TeamService : ITeamService
         // in practice mode, there's special super secret logic (which is currently that the request results in 
         // a one-hour extension up to a cap defined in settings)
         if (captain.IsPractice)
-            finalSessionEnd = await _practiceService.GetExtendedSessionEnd(captain.SessionBegin, cancellationToken);
+            finalSessionEnd = await _practiceService.GetExtendedSessionEnd(captain.SessionBegin, captain.SessionEnd, cancellationToken);
 
         // update the player entities and gamespaces
         await UpdateSessionEnd(request.TeamId, finalSessionEnd, cancellationToken);

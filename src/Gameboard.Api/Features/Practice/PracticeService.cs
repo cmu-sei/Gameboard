@@ -16,7 +16,7 @@ public interface IPracticeService
     // we're currently not using this, but I'd like to add an endpoint for it so that we can clarify why practice challenges
     // are unavailable when requested
     Task<CanPlayPracticeChallengeResult> GetCanDeployChallenge(string userId, string challengeSpecId, CancellationToken cancellationToken);
-    Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, CancellationToken cancellationToken);
+    Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, DateTimeOffset currentSessionEnd, CancellationToken cancellationToken);
     Task<PracticeModeSettingsApiModel> GetSettings(CancellationToken cancellationToken);
     Task<Data.Player> GetUserActivePracticeSession(string userId, CancellationToken cancellationToken);
     IEnumerable<string> UnescapeSuggestedSearches(string input);
@@ -64,13 +64,19 @@ internal class PracticeService : IPracticeService
             .ToArray();
     }
 
-    public async Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, CancellationToken cancellationToken)
+    public async Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, DateTimeOffset currentSessionEnd, CancellationToken cancellationToken)
     {
         var now = _now.Get();
+        var extendSessionBy = TimeSpan.FromMinutes(60);
         var settings = await GetSettings(cancellationToken);
 
+        // if there's more time between now and the end of the session than the maximum allowable extension
+        // just return what we already have
+        if (currentSessionEnd - now >= extendSessionBy)
+            return currentSessionEnd;
+
         // extend by one hour (hard value for now, added to practice settings later)
-        var newSessionEnd = now.AddMinutes(60);
+        var newSessionEnd = now.Add(extendSessionBy);
 
         if (settings.MaxPracticeSessionLengthMinutes.HasValue)
         {
