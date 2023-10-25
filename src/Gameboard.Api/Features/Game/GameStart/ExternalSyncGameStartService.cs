@@ -157,7 +157,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 // then assign a headless server to each team
                 foreach (var team in request.State.Teams)
                 {
-                    var config = externalHostTeamConfigs.FirstOrDefault(t => t.TeamID == team.Team.Id);
+                    var config = externalHostTeamConfigs.SingleOrDefault(t => t.TeamID == team.Team.Id);
                     if (config is null)
                         _logger.LogError($"""Team "{team.Team.Id}" wasn't assigned a headless URL by the external host (Gamebrain).""");
                     else
