@@ -1,8 +1,15 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Hubs;
 using Gameboard.Api.Hubs;
+using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Npgsql.Replication;
 
 namespace Gameboard.Api.Extensions;
 
@@ -49,6 +56,25 @@ internal static class WebApplicationExtensions
         app.MapHub<GameHub>("/hub/games").RequireAuthorization();
         app.MapHub<ScoreHub>("/hub/scores").RequireAuthorization();
         app.MapControllers().RequireAuthorization();
+
+        return app;
+    }
+
+    public static WebApplication SyncActiveSpecsOnStartup(this WebApplication app, ILogger logger)
+    {
+        Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = app.Services.CreateScope();
+                var challengeSpecService = scope.ServiceProvider.GetRequiredService<ChallengeSpecService>();
+                await challengeSpecService.SyncActiveSpecs(CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(message: "Failed to synchronize active challenge specs on startup.", exception: ex);
+            }
+        });
 
         return app;
     }

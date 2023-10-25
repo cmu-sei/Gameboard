@@ -70,9 +70,14 @@ internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeC
         q = q.OrderBy(s => s.Name);
         var results = await _mapper.ProjectTo<ChallengeSpecSummary>(q).ToArrayAsync(cancellationToken);
 
-        // fix up relative urls
         foreach (var result in results)
         {
+            // hide tags which aren't in the "suggested searches" configured in the practice area
+            // (this is because topo has lots of tags that aren't useful to players, so we only)
+            // want to show them values in the suggested search
+            result.Tags = result.Tags.Where(t => sluggedSuggestedSearches.Contains(_slugger.Get(t)));
+
+            // fix up relative urls
             result.Text = _challengeDocsService.ReplaceRelativeUris(result.Text);
         }
 

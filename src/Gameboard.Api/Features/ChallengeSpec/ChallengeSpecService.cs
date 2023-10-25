@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,7 @@ namespace Gameboard.Api.Services;
 
 public class ChallengeSpecService : _Service
 {
+    private readonly INowService _now;
     private readonly IStore _store;
     IGameEngineService GameEngine { get; }
 
@@ -22,11 +24,13 @@ public class ChallengeSpecService : _Service
     (
         ILogger<ChallengeSpecService> logger,
         IMapper mapper,
+        INowService now,
         CoreOptions options,
         IStore store,
         IGameEngineService gameEngine
     ) : base(logger, mapper, options)
     {
+        _now = now;
         _store = store;
         GameEngine = gameEngine;
     }
@@ -83,8 +87,7 @@ public class ChallengeSpecService : _Service
 
     public async Task Sync(string id)
     {
-        var externals = (await GameEngine.ListSpecs(new SearchFilter()))
-                .ToDictionary(o => o.ExternalId);
+        var externals = await LoadExternalSpecsForSync();
 
         var specs = _store
             .WithTracking<Data.ChallengeSpec>()
@@ -95,12 +98,50 @@ public class ChallengeSpecService : _Service
             if (externals.ContainsKey(spec.ExternalId).Equals(false))
                 continue;
 
-            spec.Name = externals[spec.ExternalId].Name;
-            spec.Description = externals[spec.ExternalId].Description;
-            spec.Tags = externals[spec.ExternalId].Tags;
-            spec.Text = externals[spec.ExternalId].Text;
+            SyncSpec(spec, externals[spec.ExternalId]);
         }
 
         await _store.SaveUpdateRange(specs.ToArray());
+    }
+
+    /// <summary>
+    /// Updates "active" challenge specs with information from the appropriate
+    /// game engine (for now, only Topomojo.)
+    /// 
+    /// "Active" here is defined as specs that are used by a game with a current
+    /// execution period and 
+    /// </summary>
+    /// <returns></returns>
+    public async Task SyncActiveSpecs(CancellationToken cancellationToken)
+    {
+        var nowish = _now.Get();
+        var activeSpecs = await _store
+            .WithTracking<Data.ChallengeSpec>()
+            .Where(s => s.Game.GameEnd > nowish || s.Game.PlayerMode == PlayerMode.Practice)
+            .ToArrayAsync(cancellationToken);
+
+        var externalSpecs = await LoadExternalSpecsForSync();
+
+        foreach (var spec in activeSpecs)
+        {
+            if (externalSpecs.ContainsKey(spec.ExternalId))
+                SyncSpec(spec, externalSpecs[spec.ExternalId]);
+        }
+
+        await _store.SaveUpdateRange(activeSpecs);
+    }
+
+    internal async Task<IDictionary<string, ExternalSpec>> LoadExternalSpecsForSync()
+    {
+        return (await GameEngine.ListSpecs(new SearchFilter()))
+            .ToDictionary(o => o.ExternalId);
+    }
+
+    internal void SyncSpec(Data.ChallengeSpec spec, ExternalSpec externalSpec)
+    {
+        spec.Name = externalSpec.Name;
+        spec.Description = externalSpec.Description;
+        spec.Tags = externalSpec.Tags;
+        spec.Text = externalSpec.Text;
     }
 }
