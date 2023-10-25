@@ -57,7 +57,7 @@ public class ChallengeControllerGradeTests
 
         // when they score
         await _testContext
-            .CreateHttpClientWithGraderConfig(graderKey, 100)
+            .CreateHttpClientWithGraderConfig(100, graderKey)
             .PutAsync("/api/challenge/grade", new GameEngineSectionSubmission
             {
                 Id = challengeId,

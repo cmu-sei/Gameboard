@@ -1,5 +1,5 @@
-using Gameboard.Api.Common;
 using Gameboard.Api.Data;
+using ICSharpCode.SharpZipLib.Core;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
@@ -23,14 +23,4 @@ public static class GameboardTestContextDefaultEntityExtensions
         entityBuilder?.Invoke(entity);
         return entity;
     }
-
-    public static void AddChallenge(this IDataStateBuilder dataStateBuilder, Action<Data.Challenge>? challengeBuilder = null)
-        => dataStateBuilder.Add(BuildChallenge(dataStateBuilder, challengeBuilder));
-
-    public static Data.Challenge BuildChallenge(this IDataStateBuilder dataStateBuilder, Action<Data.Challenge>? challengeBuilder = null)
-        => BuildEntity
-        (
-            new Data.Challenge { Name = "Integration Test Challenge" },
-            challengeBuilder
-        );
 }

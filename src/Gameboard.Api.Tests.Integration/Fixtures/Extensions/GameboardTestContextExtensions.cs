@@ -1,4 +1,4 @@
-using System.Net.Http.Headers;
+using Gameboard.Api.Common;
 using Gameboard.Api.Structure.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -47,24 +47,13 @@ internal static class GameboardTestContextExtensions
             .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
     }
 
-    public static HttpClient CreateHttpClientWithActingUser(this GameboardTestContext testContext, Data.User user)
-    {
-        var client = testContext
-            .CreateHttpClientWithActingUser(u =>
-            {
-                u.Id = user.Id;
-                u.Name = user.Name;
-                u.Role = user.Role;
-            });
-
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthenticationHandler.AuthenticationSchemeName);
-        return client;
-    }
-
     public static HttpClient CreateHttpClientWithAuthRole(this GameboardTestContext testContext, UserRole role)
         => CreateHttpClientWithActingUser(testContext, u => u.Role = role);
 
-    public static HttpClient CreateHttpClientWithGraderConfig(this GameboardTestContext testContext, string graderKey, double gradedScore)
+    public static HttpClient CreateHttpClientWithGraderConfig(this GameboardTestContext testContext, double gradedScore)
+        => CreateHttpClientWithGraderConfig(testContext, gradedScore, string.Empty);
+
+    public static HttpClient CreateHttpClientWithGraderConfig(this GameboardTestContext testContext, double gradedScore, string graderKey)
     {
         var client = testContext
             .WithWebHostBuilder(builder =>
@@ -77,7 +66,11 @@ internal static class GameboardTestContextExtensions
             })
             .CreateClient();
 
-        client.DefaultRequestHeaders.Add(GraderKeyAuthentication.GraderKeyHeaderName, graderKey);
+        if (graderKey.IsNotEmpty())
+        {
+            client.DefaultRequestHeaders.Add(GraderKeyAuthentication.GraderKeyHeaderName, graderKey);
+        }
+
         return client;
     }
 

@@ -1,4 +1,5 @@
 using AutoFixture;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api.Tests.Shared.Fixtures;
@@ -28,6 +29,32 @@ public class GameboardCustomization : ICustomization
             StartTime = now.AddDays(-2),
             EndTime = now.AddDays(-1),
             HasGamespaceDeployed = false
+        });
+
+        fixture.Register(() => new AwardedChallengeBonus
+        {
+            Id = fixture.Create<string>(),
+            EnteredOn = DateTimeOffset.MinValue,
+        });
+
+        fixture.Register(() => new ChallengeBonusCompleteSolveRank
+        {
+            Id = fixture.Create<string>(),
+            Description = fixture.Create<string>(),
+            PointValue = 10,
+            ChallengeBonusType = ChallengeBonusType.CompleteSolveRank,
+            ChallengeSpec = fixture.Create<Data.ChallengeSpec>(),
+            AwardedTo = new List<Data.AwardedChallengeBonus>()
+        });
+
+        fixture.Register<ChallengeBonus>(() => new ChallengeBonusCompleteSolveRank
+        {
+            Id = fixture.Create<string>(),
+            Description = fixture.Create<string>(),
+            PointValue = 10,
+            ChallengeBonusType = ChallengeBonusType.CompleteSolveRank,
+            ChallengeSpec = fixture.Create<Data.ChallengeSpec>(),
+            AwardedTo = new List<Data.AwardedChallengeBonus>()
         });
 
         fixture.Register(() => new Data.Challenge
@@ -65,6 +92,15 @@ public class GameboardCustomization : ICustomization
             RegistrationOpen = now,
             RegistrationClose = now.AddDays(1),
             RegistrationType = GameRegistrationType.Open
+        });
+
+        fixture.Register(() => new Data.PracticeModeSettings
+        {
+            Id = fixture.Create<string>(),
+            CertificateHtmlTemplate = null,
+            DefaultPracticeSessionLengthMinutes = 60,
+            IntroTextMarkdown = null,
+            SuggestedSearches = ""
         });
 
         fixture.Register<Data.Sponsor>(() => new()
@@ -112,10 +148,10 @@ public class GameboardCustomization : ICustomization
                     IsManager = true
                 }
             },
-            WhenCreated = DateTimeOffset.Now,
-            StartTime = DateTimeOffset.Now,
-            EndTime = DateTimeOffset.Now.AddMinutes(60),
-            ExpirationTime = DateTime.Now.AddMinutes(60),
+            WhenCreated = DateTimeOffset.UtcNow,
+            StartTime = DateTimeOffset.UtcNow,
+            EndTime = DateTimeOffset.UtcNow.AddMinutes(60),
+            ExpirationTime = DateTime.UtcNow.AddMinutes(60),
             IsActive = true,
             Vms = new TopoMojo.Api.Client.VmState[]
             {
@@ -147,7 +183,7 @@ public class GameboardCustomization : ICustomization
                 SectionIndex = 0,
                 SectionScore = 50,
                 SectionText = "The best one",
-                LastScoreTime = DateTimeOffset.Now.AddMinutes(5),
+                LastScoreTime = DateTimeOffset.UtcNow.AddMinutes(5),
                 Questions = new List<TopoMojo.Api.Client.QuestionView>
                 {
                     new()
@@ -177,7 +213,7 @@ public class GameboardCustomization : ICustomization
         fixture.Register(() => new GameEngineSectionSubmission
         {
             Id = fixture.Create<string>(),
-            Timestamp = DateTimeOffset.Now.AddMinutes(1),
+            Timestamp = DateTimeOffset.UtcNow.AddMinutes(1),
             SectionIndex = 0,
             Questions = new GameEngineAnswerSubmission[]
             {

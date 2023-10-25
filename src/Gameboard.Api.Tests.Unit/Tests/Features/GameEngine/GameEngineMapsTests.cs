@@ -52,10 +52,10 @@ public class GameEngineMapsTests
                     IsManager = true
                 }
             },
-            WhenCreated = DateTimeOffset.Now,
-            StartTime = DateTimeOffset.Now,
-            EndTime = DateTimeOffset.Now.AddMinutes(60),
-            ExpirationTime = DateTime.Now.AddMinutes(60),
+            WhenCreated = DateTimeOffset.UtcNow,
+            StartTime = DateTimeOffset.UtcNow,
+            EndTime = DateTimeOffset.UtcNow.AddMinutes(60),
+            ExpirationTime = DateTime.UtcNow.AddMinutes(60),
             IsActive = true,
             Vms = new TopoMojo.Api.Client.VmState[]
             {
@@ -87,7 +87,7 @@ public class GameEngineMapsTests
                 SectionIndex = 0,
                 SectionScore = 50,
                 SectionText = "The best one",
-                LastScoreTime = DateTimeOffset.Now.AddMinutes(5),
+                LastScoreTime = DateTimeOffset.UtcNow.AddMinutes(5),
                 Questions = new TopoMojo.Api.Client.QuestionView[]
                 {
                     new TopoMojo.Api.Client.QuestionView

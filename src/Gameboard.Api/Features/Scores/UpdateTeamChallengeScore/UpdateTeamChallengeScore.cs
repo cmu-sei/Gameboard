@@ -63,12 +63,13 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
                     .Bonuses
                     .Where(b => b.ChallengeBonusType == ChallengeBonusType.CompleteSolveRank)
                     .OrderBy(b => (b as ChallengeBonusCompleteSolveRank).SolveRank)
-            ).FirstAsync(spec => spec.Id == challenge.SpecId, cancellationToken);
+            ).SingleAsync(spec => spec.Id == challenge.SpecId, cancellationToken);
 
         // other copies of this challenge for other teams who have a solve
         var otherTeamChallenges = await _store
             .WithNoTracking<Data.Challenge>()
             .Include(c => c.AwardedBonuses)
+            .Include(c => c.Game)
             .Where(c => c.SpecId == spec.Id)
             .Where(c => c.GameId == challenge.GameId)
             .Where(c => c.TeamId != challenge.TeamId)
@@ -87,7 +88,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
         {
             var availableBonuses = spec
                 .Bonuses
-                .Where(bonus => !otherTeamChallenges.SelectMany(c => c.AwardedBonuses).Any(otherTeamBonus => otherTeamBonus.Id == bonus.Id));
+                .Where(bonus => !otherTeamChallenges.SelectMany(c => c.AwardedBonuses).Any(otherTeamBonus => otherTeamBonus.ChallengeBonusId == bonus.Id));
 
             if (availableBonuses.Any() && (availableBonuses.First() as ChallengeBonusCompleteSolveRank).SolveRank == otherTeamChallenges.Length + 1)
                 updateChallenge.AwardedBonuses.Add(new AwardedChallengeBonus

@@ -1,5 +1,4 @@
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.ChallengeBonuses;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
@@ -26,7 +25,7 @@ public class ChallengeBonusListTests
                 u.Role = UserRole.Support;
             });
 
-            state.AddChallenge(c =>
+            state.Add<Data.Challenge>(fixture, c =>
             {
                 c.Id = challengeId;
                 c.AwardedManualBonuses = new ManualChallengeBonus[]

@@ -34,7 +34,7 @@ public class GameEngineControllerGetStateTests
                 p.TeamId = teamId;
             });
 
-            state.AddChallenge(c =>
+            state.Add<Data.Challenge>(fixture, c =>
             {
                 c.Id = challenge1Id;
                 c.GameEngineType = GameEngineType.TopoMojo;
@@ -45,7 +45,7 @@ public class GameEngineControllerGetStateTests
                 c.TeamId = teamId;
             });
 
-            state.AddChallenge(c =>
+            state.Add<Data.Challenge>(fixture, c =>
             {
                 c.Id = challenge2Id;
                 c.GameEngineType = GameEngineType.TopoMojo;

@@ -17,6 +17,7 @@ internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeC
     private readonly IChallengeDocsService _challengeDocsService;
     private readonly IMapper _mapper;
     private readonly IPagingService _pagingService;
+    private readonly IPracticeService _practiceService;
     private readonly ISlugService _slugger;
     private readonly IStore _store;
 
@@ -25,6 +26,7 @@ internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeC
         IChallengeDocsService challengeDocsService,
         IMapper mapper,
         IPagingService pagingService,
+        IPracticeService practiceService,
         ISlugService slugger,
         IStore store
     )
@@ -32,12 +34,17 @@ internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeC
         _challengeDocsService = challengeDocsService;
         _mapper = mapper;
         _pagingService = pagingService;
+        _practiceService = practiceService;
         _slugger = slugger;
         _store = store;
     }
 
     public async Task<SearchPracticeChallengesResult> Handle(SearchPracticeChallengesQuery request, CancellationToken cancellationToken)
     {
+        // load settings - we need these to make decisions about tag-based matches
+        var settings = await _practiceService.GetSettings(cancellationToken);
+        var sluggedSuggestedSearches = settings.SuggestedSearches.Select(search => _slugger.Get(search));
+
         var q = _store
             .WithNoTracking<Data.ChallengeSpec>()
             .Include(s => s.Game)
@@ -48,13 +55,15 @@ internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeC
             var term = request.Filter.Term.ToLower();
             var sluggedTerm = _slugger.Get(term);
 
-            q = q.Where(s =>
-                s.Id.Equals(term) ||
-                s.Name.ToLower().Contains(term) ||
-                s.Description.ToLower().Contains(term) ||
-                s.Game.Name.ToLower().Contains(term) ||
-                s.Text.ToLower().Contains(term) ||
-                s.Tags.Contains(sluggedTerm)
+            q = q.Where
+            (
+                s =>
+                    s.Id.Equals(term) ||
+                    s.Name.ToLower().Contains(term) ||
+                    s.Description.ToLower().Contains(term) ||
+                    s.Game.Name.ToLower().Contains(term) ||
+                    s.Text.ToLower().Contains(term) ||
+                    (s.Tags.Contains(sluggedTerm) && sluggedSuggestedSearches.Contains(sluggedTerm))
             );
         }
 

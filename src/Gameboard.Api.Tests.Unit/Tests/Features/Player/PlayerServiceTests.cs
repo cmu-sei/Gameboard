@@ -33,10 +33,10 @@ public class PlayerServiceTests
                 Game = new Data.Game
                 {
                     CertificateTemplate = fixture.Create<string>(),
-                    GameEnd = DateTimeOffset.Now - TimeSpan.FromDays(1)
+                    GameEnd = DateTimeOffset.UtcNow - TimeSpan.FromDays(1)
                 },
                 Score = 0,
-                SessionEnd = DateTimeOffset.Now - TimeSpan.FromDays(2),
+                SessionEnd = DateTimeOffset.UtcNow - TimeSpan.FromDays(2),
                 User = new Api.Data.User { Id = userId }
             }
         }.ToList().BuildMock();
@@ -67,10 +67,10 @@ public class PlayerServiceTests
                 Game = new Data.Game
                 {
                     CertificateTemplate = fixture.Create<string>(),
-                    GameEnd = DateTimeOffset.Now - TimeSpan.FromDays(1)
+                    GameEnd = DateTimeOffset.UtcNow - TimeSpan.FromDays(1)
                 },
                 Score = 1,
-                SessionEnd = DateTimeOffset.Now - TimeSpan.FromDays(2),
+                SessionEnd = DateTimeOffset.UtcNow - TimeSpan.FromDays(2),
                 UserId = userId,
                 User = new Data.User { Id = userId }
             }

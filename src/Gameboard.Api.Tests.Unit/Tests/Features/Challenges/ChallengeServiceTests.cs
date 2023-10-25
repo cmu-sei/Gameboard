@@ -94,8 +94,8 @@ public class ChallengeServiceTests
                 {
                     Id = gamespaceId,
                     IsActive = true,
-                    StartTime = DateTimeOffset.Now,
-                    EndTime = DateTimeOffset.Now.AddDays(1),
+                    StartTime = DateTimeOffset.UtcNow,
+                    EndTime = DateTimeOffset.UtcNow.AddDays(1),
                 }
             );
 
@@ -216,8 +216,8 @@ public class ChallengeServiceTests
                 {
                     Id = gamespaceId,
                     IsActive = true,
-                    StartTime = DateTimeOffset.Now,
-                    EndTime = DateTimeOffset.Now.AddDays(1),
+                    StartTime = DateTimeOffset.UtcNow,
+                    EndTime = DateTimeOffset.UtcNow.AddDays(1),
                 }
             );
 

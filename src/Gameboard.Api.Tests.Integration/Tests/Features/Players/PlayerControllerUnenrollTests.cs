@@ -44,7 +44,7 @@ public class PlayerControllerUnenrollTests
                                 u.Id = memberUserId;
                                 u.Role = UserRole.Member;
                             });
-                            p.Challenges = state.BuildChallenge(c =>
+                            p.Challenges = state.Build<Data.Challenge>(fixture, c =>
                             {
                                 // the challenge is associated with the player but no other team
                                 // so it should get deleted

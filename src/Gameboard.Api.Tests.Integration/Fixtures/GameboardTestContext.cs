@@ -67,6 +67,7 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
             .WithImage("postgres:latest")
             .WithAutoRemove(true)
             .WithCleanUp(true)
+            // .WithName("GbIntegrationTests")
             .Build();
 
         // start up our testcontainer with the db

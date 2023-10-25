@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +17,7 @@ public interface IPracticeService
     // are unavailable when requested
     Task<CanPlayPracticeChallengeResult> GetCanDeployChallenge(string userId, string challengeSpecId, CancellationToken cancellationToken);
     Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, CancellationToken cancellationToken);
-    Task<PracticeModeSettings> GetSettings(CancellationToken cancellationToken);
+    Task<PracticeModeSettingsApiModel> GetSettings(CancellationToken cancellationToken);
     Task<Data.Player> GetUserActivePracticeSession(string userId, CancellationToken cancellationToken);
     IEnumerable<string> UnescapeSuggestedSearches(string input);
 }
@@ -30,11 +31,18 @@ public enum CanPlayPracticeChallengeResult
 
 internal class PracticeService : IPracticeService
 {
+    private readonly IMapper _mapper;
     private readonly INowService _now;
     private readonly IStore _store;
 
-    public PracticeService(INowService now, IStore store)
+    public PracticeService
+    (
+        IMapper mapper,
+        INowService now,
+        IStore store
+    )
     {
+        _mapper = mapper;
         _now = now;
         _store = store;
     }
@@ -95,8 +103,27 @@ internal class PracticeService : IPracticeService
             .Where(p => p.UserId == userId)
             .FirstOrDefaultAsync(cancellationToken);
 
-    public Task<PracticeModeSettings> GetSettings(CancellationToken cancellationToken)
-        => _store.SingleOrDefaultAsync<PracticeModeSettings>(cancellationToken);
+    public async Task<PracticeModeSettingsApiModel> GetSettings(CancellationToken cancellationToken)
+    {
+        var settings = await _store.FirstOrDefaultAsync<PracticeModeSettings>(cancellationToken);
+
+        // if we don't have any settings, make up some defaults
+        if (settings is null)
+        {
+            return new PracticeModeSettingsApiModel
+            {
+                CertificateHtmlTemplate = null,
+                DefaultPracticeSessionLengthMinutes = 60,
+                IntroTextMarkdown = null,
+                SuggestedSearches = Array.Empty<string>()
+            };
+        }
+
+        var apiModel = _mapper.Map<PracticeModeSettingsApiModel>(settings);
+        apiModel.SuggestedSearches = UnescapeSuggestedSearches(settings.SuggestedSearches);
+
+        return apiModel;
+    }
 
     private async Task<IEnumerable<string>> GetActiveSessionUsers()
         => await GetActivePracticeSessionsQueryBase()
