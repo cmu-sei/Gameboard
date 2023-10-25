@@ -61,7 +61,7 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
         // delete players from the team iff. requested
         if (request.UnenrollTeam)
         {
-            await _teamService.DeleteTeam(request.TeamId, null, cancellationToken);
+            await _teamService.DeleteTeam(request.TeamId, new SimpleEntity { Id = request.ActingUser.Id, Name = request.ActingUser.ApprovedName }, cancellationToken);
         }
         else
         {
