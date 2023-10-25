@@ -167,7 +167,7 @@ internal class ScoringService : IScoringService
         var unawardedBonuses = ResolveUnawardedBonuses(specs, challenges);
         var manualBonusPoints = challenges.SelectMany(c => c.AwardedManualBonuses.Select(b => b.PointValue));
         var bonusPoints = challenges.SelectMany(c => c.AwardedBonuses.Select(b => b.ChallengeBonus.PointValue));
-        var pointsFromChallenges = challenges.Select(c => (double)c.Points);
+        var pointsFromChallenges = challenges.Select(c => (double)c.Score);
 
         // add the session end iff the team is currently playing
         var now = _now.Get();
@@ -222,7 +222,7 @@ internal class ScoringService : IScoringService
     {
         var manualBonuses = challenge == null ? new double[] { 0 } : challenge.AwardedManualBonuses.Select(b => b.PointValue).ToArray();
         var autoBonuses = challenge == null ? new double[] { 0 } : challenge.AwardedBonuses.Select(b => b.ChallengeBonus.PointValue).ToArray();
-        var score = CalculateScore(challenge.Points, autoBonuses, manualBonuses);
+        var score = CalculateScore(challenge.Score, autoBonuses, manualBonuses);
 
         return new TeamChallengeScore
         {

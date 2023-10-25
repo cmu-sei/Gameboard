@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -142,6 +143,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
                 var challengeDeployResults = await DeployChallenges(request, cancellationToken);
                 var challengeGamespaces = await DeployGamespaces(request, cancellationToken);
+                // SOON
+                // var challengeGamespaces = await DeployGamespacesAsync(request, cancellationToken);
 
                 // establish all sessions
                 _logger.LogInformation("Starting a synchronized session for all teams...", request.GameId);
@@ -277,6 +280,61 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // notify and return
         await _gameHubBus.SendExternalGameChallengesDeployEnd(request.State);
         return teamDeployedChallenges;
+    }
+
+    private async Task<IDictionary<string, ExternalGameStartTeamGamespace>> DeployGamespacesAsync(GameModeStartRequest request, CancellationToken cancellationToken)
+    {
+        // Startup for gamespace deploy
+        Log("Deploying gamespaces...", request.GameId);
+        await _gameHubBus.SendExternalGameGamespacesDeployStart(request.State);
+        var challengeGamespaces = new Dictionary<string, ExternalGameStartTeamGamespace>();
+
+        // Create one task for each gamespace
+        var gamespaceTasks = request.State.ChallengesCreated.Select(async c =>
+        {
+            _logger.LogInformation(message: $"""Starting {c.GameEngineType} gamespace for challenge "{c.Challenge.Id}" (teamId "{c.TeamId}")...""");
+            var challengeState = await _gameEngineService.StartGamespace(new GameEngineGamespaceStartRequest
+            {
+                ChallengeId = c.Challenge.Id,
+                GameEngineType = c.GameEngineType
+            });
+            _logger.LogInformation(message: $"""Gamespace started for challenge "{c.Challenge.Id}".""");
+
+            // keep the state given to us by the engine
+            return challengeState;
+        });
+
+        // fire off the tasks and wait
+        var challengeStates = (await Task.WhenAll(gamespaceTasks))
+            .ToDictionary(state => state.Id);
+
+        foreach (var deployedChallenge in request.State.ChallengesCreated)
+        {
+            // TODO: verify that we need this - buildmetadata also assembles challenge info
+            var state = challengeStates[deployedChallenge.Challenge.Id];
+            var vms = _gameEngineService.GetGamespaceVms(state);
+            challengeGamespaces.Add(deployedChallenge.Challenge.Id, new ExternalGameStartTeamGamespace
+            {
+                Id = state.Id,
+                VmUris = vms.Select(vm => vm.Url)
+            });
+
+
+            // now that we've started the gamespaces, we need to update the challenge entities
+            // with the VMs that topo has (hopefully) spun up
+            var serializedState = _jsonService.Serialize(state);
+            await _store
+                .WithNoTracking<Data.Challenge>()
+                .Where(c => c.Id == deployedChallenge.Challenge.Id)
+                .ExecuteUpdateAsync(up => up.SetProperty(c => c.State, serializedState), cancellationToken);
+
+            request.State.GamespacesDeployed.Add(state);
+            await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.State);
+        }
+
+        // notify and return
+        await _gameHubBus.SendExternalGameGamespacesDeployEnd(request.State);
+        return challengeGamespaces;
     }
 
     private async Task<IDictionary<string, ExternalGameStartTeamGamespace>> DeployGamespaces(GameModeStartRequest request, CancellationToken cancellationToken)
