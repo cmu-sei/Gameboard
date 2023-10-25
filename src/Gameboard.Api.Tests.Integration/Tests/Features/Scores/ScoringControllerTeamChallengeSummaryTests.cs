@@ -22,7 +22,7 @@ public class ScoringControllerTeamChallengeSummaryTests
         string specId,
         string teamId,
         string challengeId,
-        int basePoints,
+        int baseScore,
         int bonus1Points,
         int bonus2Points
     )
@@ -41,7 +41,8 @@ public class ScoringControllerTeamChallengeSummaryTests
                 c.Id = challengeId;
                 c.TeamId = teamId;
                 c.Player = state.Build<Data.Player>(fixture, p => p.TeamId = teamId);
-                c.Points = basePoints;
+                c.Points = baseScore;
+                c.Score = baseScore;
                 c.SpecId = specId;
                 c.AwardedManualBonuses = new List<Data.ManualChallengeBonus>
                 {
@@ -71,6 +72,6 @@ public class ScoringControllerTeamChallengeSummaryTests
 
         // then
         result.ShouldNotBeNull();
-        result.Score.TotalScore.ShouldBe(basePoints + bonus1Points + bonus2Points);
+        result.Score.TotalScore.ShouldBe(baseScore + bonus1Points + bonus2Points);
     }
 }
