@@ -9,7 +9,6 @@ using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Npgsql.Replication;
 
 namespace Gameboard.Api.Extensions;
 
@@ -72,19 +71,20 @@ internal static class WebApplicationExtensions
     /// <returns></returns>
     public static WebApplication DoStartupTasks(this WebApplication app, ILogger logger)
     {
-        Task.Run(async () =>
+        try
         {
-            try
+            using var serviceScope = app.Services.CreateScope();
+            var fireAndForget = serviceScope.ServiceProvider.GetRequiredService<IFireAndForgetService>();
+            fireAndForget.Fire(async scope =>
             {
-                using var scope = app.Services.CreateScope();
                 var challengeSpecService = scope.ServiceProvider.GetRequiredService<ChallengeSpecService>();
                 await challengeSpecService.SyncActiveSpecs(CancellationToken.None);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(message: "Failed to synchronize active challenge specs on startup.", exception: ex);
-            }
-        });
+            }, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(message: "Failed to synchronize active challenge specs on startup.", exception: ex);
+        }
 
         return app;
     }
