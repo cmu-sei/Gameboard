@@ -60,7 +60,17 @@ internal static class WebApplicationExtensions
         return app;
     }
 
-    public static WebApplication SyncActiveSpecsOnStartup(this WebApplication app, ILogger logger)
+    /// <summary>
+    /// This is where we put things that we want to happen when Gameboard boots, but before the API goes live.
+    /// Currently, this only involves syncing challenge spec data for "active" challenge specs. 
+    /// 
+    /// Be very careful about adding additional work to this function. It's good to be able to do things on startup
+    /// sometimes, but we don't want app reboot to become a lengthy process.
+    /// </summary>
+    /// <param name="app"></param>
+    /// <param name="logger"></param>
+    /// <returns></returns>
+    public static WebApplication DoStartupTasks(this WebApplication app, ILogger logger)
     {
         Task.Run(async () =>
         {

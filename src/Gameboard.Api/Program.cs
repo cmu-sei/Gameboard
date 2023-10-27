@@ -58,7 +58,7 @@ var app = builder.Build();
 app
     .InitializeDatabase(settings, app.Logger)
     .ConfigureGameboard(settings)
-    .SyncActiveSpecsOnStartup(app.Logger);
+    .DoStartupTasks(app.Logger);
 
 // start!
 startupLogger.LogInformation("Let the games begin!");
