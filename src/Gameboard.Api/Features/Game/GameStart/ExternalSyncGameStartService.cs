@@ -185,7 +185,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
             // the challenges don't get created upon failure here (thanks to a db transaction)
             // but we still need to clean up any created tm gamespaces
-            foreach (var gamespace in request.State.GamespacesDeployed)
+            foreach (var gamespace in request.State.GamespacesStarted)
             {
                 try
                 {
@@ -302,7 +302,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 GameEngineType = c.GameEngineType
             });
 
-            request.State.GamespaceIdsStarted.Add(challengeState.Id);
+            request.State.GamespacesStarted.Add(challengeState);
             await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.State);
             _logger.LogInformation(message: $"""Gamespace started for challenge "{c.Challenge.Id}".""");
 
@@ -333,7 +333,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 .Where(c => c.Id == deployedChallenge.Challenge.Id)
                 .ExecuteUpdateAsync(up => up.SetProperty(c => c.State, serializedState), cancellationToken);
 
-            request.State.GamespacesDeployed.Add(state);
             await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.State);
         }
 
@@ -376,7 +375,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 .Where(c => c.Id == deployedChallenge.Challenge.Id)
                 .ExecuteUpdateAsync(up => up.SetProperty(c => c.State, serializedState), cancellationToken);
 
-            request.State.GamespacesDeployed.Add(challengeState);
+            request.State.GamespacesStarted.Add(challengeState);
             await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.State);
         }
 
@@ -392,7 +391,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         foreach (var team in startState.Teams)
         {
             var teamChallenges = startState.ChallengesCreated.Where(c => c.TeamId == team.Team.Id).Select(c => c.Challenge);
-            var teamGameStates = startState.GamespacesDeployed.Where(g => teamChallenges.Select(c => c.Id).Contains(g.Id));
+            var teamGameStates = startState.GamespacesStarted.Where(g => teamChallenges.Select(c => c.Id).Contains(g.Id));
 
             var teamToReturn = new ExternalGameStartMetaDataTeam
             {

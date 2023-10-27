@@ -9,8 +9,7 @@ public class GameStartState
     public required SimpleEntity Game { get; set; }
     public List<GameStartStateChallenge> ChallengesCreated { get; private set; } = new List<GameStartStateChallenge>();
     public int ChallengesTotal { get; set; } = 0;
-    public List<GameEngineGameState> GamespacesDeployed { get; set; } = new List<GameEngineGameState>();
-    public List<string> GamespaceIdsStarted { get; set; } = new List<string>();
+    public List<GameEngineGameState> GamespacesStarted { get; set; } = new List<GameEngineGameState>();
     public int GamespacesTotal { get; set; } = 0;
     public List<GameStartStatePlayer> Players { get; } = new List<GameStartStatePlayer>();
     public List<GameStartStateTeam> Teams { get; } = new List<GameStartStateTeam>();
@@ -25,7 +24,7 @@ public class GameStartState
             if (GamespacesTotal == 0 || ChallengesTotal == 0)
                 return 0;
 
-            var retVal = Math.Round(((0.8 * GamespacesDeployed.Count) / GamespacesTotal) + ((0.2 * ChallengesCreated.Count) / ChallengesTotal));
+            var retVal = Math.Round(((0.8 * GamespacesStarted.Count) / GamespacesTotal) + ((0.2 * ChallengesCreated.Count) / ChallengesTotal));
             return double.IsRealNumber(retVal) ? retVal : 0;
         }
     }
