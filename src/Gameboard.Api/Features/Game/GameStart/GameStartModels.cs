@@ -10,6 +10,7 @@ public class GameStartState
     public List<GameStartStateChallenge> ChallengesCreated { get; private set; } = new List<GameStartStateChallenge>();
     public int ChallengesTotal { get; set; } = 0;
     public List<GameEngineGameState> GamespacesDeployed { get; set; } = new List<GameEngineGameState>();
+    public List<string> GamespaceIdsStarted { get; set; } = new List<string>();
     public int GamespacesTotal { get; set; } = 0;
     public List<GameStartStatePlayer> Players { get; } = new List<GameStartStatePlayer>();
     public List<GameStartStateTeam> Teams { get; } = new List<GameStartStateTeam>();

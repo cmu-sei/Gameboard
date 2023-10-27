@@ -125,6 +125,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
         try
         {
+            // throw on cancel request so we can clean up the debris
+            cancellationToken.ThrowIfCancellationRequested();
+
             await _store.DoTransaction(async dbContext =>
             {
                 var debugDbContext = dbContext.ChangeTracker.DebugView.ShortView;
@@ -142,9 +145,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 dbContext.Update(game);
 
                 var challengeDeployResults = await DeployChallenges(request, cancellationToken);
-                var challengeGamespaces = await DeployGamespaces(request, cancellationToken);
+                // var challengeGamespaces = await DeployGamespaces(request, cancellationToken);
                 // SOON
-                // var challengeGamespaces = await DeployGamespacesAsync(request, cancellationToken);
+                var challengeGamespaces = await DeployGamespacesAsync(request, cancellationToken);
 
                 // establish all sessions
                 _logger.LogInformation("Starting a synchronized session for all teams...", request.GameId);
@@ -298,6 +301,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 ChallengeId = c.Challenge.Id,
                 GameEngineType = c.GameEngineType
             });
+
+            request.State.GamespaceIdsStarted.Add(challengeState.Id);
+            await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.State);
             _logger.LogInformation(message: $"""Gamespace started for challenge "{c.Challenge.Id}".""");
 
             // keep the state given to us by the engine
@@ -318,7 +324,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 Id = state.Id,
                 VmUris = vms.Select(vm => vm.Url)
             });
-
 
             // now that we've started the gamespaces, we need to update the challenge entities
             // with the VMs that topo has (hopefully) spun up
