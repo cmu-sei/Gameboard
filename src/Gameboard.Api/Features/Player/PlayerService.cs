@@ -14,6 +14,7 @@ using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Practice;
+using Gameboard.Api.Features.Sponsors;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -457,12 +458,22 @@ public class PlayerService
     {
         var sudo = actor.IsRegistrar;
 
-        var player = await PlayerStore.DbSet.FirstOrDefaultAsync(p => p.Id == model.PlayerId) ?? throw new ResourceNotFound<Player>(model.PlayerId);
+        var player = await _store
+            .WithTracking<Data.Player>()
+            .Include(p => p.Sponsor)
+            .SingleOrDefaultAsync(p => p.Id == model.PlayerId);
+
+        if (player is null)
+            throw new ResourceNotFound<Data.Player>(model.PlayerId);
+
         var playersWithThisCode = await _store
             .WithNoTracking<Data.Player>()
             .Include(p => p.Game)
             .Where(p => p.InviteCode == model.Code)
             .ToArrayAsync();
+
+        if (player.SponsorId.IsEmpty() || player.Sponsor is null)
+            throw new PlayerHasDefaultSponsor(model.PlayerId);
 
         var teamIds = playersWithThisCode.Select(p => p.TeamId).Distinct().ToArray();
         if (teamIds.Length != 1)
