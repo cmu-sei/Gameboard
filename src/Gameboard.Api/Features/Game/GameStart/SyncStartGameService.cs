@@ -89,7 +89,7 @@ internal class SyncStartGameService : ISyncStartGameService
         var players = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => p.GameId == gameId)
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
 
         // if we have no players, we're not ready to play
         if (!players.Any())

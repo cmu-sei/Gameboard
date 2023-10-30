@@ -15,11 +15,9 @@ using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.Scores;
 using MediatR;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Services;
 
@@ -29,9 +27,7 @@ public partial class ChallengeService : _Service
     private readonly IChallengeStore _challengeStore;
     private readonly IGameEngineService _gameEngine;
     private readonly IGuidService _guids;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IJsonService _jsonService;
-    private readonly LinkGenerator _linkGenerator;
     private readonly IMapper _mapper;
     private readonly IMediator _mediator;
     private readonly IMemoryCache _memCache;
@@ -42,7 +38,8 @@ public partial class ChallengeService : _Service
     private readonly IStore _store;
     private readonly ITeamService _teamService;
 
-    public ChallengeService(
+    public ChallengeService
+    (
         ConsoleActorMap actorMap,
         CoreOptions coreOptions,
         IChallengeStore challengeStore,
@@ -50,9 +47,7 @@ public partial class ChallengeService : _Service
         IChallengeSyncService challengeSyncService,
         IGameEngineService gameEngine,
         IGuidService guids,
-        IHttpContextAccessor httpContextAccessor,
         IJsonService jsonService,
-        LinkGenerator linkGenerator,
         ILogger<ChallengeService> logger,
         IMapper mapper,
         IMediator mediator,
@@ -69,9 +64,7 @@ public partial class ChallengeService : _Service
         _challengeSyncService = challengeSyncService;
         _gameEngine = gameEngine;
         _guids = guids;
-        _httpContextAccessor = httpContextAccessor;
         _jsonService = jsonService;
-        _linkGenerator = linkGenerator;
         _mapper = mapper;
         _mediator = mediator;
         _memCache = memCache;
@@ -79,24 +72,6 @@ public partial class ChallengeService : _Service
         _playerStore = playerStore;
         _store = store;
         _teamService = teamService;
-    }
-
-    public string BuildGraderUrl()
-    {
-        var request = _httpContextAccessor.HttpContext.Request;
-
-        return string.Join('/', new string[]
-        {
-            _linkGenerator.GetUriByAction
-            (
-                _httpContextAccessor.HttpContext,
-                "Grade",
-                "Challenge",
-                null,
-                request.Scheme,
-                request.Host,request.PathBase
-            )
-        });
     }
 
     public async Task<Challenge> GetOrCreate(NewChallenge model, string actorId, string graderUrl)

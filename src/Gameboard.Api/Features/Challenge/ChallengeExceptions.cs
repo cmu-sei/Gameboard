@@ -9,3 +9,8 @@ internal class GamespaceLimitReached : GameboardException
 {
     public GamespaceLimitReached(string gameId, string teamId) : base($""" Team(s) {teamId} are already at the maximum number of gamespaces permitted for game "{gameId}." """) { }
 }
+
+internal class GraderUrlResolutionError : GameboardException
+{
+    public GraderUrlResolutionError() : base("Gameboard was unable to resolve a grader URL.") { }
+}
