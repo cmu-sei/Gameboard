@@ -72,10 +72,14 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
                 .ExecuteUpdateAsync
                 (
                     p => p
+                        .SetProperty(p => p.CorrectCount, 0)
+                        .SetProperty(p => p.IsReady, false)
+                        .SetProperty(p => p.PartialCount, 0)
+                        .SetProperty(p => p.Rank, 0)
+                        .SetProperty(p => p.Score, 0)
                         .SetProperty(p => p.SessionBegin, DateTimeOffset.MinValue)
                         .SetProperty(p => p.SessionEnd, DateTimeOffset.MinValue)
-                        .SetProperty(p => p.SessionMinutes, 0)
-                        .SetProperty(p => p.IsReady, false),
+                        .SetProperty(p => p.SessionMinutes, 0),
                     cancellationToken
                 );
         }
