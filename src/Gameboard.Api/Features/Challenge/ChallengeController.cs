@@ -296,8 +296,8 @@ namespace Gameboard.Api.Controllers
         public async Task<ConsoleSummary> GetConsole([FromBody] ConsoleRequest model)
         {
             await Validate(new Entity { Id = model.SessionId });
-
             var isTeamMember = await ChallengeService.UserIsTeamPlayer(model.SessionId, Actor.Id);
+            Logger.LogInformation($"""Console access attempt on console "{model.Id}": User {Actor.Id}, roles {Actor.Role}, is team member? {isTeamMember}.""");
 
             AuthorizeAny(
               () => Actor.IsDirector,
@@ -305,7 +305,6 @@ namespace Gameboard.Api.Controllers
               () => Actor.IsSupport,
               () => isTeamMember
             );
-
             var result = await ChallengeService.GetConsole(model, isTeamMember.Equals(false));
 
             if (isTeamMember)
