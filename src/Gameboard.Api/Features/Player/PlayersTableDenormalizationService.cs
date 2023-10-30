@@ -90,28 +90,4 @@ internal class PlayersTableDenormalizationService : IPlayersTableDenormalization
             await ctx.SaveChangesAsync(cancellationToken);
         }, cancellationToken);
     }
-
-    /* 
-        public async Task UpdateRanks(string gameId)
-        {
-            var players = await DbContext.Players
-                .Where(p => p.GameId == gameId)
-                .OrderByDescending(p => p.Score)
-                .ThenBy(p => p.Time)
-                .ThenByDescending(p => p.CorrectCount)
-                .ThenByDescending(p => p.PartialCount)
-                .ToArrayAsync()
-            ;
-            int rank = 0;
-
-            foreach (var team in players.GroupBy(p => p.TeamId))
-            {
-                rank += 1;
-                foreach (var player in team)
-                    player.Rank = rank;
-            }
-
-            await DbContext.SaveChangesAsync();
-        }
-    */
 }
