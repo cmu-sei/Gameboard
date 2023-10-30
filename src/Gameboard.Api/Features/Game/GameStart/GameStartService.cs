@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,6 +24,7 @@ public interface IGameStartService
 internal class GameStartService : IGameStartService
 {
     private readonly IExternalSyncGameStartService _externalSyncGameStartService;
+    private readonly IFireAndForgetService _fireAndForgetService;
     private readonly IGameHubBus _gameHubBus;
     private readonly ILogger<GameStartService> _logger;
     private readonly IMapper _mapper;
@@ -37,6 +37,7 @@ internal class GameStartService : IGameStartService
     public GameStartService
     (
         IExternalSyncGameStartService externalSyncGameStartService,
+        IFireAndForgetService fireAndForgetService,
         IGameHubBus gameHubBus,
         ILogger<GameStartService> logger,
         IMediator mediator,
@@ -48,6 +49,7 @@ internal class GameStartService : IGameStartService
     )
     {
         _externalSyncGameStartService = externalSyncGameStartService;
+        _fireAndForgetService = fireAndForgetService;
         _gameHubBus = gameHubBus;
         _logger = logger;
         _mapper = mapper;
@@ -100,7 +102,14 @@ internal class GameStartService : IGameStartService
             return;
 
         // for now, we're assuming the "happy path" of sync start games being external games, but we'll separate them later
-        // var session = await StartSynchronizedSession(gameId);
+        // NOTE: we also use a special service to kick this off, because if we don't, the player who initiated the game start
+        // won't get a response for several minutes and will likely receive a timeout error. Updates on the status
+        // of the game launch are reported via SignalR.
+        // _fireAndForgetService.Fire(async serviceScope =>
+        // {
+        //     var service = serviceScope.ServiceProvider.GetRequiredService<IGameStartService>();
+        //     await service.Start(new GameStartRequest { GameId = state.Game.Id }, cancellationToken);
+        // }, cancellationToken);
         await Start(new GameStartRequest { GameId = state.Game.Id }, cancellationToken);
     }
 

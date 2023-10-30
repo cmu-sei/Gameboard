@@ -43,7 +43,7 @@ internal class FireAndForgetService : IFireAndForgetService
             try
             {
                 using var scope = _serviceScopeFactory.CreateScope();
-                await doWork(_serviceScopeFactory.CreateScope());
+                await doWork(scope);
             }
             catch (Exception ex)
             {

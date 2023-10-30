@@ -7,6 +7,7 @@ using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Teams;
@@ -25,9 +26,11 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     private readonly ChallengeService _challengeService;
     private readonly IChallengeStore _challengeStore;
     private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
+    private readonly IExternalGameDeployBatchService _externalGameDeployBatchService;
     private readonly IGamebrainService _gamebrainService;
     private readonly IGameEngineService _gameEngineService;
     private readonly IGameHubBus _gameHubBus;
+    private readonly IChallengeGraderUrlService _graderUrlService;
     private readonly IJsonService _jsonService;
     private readonly ILockService _lockService;
     private readonly ILogger<ExternalSyncGameStartService> _logger;
@@ -45,9 +48,11 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         ChallengeService challengeService,
         IChallengeStore challengeStore,
         IStore<Data.ChallengeSpec> challengeSpecStore,
+        IExternalGameDeployBatchService externalGameDeployBatchService,
         IGamebrainService gamebrainService,
         IGameEngineService gameEngineService,
         IGameHubBus gameHubBus,
+        IChallengeGraderUrlService graderUrlService,
         IJsonService jsonService,
         ILockService lockService,
         ILogger<ExternalSyncGameStartService> logger,
@@ -64,9 +69,11 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         _challengeService = challengeService;
         _challengeStore = challengeStore;
         _challengeSpecStore = challengeSpecStore;
+        _externalGameDeployBatchService = externalGameDeployBatchService;
         _gamebrainService = gamebrainService;
         _gameEngineService = gameEngineService;
         _gameHubBus = gameHubBus;
+        _graderUrlService = graderUrlService;
         _jsonService = jsonService;
         _lockService = lockService;
         _logger = logger;
@@ -129,7 +136,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
             await _store.DoTransaction(async dbContext =>
             {
-                var debugDbContext = dbContext.ChangeTracker.DebugView.ShortView;
                 Log("Gathering data...", request.GameId);
                 await _gameHubBus.SendExternalGameLaunchStart(request.State);
 
@@ -241,7 +247,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
     private async Task<IDictionary<string, List<Challenge>>> DeployChallenges(GameModeStartRequest request, CancellationToken cancellationToken)
     {
-        Log("Deploying challenges...", request.GameId);
+        Log($"Deploying {request.State.ChallengesTotal} challenges/gamespaces...", request.GameId);
         var teamDeployedChallenges = new Dictionary<string, List<Challenge>>();
 
         // deploy all challenges
@@ -267,7 +273,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                         Variant = 0
                     },
                     team.Captain.UserId,
-                    _challengeService.BuildGraderUrl(),
+                    _graderUrlService.BuildGraderUrl(),
                     cancellationToken
                 );
 
@@ -291,27 +297,19 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         await _gameHubBus.SendExternalGameGamespacesDeployStart(request.State);
         var challengeGamespaces = new Dictionary<string, ExternalGameStartTeamGamespace>();
 
-        // Create one task for each gamespace
-        var gamespaceTasks = request.State.ChallengesCreated.Select(async c =>
+        // Create one task for each gamespace in batches of the size specified in the app's
+        // helm chart config
+        var gamespaceDeployBatches = _externalGameDeployBatchService.BuildDeployBatches(request);
+        var challengeStates = new Dictionary<string, GameEngineGameState>();
+
+        Log($"Using {gamespaceDeployBatches.Count()} batches to deploy {request.State.ChallengesTotal} challenges...", request.GameId);
+        foreach (var batch in gamespaceDeployBatches)
         {
-            _logger.LogInformation(message: $"""Starting {c.GameEngineType} gamespace for challenge "{c.Challenge.Id}" (teamId "{c.TeamId}")...""");
-            var challengeState = await _gameEngineService.StartGamespace(new GameEngineGamespaceStartRequest
-            {
-                ChallengeId = c.Challenge.Id,
-                GameEngineType = c.GameEngineType
-            });
+            var deployResults = await Task.WhenAll(batch);
 
-            request.State.GamespacesStarted.Add(challengeState);
-            await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.State);
-            _logger.LogInformation(message: $"""Gamespace started for challenge "{c.Challenge.Id}".""");
-
-            // keep the state given to us by the engine
-            return challengeState;
-        });
-
-        // fire off the tasks and wait
-        var challengeStates = (await Task.WhenAll(gamespaceTasks))
-            .ToDictionary(state => state.Id);
+            foreach (var deployResult in deployResults)
+                challengeStates.Add(deployResult.Id, deployResult);
+        }
 
         foreach (var deployedChallenge in request.State.ChallengesCreated)
         {
@@ -444,6 +442,13 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             .Where(g => g.Id == request.GameId)
             .ExecuteUpdateAsync(g => g.SetProperty(g => g.GameEnd, gameEndTime), cancellationToken);
     }
+
+    private Task<GameEngineGameState> ChallengeToGamespaceStartTask(GameStartStateChallenge c)
+     => _gameEngineService.StartGamespace(new GameEngineGamespaceStartRequest
+     {
+         ChallengeId = c.Challenge.Id,
+         GameEngineType = c.GameEngineType
+     });
 
     private void Log(string message, string gameId)
     {
