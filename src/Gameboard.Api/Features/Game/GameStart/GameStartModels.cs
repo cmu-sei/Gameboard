@@ -7,9 +7,9 @@ namespace Gameboard.Api.Features.Games;
 public class GameStartState
 {
     public required SimpleEntity Game { get; set; }
-    public List<GameStartStateChallenge> ChallengesCreated { get; private set; } = new List<GameStartStateChallenge>();
+    public List<GameStartStateChallenge> ChallengesCreated { get; } = new List<GameStartStateChallenge>();
     public int ChallengesTotal { get; set; } = 0;
-    public List<GameEngineGameState> GamespacesStarted { get; set; } = new List<GameEngineGameState>();
+    public List<GameEngineGameState> GamespacesStarted { get; } = new List<GameEngineGameState>();
     public int GamespacesTotal { get; set; } = 0;
     public List<GameStartStatePlayer> Players { get; } = new List<GameStartStatePlayer>();
     public List<GameStartStateTeam> Teams { get; } = new List<GameStartStateTeam>();

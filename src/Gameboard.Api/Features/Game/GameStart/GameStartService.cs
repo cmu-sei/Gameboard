@@ -10,7 +10,6 @@ using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Structure;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Games.Start;

@@ -26,7 +26,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     private readonly ChallengeService _challengeService;
     private readonly IChallengeStore _challengeStore;
     private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
-    private readonly CoreOptions _coreOptions;
+    private readonly IExternalGameDeployBatchService _externalGameDeployBatchService;
     private readonly IGamebrainService _gamebrainService;
     private readonly IGameEngineService _gameEngineService;
     private readonly IGameHubBus _gameHubBus;
@@ -48,7 +48,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         ChallengeService challengeService,
         IChallengeStore challengeStore,
         IStore<Data.ChallengeSpec> challengeSpecStore,
-        CoreOptions coreOptions,
+        IExternalGameDeployBatchService externalGameDeployBatchService,
         IGamebrainService gamebrainService,
         IGameEngineService gameEngineService,
         IGameHubBus gameHubBus,
@@ -69,7 +69,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         _challengeService = challengeService;
         _challengeStore = challengeStore;
         _challengeSpecStore = challengeSpecStore;
-        _coreOptions = coreOptions;
+        _externalGameDeployBatchService = externalGameDeployBatchService;
         _gamebrainService = gamebrainService;
         _gameEngineService = gameEngineService;
         _gameHubBus = gameHubBus;
@@ -299,7 +299,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
         // Create one task for each gamespace in batches of the size specified in the app's
         // helm chart config
-        var gamespaceDeployBatches = BuildDeployBatches(request, _coreOptions);
+        var gamespaceDeployBatches = _externalGameDeployBatchService.BuildDeployBatches(request);
         var challengeStates = new Dictionary<string, GameEngineGameState>();
 
         Log($"Using {gamespaceDeployBatches.Count()} batches to deploy {request.State.ChallengesTotal} challenges...", request.GameId);
@@ -336,63 +336,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // notify and return
         await _gameHubBus.SendExternalGameGamespacesDeployEnd(request.State);
         return challengeGamespaces;
-    }
-
-    /// <summary>
-    /// Create batches of gamespace deploy requests from challenges. 
-    /// 
-    /// An external game can have many challenges, and each challenge has an associated gamespace. For
-    /// each gamespace, Gameboard must issue a request to the game engine that causes it to deploy
-    /// the gamespace. Requesting all of these at once can cause issues with request timeouts, so
-    /// we optionally allow Gameboard sysadmins to configure a batch size appropriate to their game engine.
-    /// 
-    /// By default, this value is 4, meaning that upon start of an external game, Gameboard will issue
-    /// requests to the game engine in batches of 4 until all gamespaces have been deployed. Configure this
-    /// with the Core__GameEngineDeployBatchSize setting in Gameboard's helm chart.
-    /// </summary>
-    /// <param name="request"></param>
-    /// <param name="coreOptions"></param>
-    /// <returns></returns>
-    private IEnumerable<IEnumerable<Task<GameEngineGameState>>> BuildDeployBatches(GameModeStartRequest request, CoreOptions coreOptions)
-    {
-        // first, create a task for each gamespace to be deployed
-        var gamespaceTasks = request.State.ChallengesCreated.Select(async c =>
-        {
-            _logger.LogInformation(message: $"""Starting {c.GameEngineType} gamespace for challenge "{c.Challenge.Id}" (teamId "{c.TeamId}")...""");
-            var challengeState = await _gameEngineService.StartGamespace(new GameEngineGamespaceStartRequest
-            {
-                ChallengeId = c.Challenge.Id,
-                GameEngineType = c.GameEngineType
-            });
-
-            request.State.GamespacesStarted.Add(challengeState);
-            await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.State);
-            _logger.LogInformation(message: $"""Gamespace started for challenge "{c.Challenge.Id}".""");
-
-            // keep the state given to us by the engine
-            return challengeState;
-        }).ToArray();
-
-        // if the setting isn't configured or is a nonsense value, just return all the tasks in one batch
-        if (coreOptions.GameEngineDeployBatchSize <= 1)
-            return new IEnumerable<Task<GameEngineGameState>>[] { gamespaceTasks.ToArray() };
-
-        // otherwise, create batches of the appropriate size plus an additional batch for any leftovers
-        var batchList = new List<IEnumerable<Task<GameEngineGameState>>>();
-        List<Task<GameEngineGameState>> currentBatch = null;
-
-        for (var challengeIndex = 0; challengeIndex < gamespaceTasks.Length; challengeIndex++)
-        {
-            if (challengeIndex % _coreOptions.GameEngineDeployBatchSize == 0)
-            {
-                currentBatch = new List<Task<GameEngineGameState>>();
-                batchList.Add(currentBatch);
-            }
-
-            currentBatch.Add(gamespaceTasks[challengeIndex]);
-        }
-
-        return batchList;
     }
 
     private async Task<IDictionary<string, ExternalGameStartTeamGamespace>> DeployGamespaces(GameModeStartRequest request, CancellationToken cancellationToken)
