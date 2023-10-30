@@ -49,7 +49,8 @@ internal class EnrollmentReportService : IEnrollmentReportService
             .Include(p => p.Challenges.Where(c => c.PlayerMode == PlayerMode.Competition))
             .Include(p => p.User)
             .Include(p => p.Sponsor)
-            .Where(p => p.Challenges.Any(c => c.PlayerMode == PlayerMode.Competition));
+            .Where(p => p.Challenges.Any(c => c.PlayerMode == PlayerMode.Competition))
+            .Where(p => p.TeamId != null && p.TeamId != string.Empty);
 
         if (enrollDateStart != null)
             query = query
@@ -125,7 +126,6 @@ internal class EnrollmentReportService : IEnrollmentReportService
                     MaxPossiblePoints = c.Points
                 })
             })
-            .Where(p => p.TeamId is not null && p.TeamId != string.Empty)
             .GroupBy(p => p.TeamId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
