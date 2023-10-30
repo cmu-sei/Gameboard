@@ -125,6 +125,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
                     MaxPossiblePoints = c.Points
                 })
             })
+            .Where(p => p.TeamId is not null && p.TeamId != string.Empty)
             .GroupBy(p => p.TeamId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
