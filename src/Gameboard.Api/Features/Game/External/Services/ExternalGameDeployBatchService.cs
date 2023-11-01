@@ -68,7 +68,7 @@ internal class ExternalGameDeployBatchService : IExternalGameDeployBatchService
 
         // if the setting isn't configured or is a nonsense value, just return all the tasks in one batch
         if (_coreOptions.GameEngineDeployBatchSize <= 1)
-            return new IEnumerable<Task<GameEngineGameState>>[] { gamespaceTasks.ToArray() };
+            return new Task<GameEngineGameState>[][] { gamespaceTasks.ToArray() };
 
         // otherwise, create batches of the appropriate size plus an additional batch for any leftovers
         var batchList = new List<IEnumerable<Task<GameEngineGameState>>>();

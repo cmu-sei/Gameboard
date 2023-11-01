@@ -150,9 +150,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 dbContext.Update(game);
 
                 var challengeDeployResults = await DeployChallenges(request, cancellationToken);
-                var challengeGamespaces = await DeployGamespaces(request, cancellationToken);
+                // var challengeGamespaces = await DeployGamespaces(request, cancellationToken);
                 // SOON
-                // var challengeGamespaces = await DeployGamespacesAsync(request, cancellationToken);
+                var challengeGamespaces = await DeployGamespacesAsync(request, cancellationToken);
 
                 // establish all sessions
                 _logger.LogInformation("Starting a synchronized session for all teams...", request.GameId);

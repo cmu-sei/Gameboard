@@ -159,7 +159,7 @@ namespace Gameboard.Api
 
     public class CoreOptions
     {
-        public int GameEngineDeployBatchSize { get; set; } = 2;
+        public int GameEngineDeployBatchSize { get; set; } = 3;
         public string GameEngineUrl { get; set; } = "http://localhost:5004";
         public string GamebrainUrl { get; set; } = "https://launchpad.cisa.gov/test/gamebrain/";
         public string GameEngineClientName { get; set; }
