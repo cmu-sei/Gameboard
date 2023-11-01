@@ -150,9 +150,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 dbContext.Update(game);
 
                 var challengeDeployResults = await DeployChallenges(request, cancellationToken);
-                var challengeGamespaces = await DeployGamespaces(request, cancellationToken);
+                // var challengeGamespaces = await DeployGamespaces(request, cancellationToken);
                 // SOON
-                // var challengeGamespaces = await DeployGamespacesAsync(request, cancellationToken);
+                var challengeGamespaces = await DeployGamespacesAsync(request, cancellationToken);
 
                 // establish all sessions
                 _logger.LogInformation("Starting a synchronized session for all teams...", request.GameId);
@@ -302,13 +302,15 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         var gamespaceDeployBatches = _externalGameDeployBatchService.BuildDeployBatches(request);
         var challengeStates = new Dictionary<string, GameEngineGameState>();
 
-        Log($"Using {gamespaceDeployBatches.Count()} batches to deploy {request.State.ChallengesTotal} challenges...", request.GameId);
+        Log($"Using {gamespaceDeployBatches.Count()} batches to deploy {request.State.ChallengesTotal} gamespaces...", request.GameId);
         foreach (var batch in gamespaceDeployBatches)
         {
             var deployResults = await Task.WhenAll(batch);
 
             foreach (var deployResult in deployResults)
                 challengeStates.Add(deployResult.Id, deployResult);
+
+            Log($"Finish gamespace batch {challengeStates.Keys.Count}.", request.GameId);
         }
 
         foreach (var deployedChallenge in request.State.ChallengesCreated)
