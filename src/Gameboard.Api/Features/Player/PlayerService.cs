@@ -318,14 +318,33 @@ public class PlayerService
         if (model.gid.IsEmpty())
             return Array.Empty<Standing>();
 
+
         model.Filter = model.Filter
             .Append(PlayerDataFilter.FilterScoredOnly)
             .ToArray();
 
         model.mode = PlayerMode.Competition.ToString();
-
         var q = BuildListQuery(model);
-        return await _mapper.ProjectTo<Standing>(q).ToArrayAsync();
+        var standings = await _mapper.ProjectTo<Standing>(q).ToArrayAsync();
+
+        // as a temporary workaround until we get the new scoreboard, we need to manually 
+        // set the Sponsors property to accommodate multisponsor teams.
+        var allTeamIds = standings.Select(s => s.TeamId);
+        var allSponsors = await _store.WithNoTracking<Data.Sponsor>()
+            .ToDictionaryAsync(s => s.Id, s => s);
+
+        var teamsWithSponsors = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => allTeamIds.Contains(p.TeamId))
+            .GroupBy(p => p.TeamId)
+            .ToDictionaryAsync(g => g.Key, g => g.Select(p => p.SponsorId).ToArray());
+
+        foreach (var standing in standings)
+        {
+            var distinctSponsors = teamsWithSponsors[standing.TeamId].Distinct().Select(s => allSponsors[s]);
+            standing.TeamSponsors = _mapper.Map<Sponsor[]>(distinctSponsors);
+        }
+        return standings;
     }
 
     private IQueryable<Data.Player> BuildListQuery(PlayerDataFilter model)

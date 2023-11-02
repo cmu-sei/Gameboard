@@ -92,8 +92,8 @@ public class Standing
 {
     public string TeamId { get; set; }
     public string ApprovedName { get; set; }
-    public string Sponsor { get; set; }
-    public string TeamSponsors { get; set; }
+    public Sponsor Sponsor { get; set; }
+    public IEnumerable<Sponsor> TeamSponsors { get; set; }
     public DateTimeOffset SessionBegin { get; set; }
     public DateTimeOffset SessionEnd { get; set; }
     public int Rank { get; set; }
@@ -102,7 +102,6 @@ public class Standing
     public int CorrectCount { get; set; }
     public int PartialCount { get; set; }
     public bool Advanced { get; set; }
-    public string[] SponsorList => (TeamSponsors ?? Sponsor).Split("|");
 }
 
 public class PlayerOverview

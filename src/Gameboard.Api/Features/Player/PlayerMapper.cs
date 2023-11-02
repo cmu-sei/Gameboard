@@ -37,7 +37,7 @@ public class PlayerMapper : Profile
         CreateMap<Data.Player, Team>()
             .AfterMap((player, team) => team.Members = new List<TeamMember>
             {
-                new TeamMember()
+                new()
                 {
                     Id = player.Id,
                     ApprovedName = player.ApprovedName,
