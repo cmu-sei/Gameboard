@@ -96,7 +96,13 @@ internal class ChallengeSyncService : IChallengeSyncService
             }
             catch (ApiException apiEx)
             {
-                _logger.LogError(apiEx, $"""Game engine API responded with an error for challenge {challenge.Id}.""");
+                _logger.LogError(apiEx, $"""Game engine API responded with an error for challenge {challenge.Id}. Removing it from the sync list.""");
+
+                // the game engine doesn't know about this challenge, so by rule, we call it sync'd and let it go
+                await _store
+                    .WithNoTracking<Data.Challenge>()
+                    .Where(c => c.Id == challenge.Id)
+                    .ExecuteUpdateAsync(up => up.SetProperty(c => c.LastSyncTime, now));
             }
             catch (Exception ex)
             {
