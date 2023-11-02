@@ -79,8 +79,7 @@ internal class GamebrainService : IGamebrainService
     public async Task<string> GetGameState(string gameId, string teamId)
     {
         var client = await CreateGamebrain();
-        var startupUrl = await _gameService.ResolveExternalStartupUrl(gameId);
-        var gamebrainEndpoint = $"{startupUrl}/{gameId}/{teamId}";
+        var gamebrainEndpoint = $"admin/deploy/{gameId}/{teamId}";
         var m = await client.GetAsync(gamebrainEndpoint);
 
         if (m.IsSuccessStatusCode)
