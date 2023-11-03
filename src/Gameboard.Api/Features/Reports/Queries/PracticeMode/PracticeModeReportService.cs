@@ -292,7 +292,9 @@ internal class PracticeModeReportService : IPracticeModeReportService
                     FullyCorrectCount = attempt.Player.CorrectCount
                 })
                 .OrderBy(a => a.Start)
-        });
+        })
+        .OrderBy(r => r.User.Name)
+        .ThenBy(r => r.Challenge.Name);
 
         return new()
         {
