@@ -16,7 +16,7 @@ namespace Gameboard.Api.Features.Games.Start;
 
 public interface IGameStartService
 {
-    Task<GameStartPhase> GetGameStartPhase(string gameId, CancellationToken cancellationToken);
+    Task<GameStartPhase> GetGameStartPhase(string gameId, string teamId, CancellationToken cancellationToken);
     Task HandleSyncStartStateChanged(string gameId, CancellationToken cancellationToken);
     Task<GameStartState> Start(GameStartRequest request, CancellationToken cancellationToken);
 }
@@ -73,23 +73,42 @@ internal class GameStartService : IGameStartService
         catch (Exception ex)
         {
             _logger.LogError(LogEventId.GameStart_Failed, exception: ex, message: $"""Deploy for game "{game.Id}" """);
-            await TryCleanupFailedDeploy(startRequest.State);
+
+            // allow the start service to do custom cleanup
+            await gameModeStartService.TryCleanUpFailedDeploy(startRequest, ex);
+
+            // for convenience, reset (but don't unenroll) the teams
+            _logger.LogError(message: $"Deployment failed for game {startRequest.GameId}. Resetting sessions and cleaning up gamespaces for {startRequest.State.Teams.Count()} teams.");
+            foreach (var team in startRequest.State.Teams)
+            {
+                await _mediator.Send(new ResetTeamSessionCommand(team.Team.Id, false));
+            }
         }
 
         return null;
     }
 
-    public async Task<GameStartPhase> GetGameStartPhase(string gameId, CancellationToken cancellationToken)
+    public async Task<GameStartPhase> GetGameStartPhase(string gameId, string teamId, CancellationToken cancellationToken)
     {
         var game = await _store.Retrieve<Data.Game>(gameId);
 
-        // we'll backfill this later with real services, but here you go
-        if (!game.RequireSynchronizedStart)
-            return game.IsLive ? GameStartPhase.Started : GameStartPhase.GameOver;
+        // apply all these rules regardless of mode settings
+        var nowish = _now.Get();
 
-        // for external/sync start, currently
-        var gameModeStartService = ResolveGameModeStartService(game);
-        return await gameModeStartService.GetStartPhase(gameId, cancellationToken);
+        if (nowish > game.GameEnd)
+            return GameStartPhase.GameOver;
+        else if (nowish < game.GameStart)
+            return GameStartPhase.NotStarted;
+
+        // right now, external + sync/start is the only mode that has a dedicated service, so handle
+        // that here and then just use some simplistic logic for other modes
+        if (game.RequireSynchronizedStart && game.Mode == GameEngineMode.External)
+        {
+            var gameModeStartService = ResolveGameModeStartService(game);
+            return await gameModeStartService.GetStartPhase(gameId, teamId, cancellationToken);
+        }
+
+        return GameStartPhase.Started;
     }
 
     public async Task HandleSyncStartStateChanged(string gameId, CancellationToken cancellationToken)
@@ -205,23 +224,6 @@ internal class GameStartService : IGameStartService
                 SpecIds = specs.Select(s => s.Id).ToArray(),
             }
         };
-    }
-
-    private async Task TryCleanupFailedDeploy(GameStartState ctx)
-    {
-        _logger.LogError(message: $"Deployment failed for game {ctx.Game.Id}. Resetting sessions and cleaning up gamespaces for {ctx.Teams.Count} teams.");
-
-        foreach (var team in ctx.Teams)
-        {
-            try
-            {
-                await _mediator.Send(new ResetTeamSessionCommand(team.Team.Id, false));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(message: $"Cleanup failed for team {team.Team.Id}", exception: ex);
-            }
-        }
     }
 
     private void Log(string message, string gameId)

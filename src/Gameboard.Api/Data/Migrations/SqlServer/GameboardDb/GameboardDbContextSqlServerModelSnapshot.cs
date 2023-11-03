@@ -415,6 +415,36 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("ChallengeSpecs");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.ExternalGameTeam", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("DeployStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ExternalGameUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("GameId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("TeamId", "GameId");
+
+                    b.HasIndex("GameId");
+
+                    b.ToTable("ExternalGameTeam");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Feedback", b =>
                 {
                     b.Property<string>("Id")
@@ -1119,6 +1149,17 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("Game");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.ExternalGameTeam", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Game", "Game")
+                        .WithMany("ExternalGameTeams")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Game");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Feedback", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Challenge", "Challenge")
@@ -1346,6 +1387,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
             modelBuilder.Entity("Gameboard.Api.Data.Game", b =>
                 {
                     b.Navigation("Challenges");
+
+                    b.Navigation("ExternalGameTeams");
 
                     b.Navigation("Feedback");
 

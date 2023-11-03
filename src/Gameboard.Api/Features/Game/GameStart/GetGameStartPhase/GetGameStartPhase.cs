@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Services;
@@ -9,7 +8,7 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Games.Start;
 
-public record GetGameStartPhaseQuery(string GameId, string ActingUserId) : IRequest<GameStartPhase>;
+public record GetGameStartPhaseQuery(string GameId, string TeamId, string ActingUserId) : IRequest<GameStartPhase>;
 
 internal class GetGameStartPhaseHandler : IRequestHandler<GetGameStartPhaseQuery, GameStartPhase>
 {
@@ -53,6 +52,6 @@ internal class GetGameStartPhaseHandler : IRequestHandler<GetGameStartPhaseQuery
             .AddValidator(_userExists.UseProperty(r => r.ActingUserId));
         await _validatorService.Validate(request, cancellationToken);
 
-        return await _gameStartService.GetGameStartPhase(request.GameId, cancellationToken);
+        return await _gameStartService.GetGameStartPhase(request.GameId, request.TeamId, cancellationToken);
     }
 }

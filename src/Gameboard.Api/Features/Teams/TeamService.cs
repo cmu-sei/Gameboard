@@ -8,6 +8,7 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Practice;
 using Microsoft.EntityFrameworkCore;
@@ -34,6 +35,7 @@ public interface ITeamService
 
 internal class TeamService : ITeamService
 {
+    private readonly IExternalGameTeamService _externalGameTeamService;
     private readonly IGameEngineService _gameEngine;
     private readonly IMapper _mapper;
     private readonly IMemoryCache _memCache;
@@ -45,6 +47,7 @@ internal class TeamService : ITeamService
 
     public TeamService
     (
+        IExternalGameTeamService externalGameTeamService,
         IGameEngineService gameEngine,
         IMapper mapper,
         IMemoryCache memCache,
@@ -55,6 +58,7 @@ internal class TeamService : ITeamService
         IStore store
     )
     {
+        _externalGameTeamService = externalGameTeamService;
         _gameEngine = gameEngine;
         _mapper = mapper;
         _memCache = memCache;
@@ -74,6 +78,9 @@ internal class TeamService : ITeamService
             .WithNoTracking<Data.Player>()
             .Where(p => p.TeamId == teamId)
             .ExecuteDeleteAsync(cancellationToken);
+
+        // also delete any external data for this team
+        await _externalGameTeamService.DeleteTeamExternalData(cancellationToken, teamId);
 
         // notify hub that the team is deleted /players left so the client can respond
         await _teamHubService.SendTeamDeleted(teamState, actingUser);

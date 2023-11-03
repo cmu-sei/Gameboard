@@ -35,7 +35,8 @@ public enum GameStartPhase
     NotStarted,
     Starting,
     Started,
-    GameOver
+    GameOver,
+    Failed
 }
 
 public class GameStartStatePlayer

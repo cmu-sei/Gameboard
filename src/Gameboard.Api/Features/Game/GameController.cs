@@ -150,11 +150,11 @@ namespace Gameboard.Api.Controllers
         public async Task<SyncStartState> IsGameReady(string gameId)
             => await _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
 
-        [HttpGet("/api/game/{gameId}/start-phase")]
+        [HttpGet("/api/game/{gameId}/start-phase/{teamId}")]
         [Authorize]
-        public async Task<GameStartPhase> GetStartPhase(string gameId)
+        public async Task<GameStartPhase> GetStartPhase(string gameId, string teamId)
         {
-            return await _mediator.Send(new GetGameStartPhaseQuery(gameId, Actor.Id));
+            return await _mediator.Send(new GetGameStartPhaseQuery(gameId, teamId, Actor.Id));
         }
 
 

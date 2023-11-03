@@ -21,6 +21,7 @@ public enum EventAction
     ReadyStateChanged,
     RoleChanged,
     SessionExtended,
+    SessionReset,
     Started,
     Updated
 }
