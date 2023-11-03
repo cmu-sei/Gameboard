@@ -128,6 +128,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     {
         // for each team, create metadata that ties them to this game, holds team-specific metadata,
         // and knows about the deploy state
+        Log("Creating teams for the external game...", request.GameId);
         await _externalGameTeamService.CreateTeams(request.GameId, request.State.Teams.Select(t => t.Team.Id), cancellationToken);
 
         Log("Gathering data...", request.GameId);
