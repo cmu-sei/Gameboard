@@ -26,11 +26,12 @@ internal class PracticeModeReportPlayerModeSummaryHandler : IRequestHandler<Prac
 
     public async Task<PracticeModeReportPlayerModeSummary> Handle(PracticeModeReportPlayerModeSummaryQuery request, CancellationToken cancellationToken)
     {
-        _userRoleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Director, UserRole.Support };
-        _userRoleAuthorizer.Authorize();
+        _userRoleAuthorizer
+            .AllowRoles(UserRole.Admin, UserRole.Director, UserRole.Support)
+            .Authorize();
 
         _validatorService.AddValidator(_userExists.UseProperty(r => r.UserId));
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
 
         var result = await _reportService.GetPlayerModePerformanceSummary(request.UserId, request.IsPractice, cancellationToken);
         return result;

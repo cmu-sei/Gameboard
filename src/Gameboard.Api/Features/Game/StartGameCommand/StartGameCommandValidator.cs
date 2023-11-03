@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
@@ -27,7 +28,7 @@ internal class StartGameCommandValidator : IGameboardRequestValidator<StartGameC
         _validatorService = validatorService;
     }
 
-    public async Task Validate(StartGameCommand request)
+    public async Task Validate(StartGameCommand request, CancellationToken cancellationToken)
     {
         _validatorService.AddValidator(_gameExists.UseProperty(g => g.GameId));
 
@@ -43,14 +44,17 @@ internal class StartGameCommandValidator : IGameboardRequestValidator<StartGameC
         (
             async (request, context) =>
             {
-                var sessionCount = await _teamService.GetSessionCount(request.TeamId, request.GameId);
-                if (game.SessionLimit > 0 && sessionCount > game.SessionLimit)
-                    context.AddValidationException(new SessionLimitReached(request.TeamId, request.GameId, sessionCount, game.SessionLimit));
+                if (game.PlayerMode != PlayerMode.Competition)
+                {
+                    var sessionCount = await _teamService.GetSessionCount(request.TeamId, request.GameId, cancellationToken);
+                    if (game.SessionLimit > 0 && sessionCount > game.SessionLimit)
+                        context.AddValidationException(new SessionLimitReached(request.TeamId, request.GameId, sessionCount, game.SessionLimit));
+                }
             }
         );
 
         // Rule: games can't start if the current date/time isn't in the "execution window"
         // _validatorService.AddValidator(new SimpleValidator<StartGameCommand, )
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
     }
 }

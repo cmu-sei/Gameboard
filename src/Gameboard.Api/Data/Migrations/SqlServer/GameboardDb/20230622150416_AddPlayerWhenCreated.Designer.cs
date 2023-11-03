@@ -21,7 +21,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.1")
+                .HasAnnotation("ProductVersion", "7.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -98,6 +98,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<string>("PlayerId")
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("PlayerMode")
+                        .HasColumnType("int");
 
                     b.Property<string>("PlayerName")
                         .HasMaxLength(64)
@@ -187,6 +190,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<string>("PlayerId")
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("PlayerMode")
+                        .HasColumnType("int");
 
                     b.Property<int>("Points")
                         .HasColumnType("int");
@@ -322,6 +328,10 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.Property<float>("R")
                         .HasColumnType("real");
+
+                    b.Property<string>("SolutionGuideUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("Tag")
                         .HasColumnType("nvarchar(max)");
@@ -617,17 +627,13 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<int>("SessionMinutes")
                         .HasColumnType("int");
 
-                    b.Property<string>("Sponsor")
-                        .HasMaxLength(40)
+                    b.Property<string>("SponsorId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("TeamId")
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
-
-                    b.Property<string>("TeamSponsors")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
 
                     b.Property<long>("Time")
                         .HasColumnType("bigint");
@@ -643,11 +649,76 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.HasIndex("GameId");
 
+                    b.HasIndex("SponsorId");
+
                     b.HasIndex("TeamId");
 
                     b.HasIndex("UserId");
 
                     b.ToTable("Players");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.PracticeModeSettings", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("CertificateHtmlTemplate")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DefaultPracticeSessionLengthMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("IntroTextMarkdown")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int?>("MaxConcurrentPracticeSessions")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MaxPracticeSessionLengthMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SuggestedSearches")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTimeOffset?>("UpdatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UpdatedByUserId")
+                        .IsUnique()
+                        .HasFilter("[UpdatedByUserId] IS NOT NULL");
+
+                    b.ToTable("PracticeModeSettings");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.PublishedCertificate", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OwnerUserId")
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTimeOffset>("PublishedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PublishedCertificate");
+
+                    b.HasDiscriminator<int>("Mode");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Sponsor", b =>
@@ -666,7 +737,12 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<string>("ParentSponsorId")
+                        .HasColumnType("nvarchar(40)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("ParentSponsorId");
 
                     b.ToTable("Sponsors");
                 });
@@ -804,9 +880,23 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<DateTimeOffset>("CreatedOn")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<string>("Email")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
+
+                    b.Property<bool>("HasDefaultSponsor")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset?>("LastLoginDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("LoginCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValueSql("0");
 
                     b.Property<string>("Name")
                         .HasMaxLength(64)
@@ -819,8 +909,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<int>("Role")
                         .HasColumnType("int");
 
-                    b.Property<string>("Sponsor")
-                        .HasMaxLength(40)
+                    b.Property<string>("SponsorId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("Username")
@@ -829,7 +919,39 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.HasKey("Id");
 
+                    b.HasIndex("SponsorId");
+
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.PublishedCompetitiveCertificate", b =>
+                {
+                    b.HasBaseType("Gameboard.Api.Data.PublishedCertificate");
+
+                    b.Property<string>("GameId")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasIndex("GameId");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasDiscriminator().HasValue(0);
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.PublishedPracticeCertificate", b =>
+                {
+                    b.HasBaseType("Gameboard.Api.Data.PublishedCertificate");
+
+                    b.Property<string>("ChallengeSpecId")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasIndex("ChallengeSpecId");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasDiscriminator().HasValue(1);
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.ApiKey", b =>
@@ -950,6 +1072,12 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .WithMany("Players")
                         .HasForeignKey("GameId");
 
+                    b.HasOne("Gameboard.Api.Data.Sponsor", "Sponsor")
+                        .WithMany("SponsoredPlayers")
+                        .HasForeignKey("SponsorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Gameboard.Api.Data.User", "User")
                         .WithMany("Enrollments")
                         .HasForeignKey("UserId")
@@ -957,7 +1085,27 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.Navigation("Game");
 
+                    b.Navigation("Sponsor");
+
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.PracticeModeSettings", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.User", "UpdatedByUser")
+                        .WithOne("UpdatedPracticeModeSettings")
+                        .HasForeignKey("Gameboard.Api.Data.PracticeModeSettings", "UpdatedByUserId");
+
+                    b.Navigation("UpdatedByUser");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.Sponsor", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Sponsor", "ParentSponsor")
+                        .WithMany("ChildSponsors")
+                        .HasForeignKey("ParentSponsorId");
+
+                    b.Navigation("ParentSponsor");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Ticket", b =>
@@ -1017,6 +1165,49 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.User", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Sponsor", "Sponsor")
+                        .WithMany("SponsoredUsers")
+                        .HasForeignKey("SponsorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sponsor");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.PublishedCompetitiveCertificate", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Game", "Game")
+                        .WithMany("PublishedCompetitiveCertificates")
+                        .HasForeignKey("GameId");
+
+                    b.HasOne("Gameboard.Api.Data.User", "OwnerUser")
+                        .WithMany("PublishedCompetitiveCertificates")
+                        .HasForeignKey("OwnerUserId")
+                        .HasConstraintName("FK_OwnerUserId_Users_Id");
+
+                    b.Navigation("Game");
+
+                    b.Navigation("OwnerUser");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.PublishedPracticeCertificate", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.ChallengeSpec", "ChallengeSpec")
+                        .WithMany("PublishedPracticeCertificates")
+                        .HasForeignKey("ChallengeSpecId");
+
+                    b.HasOne("Gameboard.Api.Data.User", "OwnerUser")
+                        .WithMany("PublishedPracticeCertificates")
+                        .HasForeignKey("OwnerUserId")
+                        .HasConstraintName("FK_OwnerUserId_Users_Id");
+
+                    b.Navigation("ChallengeSpec");
+
+                    b.Navigation("OwnerUser");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
                 {
                     b.Navigation("AwardedManualBonuses");
@@ -1031,6 +1222,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
             modelBuilder.Entity("Gameboard.Api.Data.ChallengeSpec", b =>
                 {
                     b.Navigation("Feedback");
+
+                    b.Navigation("PublishedPracticeCertificates");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Game", b =>
@@ -1043,6 +1236,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.Navigation("Prerequisites");
 
+                    b.Navigation("PublishedCompetitiveCertificates");
+
                     b.Navigation("Specs");
                 });
 
@@ -1053,6 +1248,15 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("Feedback");
 
                     b.Navigation("Tickets");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.Sponsor", b =>
+                {
+                    b.Navigation("ChildSponsors");
+
+                    b.Navigation("SponsoredPlayers");
+
+                    b.Navigation("SponsoredUsers");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Ticket", b =>
@@ -1069,6 +1273,12 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("EnteredManualChallengeBonuses");
 
                     b.Navigation("Feedback");
+
+                    b.Navigation("PublishedCompetitiveCertificates");
+
+                    b.Navigation("PublishedPracticeCertificates");
+
+                    b.Navigation("UpdatedPracticeModeSettings");
                 });
 #pragma warning restore 612, 618
         }

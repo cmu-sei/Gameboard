@@ -20,7 +20,7 @@ internal class PracticeModeReportCsvExportHandler : IRequestHandler<PracticeMode
 
     public async Task<IEnumerable<PracticeModeReportCsvRecord>> Handle(PracticeModeReportCsvExportQuery request, CancellationToken cancellationToken)
     {
-        await _validator.Validate(request);
+        await _validator.Validate(request, cancellationToken);
         return await _practiceModeReportService.GetCsvExport(request.Parameters, cancellationToken);
     }
 }

@@ -55,7 +55,7 @@ internal class GetPracticeModeCertificateHtmlHandler : IRequestHandler<GetPracti
 
                 return Task.CompletedTask;
             })
-            .Validate(request);
+            .Validate(request, cancellationToken);
 
         if (certificate is null)
             throw new ResourceNotFound<PublishedPracticeCertificate>(request.ChallengeSpecId, $"Couldn't resolve a certificate for owner {request.CertificateOwnerUserId} and challenge spec {request.ChallengeSpecId}");

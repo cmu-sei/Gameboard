@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Gameboard.Api.Features.Sponsors;
 
 namespace Gameboard.Api.Features.Teams;
 
@@ -12,6 +11,18 @@ public class PromoteToManagerRequest
     public string CurrentManagerPlayerId { get; set; }
     public string NewManagerPlayerId { get; set; }
     public string TeamId { get; set; }
+}
+
+public sealed class ExtendTeamSessionRequest
+{
+    public required string TeamId { get; set; }
+    public required DateTimeOffset NewSessionEnd { get; set; }
+    public required User Actor { get; set; }
+}
+
+public class ResetTeamSessionRequest
+{
+    public required bool UnenrollTeam { get; set; }
 }
 
 public class TeamInvitation
@@ -79,14 +90,21 @@ public class TeamPlayer
     public bool IsManager => Role == PlayerRole.Manager;
 }
 
+public class NotificationHubTeamSessionEvent
+{
+    public required string TeamId { get; set; }
+    public required DateTimeOffset SessionBegin { get; set; }
+    public required DateTimeOffset SessionEnd { get; set; }
+}
+
 public class TeamState
 {
-    public string TeamId { get; set; }
+    public required string Id { get; set; }
     public Api.Player ActingPlayer { get; set; }
-    public string ApprovedName { get; set; }
+    public required string ApprovedName { get; set; }
     public string Name { get; set; }
     public string NameStatus { get; set; }
-    public DateTimeOffset SessionBegin { get; set; }
-    public DateTimeOffset SessionEnd { get; set; }
-    public User Actor { get; set; }
+    public DateTimeOffset? SessionBegin { get; set; }
+    public DateTimeOffset? SessionEnd { get; set; }
+    public required SimpleEntity Actor { get; set; }
 }

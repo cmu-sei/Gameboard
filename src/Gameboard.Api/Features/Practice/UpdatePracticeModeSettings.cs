@@ -1,8 +1,8 @@
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
@@ -35,10 +35,11 @@ internal class UpdatePracticeModeSettingsValidator : IGameboardRequestValidator<
         _validatorService = validatorService;
     }
 
-    public async Task Validate(UpdatePracticeModeSettingsCommand request)
+    public async Task Validate(UpdatePracticeModeSettingsCommand request, CancellationToken cancellationToken)
     {
-        _roleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin };
-        _roleAuthorizer.Authorize();
+        _roleAuthorizer
+            .AllowRoles(UserRole.Admin)
+            .Authorize();
 
         _validatorService.AddValidator((request, context) =>
         {
@@ -58,7 +59,7 @@ internal class UpdatePracticeModeSettingsValidator : IGameboardRequestValidator<
 
         _validatorService.AddValidator(_userExists.UseProperty(r => r.ActingUser.Id));
 
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
     }
 }
 
@@ -70,7 +71,7 @@ internal class UpdatePracticeModeSettingsHandler : IRequestHandler<UpdatePractic
     private readonly INowService _now;
     private readonly IPracticeService _practiceService;
     private readonly IStore _store;
-    private readonly UpdatePracticeModeSettingsValidator _validator;
+    private readonly IGameboardRequestValidator<UpdatePracticeModeSettingsCommand> _requestValidator;
 
     public UpdatePracticeModeSettingsHandler
     (
@@ -78,19 +79,19 @@ internal class UpdatePracticeModeSettingsHandler : IRequestHandler<UpdatePractic
         INowService now,
         IPracticeService practiceService,
         IStore store,
-        UpdatePracticeModeSettingsValidator validator
+        IGameboardRequestValidator<UpdatePracticeModeSettingsCommand> requestValidator
     )
     {
         _mapper = mapper;
         _now = now;
         _practiceService = practiceService;
         _store = store;
-        _validator = validator;
+        _requestValidator = requestValidator;
     }
 
     public async Task Handle(UpdatePracticeModeSettingsCommand request, CancellationToken cancellationToken)
     {
-        await _validator.Validate(request);
+        await _requestValidator.Validate(request, cancellationToken);
 
         var currentSettings = await _store.FirstOrDefaultAsync<PracticeModeSettings>(cancellationToken);
         var updatedSettings = _mapper.Map<PracticeModeSettings>(request.Settings);
@@ -103,6 +104,6 @@ internal class UpdatePracticeModeSettingsHandler : IRequestHandler<UpdatePractic
         if (updatedSettings.DefaultPracticeSessionLengthMinutes <= 0)
             updatedSettings.DefaultPracticeSessionLengthMinutes = 60;
 
-        await _store.Update(updatedSettings, cancellationToken);
+        await _store.SaveUpdate(updatedSettings, cancellationToken);
     }
 }

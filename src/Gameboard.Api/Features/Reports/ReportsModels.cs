@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Threading;
-using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Features.Reports;

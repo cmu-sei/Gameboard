@@ -1,8 +1,7 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Services;
-using Gameboard.Api.Structure.MediatR.Authorizers;
+using Gameboard.Api.Common.Services;
 using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
@@ -25,7 +24,7 @@ internal class GetMetaDataHandler : IRequestHandler<GetMetaDataQuery, ReportMeta
 
     public async Task<ReportMetaData> Handle(GetMetaDataQuery request, CancellationToken cancellationToken)
     {
-        await _reportsQueryValidator.Validate(request);
+        await _reportsQueryValidator.Validate(request, cancellationToken);
 
         var reports = await _reportsService.List();
         var report = reports.FirstOrDefault(r => r.Key == request.ReportKey) ?? throw new ResourceNotFound<ReportViewModel>(request.ReportKey);

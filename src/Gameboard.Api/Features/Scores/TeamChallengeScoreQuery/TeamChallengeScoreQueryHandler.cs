@@ -6,9 +6,9 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Scores;
 
-public record TeamChallengeScoreQuery(string ChallengeId) : IRequest<TeamChallengeScoreSummary>;
+public record TeamChallengeScoreQuery(string ChallengeId) : IRequest<TeamChallengeScore>;
 
-internal class TeamChallengeScoreQueryHandler : IRequestHandler<TeamChallengeScoreQuery, TeamChallengeScoreSummary>
+internal class TeamChallengeScoreQueryHandler : IRequestHandler<TeamChallengeScoreQuery, TeamChallengeScore>
 {
     private readonly EntityExistsValidator<TeamChallengeScoreQuery, Data.Challenge> _challengeExists;
     private readonly IScoringService _scoresService;
@@ -24,10 +24,10 @@ internal class TeamChallengeScoreQueryHandler : IRequestHandler<TeamChallengeSco
         _validatorService = validatorService;
     }
 
-    public async Task<TeamChallengeScoreSummary> Handle(TeamChallengeScoreQuery request, CancellationToken cancellationToken)
+    public async Task<TeamChallengeScore> Handle(TeamChallengeScoreQuery request, CancellationToken cancellationToken)
     {
         _validatorService.AddValidator(_challengeExists.UseProperty(r => r.ChallengeId));
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
 
         return await _scoresService.GetTeamChallengeScore(request.ChallengeId);
     }

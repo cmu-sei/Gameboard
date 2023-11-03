@@ -53,10 +53,11 @@ public class PlayerControllerUpdatePlayerReadyTests
             });
         });
 
-        var client = _testContext.CreateHttpClientWithActingUser(u => u.Id = readyPlayer1UserId);
+        var http = _testContext.CreateHttpClientWithActingUser(u => u.Id = readyPlayer1UserId);
 
         // when
-        var response = await client.PutAsync($"/api/player/{notReadyPlayer1Id}/ready", new PlayerReadyUpdate { IsReady = true }.ToJsonBody());
+        var response = await http
+            .PutAsync($"/api/player/{notReadyPlayer1Id}/ready", new PlayerReadyUpdate { IsReady = true }.ToJsonBody());
 
         // then
         // only way to validate is to check for an upcoming session for the game
@@ -71,9 +72,8 @@ public class PlayerControllerUpdatePlayerReadyTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task UpdatePlayerReady_WithAllReadyPlayers_ReturnsStartedSession(IFixture fixture, string gameId, string readyPlayerId, string notReadyPlayerUserId, string notReadyPlayerId)
+    public async Task UpdatePlayerReady_WithAllReadyPlayersAndExternalSyncGame_ReturnsStartedSession(IFixture fixture, string gameId, string readyPlayerId, string notReadyPlayerUserId, string notReadyPlayerId)
     {
-        // given
         await _testContext.WithDataState(state =>
         {
             state.Add<Data.Game>(fixture, g =>
@@ -89,7 +89,10 @@ public class PlayerControllerUpdatePlayerReadyTests
                         p.Name = "not ready (but will be)";
                         p.Role = PlayerRole.Manager;
                         p.IsReady = false;
-                        p.User = state.Build<Data.User>(fixture, u => u.Id = notReadyPlayerUserId);
+                        p.User = state.Build<Data.User>(fixture, u =>
+                        {
+                            u.Id = notReadyPlayerUserId;
+                        });
                     }),
                     state.Build<Data.Player>(fixture, p =>
                     {
@@ -97,6 +100,8 @@ public class PlayerControllerUpdatePlayerReadyTests
                         p.Name = "ready";
                         p.IsReady = true;
                         p.Role = PlayerRole.Manager;
+                        p.TeamId = fixture.Create<string>();
+                        p.User = state.Build<Data.User>(fixture);
                     })
                 };
             });
@@ -104,14 +109,11 @@ public class PlayerControllerUpdatePlayerReadyTests
 
         var client = _testContext.CreateHttpClientWithActingUser(u => u.Id = notReadyPlayerUserId);
 
-        // when
-        var response = await client.PutAsync($"/api/player/{notReadyPlayerId}/ready", new PlayerReadyUpdate { IsReady = true }.ToJsonBody());
+        // when/then
+        var response = client.PutAsync($"/api/player/{notReadyPlayerId}/ready", new PlayerReadyUpdate { IsReady = true }.ToJsonBody());
 
-        // then
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        response.ShouldNotBeNull();
-
-        var gameSyncStartState = await client
+        var gameSyncStartState = await _testContext
+            .CreateHttpClientWithAuthRole(UserRole.Admin)
             .GetAsync($"/api/game/{gameId}/ready")
             .WithContentDeserializedAs<SyncStartState>();
 

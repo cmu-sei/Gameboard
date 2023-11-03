@@ -34,12 +34,13 @@ internal class GetPracticeModeCertificatesHandler : IRequestHandler<GetPracticeM
 
     public async Task<IEnumerable<PracticeModeCertificate>> Handle(GetPracticeModeCertificatesQuery request, CancellationToken cancellationToken)
     {
-        _userRoleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin };
-        _userRoleAuthorizer.AllowedUserId = request.CertificateOwnerUserId;
-        _userRoleAuthorizer.Authorize();
+        _userRoleAuthorizer
+            .AllowRoles(UserRole.Admin)
+            .AllowUserId(request.CertificateOwnerUserId)
+            .Authorize();
 
         _validatorService.AddValidator(_userExists.UseProperty(r => r.CertificateOwnerUserId));
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
 
         return await _certificatesService.GetPracticeCertificates(request.CertificateOwnerUserId);
     }

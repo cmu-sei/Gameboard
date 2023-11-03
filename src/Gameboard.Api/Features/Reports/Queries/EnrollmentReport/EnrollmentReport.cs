@@ -1,7 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Common;
-using Gameboard.Api.Services;
+using Gameboard.Api.Common.Services;
 using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
@@ -32,7 +31,7 @@ internal class EnrollmentReportQueryHandler : IRequestHandler<EnrollmentReportQu
     public async Task<ReportResults<EnrollmentReportStatSummary, EnrollmentReportRecord>> Handle(EnrollmentReportQuery request, CancellationToken cancellationToken)
     {
         // validate
-        await _reportsQueryValidator.Validate(request);
+        await _reportsQueryValidator.Validate(request, cancellationToken);
 
         // pull and page results
         var rawResults = await _enrollmentReportService.GetRawResults(request.Parameters, cancellationToken);

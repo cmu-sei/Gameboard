@@ -1,6 +1,5 @@
 using AutoMapper;
 using Gameboard.Api.Data;
-using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Features.ChallengeBonuses;
 
@@ -14,5 +13,10 @@ public class ChallengeBonusMaps : Profile
                 Id = m.EnteredByUserId,
                 Name = m.EnteredByUser.ApprovedName
             }));
+
+        CreateMap<Data.AwardedChallengeBonus, GameScoreAutoChallengeBonus>();
+        CreateMap<Data.ChallengeBonus, GameScoringConfigChallengeBonus>();
+        CreateMap<Data.ChallengeBonus, GameScoreAutoChallengeBonus>();
+        CreateMap<Data.ChallengeBonusCompleteSolveRank, GameScoringConfigChallengeBonus>();
     }
 }

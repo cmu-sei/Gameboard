@@ -1,6 +1,14 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
+using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Hubs;
 using Gameboard.Api.Hubs;
+using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Extensions;
 
@@ -44,7 +52,39 @@ internal static class WebApplicationExtensions
 
         // map endpoints directly on app (warning ASP0014)
         app.MapHub<AppHub>("/hub").RequireAuthorization();
+        app.MapHub<GameHub>("/hub/games").RequireAuthorization();
+        app.MapHub<ScoreHub>("/hub/scores").RequireAuthorization();
         app.MapControllers().RequireAuthorization();
+
+        return app;
+    }
+
+    /// <summary>
+    /// This is where we put things that we want to happen when Gameboard boots, but before the API goes live.
+    /// Currently, this only involves syncing challenge spec data for "active" challenge specs. 
+    /// 
+    /// Be very careful about adding additional work to this function. It's good to be able to do things on startup
+    /// sometimes, but we don't want app reboot to become a lengthy process.
+    /// </summary>
+    /// <param name="app"></param>
+    /// <param name="logger"></param>
+    /// <returns></returns>
+    public static WebApplication DoStartupTasks(this WebApplication app, ILogger logger)
+    {
+        try
+        {
+            using var serviceScope = app.Services.CreateScope();
+            var fireAndForget = serviceScope.ServiceProvider.GetRequiredService<IFireAndForgetService>();
+            fireAndForget.Fire(async scope =>
+            {
+                var challengeSpecService = scope.ServiceProvider.GetRequiredService<ChallengeSpecService>();
+                await challengeSpecService.SyncActiveSpecs(CancellationToken.None);
+            }, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(message: "Failed to synchronize active challenge specs on startup.", exception: ex);
+        }
 
         return app;
     }

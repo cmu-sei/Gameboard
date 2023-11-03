@@ -6,16 +6,15 @@ namespace Gameboard.Api.Tests.Unit;
 
 public class PlayerValidatorTests
 {
-    private IPlayerStore _BuildPlayerStore(IFixture fixture, string actingPlayerId, params Api.Data.Player[] players)
+    private IStore BuildStoreWithActingPlayer(string actingPlayerId, params Data.Player[] players)
     {
         var actingPlayer = players.Single(p => p.Id == actingPlayerId);
         var mockPlayers = players.BuildMock();
-        var playerStore = A.Fake<IPlayerStore>();
 
-        A.CallTo(() => playerStore.Retrieve(actingPlayerId)).Returns(actingPlayer);
-        A.CallTo(() => playerStore.List(null)).Returns(mockPlayers);
+        var store = A.Fake<IStore>();
+        A.CallTo(() => store.WithNoTracking<Data.Player>()).Returns(mockPlayers);
 
-        return playerStore;
+        return store;
     }
 
     [Theory, GameboardAutoData]
@@ -24,21 +23,21 @@ public class PlayerValidatorTests
         // arrange
         var teamId = fixture.Create<string>();
 
-        var managerPlayer = new Api.Data.Player
+        var managerPlayer = new Data.Player
         {
             Id = "manager",
             Role = PlayerRole.Manager,
             TeamId = teamId,
             UserId = fixture.Create<string>()
         };
-        var nonManagerPlayer = new Api.Data.Player
+        var nonManagerPlayer = new Data.Player
         {
             Id = "member",
             Role = PlayerRole.Member,
             TeamId = teamId
         };
 
-        var sut = new PlayerValidator(_BuildPlayerStore(fixture, "manager", new Api.Data.Player[]
+        var sut = new PlayerValidator(A.Fake<IPlayerStore>(), BuildStoreWithActingPlayer("manager", new Data.Player[]
         {
             managerPlayer, nonManagerPlayer
         }));
@@ -55,7 +54,7 @@ public class PlayerValidatorTests
     public async Task ValidateUnenroll_WhenIsManagerAndHasNoTeammates_Succeeds(IFixture fixture)
     {
         // arrange
-        var player = new Api.Data.Player
+        var player = new Data.Player
         {
             Id = "manager",
             Role = PlayerRole.Manager,
@@ -63,8 +62,8 @@ public class PlayerValidatorTests
             UserId = fixture.Create<string>()
         };
 
-        var playerStore = _BuildPlayerStore(fixture, player.Id, player);
-        var sut = new PlayerValidator(playerStore);
+        var store = BuildStoreWithActingPlayer(player.Id, player);
+        var sut = new PlayerValidator(A.Fake<IPlayerStore>(), store);
 
         // act / assert
         await Should.NotThrowAsync(() => sut._validate(new PlayerUnenrollRequest
@@ -81,7 +80,7 @@ public class PlayerValidatorTests
         var sessionStart = fixture.Create<DateTimeOffset>();
         var teamId = fixture.Create<string>();
 
-        var player = new Api.Data.Player
+        var player = new Data.Player
         {
             Id = "member",
             Role = PlayerRole.Member,
@@ -90,8 +89,8 @@ public class PlayerValidatorTests
             TeamId = teamId
         };
 
-        var playerStore = _BuildPlayerStore(fixture, player.Id, player);
-        var sut = new PlayerValidator(playerStore);
+        var store = BuildStoreWithActingPlayer(player.Id, player);
+        var sut = new PlayerValidator(A.Fake<IPlayerStore>(), store);
 
         // act / assert
         Should.Throw<SessionAlreadyStarted>(async () => await sut._validate(new PlayerUnenrollRequest
@@ -108,7 +107,7 @@ public class PlayerValidatorTests
         var sessionStart = fixture.Create<DateTimeOffset>();
         var teamId = fixture.Create<string>();
 
-        var player = new Api.Data.Player
+        var player = new Data.Player
         {
             Id = "member",
             Role = PlayerRole.Member,
@@ -117,8 +116,8 @@ public class PlayerValidatorTests
             TeamId = teamId
         };
 
-        var playerStore = _BuildPlayerStore(fixture, player.Id, player);
-        var sut = new PlayerValidator(playerStore);
+        var store = BuildStoreWithActingPlayer(player.Id, player);
+        var sut = new PlayerValidator(A.Fake<IPlayerStore>(), store);
 
         // act / assert
         await Should.NotThrowAsync(() => sut._validate(new PlayerUnenrollRequest

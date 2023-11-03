@@ -36,8 +36,9 @@ internal class CreateSponsorHandler : IRequestHandler<CreateSponsorCommand, Spon
     public async Task<SponsorWithParentSponsor> Handle(CreateSponsorCommand request, CancellationToken cancellationToken)
     {
         // authorize/validate
-        _userRoleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Registrar };
-        _userRoleAuthorizer.Authorize();
+        _userRoleAuthorizer
+            .AllowRoles(UserRole.Admin, UserRole.Registrar)
+            .Authorize();
 
         _validatorService.AddValidator((request, context) =>
         {
@@ -46,7 +47,7 @@ internal class CreateSponsorHandler : IRequestHandler<CreateSponsorCommand, Spon
 
             return Task.CompletedTask;
         });
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
 
         // create sponsor without logo - we can upload after
         var sponsor = await _store.Create(new Data.Sponsor

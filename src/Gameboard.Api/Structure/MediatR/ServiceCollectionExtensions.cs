@@ -10,8 +10,8 @@ internal static class MediatRExtensionsToServiceCollection
     {
         return services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>())
             .AddConcretesFromNamespaceStartsWith("Gameboard.Api.Structure.MediatR")
-            .AddConcretesFromNamespace("Gameboard.Api.Features.GameEngine.Queries")
             .AddImplementationsOf<IAuthorizer>()
+            .AddImplementationsOf<IGameboardValidator>()
             .AddImplementationsOf(typeof(IGameboardValidator<>))
             .AddImplementationsOf(typeof(IGameboardRequestValidator<>))
             .AddScoped(typeof(IValidatorService<>), typeof(ValidatorService<>));

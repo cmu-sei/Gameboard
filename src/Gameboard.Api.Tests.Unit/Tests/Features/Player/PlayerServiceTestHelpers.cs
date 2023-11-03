@@ -1,10 +1,14 @@
 using AutoMapper;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Teams;
-using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
+using MediatR;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Api.Tests.Unit;
@@ -14,38 +18,36 @@ internal static class PlayerServiceTestHelpers
     // TODO: reflection helper
     public static PlayerService GetTestableSut
     (
-        CoreOptions? coreOptions = null,
         ChallengeService? challengeService = null,
-        IPlayerStore? playerStore = null,
-        IGameService? gameService = null,
+        CoreOptions? coreOptions = null,
+        IGameStartService? gameStartService = null,
         IGameStore? gameStore = null,
-        IStore? store = null,
         IGuidService? guidService = null,
-        INowService? now = null,
         IInternalHubBus? hubBus = null,
-        IPracticeChallengeScoringListener? practiceChallengeScoringListener = null,
-        IPracticeService? practiceService = null,
-        ITeamService? teamService = null,
         IMapper? mapper = null,
-        IMemoryCache? localCache = null
+        IMemoryCache? memCache = null,
+        INowService? now = null,
+        IPlayerStore? playerStore = null,
+        IPracticeService? practiceService = null,
+        IStore? store = null,
+        ITeamService? teamService = null
     )
     {
         return new PlayerService
         (
             challengeService ?? A.Fake<ChallengeService>(),
             coreOptions ?? A.Fake<CoreOptions>(),
+            gameStartService ?? A.Fake<IGameStartService>(),
+            gameStore ?? A.Fake<IGameStore>(),
             guidService ?? A.Fake<IGuidService>(),
+            hubBus ?? A.Fake<IInternalHubBus>(),
+            mapper ?? A.Fake<IMapper>(),
+            memCache ?? A.Fake<IMemoryCache>(),
             now ?? A.Fake<INowService>(),
             playerStore ?? A.Fake<IPlayerStore>(),
-            gameService ?? A.Fake<GameService>(),
-            gameStore ?? A.Fake<IGameStore>(),
-            store ?? A.Fake<IStore>(),
-            hubBus ?? A.Fake<IInternalHubBus>(),
-            practiceChallengeScoringListener ?? A.Fake<IPracticeChallengeScoringListener>(),
             practiceService ?? A.Fake<IPracticeService>(),
-            teamService ?? A.Fake<ITeamService>(),
-            mapper ?? A.Fake<IMapper>(),
-            localCache ?? A.Fake<IMemoryCache>()
+            store ?? A.Fake<IStore>(),
+            teamService ?? A.Fake<ITeamService>()
         );
     }
 }

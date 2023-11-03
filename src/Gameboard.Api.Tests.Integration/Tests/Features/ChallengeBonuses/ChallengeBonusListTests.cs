@@ -1,5 +1,4 @@
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.ChallengeBonuses;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
@@ -26,7 +25,7 @@ public class ChallengeBonusListTests
                 u.Role = UserRole.Support;
             });
 
-            state.AddChallenge(c =>
+            state.Add<Data.Challenge>(fixture, c =>
             {
                 c.Id = challengeId;
                 c.AwardedManualBonuses = new ManualChallengeBonus[]
@@ -49,14 +48,11 @@ public class ChallengeBonusListTests
 
         });
 
-        var httpClient = _testContext.CreateHttpClientWithActingUser(u =>
-        {
-            u.Id = userId;
-            u.Role = Api.UserRole.Support;
-        });
+        var http = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
 
         // when
-        var bonuses = await httpClient.GetAsync($"api/challenge/{challengeId}/bonus/manual")
+        var bonuses = await http
+            .GetAsync($"api/challenge/{challengeId}/bonus/manual")
             .WithContentDeserializedAs<IEnumerable<ManualChallengeBonusViewModel>>();
 
         // then

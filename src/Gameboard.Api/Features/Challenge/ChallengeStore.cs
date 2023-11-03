@@ -1,12 +1,12 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
-using System;
-using Gameboard.Api.Services;
+using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Common.Services;
 
 namespace Gameboard.Api.Data;
 
@@ -23,7 +23,7 @@ public class ChallengeStore : Store<Challenge>, IChallengeStore
 {
     public ChallengeStore(
         IGuidService guids,
-        GameboardDbContext dbContext) : base(guids, dbContext)
+        GameboardDbContext dbContext) : base(dbContext, guids)
     { }
 
     public override IQueryable<Challenge> List(string term)
@@ -86,11 +86,13 @@ public class ChallengeStore : Store<Challenge>, IChallengeStore
             m.Started.Subtract(m.Created).TotalSeconds
         );
 
-        var spec = await DbContext.ChallengeSpecs.FindAsync(specId);
-
-        spec.AverageDeploySeconds = avg;
-
-        await DbContext.SaveChangesAsync();
+        await DbContext
+            .ChallengeSpecs
+            .Where(s => s.Id == specId)
+            .ExecuteUpdateAsync
+            (
+                s => s.SetProperty(s => s.AverageDeploySeconds, avg)
+            );
     }
 
     public async Task UpdateTeam(string id)
@@ -118,7 +120,7 @@ public class ChallengeStore : Store<Challenge>, IChallengeStore
         await UpdateRanks(players.First().GameId);
     }
 
-    public async Task UpdateRanks(string gameId)
+    private async Task UpdateRanks(string gameId)
     {
         var players = await DbContext.Players
             .Where(p => p.GameId == gameId)

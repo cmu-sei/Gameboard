@@ -1,30 +1,30 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Services;
+using Gameboard.Api.Structure.MediatR;
 using MediatR;
 
 namespace Gameboard.Api.Features.Games;
 
-public record GetSyncStartStateQuery(string gameId, User ActingUser) : IRequest<SyncStartState>;
+public record GetSyncStartStateQuery(string GameId, User ActingUser) : IRequest<SyncStartState>;
 
 internal class GetSyncStartStateQueryHandler : IRequestHandler<GetSyncStartStateQuery, SyncStartState>
 {
-    private readonly IGameService _gameService;
-    private readonly GetSyncStartStateQueryValidator _validator;
+    private readonly ISyncStartGameService _syncStartGameService;
+    private readonly IGameboardRequestValidator<GetSyncStartStateQuery> _validator;
 
     public GetSyncStartStateQueryHandler
     (
-        IGameService gameService,
-        GetSyncStartStateQueryValidator validator
+        ISyncStartGameService syncStartGameService,
+        IGameboardRequestValidator<GetSyncStartStateQuery> validator
     )
     {
-        _gameService = gameService;
+        _syncStartGameService = syncStartGameService;
         _validator = validator;
     }
 
     public async Task<SyncStartState> Handle(GetSyncStartStateQuery request, CancellationToken cancellationToken)
     {
-        await _validator.Validate(request);
-        return await _gameService.GetSyncStartState(request.gameId);
+        await _validator.Validate(request, cancellationToken);
+        return await _syncStartGameService.GetSyncStartState(request.GameId, cancellationToken);
     }
 }

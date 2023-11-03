@@ -1,4 +1,6 @@
+using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Features.Games.Validators;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
@@ -26,28 +28,28 @@ internal class GetSyncStartStateQueryValidator : IGameboardRequestValidator<GetS
         _validatorService = validatorService;
     }
 
-    public async Task Validate(GetSyncStartStateQuery request)
+    public async Task Validate(GetSyncStartStateQuery request, CancellationToken cancellationToken)
     {
         // game must exist
-        _validatorService.AddValidator(_gameExists.UseProperty(r => r.gameId));
+        _validatorService.AddValidator(_gameExists.UseProperty(r => r.GameId));
 
         // user must have registered for the game
         _validatorService.AddValidator
         (
             _userIsPlayingGame
-                .UseGameIdProperty(r => r.gameId)
+                .UseGameIdProperty(r => r.GameId)
                 .UseUserIdProperty(r => r.ActingUser)
         );
 
         // game must be a sync start game
         _validatorService.AddValidator(async (request, context) =>
         {
-            var game = await _gameService.Retrieve(request.gameId);
+            var game = await _gameService.Retrieve(request.GameId);
             if (!game.RequireSynchronizedStart)
             {
-                context.AddValidationException(new GameIsNotSyncStart(request.gameId, "Can't read the sync start state of a non-sync-start game."));
+                context.AddValidationException(new GameIsNotSyncStart(request.GameId, "Can't read the sync start state of a non-sync-start game."));
             }
         });
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
     }
 }

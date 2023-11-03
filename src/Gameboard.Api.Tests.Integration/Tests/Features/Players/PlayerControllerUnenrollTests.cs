@@ -44,7 +44,7 @@ public class PlayerControllerUnenrollTests
                                 u.Id = memberUserId;
                                 u.Role = UserRole.Member;
                             });
-                            p.Challenges = state.BuildChallenge(c =>
+                            p.Challenges = state.Build<Data.Challenge>(fixture, c =>
                             {
                                 // the challenge is associated with the player but no other team
                                 // so it should get deleted
@@ -57,14 +57,12 @@ public class PlayerControllerUnenrollTests
                 });
             });
 
-        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = memberUserId);
-        var reqParams = new PlayerUnenrollRequest
-        {
-            PlayerId = memberPlayerId
-        };
+        var reqParams = new PlayerUnenrollRequest { PlayerId = memberPlayerId };
 
         // when
-        var response = await httpClient.DeleteAsync($"/api/player/{memberPlayerId}?{reqParams.ToQueryString()}");
+        var response = await _testContext
+            .CreateHttpClientWithActingUser(u => u.Id = memberUserId)
+            .DeleteAsync($"/api/player/{memberPlayerId}?{reqParams.ToQueryString()}");
 
         // then
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -111,14 +109,12 @@ public class PlayerControllerUnenrollTests
                 });
             });
 
-        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = managerUserId);
-        var reqParams = new PlayerUnenrollRequest
-        {
-            PlayerId = managerPlayerId
-        };
+        var reqParams = new PlayerUnenrollRequest { PlayerId = managerPlayerId };
 
         // when / then
-        var response = await httpClient.DeleteAsync($"/api/player/{managerPlayerId}?{reqParams.ToQueryString()}");
+        var response = await _testContext
+            .CreateHttpClientWithActingUser(u => u.Id = managerUserId)
+            .DeleteAsync($"/api/player/{managerPlayerId}?{reqParams.ToQueryString()}");
 
         // then
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);

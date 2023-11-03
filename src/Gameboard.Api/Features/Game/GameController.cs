@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
 using MediatR;
@@ -70,11 +71,11 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("api/game/{id}/specs")]
         [Authorize]
-        public async Task<ChallengeSpec[]> RetrieveChallenges([FromRoute] string id)
+        public async Task<ChallengeSpec[]> GetChallengeSpecs([FromRoute] string id)
         {
             await Validate(new Entity { Id = id });
 
-            return await GameService.RetrieveChallenges(id);
+            return await GameService.RetrieveChallengeSpecs(id);
         }
 
         [HttpGet("api/game/{id}/sessions")]
@@ -148,6 +149,14 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<SyncStartState> IsGameReady(string gameId)
             => await _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
+
+        [HttpGet("/api/game/{gameId}/start-phase")]
+        [Authorize]
+        public async Task<GameStartPhase> GetStartPhase(string gameId)
+        {
+            return await _mediator.Send(new GetGameStartPhaseQuery(gameId, Actor.Id));
+        }
+
 
         [HttpPost("/api/game/import")]
         [Authorize(AppConstants.DesignerPolicy)]

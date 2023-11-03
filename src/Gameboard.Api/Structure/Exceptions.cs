@@ -2,20 +2,15 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Structure;
 
 namespace Gameboard.Api
 {
-    public class GameboardException : Exception
-    {
-        internal GameboardException(string message) : base(message) { }
-        internal GameboardException(string message, Exception innerException) : base(message, innerException) { }
-    }
-
     internal class MissingRequiredInput<T> : GameboardValidationException
     {
-        internal MissingRequiredInput(string inputName, T input) : base($"Your input for ${inputName} was either missing or incorrectly formed (found \"{input}\").") { }
+        internal MissingRequiredInput(string inputName, T input) : base($"""Your input for "{inputName}" was either missing or incorrectly formed (found \"{input}\").""") { }
     }
 
     internal class AdminImpersonationFail : GameboardException
@@ -28,15 +23,9 @@ namespace Gameboard.Api
         internal AlreadyRegistered(string userId, string gameId) : base($"Player {userId} is already registered for game {gameId}.") { }
     }
 
-    internal class CaptainResolutionFailure : GameboardException
-    {
-        internal CaptainResolutionFailure(string teamId, string message = null)
-            : base($"Couldn't resolve a team captain for team {teamId}. {(message.IsEmpty() ? "" : message)}") { }
-    }
-
     internal class InvalidInvitationCode : GameboardException
     {
-        internal InvalidInvitationCode(string code, string reason) : base($"""Can't join a team with code "{code}". {reason}""") { }
+        internal InvalidInvitationCode(string code, string reason) : base($"""Invitation code {code} is invalid: {reason} """) { }
     }
 
     internal class InvalidParameterValue<T> : GameboardValidationException
@@ -114,7 +103,6 @@ namespace Gameboard.Api
     public class ChallengeLocked : Exception { }
     public class ChallengeStartPending : Exception { }
     public class InvalideFeedbackFormat : Exception { }
-    public class PlayerIsntOnTeam : Exception { }
     public class PlayerIsntInGame : Exception { }
     public class InvalidPlayerMode : Exception { }
     public class MissingRequiredField : Exception { }

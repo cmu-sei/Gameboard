@@ -2,46 +2,46 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
+using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
-using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Features.GameEngine.Requests;
 
 internal class GetSubmissionsRequestHandler : IRequestHandler<GetSubmissionsQuery, IEnumerable<GameEngineSectionSubmission>>
 {
-    private readonly IChallengeStore _challengeStore;
     private readonly IGameEngineService _gameEngine;
-    private readonly User _actor;
+    private readonly IStore _store;
 
     // validators
-    private readonly GetSubmissionsRequestValidator _validator;
+    private readonly IGameboardRequestValidator<GetSubmissionsQuery> _validator;
 
     // authorizers 
     private readonly UserRoleAuthorizer _roleAuthorizer;
 
-    public GetSubmissionsRequestHandler(
-        IChallengeStore challengeStore,
+    public GetSubmissionsRequestHandler
+    (
         IGameEngineService gameEngine,
         UserRoleAuthorizer roleAuthorizer,
-        GetSubmissionsRequestValidator validator,
-        IHttpContextAccessor httpContextAccessor)
+        IStore store,
+        IGameboardRequestValidator<GetSubmissionsQuery> validator
+    )
     {
-        _actor = httpContextAccessor.HttpContext.User.ToActor();
-        _challengeStore = challengeStore;
         _gameEngine = gameEngine;
         _roleAuthorizer = roleAuthorizer;
+        _store = store;
         _validator = validator;
-
-        roleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Support, UserRole.Designer };
     }
 
     public async Task<IEnumerable<GameEngineSectionSubmission>> Handle(GetSubmissionsQuery request, CancellationToken cancellationToken)
     {
-        _roleAuthorizer.Authorize();
-        await _validator.Validate(request);
+        _roleAuthorizer
+            .AllowRoles(UserRole.Admin, UserRole.Support, UserRole.Designer)
+            .Authorize();
 
-        var challenge = await _challengeStore.Retrieve(request.ChallengeId);
+        await _validator.Validate(request, cancellationToken);
+
+        var challenge = await _store.FirstOrDefaultAsync<Data.Challenge>(c => c.Id == request.ChallengeId, cancellationToken);
         return await _gameEngine.AuditChallenge(challenge);
     }
 }

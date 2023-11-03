@@ -1,11 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
-using Gameboard.Api.Data;
-using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -40,12 +34,8 @@ public class PracticeController : ControllerBase
         => _mediator.Send(new SearchPracticeChallengesQuery(model));
 
     [HttpGet]
-    [Route("challenges")]
-    public Task<IEnumerable<GameCardContext>> ListChallenges()
-        => Task.FromResult(Array.Empty<GameCardContext>().AsEnumerable());
-
-    [HttpGet]
     [Route("settings")]
+    [AllowAnonymous]
     public Task<PracticeModeSettingsApiModel> GetSettings()
         => _mediator.Send(new GetPracticeModeSettingsQuery(_actingUserService.Get()));
 

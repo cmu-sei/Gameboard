@@ -27,7 +27,7 @@ internal class SupportReportQueryHandler : IRequestHandler<SupportReportQuery, R
 
     public async Task<ReportResults<SupportReportRecord>> Handle(SupportReportQuery request, CancellationToken cancellationToken)
     {
-        await _validator.Validate(request);
+        await _validator.Validate(request, cancellationToken);
 
         return _reportsService.BuildResults(new ReportRawResults<SupportReportRecord>
         {

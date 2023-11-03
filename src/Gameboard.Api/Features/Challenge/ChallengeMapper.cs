@@ -8,6 +8,7 @@ using System.Text.Json.Serialization;
 using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Features.Games;
 
 namespace Gameboard.Api.Services
 {
@@ -36,6 +37,8 @@ namespace Gameboard.Api.Services
                 .ForMember(d => d.AllowTeam, opt => opt.MapFrom(s => s.Game.AllowTeam));
 
             CreateMap<Challenge, Data.Challenge>();
+            CreateMap<Challenge, GameStartStateChallenge>()
+                .ForMember(d => d.Challenge, o => o.MapFrom(s => new SimpleEntity { Id = s.Id, Name = s.Name }));
             CreateMap<NewChallenge, Data.Challenge>();
             CreateMap<ChangedChallenge, Data.Challenge>();
 

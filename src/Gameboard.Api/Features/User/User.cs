@@ -56,9 +56,10 @@ public class SelfChangedUser
 
 public class TeamMember
 {
-    public string Id { get; set; }
-    public string ApprovedName { get; set; }
-    public PlayerRole Role { get; set; }
+    public required string Id { get; set; }
+    public required string ApprovedName { get; set; }
+    public required PlayerRole Role { get; set; }
+    public required string UserId { get; set; }
 }
 
 public class UserSearch : SearchFilter

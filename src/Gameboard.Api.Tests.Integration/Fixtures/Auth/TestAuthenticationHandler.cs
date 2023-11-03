@@ -8,7 +8,6 @@ namespace Gameboard.Api.Tests.Integration.Fixtures;
 
 internal class TestAuthenticationHandler : AuthenticationHandler<TestAuthenticationHandlerOptions>
 {
-    private readonly string _defaultUserId;
     private readonly TestAuthenticationUser _actingUser;
 
     public const string AuthenticationSchemeName = "Test";
@@ -22,7 +21,6 @@ internal class TestAuthenticationHandler : AuthenticationHandler<TestAuthenticat
     public TestAuthenticationHandler(IOptionsMonitor<TestAuthenticationHandlerOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock) :
         base(options, logger, encoder, clock)
     {
-        _defaultUserId = options.CurrentValue.DefaultUserId;
         _actingUser = options.CurrentValue.Actor;
     }
 

@@ -119,31 +119,24 @@ namespace Gameboard.Api.Extensions
         {
             var text = File.ReadAllText(seedFilePath);
             var extension = Path.GetExtension(seedFilePath).ToLower();
-            DbSeedModel seedModel;
 
             switch (extension)
             {
                 case ".json":
-                    seedModel = JsonSerializer.Deserialize<DbSeedModel>(text, new JsonSerializerOptions()
+                    return JsonSerializer.Deserialize<DbSeedModel>(text, new JsonSerializerOptions()
                     {
                         PropertyNameCaseInsensitive = true
                     });
-
-                    break;
                 case ".yaml":
                     var yamlDeserializer = new DeserializerBuilder()
                         .WithNamingConvention(CamelCaseNamingConvention.Instance)
                         .IgnoreUnmatchedProperties()
                         .Build();
 
-                    seedModel = yamlDeserializer.Deserialize<DbSeedModel>(File.ReadAllText(text));
-
-                    break;
+                    return yamlDeserializer.Deserialize<DbSeedModel>(File.ReadAllText(text));
                 default:
                     throw new InvalidDataException("Gameboard can only seed data from files in .yaml or .json format. Supply your seed data in one of these.");
             }
-
-            return seedModel;
         }
     }
 }

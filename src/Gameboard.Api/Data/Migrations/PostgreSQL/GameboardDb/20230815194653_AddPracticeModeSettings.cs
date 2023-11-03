@@ -1,5 +1,5 @@
 ﻿using System;
-using Gameboard.Api.Services;
+using Gameboard.Api.Common.Services;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable

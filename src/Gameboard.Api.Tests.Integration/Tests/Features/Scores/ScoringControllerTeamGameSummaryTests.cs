@@ -22,8 +22,8 @@ public class ScoringControllerTeamGameSummaryTests
         string teamId,
         string challenge1Id,
         string challenge2Id,
-        int basePoints1,
-        int basePoints2,
+        int baseScore1,
+        int baseScore2,
         int bonus1Points,
         int bonus2Points,
         int bonus3Points)
@@ -47,7 +47,8 @@ public class ScoringControllerTeamGameSummaryTests
                         state.Build<Data.Challenge>(fixture, c =>
                         {
                             c.Id = challenge1Id;
-                            c.Points = basePoints1;
+                            c.Points = baseScore1;
+                            c.Score = baseScore1;
                             c.GameId = gameId;
                             c.TeamId = teamId;
                             c.AwardedManualBonuses = new List<ManualChallengeBonus>()
@@ -71,7 +72,8 @@ public class ScoringControllerTeamGameSummaryTests
                         state.Build<Data.Challenge>(fixture, c =>
                         {
                             c.Id = challenge2Id;
-                            c.Points = basePoints2;
+                            c.Points = baseScore2;
+                            c.Score = baseScore2;
                             c.GameId = gameId;
                             c.TeamId = teamId;
                             c.AwardedManualBonuses = new ManualChallengeBonus
@@ -93,10 +95,10 @@ public class ScoringControllerTeamGameSummaryTests
         // when
         var result = await httpClient
             .GetAsync($"api/team/{teamId}/score")
-            .WithContentDeserializedAs<TeamGameScoreSummary>();
+            .WithContentDeserializedAs<TeamGameScoreQueryResponse>();
 
         // then
         result.ShouldNotBeNull();
-        result.TotalScore.ShouldBe(basePoints1 + basePoints2 + bonus1Points + bonus2Points + bonus3Points);
+        result.Score.OverallScore.TotalScore.ShouldBe(baseScore1 + baseScore2 + bonus1Points + bonus2Points + bonus3Points);
     }
 }

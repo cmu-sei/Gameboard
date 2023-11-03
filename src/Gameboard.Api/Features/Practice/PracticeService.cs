@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoMapper;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Practice;
@@ -12,9 +13,13 @@ namespace Gameboard.Api.Features.Practice;
 public interface IPracticeService
 {
     string EscapeSuggestedSearches(IEnumerable<string> input);
-    IEnumerable<string> UnescapeSuggestedSearches(string input);
+    // we're currently not using this, but I'd like to add an endpoint for it so that we can clarify why practice challenges
+    // are unavailable when requested
     Task<CanPlayPracticeChallengeResult> GetCanDeployChallenge(string userId, string challengeSpecId, CancellationToken cancellationToken);
-    Task<PracticeModeSettings> GetSettings(CancellationToken cancellationToken);
+    Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, DateTimeOffset currentSessionEnd, CancellationToken cancellationToken);
+    Task<PracticeModeSettingsApiModel> GetSettings(CancellationToken cancellationToken);
+    Task<Data.Player> GetUserActivePracticeSession(string userId, CancellationToken cancellationToken);
+    IEnumerable<string> UnescapeSuggestedSearches(string input);
 }
 
 public enum CanPlayPracticeChallengeResult
@@ -26,11 +31,18 @@ public enum CanPlayPracticeChallengeResult
 
 internal class PracticeService : IPracticeService
 {
+    private readonly IMapper _mapper;
     private readonly INowService _now;
     private readonly IStore _store;
 
-    public PracticeService(INowService now, IStore store)
+    public PracticeService
+    (
+        IMapper mapper,
+        INowService now,
+        IStore store
+    )
     {
+        _mapper = mapper;
         _now = now;
         _store = store;
     }
@@ -38,9 +50,7 @@ internal class PracticeService : IPracticeService
     // To avoid needing a table that literally just displays a list of strings, we store the list of suggested searches as a 
     // newline-delimited string in the PracticeModeSettings table (which has only one record). 
     public string EscapeSuggestedSearches(IEnumerable<string> input)
-    {
-        return string.Join(Environment.NewLine, input.Select(search => search.Trim()));
-    }
+        => string.Join(Environment.NewLine, input.Select(search => search.Trim()));
 
     // same deal here - split on newline
     public IEnumerable<string> UnescapeSuggestedSearches(string input)
@@ -54,8 +64,29 @@ internal class PracticeService : IPracticeService
             .ToArray();
     }
 
-    public string GetEscapeTempToken()
-        => "{escape}";
+    public async Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, DateTimeOffset currentSessionEnd, CancellationToken cancellationToken)
+    {
+        var now = _now.Get();
+        var extendSessionBy = TimeSpan.FromMinutes(60);
+        var settings = await GetSettings(cancellationToken);
+
+        // if there's more time between now and the end of the session than the maximum allowable extension
+        // just return what we already have
+        if (currentSessionEnd - now >= extendSessionBy)
+            return currentSessionEnd;
+
+        // extend by one hour (hard value for now, added to practice settings later)
+        var newSessionEnd = now.Add(extendSessionBy);
+
+        if (settings.MaxPracticeSessionLengthMinutes.HasValue)
+        {
+            var maxTime = currentSessionBegin.AddMinutes(settings.MaxPracticeSessionLengthMinutes.Value);
+            if (newSessionEnd > maxTime)
+                newSessionEnd = maxTime;
+        }
+
+        return newSessionEnd;
+    }
 
     public async Task<CanPlayPracticeChallengeResult> GetCanDeployChallenge(string userId, string challengeSpecId, CancellationToken cancellationToken)
     {
@@ -73,8 +104,32 @@ internal class PracticeService : IPracticeService
         return CanPlayPracticeChallengeResult.Yes;
     }
 
-    public Task<PracticeModeSettings> GetSettings(CancellationToken cancellationToken)
-        => _store.SingleOrDefaultAsync<PracticeModeSettings>(cancellationToken);
+    public Task<Data.Player> GetUserActivePracticeSession(string userId, CancellationToken cancellationToken)
+        => GetActivePracticeSessionsQueryBase()
+            .Where(p => p.UserId == userId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<PracticeModeSettingsApiModel> GetSettings(CancellationToken cancellationToken)
+    {
+        var settings = await _store.FirstOrDefaultAsync<PracticeModeSettings>(cancellationToken);
+
+        // if we don't have any settings, make up some defaults
+        if (settings is null)
+        {
+            return new PracticeModeSettingsApiModel
+            {
+                CertificateHtmlTemplate = null,
+                DefaultPracticeSessionLengthMinutes = 60,
+                IntroTextMarkdown = null,
+                SuggestedSearches = Array.Empty<string>()
+            };
+        }
+
+        var apiModel = _mapper.Map<PracticeModeSettingsApiModel>(settings);
+        apiModel.SuggestedSearches = UnescapeSuggestedSearches(settings.SuggestedSearches);
+
+        return apiModel;
+    }
 
     private async Task<IEnumerable<string>> GetActiveSessionUsers()
         => await GetActivePracticeSessionsQueryBase()
@@ -86,5 +141,4 @@ internal class PracticeService : IPracticeService
             .List<Data.Player>()
             .Where(p => p.SessionEnd > _now.Get())
             .Where(p => p.Mode == PlayerMode.Practice);
-
 }

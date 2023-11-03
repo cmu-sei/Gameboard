@@ -3,8 +3,8 @@
 
 using System.Linq;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data;
@@ -22,7 +22,7 @@ public interface IPlayerStore : IStore<Player>
 public class PlayerStore : Store<Data.Player>, IPlayerStore
 {
     public PlayerStore(IGuidService guids, GameboardDbContext dbContext)
-        : base(guids, dbContext) { }
+        : base(dbContext, guids) { }
 
     public IQueryable<Player> ListTeam(string id) =>
         base.List()

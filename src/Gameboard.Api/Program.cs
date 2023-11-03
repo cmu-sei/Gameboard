@@ -4,7 +4,7 @@
 using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using Gameboard.Api;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Extensions;
 using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Builder;
@@ -21,10 +21,10 @@ startupLogger.LogInformation("Welcome to Gameboard!");
 // load and resolve settings
 startupLogger.LogInformation("Configuring Gameboard app...");
 var envname = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-var path = Environment.GetEnvironmentVariable("APPSETTINGS_PATH") ?? "./conf/appsettings.conf";
+var appSettingsPath = Environment.GetEnvironmentVariable("APPSETTINGS_PATH") ?? "./conf/appsettings.conf";
 ConfToEnv.Load("appsettings.conf");
 ConfToEnv.Load($"appsettings.{envname}.conf");
-ConfToEnv.Load(path);
+ConfToEnv.Load(appSettingsPath);
 
 startupLogger.LogInformation(message: $"Starting Gameboard in {envname} configuration.");
 
@@ -57,7 +57,8 @@ if (dbOnly)
 var app = builder.Build();
 app
     .InitializeDatabase(settings, app.Logger)
-    .ConfigureGameboard(settings);
+    .ConfigureGameboard(settings)
+    .DoStartupTasks(app.Logger);
 
 // start!
 startupLogger.LogInformation("Let the games begin!");

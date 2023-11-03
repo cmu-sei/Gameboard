@@ -14,19 +14,14 @@ internal class CantResolveTeamFromCode : GameboardException
 internal class InvalidExtendSessionRequest : GameboardException
 {
     internal InvalidExtendSessionRequest(DateTimeOffset currentSessionEnd, DateTimeOffset requestedSessionEnd)
-        : base($"Can't extend the session: The current session ends at {currentSessionEnd.ToString("u")}, and the request would extend it to {requestedSessionEnd.ToString("u")} (before the current session is set to end).") { }
-}
-
-internal class GameDoesntAllowSessionReset : GameboardException
-{
-    internal GameDoesntAllowSessionReset(string playerId, string gameId, DateTimeOffset sessionStartedOn) : base($"Player {playerId} is playing Game {gameId}. This game doesn't allow non-administrative resets after a session has begun, and their session began at {sessionStartedOn}.") { }
+        : base($"Can't extend the session: The current session ends at {currentSessionEnd:u}, and the request would extend it to {requestedSessionEnd:u} (before the current session is set to end).") { }
 }
 
 internal class ManagerCantUnenrollWhileTeammatesRemain : GameboardValidationException
 {
     internal ManagerCantUnenrollWhileTeammatesRemain(string playerId, string teamId, IEnumerable<string> teammatePlayerIds) : base($"""
-        Player {playerId} is the manager of team {teamId}. There are currently {teammatePlayerIds.Count()} players remaining on the team ({string.Join(" | ", teammatePlayerIds)}).
-        In order to unenroll, this player must designate a teammate as the replacement manager (or wait until all other team memberes have unenrolled).
+        You're currently the manager of this team. There are currently {teammatePlayerIds.Count()} other player(s) remaining on the team ({string.Join(" | ", teammatePlayerIds)}).
+        In order to unenroll, you'll need to designate a teammate as the replacement manager (or wait until all other team members have unenrolled).
     """) { }
 }
 
@@ -40,16 +35,9 @@ internal class NoPlayerSponsorForGame : GameboardValidationException
     internal NoPlayerSponsorForGame(string userId, string gameId) : base($"""User "{userId}" hasn't selected a sponsor, so they can't register for game "{gameId}".""") { }
 }
 
-internal class NotOnSameTeam : GameboardException
+internal class PlayerIsntManager : GameboardException
 {
-    internal NotOnSameTeam(string firstPlayerId, string firstPlayerTeamId, string secondPlayerId, string secondPlayerTeamId, string whyItMatters) : base($"""
-        Players {firstPlayerId} (team {firstPlayerTeamId}) and {secondPlayerId} (team {secondPlayerTeamId} aren't on the same team . {whyItMatters}
-    """) { }
-}
-
-internal class NotManager : GameboardException
-{
-    internal NotManager(string playerId, string addlMessage) : base($"Player {playerId} isn't the team manager. {addlMessage}") { }
+    internal PlayerIsntManager(string playerId, string addlMessage) : base($"Player {playerId} isn't the team manager. {addlMessage}") { }
 }
 
 internal class PromotionFailed : GameboardException

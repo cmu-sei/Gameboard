@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
@@ -15,31 +17,36 @@ using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Features.UnityGames;
 
+public interface IUnityGameService
+{
+    Task<Data.Challenge> AddChallenge(NewUnityChallenge newChallenge, User actor);
+    Task<Data.ChallengeEvent> CreateMissionEvent(UnityMissionUpdate model, Api.User actor);
+    Task<Data.Challenge> HasChallengeData(string gamespaceId);
+    Task DeleteChallengeData(string gameId);
+    bool IsUnityGame(Game game);
+    bool IsUnityGame(Data.Game game);
+    Regex GetMissionCompleteEventRegex();
+    string GetMissionCompleteDefinitionString(string missionId);
+    string GetUnityModeString();
+    Task<string> UndeployGame(string gameId, string teamId);
+}
+
 internal class UnityGameService : _Service, IUnityGameService
 {
-    private readonly IChallengeStore _challengeStore;
     private readonly IGamebrainService _gamebrainService;
     private readonly IUnityStore _store;
     private readonly ITeamService _teamService;
-    ITopoMojoApiClient Mojo { get; }
-
-    private readonly ConsoleActorMap _actorMap;
 
     public UnityGameService(
             ILogger<UnityGameService> logger,
             IMapper mapper,
             CoreOptions options,
-            IChallengeStore challengeStore,
             IGamebrainService gamebrainService,
             ITeamService teamService,
             IUnityStore store,
-            ITopoMojoApiClient mojo,
             ConsoleActorMap actorMap
         ) : base(logger, mapper, options)
     {
-        Mojo = mojo;
-        _actorMap = actorMap;
-        _challengeStore = challengeStore;
         _gamebrainService = gamebrainService;
         _store = store;
         _teamService = teamService;
@@ -61,12 +68,12 @@ internal class UnityGameService : _Service, IUnityGameService
         }
 
         // otherwise, let's make some challenges
-        var teamCaptain = await _teamService.ResolveCaptain(newChallenge.TeamId);
+        var teamCaptain = await _teamService.ResolveCaptain(newChallenge.TeamId, CancellationToken.None);
         var challengeName = $"{teamCaptain.ApprovedName} vs. Cubespace";
 
         // load the spec associated with the game
         var challengeSpec = await _store.DbContext.ChallengeSpecs.FirstOrDefaultAsync(c => c.GameId == newChallenge.GameId);
-        if (challengeSpec == null)
+        if (challengeSpec is null)
         {
             throw new SpecNotFound(newChallenge.GameId);
         }
@@ -82,9 +89,9 @@ internal class UnityGameService : _Service, IUnityGameService
             .Games
             .FirstOrDefaultAsync(g => g.Id == newChallenge.GameId);
 
-        if (game == null)
+        if (game is null)
         {
-            throw new ResourceNotFound<Game>(newChallenge.GameId);
+            throw new ResourceNotFound<Data.Game>(newChallenge.GameId);
         }
 
         var state = new TopoMojo.Api.Client.GameState
@@ -196,7 +203,7 @@ internal class UnityGameService : _Service, IUnityGameService
             .Where(c => c.TeamId == model.TeamId && c.Game.Mode == unityMode)
             .ToListAsync();
 
-        if (challengeCandidates.Count() != 1)
+        if (challengeCandidates.Count != 1)
         {
             throw new ChallengeResolutionFailure(model.TeamId, challengeCandidates.Select(c => c.Id));
         }
@@ -239,7 +246,7 @@ internal class UnityGameService : _Service, IUnityGameService
     }
 
     public bool IsUnityGame(Data.Game game) => game.Mode == GetUnityModeString();
-    public bool IsUnityGame(Game game) => game.Mode == GetUnityModeString();
+    public bool IsUnityGame(Api.Game game) => game.Mode == GetUnityModeString();
     public string GetUnityModeString() => "unity";
 
     public Regex GetMissionCompleteEventRegex()
@@ -256,7 +263,7 @@ internal class UnityGameService : _Service, IUnityGameService
 
     private Data.Player ResolveTeamCaptain(IEnumerable<Data.Player> players, NewUnityChallenge newChallenge)
     {
-        if (players.Count() == 0)
+        if (!players.Any())
         {
             throw new CaptainResolutionFailure(newChallenge.TeamId);
         }

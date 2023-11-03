@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Features.UnityGames.ViewModels;
 using Gameboard.Api.Hubs;
@@ -166,7 +166,7 @@ public class UnityGameController : _Controller
             {
                 Model = _mapper.Map<Challenge>(challengeData),
                 Action = EventAction.Updated,
-                ActingUser = HubEventActingUserDescription.FromUser(Actor)
+                ActingUser = Actor.ToSimpleEntity()
             });
 
         return Ok(_mapper.Map<UnityGameChallengeViewModel>(challengeData));

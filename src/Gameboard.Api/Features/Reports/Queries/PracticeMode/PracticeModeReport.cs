@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Common;
 using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
@@ -25,7 +24,7 @@ internal class PracticeModeReportHandler : IRequestHandler<PracticeModeReportQue
     public async Task<ReportResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>> Handle(PracticeModeReportQuery request, CancellationToken cancellationToken)
     {
         // validate access for all reports
-        await _reportsQueryValidator.Validate(request);
+        await _reportsQueryValidator.Validate(request, cancellationToken);
 
         if (request.Parameters.Grouping == PracticeModeReportGrouping.Challenge)
         {

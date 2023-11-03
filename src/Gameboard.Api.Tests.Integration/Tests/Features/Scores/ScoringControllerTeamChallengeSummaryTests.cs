@@ -18,10 +18,11 @@ public class ScoringControllerTeamChallengeSummaryTests
     public async Task GetChallengeScore_WithFixedTeam_CalculatesExpectedScore
     (
         IFixture fixture,
+        string enteringAdminId,
         string specId,
         string teamId,
         string challengeId,
-        int basePoints,
+        int baseScore,
         int bonus1Points,
         int bonus2Points
     )
@@ -29,9 +30,9 @@ public class ScoringControllerTeamChallengeSummaryTests
         // given
         await _testContext.WithDataState(state =>
         {
-            var enteringAdmin = state.Build<Data.User>(fixture);
+            var enteringAdmin = state.Build<Data.User>(fixture, u => u.Id = enteringAdminId);
             state.Add(enteringAdmin);
-            
+
             // have to add spec separately because of broken FK issue
             state.Add<Data.ChallengeSpec>(fixture, s => s.Id = specId);
 
@@ -40,7 +41,8 @@ public class ScoringControllerTeamChallengeSummaryTests
                 c.Id = challengeId;
                 c.TeamId = teamId;
                 c.Player = state.Build<Data.Player>(fixture, p => p.TeamId = teamId);
-                c.Points = basePoints;
+                c.Points = baseScore;
+                c.Score = baseScore;
                 c.SpecId = specId;
                 c.AwardedManualBonuses = new List<Data.ManualChallengeBonus>
                 {
@@ -62,15 +64,14 @@ public class ScoringControllerTeamChallengeSummaryTests
             });
         });
 
-        var httpClient = _testContext.CreateClient();
-
         // when
-        var result = await httpClient
+        var result = await _testContext
+            .CreateHttpClientWithActingUser(u => u.Id = enteringAdminId)
             .GetAsync($"api/challenge/{challengeId}/score")
-            .WithContentDeserializedAs<TeamChallengeScoreSummary>();
+            .WithContentDeserializedAs<TeamChallengeScore>();
 
         // then
         result.ShouldNotBeNull();
-        result.TotalScore.ShouldBe(basePoints + bonus1Points + bonus2Points);
+        result.Score.TotalScore.ShouldBe(baseScore + bonus1Points + bonus2Points);
     }
 }

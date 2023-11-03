@@ -78,9 +78,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 var httpClient = httpClientFactory.CreateClient("alloy");
                 httpClient.BaseAddress = uri;
 
-                var alloyApiClient = new AlloyApiClient(httpClient);
-
-                return alloyApiClient;
+                return new AlloyApiClient(httpClient);
             });
 
             services.AddTransient<AuthenticatingHandler>();

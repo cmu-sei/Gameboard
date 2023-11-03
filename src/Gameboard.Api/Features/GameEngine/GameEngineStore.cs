@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.GameEngine;
@@ -16,7 +16,7 @@ public interface IGameEngineStore
     Task<IEnumerable<GameEngineGameState>> GetGameStatesByTeam(string teamId);
 }
 
-public class GameEngineStore : IGameEngineStore
+internal class GameEngineStore : IGameEngineStore
 {
     private readonly GameboardDbContext _db;
     private readonly IJsonService _jsonService;
@@ -39,12 +39,10 @@ public class GameEngineStore : IGameEngineStore
     public Task<IEnumerable<GameEngineGameState>> GetGameStatesByTeam(string teamId)
         => GetGameStates(teamId: teamId);
 
-    private async Task<IEnumerable<GameEngineGameState>> GetGameStates(string playerId = "", string challengeId = "", string challengeSpecId = "", string teamId = "")
+    private async Task<IEnumerable<GameEngineGameState>> GetGameStates(string playerId = null, string challengeId = null, string challengeSpecId = null, string teamId = null)
     {
-        if (string.IsNullOrWhiteSpace(string.Concat(playerId, challengeId, challengeSpecId, teamId)))
-        {
+        if (playerId.IsEmpty() && challengeId.IsEmpty() && challengeSpecId.IsEmpty() && teamId.IsEmpty())
             throw new ArgumentException("Can't retrieve game engine type without at least one argument.");
-        }
 
         var query = _db.Challenges.AsQueryable();
 

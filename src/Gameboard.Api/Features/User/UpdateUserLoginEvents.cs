@@ -1,8 +1,8 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
@@ -42,7 +42,7 @@ internal class UpdateUserLoginEventsHandler : IRequestHandler<UpdateUserLoginEve
     {
         // validate
         _validator.AddValidator(_userExists.UseProperty(r => r.UserId));
-        await _validator.Validate(request);
+        await _validator.Validate(request, cancellationToken);
 
         var user = await _store.Retrieve<Data.User>(request.UserId);
         var lastLoginDate = user.LastLoginDate;

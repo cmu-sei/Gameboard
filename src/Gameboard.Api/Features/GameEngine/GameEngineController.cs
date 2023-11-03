@@ -13,13 +13,10 @@ public class GameEngineController : ControllerBase
 {
     private readonly IMediator _mediator;
 
-    public GameEngineController(IMediator mediator)
-    {
-        _mediator = mediator;
-    }
+    public GameEngineController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet("state")]
-    public async Task<IEnumerable<GameEngineGameState>> GetGameState(string teamId)
+    public async Task<IEnumerable<GameEngineGameState>> GetGameStates(string teamId)
         => await _mediator.Send(new GetGameStateQuery(teamId));
 
     [HttpGet("submissions")]

@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Headers;
+using Gameboard.Api.Common;
+using Gameboard.Api.Structure.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -7,7 +8,7 @@ namespace Gameboard.Api.Tests.Integration.Fixtures;
 
 internal static class GameboardTestContextExtensions
 {
-    private static WebApplicationFactory<Program> BuildAuthentication(this GameboardTestContext testContext, TestAuthenticationUser? actingUser = null)
+    private static WebApplicationFactory<Program> BuildUserAuthentication(this GameboardTestContext testContext, TestAuthenticationUser? actingUser = null)
     {
         return testContext
             .WithWebHostBuilder(builder =>
@@ -42,26 +43,36 @@ internal static class GameboardTestContextExtensions
         var user = new TestAuthenticationUser();
         userBuilder?.Invoke(user);
 
-        return BuildAuthentication(testContext, user)
+        return BuildUserAuthentication(testContext, user)
             .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-    }
-
-    public static HttpClient CreateHttpClientWithActingUser(this GameboardTestContext testContext, Data.User user)
-    {
-        var client = testContext
-            .CreateHttpClientWithActingUser(u =>
-            {
-                u.Id = user.Id;
-                u.Name = user.Name;
-                u.Role = user.Role;
-            });
-
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthenticationHandler.AuthenticationSchemeName);
-        return client;
     }
 
     public static HttpClient CreateHttpClientWithAuthRole(this GameboardTestContext testContext, UserRole role)
         => CreateHttpClientWithActingUser(testContext, u => u.Role = role);
+
+    public static HttpClient CreateHttpClientWithGraderConfig(this GameboardTestContext testContext, double gradedScore)
+        => CreateHttpClientWithGraderConfig(testContext, gradedScore, string.Empty);
+
+    public static HttpClient CreateHttpClientWithGraderConfig(this GameboardTestContext testContext, double gradedScore, string graderKey)
+    {
+        var client = testContext
+            .WithWebHostBuilder(builder =>
+            {
+                builder.ConfigureTestServices(services =>
+                {
+                    var testGradingResult = new TestGradingResultService(gradedScore, builder => builder.Challenge.Score = gradedScore);
+                    services.ReplaceService<ITestGradingResultService, TestGradingResultService>(testGradingResult);
+                });
+            })
+            .CreateClient();
+
+        if (graderKey.IsNotEmpty())
+        {
+            client.DefaultRequestHeaders.Add(GraderKeyAuthentication.GraderKeyHeaderName, graderKey);
+        }
+
+        return client;
+    }
 
     public static async Task WithDataState(this GameboardTestContext context, Action<IDataStateBuilder> builderAction)
     {
@@ -73,3 +84,4 @@ internal static class GameboardTestContextExtensions
         await dbContext.SaveChangesAsync();
     }
 }
+

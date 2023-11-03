@@ -28,7 +28,7 @@ internal class GetTeamQueryHandler : IRequestHandler<GetTeamQuery, Team>
     public async Task<Team> Handle(GetTeamQuery request, CancellationToken cancellationToken)
     {
         _validatorService.AddValidator(_teamExists.UseProperty(r => r.TeamId));
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
 
         return await _teamService.GetTeam(request.TeamId);
     }

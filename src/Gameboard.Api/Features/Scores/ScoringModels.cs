@@ -1,32 +1,102 @@
+using System;
 using System.Collections.Generic;
-using Gameboard.Api.Common;
-using Gameboard.Api.Features.ChallengeBonuses;
+using Gameboard.Api;
+using Gameboard.Api.Data;
 
-namespace Gameboard.Api.Features.Scores;
-
-public class TeamChallengeScoreSummary
+public sealed class Score
 {
-    public SimpleEntity Challenge { get; set; }
-    public required SimpleEntity Spec { get; set; }
-    public required SimpleEntity Team { get; set; }
-    public required double TotalScore { get; set; }
-    public required double ScoreFromChallenge { get; set; }
-    public required double ScoreFromManualBonuses { get; set; }
-    public required IEnumerable<ManualChallengeBonusViewModel> ManualBonuses { get; set; }
-}
-
-public class TeamGameScoreSummary
-{
-    public SimpleEntity Game { get; set; }
-    public SimpleEntity Team { get; set; }
+    public double CompletionScore { get; set; }
+    public double ManualBonusScore { get; set; }
+    public double BonusScore { get; set; }
     public double TotalScore { get; set; }
-    public double ChallengesScore { get; set; }
-    public double ManualBonusesScore { get; set; }
-    public IEnumerable<TeamChallengeScoreSummary> ChallengeScoreSummaries { get; set; }
 }
 
-public class ChallengeScoreSummary
+public sealed class GameScoringConfig
 {
-    public SimpleEntity Challenge { get; set; }
-    public IEnumerable<TeamChallengeScoreSummary> TeamScores { get; set; }
+    public required SimpleEntity Game { get; set; }
+    public required IEnumerable<GameScoringConfigChallengeSpec> Specs { get; set; }
+}
+
+public sealed class GameScoringConfigChallengeSpec
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required string Description { get; set; }
+    public required double CompletionScore { get; set; }
+    public required IEnumerable<GameScoringConfigChallengeBonus> PossibleBonuses { get; set; }
+    public required double MaxPossibleScore { get; set; }
+}
+
+public class GameScoringConfigChallengeBonus
+{
+    public required string Id { get; set; }
+    public required string Description { get; set; }
+    public required double PointValue { get; set; }
+}
+
+public class GameScore
+{
+    public required GameScoreGameInfo Game { get; set; }
+    public required IEnumerable<GameScoreTeam> Teams { get; set; }
+}
+
+public sealed class GameScoreGameInfo
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required bool IsTeamGame { get; set; }
+    public required IEnumerable<GameScoringConfigChallengeSpec> Specs { get; set; }
+}
+
+public sealed class GameScoreTeam
+{
+    public required SimpleEntity Team { get; set; }
+    public required IEnumerable<PlayerWithSponsor> Players { get; set; }
+    public required int Rank { get; set; }
+    public required DateTimeOffset? LiveSessionEnds { get; set; }
+    public required Score OverallScore { get; set; }
+    public required double TotalTimeMs { get; set; }
+    public required IEnumerable<TeamChallengeScore> Challenges { get; set; }
+}
+
+public sealed class GameScoreAutoChallengeBonus
+{
+    public string Id { get; set; }
+    public string Description { get; set; }
+    public double PointValue { get; set; }
+}
+
+public class TeamChallengeScore
+{
+    public required string Id { get; set; }
+    public required string SpecId { get; set; }
+    public required string Name { get; set; }
+    public required ChallengeResult Result { get; set; }
+    public required Score Score { get; set; }
+    public required TimeSpan? TimeElapsed { get; set; }
+
+    public required IEnumerable<GameScoreAutoChallengeBonus> Bonuses { get; set; }
+    public required IEnumerable<ManualChallengeBonusViewModel> ManualBonuses { get; set; }
+    public required IEnumerable<GameScoreAutoChallengeBonus> UnclaimedBonuses { get; set; }
+}
+
+public sealed class ScoreboardPlayer
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required PlayerRole Role { get; set; }
+    public required string AvatarFileName { get; set; }
+}
+
+// this is used internally by ScoringService, but we project into more sensible
+// models for API endpoints
+internal class ScoreboardDataSet
+{
+    public required GameScoringConfig GameInfo { get; set; }
+    public required IEnumerable<Gameboard.Api.Data.ChallengeSpec> ChallengeSpecs { get; set; }
+    public required IDictionary<string, SimpleEntity> TeamCaptains { get; set; }
+    public required IDictionary<string, Gameboard.Api.Data.Challenge[]> TeamChallenges { get; set; }
+    public required IDictionary<string, IEnumerable<ScoreboardPlayer>> TeamPlayers { get; set; }
+    public required IDictionary<string, int> TeamRanks { get; set; }
+    public required IEnumerable<ChallengeBonus> UnawardedBonuses { get; set; }
 }

@@ -14,10 +14,10 @@ public record DeleteManualBonusCommand(string ManualBonusId) : IRequest;
 internal class DeleteManualBonusCommandHandler : IRequestHandler<DeleteManualBonusCommand>
 {
     private readonly IStore<ManualChallengeBonus> _challengeBonusStore;
-    private readonly IValidatorService<DeleteManualBonusCommand> _validatorService;
 
     // validators
     private readonly EntityExistsValidator<DeleteManualBonusCommand, ManualChallengeBonus> _bonusExists;
+    private readonly IValidatorService<DeleteManualBonusCommand> _validatorService;
 
     // authorizers 
     private readonly UserRoleAuthorizer _roleAuthorizer;
@@ -31,14 +31,15 @@ internal class DeleteManualBonusCommandHandler : IRequestHandler<DeleteManualBon
         _bonusExists = bonusExists;
         _challengeBonusStore = challengeBonusStore;
         _roleAuthorizer = roleAuthorizer;
-
-        roleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Support, UserRole.Designer };
         _validatorService = validatorService;
     }
 
     public async Task Handle(DeleteManualBonusCommand request, CancellationToken cancellationToken)
     {
-        _roleAuthorizer.Authorize();
+        _roleAuthorizer
+            .AllowRoles(UserRole.Admin, UserRole.Support, UserRole.Designer)
+            .Authorize();
+
         _validatorService.AddValidator(_bonusExists.UseProperty(r => r.ManualBonusId));
         await _challengeBonusStore.Delete(request.ManualBonusId);
     }

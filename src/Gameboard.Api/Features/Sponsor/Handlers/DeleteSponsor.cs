@@ -44,11 +44,12 @@ internal class DeleteSponsorHandler : IRequestHandler<DeleteSponsorCommand>
     public async Task Handle(DeleteSponsorCommand request, CancellationToken cancellationToken)
     {
         // authorize/validate
-        _userRoleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Registrar, UserRole.Admin };
-        _userRoleAuthorizer.Authorize();
+        _userRoleAuthorizer
+            .AllowRoles(UserRole.Registrar, UserRole.Admin)
+            .Authorize();
 
         _validatorService.AddValidator(_sponsorExists.UseProperty(r => r.SponsorId));
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
 
         // get the sponsor (including its sponsored users and players)
         // because we need to update their sponsor to the default

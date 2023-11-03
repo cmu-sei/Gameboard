@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Gameboard.Api;
+using Gameboard.Api.Common;
 using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;

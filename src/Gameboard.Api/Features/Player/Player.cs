@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Gameboard.Api.Features.Sponsors;
 
 namespace Gameboard.Api;
 
@@ -66,7 +65,7 @@ public class SessionStartRequest
 public class SessionChangeRequest
 {
     public string TeamId { get; set; }
-    public DateTimeOffset SessionEnd { get; set; }
+    public DateTimeOffset? SessionEnd { get; set; }
 }
 
 public class SelfChangedPlayer
@@ -89,24 +88,12 @@ public class PlayerUnenrollRequest
     public required string PlayerId { get; set; }
 }
 
-public class SessionResetRequest
-{
-    public required bool UnenrollTeam { get; set; } = true;
-}
-
-public class SessionResetCommandArgs
-{
-    public required User ActingUser { get; set; }
-    public required string PlayerId { get; set; }
-    public required bool UnenrollTeam { get; set; } = true;
-}
-
 public class Standing
 {
     public string TeamId { get; set; }
     public string ApprovedName { get; set; }
-    public string Sponsor { get; set; }
-    public string TeamSponsors { get; set; }
+    public Sponsor Sponsor { get; set; }
+    public IEnumerable<Sponsor> TeamSponsors { get; set; }
     public DateTimeOffset SessionBegin { get; set; }
     public DateTimeOffset SessionEnd { get; set; }
     public int Rank { get; set; }
@@ -115,7 +102,6 @@ public class Standing
     public int CorrectCount { get; set; }
     public int PartialCount { get; set; }
     public bool Advanced { get; set; }
-    public string[] SponsorList => (TeamSponsors ?? Sponsor).Split("|");
 }
 
 public class PlayerOverview
@@ -189,6 +175,21 @@ public class BoardPlayer
     public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
     public bool IsManager => Role == PlayerRole.Manager;
     public bool IsPractice => Mode == PlayerMode.Practice;
+}
+
+public class TeamPlayer
+{
+    public string Id { get; set; }
+    public string TeamId { get; set; }
+    public string Name { get; set; }
+    public string ApprovedName { get; set; }
+    public string UserId { get; set; }
+    public string UserName { get; set; }
+    public string UserApprovedName { get; set; }
+    public string UserNameStatus { get; set; }
+    public string Sponsor { get; set; }
+    public PlayerRole Role { get; set; }
+    public bool IsManager => Role == PlayerRole.Manager;
 }
 
 public class PlayerCertificate

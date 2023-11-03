@@ -32,15 +32,23 @@ internal class TeamExistsValidator<TModel> : IGameboardValidator<TModel>
             if (string.IsNullOrEmpty(teamId))
                 context.AddValidationException(new MissingRequiredInput<string>(nameof(teamId), teamId));
 
-            var count = await _store
-                .List<Data.Player>()
+            // grab the gameId as a representation of each player, because we also need to know if they're somehow
+            // in different games
+            var players = await _store
+                .WithNoTracking<Data.Player>()
                 .Where(p => p.TeamId == teamId)
-                .CountAsync();
+                .ToListAsync();
 
-            if (count == 0)
-            {
+            if (!players.Any())
                 context.AddValidationException(new ResourceNotFound<Team>(teamId));
-            }
+
+            var gameIds = players.Select(p => p.GameId);
+            if (gameIds.Distinct().Count() > 1)
+                context.AddValidationException(new PlayersAreInMultipleGames(gameIds));
+
+            var teamIds = players.Select(p => p.TeamId);
+            if (teamIds.Distinct().Count() > 1)
+                context.AddValidationException(new PlayersAreFromMultipleTeams(teamIds));
         };
     }
 }

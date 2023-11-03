@@ -154,24 +154,41 @@
             "problemMatcher": []
         },
         {
-            "label": "EF: Update Database (PG)",
-            "dependsOrder": "sequence",
+            "label": "EF: Update database (PG)",
             "dependsOn": [
-                "build"
+                "build",
             ],
-            "type": "shell",
+            "dependsOrder": "sequence",
+            "problemMatcher": [],
             "command": "dotnet",
             "args": [
                 "ef",
                 "database",
                 "update",
-                "--verbose",
                 "--project",
                 "${workspaceFolder}/src/Gameboard.Api",
                 "--context",
                 "GameboardDbContextPostgreSql"
+            ]
+        },
+        {
+            "label": "EF: Update PG database to... (PG)",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "build"
             ],
-            "problemMatcher": []
+            "problemMatcher": [],
+            "command": "dotnet",
+            "args": [
+                "ef",
+                "database",
+                "update",
+                "${input:updateDbMigrationName}",
+                "--project",
+                "${workspaceFolder}/src/Gameboard.Api",
+                "--context",
+                "GameboardDbContextPostgreSql"
+            ]
         }
     ],
     "inputs": [
@@ -179,6 +196,12 @@
             "id": "migrationName",
             "type": "promptString",
             "description": "Enter the name of your migration"
+        },
+        {
+            "id": "updateDbMigrationName",
+            "type": "promptString",
+            "description": "Enter the name of the migration to which you want to update the DB. Leave blank to update to the most recent one.",
+            "default": ""
         }
     ]
 }

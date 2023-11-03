@@ -13,7 +13,8 @@ public class ChallengeControllerCreateTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ChallengeControllerCreate_WithMinimal_ReturnsExpectedChallenge(
+    public async Task ChallengeControllerCreate_WithMinimal_ReturnsExpectedChallenge
+    (
         string challengeSpecId,
         string specName,
         string playerId,
@@ -48,10 +49,9 @@ public class ChallengeControllerCreateTests
             Variant = 0
         };
 
-        var client = _testContext.CreateHttpClientWithActingUser(u => u.Id = userId);
-
         // act
-        var challenge = await client
+        var challenge = await _testContext
+            .CreateHttpClientWithActingUser(u => u.Id = userId)
             .PostAsync("/api/challenge", model.ToJsonBody())
             .WithContentDeserializedAs<Api.Challenge>();
 

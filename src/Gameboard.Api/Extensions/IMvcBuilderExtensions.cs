@@ -1,4 +1,4 @@
-﻿using Gameboard.Api.Services;
+﻿using Gameboard.Api.Common.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Gameboard.Api.Extensions;

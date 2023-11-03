@@ -1,4 +1,5 @@
 using AutoMapper;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Challenges;
@@ -6,6 +7,9 @@ using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
+using MediatR;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
@@ -79,6 +83,7 @@ public class ChallengeServiceTests
                     GraderKey = graderKey,
                     GraderUrl = graderUrl,
                     PlayerCount = 1,
+                    StartGamespace = false,
                     Variant = 0
                 }
             ))
@@ -89,29 +94,28 @@ public class ChallengeServiceTests
                 {
                     Id = gamespaceId,
                     IsActive = true,
-                    StartTime = DateTimeOffset.Now,
-                    EndTime = DateTimeOffset.Now.AddDays(1),
+                    StartTime = DateTimeOffset.UtcNow,
+                    EndTime = DateTimeOffset.UtcNow.AddDays(1),
                 }
             );
 
         var sut = new ChallengeService
         (
-            A.Fake<ILogger<ChallengeService>>(),
-            A.Fake<IMapper>(),
+            A.Fake<ConsoleActorMap>(),
             A.Fake<CoreOptions>(),
             A.Fake<IChallengeStore>(),
-            A.Fake<IStore<Data.ChallengeSpec>>(),
+            A.Fake<IChallengeDocsService>(),
+            A.Fake<IChallengeSyncService>(),
             fakeGameEngineService,
-            A.Fake<IGameStore>(),
             A.Fake<IGuidService>(),
             A.Fake<IJsonService>(),
+            A.Fake<ILogger<ChallengeService>>(),
+            A.Fake<IMapper>(),
+            A.Fake<IMediator>(),
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
             A.Fake<IPlayerStore>(),
-            A.Fake<IPracticeChallengeScoringListener>(),
-            A.Fake<ConsoleActorMap>(),
-            A.Fake<IChallengeDocsService>(),
-            A.Fake<IChallengeSyncService>(),
+            A.Fake<IStore>(),
             A.Fake<ITeamService>()
         );
 
@@ -199,6 +203,7 @@ public class ChallengeServiceTests
                     GraderKey = graderKey,
                     GraderUrl = graderUrl,
                     PlayerCount = 1,
+                    StartGamespace = false,
                     Variant = 0
                 }
             ))
@@ -209,29 +214,28 @@ public class ChallengeServiceTests
                 {
                     Id = gamespaceId,
                     IsActive = true,
-                    StartTime = DateTimeOffset.Now,
-                    EndTime = DateTimeOffset.Now.AddDays(1),
+                    StartTime = DateTimeOffset.UtcNow,
+                    EndTime = DateTimeOffset.UtcNow.AddDays(1),
                 }
             );
 
         var sut = new ChallengeService
         (
-            A.Fake<ILogger<ChallengeService>>(),
-            A.Fake<IMapper>(),
+            A.Fake<ConsoleActorMap>(),
             A.Fake<CoreOptions>(),
             A.Fake<IChallengeStore>(),
-            A.Fake<IStore<Data.ChallengeSpec>>(),
+            A.Fake<IChallengeDocsService>(),
+            A.Fake<IChallengeSyncService>(),
             fakeGameEngineService,
-            A.Fake<IGameStore>(),
             A.Fake<IGuidService>(),
             A.Fake<IJsonService>(),
+            A.Fake<ILogger<ChallengeService>>(),
+            A.Fake<IMapper>(),
+            A.Fake<IMediator>(),
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
             A.Fake<IPlayerStore>(),
-            A.Fake<IPracticeChallengeScoringListener>(),
-            A.Fake<ConsoleActorMap>(),
-            A.Fake<IChallengeDocsService>(),
-            A.Fake<IChallengeSyncService>(),
+            A.Fake<IStore>(),
             A.Fake<ITeamService>()
         );
 

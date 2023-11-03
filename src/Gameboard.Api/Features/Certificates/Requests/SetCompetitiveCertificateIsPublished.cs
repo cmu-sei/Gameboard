@@ -1,9 +1,8 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Common;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
@@ -41,7 +40,7 @@ internal class SetCompetitiveCertificateIsPublishedHandler : IRequestHandler<Set
     {
         await _validator
             .AddValidator(_gameExists.UseProperty(r => r.GameId))
-            .Validate(request);
+            .Validate(request, cancellationToken);
 
         // pull the existing publish if it exists - we need it for return on the unpublish case
         var existingPublish = await GetExistingPublish(request.ActingUser.Id, request.GameId, cancellationToken);

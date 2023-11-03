@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Common;
 using Gameboard.Api.Data;
+using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,13 +16,13 @@ internal class EnrollmentReportLineChartHandler : IRequestHandler<EnrollmentRepo
 {
     private readonly IEnrollmentReportService _reportService;
     private readonly ReportsQueryValidator _reportsQueryValidator;
-    private readonly EnrollmentReportValidator _validator;
+    private readonly IGameboardRequestValidator<EnrollmentReportParameters> _validator;
 
     public EnrollmentReportLineChartHandler
     (
         IEnrollmentReportService reportService,
         ReportsQueryValidator reportsQueryValidator,
-        EnrollmentReportValidator validator
+        IGameboardRequestValidator<EnrollmentReportParameters> validator
     )
     {
         _reportService = reportService;
@@ -33,8 +33,8 @@ internal class EnrollmentReportLineChartHandler : IRequestHandler<EnrollmentRepo
     public async Task<IDictionary<DateTimeOffset, EnrollmentReportLineChartGroup>> Handle(EnrollmentReportLineChartQuery request, CancellationToken cancellationToken)
     {
         // authorize/validate
-        await _reportsQueryValidator.Validate(request);
-        await _validator.Validate(request.Parameters);
+        await _reportsQueryValidator.Validate(request, cancellationToken);
+        await _validator.Validate(request.Parameters, cancellationToken);
 
         // pull base query but select only what we need
         var results = await _reportService

@@ -2,12 +2,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.ChallengeBonuses;
+using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 
-namespace Gameboard.Api.Features.GameEngine.Requests;
+namespace Gameboard.Api.Features.ChallengeBonuses;
 
 public record AddManualBonusCommand(string ChallengeId, CreateManualChallengeBonus Model) : IRequest;
 
@@ -17,7 +17,7 @@ internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
     private readonly User _actor;
 
     // validators
-    private readonly AddManualBonusValidator _validator;
+    private readonly IGameboardRequestValidator<AddManualBonusCommand> _validator;
 
     // authorizers 
     private readonly UserRoleAuthorizer _roleAuthorizer;
@@ -25,21 +25,22 @@ internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
     public AddManualBonusHandler(
         IStore<ManualChallengeBonus> challengeBonusStore,
         UserRoleAuthorizer roleAuthorizer,
-        AddManualBonusValidator validator,
+        IGameboardRequestValidator<AddManualBonusCommand> validator,
         IHttpContextAccessor httpContextAccessor)
     {
         _actor = httpContextAccessor.HttpContext.User.ToActor();
         _challengeBonusStore = challengeBonusStore;
         _roleAuthorizer = roleAuthorizer;
         _validator = validator;
-
-        roleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Support, UserRole.Designer };
     }
 
     public async Task Handle(AddManualBonusCommand request, CancellationToken cancellationToken)
     {
-        _roleAuthorizer.Authorize();
-        await _validator.Validate(request);
+        _roleAuthorizer
+            .AllowRoles(UserRole.Admin, UserRole.Support, UserRole.Designer)
+            .Authorize();
+
+        await _validator.Validate(request, cancellationToken);
 
         await _challengeBonusStore.Create(new ManualChallengeBonus
         {

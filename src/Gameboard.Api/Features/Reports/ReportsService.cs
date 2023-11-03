@@ -5,10 +5,9 @@ using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
-using Gameboard.Api.Common;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
-using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
@@ -158,13 +157,10 @@ public class ReportsService : IReportsService
             .Where(p => playerIds.Contains(p.Id))
             .ToArrayAsync(cancellationToken);
 
-        // note that none of this actually runs back to the DB, but this was difficult
-        // to do with typical projection because ResolveCaptain is async to handle
-        // a signature that accepts a teamId
         var teamDict = new Dictionary<string, ReportTeamViewModel>();
         foreach (var team in teamPlayers.GroupBy(p => p.TeamId))
         {
-            var captain = await _teamService.ResolveCaptain(team.ToList());
+            var captain = _teamService.ResolveCaptain(team.ToList());
 
             teamDict.Add(team.Key, new ReportTeamViewModel
             {

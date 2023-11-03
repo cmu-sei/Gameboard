@@ -41,11 +41,12 @@ internal class UpdateSponsorHandler : IRequestHandler<UpdateSponsorCommand, Spon
     public async Task<Sponsor> Handle(UpdateSponsorCommand request, CancellationToken cancellationToken)
     {
         // validate/authorize
-        _userRoleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin, UserRole.Registrar };
-        _userRoleAuthorizer.Authorize();
+        _userRoleAuthorizer
+            .AllowRoles(UserRole.Admin, UserRole.Registrar)
+            .Authorize();
 
         _validatorService.AddValidator(_sponsorExists.UseProperty(r => r.Model.Id));
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
 
         // update
         var sponsor = await _store

@@ -50,7 +50,7 @@ internal class SetSponsorAvatarHandler : IRequestHandler<SetSponsorAvatarCommand
                 .HasPermittedTypes(_sponsorService.GetAllowedLogoMimeTypes())
                 .UseProperty(r => r.AvatarFile)
         );
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
 
         // load the sponsor - we'll need to update its logo file name when we're done
         var sponsor = await _store

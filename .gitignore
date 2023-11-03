@@ -4,10 +4,8 @@ appsettings.Development.*
 *.csproj.user
 
 # compiled output
-*/**/bin
-*/**/obj
-/bin
-/obj
+**/bin/*
+**/obj/*
 /dist
 /tmp
 /out-tsc

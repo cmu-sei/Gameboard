@@ -82,7 +82,7 @@ namespace Gameboard.Api.Controllers
                 {
                     Model = result,
                     Action = EventAction.Updated,
-                    ActingUser = HubEventActingUserDescription.FromUser(Actor)
+                    ActingUser = Actor.ToSimpleEntity()
                 });
 
             return result;
@@ -169,7 +169,7 @@ namespace Gameboard.Api.Controllers
                 {
                     Model = result,
                     Action = EventAction.Updated,
-                    ActingUser = HubEventActingUserDescription.FromUser(Actor)
+                    ActingUser = Actor.ToSimpleEntity()
                 }
             );
 
@@ -200,7 +200,7 @@ namespace Gameboard.Api.Controllers
                 {
                     Model = result,
                     Action = EventAction.Updated,
-                    ActingUser = HubEventActingUserDescription.FromUser(Actor)
+                    ActingUser = Actor.ToSimpleEntity()
                 }
             );
 
@@ -217,7 +217,8 @@ namespace Gameboard.Api.Controllers
         [Authorize(AppConstants.GraderPolicy)]
         public async Task<Challenge> Grade([FromBody] GameEngineSectionSubmission model)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 // this is set by _Controller if the caller authenticated with a grader key
                 () => AuthenticatedGraderForChallengeId == model.Id,
                 // these are set if the caller authenticated with standard JWT
@@ -227,14 +228,14 @@ namespace Gameboard.Api.Controllers
 
             await Validate(new Entity { Id = model.Id });
 
-            var result = await ChallengeService.Grade(model, Actor.Id);
+            var result = await ChallengeService.Grade(model, Actor);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
                 new HubEvent<Challenge>
                 {
                     Model = result,
                     Action = EventAction.Updated,
-                    ActingUser = HubEventActingUserDescription.FromUser(Actor)
+                    ActingUser = Actor.ToSimpleEntity()
                 }
             );
 
@@ -242,7 +243,7 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
-        /// ReGrade a challenge
+        /// Regrade a challenge
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
@@ -250,9 +251,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<Challenge> Regrade([FromBody] Entity model)
         {
-            AuthorizeAny(
-                () => Actor.IsDirector
-            );
+            AuthorizeAny(() => Actor.IsDirector);
 
             await Validate(model);
 
@@ -263,7 +262,7 @@ namespace Gameboard.Api.Controllers
                 {
                     Model = result,
                     Action = EventAction.Updated,
-                    ActingUser = HubEventActingUserDescription.FromUser(Actor)
+                    ActingUser = Actor.ToSimpleEntity()
                 });
 
             return result;
@@ -297,8 +296,8 @@ namespace Gameboard.Api.Controllers
         public async Task<ConsoleSummary> GetConsole([FromBody] ConsoleRequest model)
         {
             await Validate(new Entity { Id = model.SessionId });
-
             var isTeamMember = await ChallengeService.UserIsTeamPlayer(model.SessionId, Actor.Id);
+            Logger.LogInformation($"""Console access attempt on console "{model.Id}": User {Actor.Id}, roles {Actor.Role}, is team member? {isTeamMember}.""");
 
             AuthorizeAny(
               () => Actor.IsDirector,
@@ -306,7 +305,6 @@ namespace Gameboard.Api.Controllers
               () => Actor.IsSupport,
               () => isTeamMember
             );
-
             var result = await ChallengeService.GetConsole(model, isTeamMember.Equals(false));
 
             if (isTeamMember)

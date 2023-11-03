@@ -1,21 +1,24 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Alloy.Api.Client;
 using AutoMapper;
-using Gameboard.Api.Common;
 using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Services
 {
-    public class ChallengeSpecMapper : Profile
+    public partial class ChallengeSpecMapper : Profile
     {
         public ChallengeSpecMapper()
         {
             CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
             CreateMap<Data.ChallengeSpec, ChallengeSpec>();
             CreateMap<Data.ChallengeSpec, BoardSpec>();
-            CreateMap<Data.ChallengeSpec, ChallengeSpecSummary>();
+            CreateMap<Data.ChallengeSpec, ChallengeSpecSummary>()
+                .ForMember(d => d.Tags, opt => opt.MapFrom(s => StringTagsToEnumerableStringTags(s.Tags)));
             CreateMap<Data.ChallengeSpec, SimpleEntity>();
 
             CreateMap<NewChallengeSpec, Data.ChallengeSpec>();
@@ -23,13 +26,23 @@ namespace Gameboard.Api.Services
 
             CreateMap<WorkspaceSummary, ExternalSpec>()
                 .ForMember(d => d.ExternalId, opt => opt.MapFrom(s => s.Id))
-                .ForMember(d => d.GameEngineType, opt => opt.MapFrom(s => GameEngineType.TopoMojo))
-            ;
+                .ForMember(d => d.GameEngineType, opt => opt.MapFrom(s => GameEngineType.TopoMojo));
 
             CreateMap<EventTemplate, ExternalSpec>()
                 .ForMember(d => d.ExternalId, opt => opt.MapFrom(s => s.Id))
-                .ForMember(d => d.GameEngineType, opt => opt.MapFrom(s => GameEngineType.Crucible))
-            ;
+                .ForMember(d => d.GameEngineType, opt => opt.MapFrom(s => GameEngineType.Crucible));
+        }
+
+        [GeneratedRegex("\\s+")]
+        private static partial Regex TagsSplitRegex();
+
+        // EF advises to make this mapping a static method to avoid memory leaks
+        private static IEnumerable<string> StringTagsToEnumerableStringTags(string tagsIn)
+        {
+            if (tagsIn.IsEmpty())
+                return Array.Empty<string>();
+
+            return TagsSplitRegex().Split(tagsIn);
         }
     }
 }

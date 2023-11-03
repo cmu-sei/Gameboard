@@ -1,3 +1,4 @@
+using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.UnityGames;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
@@ -12,6 +13,11 @@ internal class TestGamebrainService : IGamebrainService
     public Task<string> GetGameState(string gameId, string teamId)
     {
         return Task.FromResult("{}");
+    }
+
+    public Task<IEnumerable<ExternalGameClientTeamConfig>> StartGame(ExternalGameStartMetaData metaData)
+    {
+        return Task.FromResult(Array.Empty<ExternalGameClientTeamConfig>().AsEnumerable());
     }
 
     public Task<string> UndeployUnitySpace(string gameId, string teamId)

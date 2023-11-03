@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Common;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Games.Validators;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
@@ -58,7 +58,7 @@ internal class GetTeamGamespaceLimitStateQueryHandler : IRequestHandler<GetTeamG
                     .UseGameIdProperty(r => r.GameId)
                     .UseUserIdProperty(r => r.ActingUser)
             )
-            .Validate(request);
+            .Validate(request, cancellationToken);
 
         var activeChallenges = await _teamService.GetChallengesWithActiveGamespace(request.TeamId, request.GameId, cancellationToken);
         var game = await _store.FirstOrDefaultAsync<Data.Game>(g => g.Id == request.GameId, cancellationToken);

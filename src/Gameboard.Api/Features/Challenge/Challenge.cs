@@ -26,6 +26,7 @@ public class Challenge
     public long Duration { get; set; }
     public ChallengeResult Result { get; set; }
     public ChallengeEventSummary[] Events { get; set; }
+    public GameEngineType GameEngineType { get; set; }
     public GameEngineGameState State { get; set; }
 }
 
@@ -97,8 +98,9 @@ public class ChallengePlayer
 
 public class NewChallenge
 {
-    public string SpecId { get; set; }
-    public string PlayerId { get; set; }
+    public required string SpecId { get; set; }
+    public required string PlayerId { get; set; }
+    public bool StartGamespace { get; set; } = true;
     public int Variant { get; set; }
 }
 

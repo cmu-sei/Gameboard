@@ -2,9 +2,8 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Common;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
@@ -41,7 +40,7 @@ internal class SetPracticeCertificateIsPublishedHandler : IRequestHandler<SetPra
     public async Task<PublishedCertificateViewModel> Handle(SetPracticeCertificateIsPublishedCommand request, CancellationToken cancellationToken)
     {
         _validator.AddValidator(_specExists.UseProperty(r => r.ChallengeSpecId));
-        await _validator.Validate(request);
+        await _validator.Validate(request, cancellationToken);
 
         // pull the existing publish if it exists - we need it for return on the unpublish case
         var existingPublish = await GetExistingPublish(request.ActingUser.Id, request.ChallengeSpecId, cancellationToken);

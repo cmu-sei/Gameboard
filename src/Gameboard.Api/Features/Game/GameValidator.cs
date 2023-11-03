@@ -28,7 +28,7 @@ namespace Gameboard.Api.Validators
         private async Task _validate(Entity model)
         {
             if ((await Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound<Game>(model.Id);
+                throw new ResourceNotFound<Data.Game>(model.Id);
 
             await Task.CompletedTask;
         }

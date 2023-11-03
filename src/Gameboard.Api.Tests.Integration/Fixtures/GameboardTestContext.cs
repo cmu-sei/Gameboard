@@ -1,6 +1,6 @@
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
-using Gameboard.Api.Features.UnityGames;
+using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Tests.Shared;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -35,17 +35,9 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
                 builder.UseNpgsql(_container.GetConnectionString(), opts => opts.MigrationsAssembly("Gameboard.Api"));
             });
 
-            // migrate the database (forces a blocking call)
-            // get the dbcontext type and use it to migrate (stand up) the database
-            // var builder = new DbContextOptionsBuilder<GameboardTestDbContext>().UseNpgsql(_container.GetConnectionString());
-            // var dbContext = new GameboardTestDbContext(builder.Options);
-            // dbContext.Database.Migrate();
-
             // Some services (like the stores) in Gameboard inject with GameboardDbContext rather than DbContext,
             // so we need to add an additional binding for them
-            // services.AddTransient<GameboardDbContext, TDbContext>();
             services.AddScoped<GameboardDbContextPostgreSQL>();
-            // var testDbContext = services.FindService<GameboardTestDbContext>();
             services.AddScoped<GameboardDbContext, GameboardDbContextPostgreSQL>();
 
             // add user claims transformation that lets them all through
@@ -57,6 +49,9 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
 
             // dummy authorization service that lets everything through
             services.ReplaceService<IAuthorizationService, TestAuthorizationService>();
+
+            // add defaults for services that can be replaced in .ConfigureTestServices
+            services.AddScoped<ITestGradingResultService>(_ => new TestGradingResultService(0, (state) => { }));
         });
     }
 
@@ -72,6 +67,7 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
             .WithImage("postgres:latest")
             .WithAutoRemove(true)
             .WithCleanUp(true)
+            // .WithName("GbIntegrationTests")
             .Build();
 
         // start up our testcontainer with the db

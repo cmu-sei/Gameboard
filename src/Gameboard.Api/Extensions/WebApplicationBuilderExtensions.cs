@@ -1,7 +1,5 @@
 using System;
 using System.IO;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
@@ -82,24 +80,14 @@ internal static class WebApplicationBuilderExtensions
             .SetApplicationName(AppConstants.DataProtectionPurpose)
             .PersistKeys(() => settings.Cache);
 
-        services.AddSignalR()
-            .AddJsonProtocol(options =>
-            {
-                options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-                options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter(
-                    JsonNamingPolicy.CamelCase
-                ));
-            });
-        services.AddSignalRHub();
-
         services
             .AddSingleton(_ => settings.Core)
             .AddSingleton(_ => settings.Crucible)
             .AddGameboardData(settings.Database.Provider, settings.Database.ConnectionString)
+            .AddGameboardMediatR()
             .AddGameboardServices(settings)
             .AddConfiguredHttpClients(settings.Core)
-            .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath)
-            .AddGameboardMediatR();
+            .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath);
 
         // don't add the job service during test - we don't want it to interfere with CI
         if (!builder.Environment.IsTest())
@@ -112,6 +100,8 @@ internal static class WebApplicationBuilderExtensions
                 cfg.AddGameboardMaps();
             }).CreateMapper()
         );
+        // configuring SignalR involves acting on the builder as well as its services
+        builder.AddGameboardSignalRServices();
 
         // Configure Auth
         services.AddConfiguredAuthentication(settings.Oidc, settings.ApiKey, builder.Environment);

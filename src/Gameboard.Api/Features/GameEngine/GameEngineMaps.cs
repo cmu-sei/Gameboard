@@ -1,6 +1,6 @@
 using System.Linq;
 using AutoMapper;
-using Gameboard.Api.Services;
+using Gameboard.Api.Common.Services;
 
 namespace Gameboard.Api.Features.GameEngine;
 
@@ -32,11 +32,12 @@ public class GameEngineMaps : Profile
             .ForMember(c => c.EndTime, o => o.MapFrom(s => s.ExpirationTime))
             .ForMember(c => c.HasDeployedGamespace, o => o.MapFrom(s => s.Vms.Any() && s.IsActive))
             .ForMember(c => c.LastScoreTime, o => o.MapFrom(s => s.Challenge.LastScoreTime))
-            .ForMember(c => c.ExternalId, o => o.MapFrom(s => s.Id))
+            .ForMember(c => c.Id, o => o.MapFrom(s => s.Id))
             .ForMember(c => c.PlayerId, o => o.MapFrom(p => p.Players.Where(p => p.IsManager).First().SubjectId))
             .ForMember(c => c.Points, o => o.MapFrom(s => s.Challenge.MaxPoints))
             .ForMember(c => c.Score, o => o.MapFrom(s => s.Challenge.Score))
             .ForMember(c => c.State, o => o.MapFrom(s => jsonService.Serialize(s)))
+            .ForMember(c => c.ExternalId, o => o.MapFrom(s => s.Id))
             // ignore entity properties because we don't want EF to think that we're trying to insert new ones
             .ForMember(c => c.Player, o => o.Ignore())
             // game engine type will need to be resolved using an aftermap expression during mapping
@@ -53,6 +54,7 @@ public class GameEngineMaps : Profile
             .ForMember(c => c.Tag, o => o.Ignore())
             .ForMember(c => c.TeamId, o => o.Ignore())
             .ForMember(c => c.Tickets, o => o.Ignore())
+            .ForMember(c => c.AwardedBonuses, o => o.Ignore())
             .ForMember(c => c.AwardedManualBonuses, o => o.Ignore());
 
         // engine: topo
@@ -64,7 +66,6 @@ public class GameEngineMaps : Profile
         CreateMap<TopoMojo.Api.Client.VmState, GameEngineVmState>();
         CreateMap<TopoMojo.Api.Client.ChallengeView, GameEngineChallengeView>();
         CreateMap<TopoMojo.Api.Client.SectionSubmission, GameEngineSectionSubmission>();
-
         CreateMap<GameEngineAnswerSubmission, TopoMojo.Api.Client.AnswerSubmission>();
         CreateMap<GameEngineSectionSubmission, TopoMojo.Api.Client.SectionSubmission>();
     }

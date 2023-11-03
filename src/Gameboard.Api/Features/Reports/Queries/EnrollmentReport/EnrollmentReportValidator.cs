@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
@@ -13,7 +14,7 @@ internal class EnrollmentReportValidator : IGameboardRequestValidator<Enrollment
         _validatorService = validatorService;
     }
 
-    public async Task Validate(EnrollmentReportParameters request)
+    public async Task Validate(EnrollmentReportParameters request, CancellationToken cancellationToken)
     {
         var startEndDateValidator = StartEndDateValidator<EnrollmentReportParameters>.Configure(opt =>
         {
@@ -23,6 +24,6 @@ internal class EnrollmentReportValidator : IGameboardRequestValidator<Enrollment
 
         _validatorService.AddValidator(startEndDateValidator);
 
-        await _validatorService.Validate(request);
+        await _validatorService.Validate(request, cancellationToken);
     }
 }

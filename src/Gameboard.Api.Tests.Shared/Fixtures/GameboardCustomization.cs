@@ -1,4 +1,6 @@
 using AutoFixture;
+using Gameboard.Api.Data;
+using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api.Tests.Shared.Fixtures;
 
@@ -6,8 +8,17 @@ public class GameboardCustomization : ICustomization
 {
     public void Customize(IFixture fixture)
     {
-        fixture.Customizations.Add(new IdBuilder());
         fixture.Register(() => fixture);
+
+        // this is necessary for us because we use EF with multiple navigation properties
+        // which ultimately result in circular references. We ignore the behavior in
+        // autofixture because it breaks tests which autofix entities with these references
+        // and we already know about the circular references - they're by design.
+        // fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
+        //     .ForEach(b => fixture.Behaviors.Remove(b));
+        // fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+
+        fixture.Customizations.Add(new IdBuilder());
         var now = DateTimeOffset.UtcNow;
 
         fixture.Register(() => new Data.ArchivedChallenge
@@ -19,7 +30,33 @@ public class GameboardCustomization : ICustomization
             EndTime = now.AddDays(-1),
             HasGamespaceDeployed = false
         });
-        
+
+        fixture.Register(() => new AwardedChallengeBonus
+        {
+            Id = fixture.Create<string>(),
+            EnteredOn = DateTimeOffset.MinValue,
+        });
+
+        fixture.Register(() => new ChallengeBonusCompleteSolveRank
+        {
+            Id = fixture.Create<string>(),
+            Description = fixture.Create<string>(),
+            PointValue = 10,
+            ChallengeBonusType = ChallengeBonusType.CompleteSolveRank,
+            ChallengeSpec = fixture.Create<Data.ChallengeSpec>(),
+            AwardedTo = new List<Data.AwardedChallengeBonus>()
+        });
+
+        fixture.Register<ChallengeBonus>(() => new ChallengeBonusCompleteSolveRank
+        {
+            Id = fixture.Create<string>(),
+            Description = fixture.Create<string>(),
+            PointValue = 10,
+            ChallengeBonusType = ChallengeBonusType.CompleteSolveRank,
+            ChallengeSpec = fixture.Create<Data.ChallengeSpec>(),
+            AwardedTo = new List<Data.AwardedChallengeBonus>()
+        });
+
         fixture.Register(() => new Data.Challenge
         {
             Id = fixture.Create<string>(),
@@ -31,7 +68,6 @@ public class GameboardCustomization : ICustomization
             Points = 50,
             WhenCreated = now,
             StartTime = now,
-            EndTime = now.AddDays(1),
             HasDeployedGamespace = false,
             GameEngineType = GameEngineType.TopoMojo
         });
@@ -58,6 +94,25 @@ public class GameboardCustomization : ICustomization
             RegistrationType = GameRegistrationType.Open
         });
 
+        fixture.Register(() => new Data.PracticeModeSettings
+        {
+            Id = fixture.Create<string>(),
+            CertificateHtmlTemplate = null,
+            DefaultPracticeSessionLengthMinutes = 60,
+            IntroTextMarkdown = null,
+            SuggestedSearches = ""
+        });
+
+        fixture.Register<Data.Sponsor>(() => new()
+        {
+            Id = fixture.Create<string>(),
+            Name = $"Sponsor {fixture.Create<string>()}",
+            Approved = true,
+            Logo = "test.svg",
+            SponsoredPlayers = new List<Data.Player>(),
+            SponsoredUsers = new List<Data.User>()
+        });
+
         fixture.Register(() => new Data.Player
         {
             Id = fixture.Create<string>(),
@@ -82,9 +137,9 @@ public class GameboardCustomization : ICustomization
             Markdown = "Here is some markdown _stuff_.",
             Audience = "gameboard",
             LaunchpointUrl = "https://google.com",
-            Players = new TopoMojo.Api.Client.Player[]
+            Players = new List<TopoMojo.Api.Client.Player>
             {
-                new TopoMojo.Api.Client.Player
+                new()
                 {
                     GamespaceId = "33b9cf31-8686-4d95-b5a8-9fb1b7f8ce71",
                     SubjectId = "f4390dff-420d-47da-90c8-4c982eeab822",
@@ -93,10 +148,10 @@ public class GameboardCustomization : ICustomization
                     IsManager = true
                 }
             },
-            WhenCreated = DateTimeOffset.Now,
-            StartTime = DateTimeOffset.Now,
-            EndTime = DateTimeOffset.Now.AddMinutes(60),
-            ExpirationTime = DateTime.Now.AddMinutes(60),
+            WhenCreated = DateTimeOffset.UtcNow,
+            StartTime = DateTimeOffset.UtcNow,
+            EndTime = DateTimeOffset.UtcNow.AddMinutes(60),
+            ExpirationTime = DateTime.UtcNow.AddMinutes(60),
             IsActive = true,
             Vms = new TopoMojo.Api.Client.VmState[]
             {
@@ -128,8 +183,8 @@ public class GameboardCustomization : ICustomization
                 SectionIndex = 0,
                 SectionScore = 50,
                 SectionText = "The best one",
-                LastScoreTime = DateTimeOffset.Now.AddMinutes(5),
-                Questions = new TopoMojo.Api.Client.QuestionView[]
+                LastScoreTime = DateTimeOffset.UtcNow.AddMinutes(5),
+                Questions = new List<TopoMojo.Api.Client.QuestionView>
                 {
                     new()
                     {
@@ -146,23 +201,24 @@ public class GameboardCustomization : ICustomization
             }
         });
 
-        fixture.Register<Data.Sponsor>(() => new()
-        {
-            Id = fixture.Create<string>(),
-            Name = $"Sponsor {fixture.Create<string>()}",
-            Approved = true,
-            Logo = "test.svg",
-            SponsoredPlayers = new List<Data.Player>(),
-            SponsoredUsers = new List<Data.User>()
-        });
-
         fixture.Register(() => new Data.User
         {
             Id = fixture.Create<string>(),
             Username = fixture.Create<string>(),
             ApprovedName = fixture.Create<string>(),
-            Sponsor = new Data.Sponsor { Id = fixture.Create<string>(), Name = "Test Sponsor" },
+            Sponsor = fixture.Create<Data.Sponsor>(),
             Role = UserRole.Member
+        });
+
+        fixture.Register(() => new GameEngineSectionSubmission
+        {
+            Id = fixture.Create<string>(),
+            Timestamp = DateTimeOffset.UtcNow.AddMinutes(1),
+            SectionIndex = 0,
+            Questions = new GameEngineAnswerSubmission[]
+            {
+                new() { Answer = fixture.Create<string>() }
+            }
         });
     }
 }

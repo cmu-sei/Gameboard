@@ -27,15 +27,6 @@ public class ChallengeBonusControllerManualTests
             });
 
             state.Add<Data.Challenge>(fixture, c => c.Id = challengeId);
-            // state.AddUser(u =>
-            // {
-
-            // });
-
-            // state.AddChallenge(c =>
-            // {
-            //     c.Id = challengeId;
-            // });
         });
 
         var bonus = new CreateManualChallengeBonus

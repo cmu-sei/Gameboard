@@ -1,8 +1,6 @@
-using Gameboard.Api;
-
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
-internal class TestAuthenticationUser
+public class TestAuthenticationUser
 {
     public static string DEFAULT_USERID = "UserId-IntegrationTester";
 

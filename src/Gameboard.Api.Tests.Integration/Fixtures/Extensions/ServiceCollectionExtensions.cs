@@ -33,13 +33,13 @@ public static class ServiceCollectionExtensions
             RemoveService<I>(services);
         }
 
-        services.AddSingleton<I, C>();
+        services.AddScoped<I, C>();
     }
 
     public static void ReplaceService<I, C>(this IServiceCollection services, C replacement) where I : class where C : class, I
     {
         RemoveService<I>(services);
-        services.AddSingleton<I>(replacement);
+        services.AddSingleton<I>(sp => replacement);
     }
 
     public static ServiceDescriptor? FindService<T>(this IServiceCollection services) where T : class

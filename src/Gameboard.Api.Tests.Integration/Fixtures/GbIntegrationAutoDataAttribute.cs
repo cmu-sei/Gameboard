@@ -2,6 +2,14 @@ using Gameboard.Api.Tests.Shared.Fixtures;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
+file static class GbFixtureCustomizationFactory
+{
+    public static IFixture Fixture
+    {
+        get => new Fixture().Customize(new GameboardCustomization());
+    }
+}
+
 public class GbIntegrationAutoDataAttribute : AutoDataAttribute
 {
     private static readonly IFixture FIXTURE = new Fixture()
@@ -14,9 +22,3 @@ public class GbIntegrationAutoDataAttribute : AutoDataAttribute
     })
     { }
 }
-
-// public class GbIntegrationInlineAutoDataAttribute : CompositeDataAttribute
-// {
-//     public GbIntegrationInlineAutoDataAttribute(params object[] fixedValues)
-//         : base(new InlineAutoDataAttribute(fixedValues), new GbIntegrationAutoDataAttribute()) { }
-// }

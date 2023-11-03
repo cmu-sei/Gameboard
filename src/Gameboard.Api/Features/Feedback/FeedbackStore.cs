@@ -2,16 +2,16 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data
 {
     public class FeedbackStore : Store<Feedback>, IFeedbackStore
     {
-        public FeedbackStore(IGuidService guids, GameboardDbContext dbContext)
-            : base(guids, dbContext) { }
+        public FeedbackStore(GameboardDbContext dbContext, IGuidService guids)
+            : base(dbContext, guids) { }
 
         public async Task<Feedback> Load(string id)
         {

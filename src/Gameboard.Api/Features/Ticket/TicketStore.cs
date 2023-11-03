@@ -3,8 +3,8 @@
 
 using System.Linq;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data;
@@ -14,7 +14,7 @@ public class TicketStore : Store<Ticket>, ITicketStore
     public CoreOptions Options { get; }
 
     public TicketStore(IGuidService guids, GameboardDbContext dbContext, CoreOptions options)
-        : base(guids, dbContext)
+        : base(dbContext, guids)
     {
         Options = options;
     }

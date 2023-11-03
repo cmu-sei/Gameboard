@@ -2,19 +2,17 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using Gameboard.Api.Data.Abstractions;
+using Microsoft.Extensions.Logging;
+using AutoMapper;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
-using Gameboard.Api.Common;
+using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Games;
-using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Services;
 
@@ -23,17 +21,17 @@ public interface IGameService
     Task<Game> Create(NewGame model);
     Task Delete(string id);
     Task<string> Export(GameSpecExport model);
-    Task<SyncStartState> GetSyncStartState(string gameId);
-    Task HandleSyncStartStateChanged(string gameId, User actor);
     Task<Game> Import(GameSpecImport model);
+    bool IsGameStartSuperUser(User user);
     IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool sudo = false);
+    Task<bool> IsUserPlaying(string gameId, string userId);
     Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false);
     Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo);
     Task ReRank(string id);
     Task<Game> Retrieve(string id, bool accessHidden = true);
-    Task<ChallengeSpec[]> RetrieveChallenges(string id);
+    Task<string> ResolveExternalStartupUrl(string gameId);
+    Task<ChallengeSpec[]> RetrieveChallengeSpecs(string id);
     Task<SessionForecast[]> SessionForecast(string id);
-    Task<SynchronizedGameStartedState> StartSynchronizedSession(string gameId);
     Task Update(ChangedGame account);
     Task UpdateImage(string id, string type, string filename);
     Task<bool> UserIsTeamPlayer(string uid, string gid, string tid);
@@ -41,29 +39,19 @@ public interface IGameService
 
 public class GameService : _Service, IGameService
 {
-    IGameStore Store { get; }
-    Defaults Defaults { get; }
-
-    private readonly IGameHubBus _gameHub;
-    private readonly ILockService _lockService;
-    private readonly IPlayerStore _playerStore;
+    private readonly Defaults _defaults;
+    private readonly IGameStore _store;
 
     public GameService(
         ILogger<GameService> logger,
         IMapper mapper,
         CoreOptions options,
         Defaults defaults,
-        IGameHubBus gameHub,
-        IGameStore store,
-        ILockService lockService,
-        IPlayerStore playerStore
+        IGameStore store
     ) : base(logger, mapper, options)
     {
-        Store = store;
-        Defaults = defaults;
-        _gameHub = gameHub;
-        _lockService = lockService;
-        _playerStore = playerStore;
+        _store = store;
+        _defaults = defaults;
     }
 
     public async Task<Game> Create(NewGame model)
@@ -71,47 +59,54 @@ public class GameService : _Service, IGameService
         // for "New Game" only, set global defaults, if defined
         if (!model.IsClone)
         {
-            if (Defaults.FeedbackTemplate.NotEmpty())
-                model.FeedbackConfig = Defaults.FeedbackTemplate;
-            if (Defaults.CertificateTemplate.NotEmpty())
-                model.CertificateTemplate = Defaults.CertificateTemplate;
+            if (_defaults.FeedbackTemplate.NotEmpty())
+                model.FeedbackConfig = _defaults.FeedbackTemplate;
+            if (_defaults.CertificateTemplate.NotEmpty())
+                model.CertificateTemplate = _defaults.CertificateTemplate;
         }
+
+        // default to standard-mode challenges
+        if (model.Mode.IsEmpty())
+            model.Mode = GameEngineMode.Standard;
 
         var entity = Mapper.Map<Data.Game>(model);
 
-        await Store.Create(entity);
+        await _store.Create(entity);
 
         return Mapper.Map<Game>(entity);
     }
 
     public async Task<Game> Retrieve(string id, bool accessHidden = true)
     {
-        var game = await Store.Retrieve(id);
+        var game = await _store.Retrieve(id);
         if (!accessHidden && !game.IsPublished)
             throw new ActionForbidden();
 
         return Mapper.Map<Game>(game);
     }
 
-    public async Task Update(ChangedGame account)
+    public async Task Update(ChangedGame game)
     {
-        var entity = await Store.Retrieve(account.Id);
+        if (game.Mode != GameEngineMode.External)
+        {
+            game.ExternalGameStartupUrl = null;
+        }
 
-        Mapper.Map(account, entity);
-
-        await Store.Update(entity);
+        var entity = await _store.Retrieve(game.Id);
+        Mapper.Map(game, entity);
+        await _store.Update(entity);
     }
 
     public async Task Delete(string id)
     {
-        await Store.Delete(id);
+        await _store.Delete(id);
     }
 
     public IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool sudo = false)
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;
 
-        var q = Store.List(model?.Term);
+        var q = _store.List(model?.Term);
 
         if (!sudo)
             q = q.Where(g => g.IsPublished);
@@ -126,13 +121,13 @@ public class GameService : _Service, IGameService
             q = q.Where(g => g.PlayerMode == PlayerMode.Practice);
 
         if (model.WantsPresent)
-            q = q.Where(g => g.GameEnd > now && g.GameStart < now);
+            q = q.Where(g => (g.GameEnd > now || g.GameEnd == AppConstants.NULL_DATE) && g.GameStart < now);
 
         if (model.WantsFuture)
             q = q.Where(g => g.GameStart > now);
 
         if (model.WantsPast)
-            q = q.Where(g => g.GameEnd < now);
+            q = q.Where(g => g.GameEnd < now && g.GameEnd != AppConstants.NULL_DATE);
 
         if (model.WantsFuture)
             q = q.OrderBy(g => g.GameStart).ThenBy(g => g.Name);
@@ -165,8 +160,7 @@ public class GameService : _Service, IGameService
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;
 
-        var q = Store
-            .List(model.Term);
+        var q = _store.List(model.Term);
 
         if (!sudo)
             q = q.Where(g => g.IsPublished);
@@ -206,9 +200,19 @@ public class GameService : _Service, IGameService
         return b.ToArray();
     }
 
-    public async Task<ChallengeSpec[]> RetrieveChallenges(string id)
+    public async Task<string> ResolveExternalStartupUrl(string gameId)
     {
-        var entity = await Store.Load(id);
+        var game = await Retrieve(gameId);
+
+        if (game.ExternalGameStartupUrl.IsEmpty())
+            throw new EmptyExternalStartupUrl(gameId, game.ExternalGameStartupUrl);
+
+        return game.ExternalGameStartupUrl.TrimEnd('/');
+    }
+
+    public async Task<ChallengeSpec[]> RetrieveChallengeSpecs(string id)
+    {
+        var entity = await _store.Load(id);
 
         return Mapper.Map<ChallengeSpec[]>(entity.Specs)
             .OrderBy(s => s.Name)
@@ -217,12 +221,12 @@ public class GameService : _Service, IGameService
 
     public async Task<SessionForecast[]> SessionForecast(string id)
     {
-        Data.Game entity = await Store.Retrieve(id);
+        Data.Game entity = await _store.Retrieve(id);
 
         var ts = DateTimeOffset.UtcNow;
         var step = ts;
 
-        var expirations = await Store.DbContext.Players
+        var expirations = await _store.DbContext.Players
             .Where(p => p.GameId == id && p.Role == PlayerRole.Manager && p.SessionEnd.CompareTo(ts) > 0)
             .Select(p => p.SessionEnd)
             .ToArrayAsync();
@@ -251,9 +255,9 @@ public class GameService : _Service, IGameService
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
             .Build();
 
-        var entity = await Store.Retrieve(model.Id, q => q.Include(g => g.Specs));
+        var entity = await _store.Retrieve(model.Id, q => q.Include(g => g.Specs));
 
-        if (entity is Data.Game)
+        if (entity is not null)
             return yaml.Serialize(entity);
 
         entity = new Data.Game
@@ -284,14 +288,19 @@ public class GameService : _Service, IGameService
 
         var entity = yaml.Deserialize<Data.Game>(model.Data);
 
-        await Store.Create(entity);
+        await _store.Create(entity);
 
         return Mapper.Map<Game>(entity);
     }
 
+    public bool IsGameStartSuperUser(User user)
+    {
+        return user.IsRegistrar;
+    }
+
     public async Task UpdateImage(string id, string type, string filename)
     {
-        var entity = await Store.Retrieve(id);
+        var entity = await _store.Retrieve(id);
 
         switch (type)
         {
@@ -304,12 +313,12 @@ public class GameService : _Service, IGameService
                 break;
         }
 
-        await Store.Update(entity);
+        await _store.Update(entity);
     }
 
     public async Task ReRank(string id)
     {
-        var players = await Store.DbContext.Players
+        var players = await _store.DbContext.Players
             .Where(p => p.GameId == id && p.Mode == PlayerMode.Competition)
             .OrderByDescending(p => p.Score)
             .ThenBy(p => p.Time)
@@ -331,172 +340,22 @@ public class GameService : _Service, IGameService
             player.Rank = rank;
         }
 
-        await Store.DbContext.SaveChangesAsync();
+        await _store.DbContext.SaveChangesAsync();
     }
+
+    public Task<bool> IsUserPlaying(string gameId, string userId)
+        => _store
+            .DbContext
+            .Players
+            .AnyAsync(p => p.GameId == gameId && p.UserId == userId);
 
     public async Task<bool> UserIsTeamPlayer(string uid, string gid, string tid)
     {
-        bool authd = await Store.DbContext.Users.AnyAsync(u =>
+        bool authd = await _store.DbContext.Users.AnyAsync(u =>
             u.Id == uid &&
             u.Enrollments.Any(e => e.TeamId == tid)
         );
 
-        var players = Store.DbContext.Players.Where(p => p.UserId == uid);
-        foreach (var e in players)
-        {
-            Console.WriteLine("game id: " + e.GameId + " | gid: " + gid);
-        }
-
         return authd;
-    }
-
-    public async Task<SyncStartState> GetSyncStartState(string gameId)
-    {
-        var game = await Store.Retrieve(gameId);
-
-        // a game and its challenges are "sync start ready" if either of the following are true:
-        // - the game IS NOT a sync-start game
-        // - the game IS sync-start game, and all registered players have set their IsReady flag to true.
-        if (!game.RequireSynchronizedStart)
-        {
-            return new SyncStartState
-            {
-                Game = new SimpleEntity { Id = game.Id, Name = game.Name },
-                Teams = Array.Empty<SyncStartTeam>(),
-                IsReady = true
-            };
-        }
-
-        // TODO: for some reason, clever uses of groupby and todictionaryasync aren't working like i expect them to.
-        // they have stale properties. For example, compare the IsReady property of playersDebug here to the result of allTeamsReady
-        // var playersDebug = await _playerStore
-        //     .List()
-        //     .Where(p => p.GameId == gameId)
-        //     .Select(p => new
-        //     {
-        //         Id = p.Id,
-        //         IsReady = p.IsReady
-        //     })
-        //     .ToListAsync();
-
-        // var teams = new List<SyncStartTeam>();
-        // var teamPlayers = await _playerStore
-        //     .List()
-        //     .Where(p => p.GameId == gameId)
-        //     .GroupBy(p => p.TeamId)
-        //     .ToDictionaryAsync(tp => tp.Key, tp => tp.ToList());
-        // var allTeamsReady = teamPlayers.All(team => team.Value.All(p => p.IsReady));
-
-        // out of time, so for now, manually group on returned players
-        var players = await _playerStore
-            .List()
-            .AsNoTracking()
-            .Where(p => p.GameId == gameId)
-            .ToListAsync();
-
-        var teams = new List<SyncStartTeam>();
-        var teamPlayers = players
-            .GroupBy(p => p.TeamId)
-            .ToDictionary(g => g.Key, g => g.ToList());
-        var allTeamsReady = teamPlayers.All(team => team.Value.All(p => p.IsReady));
-
-        return new SyncStartState
-        {
-            Game = new SimpleEntity { Id = game.Id, Name = game.Name },
-            Teams = teamPlayers.Keys.Select(teamId => new SyncStartTeam
-            {
-                Id = teamId,
-                Name = teamPlayers[teamId].Single(p => p.Role == PlayerRole.Manager).ApprovedName,
-                Players = teamPlayers[teamId].Select(p => new SyncStartPlayer
-                {
-                    Id = p.Id,
-                    Name = p.ApprovedName,
-                    IsReady = p.IsReady
-                }),
-                IsReady = teamPlayers[teamId].All(p => p.IsReady)
-            }),
-            IsReady = allTeamsReady
-        };
-    }
-
-    public async Task HandleSyncStartStateChanged(string gameId, User actor)
-    {
-        var state = await GetSyncStartState(gameId);
-        await _gameHub.SendSyncStartStateChanged(state, actor);
-
-        // IFF everyone is ready, start all sessions and return info about them
-        if (!state.IsReady)
-            return;
-
-        var session = await StartSynchronizedSession(gameId); ;
-        await _gameHub.SendSyncStartGameStarting(session);
-    }
-
-    public async Task<SynchronizedGameStartedState> StartSynchronizedSession(string gameId)
-    {
-        using (await _lockService.GetSyncStartGameLock(gameId).LockAsync())
-        {
-            // make sure we have a legal sync start game
-            var game = await Retrieve(gameId);
-
-            if (!game.RequireSynchronizedStart)
-                throw new CantSynchronizeNonSynchronizedGame(gameId);
-
-            var state = await GetSyncStartState(gameId);
-            if (!state.IsReady)
-                throw new CantStartNonReadySynchronizedGame(gameId, state.Teams.SelectMany(t => t.Players).Where(p => !p.IsReady));
-
-            // set the session times for all players
-            var players = await _playerStore
-                .List()
-                .AsNoTracking()
-                .Where(p => p.GameId == gameId)
-                .Select(p => new
-                {
-                    Id = p.Id,
-                    Name = string.IsNullOrEmpty(p.ApprovedName) ? p.Name : p.ApprovedName,
-                    SessionBegin = p.SessionBegin,
-                    SessionEnd = p.SessionEnd,
-                    TeamId = p.TeamId
-                }).ToListAsync();
-
-            // currently, we don't have an authoritative "This is the session time of this game" kind of construct in the modeling layer
-            // instead, we look at the minimum session start already set. this should be null for new games.if it's null, set everyone's
-            // who doesn't have a session start to now plus something like 15 sec of lead time. 
-            var playersWithSessions = players.Where(p => p.SessionBegin > DateTimeOffset.MinValue || p.SessionEnd > DateTimeOffset.MinValue);
-            if (playersWithSessions.Count() > 0)
-                throw new SynchronizedGameHasPlayersWithSessionsBeforeStart(game.Id, playersWithSessions.Select(p => p.Id));
-
-            var sessionBegin = DateTimeOffset.UtcNow.AddSeconds(15);
-            var sessionEnd = sessionBegin.AddMinutes(game.SessionMinutes);
-
-            await _playerStore
-                .List()
-                .Where(p => p.GameId == gameId && p.SessionBegin == DateTimeOffset.MinValue)
-                .ExecuteUpdateAsync
-                (
-                    p => p
-                        .SetProperty(p => p.SessionBegin, sessionBegin)
-                        .SetProperty(p => p.SessionEnd, sessionEnd)
-                );
-
-
-            var startState = new SynchronizedGameStartedState
-            {
-                Game = new SimpleEntity { Id = game.Id },
-                SessionBegin = sessionBegin,
-                SessionEnd = sessionEnd,
-                Teams = players
-                    .GroupBy(p => p.TeamId)
-                    .ToDictionary(p => p.Key, p => p.Select(p => new SimpleEntity
-                    {
-                        Id = p.Id,
-                        Name = p.Name
-                    }))
-            };
-
-            await _gameHub.SendSyncStartGameStarting(startState);
-            return startState;
-        }
     }
 }

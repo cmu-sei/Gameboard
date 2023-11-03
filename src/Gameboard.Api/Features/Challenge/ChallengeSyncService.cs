@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Services;
@@ -18,6 +19,9 @@ public interface IChallengeSyncService
     Task SyncExpired(CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// Used by the Job service to update challenges which have expired
+/// </summary>
 internal class ChallengeSyncService : IChallengeSyncService
 {
     private readonly ConsoleActorMap _consoleActorMap;
@@ -64,7 +68,7 @@ internal class ChallengeSyncService : IChallengeSyncService
             _mapper.Map(entry.State, entry.Challenge);
             entry.Challenge.PlayerId = playerId;
             entry.Challenge.LastSyncTime = _now.Get();
-            await _store.Update(entry.Challenge, cancellationToken);
+            await _store.SaveUpdate(entry.Challenge, cancellationToken);
         }
     }
 
@@ -92,7 +96,13 @@ internal class ChallengeSyncService : IChallengeSyncService
             }
             catch (ApiException apiEx)
             {
-                _logger.LogError(apiEx, $"""Game engine API responded with an error for challenge {challenge.Id}.""");
+                _logger.LogError(apiEx, $"""Game engine API responded with an error for challenge {challenge.Id}. Removing it from the sync list.""");
+
+                // the game engine doesn't know about this challenge, so by rule, we call it sync'd and let it go
+                await _store
+                    .WithNoTracking<Data.Challenge>()
+                    .Where(c => c.Id == challenge.Id)
+                    .ExecuteUpdateAsync(up => up.SetProperty(c => c.LastSyncTime, now));
             }
             catch (Exception ex)
             {

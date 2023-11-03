@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Common;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Player;
-using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
@@ -59,11 +58,12 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
     {
         // validate
         _validator.AddValidator(_userExists.UseProperty(m => m.UserId));
-        await _validator.Validate(request);
+        await _validator.Validate(request, cancellationToken);
 
-        _userRoleAuthorizer.AllowedRoles = new UserRole[] { UserRole.Admin };
-        _userRoleAuthorizer.AllowedUserId = request.UserId;
-        _userRoleAuthorizer.Authorize();
+        _userRoleAuthorizer
+            .AllowRoles(UserRole.Admin)
+            .AllowUserId(request.UserId)
+            .Authorize();
 
         // retrieve stuff (initial pull from DB side eval)
         var user = await _store

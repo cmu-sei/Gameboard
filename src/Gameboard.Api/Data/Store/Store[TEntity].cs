@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data;
@@ -16,7 +16,7 @@ public class Store<TEntity> : IStore<TEntity> where TEntity : class, IEntity
 {
     private readonly IGuidService _guids;
 
-    public Store(IGuidService guids, GameboardDbContext dbContext)
+    public Store(GameboardDbContext dbContext, IGuidService guids)
     {
         DbContext = dbContext;
         DbSet = dbContext.Set<TEntity>().AsQueryable();
@@ -35,6 +35,11 @@ public class Store<TEntity> : IStore<TEntity> where TEntity : class, IEntity
     public virtual IQueryable<TEntity> List(string term = null)
     {
         return DbContext.Set<TEntity>();
+    }
+
+    public virtual IQueryable<TEntity> ListAsNoTracking()
+    {
+        return DbContext.Set<TEntity>().AsNoTracking();
     }
 
     public IQueryable<TEntity> ListWithNoTracking()
@@ -58,7 +63,7 @@ public class Store<TEntity> : IStore<TEntity> where TEntity : class, IEntity
     {
         foreach (var entity in range)
             if (string.IsNullOrWhiteSpace(entity.Id))
-                entity.Id = Guid.NewGuid().ToString("n");
+                entity.Id = _guids.GetGuid();
 
         DbContext.AddRange(range);
 

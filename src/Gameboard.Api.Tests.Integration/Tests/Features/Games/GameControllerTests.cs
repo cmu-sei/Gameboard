@@ -1,5 +1,6 @@
 using Gameboard.Api;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Games;
 
 namespace Gameboard.Api.Tests.Integration;
 
@@ -31,10 +32,9 @@ public class GameControllerTests
             RegistrationType = GameRegistrationType.Open
         };
 
-        var client = _testContext.CreateHttpClientWithActingUser();
-
         // act
-        var responseGame = await client
+        var responseGame = await _testContext
+            .CreateHttpClientWithAuthRole(UserRole.Designer)
             .PostAsync("/api/game", game.ToJsonBody())
             .WithContentDeserializedAs<Api.Data.Game>();
 

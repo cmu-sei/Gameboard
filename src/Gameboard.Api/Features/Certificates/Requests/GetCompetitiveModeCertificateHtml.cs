@@ -48,7 +48,7 @@ internal class GetCompetitiveModeCertificateHtmlHandler : IRequestHandler<GetCom
 
                 return Task.CompletedTask;
             })
-            .Validate(request);
+            .Validate(request, cancellationToken);
 
         var player = await _store
             .List<Data.Player>()

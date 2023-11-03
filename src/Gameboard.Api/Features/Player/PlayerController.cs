@@ -21,9 +21,9 @@ namespace Gameboard.Api.Controllers
     [Authorize]
     public class PlayerController : _Controller
     {
+        private readonly IMediator _mediator;
         PlayerService PlayerService { get; }
         IMapper Mapper { get; }
-        IMediator Mediator { get; }
         ITeamService TeamService { get; set; }
 
         public PlayerController(
@@ -38,7 +38,7 @@ namespace Gameboard.Api.Controllers
         {
             PlayerService = playerService;
             Mapper = mapper;
-            Mediator = mediator;
+            _mediator = mediator;
             TeamService = teamService;
         }
 
@@ -104,47 +104,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task UpdatePlayerReady([FromRoute] string playerId, [FromBody] PlayerReadyUpdate readyUpdate)
         {
-            await Mediator.Send(new UpdatePlayerReadyStateCommand(playerId, readyUpdate.IsReady, Actor));
-        }
-
-        [HttpPost("api/player/{playerId}/session")]
-        [Authorize]
-        public async Task<Player> ResetSession([FromRoute] string playerId, [FromBody] SessionResetRequest request)
-        {
-            AuthorizeAny(
-                () => Actor.IsAdmin,
-                () => PlayerService.MapId(playerId).Result == Actor.Id
-            );
-
-            var commandArgs = new SessionResetCommandArgs
-            {
-                ActingUser = Actor,
-                PlayerId = playerId,
-                UnenrollTeam = request.UnenrollTeam
-            };
-
-            await Validate(commandArgs);
-            return await PlayerService.ResetSession(commandArgs);
-        }
-
-        /// <summary>
-        /// Change player session
-        /// </summary>
-        /// <param name="model"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        [HttpPut("api/team/session")]
-        [Authorize]
-        public async Task UpdateSession([FromBody] SessionChangeRequest model, CancellationToken cancellationToken)
-        {
-            await Validate(model);
-
-            AuthorizeAny(
-                () => Actor.IsRegistrar,
-                () => TeamService.IsOnTeam(model.TeamId, Actor.Id).Result
-            );
-
-            await PlayerService.AdjustSessionEnd(model, Actor, cancellationToken);
+            await _mediator.Send(new UpdatePlayerReadyStateCommand(playerId, readyUpdate.IsReady, Actor));
         }
 
         /// <summary>
@@ -171,10 +131,11 @@ namespace Gameboard.Api.Controllers
         /// </summary>
         /// <param name="playerId"></param>
         /// <param name="asAdmin"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpDelete("/api/player/{playerId}")]
         [Authorize]
-        public async Task Unenroll([FromRoute] string playerId, [FromQuery] bool asAdmin = false)
+        public async Task Unenroll([FromRoute] string playerId, [FromQuery] bool asAdmin, CancellationToken cancellationToken)
         {
             AuthorizeAny(
                 () => Actor.IsRegistrar,
@@ -189,7 +150,7 @@ namespace Gameboard.Api.Controllers
             };
 
             await Validate(unenrollRequest);
-            await PlayerService.Unenroll(unenrollRequest);
+            await PlayerService.Unenroll(unenrollRequest, cancellationToken);
         }
 
         /// <summary>
@@ -337,7 +298,7 @@ namespace Gameboard.Api.Controllers
 
         [HttpPut("/api/team/{teamId}/manager/{playerId}")]
         [Authorize]
-        public async Task PromoteToManager(string teamId, string playerId, [FromBody] PromoteToManagerRequest promoteRequest)
+        public async Task PromoteToManager(string teamId, string playerId, [FromBody] PromoteToManagerRequest promoteRequest, CancellationToken cancellationToken)
         {
             AuthorizeAny
             (
@@ -357,7 +318,7 @@ namespace Gameboard.Api.Controllers
             };
 
             await Validate(model);
-            await TeamService.PromoteCaptain(teamId, playerId, Actor);
+            await TeamService.PromoteCaptain(teamId, playerId, Actor, cancellationToken);
         }
 
         /// <summary>

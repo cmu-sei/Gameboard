@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,7 +37,7 @@ public class UnityGamesValidator : IModelValidator
 
             if (!(await _gameStore.Exists(typedModel.GameId)))
             {
-                throw new ResourceNotFound<Game>(typedModel.GameId);
+                throw new ResourceNotFound<Data.Game>(typedModel.GameId);
             }
 
             if (!(await _teamService.GetExists(typedModel.TeamId)))
@@ -51,7 +52,7 @@ public class UnityGamesValidator : IModelValidator
 
             if (teamPlayers.Count == 0)
             {
-                throw new TeamHasNoPlayersException();
+                throw new TeamHasNoPlayersException(typedModel.TeamId);
             }
 
             if (teamPlayers.Any(p => p.GameId != typedModel.GameId))

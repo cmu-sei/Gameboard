@@ -107,12 +107,12 @@ public class GameControllerGetSyncStartStateTests
             });
         });
 
-        var client = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
-        var response = await client.GetAsync($"/api/game/{gameId}/ready");
-        var isGbValidationException = await response.Content.IsGameboardValidationException();
+        var yieldsValidationFailure = await _testContext
+            .CreateDefaultClient()
+            .GetAsync($"/api/game/{gameId}/ready")
+            .YieldsGameboardValidationException();
 
         // when / then
-        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        isGbValidationException.ShouldBeTrue();
+        yieldsValidationFailure.ShouldBeTrue();
     }
 }

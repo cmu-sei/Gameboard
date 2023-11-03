@@ -97,6 +97,8 @@ public class GameboardDbContext : DbContext
             b.Property(p => p.CardText2).HasMaxLength(64);
             b.Property(p => p.CardText3).HasMaxLength(64);
             b.Property(p => p.Mode).HasMaxLength(40);
+            b.Property(p => p.ExternalGameClientUrl).HasStandardUrlLength();
+            b.Property(p => p.ExternalGameStartupUrl).HasStandardUrlLength();
         });
 
 
@@ -112,6 +114,31 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.TeamId).HasMaxLength(40);
             b.Property(u => u.GameId).HasMaxLength(40);
             b.Property(u => u.GraderKey).HasMaxLength(64);
+        });
+
+        builder.Entity<ChallengeBonus>(b =>
+        {
+            b
+                .HasDiscriminator(b => b.ChallengeBonusType)
+                .HasValue<ChallengeBonusCompleteSolveRank>(ChallengeBonusType.CompleteSolveRank);
+
+            b.Property(b => b.Id).HasStandardGuidLength();
+            b.Property(b => b.Description).HasStandardNameLength();
+            b.HasOne(b => b.ChallengeSpec).WithMany(c => c.Bonuses).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ChallengeBonusCompleteSolveRank>();
+
+        builder.Entity<AwardedChallengeBonus>(b =>
+        {
+            b.Property(a => a.Id).HasStandardGuidLength();
+            b.Property(a => a.InternalSummary).HasMaxLength(200);
+            b.Property(a => a.EnteredOn)
+                .HasDefaultValueSql("NOW()")
+                .ValueGeneratedOnAdd();
+
+            b.HasOne(a => a.ChallengeBonus).WithMany(c => c.AwardedTo).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(a => a.Challenge).WithMany(c => c.AwardedBonuses).OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<ManualChallengeBonus>(b =>
@@ -262,7 +289,10 @@ public class GameboardDbContext : DbContext
 
     public DbSet<ApiKey> ApiKeys { get; set; }
     public DbSet<ArchivedChallenge> ArchivedChallenges { get; set; }
+    public DbSet<AwardedChallengeBonus> AwardedChallengeBonuses { get; set; }
     public DbSet<Challenge> Challenges { get; set; }
+    public DbSet<ChallengeBonus> ChallengeBonuses { get; set; }
+    public DbSet<ChallengeBonusCompleteSolveRank> ChallengeBonusesCompleteSolveRank { get; set; }
     public DbSet<ChallengeEvent> ChallengeEvents { get; set; }
     public DbSet<ChallengeSpec> ChallengeSpecs { get; set; }
     public DbSet<ChallengeGate> ChallengeGates { get; set; }
@@ -270,6 +300,7 @@ public class GameboardDbContext : DbContext
     public DbSet<Game> Games { get; set; }
     public DbSet<ManualChallengeBonus> ManualChallengeBonuses { get; set; }
     public DbSet<Player> Players { get; set; }
+    public DbSet<PublishedCertificate> PublishedCertificate { get; set; }
     public DbSet<Sponsor> Sponsors { get; set; }
     public DbSet<Ticket> Tickets { get; set; }
     public DbSet<TicketActivity> TicketActivity { get; set; }

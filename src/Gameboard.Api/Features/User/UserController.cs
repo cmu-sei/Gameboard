@@ -251,7 +251,7 @@ namespace Gameboard.Api.Controllers
             {
                 Model = model,
                 Action = EventAction.Created,
-                ActingUser = HubEventActingUserDescription.FromUser(Actor)
+                ActingUser = Actor.ToSimpleEntity()
             });
         }
 

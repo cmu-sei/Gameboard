@@ -1,0 +1,38 @@
+using System;
+using System.Threading.Tasks;
+using Gameboard.Api.Hubs;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
+
+namespace Gameboard.Api.Features.Hubs;
+
+public sealed class ScoreHub : Hub<IScoreHubEvent>, IGameboardHub
+{
+    private readonly ILogger<ScoreHub> _logger;
+    private readonly IScoreHubBus _scoreHubBus;
+
+    public ScoreHub
+    (
+        ILogger<ScoreHub> logger,
+        IScoreHubBus scoreHubBus
+    )
+    {
+        _logger = logger;
+        _scoreHubBus = scoreHubBus;
+    }
+
+    public GameboardHubGroupType GroupType => GameboardHubGroupType.Score;
+
+    public override async Task OnConnectedAsync()
+    {
+        this.LogOnConnected(_logger, Context);
+        await Groups.AddToGroupAsync(Context.ConnectionId, this.GetCanonicalGroupId(Context.ConnectionId));
+        await base.OnConnectedAsync();
+    }
+
+    public override Task OnDisconnectedAsync(Exception exception)
+    {
+        this.LogOnDisconnected(_logger, Context, exception);
+        return base.OnDisconnectedAsync(exception);
+    }
+}
