@@ -13,7 +13,9 @@ public enum ExternalGameDeployStatus
 /// 
 /// The two primary pieces of useful info are the game deploy status
 /// (which tells clients where to send users depending on the deploy
-/// status of the)
+/// status of the game) and the external URL, which we currently
+/// assume to point to a team-specific service (like a headless URL
+/// for a Unity game)
 /// </summary>
 public class ExternalGameTeam : IEntity
 {
