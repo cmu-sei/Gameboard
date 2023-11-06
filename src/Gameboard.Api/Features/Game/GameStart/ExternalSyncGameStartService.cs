@@ -140,16 +140,16 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // throw on cancel request so we can clean up the debris
         cancellationToken.ThrowIfCancellationRequested();
 
-        // note that we don't start the transaction until we're just about to begin saving entities.
+        // note that we don't start the transaction until after we've updated the deploy status.
         // we do this because we want to be sure the deploy status shows that we're deploying
         // while the work is happening.
         await _store.DoTransaction(async dbContext =>
         {
             // deploy challenges and gamespaces
             var challengeDeployResults = await DeployChallenges(request, cancellationToken);
-            var challengeGamespaces = await DeployGamespaces(request, cancellationToken);
+            // var challengeGamespaces = await DeployGamespaces(request, cancellationToken);
             // SOON
-            // var challengeGamespaces = await DeployGamespacesAsync(request, cancellationToken);
+            var challengeGamespaces = await DeployGamespacesAsync(request, cancellationToken);
 
             // establish all sessions
             _logger.LogInformation("Starting a synchronized session for all teams...", request.GameId);
