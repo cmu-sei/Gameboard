@@ -70,6 +70,7 @@ internal class ExternalGameDeployBatchService : IExternalGameDeployBatchService
         // deploy, in effect)
         if (_coreOptions.GameEngineDeployBatchSize <= 1)
         {
+            _logger.LogInformation(message: $"No explicit batch size configured. Building {gamespaceTasks.Count()} 1-item batches.");
             return gamespaceTasks.Select(t => new Task<GameEngineGameState>[] { t }).ToArray();
         }
 

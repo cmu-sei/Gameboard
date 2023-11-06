@@ -301,8 +301,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         var batchIndex = 0;
         foreach (var batch in gamespaceDeployBatches.ToArray())
         {
-            Log($"Starting gamespace batch #{++batchIndex} ({batch.Count()} challenges...)", request.GameId);
+            Log($"Starting gamespace batch #{++batchIndex} ({batch.ToArray().Count()} challenges...)", request.GameId);
             var deployResults = await Task.WhenAll(batch.ToArray());
+            Log($"{deployResults.Count()} Task done for gamespace batch #{batchIndex}.", request.GameId);
 
             foreach (var deployResult in deployResults)
                 challengeStates.Add(deployResult.Id, deployResult);
