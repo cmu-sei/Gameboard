@@ -8,6 +8,30 @@ namespace Gameboard.Api.Tests.Unit;
 
 public class ExternalGameDeployBatchServiceTests
 {
+    private GameModeStartRequest BuildFakeGameModeStartRequest(int challengeCount, IFixture fixture)
+    {
+        var gameId = fixture.Create<string>();
+
+        var request = new GameModeStartRequest
+        {
+            GameId = fixture.Create<string>(),
+            State = new GameStartState
+            {
+                Game = new SimpleEntity { Id = gameId, Name = "game" },
+                ChallengesTotal = challengeCount,
+                Now = DateTimeOffset.UtcNow
+            },
+            Context = new GameModeStartRequestContext
+            {
+                SessionLengthMinutes = fixture.Create<int>(),
+                SpecIds = fixture.CreateMany<string>(challengeCount)
+            }
+        };
+
+        request.State.ChallengesCreated.AddRange(fixture.CreateMany<GameStartStateChallenge>(challengeCount).ToList());
+        return request;
+    }
+
     [Theory, GameboardAutoData]
     public void BuildDeployBatches_WithFixedBatchSizeAndChallengeCount_ReturnsCorrectBatchCount(IFixture fixture)
     {
@@ -52,31 +76,7 @@ public class ExternalGameDeployBatchServiceTests
         var result = sut.BuildDeployBatches(request);
 
         // we expect one batch with length equal to the challenge count
-        result.Count().ShouldBe(1);
-        result.First().Count().ShouldBe(challengeCount);
-    }
-
-    private GameModeStartRequest BuildFakeGameModeStartRequest(int challengeCount, IFixture fixture)
-    {
-        var gameId = fixture.Create<string>();
-
-        var request = new GameModeStartRequest
-        {
-            GameId = fixture.Create<string>(),
-            State = new GameStartState
-            {
-                Game = new SimpleEntity { Id = gameId, Name = "game" },
-                ChallengesTotal = challengeCount,
-                Now = DateTimeOffset.UtcNow
-            },
-            Context = new GameModeStartRequestContext
-            {
-                SessionLengthMinutes = fixture.Create<int>(),
-                SpecIds = fixture.CreateMany<string>(challengeCount)
-            }
-        };
-
-        request.State.ChallengesCreated.AddRange(fixture.CreateMany<GameStartStateChallenge>(challengeCount).ToList());
-        return request;
+        result.Count().ShouldBe(challengeCount);
+        result.First().Count().ShouldBe(1);
     }
 }

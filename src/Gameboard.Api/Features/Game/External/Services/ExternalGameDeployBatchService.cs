@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -66,9 +67,12 @@ internal class ExternalGameDeployBatchService : IExternalGameDeployBatchService
             return challengeState;
         }).ToArray();
 
-        // if the setting isn't configured or is a nonsense value, just return all the tasks in one batch
+        // if the setting isn't configured or is a nonsense value, just return one batch for each task (a synchronous
+        // deploy, in effect)
         if (_coreOptions.GameEngineDeployBatchSize <= 1)
-            return new Task<GameEngineGameState>[][] { gamespaceTasks.ToArray() };
+        {
+            return gamespaceTasks.Select(t => new Task<GameEngineGameState>[] { t }).ToArray();
+        }
 
         // otherwise, create batches of the appropriate size plus an additional batch for any leftovers
         var batchList = new List<IEnumerable<Task<GameEngineGameState>>>();
