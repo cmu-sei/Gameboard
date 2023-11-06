@@ -301,14 +301,16 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         var batchIndex = 0;
         foreach (var batch in gamespaceDeployBatches.ToArray())
         {
+            Log($"Starting gamespace batch #{++batchIndex} ({batch.Count()} challenges...)", request.GameId);
             var deployResults = await Task.WhenAll(batch.ToArray());
 
             foreach (var deployResult in deployResults)
                 challengeStates.Add(deployResult.Id, deployResult);
 
-            Log($"Finish gamespace batch {++batchIndex}.", request.GameId);
+            Log($"Finish gamespace batch #{batchIndex}.", request.GameId);
         }
 
+        Log($"Loading VM data from the game engine...", request.GameId);
         foreach (var deployedChallenge in request.State.ChallengesCreated)
         {
             // TODO: verify that we need this - buildmetadata also assembles challenge info
