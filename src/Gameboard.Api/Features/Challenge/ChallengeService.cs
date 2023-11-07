@@ -241,8 +241,10 @@ public partial class ChallengeService : _Service
         q = q.Where(t => userTeams.Any(i => i == t.TeamId));
 
         DateTimeOffset recent = DateTimeOffset.UtcNow.AddDays(-1);
+        var practiceChallengesCutoff = _now.Get().AddDays(-7);
         q = q.Include(c => c.Player).Include(c => c.Game);
-        q = q.Where(c => c.Game.GameEnd > recent);
+        // band-aid for #296
+        q = q.Where(c => c.Game.GameEnd > recent || (c.PlayerMode == PlayerMode.Practice && c.StartTime >= practiceChallengesCutoff));
         q = q.OrderByDescending(p => p.StartTime);
 
         return await Mapper.ProjectTo<ChallengeOverview>(q).ToArrayAsync();
