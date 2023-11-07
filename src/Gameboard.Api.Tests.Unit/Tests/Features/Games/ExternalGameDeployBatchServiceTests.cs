@@ -14,21 +14,18 @@ public class ExternalGameDeployBatchServiceTests
 
         var request = new GameModeStartRequest
         {
-            GameId = fixture.Create<string>(),
-            State = new GameStartState
+            Game = new SimpleEntity { Id = gameId, Name = fixture.Create<string>() },
+            Context = new GameStartContext
             {
                 Game = new SimpleEntity { Id = gameId, Name = "game" },
-                ChallengesTotal = challengeCount,
-                Now = DateTimeOffset.UtcNow
-            },
-            Context = new GameModeStartRequestContext
-            {
                 SessionLengthMinutes = fixture.Create<int>(),
-                SpecIds = fixture.CreateMany<string>(challengeCount)
+                SpecIds = fixture.CreateMany<string>(challengeCount),
+                TotalChallengeCount = challengeCount,
+                TotalGamespaceCount = challengeCount
             }
         };
 
-        request.State.ChallengesCreated.AddRange(fixture.CreateMany<GameStartStateChallenge>(challengeCount).ToList());
+        request.Context.ChallengesCreated.AddRange(fixture.CreateMany<GameStartContextChallenge>(challengeCount).ToList());
         return request;
     }
 

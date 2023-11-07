@@ -37,8 +37,6 @@ namespace Gameboard.Api.Services
                 .ForMember(d => d.AllowTeam, opt => opt.MapFrom(s => s.Game.AllowTeam));
 
             CreateMap<Challenge, Data.Challenge>();
-            CreateMap<Challenge, GameStartStateChallenge>()
-                .ForMember(d => d.Challenge, o => o.MapFrom(s => new SimpleEntity { Id = s.Id, Name = s.Name }));
             CreateMap<NewChallenge, Data.Challenge>();
             CreateMap<ChangedChallenge, Data.Challenge>();
 

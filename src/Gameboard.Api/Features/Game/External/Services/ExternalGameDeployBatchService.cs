@@ -49,7 +49,7 @@ internal class ExternalGameDeployBatchService : IExternalGameDeployBatchService
     public IEnumerable<IEnumerable<Task<GameEngineGameState>>> BuildDeployBatches(GameModeStartRequest request)
     {
         // first, create a task for each gamespace to be deployed
-        var gamespaceTasks = request.State.ChallengesCreated.Select(async c =>
+        var gamespaceTasks = request.Context.ChallengesCreated.Select(async c =>
         {
             _logger.LogInformation(message: $"""Starting {c.GameEngineType} gamespace for challenge "{c.Challenge.Id}" (teamId "{c.TeamId}")...""");
             var challengeState = await _gameEngine.StartGamespace(new GameEngineGamespaceStartRequest
@@ -58,8 +58,8 @@ internal class ExternalGameDeployBatchService : IExternalGameDeployBatchService
                 GameEngineType = c.GameEngineType
             });
 
-            request.State.GamespacesStarted.Add(challengeState);
-            await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.State);
+            request.Context.GamespacesStarted.Add(challengeState);
+            await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.Context.ToUpdate());
             _logger.LogInformation(message: $"""Gamespace started for challenge "{c.Challenge.Id}".""");
 
             // keep the state given to us by the engine

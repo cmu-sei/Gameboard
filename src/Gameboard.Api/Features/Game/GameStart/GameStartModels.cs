@@ -4,32 +4,6 @@ using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api.Features.Games;
 
-public class GameStartState
-{
-    public required SimpleEntity Game { get; set; }
-    public List<GameStartStateChallenge> ChallengesCreated { get; } = new List<GameStartStateChallenge>();
-    public int ChallengesTotal { get; set; } = 0;
-    public List<GameEngineGameState> GamespacesStarted { get; } = new List<GameEngineGameState>();
-    public int GamespacesTotal { get; set; } = 0;
-    public List<GameStartStatePlayer> Players { get; } = new List<GameStartStatePlayer>();
-    public List<GameStartStateTeam> Teams { get; } = new List<GameStartStateTeam>();
-    public DateTimeOffset StartTime { get; set; }
-    public required DateTimeOffset Now { get; set; }
-    public string Error { get; set; }
-
-    public double OverallProgress
-    {
-        get
-        {
-            if (GamespacesTotal == 0 || ChallengesTotal == 0)
-                return 0;
-
-            var retVal = Math.Round(((0.8 * GamespacesStarted.Count) / GamespacesTotal) + ((0.2 * ChallengesCreated.Count) / ChallengesTotal));
-            return double.IsRealNumber(retVal) ? retVal : 0;
-        }
-    }
-}
-
 public enum GameStartPhase
 {
     NotStarted,
@@ -39,26 +13,26 @@ public enum GameStartPhase
     Failed
 }
 
-public class GameStartStatePlayer
+public class GameStartContextPlayer
 {
     public required SimpleEntity Player { get; set; }
     public required string TeamId { get; set; }
 }
 
-public class GameStartStateTeam
+public class GameStartContextTeam
 {
     public required SimpleEntity Team { get; set; }
-    public required GameStartStateTeamCaptain Captain { get; set; }
+    public required GameStartContextTeamCaptain Captain { get; set; }
     public required string HeadlessUrl { get; set; }
 }
 
-public class GameStartStateTeamCaptain
+public class GameStartContextTeamCaptain
 {
     public required SimpleEntity Player { get; set; }
     public required string UserId { get; set; }
 }
 
-public class GameStartStateChallenge
+public class GameStartContextChallenge
 {
     public required SimpleEntity Challenge { get; set; }
     public required GameEngineType GameEngineType { get; set; }
@@ -68,19 +42,56 @@ public class GameStartStateChallenge
 public class GameStartRequest
 {
     public required string GameId { get; set; }
+    public required bool IsPreDeployRequest { get; set; }
 }
 
-public class GameModeStartRequest
+public sealed class GameModeStartRequest
 {
-    public required string GameId { get; set; }
-    public required GameStartState State { get; set; }
-    public required GameModeStartRequestContext Context { get; set; }
+    public required SimpleEntity Game { get; set; }
+    public required GameStartContext Context { get; set; }
 }
 
-// contains metadata assembled by the game start service that per-mode child services
-// will use but don't want to send to the client
-public class GameModeStartRequestContext
+public sealed class GameStartContext
 {
+    public required SimpleEntity Game { get; set; }
+    public List<GameStartContextPlayer> Players { get; } = new List<GameStartContextPlayer>();
+    public List<GameStartContextTeam> Teams { get; } = new List<GameStartContextTeam>();
+    public List<GameStartContextChallenge> ChallengesCreated { get; } = new List<GameStartContextChallenge>();
+    public required int TotalChallengeCount { get; set; }
+    public List<GameEngineGameState> GamespacesStarted { get; } = new List<GameEngineGameState>();
+    public required int TotalGamespaceCount { get; set; }
     public required double SessionLengthMinutes { get; set; }
     public required IEnumerable<string> SpecIds { get; set; }
+    public DateTimeOffset StartTime { get; set; }
+    public string Error { get; set; }
+}
+
+public sealed class GameStartUpdate
+{
+    public required SimpleEntity Game { get; set; }
+    public int ChallengesCreated { get; set; } = 0;
+    public int ChallengesTotal { get; set; } = 0;
+    public int GamespacesStarted { get; set; } = 0;
+    public int GamespacesTotal { get; set; } = 0;
+    public DateTimeOffset StartTime { get; set; }
+    public required DateTimeOffset Now { get; set; }
+    public string Error { get; set; }
+}
+
+public static class GameStartContextExtensions
+{
+    public static GameStartUpdate ToUpdate(this GameStartContext context)
+    {
+        return new GameStartUpdate
+        {
+            Game = context.Game,
+            ChallengesCreated = context.ChallengesCreated.Count,
+            ChallengesTotal = context.TotalChallengeCount,
+            GamespacesStarted = context.GamespacesStarted.Count,
+            GamespacesTotal = context.TotalGamespaceCount,
+            StartTime = context.StartTime,
+            Now = DateTimeOffset.UtcNow,
+            Error = context.Error
+        };
+    }
 }

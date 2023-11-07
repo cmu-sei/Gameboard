@@ -18,7 +18,7 @@ public interface IGameStartService
 {
     Task<GameStartPhase> GetGameStartPhase(string gameId, string teamId, CancellationToken cancellationToken);
     Task HandleSyncStartStateChanged(string gameId, CancellationToken cancellationToken);
-    Task<GameStartState> Start(GameStartRequest request, CancellationToken cancellationToken);
+    Task<GameStartContext> Start(GameStartRequest request, CancellationToken cancellationToken);
 }
 
 internal class GameStartService : IGameStartService
@@ -60,7 +60,7 @@ internal class GameStartService : IGameStartService
         _teamService = teamService;
     }
 
-    public async Task<GameStartState> Start(GameStartRequest request, CancellationToken cancellationToken)
+    public async Task<GameStartContext> Start(GameStartRequest request, CancellationToken cancellationToken)
     {
         var game = await _store.Retrieve<Data.Game>(request.GameId);
         var gameModeStartService = ResolveGameModeStartService(game) ?? throw new NotImplementedException();
@@ -78,8 +78,8 @@ internal class GameStartService : IGameStartService
             await gameModeStartService.TryCleanUpFailedDeploy(startRequest, ex);
 
             // for convenience, reset (but don't unenroll) the teams
-            _logger.LogError(message: $"Deployment failed for game {startRequest.GameId}. Resetting sessions and cleaning up gamespaces for {startRequest.State.Teams.Count()} teams.");
-            foreach (var team in startRequest.State.Teams)
+            _logger.LogError(message: $"Deployment failed for game {startRequest.Game.Id}. Resetting sessions and cleaning up gamespaces for {startRequest.Context.Teams.Count()} teams.");
+            foreach (var team in startRequest.Context.Teams)
             {
                 await _mediator.Send(new ResetTeamSessionCommand(team.Team.Id, false));
             }
@@ -129,7 +129,7 @@ internal class GameStartService : IGameStartService
         //     var service = serviceScope.ServiceProvider.GetRequiredService<IGameStartService>();
         //     await service.Start(new GameStartRequest { GameId = state.Game.Id }, cancellationToken);
         // }, cancellationToken);
-        await Start(new GameStartRequest { GameId = state.Game.Id }, cancellationToken);
+        await Start(new GameStartRequest { GameId = state.Game.Id, IsPreDeployRequest = false }, cancellationToken);
     }
 
     private IGameModeStartService ResolveGameModeStartService(Data.Game game)
@@ -155,13 +155,6 @@ internal class GameStartService : IGameStartService
     {
         var now = _now.Get();
 
-        var state = new GameStartState
-        {
-            Game = new SimpleEntity { Id = game.Id, Name = game.Name },
-            Now = now,
-            StartTime = now,
-        };
-
         var players = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => p.GameId == game.Id)
@@ -184,12 +177,20 @@ internal class GameStartService : IGameStartService
                 g => _teamService.ResolveCaptain(g.ToList())
             );
 
-        // update state object
+        // update context and log stuff
         Log($"Data gathered: {players.Length} players on {teamCaptains.Keys.Count}.", game.Id);
 
-        state.ChallengesTotal = specs.Length * teamCaptains.Count;
-        state.GamespacesTotal = specs.Length * teamCaptains.Count;
-        state.Players.AddRange(players.Select(p => new GameStartStatePlayer
+        var context = new GameStartContext
+        {
+            Game = new SimpleEntity { Id = game.Id, Name = game.Name },
+            StartTime = now,
+            SessionLengthMinutes = game.SessionMinutes,
+            SpecIds = specs.Select(s => s.Id).ToArray(),
+            TotalChallengeCount = specs.Length * teamCaptains.Count,
+            TotalGamespaceCount = specs.Length * teamCaptains.Count
+        };
+
+        context.Players.AddRange(players.Select(p => new GameStartContextPlayer
         {
             Player = new SimpleEntity { Id = p.Id, Name = p.ApprovedName },
             TeamId = p.TeamId
@@ -203,10 +204,10 @@ internal class GameStartService : IGameStartService
                 throw new CaptainResolutionFailure(teamId, "Couldn't resolve captain during external sync game start.");
         }
 
-        state.Teams.AddRange(teamCaptains.Select(tc => new GameStartStateTeam
+        context.Teams.AddRange(teamCaptains.Select(tc => new GameStartContextTeam
         {
             Team = new SimpleEntity { Id = tc.Key, Name = tc.Value.ApprovedName },
-            Captain = new GameStartStateTeamCaptain
+            Captain = new GameStartContextTeamCaptain
             {
                 Player = new SimpleEntity { Id = tc.Value.Id, Name = tc.Value.ApprovedName },
                 UserId = tc.Value.UserId
@@ -216,13 +217,8 @@ internal class GameStartService : IGameStartService
 
         return new GameModeStartRequest
         {
-            GameId = game.Id,
-            State = state,
-            Context = new GameModeStartRequestContext
-            {
-                SessionLengthMinutes = game.SessionMinutes,
-                SpecIds = specs.Select(s => s.Id).ToArray(),
-            }
+            Game = new SimpleEntity { Id = game.Id, Name = game.Name },
+            Context = context
         };
     }
 
