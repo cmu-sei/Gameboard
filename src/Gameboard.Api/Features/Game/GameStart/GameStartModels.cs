@@ -13,6 +13,46 @@ public enum GameStartPhase
     Failed
 }
 
+public class GameStartRequest
+{
+    public required string GameId { get; set; }
+    public required bool IsPreDeployRequest { get; set; }
+}
+
+public sealed class GameModeStartRequest
+{
+    public required SimpleEntity Game { get; set; }
+    public required GameStartContext Context { get; set; }
+    public required bool IsPreDeployRequest { get; set; }
+}
+
+public sealed class GameStartContext
+{
+    public required SimpleEntity Game { get; set; }
+    public List<GameStartContextPlayer> Players { get; } = new List<GameStartContextPlayer>();
+    public List<GameStartContextTeam> Teams { get; } = new List<GameStartContextTeam>();
+    public List<GameStartDeployedChallenge> ChallengesCreated { get; } = new List<GameStartDeployedChallenge>();
+    public required int TotalChallengeCount { get; set; }
+    public List<GameEngineGameState> GamespacesStarted { get; } = new List<GameEngineGameState>();
+    public required int TotalGamespaceCount { get; set; }
+    public required double SessionLengthMinutes { get; set; }
+    public required IEnumerable<string> SpecIds { get; set; }
+    public DateTimeOffset StartTime { get; set; }
+    public string Error { get; set; }
+}
+
+public sealed class GameStartDeployedResources
+{
+    public required SimpleEntity Game { get; set; }
+    public IDictionary<string, IList<GameStartDeployedTeamResources>> DeployedResources { get; set; }
+}
+
+public sealed class GameStartDeployedTeamResources
+{
+    public required string TeamId { get; set; }
+    public required IEnumerable<GameStartDeployedChallenge> Resources { get; set; }
+}
+
 public class GameStartContextPlayer
 {
     public required SimpleEntity Player { get; set; }
@@ -32,38 +72,12 @@ public class GameStartContextTeamCaptain
     public required string UserId { get; set; }
 }
 
-public class GameStartContextChallenge
+public class GameStartDeployedChallenge
 {
     public required SimpleEntity Challenge { get; set; }
+    public required GameEngineGameState Gamespace { get; set; }
     public required GameEngineType GameEngineType { get; set; }
     public required string TeamId { get; set; }
-}
-
-public class GameStartRequest
-{
-    public required string GameId { get; set; }
-    public required bool IsPreDeployRequest { get; set; }
-}
-
-public sealed class GameModeStartRequest
-{
-    public required SimpleEntity Game { get; set; }
-    public required GameStartContext Context { get; set; }
-}
-
-public sealed class GameStartContext
-{
-    public required SimpleEntity Game { get; set; }
-    public List<GameStartContextPlayer> Players { get; } = new List<GameStartContextPlayer>();
-    public List<GameStartContextTeam> Teams { get; } = new List<GameStartContextTeam>();
-    public List<GameStartContextChallenge> ChallengesCreated { get; } = new List<GameStartContextChallenge>();
-    public required int TotalChallengeCount { get; set; }
-    public List<GameEngineGameState> GamespacesStarted { get; } = new List<GameEngineGameState>();
-    public required int TotalGamespaceCount { get; set; }
-    public required double SessionLengthMinutes { get; set; }
-    public required IEnumerable<string> SpecIds { get; set; }
-    public DateTimeOffset StartTime { get; set; }
-    public string Error { get; set; }
 }
 
 public sealed class GameStartUpdate

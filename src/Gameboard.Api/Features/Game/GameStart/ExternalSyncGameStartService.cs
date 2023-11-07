@@ -186,6 +186,49 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         return request.Context;
     }
 
+    public async Task<GameStartDeployedResources> DeployResources(GameModeStartRequest request, CancellationToken cancellationToken)
+    {
+        // deploy challenges and gamespaces
+        var retVal = new Dictionary<string, GameStartDeployedTeamResources>();
+        var challengeDeployResults = await DeployChallenges(request, cancellationToken);
+        var gamespaces = await DeployGamespaces(request, cancellationToken);
+        // SOON
+        // var challengeGamespaces = await DeployGamespacesAsync(request, cancellationToken);
+
+        var teamIds = challengeDeployResults
+            .Select(c => c.Key)
+            .ToArray();
+
+        // if any gamespaces were created, this deploy is invalid and we bail
+        var challengesWithNoGamespace = challengeDeployResults
+            .SelectMany(c => c.Value)
+            .Where(c => !gamespaces.ContainsKey(c.Id))
+            .ToArray();
+
+        if (challengesWithNoGamespace.Any())
+            throw new InvalidOperationException($"Challenges were deployed without a corresponding gamespace: {}");
+
+        foreach (var teamId in teamIds)
+        {
+            var deployedResources = challengeDeployResults[teamId].Select(challenge =>
+            {
+                if (!games)
+
+                    return new GameStartDeployedChallenge
+                    {
+                        Challenge = new SimpleEntity { Id = challenge.Id, Name = challenge.Name },
+                        Gamespace
+                    }
+            });
+        }
+
+        return new GameStartDeployedResources
+        {
+            Game = request.Game,
+            DeployedResources =
+        }
+    }
+
     public async Task<GameStartPhase> GetStartPhase(string gameId, string teamId, CancellationToken cancellationToken)
     {
         // the GameStartService, which calls this code, already checks for game start/end dates,
@@ -238,6 +281,12 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // note that the GameStartService automatically resets player sessions without unenrolling them after this function is called
     }
 
+    /// <summary>
+    /// Deploy challenges given a request (containing gameId and specs to deploy).
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>A dictionary of teamId -> list of challenges</returns>
     private async Task<IDictionary<string, List<Challenge>>> DeployChallenges(GameModeStartRequest request, CancellationToken cancellationToken)
     {
         Log($"Deploying {request.Context.TotalChallengeCount} challenges/gamespaces...", request.Game.Id);
@@ -270,7 +319,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                     cancellationToken
                 );
 
-                request.Context.ChallengesCreated.Add(new GameStartContextChallenge
+                request.Context.ChallengesCreated.Add(new GameStartDeployedChallenge
                 {
                     Challenge = new SimpleEntity { Id = challenge.Id, Name = challenge.Name },
                     GameEngineType = challenge.GameEngineType,

@@ -16,7 +16,8 @@ namespace Gameboard.Api.Features.Games.Start;
 public interface IGameModeStartService
 {
     public Task ValidateStart(GameModeStartRequest request, CancellationToken cancellationToken);
-    public Task<GameStartPhase> GetStartPhase(string gameId, string teamId, CancellationToken cancellationToken);
     public Task<GameStartContext> Start(GameModeStartRequest request, CancellationToken cancellationToken);
+    public Task<GameStartDeployedResources> DeployResources(GameModeStartRequest request, CancellationToken cancellationToken);
     public Task TryCleanUpFailedDeploy(GameModeStartRequest request, Exception exception);
+    public Task<GameStartPhase> GetStartPhase(string gameId, string teamId, CancellationToken cancellationToken);
 }

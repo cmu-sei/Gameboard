@@ -22,7 +22,8 @@ public class ExternalGameDeployBatchServiceTests
                 SpecIds = fixture.CreateMany<string>(challengeCount),
                 TotalChallengeCount = challengeCount,
                 TotalGamespaceCount = challengeCount
-            }
+            },
+            IsPreDeployRequest = false
         };
 
         request.Context.ChallengesCreated.AddRange(fixture.CreateMany<GameStartContextChallenge>(challengeCount).ToList());

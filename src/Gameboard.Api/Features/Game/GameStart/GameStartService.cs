@@ -64,7 +64,7 @@ internal class GameStartService : IGameStartService
     {
         var game = await _store.Retrieve<Data.Game>(request.GameId);
         var gameModeStartService = ResolveGameModeStartService(game) ?? throw new NotImplementedException();
-        var startRequest = await LoadGameModeStartRequest(game, cancellationToken);
+        var startRequest = await LoadGameModeStartRequest(game, request, cancellationToken);
 
         try
         {
@@ -151,7 +151,7 @@ internal class GameStartService : IGameStartService
     }
 
     // load the data used for game start
-    private async Task<GameModeStartRequest> LoadGameModeStartRequest(Data.Game game, CancellationToken cancellationToken)
+    private async Task<GameModeStartRequest> LoadGameModeStartRequest(Data.Game game, GameStartRequest request, CancellationToken cancellationToken)
     {
         var now = _now.Get();
 
@@ -218,7 +218,8 @@ internal class GameStartService : IGameStartService
         return new GameModeStartRequest
         {
             Game = new SimpleEntity { Id = game.Id, Name = game.Name },
-            Context = context
+            Context = context,
+            IsPreDeployRequest = request.IsPreDeployRequest
         };
     }
 
