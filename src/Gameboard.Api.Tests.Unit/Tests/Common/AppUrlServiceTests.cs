@@ -1,5 +1,8 @@
+using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 
@@ -11,16 +14,17 @@ public class AppUrlServiceTests
     public void GetBaseUrl_WithFixedRequest_BuildsExpected()
     {
         // given
-        var httpContext = A.Fake<HttpContext>();
-        httpContext.Request.Host = new HostString("gameboard.com");
-        httpContext.Request.Scheme = "https";
-        httpContext.Request.PathBase = "/test/gb";
+        var addressesFeature = A.Fake<IServerAddressesFeature>();
+        A.CallTo(() => addressesFeature.Addresses)
+            .Returns("https://gameboard.com/test/gb".ToCollection());
 
-        var httpContextAccessor = A.Fake<IHttpContextAccessor>();
-        httpContextAccessor.HttpContext = httpContext;
+        var hostingServer = A.Fake<IServer>();
+        A.CallTo(() => hostingServer.Features.Get<IServerAddressesFeature>())
+            .Returns(addressesFeature);
+
 
         // (sut)
-        var sut = new AppUrlService(A.Fake<IWebHostEnvironment>(), httpContextAccessor);
+        var sut = new AppUrlService(hostingServer);
 
         // when
         var result = sut.GetBaseUrl();
@@ -33,16 +37,17 @@ public class AppUrlServiceTests
     public void GetAbsoluteUrlFromRelative_WithFixedRequest_BuildsExpected()
     {
         // given
-        var httpContext = A.Fake<HttpContext>();
-        httpContext.Request.Host = new HostString("gameboard.com");
-        httpContext.Request.Scheme = "https";
-        httpContext.Request.PathBase = "/test/gb";
+        var addressesFeature = A.Fake<IServerAddressesFeature>();
+        A.CallTo(() => addressesFeature.Addresses)
+            .Returns("https://gameboard.com/test/gb".ToCollection());
 
-        var httpContextAccessor = A.Fake<IHttpContextAccessor>();
-        httpContextAccessor.HttpContext = httpContext;
+        var hostingServer = A.Fake<IServer>();
+        A.CallTo(() => hostingServer.Features.Get<IServerAddressesFeature>())
+            .Returns(addressesFeature);
+
 
         // (sut)
-        var sut = new AppUrlService(A.Fake<IWebHostEnvironment>(), httpContextAccessor);
+        var sut = new AppUrlService(hostingServer);
 
         // when
         var result = sut.ToAppAbsoluteUrl("mks");

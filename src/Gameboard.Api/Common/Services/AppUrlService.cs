@@ -1,7 +1,7 @@
 using System;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
+using System.Linq;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 
 namespace Gameboard.Api.Common.Services;
 
@@ -9,37 +9,38 @@ public interface IAppUrlService
 {
     string GetBaseUrl();
     string ToAppAbsoluteUrl(string relativeUrl);
-    string ToAbsoluteUrl(string baseUrl, string relativeUrl);
 }
 
 internal class AppUrlService : IAppUrlService
 {
-    private readonly IWebHostEnvironment _env;
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IServer _server;
 
-    public AppUrlService(IWebHostEnvironment env, IHttpContextAccessor httpContextAccessor)
+    public AppUrlService(IServer server)
     {
-        _env = env;
-        _httpContextAccessor = httpContextAccessor;
+        _server = server;
     }
 
     public string GetBaseUrl()
     {
-        var request = _httpContextAccessor.HttpContext.Request;
-        var finalPort = -1;
+        if (_server is not null)
+        {
+            var addresses = _server.Features.Get<IServerAddressesFeature>();
 
-        // in dev, we append the port to make links still work (for when you're working against localhost)
-        if (_env.IsDevelopment())
-            finalPort = request.Host.Port != null ? request.Host.Port.Value : finalPort;
+            var rootUrl = addresses.Addresses.FirstOrDefault(a => a.Contains("https"));
+            if (rootUrl.IsEmpty())
+                rootUrl = addresses.Addresses.FirstOrDefault();
 
-        var builder = new UriBuilder(request.Scheme, request.Host.Host, finalPort, request.PathBase);
-        return builder.ToString();
+            if (!rootUrl.IsEmpty())
+                return rootUrl;
+        }
+
+        throw new AppUrlResolutionException();
     }
 
     public string ToAppAbsoluteUrl(string relativeUrl)
         => ToAbsoluteUrl(GetBaseUrl(), relativeUrl);
 
-    public string ToAbsoluteUrl(string baseUrl, string relativeUrl)
+    private string ToAbsoluteUrl(string baseUrl, string relativeUrl)
     {
         // if you just convert both the base and the relative url to Uri objects, the `new Uri(baseUri, relativeUri)` ctor
         // does some pretty surprising things (e.g. drops the base path of the base Uri and replaces it with the relative path 

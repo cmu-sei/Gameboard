@@ -8,6 +8,12 @@ public class GameboardException : Exception
     internal GameboardException(string message, Exception innerException) : base(message, innerException) { }
 }
 
+internal class AppUrlResolutionException : GameboardException
+{
+    public AppUrlResolutionException()
+        : base($"Unable to resolve the root URL of the application") { }
+}
+
 internal class SemaphoreLockFailure : GameboardException
 {
     public SemaphoreLockFailure(Exception ex) : base($"An operation inside a semaphore lock failed.", ex) { }
