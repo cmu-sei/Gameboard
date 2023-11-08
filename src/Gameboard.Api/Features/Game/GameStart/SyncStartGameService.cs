@@ -144,7 +144,7 @@ internal class SyncStartGameService : ISyncStartGameService
         // NOTE: we also use a special service to kick this off, because if we don't, the player who initiated the game start
         // won't get a response for several minutes and will likely receive a timeout error. Updates on the status
         // of the game launch are reported via SignalR.
-        _fireAndForgetService.Fire<GameStartService>
+        _fireAndForgetService.Fire<IGameStartService>
         (
             gameStartService =>
                 gameStartService.Start(new GameStartRequest { GameId = state.Game.Id }, cancellationToken)

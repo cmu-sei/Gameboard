@@ -1,5 +1,4 @@
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -40,9 +39,16 @@ internal class FireAndForgetService : IFireAndForgetService
     {
         Task.Run(async () =>
         {
-            using var scope = _serviceScopeFactory.CreateScope();
-            var thing = scope.ServiceProvider.GetRequiredService<T>();
-            await doWork(thing);
+            try
+            {
+                using var scope = _serviceScopeFactory.CreateScope();
+                var thing = scope.ServiceProvider.GetRequiredService<T>();
+                await doWork(thing);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"FireAndForgetService exception: {ex.GetType().Name} :: {ex.Message}", ex);
+            }
         });
     }
 }
