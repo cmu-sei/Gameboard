@@ -12,7 +12,7 @@ internal class UserRoleAuthorizer : IAuthorizer
     public UserRoleAuthorizer(IHttpContextAccessor httpContextAccessor)
     {
         _actor = httpContextAccessor
-            .HttpContext
+            .HttpContext?
             .User
             .ToActor();
     }

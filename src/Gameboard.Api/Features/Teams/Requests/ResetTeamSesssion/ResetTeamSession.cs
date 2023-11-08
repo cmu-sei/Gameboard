@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
-using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
