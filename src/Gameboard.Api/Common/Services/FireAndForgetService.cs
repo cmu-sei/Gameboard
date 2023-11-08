@@ -22,7 +22,7 @@ namespace Gameboard.Api.Common.Services;
 /// </summary>
 public interface IFireAndForgetService
 {
-    void Fire(Func<IServiceScope, Task> doWork, CancellationToken cancellationToken);
+    void Fire<T>(Func<T, Task> doWork);
 }
 
 internal class FireAndForgetService : IFireAndForgetService
@@ -36,19 +36,13 @@ internal class FireAndForgetService : IFireAndForgetService
         _serviceScopeFactory = serviceScopeFactory;
     }
 
-    public void Fire(Func<IServiceScope, Task> doWork, CancellationToken cancellationToken)
+    public void Fire<T>(Func<T, Task> doWork)
     {
         Task.Run(async () =>
         {
-            try
-            {
-                using var scope = _serviceScopeFactory.CreateScope();
-                await doWork(scope);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(message: "FireAndForget execution failure", exception: ex);
-            }
-        }, cancellationToken);
+            using var scope = _serviceScopeFactory.CreateScope();
+            var thing = scope.ServiceProvider.GetRequiredService<T>();
+            await doWork(thing);
+        });
     }
 }

@@ -20,7 +20,6 @@ internal static class PlayerServiceTestHelpers
     (
         ChallengeService? challengeService = null,
         CoreOptions? coreOptions = null,
-        IGameStartService? gameStartService = null,
         IGameStore? gameStore = null,
         IGuidService? guidService = null,
         IInternalHubBus? hubBus = null,
@@ -30,6 +29,7 @@ internal static class PlayerServiceTestHelpers
         IPlayerStore? playerStore = null,
         IPracticeService? practiceService = null,
         IStore? store = null,
+        ISyncStartGameService? syncStartGameService = null,
         ITeamService? teamService = null
     )
     {
@@ -37,7 +37,6 @@ internal static class PlayerServiceTestHelpers
         (
             challengeService ?? A.Fake<ChallengeService>(),
             coreOptions ?? A.Fake<CoreOptions>(),
-            gameStartService ?? A.Fake<IGameStartService>(),
             gameStore ?? A.Fake<IGameStore>(),
             guidService ?? A.Fake<IGuidService>(),
             hubBus ?? A.Fake<IInternalHubBus>(),
@@ -47,6 +46,7 @@ internal static class PlayerServiceTestHelpers
             playerStore ?? A.Fake<IPlayerStore>(),
             practiceService ?? A.Fake<IPracticeService>(),
             store ?? A.Fake<IStore>(),
+            syncStartGameService ?? A.Fake<ISyncStartGameService>(),
             teamService ?? A.Fake<ITeamService>()
         );
     }

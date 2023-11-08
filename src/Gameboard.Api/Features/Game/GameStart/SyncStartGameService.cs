@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,12 +15,14 @@ namespace Gameboard.Api.Features.Games;
 public interface ISyncStartGameService
 {
     Task<SyncStartState> GetSyncStartState(string gameId, CancellationToken cancellationToken);
+    Task HandleSyncStartStateChanged(string gameId, CancellationToken cancellationToken);
     Task<SyncStartGameStartedState> StartSynchronizedSession(string gameId, double countdownSeconds, CancellationToken cancellationToken);
     Task<SyncStartPlayerStatusUpdate> UpdatePlayerReadyState(string playerId, bool isReady, CancellationToken cancellationToken);
 }
 
 internal class SyncStartGameService : ISyncStartGameService
 {
+    private readonly IFireAndForgetService _fireAndForgetService;
     private readonly IGameHubBus _gameHubBus;
     private readonly IGameStore _gameStore;
     private readonly ILockService _lockService;
@@ -30,6 +32,7 @@ internal class SyncStartGameService : ISyncStartGameService
 
     public SyncStartGameService
     (
+        IFireAndForgetService fireAndForgetService,
         IGameHubBus gameHubBus,
         IGameStore gameStore,
         ILockService lockService,
@@ -38,6 +41,7 @@ internal class SyncStartGameService : ISyncStartGameService
         ITeamService teamService
     )
     {
+        _fireAndForgetService = fireAndForgetService;
         _gameHubBus = gameHubBus;
         _lockService = lockService;
         _playerStore = playerStore;
@@ -125,6 +129,26 @@ internal class SyncStartGameService : ISyncStartGameService
             }),
             IsReady = allTeamsReady
         };
+    }
+
+    public async Task HandleSyncStartStateChanged(string gameId, CancellationToken cancellationToken)
+    {
+        var state = await GetSyncStartState(gameId, cancellationToken);
+        await _gameHubBus.SendSyncStartGameStateChanged(state);
+
+        // IFF everyone is ready, start all sessions and return info about them
+        if (!state.IsReady)
+            return;
+
+        // for now, we're assuming the "happy path" of sync start games being external games, but we'll separate them later
+        // NOTE: we also use a special service to kick this off, because if we don't, the player who initiated the game start
+        // won't get a response for several minutes and will likely receive a timeout error. Updates on the status
+        // of the game launch are reported via SignalR.
+        _fireAndForgetService.Fire<GameStartService>
+        (
+            gameStartService =>
+                gameStartService.Start(new GameStartRequest { GameId = state.Game.Id }, cancellationToken)
+        );
     }
 
     /// <summary>

@@ -17,7 +17,7 @@ namespace Gameboard.Api.Features.Games.Start;
 public interface IGameStartService
 {
     Task<GameStartPhase> GetGameStartPhase(string gameId, string teamId, CancellationToken cancellationToken);
-    Task HandleSyncStartStateChanged(string gameId, CancellationToken cancellationToken);
+    Task<GameStartDeployedResources> PreDeployGameResources(GameStartRequest request, CancellationToken cancellationToken);
     Task<GameStartContext> Start(GameStartRequest request, CancellationToken cancellationToken);
 }
 
@@ -60,6 +60,15 @@ internal class GameStartService : IGameStartService
         _teamService = teamService;
     }
 
+    public async Task<GameStartDeployedResources> PreDeployGameResources(GameStartRequest request, CancellationToken cancellationToken)
+    {
+        var game = await _store.Retrieve<Data.Game>(request.GameId);
+        var gameModeStartService = ResolveGameModeStartService(game) ?? throw new NotImplementedException();
+        var startRequest = await LoadGameModeStartRequest(game, request, cancellationToken);
+
+        return await gameModeStartService.DeployResources(startRequest, cancellationToken);
+    }
+
     public async Task<GameStartContext> Start(GameStartRequest request, CancellationToken cancellationToken)
     {
         var game = await _store.Retrieve<Data.Game>(request.GameId);
@@ -72,7 +81,7 @@ internal class GameStartService : IGameStartService
         }
         catch (Exception ex)
         {
-            _logger.LogError(LogEventId.GameStart_Failed, exception: ex, message: $"""Deploy for game "{game.Id}" """);
+            _logger.LogError(LogEventId.GameStart_Failed, exception: ex, message: $"""Deploy for game "{game.Id}" failed.""");
 
             // allow the start service to do custom cleanup
             await gameModeStartService.TryCleanUpFailedDeploy(startRequest, ex);
@@ -109,27 +118,6 @@ internal class GameStartService : IGameStartService
         }
 
         return GameStartPhase.Started;
-    }
-
-    public async Task HandleSyncStartStateChanged(string gameId, CancellationToken cancellationToken)
-    {
-        var state = await _syncStartGameService.GetSyncStartState(gameId, cancellationToken);
-        await _gameHubBus.SendSyncStartGameStateChanged(state);
-
-        // IFF everyone is ready, start all sessions and return info about them
-        if (!state.IsReady)
-            return;
-
-        // for now, we're assuming the "happy path" of sync start games being external games, but we'll separate them later
-        // NOTE: we also use a special service to kick this off, because if we don't, the player who initiated the game start
-        // won't get a response for several minutes and will likely receive a timeout error. Updates on the status
-        // of the game launch are reported via SignalR.
-        // _fireAndForgetService.Fire(async serviceScope =>
-        // {
-        //     var service = serviceScope.ServiceProvider.GetRequiredService<IGameStartService>();
-        //     await service.Start(new GameStartRequest { GameId = state.Game.Id }, cancellationToken);
-        // }, cancellationToken);
-        await Start(new GameStartRequest { GameId = state.Game.Id, IsPreDeployRequest = false }, cancellationToken);
     }
 
     private IGameModeStartService ResolveGameModeStartService(Data.Game game)
@@ -218,8 +206,7 @@ internal class GameStartService : IGameStartService
         return new GameModeStartRequest
         {
             Game = new SimpleEntity { Id = game.Id, Name = game.Name },
-            Context = context,
-            IsPreDeployRequest = request.IsPreDeployRequest
+            Context = context
         };
     }
 

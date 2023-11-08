@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Features.Games.External;
 
 namespace Gameboard.Api.Features.Games;
 
@@ -16,14 +17,12 @@ public enum GameStartPhase
 public class GameStartRequest
 {
     public required string GameId { get; set; }
-    public required bool IsPreDeployRequest { get; set; }
 }
 
 public sealed class GameModeStartRequest
 {
     public required SimpleEntity Game { get; set; }
     public required GameStartContext Context { get; set; }
-    public required bool IsPreDeployRequest { get; set; }
 }
 
 public sealed class GameStartContext
@@ -31,7 +30,7 @@ public sealed class GameStartContext
     public required SimpleEntity Game { get; set; }
     public List<GameStartContextPlayer> Players { get; } = new List<GameStartContextPlayer>();
     public List<GameStartContextTeam> Teams { get; } = new List<GameStartContextTeam>();
-    public List<GameStartDeployedChallenge> ChallengesCreated { get; } = new List<GameStartDeployedChallenge>();
+    public List<GameStartContextChallenge> ChallengesCreated { get; } = new List<GameStartContextChallenge>();
     public required int TotalChallengeCount { get; set; }
     public List<GameEngineGameState> GamespacesStarted { get; } = new List<GameEngineGameState>();
     public required int TotalGamespaceCount { get; set; }
@@ -44,13 +43,19 @@ public sealed class GameStartContext
 public sealed class GameStartDeployedResources
 {
     public required SimpleEntity Game { get; set; }
-    public IDictionary<string, IList<GameStartDeployedTeamResources>> DeployedResources { get; set; }
+    public IDictionary<string, GameStartDeployedTeamResources> DeployedResources { get; set; }
 }
 
 public sealed class GameStartDeployedTeamResources
 {
-    public required string TeamId { get; set; }
     public required IEnumerable<GameStartDeployedChallenge> Resources { get; set; }
+}
+
+public sealed class GameStartContextChallenge
+{
+    public required SimpleEntity Challenge { get; set; }
+    public required GameEngineType GameEngineType { get; set; }
+    public required string TeamId { get; set; }
 }
 
 public class GameStartContextPlayer
@@ -75,7 +80,7 @@ public class GameStartContextTeamCaptain
 public class GameStartDeployedChallenge
 {
     public required SimpleEntity Challenge { get; set; }
-    public required GameEngineGameState Gamespace { get; set; }
+    public required ExternalGameStartTeamGamespace Gamespace { get; set; }
     public required GameEngineType GameEngineType { get; set; }
     public required string TeamId { get; set; }
 }

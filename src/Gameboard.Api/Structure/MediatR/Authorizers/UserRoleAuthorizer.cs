@@ -37,9 +37,7 @@ internal class UserRoleAuthorizer : IAuthorizer
         foreach (var role in _allowedRoles)
         {
             if (_actor.Role.HasFlag(role))
-            {
                 return true;
-            }
         }
 
         return false;

@@ -19,6 +19,10 @@ public class ExternalGamesController : ControllerBase
         _mediator = mediator;
     }
 
+    [HttpPost("{gameId}/pre-deploy")]
+    public Task PreDeployGame([FromRoute] string gameId)
+        => _mediator.Send(new PreDeployExternalGameResourcesCommand(gameId, _actingUserService.Get()));
+
     [HttpGet("team/{teamId}")]
     public Task<GetExternalTeamDataResponse> GetExternalTeamData([FromRoute] string teamId)
     {

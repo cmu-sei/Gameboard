@@ -19,32 +19,32 @@ public record ResetTeamSessionCommand(string TeamId, bool UnenrollTeam, User Act
 internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand>
 {
     private readonly ChallengeService _challengeService;
-    private readonly IGameStartService _gameStartService;
     private readonly IInternalHubBus _hubBus;
     private readonly ILogger<ResetTeamSessionHandler> _logger;
     private readonly IMapper _mapper;
     private readonly IStore _store;
+    private readonly ISyncStartGameService _syncStartGameService;
     private readonly ITeamService _teamService;
     private readonly IGameboardRequestValidator<ResetTeamSessionCommand> _validator;
 
     public ResetTeamSessionHandler
     (
         ChallengeService challengeService,
-        IGameStartService gameStartService,
         IInternalHubBus hubBus,
         ILogger<ResetTeamSessionHandler> logger,
         IMapper mapper,
         IStore store,
+        ISyncStartGameService syncStartGameService,
         ITeamService teamService,
         IGameboardRequestValidator<ResetTeamSessionCommand> validator
     )
     {
         _challengeService = challengeService;
-        _gameStartService = gameStartService;
         _hubBus = hubBus;
         _logger = logger;
         _mapper = mapper;
         _store = store;
+        _syncStartGameService = syncStartGameService;
         _teamService = teamService;
         _validator = validator;
     }
@@ -104,6 +104,6 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
         }
 
         if (game.RequireSynchronizedStart)
-            await _gameStartService.HandleSyncStartStateChanged(game.Id, cancellationToken);
+            await _syncStartGameService.HandleSyncStartStateChanged(game.Id, cancellationToken);
     }
 }

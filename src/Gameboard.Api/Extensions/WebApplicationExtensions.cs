@@ -1,6 +1,5 @@
 using System;
 using System.Threading;
-using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Hubs;
@@ -75,11 +74,7 @@ internal static class WebApplicationExtensions
         {
             using var serviceScope = app.Services.CreateScope();
             var fireAndForget = serviceScope.ServiceProvider.GetRequiredService<IFireAndForgetService>();
-            fireAndForget.Fire(async scope =>
-            {
-                var challengeSpecService = scope.ServiceProvider.GetRequiredService<ChallengeSpecService>();
-                await challengeSpecService.SyncActiveSpecs(CancellationToken.None);
-            }, CancellationToken.None);
+            fireAndForget.Fire<ChallengeSpecService>(challengeSpecService => challengeSpecService.SyncActiveSpecs(CancellationToken.None));
         }
         catch (Exception ex)
         {
