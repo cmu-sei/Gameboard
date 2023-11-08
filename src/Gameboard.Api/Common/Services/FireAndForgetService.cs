@@ -19,6 +19,13 @@ namespace Gameboard.Api.Common.Services;
 /// Last, if you use this, be sure you're aware that the response will be sent, but the work you're 
 /// queueing up won't be done before it is.
 /// </summary>
+
+public sealed class FireAndForgetContext
+{
+    public User ActingUser { get; set; }
+    public string AppBaseUrl { get; set; }
+}
+
 public interface IFireAndForgetService
 {
     void Fire<T>(Func<T, Task> doWork);

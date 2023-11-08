@@ -1,7 +1,7 @@
 using System;
-using System.Linq;
-using Microsoft.AspNetCore.Hosting.Server;
-using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 
 namespace Gameboard.Api.Common.Services;
 
@@ -13,28 +13,29 @@ public interface IAppUrlService
 
 internal class AppUrlService : IAppUrlService
 {
-    private readonly IServer _server;
+    private readonly IWebHostEnvironment _env;
+    private readonly HttpContext _httpContext;
 
-    public AppUrlService(IServer server)
+    public AppUrlService(IWebHostEnvironment env, IHttpContextAccessor httpContextAccessor)
     {
-        _server = server;
+        _env = env;
+        _httpContext = httpContextAccessor.HttpContext;
     }
 
     public string GetBaseUrl()
     {
-        if (_server is not null)
-        {
-            var addresses = _server.Features.Get<IServerAddressesFeature>();
+        if (_httpContext is null)
+            throw new ArgumentNullException(nameof(_httpContext));
 
-            var rootUrl = addresses.Addresses.FirstOrDefault(a => a.Contains("https"));
-            if (rootUrl.IsEmpty())
-                rootUrl = addresses.Addresses.FirstOrDefault();
+        var request = _httpContext.Request;
+        var finalPort = -1;
 
-            if (!rootUrl.IsEmpty())
-                return rootUrl;
-        }
+        // in dev, we append the port to make links still work (for when you're working against localhost)
+        if (_env.IsDevelopment())
+            finalPort = request.Host.Port != null ? request.Host.Port.Value : finalPort;
 
-        throw new AppUrlResolutionException();
+        var builder = new UriBuilder(request.Scheme, request.Host.Host, finalPort, request.PathBase);
+        return builder.ToString();
     }
 
     public string ToAppAbsoluteUrl(string relativeUrl)

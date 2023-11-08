@@ -8,6 +8,7 @@ namespace Gameboard.Api.Common.Services
 {
     public interface ILockService
     {
+        AsyncLock GetFireAndForgetContextLock();
         AsyncLock GetChallengeLock(string challengeId);
         AsyncLock GetExternalGameDeployLock(string gameId);
         AsyncLock GetSyncStartGameLock(string gameId);
@@ -15,21 +16,21 @@ namespace Gameboard.Api.Common.Services
 
     public class LockService : ILockService
     {
-        private readonly ConcurrentDictionary<string, AsyncLock> _challengeLocks = new ConcurrentDictionary<string, AsyncLock>();
-        private readonly ConcurrentDictionary<string, AsyncLock> _externalGameDeployLocks = new ConcurrentDictionary<string, AsyncLock>();
-        private readonly ConcurrentDictionary<string, AsyncLock> _syncStartGameLocks = new ConcurrentDictionary<string, AsyncLock>();
+        private readonly AsyncLock _fireAndForgetContextLock;
+        private readonly ConcurrentDictionary<string, AsyncLock> _challengeLocks = new();
+        private readonly ConcurrentDictionary<string, AsyncLock> _externalGameDeployLocks = new();
+        private readonly ConcurrentDictionary<string, AsyncLock> _syncStartGameLocks = new();
 
         public AsyncLock GetChallengeLock(string challengeId)
-        {
-            return _challengeLocks.GetOrAdd(challengeId, x => { return new AsyncLock(); });
-        }
+            => _challengeLocks.GetOrAdd(challengeId, x => { return new AsyncLock(); });
+
+        public AsyncLock GetFireAndForgetContextLock()
+            => _fireAndForgetContextLock ?? new AsyncLock();
 
         public AsyncLock GetExternalGameDeployLock(string gameId)
             => _externalGameDeployLocks.GetOrAdd(gameId, x => new AsyncLock());
 
         public AsyncLock GetSyncStartGameLock(string gameId)
-        {
-            return _syncStartGameLocks.GetOrAdd(gameId, x => new AsyncLock());
-        }
+            => _syncStartGameLocks.GetOrAdd(gameId, x => new AsyncLock());
     }
 }

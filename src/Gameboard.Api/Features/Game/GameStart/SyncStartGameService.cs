@@ -24,9 +24,7 @@ internal class SyncStartGameService : ISyncStartGameService
 {
     private readonly IFireAndForgetService _fireAndForgetService;
     private readonly IGameHubBus _gameHubBus;
-    private readonly IGameStore _gameStore;
     private readonly ILockService _lockService;
-    private readonly IPlayerStore _playerStore;
     private readonly IStore _store;
     private readonly ITeamService _teamService;
 
@@ -34,9 +32,7 @@ internal class SyncStartGameService : ISyncStartGameService
     (
         IFireAndForgetService fireAndForgetService,
         IGameHubBus gameHubBus,
-        IGameStore gameStore,
         ILockService lockService,
-        IPlayerStore playerStore,
         IStore store,
         ITeamService teamService
     )
@@ -44,8 +40,6 @@ internal class SyncStartGameService : ISyncStartGameService
         _fireAndForgetService = fireAndForgetService;
         _gameHubBus = gameHubBus;
         _lockService = lockService;
-        _playerStore = playerStore;
-        _gameStore = gameStore;
         _store = store;
         _teamService = teamService;
     }
@@ -125,8 +119,13 @@ internal class SyncStartGameService : ISyncStartGameService
         // of the game launch are reported via SignalR.
         _fireAndForgetService.Fire<IGameStartService>
         (
-            gameStartService =>
-                gameStartService.Start(new GameStartRequest { GameId = state.Game.Id }, cancellationToken)
+            async gameStartService =>
+            {
+                using (await _lockService.GetFireAndForgetContextLock().LockAsync())
+                {
+                    await gameStartService.Start(new GameStartRequest { GameId = state.Game.Id }, cancellationToken)
+                }
+            }
         );
     }
 
