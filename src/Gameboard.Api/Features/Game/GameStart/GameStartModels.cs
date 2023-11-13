@@ -55,6 +55,7 @@ public sealed class GameStartContextChallenge
 {
     public required SimpleEntity Challenge { get; set; }
     public required GameEngineType GameEngineType { get; set; }
+    public required GameEngineGameState State { get; set; }
     public required string TeamId { get; set; }
 }
 

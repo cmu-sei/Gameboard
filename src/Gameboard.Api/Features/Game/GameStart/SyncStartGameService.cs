@@ -5,10 +5,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Structure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Gameboard.Api.Features.Games;
 
@@ -22,25 +24,40 @@ public interface ISyncStartGameService
 
 internal class SyncStartGameService : ISyncStartGameService
 {
-    private readonly IFireAndForgetService _fireAndForgetService;
+    private readonly IExternalGameHostAccessTokenProvider _accessTokenProvider;
+    private readonly IActingUserService _actingUserService;
+    private readonly IAppUrlService _appUrlService;
+    private readonly BackgroundTaskContext _backgroundTaskContext;
     private readonly IGameHubBus _gameHubBus;
     private readonly ILockService _lockService;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IStore _store;
+    private readonly IBackgroundTaskQueue _taskQueue;
     private readonly ITeamService _teamService;
 
     public SyncStartGameService
     (
-        IFireAndForgetService fireAndForgetService,
+        IExternalGameHostAccessTokenProvider accessTokenProvider,
+        IActingUserService actingUserService,
+        IAppUrlService appUrlService,
+        BackgroundTaskContext backgroundTaskContext,
         IGameHubBus gameHubBus,
         ILockService lockService,
+        IServiceScopeFactory serviceScopeFactory,
         IStore store,
+        IBackgroundTaskQueue taskQueue,
         ITeamService teamService
     )
     {
-        _fireAndForgetService = fireAndForgetService;
+        _accessTokenProvider = accessTokenProvider;
+        _actingUserService = actingUserService;
+        _appUrlService = appUrlService;
+        _backgroundTaskContext = backgroundTaskContext;
         _gameHubBus = gameHubBus;
         _lockService = lockService;
+        _serviceScopeFactory = serviceScopeFactory;
         _store = store;
+        _taskQueue = taskQueue;
         _teamService = teamService;
     }
 
@@ -114,19 +131,18 @@ internal class SyncStartGameService : ISyncStartGameService
             return;
 
         // for now, we're assuming the "happy path" of sync start games being external games, but we'll separate them later
-        // NOTE: we also use a special service to kick this off, because if we don't, the player who initiated the game start
-        // won't get a response for several minutes and will likely receive a timeout error. Updates on the status
-        // of the game launch are reported via SignalR.
-        _fireAndForgetService.Fire<IGameStartService>
-        (
-            async gameStartService =>
-            {
-                using (await _lockService.GetFireAndForgetContextLock().LockAsync())
-                {
-                    await gameStartService.Start(new GameStartRequest { GameId = state.Game.Id }, cancellationToken)
-                }
-            }
-        );
+        // NOTE: we also use a background service to kick this off, as it's a long-running task. Updates on the status
+        // of the game launch are reported via the SignalR "Game Hub".
+        _backgroundTaskContext.AccessToken = await _accessTokenProvider.GetToken();
+        _backgroundTaskContext.ActingUser = _actingUserService.Get();
+        _backgroundTaskContext.AppBaseUrl = _appUrlService.GetBaseUrl();
+
+        await _taskQueue.QueueBackgroundWorkItemAsync(async cancellationToken =>
+        {
+            using var scope = _serviceScopeFactory.CreateScope();
+            var gameStartService = scope.ServiceProvider.GetRequiredService<IGameStartService>();
+            await gameStartService.Start(new GameStartRequest { GameId = state.Game.Id }, cancellationToken);
+        });
     }
 
     /// <summary>
@@ -156,7 +172,11 @@ internal class SyncStartGameService : ISyncStartGameService
             if (!state.IsReady)
                 throw new CantStartNonReadySynchronizedGame(state);
 
-            // set the session times for all players
+            // ensure no one has already started - if they have, things will get gnarly quick  
+            //
+            // currently, we don't have an authoritative "This is the session time of this game" kind of construct in the modeling layer
+            // instead, we look at the minimum session start already set. this should be the min value for new games. if it's this value, 
+            // set everyone's who doesn't have a session start to now plus something like 15 sec of lead time. 
             var players = await _store
                 .WithNoTracking<Data.Player>()
                 .Where(p => p.GameId == gameId)
@@ -169,27 +189,22 @@ internal class SyncStartGameService : ISyncStartGameService
                     p.TeamId
                 }).ToListAsync();
 
-            // currently, we don't have an authoritative "This is the session time of this game" kind of construct in the modeling layer
-            // instead, we look at the minimum session start already set. this should be the min value for new games. if it's this value, 
-            // set everyone's who doesn't have a session start to now plus something like 15 sec of lead time. 
             var playersWithSessions = players.Where(p => p.SessionBegin > DateTimeOffset.MinValue || p.SessionEnd > DateTimeOffset.MinValue);
-            if (playersWithSessions.Count() > 0)
+            if (playersWithSessions.Any())
                 throw new SynchronizedGameHasPlayersWithSessionsBeforeStart(game.Id, playersWithSessions.Select(p => p.Id));
 
+            // validation is all clear - compute new session times and update players, challenges, and gamespaces
             var sessionBegin = DateTimeOffset.UtcNow.AddSeconds(countdownSeconds);
             var sessionEnd = sessionBegin.AddMinutes(game.SessionMinutes);
 
-            await _store
-                .WithNoTracking<Data.Player>()
-                .Where(p => p.GameId == gameId && p.SessionBegin == DateTimeOffset.MinValue)
-                .ExecuteUpdateAsync
-                (
-                    p => p
-                        .SetProperty(p => p.SessionBegin, sessionBegin)
-                        .SetProperty(p => p.SessionEnd, sessionEnd)
-                );
+            var gameTeamIds = players.Select(p => p.TeamId).Distinct().ToArray();
+            // TODO: combine these into a single DB call in the teams service (passing gameID)
+            foreach (var teamId in gameTeamIds)
+            {
+                await _teamService.UpdateSessionStartAndEnd(teamId, sessionBegin, sessionEnd, cancellationToken);
+            }
 
-
+            // compose a return value summarizing the sync session
             var startState = new SyncStartGameStartedState
             {
                 Game = new SimpleEntity { Id = game.Id },

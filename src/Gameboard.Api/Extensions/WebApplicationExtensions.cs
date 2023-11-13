@@ -1,10 +1,10 @@
 using System;
 using System.Threading;
-using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Hubs;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
+using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -73,8 +73,14 @@ internal static class WebApplicationExtensions
         try
         {
             using var serviceScope = app.Services.CreateScope();
-            var fireAndForget = serviceScope.ServiceProvider.GetRequiredService<IFireAndForgetService>();
-            fireAndForget.Fire<ChallengeSpecService>(challengeSpecService => challengeSpecService.SyncActiveSpecs(CancellationToken.None));
+            var taskQueue = serviceScope.ServiceProvider.GetRequiredService<IBackgroundTaskQueue>();
+
+            taskQueue.QueueBackgroundWorkItemAsync(async cancellationToken =>
+            {
+                using var queueScope = app.Services.CreateScope();
+                var challengeSpecService = queueScope.ServiceProvider.GetRequiredService<ChallengeSpecService>();
+                await challengeSpecService.SyncActiveSpecs(CancellationToken.None);
+            });
         }
         catch (Exception ex)
         {

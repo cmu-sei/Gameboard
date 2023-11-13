@@ -16,7 +16,7 @@ namespace Gameboard.Api.Common.Services
 
     public class LockService : ILockService
     {
-        private readonly AsyncLock _fireAndForgetContextLock;
+        private readonly AsyncLock _fireAndForgetContextLock = new AsyncLock();
         private readonly ConcurrentDictionary<string, AsyncLock> _challengeLocks = new();
         private readonly ConcurrentDictionary<string, AsyncLock> _externalGameDeployLocks = new();
         private readonly ConcurrentDictionary<string, AsyncLock> _syncStartGameLocks = new();
@@ -25,7 +25,7 @@ namespace Gameboard.Api.Common.Services
             => _challengeLocks.GetOrAdd(challengeId, x => { return new AsyncLock(); });
 
         public AsyncLock GetFireAndForgetContextLock()
-            => _fireAndForgetContextLock ?? new AsyncLock();
+            => _fireAndForgetContextLock;
 
         public AsyncLock GetExternalGameDeployLock(string gameId)
             => _externalGameDeployLocks.GetOrAdd(gameId, x => new AsyncLock());

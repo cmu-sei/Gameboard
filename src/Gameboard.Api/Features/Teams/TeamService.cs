@@ -31,6 +31,7 @@ public interface ITeamService
     Task<Data.Player> ResolveCaptain(string teamId, CancellationToken cancellationToken);
     Data.Player ResolveCaptain(IEnumerable<Data.Player> players);
     Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser, CancellationToken cancellationToken);
+    Task UpdateSessionStartAndEnd(string teamId, DateTimeOffset? sessionStart, DateTimeOffset? sessionEnd, CancellationToken cancellationToken);
 }
 
 internal class TeamService : ITeamService
@@ -289,21 +290,48 @@ internal class TeamService : ITeamService
         };
     }
 
-    private async Task UpdateSessionEnd(string teamId, DateTimeOffset sessionEnd, CancellationToken cancellationToken)
+    private Task UpdateSessionEnd(string teamId, DateTimeOffset sessionEnd, CancellationToken cancellationToken)
+        => UpdateSessionStartAndEnd(teamId, null, sessionEnd, cancellationToken);
+
+    public async Task UpdateSessionStartAndEnd(string teamId, DateTimeOffset? sessionStart, DateTimeOffset? sessionEnd, CancellationToken cancellationToken)
     {
+        if (sessionStart is null && sessionEnd is null)
+            throw new ArgumentException($"Either {nameof(sessionStart)} or {nameof(sessionEnd)} must be non-null.");
+
         // update all players
         await _store
             .WithNoTracking<Data.Player>()
             .Where(p => p.TeamId == teamId)
-            .ExecuteUpdateAsync(up => up.SetProperty(p => p.SessionEnd, sessionEnd));
+            .ExecuteUpdateAsync
+            (
+                up => up
+                    .SetProperty(p => p.SessionBegin, p => sessionStart ?? p.SessionBegin)
+                    .SetProperty(p => p.SessionEnd, p => sessionEnd ?? p.SessionEnd),
+                cancellationToken
+            );
 
-        // and then their gamespaces
-        var gamespaceUpdates = await _store
-            .WithNoTracking<Data.Challenge>()
+        // and their challenges
+        var challenges = await _store
+            .WithTracking<Data.Challenge>()
             .Where(c => c.TeamId == teamId)
-            .Select(c => _gameEngine.ExtendSession(c, sessionEnd))
             .ToArrayAsync(cancellationToken);
 
-        await Task.WhenAll(gamespaceUpdates);
+        foreach (var challenge in challenges)
+        {
+            if (sessionStart is not null)
+                challenge.StartTime = sessionStart.Value;
+
+            if (sessionEnd is not null)
+                challenge.EndTime = sessionEnd.Value;
+        }
+
+        await _store.SaveUpdateRange(challenges);
+
+        // and then their gamespaces (if the end time is changing)
+        if (sessionEnd is not null)
+        {
+            var gamespaceUpdates = challenges.Select(c => _gameEngine.ExtendSession(c, sessionEnd.Value));
+            await Task.WhenAll(gamespaceUpdates);
+        }
     }
 }

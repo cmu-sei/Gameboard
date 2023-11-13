@@ -1,4 +1,5 @@
 using System;
+using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
@@ -14,18 +15,35 @@ public interface IAppUrlService
 internal class AppUrlService : IAppUrlService
 {
     private readonly IWebHostEnvironment _env;
+    private readonly BackgroundTaskContext _backgroundTaskContext;
     private readonly HttpContext _httpContext;
 
-    public AppUrlService(IWebHostEnvironment env, IHttpContextAccessor httpContextAccessor)
+    public AppUrlService
+    (
+        IWebHostEnvironment env,
+        BackgroundTaskContext backgroundTaskContext,
+        IHttpContextAccessor httpContextAccessor
+    )
     {
         _env = env;
+        _backgroundTaskContext = backgroundTaskContext;
         _httpContext = httpContextAccessor.HttpContext;
     }
 
     public string GetBaseUrl()
     {
+        // prefer to try to read the app url from the httpcontext,
+        // but it may be null if we're executing outside a standard request
         if (_httpContext is null)
+        {
+            // if it's null, look for a configured fire/forget context 
+            // and try that
+            if (_backgroundTaskContext.AppBaseUrl.IsNotEmpty())
+                return _backgroundTaskContext.AppBaseUrl;
+
+            // if neither work, we're out of luck
             throw new ArgumentNullException(nameof(_httpContext));
+        }
 
         var request = _httpContext.Request;
         var finalPort = -1;

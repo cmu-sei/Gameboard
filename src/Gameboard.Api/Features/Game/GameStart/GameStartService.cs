@@ -23,8 +23,8 @@ public interface IGameStartService
 
 internal class GameStartService : IGameStartService
 {
+    private readonly IActingUserService _actingUserService;
     private readonly IExternalSyncGameStartService _externalSyncGameStartService;
-    private readonly IFireAndForgetService _fireAndForgetService;
     private readonly IGameHubBus _gameHubBus;
     private readonly ILogger<GameStartService> _logger;
     private readonly IMapper _mapper;
@@ -36,8 +36,8 @@ internal class GameStartService : IGameStartService
 
     public GameStartService
     (
+        IActingUserService actingUserService,
         IExternalSyncGameStartService externalSyncGameStartService,
-        IFireAndForgetService fireAndForgetService,
         IGameHubBus gameHubBus,
         ILogger<GameStartService> logger,
         IMediator mediator,
@@ -48,8 +48,8 @@ internal class GameStartService : IGameStartService
         ITeamService teamService
     )
     {
+        _actingUserService = actingUserService;
         _externalSyncGameStartService = externalSyncGameStartService;
-        _fireAndForgetService = fireAndForgetService;
         _gameHubBus = gameHubBus;
         _logger = logger;
         _mapper = mapper;
@@ -90,7 +90,7 @@ internal class GameStartService : IGameStartService
             _logger.LogError(message: $"Deployment failed for game {startRequest.Game.Id}. Resetting sessions and cleaning up gamespaces for {startRequest.Context.Teams.Count()} teams.");
             foreach (var team in startRequest.Context.Teams)
             {
-                await _mediator.Send(new ResetTeamSessionCommand(team.Team.Id, false));
+                await _mediator.Send(new ResetTeamSessionCommand(team.Team.Id, false, _actingUserService.Get()));
             }
         }
 
@@ -138,7 +138,16 @@ internal class GameStartService : IGameStartService
         throw new NotImplementedException();
     }
 
-    // load the data used for game start
+    /// <summary>
+    /// No matter which mode the game is set to, there's baseline information we need to execute the start process, teams/players,
+    /// the game's challenges, etc. Load all that here to give context to our start request.
+    /// </summary>
+    /// <param name="game"></param>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    /// <exception cref="CantStartGameWithNoPlayers"></exception>
+    /// <exception cref="CaptainResolutionFailure"></exception>
     private async Task<GameModeStartRequest> LoadGameModeStartRequest(Data.Game game, GameStartRequest request, CancellationToken cancellationToken)
     {
         var now = _now.Get();

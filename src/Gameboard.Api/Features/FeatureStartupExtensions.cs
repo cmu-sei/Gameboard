@@ -31,6 +31,9 @@ public static class ServiceStartupExtensions
             .AddScoped<IExternalGameHostAccessTokenProvider, HttpContextAccessTokenProvider>()
             .AddSingleton(_ => settings.Core)
             .AddSingleton(_ => settings.ApiKey)
+            .AddSingleton(new BackgroundTaskContext())
+            // explicitly singleton because it's a hosted service, so we want exactly one
+            .AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>()
             .AddSingleton<IJsonService, JsonService>(f => jsonService)
             .AddSingleton(opts => JsonService.GetJsonSerializerOptions())
             .AddSingleton(jsonService)

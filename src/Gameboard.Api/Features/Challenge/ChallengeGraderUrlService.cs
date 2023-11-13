@@ -1,6 +1,4 @@
-using System.Linq;
-using Microsoft.AspNetCore.Hosting.Server;
-using Microsoft.AspNetCore.Hosting.Server.Features;
+using Gameboard.Api.Common.Services;
 
 namespace Gameboard.Api.Features.Challenges;
 
@@ -11,27 +9,15 @@ public interface IChallengeGraderUrlService
 
 internal class ChallengeGraderUrlService : IChallengeGraderUrlService
 {
-    private readonly IServer _server;
+    private readonly IAppUrlService _appUrlService;
 
-    public ChallengeGraderUrlService(IServer server)
+    public ChallengeGraderUrlService(IAppUrlService appUrlService)
     {
-        _server = server;
+        _appUrlService = appUrlService;
     }
 
     public string BuildGraderUrl()
     {
-        if (_server is not null)
-        {
-            var addresses = _server.Features.Get<IServerAddressesFeature>();
-
-            var rootUrl = addresses.Addresses.FirstOrDefault(a => a.Contains("https"));
-            if (rootUrl.IsEmpty())
-                rootUrl = addresses.Addresses.FirstOrDefault();
-
-            if (!rootUrl.IsEmpty())
-                return $"{rootUrl}/challenge/grade";
-        }
-
-        throw new GraderUrlResolutionError();
+        return _appUrlService.ToAppAbsoluteUrl("api/challenge/grade");
     }
 }

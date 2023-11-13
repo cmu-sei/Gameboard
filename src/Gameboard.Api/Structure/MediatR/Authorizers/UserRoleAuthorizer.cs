@@ -1,20 +1,17 @@
 using System.Collections.Generic;
-using Microsoft.AspNetCore.Http;
+using Gameboard.Api.Common.Services;
 
 namespace Gameboard.Api.Structure.MediatR.Authorizers;
 
 internal class UserRoleAuthorizer : IAuthorizer
 {
-    private readonly User _actor;
+    private readonly IActingUserService _actingUserService;
     private IEnumerable<UserRole> _allowedRoles { get; set; } = new List<UserRole> { UserRole.Admin };
     private string _allowUserId;
 
-    public UserRoleAuthorizer(IHttpContextAccessor httpContextAccessor)
+    public UserRoleAuthorizer(IActingUserService actingUserService)
     {
-        _actor = httpContextAccessor
-            .HttpContext?
-            .User
-            .ToActor();
+        _actingUserService = actingUserService;
     }
 
     public UserRoleAuthorizer AllowRoles(params UserRole[] roles)
@@ -31,12 +28,13 @@ internal class UserRoleAuthorizer : IAuthorizer
 
     public bool WouldAuthorize()
     {
-        if (_allowUserId.NotEmpty() && _actor.Id == _allowUserId)
+        var actingUser = _actingUserService.Get();
+        if (_allowUserId.NotEmpty() && actingUser.Id == _allowUserId)
             return true;
 
         foreach (var role in _allowedRoles)
         {
-            if (_actor.Role.HasFlag(role))
+            if (actingUser.Role.HasFlag(role))
                 return true;
         }
 

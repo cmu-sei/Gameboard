@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Teams;
 
-public record ResetTeamSessionCommand(string TeamId, bool UnenrollTeam, User ActingUser = null) : IRequest;
+public record ResetTeamSessionCommand(string TeamId, bool UnenrollTeam, User ActingUser) : IRequest;
 
 internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand>
 {
