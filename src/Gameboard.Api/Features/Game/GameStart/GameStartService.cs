@@ -178,7 +178,7 @@ internal class GameStartService : IGameStartService
             );
 
         // update context and log stuff
-        Log($"Data gathered: {players.Length} players on {teamCaptains.Keys.Count}.", game.Id);
+        Log($"Data gathered: {players.Length} players on {teamCaptains.Keys.Count} teams.", game.Id);
 
         var context = new GameStartContext
         {

@@ -40,13 +40,11 @@ public class ExternalGameDeployBatchServiceTests
         var sut = new ExternalGameDeployBatchService
         (
             new CoreOptions { GameEngineDeployBatchSize = 6 },
-            A.Fake<IGameEngineService>(),
-            A.Fake<IGameHubBus>(),
             A.Fake<ILogger<ExternalGameDeployBatchService>>()
         );
 
         // when batches are built
-        var result = sut.BuildDeployBatches(request);
+        var result = sut.BuildDeployBatches(fixture.CreateMany<GameStartContextChallenge>(challengeCount));
 
         // we expect three batches
         result.Count().ShouldBe(3);
@@ -55,22 +53,20 @@ public class ExternalGameDeployBatchServiceTests
     }
 
     [Theory, GameboardAutoData]
-    public void BuildDeployBatches_WithNoConfiguredBatchSize_ReturnsExpectedBatchCount(IFixture fixture)
+    public void BuildDeployBatches_WithNoConfiguredBatchSize_ReturnsExpectedBatchCount(int challengeCount, IFixture fixture)
     {
         // given a deploy request with any challenge count and no set batch size
-        var challengeCount = fixture.Create<int>();
+        var challenges = fixture.CreateMany<GameStartContextChallenge>(challengeCount);
         var request = BuildFakeGameModeStartRequest(challengeCount, fixture);
 
         var sut = new ExternalGameDeployBatchService
         (
             new CoreOptions { GameEngineDeployBatchSize = 0 },
-            A.Fake<IGameEngineService>(),
-            A.Fake<IGameHubBus>(),
             A.Fake<ILogger<ExternalGameDeployBatchService>>()
         );
 
         // when batches are built
-        var result = sut.BuildDeployBatches(request);
+        var result = sut.BuildDeployBatches(challenges);
 
         // we expect one batch with length equal to the challenge count
         result.Count().ShouldBe(challengeCount);
