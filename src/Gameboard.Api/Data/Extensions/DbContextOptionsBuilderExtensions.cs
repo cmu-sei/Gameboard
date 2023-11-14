@@ -1,6 +1,7 @@
 using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -17,6 +18,9 @@ public static class DbContextOptionsBuilderExtensions
         {
             return builder.LogTo(Console.WriteLine, new[] { DbLoggerCategory.Query.Name }, LogLevel.Debug);
         }
+
+        // warn us about queries that might benefit from query splitting
+        builder.ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning));
 
         if (env.IsDevOrTest())
         {
