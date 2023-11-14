@@ -160,10 +160,10 @@ internal class SyncStartGameService : ISyncStartGameService
     /// <exception cref="SynchronizedGameHasPlayersWithSessionsBeforeStart">This call fails if any players already have an active game session when it starts.</exception>
     public async Task<SyncStartGameStartedState> StartSynchronizedSession(string gameId, double countdownSeconds, CancellationToken cancellationToken)
     {
-        using (await _lockService.GetSyncStartGameLock(gameId).LockAsync())
+        using (await _lockService.GetSyncStartGameLock(gameId).LockAsync(cancellationToken))
         {
             // make sure we have a legal sync start game
-            var game = await _store.WithNoTracking<Data.Game>().SingleAsync(g => g.Id == gameId);
+            var game = await _store.WithNoTracking<Data.Game>().SingleAsync(g => g.Id == gameId, cancellationToken);
 
             if (!game.RequireSynchronizedStart)
                 throw new CantSynchronizeNonSynchronizedGame(gameId);
