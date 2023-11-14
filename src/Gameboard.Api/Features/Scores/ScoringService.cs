@@ -152,8 +152,10 @@ internal class ScoringService : IScoringService
             .WithNoTracking<Data.Challenge>()
             .Include(c => c.AwardedBonuses)
                 .ThenInclude(b => b.ChallengeBonus)
+                .AsSplitQuery()
             .Include(c => c.AwardedManualBonuses)
                 .ThenInclude(b => b.EnteredByUser)
+                .AsSplitQuery()
             .Where(c => c.GameId == captain.GameId)
             .Where(c => c.TeamId == teamId)
             .ToListAsync();

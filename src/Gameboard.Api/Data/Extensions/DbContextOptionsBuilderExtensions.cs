@@ -1,7 +1,6 @@
 using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -20,7 +19,10 @@ public static class DbContextOptionsBuilderExtensions
         }
 
         // warn us about queries that might benefit from query splitting
-        builder.ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning));
+        // We usually don't mind this, because split queries only matter if tables are very large, but 
+        // uncomment this to find issues if performance suffers or if warnings about split querying are 
+        // shown
+        // builder.ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning));
 
         if (env.IsDevOrTest())
         {
