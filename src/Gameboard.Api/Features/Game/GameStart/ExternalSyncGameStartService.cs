@@ -427,7 +427,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         Log($"Using {challengeBatches.Count()} batches to deploy {request.Context.TotalGamespaceCount} gamespaces...", request.Game.Id);
         foreach (var batch in challengeBatches.ToArray())
         {
-            Log($"Starting gamespace batch #{++batchIndex} ({batch.ToArray().Length} challenges...)", request.Game.Id);
+            Log($"Starting gamespace batch #{++batchIndex} ({batch.ToArray().Length} challenges)...", request.Game.Id);
 
             // resolve the challenges in this batch to tasks that call the game engine and ask it to start a gamespace
             var batchTasks = batch.Select(async challenge =>
@@ -439,7 +439,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                     GameEngineType = challenge.GameEngineType
                 });
 
-                request.Context.GamespacesStarted.Add(challengeState);
                 await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.Context.ToUpdate());
                 _logger.LogInformation(message: $"""Gamespace started for challenge "{challenge.Challenge.Id}".""");
 
@@ -448,7 +447,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             });
 
             var deployResults = await Task.WhenAll(batchTasks.ToArray());
-            Log($"{deployResults.Count()} Task done for gamespace batch #{batchIndex}.", request.Game.Id);
+            Log($"{deployResults.Count()} tasks done for gamespace batch #{batchIndex}.", request.Game.Id);
 
             foreach (var deployResult in deployResults)
                 challengeStates.Add(deployResult.Id, deployResult);
@@ -477,6 +476,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 .Where(c => c.Id == deployedChallenge.Challenge.Id)
                 .ExecuteUpdateAsync(up => up.SetProperty(c => c.State, serializedState), cancellationToken);
 
+            request.Context.GamespacesStarted.Add(state);
             await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.Context.ToUpdate());
         }
 
