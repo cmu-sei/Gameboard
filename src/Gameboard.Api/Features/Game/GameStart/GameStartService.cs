@@ -66,7 +66,10 @@ internal class GameStartService : IGameStartService
         var gameModeStartService = ResolveGameModeStartService(game) ?? throw new NotImplementedException();
         var startRequest = await LoadGameModeStartRequest(game, request, cancellationToken);
 
-        return await gameModeStartService.DeployResources(startRequest, cancellationToken);
+        _logger.LogInformation($"Pre-deploying game resources for game {request.GameId}...");
+        var result = await gameModeStartService.DeployResources(startRequest, cancellationToken);
+        _logger.LogInformation($"Game resources predeployed for game {request.GameId}.");
+        return result;
     }
 
     public async Task<GameStartContext> Start(GameStartRequest request, CancellationToken cancellationToken)
