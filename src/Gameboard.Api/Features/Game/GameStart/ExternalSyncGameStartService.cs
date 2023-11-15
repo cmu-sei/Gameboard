@@ -472,10 +472,17 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             foreach (var state in deployResults)
             {
                 var serializedState = _jsonService.Serialize(state);
-                await _store
-                    .WithNoTracking<Data.Challenge>()
-                    .Where(c => c.Id == state.Id)
-                    .ExecuteUpdateAsync(up => up.SetProperty(c => c.State, serializedState));
+
+                var challenge = await _store
+                    .WithTracking<Data.Challenge>()
+                    .SingleAsync(c => c.Id == state.Id);
+
+                challenge.State = serializedState;
+                await _store.SaveUpdate(challenge, cancellationToken);
+                // await _store
+                //     .WithNoTracking<Data.Challenge>()
+                //     .Where(c => c.Id == state.Id)
+                //     .ExecuteUpdateAsync(up => up.SetProperty(c => c.State, serializedState), cancellationToken);
 
                 Log($"""Gamespace saved for challenge "{state.Id}" :: State: {serializedState}""", request.Game.Id);
             }
