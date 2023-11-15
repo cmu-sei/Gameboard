@@ -445,29 +445,35 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 });
                 Log($"""Gamespace started for challenge "{challenge.Challenge.Id}".""", request.Game.Id);
 
-                // now that the gamespace has started, update gameboard's database so it knows
-                // about the new state
-                var serializedState = _jsonService.Serialize(challengeState);
-                await _store
-                    .WithNoTracking<Data.Challenge>()
-                    .Where(c => c.Id == challenge.Challenge.Id)
-                    .ExecuteUpdateAsync(up => up.SetProperty(c => c.State, serializedState));
-
-                // record the created challenge/state
-                Log($"""Gamespace saved for challenge "{challenge.Challenge.Id}".""", request.Game.Id);
+                // record the created challenge/state for reporting
                 request.Context.GamespacesStarted.Add(challengeState);
 
                 // transform info about the VMs so we can return them later, then report progress and move on
                 var gamespace = ChallengeStateToTeamGamespace(challengeState);
                 retVal.Add(gamespace.Id, gamespace);
-                Log($"Challenge {challengeState.Id} has {gamespace.VmUris.Count()} VM(s).", request.Game.Id);
+                Log($"Challenge {gamespace.Id} has {gamespace.VmUris.Count()} VM(s).", request.Game.Id);
                 await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.Context.ToUpdate());
 
                 // return the challenge state
                 return challengeState;
             });
 
+            // fire a thread for each task in the batch
             var deployResults = await Task.WhenAll(batchTasks.ToArray());
+
+            // after the asynchronous part is over, we need to do database updates to ensure the DB has the correct 
+            // game-engine-supplied state for each challenge
+            foreach (var state in deployResults)
+            {
+                var serializedState = _jsonService.Serialize(state);
+                await _store
+                    .WithNoTracking<Data.Challenge>()
+                    .Where(c => c.Id == state.Id)
+                    .ExecuteUpdateAsync(up => up.SetProperty(c => c.State, serializedState));
+
+                Log($"""Gamespace saved for challenge "{state.Id}".""", request.Game.Id);
+            }
+
             Log($"Finished {deployResults.Length} tasks done for gamespace batch #{batchIndex}.", request.Game.Id);
         }
 
