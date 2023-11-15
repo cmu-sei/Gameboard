@@ -193,7 +193,10 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             .ToArray();
 
         if (challengeIdsWithNoGamespace.Any())
-            throw new InvalidOperationException($"Challenges were deployed without a corresponding gamespace: {string.Join(",", challengeIdsWithNoGamespace)}");
+        {
+            Log($"WARNING: Some deployed challenges have no gamespaces: {string.Join(",", challengeIdsWithNoGamespace)}", request.Game.Id);
+            // throw new InvalidOperationException($"Challenges were deployed without a corresponding gamespace: {string.Join(",", challengeIdsWithNoGamespace)}");
+        }
 
         // compose return value from deployed resources
         var retVal = new Dictionary<string, GameStartDeployedTeamResources>();
@@ -478,7 +481,10 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         }
 
         // notify and return
-        Log($"Finished deploying gamespaces.", request.Game.Id);
+        var totalGamespaceCount = retVal.Count;
+        var totalVmCount = retVal.Values.SelectMany(gamespace => gamespace.VmUris).Count();
+
+        Log($"Finished deploying gamespaces: {totalGamespaceCount} gamespaces, {totalVmCount} VMs.", request.Game.Id);
         await _gameHubBus.SendExternalGameGamespacesDeployEnd(request.Context.ToUpdate());
         return retVal;
     }
