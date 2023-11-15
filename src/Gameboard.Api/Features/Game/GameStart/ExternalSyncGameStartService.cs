@@ -407,6 +407,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // Startup for gamespace deploy
         Log("Deploying gamespaces...", request.Game.Id);
         await _gameHubBus.SendExternalGameGamespacesDeployStart(request.Context.ToUpdate());
+        var retVal = new Dictionary<string, ExternalGameStartTeamGamespace>();
 
         // determine which challenges have been predeployed so we can skip them here
         var notPredeployedChallenges = request.Context.ChallengesCreated.Where(c => !c.State.HasDeployedGamespace).ToArray();
@@ -414,17 +415,20 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         Log($"{notPredeployedChallenges.Length} require deployment ({predeployedChallenges.Length} predeployed)...", request.Game.Id);
 
         // add all the predeployed gamespaces to our list so that it contains _all_ gamespaces at the end of this function
-        var challengeStates = new Dictionary<string, GameEngineGameState>();
         foreach (var predeployedState in predeployedChallenges.Select(c => c.State))
         {
-            challengeStates.Add(predeployedState.Id, predeployedState);
+            retVal.Add(predeployedState.Id, ChallengeStateToTeamGamespace(predeployedState));
+            request.Context.GamespacesStarted.Add(predeployedState);
+            await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.Context.ToUpdate());
         }
 
         // Create one task for each gamespace in batches of the size specified in the app's
         // helm chart config
         var batchIndex = 0;
         var challengeBatches = _externalGameDeployBatchService.BuildDeployBatches(notPredeployedChallenges);
+
         Log($"Using {challengeBatches.Count()} batches to deploy {request.Context.TotalGamespaceCount} gamespaces...", request.Game.Id);
+
         foreach (var batch in challengeBatches.ToArray())
         {
             Log($"Starting gamespace batch #{++batchIndex} ({batch.ToArray().Length} challenges)...", request.Game.Id);
@@ -433,57 +437,44 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             var batchTasks = batch.Select(async challenge =>
             {
                 _logger.LogInformation(message: $"""Starting {challenge.GameEngineType} gamespace for challenge "{challenge.Challenge.Id}" (teamId "{challenge.TeamId}")...""");
+
                 var challengeState = await _gameEngineService.StartGamespace(new GameEngineGamespaceStartRequest
                 {
                     ChallengeId = challenge.Challenge.Id,
                     GameEngineType = challenge.GameEngineType
                 });
+                Log($"""Gamespace started for challenge "{challenge.Challenge.Id}".""", request.Game.Id);
 
+                // now that the gamespace has started, update gameboard's database so it knows
+                // about the new state
+                var serializedState = _jsonService.Serialize(challengeState);
+                await _store
+                    .WithNoTracking<Data.Challenge>()
+                    .Where(c => c.Id == challenge.Challenge.Id)
+                    .ExecuteUpdateAsync(up => up.SetProperty(c => c.State, serializedState));
+
+                // record the created challenge/state
+                Log($"""Gamespace saved for challenge "{challenge.Challenge.Id}".""", request.Game.Id);
+                request.Context.GamespacesStarted.Add(challengeState);
+
+                // transform info about the VMs so we can return them later, then report progress and move on
+                var gamespace = ChallengeStateToTeamGamespace(challengeState);
+                retVal.Add(gamespace.Id, gamespace);
+                Log($"Challenge {challengeState.Id} has {gamespace.VmUris.Count()} VMs.", request.Game.Id);
                 await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.Context.ToUpdate());
-                _logger.LogInformation(message: $"""Gamespace started for challenge "{challenge.Challenge.Id}".""");
 
-                // keep the state given to us by the engine
+                // return the challenge state
                 return challengeState;
             });
 
             var deployResults = await Task.WhenAll(batchTasks.ToArray());
-            Log($"{deployResults.Count()} tasks done for gamespace batch #{batchIndex}.", request.Game.Id);
-
-            foreach (var deployResult in deployResults)
-                challengeStates.Add(deployResult.Id, deployResult);
-
-            Log($"Finish gamespace batch #{batchIndex}.", request.Game.Id);
-        }
-
-        Log($"Updating VM data from the game engine...", request.Game.Id);
-        var challengeGamespaces = new Dictionary<string, ExternalGameStartTeamGamespace>();
-        foreach (var deployedChallenge in request.Context.ChallengesCreated)
-        {
-            // TODO: verify that we need this - buildmetadata also assembles challenge info
-            var state = challengeStates[deployedChallenge.Challenge.Id];
-            var vms = _gameEngineService.GetGamespaceVms(state);
-            challengeGamespaces.Add(deployedChallenge.Challenge.Id, new ExternalGameStartTeamGamespace
-            {
-                Id = state.Id,
-                VmUris = vms.Select(vm => vm.Url)
-            });
-
-            // now that we've started the gamespaces, we need to update the challenge entities
-            // with the VMs that topo has (hopefully) spun up
-            var serializedState = _jsonService.Serialize(state);
-            await _store
-                .WithNoTracking<Data.Challenge>()
-                .Where(c => c.Id == deployedChallenge.Challenge.Id)
-                .ExecuteUpdateAsync(up => up.SetProperty(c => c.State, serializedState), cancellationToken);
-
-            request.Context.GamespacesStarted.Add(state);
-            await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.Context.ToUpdate());
+            Log($"Finished {deployResults.Length} tasks done for gamespace batch #{batchIndex}.", request.Game.Id);
         }
 
         // notify and return
         Log($"Finished deploying gamespaces.", request.Game.Id);
         await _gameHubBus.SendExternalGameGamespacesDeployEnd(request.Context.ToUpdate());
-        return challengeGamespaces;
+        return retVal;
     }
 
     private ExternalGameStartMetaData BuildExternalGameMetaData(GameStartContext context, SyncStartGameStartedState syncgameStartState)
@@ -536,6 +527,17 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         Log("External game host notified!", request.Game.Id);
 
         return externalClientTeamConfigs;
+    }
+
+    private ExternalGameStartTeamGamespace ChallengeStateToTeamGamespace(GameEngineGameState state)
+    {
+        var vms = _gameEngineService.GetGamespaceVms(state).Select(vm => vm.Url);
+
+        return new ExternalGameStartTeamGamespace
+        {
+            Id = state.Id,
+            VmUris = _gameEngineService.GetGamespaceVms(state).Select(vm => vm.Url)
+        };
     }
 
     private void Log(string message, string gameId)

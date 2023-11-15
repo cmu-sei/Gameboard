@@ -295,9 +295,10 @@ namespace Gameboard.Api.Controllers
         [Authorize(AppConstants.ConsolePolicy)]
         public async Task<ConsoleSummary> GetConsole([FromBody] ConsoleRequest model)
         {
+            Logger.LogInformation($"Console access attempt ({model.Id} / {Actor.Id}): User {Actor.Id}, roles {Actor.Role}.");
             await Validate(new Entity { Id = model.SessionId });
             var isTeamMember = await ChallengeService.UserIsTeamPlayer(model.SessionId, Actor.Id);
-            Logger.LogInformation($"""Console access attempt on console "{model.Id}": User {Actor.Id}, roles {Actor.Role}, is team member? {isTeamMember}.""");
+            Logger.LogInformation($"""Console access attempt ({model.Id} / {Actor.Id}): Is team member? {isTeamMember}.""");
 
             AuthorizeAny(
               () => Actor.IsDirector,
@@ -306,11 +307,10 @@ namespace Gameboard.Api.Controllers
               () => isTeamMember
             );
             var result = await ChallengeService.GetConsole(model, isTeamMember.Equals(false));
+            Logger.LogInformation($"""Console access attempt ({model.Id} / {Actor.Id}): Allowed.""");
 
             if (isTeamMember)
-                ActorMap.Update(
-                    await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.ApprovedName)
-                );
+                ActorMap.Update(await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.ApprovedName));
 
             return result;
         }
