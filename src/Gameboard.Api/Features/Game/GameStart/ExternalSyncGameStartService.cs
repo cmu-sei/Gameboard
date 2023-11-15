@@ -136,7 +136,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         await _store.DoTransaction(async dbContext =>
         {
             // deploy challenges and gamespaces
+            Log("Deploying game resources...", request.Game.Id);
             var deployedResources = await DeployResources(request, cancellationToken);
+            Log("Game resources deployed.", request.Game.Id);
 
             // establish all sessions
             Log("Starting a synchronized session for all teams...", request.Game.Id);
@@ -168,6 +170,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         }, cancellationToken);
 
         // on we go
+        Log("External game launched.", request.Game.Id);
         await _gameHubBus.SendExternalGameLaunchEnd(request.Context.ToUpdate());
 
         return request.Context;
@@ -474,7 +477,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                     .Where(c => c.Id == state.Id)
                     .ExecuteUpdateAsync(up => up.SetProperty(c => c.State, serializedState));
 
-                Log($"""Gamespace saved for challenge "{state.Id}".""", request.Game.Id);
+                Log($"""Gamespace saved for challenge "{state.Id}" :: State: {serializedState}""", request.Game.Id);
             }
 
             Log($"Finished {deployResults.Length} tasks done for gamespace batch #{batchIndex}.", request.Game.Id);
@@ -543,15 +546,11 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     }
 
     private ExternalGameStartTeamGamespace ChallengeStateToTeamGamespace(GameEngineGameState state)
-    {
-        var vms = _gameEngineService.GetGamespaceVms(state).Select(vm => vm.Url);
-
-        return new ExternalGameStartTeamGamespace
+        => new()
         {
             Id = state.Id,
             VmUris = _gameEngineService.GetGamespaceVms(state).Select(vm => vm.Url)
         };
-    }
 
     private void Log(string message, string gameId)
     {
