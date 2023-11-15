@@ -357,57 +357,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         return teamDeployedChallenges;
     }
 
-    private async Task<IDictionary<string, ExternalGameStartTeamGamespace>> DeployGamespaces(GameModeStartRequest request, CancellationToken cancellationToken)
-    {
-        // start all gamespaces
-        Log("Deploying gamespaces...", request.Game.Id);
-        var challengeGamespaces = new Dictionary<string, ExternalGameStartTeamGamespace>();
-        await _gameHubBus.SendExternalGameGamespacesDeployStart(request.Context.ToUpdate());
-
-        foreach (var deployedChallenge in request.Context.ChallengesCreated)
-        {
-            var challengeState = deployedChallenge.State;
-
-            if (challengeState.HasDeployedGamespace)
-            {
-                Log($"{deployedChallenge.GameEngineType} gamespace for challenge {deployedChallenge.Challenge.Id} (teamId {deployedChallenge.TeamId}) is already running. Skipping startup...", request.Game.Id);
-            }
-            else
-            {
-                Log($"""Starting {deployedChallenge.GameEngineType} gamespace for challenge "{deployedChallenge.Challenge.Id}" (teamId "{deployedChallenge.TeamId}")...""", request.Game.Id);
-                challengeState = await _gameEngineService.StartGamespace(new GameEngineGamespaceStartRequest
-                {
-                    ChallengeId = deployedChallenge.Challenge.Id,
-                    GameEngineType = deployedChallenge.GameEngineType
-                });
-                Log(message: $"""Gamespace started for challenge "{deployedChallenge.Challenge.Id}".""", request.Game.Id);
-            }
-
-            // TODO: verify that we need this - buildmetadata also assembles challenge info
-            var vms = _gameEngineService.GetGamespaceVms(challengeState);
-            challengeGamespaces.Add(deployedChallenge.Challenge.Id, new ExternalGameStartTeamGamespace
-            {
-                Id = challengeState.Id,
-                VmUris = vms.Select(vm => vm.Url)
-            });
-
-            // now that we've started the gamespaces, we need to update the challenge entities
-            // with the VMs that topo has (hopefully) spun up
-            var serializedState = _jsonService.Serialize(challengeState);
-            await _store
-                .WithNoTracking<Data.Challenge>()
-                .Where(c => c.Id == deployedChallenge.Challenge.Id)
-                .ExecuteUpdateAsync(up => up.SetProperty(c => c.State, serializedState), cancellationToken);
-
-            request.Context.GamespacesStarted.Add(challengeState);
-            await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.Context.ToUpdate());
-        }
-
-        // notify and return
-        await _gameHubBus.SendExternalGameGamespacesDeployEnd(request.Context.ToUpdate());
-        return challengeGamespaces;
-    }
-
     private async Task<IDictionary<string, ExternalGameStartTeamGamespace>> DeployGamespacesAsync(GameModeStartRequest request, CancellationToken cancellationToken)
     {
         // Startup for gamespace deploy
@@ -460,7 +409,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 Log($"Challenge {gamespace.Id} has {gamespace.VmUris.Count()} VM(s): {string.Join(',', challengeState.Vms.Select(vm => vm.Name))}", request.Game.Id);
                 await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.Context.ToUpdate());
 
-                // return the challenge state
+                // return the engine state of the challenge
                 return challengeState;
             });
 
@@ -473,18 +422,20 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             {
                 var serializedState = _jsonService.Serialize(state);
 
+                // NOTE: this is normally the kind of update we'd prefer to do via ExecuteUpdateAsync.
+                // However, ExecuteUpdateAsync, by default can't read entities commited earlier
+                // in the same transaction. We use typical the updating strategy here instead.
+                //
+                // (It's possible that passing a ReadUncommitted flag to the BeginTransaction call
+                // which happens earlier may permit this - need to find time to test.)
                 var challenge = await _store
                     .WithTracking<Data.Challenge>()
                     .SingleAsync(c => c.Id == state.Id);
 
                 challenge.State = serializedState;
                 await _store.SaveUpdate(challenge, cancellationToken);
-                // await _store
-                //     .WithNoTracking<Data.Challenge>()
-                //     .Where(c => c.Id == state.Id)
-                //     .ExecuteUpdateAsync(up => up.SetProperty(c => c.State, serializedState), cancellationToken);
 
-                Log($"""Gamespace saved for challenge "{state.Id}" :: State: {serializedState}""", request.Game.Id);
+                Log($"""Updated gamespace states for challenge "{state.Id}.""", request.Game.Id);
             }
 
             Log($"Finished {deployResults.Length} tasks done for gamespace batch #{batchIndex}.", request.Game.Id);
@@ -536,7 +487,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
         var metadataJson = _jsonService.Serialize(retVal);
         Log($"""Final metadata payload for game "{retVal.Game.Id}" is here: {metadataJson}.""", retVal.Game.Id);
-        Log($"VM Uris: {string.Join(" :: ", retVal.Teams.SelectMany(t => t.Gamespaces).SelectMany(g => g.VmUris))}", retVal.Game.Id);
         return retVal;
     }
 
