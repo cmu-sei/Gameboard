@@ -43,11 +43,9 @@ internal class ExternalGamePreDeployService : BackgroundService
         {
             try
             {
-                var attemptGuid = Guid.NewGuid().ToString("n");
-                _logger.LogInformation($"{nameof(ExternalGamePreDeployService)} is attempting to predeploy {attemptGuid}...");
-
                 using (await _taskLock.LockAsync(stoppingToken))
                 {
+                    var attemptGuid = Guid.NewGuid().ToString("n");
                     var workItem = await _taskQueue.DequeueAsync(stoppingToken);
                     _logger.LogInformation($"{nameof(ExternalGamePreDeployService)} is predeploying attempt {attemptGuid}...");
 

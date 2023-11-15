@@ -460,7 +460,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 // transform info about the VMs so we can return them later, then report progress and move on
                 var gamespace = ChallengeStateToTeamGamespace(challengeState);
                 retVal.Add(gamespace.Id, gamespace);
-                Log($"Challenge {challengeState.Id} has {gamespace.VmUris.Count()} VMs.", request.Game.Id);
+                Log($"Challenge {challengeState.Id} has {gamespace.VmUris.Count()} VM(s).", request.Game.Id);
                 await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.Context.ToUpdate());
 
                 // return the challenge state
@@ -483,8 +483,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         var teamsToReturn = new List<ExternalGameStartMetaDataTeam>();
         foreach (var team in context.Teams)
         {
-            var teamChallenges = context.ChallengesCreated.Where(c => c.TeamId == team.Team.Id).Select(c => c.Challenge);
-            var teamGameStates = context.GamespacesStarted.Where(g => teamChallenges.Select(c => c.Id).Contains(g.Id));
+            var teamChallenges = context.ChallengesCreated.Where(c => c.TeamId == team.Team.Id).Select(c => c.Challenge).ToArray();
+            var teamGameStates = context.GamespacesStarted.Where(g => teamChallenges.Select(c => c.Id).Contains(g.Id)).ToArray();
 
             var teamToReturn = new ExternalGameStartMetaDataTeam
             {
@@ -514,6 +514,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
         var metadataJson = _jsonService.Serialize(retVal);
         Log($"""Final metadata payload for game "{retVal.Game.Id}" is here: {metadataJson}.""", retVal.Game.Id);
+        Log($"VM Uris: {string.Join(" :: ", retVal.Teams.SelectMany(t => t.Gamespaces).SelectMany(g => g.VmUris))}", retVal.Game.Id);
         return retVal;
     }
 
