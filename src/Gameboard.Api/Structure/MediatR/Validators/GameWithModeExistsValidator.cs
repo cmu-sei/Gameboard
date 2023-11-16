@@ -35,7 +35,10 @@ internal class GameWithModeExistsValidator<TModel> : IGameboardValidator<TModel>
                 .SingleOrDefaultAsync(g => g.Id == id);
 
             if (entity is null)
+            {
                 context.AddValidationException(new ResourceNotFound<Data.Game>(id));
+                return;
+            }
 
             if (entity.EngineMode != _requiredEngineMode)
                 context.AddValidationException(new GameHasUnexpectedEngineMode(id, _requiredEngineMode, entity.EngineMode));

@@ -420,6 +420,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                     .WithTracking<Data.Challenge>()
                     .SingleAsync(c => c.Id == state.Id);
 
+                challenge.HasDeployedGamespace = state.IsActive;
                 challenge.State = serializedState;
                 await _store.SaveUpdate(challenge, cancellationToken);
 
