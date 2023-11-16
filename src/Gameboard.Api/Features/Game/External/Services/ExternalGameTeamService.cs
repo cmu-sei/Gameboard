@@ -41,20 +41,17 @@ internal class ExternalGameTeamService : IExternalGameTeamService
 
     public async Task CreateTeams(string gameId, IEnumerable<string> teamIds, CancellationToken cancellationToken)
     {
-        using (await _lockService.GetExternalGameDeployLock(gameId).LockAsync(cancellationToken))
-        {
-            // first, delete any metadata associated with a previous attempt
-            await DeleteTeamExternalData(cancellationToken, teamIds.ToArray());
+        // first, delete any metadata associated with a previous attempt
+        await DeleteTeamExternalData(cancellationToken, teamIds.ToArray());
 
-            // then create an entry for each team in this game
-            await _store.SaveAddRange(teamIds.Select(teamId => new ExternalGameTeam
-            {
-                Id = _guids.GetGuid(),
-                GameId = gameId,
-                TeamId = teamId,
-                DeployStatus = ExternalGameDeployStatus.NotStarted
-            }).ToArray());
-        }
+        // then create an entry for each team in this game
+        await _store.SaveAddRange(teamIds.Select(teamId => new ExternalGameTeam
+        {
+            Id = _guids.GetGuid(),
+            GameId = gameId,
+            TeamId = teamId,
+            DeployStatus = ExternalGameDeployStatus.NotStarted
+        }).ToArray());
     }
 
     public async Task DeleteTeamExternalData(CancellationToken cancellationToken, params string[] teamIds)

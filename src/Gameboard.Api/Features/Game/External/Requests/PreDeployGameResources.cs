@@ -6,6 +6,7 @@ using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Structure;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
+using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +21,7 @@ internal class PreDeployExternalGameResourcesHandler : IRequestHandler<PreDeploy
     private readonly IAppUrlService _appUrlService;
     private readonly IBackgroundTaskQueue _backgroundTaskQueue;
     private readonly BackgroundTaskContext _backgroundTaskContext;
+    private readonly GameWithModeExistsValidator<PreDeployExternalGameResourcesCommand> _gameExists;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IStore _store;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
@@ -31,6 +33,7 @@ internal class PreDeployExternalGameResourcesHandler : IRequestHandler<PreDeploy
         IAppUrlService appUrlService,
         IBackgroundTaskQueue backgroundTaskQueue,
         BackgroundTaskContext backgroundTaskContext,
+        GameWithModeExistsValidator<PreDeployExternalGameResourcesCommand> gameExists,
         IServiceScopeFactory serviceScopeFactory,
         IStore store,
         UserRoleAuthorizer userRoleAuthorizer,
@@ -41,6 +44,7 @@ internal class PreDeployExternalGameResourcesHandler : IRequestHandler<PreDeploy
         _appUrlService = appUrlService;
         _backgroundTaskQueue = backgroundTaskQueue;
         _backgroundTaskContext = backgroundTaskContext;
+        _gameExists = gameExists;
         _serviceScopeFactory = serviceScopeFactory;
         _store = store;
         _userRoleAuthorizer = userRoleAuthorizer;
@@ -52,21 +56,13 @@ internal class PreDeployExternalGameResourcesHandler : IRequestHandler<PreDeploy
         // auth and validate
         _userRoleAuthorizer.AllowRoles(UserRole.Admin).Authorize();
 
-        _validator.AddValidator(async (req, ctx) =>
-        {
-            var game = await _store
-                .WithNoTracking<Data.Game>()
-                .SingleOrDefaultAsync(g => g.Id == req.GameId);
-
-            if (game is null)
-            {
-                ctx.AddValidationException(new ResourceNotFound<Data.Game>(req.GameId));
-                return;
-            }
-
-            if (game.Mode != GameEngineMode.External || !game.RequireSynchronizedStart)
-                ctx.AddValidationException(new CantPreDeployNonExternalGame(req.GameId));
-        });
+        _validator.AddValidator
+        (
+            _gameExists
+                .UseIdProperty(r => r.GameId)
+                .WithEngineMode(GameEngineMode.External)
+                .WithSyncStartRequired(true)
+        );
         await _validator.Validate(request, cancellationToken);
 
         // do the predeploy stuff

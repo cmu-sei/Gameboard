@@ -25,20 +25,19 @@ internal class GameStartService : IGameStartService
 {
     private readonly IActingUserService _actingUserService;
     private readonly IExternalSyncGameStartService _externalSyncGameStartService;
-    private readonly IGameHubBus _gameHubBus;
+    private readonly ILockService _lockService;
     private readonly ILogger<GameStartService> _logger;
     private readonly IMapper _mapper;
     private readonly IMediator _mediator;
     private readonly INowService _now;
     private readonly IStore _store;
-    private readonly ISyncStartGameService _syncStartGameService;
     private readonly ITeamService _teamService;
 
     public GameStartService
     (
         IActingUserService actingUserService,
         IExternalSyncGameStartService externalSyncGameStartService,
-        IGameHubBus gameHubBus,
+        ILockService lockService,
         ILogger<GameStartService> logger,
         IMediator mediator,
         IMapper mapper,
@@ -50,13 +49,12 @@ internal class GameStartService : IGameStartService
     {
         _actingUserService = actingUserService;
         _externalSyncGameStartService = externalSyncGameStartService;
-        _gameHubBus = gameHubBus;
+        _lockService = lockService;
         _logger = logger;
         _mapper = mapper;
         _mediator = mediator;
         _now = now;
         _store = store;
-        _syncStartGameService = syncGameStartService;
         _teamService = teamService;
     }
 
@@ -66,16 +64,27 @@ internal class GameStartService : IGameStartService
         var gameModeStartService = ResolveGameModeStartService(game) ?? throw new NotImplementedException();
         var startRequest = await LoadGameModeStartRequest(game, request, cancellationToken);
 
+        // lock this down - only one start or predeploy per game Id
+        using var gameStartLock = await _lockService.GetExternalGameDeployLock(request.GameId).LockAsync(cancellationToken);
+
         _logger.LogInformation($"Pre-deploying game resources for game {request.GameId}...");
-        var result = await gameModeStartService.DeployResources(startRequest, cancellationToken);
-        _logger.LogInformation($"Game resources predeployed for game {request.GameId}.");
-        return result;
+        GameStartDeployedResources deployedResources = null;
+        await _store.DoTransaction(async dbContext =>
+        {
+            deployedResources = await gameModeStartService.DeployResources(startRequest, cancellationToken);
+            _logger.LogInformation($"Game resources predeployed for game {request.GameId}.");
+        }, cancellationToken);
+
+        return deployedResources;
     }
 
     public async Task<GameStartContext> Start(GameStartRequest request, CancellationToken cancellationToken)
     {
         var game = await _store.Retrieve<Data.Game>(request.GameId);
         var gameModeStartService = ResolveGameModeStartService(game) ?? throw new NotImplementedException();
+
+        // lock this down - only one start or predeploy per game Id
+        using var gameStartLock = await _lockService.GetExternalGameDeployLock(request.GameId).LockAsync(cancellationToken);
         var startRequest = await LoadGameModeStartRequest(game, request, cancellationToken);
 
         try

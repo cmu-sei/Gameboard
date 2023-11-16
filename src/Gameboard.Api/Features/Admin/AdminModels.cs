@@ -6,30 +6,30 @@ namespace Gameboard.Api.Features.Admin;
 
 public sealed class ExternalGameAdminContext
 {
-    public SimpleEntity Game { get; set; }
-    public IEnumerable<SimpleEntity> Specs { get; set; }
-    public bool HasNonStandardSessionWindow { get; set; }
-    public IEnumerable<ExternalGameAdminTeam> Teams { get; set; }
+    public required SimpleEntity Game { get; set; }
+    public required IEnumerable<SimpleEntity> Specs { get; set; }
+    public required bool HasNonStandardSessionWindow { get; set; }
+    public required IEnumerable<ExternalGameAdminTeam> Teams { get; set; }
 }
 
 public sealed class ExternalGameAdminTeam
 {
-    public string Id { get; set; }
-    public string Name { get; set; }
-    public ExternalGameDeployStatus DeployStatus { get; set; }
-    public IEnumerable<SimpleSponsor> Sponsors { get; set; }
-    public IEnumerable<ExternalGameAdminChallenge> Challenges { get; set; }
-    public IEnumerable<ExternalGameAdminPlayer> Players { get; set; }
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required ExternalGameDeployStatus DeployStatus { get; set; }
+    public required IEnumerable<SimpleSponsor> Sponsors { get; set; }
+    public required IEnumerable<ExternalGameAdminChallenge> Challenges { get; set; }
+    public required IEnumerable<ExternalGameAdminPlayer> Players { get; set; }
 }
 
 public sealed class ExternalGameAdminChallenge
 {
-    public string Id { get; set; }
-    public bool ChallengeCreated { get; set; }
-    public bool GamespaceDeployed { get; set; }
-    public string SpecId { get; set; }
-    public DateTimeOffset StartTime { get; set; }
-    public DateTimeOffset EndTime { get; set; }
+    public required string Id { get; set; }
+    public required bool ChallengeCreated { get; set; }
+    public required bool GamespaceDeployed { get; set; }
+    public required string SpecId { get; set; }
+    public required DateTimeOffset? StartTime { get; set; }
+    public required DateTimeOffset? EndTime { get; set; }
 }
 
 public sealed class ExternalGameAdminPlayer
@@ -38,13 +38,13 @@ public sealed class ExternalGameAdminPlayer
     public required string Name { get; set; }
     public required bool IsCaptain { get; set; }
     public required SimpleSponsor Sponsor { get; set; }
-    public required string Status { get; set; }
+    public required ExternalGameAdminPlayerStatus Status { get; set; }
     public required SimpleEntity User { get; set; }
 }
 
-public static class ExternalGameAdminPlayerStatus
+public enum ExternalGameAdminPlayerStatus
 {
-    public static string NotConnected = "notConnected";
-    public static string NotReady = "notReady";
-    public static string Ready = "ready";
+    NotConnected,
+    NotReady,
+    Ready
 }

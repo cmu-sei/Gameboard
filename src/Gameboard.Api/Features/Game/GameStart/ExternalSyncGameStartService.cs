@@ -30,7 +30,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     private readonly IGameHubBus _gameHubBus;
     private readonly IChallengeGraderUrlService _graderUrlService;
     private readonly IJsonService _jsonService;
-    private readonly ILockService _lockService;
     private readonly ILogger<ExternalSyncGameStartService> _logger;
     private readonly IMapper _mapper;
     private readonly IMediator _mediator;
@@ -50,7 +49,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         IGameHubBus gameHubBus,
         IChallengeGraderUrlService graderUrlService,
         IJsonService jsonService,
-        ILockService lockService,
         ILogger<ExternalSyncGameStartService> logger,
         IMapper mapper,
         IMediator mediator,
@@ -69,7 +67,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         _gameHubBus = gameHubBus;
         _graderUrlService = graderUrlService;
         _jsonService = jsonService;
-        _lockService = lockService;
         _logger = logger;
         _mapper = mapper;
         _mediator = mediator;
@@ -180,8 +177,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     {
         // deploy challenges and gamespaces
         var challengeDeployResults = await DeployChallenges(request, cancellationToken);
-        // var gamespaces = await DeployGamespaces(request, cancellationToken);
-        // SOON
         var gamespaces = await DeployGamespacesAsync(request, cancellationToken);
 
         var teamIds = challengeDeployResults
@@ -198,7 +193,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         if (challengeIdsWithNoGamespace.Any())
         {
             Log($"WARNING: Some deployed challenges have no gamespaces: {string.Join(",", challengeIdsWithNoGamespace)}", request.Game.Id);
-            // throw new InvalidOperationException($"Challenges were deployed without a corresponding gamespace: {string.Join(",", challengeIdsWithNoGamespace)}");
         }
 
         // compose return value from deployed resources
@@ -288,34 +282,28 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     {
         Log($"Deploying {request.Context.TotalChallengeCount} challenges/gamespaces...", request.Game.Id);
         var teamDeployedChallenges = new Dictionary<string, List<Challenge>>();
-
         // deploy all challenges
         await _gameHubBus.SendExternalGameChallengesDeployStart(request.Context.ToUpdate());
         var teamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();
-
         // determine which, if any, challenges have been predeployed for this game
         var predeployedChallenges = await _store
             .WithNoTracking<Data.Challenge>()
             .Where(c => teamIds.Contains(c.TeamId))
             .GroupBy(c => c.TeamId)
             .ToDictionaryAsync(g => g.Key, g => g.ToArray(), cancellationToken);
-
         foreach (var team in request.Context.Teams)
         {
             // hold onto each team's challenges
             Log($"""Deploying challenges for team "{team.Team.Id}".""", request.Game.Id);
             teamDeployedChallenges.Add(team.Team.Id, new List<Challenge>());
-
             // Load predeployed challenges in case we can skip any
             var teamPreDeployedChallenges = predeployedChallenges.ContainsKey(team.Team.Id) ?
                 predeployedChallenges[team.Team.Id] : Array.Empty<Data.Challenge>();
             Log($"""Team {team.Team.Id} has {teamPreDeployedChallenges.Length} predeployed challenge(s).""", request.Game.Id);
-
             foreach (var specId in request.Context.SpecIds)
             {
                 // check if we've already deployed this team's copy of the challenge (through predeployment, for example)
                 var deployedChallenge = _mapper.Map<Challenge>(teamPreDeployedChallenges.SingleOrDefault(c => c.SpecId == specId));
-
                 if (deployedChallenge is not null)
                 {
                     Log($"Team {team.Team.Id} already has a challenge for spec {specId}. Skipping deployment...", request.Game.Id);
@@ -337,7 +325,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                         cancellationToken
                     );
                 }
-
                 request.Context.ChallengesCreated.Add(new GameStartContextChallenge
                 {
                     Challenge = new SimpleEntity { Id = deployedChallenge.Id, Name = deployedChallenge.Name },
@@ -347,15 +334,14 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 });
                 teamDeployedChallenges[team.Team.Id].Add(deployedChallenge);
                 Log($"Spec instantiated for team {team.Team.Id}.", request.Game.Id);
-
                 await _gameHubBus.SendExternalGameChallengesDeployProgressChange(request.Context.ToUpdate());
             }
         }
-
         // notify and return
         await _gameHubBus.SendExternalGameChallengesDeployEnd(request.Context.ToUpdate());
         return teamDeployedChallenges;
     }
+
 
     private async Task<IDictionary<string, ExternalGameStartTeamGamespace>> DeployGamespacesAsync(GameModeStartRequest request, CancellationToken cancellationToken)
     {
