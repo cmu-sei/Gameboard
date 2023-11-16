@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games.External;
@@ -27,7 +26,6 @@ internal class GameStartService : IGameStartService
     private readonly IExternalSyncGameStartService _externalSyncGameStartService;
     private readonly ILockService _lockService;
     private readonly ILogger<GameStartService> _logger;
-    private readonly IMapper _mapper;
     private readonly IMediator _mediator;
     private readonly INowService _now;
     private readonly IStore _store;
@@ -40,10 +38,8 @@ internal class GameStartService : IGameStartService
         ILockService lockService,
         ILogger<GameStartService> logger,
         IMediator mediator,
-        IMapper mapper,
         INowService now,
         IStore store,
-        ISyncStartGameService syncGameStartService,
         ITeamService teamService
     )
     {
@@ -51,7 +47,6 @@ internal class GameStartService : IGameStartService
         _externalSyncGameStartService = externalSyncGameStartService;
         _lockService = lockService;
         _logger = logger;
-        _mapper = mapper;
         _mediator = mediator;
         _now = now;
         _store = store;

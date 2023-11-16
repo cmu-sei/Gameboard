@@ -157,7 +157,6 @@ namespace Gameboard.Api.Controllers
             return await _mediator.Send(new GetGameStartPhaseQuery(gameId, teamId, Actor.Id));
         }
 
-
         [HttpPost("/api/game/import")]
         [Authorize(AppConstants.DesignerPolicy)]
         public async Task<Game> ImportGameSpec([FromBody] GameSpecImport model)

@@ -17,7 +17,7 @@ internal class BackgroundTaskQueue : IBackgroundTaskQueue
 
     public BackgroundTaskQueue()
     {
-        // number of items the channel is permitted to store
+        // number of items the channel is permitted to store (this is currently pretty arbitrary)
         _queue = Channel.CreateBounded<Func<CancellationToken, ValueTask>>(new BoundedChannelOptions(5)
         {
             FullMode = BoundedChannelFullMode.Wait
