@@ -10,6 +10,7 @@ public sealed class ExternalGameAdminContext
     public required IEnumerable<SimpleEntity> Specs { get; set; }
     public required bool HasNonStandardSessionWindow { get; set; }
     public required IEnumerable<ExternalGameAdminTeam> Teams { get; set; }
+    public required bool IsPreDeploying { get; set; }
 }
 
 public sealed class ExternalGameAdminTeam

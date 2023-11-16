@@ -127,44 +127,38 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // throw on cancel request so we can clean up the debris
         cancellationToken.ThrowIfCancellationRequested();
 
-        // note that we don't start the transaction until after we've updated the deploy status.
-        // we do this because we want to be sure the deploy status shows that we're deploying
-        // while the work is happening.
-        await _store.DoTransaction(async dbContext =>
+        // deploy challenges and gamespaces
+        Log("Deploying game resources...", request.Game.Id);
+        var deployedResources = await DeployResources(request, cancellationToken);
+        Log("Game resources deployed.", request.Game.Id);
+
+        // establish all sessions
+        Log("Starting a synchronized session for all teams...", request.Game.Id);
+        var syncGameStartState = await _syncStartGameService.StartSynchronizedSession(request.Game.Id, 15, cancellationToken);
+        Log("Synchronized session started!", request.Game.Id);
+
+        // notify gameboard to move players along
+        await _gameHubBus.SendSyncStartGameStarting(syncGameStartState);
+
+        // update external host and get configuration information for teams
+        var externalHostTeamConfigs = await NotifyExternalGameHost(request, syncGameStartState, cancellationToken);
+        // then assign a headless server to each team
+        foreach (var team in request.Context.Teams)
         {
-            // deploy challenges and gamespaces
-            Log("Deploying game resources...", request.Game.Id);
-            var deployedResources = await DeployResources(request, cancellationToken);
-            Log("Game resources deployed.", request.Game.Id);
-
-            // establish all sessions
-            Log("Starting a synchronized session for all teams...", request.Game.Id);
-            var syncGameStartState = await _syncStartGameService.StartSynchronizedSession(request.Game.Id, 15, cancellationToken);
-            Log("Synchronized session started!", request.Game.Id);
-
-            // notify gameboard to move players along
-            await _gameHubBus.SendSyncStartGameStarting(syncGameStartState);
-
-            // update external host and get configuration information for teams
-            var externalHostTeamConfigs = await NotifyExternalGameHost(request, syncGameStartState, cancellationToken);
-            // then assign a headless server to each team
-            foreach (var team in request.Context.Teams)
+            var config = externalHostTeamConfigs.SingleOrDefault(t => t.TeamID == team.Team.Id);
+            if (config is null)
+                Log($"Team {team.Team.Id} wasn't assigned a headless URL by the external host (Gamebrain).", request.Game.Id);
+            else
             {
-                var config = externalHostTeamConfigs.SingleOrDefault(t => t.TeamID == team.Team.Id);
-                if (config is null)
-                    Log($"Team {team.Team.Id} wasn't assigned a headless URL by the external host (Gamebrain).", request.Game.Id);
-                else
-                {
-                    // update the request state thing with the team's headless url
-                    team.HeadlessUrl = config.HeadlessServerUrl;
-                    // but also record it in the DB in case someone cache clears or rejoins from a different machine/browser
-                    await _externalGameTeamService.UpdateTeamExternalUrl(team.Team.Id, config.HeadlessServerUrl, cancellationToken);
-                }
+                // update the request state thing with the team's headless url
+                team.HeadlessUrl = config.HeadlessServerUrl;
+                // but also record it in the DB in case someone cache clears or rejoins from a different machine/browser
+                await _externalGameTeamService.UpdateTeamExternalUrl(team.Team.Id, config.HeadlessServerUrl, cancellationToken);
             }
+        }
 
-            // last, update the team/game external deploy status to show we're done
-            await _externalGameTeamService.UpdateGameDeployStatus(request.Game.Id, ExternalGameDeployStatus.Deployed, cancellationToken);
-        }, cancellationToken);
+        // last, update the team/game external deploy status to show we're done
+        await _externalGameTeamService.UpdateGameDeployStatus(request.Game.Id, ExternalGameDeployStatus.Deployed, cancellationToken);
 
         // on we go
         Log("External game launched.", request.Game.Id);
@@ -250,8 +244,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // notify the teams that something is amiss
         await _gameHubBus.SendExternalGameLaunchFailure(request.Context.ToUpdate());
 
-        // the challenges don't get created upon failure here (thanks to a db transaction)
-        // but we still need to clean up any created tm gamespaces
+        // the GameStartService which orchestrates all game starts will automatically clean up challenges
+        // if an exception was thrown, but we still need to clean up any created tm gamespaces
         foreach (var gamespace in request.Context.GamespacesStarted)
         {
             try
