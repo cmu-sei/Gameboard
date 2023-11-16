@@ -11,16 +11,6 @@ namespace Gameboard.Api
 {
     public static class StringExtensions
     {
-        public static string[] AsHashTag(this string str)
-        {
-            var chars = str.ToLower().ToCharArray()
-                .Where(c => char.IsLetterOrDigit(c) || c == ' ')
-                .ToArray();
-
-            return new string(chars)
-                .Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        }
-
         public static string ToSha256(this string input)
             => BitConverter.ToString(SHA256.HashData(Encoding.UTF8.GetBytes(input)))
                 .Replace("-", "")
