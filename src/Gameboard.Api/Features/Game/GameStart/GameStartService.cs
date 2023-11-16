@@ -63,12 +63,8 @@ internal class GameStartService : IGameStartService
         using var gameStartLock = await _lockService.GetExternalGameDeployLock(request.GameId).LockAsync(cancellationToken);
 
         _logger.LogInformation($"Pre-deploying game resources for game {request.GameId}...");
-        GameStartDeployedResources deployedResources = null;
-        await _store.DoTransaction(async dbContext =>
-        {
-            deployedResources = await gameModeStartService.DeployResources(startRequest, cancellationToken);
-            _logger.LogInformation($"Game resources predeployed for game {request.GameId}.");
-        }, cancellationToken);
+        var deployedResources = await gameModeStartService.DeployResources(startRequest, cancellationToken);
+        _logger.LogInformation($"Game resources predeployed for game {request.GameId}.");
 
         return deployedResources;
     }
