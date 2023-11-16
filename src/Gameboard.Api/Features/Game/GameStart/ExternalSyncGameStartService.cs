@@ -183,7 +183,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             .Select(c => c.Key)
             .ToArray();
 
-        // if any gamespaces were created, this deploy is invalid and we bail
+        // most of the time, a challenge needs an associated gamespace, but
+        // apparently in at least one case, it doesn't, so just warn about gamespaceless
+        // challenges
         var challengeIdsWithNoGamespace = challengeDeployResults
             .SelectMany(c => c.Value)
             .Where(c => !gamespaces.ContainsKey(c.Id))
