@@ -95,10 +95,20 @@ internal class GetExternalGameAdminContextHandler : IRequestHandler<GetExternalG
         // once the game has started
         var hasStandardSessionWindow = startDates.Count() > 1 && endDates.Count() > 1;
 
+        // if we have a standardized session window, send it down with the data
+        DateTimeOffset? overallStart = null;
+        DateTimeOffset? overallEnd = null;
+        if (startDates.Count() == 1 && endDates.Count() == 1)
+        {
+            overallStart = startDates.Single();
+            overallEnd = startDates.Single();
+        }
+
         // compute teams
         var teams = gameData.Players
             .GroupBy(p => p.TeamId)
             .ToDictionary(g => g.Key, g => g.ToArray());
+        var teamIds = teams.Select(entry => entry.Key).ToArray();
 
         var captains = teams.Keys
             .ToDictionary(key => key, key => _teamService.ResolveCaptain(teams[key]));
@@ -106,6 +116,7 @@ internal class GetExternalGameAdminContextHandler : IRequestHandler<GetExternalG
         var teamDeployStatuses = await _store
             .WithNoTracking<ExternalGameTeam>()
             .Where(t => t.GameId == request.GameId)
+            .Where(t => teamIds.Contains(t.TeamId))
             .ToDictionaryAsync(t => t.TeamId, t => t.DeployStatus, cancellationToken);
 
         // and their readiness
@@ -120,6 +131,8 @@ internal class GetExternalGameAdminContextHandler : IRequestHandler<GetExternalG
             IsPreDeploying = teamDeployStatuses.Values.Any(s => s == ExternalGameDeployStatus.Deploying),
             Specs = gameData.Specs.Select(s => new SimpleEntity { Id = s.Id, Name = s.Name }),
             HasNonStandardSessionWindow = hasStandardSessionWindow,
+            StartTime = overallStart,
+            EndTime = overallEnd,
             Teams = teams.Keys.Select(key => new ExternalGameAdminTeam
             {
                 Id = captains[key].TeamId,

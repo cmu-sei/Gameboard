@@ -234,7 +234,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         };
     }
 
-    public async Task TryCleanUpFailedDeploy(GameModeStartRequest request, Exception exception)
+    public async Task TryCleanUpFailedDeploy(GameModeStartRequest request, Exception exception, CancellationToken cancellationToken)
     {
         // log the error
         var exceptionMessage = $"""EXTERNAL GAME LAUNCH FAILURE (game "{request.Game.Id}"): {exception.GetType().Name} :: {exception.Message}""";
@@ -262,6 +262,17 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             catch (Exception topoGamespaceDeleteEx)
             {
                 Log($"Error completing gamespace with id {request.Game.Id}: {topoGamespaceDeleteEx.GetType().Name} :: {topoGamespaceDeleteEx.Message} ", request.Game.Id);
+            }
+
+            // also need to clean up external team metadata (deploy statuses and external links like Unity headless URLs)
+            var cleanupTeamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();
+            try
+            {
+                await _externalGameTeamService.DeleteTeamExternalData(cancellationToken, cleanupTeamIds);
+            }
+            catch (Exception deleteExternalTeamDataException)
+            {
+                Log($"Error cleaning up external team data (teams: {string.Join(',', cleanupTeamIds)}): {deleteExternalTeamDataException.GetType().Name} :: {deleteExternalTeamDataException.Message}", request.Game.Id);
             }
         }
 

@@ -91,7 +91,7 @@ internal class GameStartService : IGameStartService
             _logger.LogError(LogEventId.GameStart_Failed, exception: ex, message: $"""Deploy for game "{game.Id}" failed.""");
 
             // allow the start service to do custom cleanup
-            await gameModeStartService.TryCleanUpFailedDeploy(startRequest, ex);
+            await gameModeStartService.TryCleanUpFailedDeploy(startRequest, ex, cancellationToken);
 
             // for convenience, reset (but don't unenroll) the teams
             _logger.LogError(message: $"Deployment failed for game {startRequest.Game.Id}. Resetting sessions and cleaning up gamespaces for {startRequest.Context.Teams.Count()} teams.");

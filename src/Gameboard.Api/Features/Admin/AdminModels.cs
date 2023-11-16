@@ -8,6 +8,8 @@ public sealed class ExternalGameAdminContext
 {
     public required SimpleEntity Game { get; set; }
     public required IEnumerable<SimpleEntity> Specs { get; set; }
+    public required DateTimeOffset? StartTime { get; set; }
+    public required DateTimeOffset? EndTime { get; set; }
     public required bool HasNonStandardSessionWindow { get; set; }
     public required IEnumerable<ExternalGameAdminTeam> Teams { get; set; }
     public required bool IsPreDeploying { get; set; }

@@ -18,6 +18,6 @@ public interface IGameModeStartService
     public Task<GameStartPhase> GetStartPhase(string gameId, string teamId, CancellationToken cancellationToken);
     public Task<GameStartDeployedResources> DeployResources(GameModeStartRequest request, CancellationToken cancellationToken);
     public Task<GameStartContext> Start(GameModeStartRequest request, CancellationToken cancellationToken);
-    public Task TryCleanUpFailedDeploy(GameModeStartRequest request, Exception exception);
+    public Task TryCleanUpFailedDeploy(GameModeStartRequest request, Exception exception, CancellationToken cancellationToken);
     public Task ValidateStart(GameModeStartRequest request, CancellationToken cancellationToken);
 }
