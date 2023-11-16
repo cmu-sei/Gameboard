@@ -117,6 +117,7 @@ internal class GetExternalGameAdminContextHandler : IRequestHandler<GetExternalG
         return new ExternalGameAdminContext
         {
             Game = new SimpleEntity { Id = gameData.Id, Name = gameData.Name },
+            IsPreDeploying = teamDeployStatuses.Values.Any(s => s == ExternalGameDeployStatus.Deploying),
             Specs = gameData.Specs.Select(s => new SimpleEntity { Id = s.Id, Name = s.Name }),
             HasNonStandardSessionWindow = hasStandardSessionWindow,
             Teams = teams.Keys.Select(key => new ExternalGameAdminTeam
