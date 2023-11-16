@@ -298,6 +298,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             .Where(c => teamIds.Contains(c.TeamId))
             .GroupBy(c => c.TeamId)
             .ToDictionaryAsync(g => g.Key, g => g.ToArray(), cancellationToken);
+
         foreach (var team in request.Context.Teams)
         {
             // hold onto each team's challenges
@@ -307,6 +308,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             var teamPreDeployedChallenges = predeployedChallenges.ContainsKey(team.Team.Id) ?
                 predeployedChallenges[team.Team.Id] : Array.Empty<Data.Challenge>();
             Log($"""Team {team.Team.Id} has {teamPreDeployedChallenges.Length} predeployed challenge(s).""", request.Game.Id);
+
             foreach (var specId in request.Context.SpecIds)
             {
                 // check if we've already deployed this team's copy of the challenge (through predeployment, for example)
@@ -332,6 +334,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                         cancellationToken
                     );
                 }
+
                 request.Context.ChallengesCreated.Add(new GameStartContextChallenge
                 {
                     Challenge = new SimpleEntity { Id = deployedChallenge.Id, Name = deployedChallenge.Name },
