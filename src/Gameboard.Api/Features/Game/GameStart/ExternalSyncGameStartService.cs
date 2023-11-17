@@ -117,9 +117,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // and knows about the deploy state
         Log("Creating teams for the external game...", request.Game.Id);
         await _externalGameTeamService.CreateTeams(request.Game.Id, request.Context.Teams.Select(t => t.Team.Id), cancellationToken);
-
-        Log("Gathering data...", request.Game.Id);
         await _gameHubBus.SendExternalGameLaunchStart(request.Context.ToUpdate());
+
+        Log("Gathering deploy data...", request.Game.Id);
 
         // update the external team metadata to reflect that we're deploying
         await _externalGameTeamService.UpdateGameDeployStatus(request.Game.Id, ExternalGameDeployStatus.Deploying, cancellationToken);

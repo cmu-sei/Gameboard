@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -115,11 +116,26 @@ internal class GetExternalGameAdminContextHandler : IRequestHandler<GetExternalG
         var captains = teams.Keys
             .ToDictionary(key => key, key => _teamService.ResolveCaptain(teams[key]));
 
-        var teamDeployStatuses = await _store
-            .WithNoTracking<ExternalGameTeam>()
-            .Where(t => t.GameId == request.GameId)
-            .Where(t => teamIds.Contains(t.TeamId))
-            .ToDictionaryAsync(t => t.TeamId, t => t.DeployStatus, cancellationToken);
+        var teamDeployStatuses = new Dictionary<string, ExternalGameDeployStatus>();
+        foreach (var teamId in teams.Keys)
+        {
+            if (!teamChallenges.ContainsKey(teamId) || !teamChallenges[teamId].Any())
+            {
+                teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.NotStarted);
+                continue;
+            }
+
+            var allChallengesCreated = specIds.All(specId => teamChallenges[teamId].Any(c => c.SpecId == specId));
+            var allGamespacesDeployed = teamChallenges[teamId].All(c => c.HasDeployedGamespace);
+
+            if (allChallengesCreated && allGamespacesDeployed)
+            {
+                teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.Deployed);
+                continue;
+            }
+
+            teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.Deploying);
+        }
 
         // and their readiness
         var syncStartState = await _syncStartGameService.GetSyncStartState(request.GameId, cancellationToken);
