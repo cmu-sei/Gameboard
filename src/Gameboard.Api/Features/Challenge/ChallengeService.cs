@@ -462,7 +462,7 @@ public partial class ChallengeService : _Service
 
         var toArchive = await Task.WhenAll(toArchiveTasks);
 
-        // handle 
+        // handle challenges that have been archived before
         var recordsAffected = await _store
             .WithNoTracking<Data.ArchivedChallenge>()
             .Where(c => toArchiveIds.Contains(c.Id))
@@ -471,11 +471,10 @@ public partial class ChallengeService : _Service
         if (recordsAffected > 0)
             Logger.LogWarning($"While attempting to archive challenges (Ids: {string.Join(",", toArchiveIds)}) resulted in the deletion of ${recordsAffected} stale archive records.");
 
-        await _store.DoTransaction(dbContext =>
+        await _store.DoTransaction(async dbContext =>
         {
-            dbContext.ArchivedChallenges.AddRange(_mapper.Map<Data.ArchivedChallenge[]>(toArchive));
+            await dbContext.ArchivedChallenges.AddRangeAsync(_mapper.Map<Data.ArchivedChallenge[]>(toArchive));
             dbContext.Challenges.RemoveRange(challenges);
-            return Task.CompletedTask;
         }, CancellationToken.None);
     }
 

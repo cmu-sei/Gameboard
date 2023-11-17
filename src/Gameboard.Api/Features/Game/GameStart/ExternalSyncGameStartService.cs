@@ -263,17 +263,17 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             {
                 Log($"Error completing gamespace with id {request.Game.Id}: {topoGamespaceDeleteEx.GetType().Name} :: {topoGamespaceDeleteEx.Message} ", request.Game.Id);
             }
+        }
 
-            // also need to clean up external team metadata (deploy statuses and external links like Unity headless URLs)
-            var cleanupTeamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();
-            try
-            {
-                await _externalGameTeamService.DeleteTeamExternalData(cancellationToken, cleanupTeamIds);
-            }
-            catch (Exception deleteExternalTeamDataException)
-            {
-                Log($"Error cleaning up external team data (teams: {string.Join(',', cleanupTeamIds)}): {deleteExternalTeamDataException.GetType().Name} :: {deleteExternalTeamDataException.Message}", request.Game.Id);
-            }
+        // also need to clean up external team metadata (deploy statuses and external links like Unity headless URLs)
+        var cleanupTeamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();
+        try
+        {
+            await _externalGameTeamService.DeleteTeamExternalData(cancellationToken, cleanupTeamIds);
+        }
+        catch (Exception deleteExternalTeamDataException)
+        {
+            Log($"Error cleaning up external team data (teams: {string.Join(',', cleanupTeamIds)}): {deleteExternalTeamDataException.GetType().Name} :: {deleteExternalTeamDataException.Message}", request.Game.Id);
         }
 
         // note that the GameStartService automatically resets player sessions without unenrolling them after this function is called
