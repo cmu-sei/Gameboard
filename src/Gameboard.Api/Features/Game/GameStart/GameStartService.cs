@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,7 +18,7 @@ namespace Gameboard.Api.Features.Games.Start;
 public interface IGameStartService
 {
     Task<GameStartPhase> GetGameStartPhase(string gameId, string teamId, CancellationToken cancellationToken);
-    Task<GameStartDeployedResources> PreDeployGameResources(GameStartRequest request, CancellationToken cancellationToken);
+    Task<GameStartDeployedResources> PreDeployGameResources(PreDeployResourcesRequest request, CancellationToken cancellationToken);
     Task<GameStartContext> Start(GameStartRequest request, CancellationToken cancellationToken);
 }
 
@@ -53,11 +55,11 @@ internal class GameStartService : IGameStartService
         _teamService = teamService;
     }
 
-    public async Task<GameStartDeployedResources> PreDeployGameResources(GameStartRequest request, CancellationToken cancellationToken)
+    public async Task<GameStartDeployedResources> PreDeployGameResources(PreDeployResourcesRequest request, CancellationToken cancellationToken)
     {
         var game = await _store.Retrieve<Data.Game>(request.GameId);
         var gameModeStartService = ResolveGameModeStartService(game) ?? throw new NotImplementedException();
-        var startRequest = await LoadGameModeStartRequest(game, request, cancellationToken);
+        var startRequest = await LoadGameModeStartRequest(game, request.TeamIds, cancellationToken);
 
         // lock this down - only one start or predeploy per game Id
         using var gameStartLock = await _lockService.GetExternalGameDeployLock(request.GameId).LockAsync(cancellationToken);
@@ -76,7 +78,7 @@ internal class GameStartService : IGameStartService
 
         // lock this down - only one start or predeploy per game Id
         using var gameStartLock = await _lockService.GetExternalGameDeployLock(request.GameId).LockAsync(cancellationToken);
-        var startRequest = await LoadGameModeStartRequest(game, request, cancellationToken);
+        var startRequest = await LoadGameModeStartRequest(game, null, cancellationToken);
 
         try
         {
@@ -144,20 +146,26 @@ internal class GameStartService : IGameStartService
     /// <summary>
     /// No matter which mode the game is set to, there's baseline information we need to execute the start process, teams/players,
     /// the game's challenges, etc. Load all that here to give context to our start request.
+    /// 
+    /// Note that if the teamIds parameter is empty or null, data for all teams will be loaded. If it's specified, the results
+    /// will be constrained to the teamIds passed. This exists to support predeployment - we wanted the ability to predeploy
+    /// one team's resources without necessarily deploying the entire game.
     /// </summary>
     /// <param name="game"></param>
-    /// <param name="request"></param>
+    /// <param name="teamIds"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     /// <exception cref="CantStartGameWithNoPlayers"></exception>
     /// <exception cref="CaptainResolutionFailure"></exception>
-    private async Task<GameModeStartRequest> LoadGameModeStartRequest(Data.Game game, GameStartRequest request, CancellationToken cancellationToken)
+    private async Task<GameModeStartRequest> LoadGameModeStartRequest(Data.Game game, IEnumerable<string> teamIds, CancellationToken cancellationToken)
     {
         var now = _now.Get();
+        var loadAllTeams = teamIds is null || !teamIds.Any();
 
         var players = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => p.GameId == game.Id)
+            .Where(p => loadAllTeams || teamIds.Contains(p.TeamId))
             .ToArrayAsync(cancellationToken);
 
         if (!players.Any())
@@ -201,7 +209,7 @@ internal class GameStartService : IGameStartService
         foreach (var teamId in teamCaptains.Keys)
         {
             if (teamCaptains[teamId] == null)
-                throw new CaptainResolutionFailure(teamId, "Couldn't resolve captain during external sync game start.");
+                throw new CaptainResolutionFailure(teamId, "Couldn't resolve team captain during game start.");
         }
 
         context.Teams.AddRange(teamCaptains.Select(tc => new GameStartContextTeam

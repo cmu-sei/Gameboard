@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Games.External;
@@ -25,6 +26,6 @@ public class AdminExternalGamesController : ControllerBase
         => _mediator.Send(new GetExternalGameAdminContextRequest(gameId));
 
     [HttpPost("{gameId}/pre-deploy")]
-    public Task PreDeployGame([FromRoute] string gameId)
-        => _mediator.Send(new PreDeployExternalGameResourcesCommand(gameId, _actingUserService.Get()));
+    public Task PreDeployGame([FromRoute] string gameId, [FromBody] IEnumerable<string> teamIds)
+        => _mediator.Send(new PreDeployExternalGameResourcesCommand(gameId, _actingUserService.Get(), teamIds));
 }

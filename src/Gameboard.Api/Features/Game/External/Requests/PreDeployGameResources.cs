@@ -1,3 +1,6 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
@@ -12,7 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Gameboard.Api.Features.Games.External;
 
-public record PreDeployExternalGameResourcesCommand(string GameId, User Actor) : IRequest;
+public record PreDeployExternalGameResourcesCommand(string GameId, User Actor, IEnumerable<string> TeamIds = null) : IRequest;
 
 internal class PreDeployExternalGameResourcesHandler : IRequestHandler<PreDeployExternalGameResourcesCommand>
 {
@@ -77,7 +80,7 @@ internal class PreDeployExternalGameResourcesHandler : IRequestHandler<PreDeploy
                 using var scope = _serviceScopeFactory.CreateScope();
                 var gameStartService = scope.ServiceProvider.GetRequiredService<IGameStartService>();
 
-                await gameStartService.PreDeployGameResources(new GameStartRequest { GameId = request.GameId }, cancellationToken);
+                await gameStartService.PreDeployGameResources(new PreDeployResourcesRequest { GameId = request.GameId, TeamIds = request.TeamIds }, cancellationToken);
             }
         );
     }

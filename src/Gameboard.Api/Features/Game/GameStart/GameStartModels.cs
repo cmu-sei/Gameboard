@@ -86,6 +86,12 @@ public class GameStartDeployedChallenge
     public required string TeamId { get; set; }
 }
 
+public class PreDeployResourcesRequest
+{
+    public required string GameId { get; set; }
+    public IEnumerable<string> TeamIds { get; set; }
+}
+
 public sealed class GameStartUpdate
 {
     public required SimpleEntity Game { get; set; }
