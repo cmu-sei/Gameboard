@@ -83,25 +83,27 @@ internal class GetExternalGameAdminContextHandler : IRequestHandler<GetExternalG
             .SelectMany(c => c.Value)
             .Select(c => c.StartTime)
             .Concat(gameData.Players.Select(p => p.SessionBegin))
-            .Distinct();
+            .Distinct()
+            .ToArray();
         var endDates = teamChallenges
             .SelectMany(c => c.Value)
             .Select(c => c.EndTime)
             .Concat(gameData.Players.Select(p => p.SessionEnd))
-            .Distinct();
+            .Distinct()
+            .ToArray();
 
         // this expresses whether there are any player session dates or
         // challenge start/end times that are misaligned - only really matters
         // once the game has started
-        var hasStandardSessionWindow = startDates.Count() > 1 && endDates.Count() > 1;
+        var hasStandardSessionWindow = startDates.Length > 1 && endDates.Length > 1;
 
         // if we have a standardized session window, send it down with the data
         DateTimeOffset? overallStart = null;
         DateTimeOffset? overallEnd = null;
-        if (startDates.Count() == 1 && endDates.Count() == 1)
+        if (startDates.Length == 1 && endDates.Length == 1)
         {
             overallStart = startDates.Single();
-            overallEnd = startDates.Single();
+            overallEnd = endDates.Single();
         }
 
         // compute teams

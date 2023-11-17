@@ -11,6 +11,7 @@ using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Structure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Games;
 
@@ -30,6 +31,7 @@ internal class SyncStartGameService : ISyncStartGameService
     private readonly BackgroundTaskContext _backgroundTaskContext;
     private readonly IGameHubBus _gameHubBus;
     private readonly ILockService _lockService;
+    private readonly ILogger<SyncStartGameService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IStore _store;
     private readonly IBackgroundTaskQueue _taskQueue;
@@ -43,6 +45,7 @@ internal class SyncStartGameService : ISyncStartGameService
         BackgroundTaskContext backgroundTaskContext,
         IGameHubBus gameHubBus,
         ILockService lockService,
+        ILogger<SyncStartGameService> logger,
         IServiceScopeFactory serviceScopeFactory,
         IStore store,
         IBackgroundTaskQueue taskQueue,
@@ -55,6 +58,7 @@ internal class SyncStartGameService : ISyncStartGameService
         _backgroundTaskContext = backgroundTaskContext;
         _gameHubBus = gameHubBus;
         _lockService = lockService;
+        _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
         _store = store;
         _taskQueue = taskQueue;
@@ -196,6 +200,7 @@ internal class SyncStartGameService : ISyncStartGameService
             // validation is all clear - compute new session times and update players, challenges, and gamespaces
             var sessionBegin = DateTimeOffset.UtcNow.AddSeconds(countdownSeconds);
             var sessionEnd = sessionBegin.AddMinutes(game.SessionMinutes);
+            _logger.LogInformation($"Starting synchronized session for game {gameId}. Start: {sessionBegin}. End: {sessionEnd}. Total duration: {(sessionEnd - sessionBegin).TotalMinutes} minutes.");
 
             var gameTeamIds = players.Select(p => p.TeamId).Distinct().ToArray();
             // TODO: combine these into a single DB call in the teams service (passing gameID)
@@ -203,6 +208,7 @@ internal class SyncStartGameService : ISyncStartGameService
             {
                 await _teamService.UpdateSessionStartAndEnd(teamId, sessionBegin, sessionEnd, cancellationToken);
             }
+            _logger.LogInformation($"Synchronized session started for game {gameId}.");
 
             // compose a return value summarizing the sync session
             var startState = new SyncStartGameStartedState
