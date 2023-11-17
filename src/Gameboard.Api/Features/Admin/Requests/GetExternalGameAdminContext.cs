@@ -125,10 +125,17 @@ internal class GetExternalGameAdminContextHandler : IRequestHandler<GetExternalG
             .SelectMany(t => t.Players)
             .ToDictionary(p => p.Id, p => p.IsReady);
 
+        // the game's overall deploy status is the lowest value of all teams' deploy statuses
+        var overallDeployState = ExternalGameDeployStatus.NotStarted;
+        if (teamDeployStatuses.Values.All(s => s == ExternalGameDeployStatus.Deployed))
+            overallDeployState = ExternalGameDeployStatus.Deployed;
+        else if (teamDeployStatuses.Values.Any(s => s == ExternalGameDeployStatus.Deploying))
+            overallDeployState = ExternalGameDeployStatus.Deploying;
+
         return new ExternalGameAdminContext
         {
             Game = new SimpleEntity { Id = gameData.Id, Name = gameData.Name },
-            IsPreDeploying = teamDeployStatuses.Values.Any(s => s == ExternalGameDeployStatus.Deploying),
+            OverallDeployStatus = overallDeployState,
             Specs = gameData.Specs.Select(s => new SimpleEntity { Id = s.Id, Name = s.Name }),
             HasNonStandardSessionWindow = hasStandardSessionWindow,
             StartTime = overallStart,
