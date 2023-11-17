@@ -176,6 +176,9 @@ internal class SyncStartGameService : ISyncStartGameService
             if (!state.IsReady)
                 throw new CantStartNonReadySynchronizedGame(state);
 
+            // notify signalR
+            await _gameHubBus.SendSyncStartGameStarting(state);
+
             // ensure no one has already started - if they have, things will get gnarly quick  
             //
             // currently, we don't have an authoritative "This is the session time of this game" kind of construct in the modeling layer
@@ -225,7 +228,7 @@ internal class SyncStartGameService : ISyncStartGameService
                     }))
             };
 
-            await _gameHubBus.SendSyncStartGameStarting(startState);
+            await _gameHubBus.SendSyncStartGameStarted(startState);
             return startState;
         }
     }

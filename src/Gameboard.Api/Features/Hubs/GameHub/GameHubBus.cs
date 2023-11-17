@@ -18,7 +18,8 @@ public interface IGameHubBus
     Task SendExternalGameGamespacesDeployProgressChange(GameStartUpdate state);
     Task SendExternalGameGamespacesDeployEnd(GameStartUpdate state);
     Task SendSyncStartGameStateChanged(SyncStartState state);
-    Task SendSyncStartGameStarting(SyncStartGameStartedState state);
+    Task SendSyncStartGameStarted(SyncStartGameStartedState state);
+    Task SendSyncStartGameStarting(SyncStartState state);
 }
 
 internal class GameHubBus : IGameHubBus, IGameboardHubBus
@@ -143,11 +144,23 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
             });
     }
 
-    public async Task SendSyncStartGameStarting(SyncStartGameStartedState state)
+    public async Task SendSyncStartGameStarted(SyncStartGameStartedState state)
     {
         await _hubContext
             .SendToGroup(this, state.Game.Id)
-            .SyncStartGameStarting(new GameHubEvent<SyncStartGameStartedState>
+            .SyncStartGameStarted(new GameHubEvent<SyncStartGameStartedState>
+            {
+                GameId = state.Game.Id,
+                EventType = GameHubEventType.SyncStartGameStarted,
+                Data = state
+            });
+    }
+
+    public async Task SendSyncStartGameStarting(SyncStartState state)
+    {
+        await _hubContext
+            .SendToGroup(this, state.Game.Id)
+            .SyncStartGameStarting(new GameHubEvent<SyncStartState>
             {
                 GameId = state.Game.Id,
                 EventType = GameHubEventType.SyncStartGameStarting,

@@ -137,9 +137,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         var syncGameStartState = await _syncStartGameService.StartSynchronizedSession(request.Game.Id, 15, cancellationToken);
         Log("Synchronized session started!", request.Game.Id);
 
-        // notify gameboard to move players along
-        await _gameHubBus.SendSyncStartGameStarting(syncGameStartState);
-
         // update external host and get configuration information for teams
         var externalHostTeamConfigs = await NotifyExternalGameHost(request, syncGameStartState, cancellationToken);
         // then assign a headless server to each team

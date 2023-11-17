@@ -21,6 +21,7 @@ public enum GameHubEventType
     ExternalGameLaunchEnd,
     ExternalGameLaunchFailure,
     PlayerJoined,
+    SyncStartGameStarted,
     SyncStartGameStarting,
     SyncStartGameStateChanged,
     VerifyAllPlayersConnectedStart,
@@ -42,7 +43,8 @@ public interface IGameHubEvent
     Task ExternalGameGamespacesDeployEnd(GameHubEvent<GameStartUpdate> ev);
     Task PlayerJoined(GameHubEvent<PlayerJoinedEvent> ev);
     Task SyncStartGameStateChanged(GameHubEvent<SyncStartState> ev);
-    Task SyncStartGameStarting(GameHubEvent<SyncStartGameStartedState> ev);
+    Task SyncStartGameStarted(GameHubEvent<SyncStartGameStartedState> ev);
+    Task SyncStartGameStarting(GameHubEvent<SyncStartState> ev);
     Task YouJoined(GameHubEvent<YouJoinedEvent> ev);
 }
 
