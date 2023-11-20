@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -45,30 +46,8 @@ internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeC
         var settings = await _practiceService.GetSettings(cancellationToken);
         var sluggedSuggestedSearches = settings.SuggestedSearches.Select(search => _slugger.Get(search));
 
-        var q = _store
-            .WithNoTracking<Data.ChallengeSpec>()
-            .Include(s => s.Game)
-            .Where(s => s.Game.PlayerMode == PlayerMode.Practice);
-
-        if (request.Filter.HasTerm)
-        {
-            var term = request.Filter.Term.ToLower();
-            var sluggedTerm = _slugger.Get(term);
-
-            q = q.Where
-            (
-                s =>
-                    s.Id.Equals(term) ||
-                    s.Name.ToLower().Contains(term) ||
-                    s.Description.ToLower().Contains(term) ||
-                    s.Game.Name.ToLower().Contains(term) ||
-                    s.Text.ToLower().Contains(term) ||
-                    (s.Tags.Contains(sluggedTerm) && sluggedSuggestedSearches.Contains(sluggedTerm))
-            );
-        }
-
-        q = q.OrderBy(s => s.Name);
-        var results = await _mapper.ProjectTo<ChallengeSpecSummary>(q).ToArrayAsync(cancellationToken);
+        var query = BuildQuery(request.Filter.Term, sluggedSuggestedSearches);
+        var results = await _mapper.ProjectTo<ChallengeSpecSummary>(query).ToArrayAsync(cancellationToken);
 
         foreach (var result in results)
         {
@@ -95,5 +74,40 @@ internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeC
         {
             Results = pagedResults
         };
+    }
+
+    /// <summary>
+    /// Load the transformed query results from the database. (Broken out into its own function for unit testing.)
+    /// </summary>
+    /// <param name="filterTerm"></param>
+    /// <param name="sluggedSuggestedSearches"></param>
+    /// <returns></returns>
+    internal IQueryable<Data.ChallengeSpec> BuildQuery(string filterTerm, IEnumerable<string> sluggedSuggestedSearches)
+    {
+        var q = _store
+            .WithNoTracking<Data.ChallengeSpec>()
+            .Include(s => s.Game)
+            .Where(s => s.Game.PlayerMode == PlayerMode.Practice)
+            .Where(s => !s.Disabled);
+
+        if (filterTerm.IsNotEmpty())
+        {
+            var term = filterTerm.ToLower();
+            var sluggedTerm = _slugger.Get(term);
+
+            q = q.Where
+            (
+                s =>
+                    s.Id.Equals(term) ||
+                    s.Name.ToLower().Contains(term) ||
+                    s.Description.ToLower().Contains(term) ||
+                    s.Game.Name.ToLower().Contains(term) ||
+                    s.Text.ToLower().Contains(term) ||
+                    (s.Tags.Contains(sluggedTerm) && sluggedSuggestedSearches.Contains(sluggedTerm))
+            );
+        }
+
+        q = q.OrderBy(s => s.Name);
+        return q;
     }
 }

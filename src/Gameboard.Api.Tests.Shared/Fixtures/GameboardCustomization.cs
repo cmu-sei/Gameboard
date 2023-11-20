@@ -1,4 +1,6 @@
 using AutoFixture;
+using AutoMapper;
+using Microsoft.Extensions.DependencyInjection;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 
@@ -7,6 +9,12 @@ namespace Gameboard.Api.Tests.Shared.Fixtures;
 public class GameboardCustomization : ICustomization
 {
     public void Customize(IFixture fixture)
+    {
+        RegisterDefaultEntityModels(fixture);
+        RegisterDefaultServices(fixture);
+    }
+
+    private void RegisterDefaultEntityModels(IFixture fixture)
     {
         fixture.Register(() => fixture);
 
@@ -220,5 +228,15 @@ public class GameboardCustomization : ICustomization
                 new() { Answer = fixture.Create<string>() }
             }
         });
+    }
+
+    private void RegisterDefaultServices(IFixture fixture)
+    {
+        var mapper = new MapperConfiguration(cfg =>
+        {
+            cfg.AddGameboardMaps();
+        }).CreateMapper();
+
+        fixture.Register(() => mapper);
     }
 }
