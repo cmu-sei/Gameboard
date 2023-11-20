@@ -35,3 +35,8 @@ public sealed class ExternalGameClientTeamConfig
     public required string TeamID { get; set; }
     public required string HeadlessServerUrl { get; set; }
 }
+
+public sealed class ExternalGameDeployTeamResourcesRequest
+{
+    public IEnumerable<string> TeamIds { get; set; }
+}

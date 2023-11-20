@@ -1,10 +1,7 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
-using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Structure;
 using Gameboard.Api.Structure.MediatR;
@@ -15,40 +12,40 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Gameboard.Api.Features.Games.External;
 
-public record PreDeployExternalGameResourcesCommand(string GameId, User Actor, IEnumerable<string> TeamIds = null) : IRequest;
+public record PreDeployExternalGameResourcesCommand(string GameId, IEnumerable<string> TeamIds = null) : IRequest;
 
 internal class PreDeployExternalGameResourcesHandler : IRequestHandler<PreDeployExternalGameResourcesCommand>
 {
     private readonly IExternalGameHostAccessTokenProvider _accessTokenProvider;
+    private readonly IActingUserService _actingUserService;
     private readonly IAppUrlService _appUrlService;
     private readonly IBackgroundTaskQueue _backgroundTaskQueue;
     private readonly BackgroundTaskContext _backgroundTaskContext;
     private readonly GameWithModeExistsValidator<PreDeployExternalGameResourcesCommand> _gameExists;
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly IStore _store;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
     private readonly IValidatorService<PreDeployExternalGameResourcesCommand> _validator;
 
     public PreDeployExternalGameResourcesHandler
     (
         IExternalGameHostAccessTokenProvider accessTokenProvider,
+        IActingUserService actingUserService,
         IAppUrlService appUrlService,
         IBackgroundTaskQueue backgroundTaskQueue,
         BackgroundTaskContext backgroundTaskContext,
         GameWithModeExistsValidator<PreDeployExternalGameResourcesCommand> gameExists,
         IServiceScopeFactory serviceScopeFactory,
-        IStore store,
         UserRoleAuthorizer userRoleAuthorizer,
         IValidatorService<PreDeployExternalGameResourcesCommand> validator
     )
     {
         _accessTokenProvider = accessTokenProvider;
+        _actingUserService = actingUserService;
         _appUrlService = appUrlService;
         _backgroundTaskQueue = backgroundTaskQueue;
         _backgroundTaskContext = backgroundTaskContext;
         _gameExists = gameExists;
         _serviceScopeFactory = serviceScopeFactory;
-        _store = store;
         _userRoleAuthorizer = userRoleAuthorizer;
         _validator = validator;
     }
@@ -70,7 +67,7 @@ internal class PreDeployExternalGameResourcesHandler : IRequestHandler<PreDeploy
         // do the predeploy stuff
         // (note that we fire and forget this because updates are provided over signalR in the GameHub).
         _backgroundTaskContext.AccessToken = await _accessTokenProvider.GetToken();
-        _backgroundTaskContext.ActingUser = request.Actor;
+        _backgroundTaskContext.ActingUser = _actingUserService.Get();
         _backgroundTaskContext.AppBaseUrl = _appUrlService.GetBaseUrl();
 
         await _backgroundTaskQueue.QueueBackgroundWorkItemAsync

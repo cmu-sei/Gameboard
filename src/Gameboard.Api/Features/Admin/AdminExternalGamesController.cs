@@ -12,12 +12,10 @@ namespace Gameboard.Api.Features.Admin;
 [Authorize]
 public class AdminExternalGamesController : ControllerBase
 {
-    private readonly IActingUserService _actingUserService;
     private readonly IMediator _mediator;
 
-    public AdminExternalGamesController(IActingUserService actingUserService, IMediator mediator)
+    public AdminExternalGamesController(IMediator mediator)
     {
-        _actingUserService = actingUserService;
         _mediator = mediator;
     }
 
@@ -26,6 +24,6 @@ public class AdminExternalGamesController : ControllerBase
         => _mediator.Send(new GetExternalGameAdminContextRequest(gameId));
 
     [HttpPost("{gameId}/pre-deploy")]
-    public Task PreDeployGame([FromRoute] string gameId, [FromBody] IEnumerable<string> teamIds)
-        => _mediator.Send(new PreDeployExternalGameResourcesCommand(gameId, _actingUserService.Get(), teamIds));
+    public Task PreDeployGame([FromRoute] string gameId, [FromBody] ExternalGameDeployTeamResourcesRequest request)
+        => _mediator.Send(new PreDeployExternalGameResourcesCommand(gameId, request.TeamIds));
 }
