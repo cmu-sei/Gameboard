@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Gameboard.Api.Features.games;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Services;
@@ -108,11 +109,8 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpDelete("/api/game/{id}")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task Delete([FromRoute] string id)
-        {
-            await Validate(new Entity { Id = id });
-            await GameService.Delete(id);
-        }
+        public Task Delete([FromRoute] string id)
+            => _mediator.Send(new DeleteGameCommand(id));
 
         /// <summary>
         /// Find games

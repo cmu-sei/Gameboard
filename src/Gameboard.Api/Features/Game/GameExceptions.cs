@@ -5,6 +5,12 @@ using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.Games;
 
+internal class CantDeleteGameWithPlayers : GameboardValidationException
+{
+    public CantDeleteGameWithPlayers(string gameId, int playerCount)
+        : base($"Game {gameId} can't be deleted because it has {playerCount} players.") { }
+}
+
 internal class CantStartGameWithNoPlayers : GameboardException
 {
     public CantStartGameWithNoPlayers(string gameId) : base($"Can't start game {gameId} - no players are registered.") { }
