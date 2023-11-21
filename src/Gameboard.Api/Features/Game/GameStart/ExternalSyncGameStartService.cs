@@ -22,8 +22,9 @@ public interface IExternalSyncGameStartService : IGameModeStartService { }
 
 internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 {
+    private readonly IBatchingService _batchService;
     private readonly ChallengeService _challengeService;
-    private readonly IExternalGameDeployBatchService _externalGameDeployBatchService;
+    private readonly CoreOptions _coreOptions;
     private readonly IExternalGameTeamService _externalGameTeamService;
     private readonly IGamebrainService _gamebrainService;
     private readonly IGameEngineService _gameEngineService;
@@ -41,8 +42,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
     public ExternalSyncGameStartService
     (
+        IBatchingService batchingService,
         ChallengeService challengeService,
-        IExternalGameDeployBatchService externalGameDeployBatchService,
+        CoreOptions coreOptions,
         IExternalGameTeamService externalGameTeamService,
         IGamebrainService gamebrainService,
         IGameEngineService gameEngineService,
@@ -59,8 +61,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         IValidatorService<GameModeStartRequest> validator
     )
     {
+        _batchService = batchingService;
         _challengeService = challengeService;
-        _externalGameDeployBatchService = externalGameDeployBatchService;
+        _coreOptions = coreOptions;
         _externalGameTeamService = externalGameTeamService;
         _gamebrainService = gamebrainService;
         _gameEngineService = gameEngineService;
@@ -286,9 +289,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     {
         Log($"Deploying {request.Context.TotalChallengeCount} challenges/gamespaces...", request.Game.Id);
         var teamDeployedChallenges = new Dictionary<string, List<Challenge>>();
-        // deploy all challenges
         await _gameHubBus.SendExternalGameChallengesDeployStart(request.Context.ToUpdate());
         var teamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();
+
         // determine which, if any, challenges have been predeployed for this game
         var predeployedChallenges = await _store
             .WithNoTracking<Data.Challenge>()
@@ -373,7 +376,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // Create one task for each gamespace in batches of the size specified in the app's
         // helm chart config
         var batchIndex = 0;
-        var challengeBatches = _externalGameDeployBatchService.BuildDeployBatches(notPredeployedChallenges);
+        var challengeBatches = BuildGamespaceBatches(notPredeployedChallenges, _coreOptions);
 
         Log($"Using {challengeBatches.Count()} batches to deploy {request.Context.TotalGamespaceCount} gamespaces...", request.Game.Id);
 
@@ -442,6 +445,15 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         Log($"Finished deploying gamespaces: {totalGamespaceCount} gamespaces, {totalVmCount} VMs.", request.Game.Id);
         await _gameHubBus.SendExternalGameGamespacesDeployEnd(request.Context.ToUpdate());
         return retVal;
+    }
+
+    private IEnumerable<IEnumerable<GameStartContextChallenge>> BuildGamespaceBatches(IEnumerable<GameStartContextChallenge> challenges, CoreOptions coreOptions)
+    {
+        var batchSize = coreOptions.GameEngineDeployBatchSize;
+        if (batchSize < 1)
+            batchSize = 1;
+
+        return _batchService.Batch(challenges, batchSize);
     }
 
     private ExternalGameStartMetaData BuildExternalGameMetaData(GameStartContext context, SyncStartGameStartedState syncgameStartState)
