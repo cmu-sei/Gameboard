@@ -430,6 +430,7 @@ public partial class ChallengeService : _Service
 
         Logger.LogInformation($"Archiving {challenges.Count()} challenges.");
         var toArchiveIds = challenges.Select(c => c.Id).ToArray();
+
         var teamMemberMap = await _store
             .WithNoTracking<Data.Challenge>()
                 .Include(c => c.Player)
@@ -473,8 +474,11 @@ public partial class ChallengeService : _Service
 
         await _store.DoTransaction(async dbContext =>
         {
+            // NOTE: see this function's comments to understand why it's here (and why it should someday go away)
+            dbContext.DetachUnchanged();
             await dbContext.ArchivedChallenges.AddRangeAsync(_mapper.Map<Data.ArchivedChallenge[]>(toArchive));
             dbContext.Challenges.RemoveRange(challenges);
+            await dbContext.SaveChangesAsync();
         }, CancellationToken.None);
     }
 

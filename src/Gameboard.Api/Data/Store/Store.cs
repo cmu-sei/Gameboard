@@ -34,6 +34,7 @@ public interface IStore
     Task<TEntity> Retrieve<TEntity>(string id, Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder, bool enableTracking = false) where TEntity : class, IEntity;
     Task<TEntity> SaveAdd<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity;
     Task<IEnumerable<TEntity>> SaveAddRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity;
+    Task SaveRemoveRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity;
     Task<TEntity> SaveUpdate<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity;
     Task SaveUpdateRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity;
     Task<TEntity> SingleAsync<TEntity>(string id, CancellationToken cancellationToken) where TEntity : class, IEntity;
@@ -107,12 +108,10 @@ internal class Store : IStore
         Expression<Func<TEntity, bool>> predicate,
         Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls
     ) where TEntity : class, IEntity
-    {
-        return _dbContext
+        => _dbContext
             .Set<TEntity>()
             .Where(predicate)
             .ExecuteUpdateAsync(setPropertyCalls);
-    }
 
     public Task<bool> Exists<TEntity>(string id) where TEntity : class, IEntity
         => _dbContext
@@ -174,6 +173,12 @@ internal class Store : IStore
         _dbContext.AddRange(entities);
         await _dbContext.SaveChangesAsync();
         return entities;
+    }
+
+    public async Task SaveRemoveRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity
+    {
+        _dbContext.RemoveRange(entities);
+        await _dbContext.SaveChangesAsync();
     }
 
     public async Task<TEntity> SaveUpdate<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity
