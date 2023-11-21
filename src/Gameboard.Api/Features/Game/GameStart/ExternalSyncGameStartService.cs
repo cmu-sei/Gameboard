@@ -373,69 +373,70 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.Context.ToUpdate());
         }
 
-        // Create one task for each gamespace in batches of the size specified in the app's
-        // helm chart config
-        var batchIndex = 0;
-        var challengeBatches = BuildGamespaceBatches(notPredeployedChallenges, _coreOptions);
-
-        Log($"Using {challengeBatches.Count()} batches to deploy {request.Context.TotalGamespaceCount} gamespaces...", request.Game.Id);
-
-        foreach (var batch in challengeBatches.ToArray())
+        // if we don't have any gamespaces that aren't predeployed, we can take a big fat shortcut
+        if (notPredeployedChallenges.Any())
         {
-            Log($"Starting gamespace batch #{++batchIndex} ({batch.ToArray().Length} challenges)...", request.Game.Id);
+            // Create one task for each gamespace in batches of the size specified in the app's
+            // helm chart config
+            var challengeBatches = BuildGamespaceBatches(notPredeployedChallenges, _coreOptions);
+            var batchIndex = 0;
+            var batchCount = challengeBatches.Count();
 
-            // resolve the challenges in this batch to tasks that call the game engine and ask it to start a gamespace
-            var batchTasks = batch.Select(async challenge =>
+            Log($"Using {challengeBatches.Count()} batches to deploy {request.Context.TotalGamespaceCount} gamespaces...", request.Game.Id);
+
+            foreach (var batch in challengeBatches.ToArray())
             {
-                Log(message: $"""Starting {challenge.GameEngineType} gamespace for challenge "{challenge.Challenge.Id}" (teamId "{challenge.TeamId}")...""", request.Game.Id);
+                Log($"Starting gamespace batch #{++batchIndex} of {batchCount} ({batch.ToArray().Length} challenges)...", request.Game.Id);
 
-                var challengeState = await _gameEngineService.StartGamespace(new GameEngineGamespaceStartRequest
+                // resolve the challenges in this batch to tasks that call the game engine and ask it to start a gamespace
+                var batchTasks = batch.Select(async challenge =>
                 {
-                    ChallengeId = challenge.Challenge.Id,
-                    GameEngineType = challenge.GameEngineType
+                    Log(message: $"""Starting {challenge.GameEngineType} gamespace for challenge "{challenge.Challenge.Id}" (teamId "{challenge.TeamId}")...""", request.Game.Id);
+
+                    var challengeState = await _gameEngineService.StartGamespace(new GameEngineGamespaceStartRequest
+                    {
+                        ChallengeId = challenge.Challenge.Id,
+                        GameEngineType = challenge.GameEngineType
+                    });
+                    Log($"""Gamespace started for challenge "{challenge.Challenge.Id}".""", request.Game.Id);
+
+                    // record the created challenge/state for reporting
+                    request.Context.GamespacesStarted.Add(challengeState);
+
+                    // transform info about the VMs so we can return them later, then report progress and move on
+                    var gamespace = ChallengeStateToTeamGamespace(challengeState);
+                    retVal.Add(gamespace.Id, gamespace);
+                    Log($"Challenge {gamespace.Id} has {gamespace.VmUris.Count()} VM(s): {string.Join(',', challengeState.Vms.Select(vm => vm.Name))}", request.Game.Id);
+                    await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.Context.ToUpdate());
+
+                    // return the engine state of the challenge
+                    return challengeState;
                 });
-                Log($"""Gamespace started for challenge "{challenge.Challenge.Id}".""", request.Game.Id);
 
-                // record the created challenge/state for reporting
-                request.Context.GamespacesStarted.Add(challengeState);
+                // fire a thread for each task in the batch
+                var deployResults = await Task.WhenAll(batchTasks.ToArray());
 
-                // transform info about the VMs so we can return them later, then report progress and move on
-                var gamespace = ChallengeStateToTeamGamespace(challengeState);
-                retVal.Add(gamespace.Id, gamespace);
-                Log($"Challenge {gamespace.Id} has {gamespace.VmUris.Count()} VM(s): {string.Join(',', challengeState.Vms.Select(vm => vm.Name))}", request.Game.Id);
-                await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.Context.ToUpdate());
+                // after the asynchronous part is over, we need to do database updates to ensure the DB has the correct 
+                // game-engine-supplied state for each challenge
+                foreach (var state in deployResults)
+                {
+                    var serializedState = _jsonService.Serialize(state);
 
-                // return the engine state of the challenge
-                return challengeState;
-            });
+                    await _store
+                        .WithNoTracking<Data.Challenge>()
+                        .Where(c => c.Id == state.Id)
+                        .ExecuteUpdateAsync
+                        (
+                            up => up
+                                .SetProperty(c => c.HasDeployedGamespace, state.IsActive)
+                                .SetProperty(c => c.State, serializedState)
+                        );
 
-            // fire a thread for each task in the batch
-            var deployResults = await Task.WhenAll(batchTasks.ToArray());
+                    Log($"""Updated gamespace states for challenge "{state.Id}.""", request.Game.Id);
+                }
 
-            // after the asynchronous part is over, we need to do database updates to ensure the DB has the correct 
-            // game-engine-supplied state for each challenge
-            foreach (var state in deployResults)
-            {
-                var serializedState = _jsonService.Serialize(state);
-
-                // NOTE: this is normally the kind of update we'd prefer to do via ExecuteUpdateAsync.
-                // However, ExecuteUpdateAsync, by default can't read entities commited earlier
-                // in the same transaction. We use typical the updating strategy here instead.
-                //
-                // (It's possible that passing a ReadUncommitted flag to the BeginTransaction call
-                // which happens earlier may permit this - need to find time to test.)
-                var challenge = await _store
-                    .WithTracking<Data.Challenge>()
-                    .SingleAsync(c => c.Id == state.Id);
-
-                challenge.HasDeployedGamespace = state.IsActive;
-                challenge.State = serializedState;
-                await _store.SaveUpdate(challenge, cancellationToken);
-
-                Log($"""Updated gamespace states for challenge "{state.Id}.""", request.Game.Id);
+                Log($"Finished {deployResults.Length} tasks done for gamespace batch #{batchIndex}.", request.Game.Id);
             }
-
-            Log($"Finished {deployResults.Length} tasks done for gamespace batch #{batchIndex}.", request.Game.Id);
         }
 
         // notify and return

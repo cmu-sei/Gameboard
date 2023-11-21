@@ -81,7 +81,14 @@ internal class SpecNotFound : GameboardException
     public SpecNotFound(string gameId) : base($"Couldn't resolve a challenge spec for gameId {gameId}.") { }
 }
 
+internal class SynchronizedGameHasPlayersWithChallengesBeforeStart : GameboardValidationException
+{
+    public SynchronizedGameHasPlayersWithChallengesBeforeStart(string gameId, IEnumerable<string> playerIdsWithChallenges)
+        : base($"Can't launch synchronized game {gameId}. {playerIdsWithChallenges} players already have a game session ({string.Join(", ", playerIdsWithChallenges)})") { }
+}
+
 internal class SynchronizedGameHasPlayersWithSessionsBeforeStart : GameboardValidationException
 {
-    public SynchronizedGameHasPlayersWithSessionsBeforeStart(string gameId, IEnumerable<string> playerIdsWithSessions) : base($"""Can't launch synchronized game "{gameId}". {playerIdsWithSessions.Count()} players already have a game session: ("{string.Join(",", playerIdsWithSessions)}") """) { }
+    public SynchronizedGameHasPlayersWithSessionsBeforeStart(string gameId, IEnumerable<string> playerIdsWithSessions)
+        : base($"""Can't launch synchronized game "{gameId}". {playerIdsWithSessions.Count()} players already have a game session: ("{string.Join(",", playerIdsWithSessions)}") """) { }
 }
