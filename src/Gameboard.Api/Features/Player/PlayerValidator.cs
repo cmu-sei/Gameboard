@@ -178,7 +178,7 @@ namespace Gameboard.Api.Validators
         }
 
         private bool IsActingAsAdmin(User actor)
-            => (actor.IsAdmin || actor.IsRegistrar);
+            => actor.IsAdmin || actor.IsRegistrar;
 
         private async Task<bool> Exists(string id)
         {

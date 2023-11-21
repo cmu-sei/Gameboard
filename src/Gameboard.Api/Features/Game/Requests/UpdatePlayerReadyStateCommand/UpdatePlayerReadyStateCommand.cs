@@ -59,9 +59,7 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
             .AllowUserId(player.UserId);
 
         // update the player's db flag
+        // (the service also ensures that sync-start game events get raised)
         var playerReadyState = await _syncStartGameService.UpdatePlayerReadyState(request.PlayerId, request.IsReady, cancellationToken);
-
-        // notify listeners
-        await _syncStartGameService.HandleSyncStartStateChanged(player.GameId, cancellationToken);
     }
 }

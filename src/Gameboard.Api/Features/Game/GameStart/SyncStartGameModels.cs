@@ -16,7 +16,6 @@ public sealed class ValidateSyncStartResultPlayer
 {
     public required string Id { get; set; }
     public required string Name { get; set; }
-    public required bool HasChallenges { get; set; }
     public required DateTimeOffset? SessionBegin { get; set; }
     public required DateTimeOffset? SessionEnd { get; set; }
     public required string TeamId { get; set; }

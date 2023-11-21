@@ -23,7 +23,7 @@ internal class CantSynchronizeNonSynchronizedGame : GameboardValidationException
 
 internal class CantStartNonReadySynchronizedGame : GameboardValidationException
 {
-    public CantStartNonReadySynchronizedGame(SyncStartState state) : base($"Can't start synchronized game \"{state.Game.Id}\" - {GetNonReadyPlayersFromState(state).Count()} players aren't ready (\"{string.Join(",", GetNonReadyPlayersFromState(state).Select(p => p.Id))}\").") { }
+    public CantStartNonReadySynchronizedGame(SyncStartState state) : base($"Can't start synchronized game \"{state.Game.Id}\" - {GetNonReadyPlayersFromState(state).Count()} players aren't ready (\"{string.Join(", ", GetNonReadyPlayersFromState(state).Select(p => p.Id))}\").") { }
 
     private static IEnumerable<SyncStartPlayer> GetNonReadyPlayersFromState(SyncStartState state)
         => state.Teams.SelectMany(t => t.Players).Where(p => !p.IsReady);
@@ -84,11 +84,11 @@ internal class SpecNotFound : GameboardException
 internal class SynchronizedGameHasPlayersWithChallengesBeforeStart : GameboardValidationException
 {
     public SynchronizedGameHasPlayersWithChallengesBeforeStart(string gameId, IEnumerable<string> playerIdsWithChallenges)
-        : base($"Can't launch synchronized game {gameId}. {playerIdsWithChallenges} players already have a game session ({string.Join(", ", playerIdsWithChallenges)})") { }
+        : base($"Can't launch synchronized game {gameId}. {playerIdsWithChallenges} players already have a game session ({string.Join(", ", playerIdsWithChallenges.ToArray())})") { }
 }
 
 internal class SynchronizedGameHasPlayersWithSessionsBeforeStart : GameboardValidationException
 {
     public SynchronizedGameHasPlayersWithSessionsBeforeStart(string gameId, IEnumerable<string> playerIdsWithSessions)
-        : base($"""Can't launch synchronized game "{gameId}". {playerIdsWithSessions.Count()} players already have a game session: ("{string.Join(",", playerIdsWithSessions)}") """) { }
+        : base($"""Can't launch synchronized game "{gameId}". {playerIdsWithSessions.Count()} players already have a game session: ("{string.Join(",", playerIdsWithSessions.ToArray())}") """) { }
 }

@@ -264,16 +264,12 @@ internal class SyncStartGameService : ISyncStartGameService
         var startTimes = players.Select(p => p.SessionBegin).Distinct().ToArray();
         var endTimes = players.Select(p => p.SessionEnd).Distinct().ToArray();
 
-        return startTimes.Length == 1 && endTimes.Length == 1;
+        return
+            startTimes.Length == 1 &&
+            startTimes.All(start => start is not null) &&
+            endTimes.Length == 1 &&
+            endTimes.All(end => end is not null);
     }
-    private IDictionary<string, IEnumerable<SimpleEntity>> PlayersToTeams(IEnumerable<ValidateSyncStartResultPlayer> players)
-        => players
-            .GroupBy(p => p.TeamId)
-            .ToDictionary(p => p.Key, p => p.Select(p => new SimpleEntity
-            {
-                Id = p.Id,
-                Name = p.Name
-            }));
 
     private SyncStartGameStartedState GetStartedStateFromValidationResult(ValidateSyncStartResult result)
     {
@@ -292,6 +288,15 @@ internal class SyncStartGameService : ISyncStartGameService
             Teams = PlayersToTeams(result.Players)
         };
     }
+
+    private IDictionary<string, IEnumerable<SimpleEntity>> PlayersToTeams(IEnumerable<ValidateSyncStartResultPlayer> players)
+        => players
+            .GroupBy(p => p.TeamId)
+            .ToDictionary(p => p.Key, p => p.Select(p => new SimpleEntity
+            {
+                Id = p.Id,
+                Name = p.Name
+            }));
 
     private async Task<ValidateSyncStartResult> ValidateSyncStart(string gameId, CancellationToken cancellationToken)
     {
@@ -316,31 +321,34 @@ internal class SyncStartGameService : ISyncStartGameService
             {
                 Id = p.Id,
                 Name = string.IsNullOrEmpty(p.ApprovedName) ? p.Name : p.ApprovedName,
-                HasChallenges = p.Challenges.Any(),
                 SessionBegin = p.SessionBegin.IsNotEmpty() ? p.SessionBegin : null,
                 SessionEnd = p.SessionEnd.IsNotEmpty() ? p.SessionEnd : null,
                 TeamId = p.TeamId
             }).ToArrayAsync(cancellationToken);
 
         // if no players have a session or challenges, we assume we can start the game and everything's fine
-        if (players.All(p => p.SessionBegin is null && p.SessionEnd is null && !p.HasChallenges))
+        if (players.All(p => p.SessionBegin is null && p.SessionEnd is null))
         {
             return new ValidateSyncStartResult
             {
                 CanStart = true,
                 Game = game,
-                IsStarted = GetPlayersAreSynchronized(players),
+                IsStarted = false,
                 Players = players,
                 SyncStartState = state
             };
         }
-
-        var playerIdsWithChallenges = players
-            .Where(p => p.HasChallenges)
-            .Select(p => p.Id);
-
-        if (playerIdsWithChallenges.Any())
-            throw new SynchronizedGameHasPlayersWithChallengesBeforeStart(gameId, playerIdsWithChallenges);
+        else if (GetPlayersAreSynchronized(players))
+        {
+            return new ValidateSyncStartResult
+            {
+                CanStart = true,
+                Game = game,
+                IsStarted = true,
+                Players = players,
+                SyncStartState = state
+            };
+        }
 
         var playerIdsWithSessions = players
             .Where(p => p.SessionBegin is not null || p.SessionEnd is not null)
