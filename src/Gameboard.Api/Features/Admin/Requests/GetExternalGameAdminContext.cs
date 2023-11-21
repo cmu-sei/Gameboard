@@ -165,6 +165,7 @@ internal class GetExternalGameAdminContextHandler : IRequestHandler<GetExternalG
                 DeployStatus = teamDeployStatuses.ContainsKey(key) ?
                     teamDeployStatuses[key] :
                     ExternalGameDeployStatus.NotStarted,
+                IsReady = teams[key].All(p => p.IsReady),
                 Challenges = gameData.Specs.Select(s =>
                     {
                         // note that the team may not have any challenges and thus not be

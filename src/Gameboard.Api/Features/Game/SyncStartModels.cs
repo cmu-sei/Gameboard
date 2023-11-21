@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Features.Games;
 
@@ -40,4 +39,9 @@ public class SyncStartGameStartedState
     public required DateTimeOffset SessionBegin { get; set; }
     public required DateTimeOffset SessionEnd { get; set; }
     public IDictionary<string, IEnumerable<SimpleEntity>> Teams { get; set; }
+}
+
+public sealed class UpdateIsReadyModel
+{
+    public required bool IsReady { get; set; }
 }

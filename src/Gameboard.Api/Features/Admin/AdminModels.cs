@@ -20,6 +20,7 @@ public sealed class ExternalGameAdminTeam
     public required string Id { get; set; }
     public required string Name { get; set; }
     public required ExternalGameDeployStatus DeployStatus { get; set; }
+    public required bool IsReady { get; set; }
     public required IEnumerable<SimpleSponsor> Sponsors { get; set; }
     public required IEnumerable<ExternalGameAdminChallenge> Challenges { get; set; }
     public required IEnumerable<ExternalGameAdminPlayer> Players { get; set; }

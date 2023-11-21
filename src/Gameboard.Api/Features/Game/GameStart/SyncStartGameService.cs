@@ -21,6 +21,7 @@ public interface ISyncStartGameService
     Task HandleSyncStartStateChanged(string gameId, CancellationToken cancellationToken);
     Task<SyncStartGameStartedState> StartSynchronizedSession(string gameId, double countdownSeconds, CancellationToken cancellationToken);
     Task<SyncStartPlayerStatusUpdate> UpdatePlayerReadyState(string playerId, bool isReady, CancellationToken cancellationToken);
+    Task UpdateTeamReadyState(string teamId, bool isReady, CancellationToken cancellationToken);
 }
 
 internal class SyncStartGameService : ISyncStartGameService
@@ -235,9 +236,12 @@ internal class SyncStartGameService : ISyncStartGameService
 
     public async Task<SyncStartPlayerStatusUpdate> UpdatePlayerReadyState(string playerId, bool isReady, CancellationToken cancellationToken)
     {
-        var player = await _store.SingleAsync<Data.Player>(playerId, cancellationToken);
+        var player = await _store
+            .WithTracking<Data.Player>()
+            .SingleAsync(p => p.Id == playerId, cancellationToken);
         player.IsReady = isReady;
         await _store.SaveUpdate(player, cancellationToken);
+        await HandleSyncStartStateChanged(player.GameId, cancellationToken);
 
         return new SyncStartPlayerStatusUpdate
         {
@@ -246,5 +250,23 @@ internal class SyncStartGameService : ISyncStartGameService
             GameId = player.GameId,
             IsReady = isReady
         };
+    }
+
+    public async Task UpdateTeamReadyState(string teamId, bool isReady, CancellationToken cancellationToken)
+    {
+        // load with tracking since we need the gameId anyway
+        var players = await _store
+            .WithTracking<Data.Player>()
+            .Where(p => p.TeamId == teamId)
+            .ToArrayAsync(cancellationToken);
+
+        if (players.Any())
+        {
+            foreach (var player in players)
+                player.IsReady = isReady;
+
+            await _store.SaveUpdateRange(players);
+            await HandleSyncStartStateChanged(players.First().GameId, cancellationToken);
+        }
     }
 }
