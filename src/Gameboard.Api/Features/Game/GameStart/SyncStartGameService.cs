@@ -183,7 +183,8 @@ internal class SyncStartGameService : ISyncStartGameService
                 return GetStartedStateFromValidationResult(validateStartResult);
             }
 
-            // notify signalR
+            // now that the quitters (and by quitters I mean attempts to start a sync game that is already started) 
+            // are gone, notify signalR that it's business time.
             await _gameHubBus.SendSyncStartGameStarting(validateStartResult.SyncStartState);
 
             // validation is all clear - compute new session times and update players, challenges, and gamespaces
