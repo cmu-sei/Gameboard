@@ -224,9 +224,16 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // gamespaces.
         var game = await _store
             .WithNoTracking<Data.Game>()
-                .Include(g => g.Challenges.Select(c => new { c.Id, c.HasDeployedGamespace, c.TeamId }))
-                .Include(g => g.Players.Select(p => new { p.Id, p.TeamId }))
-            .SingleAsync(g => g.Id == gameId, cancellationToken);
+                .Include(g => g.Challenges)
+                .Include(g => g.Players)
+            .Select(g => new
+            {
+                GameId = g.Id,
+                Game = g,
+                Challenges = g.Challenges.Select(c => new { c.Id, c.HasDeployedGamespace, c.TeamId, c.SpecId }),
+                Players = g.Players.Select(p => new { p.Id, p.TeamId })
+            })
+            .SingleAsync(g => g.GameId == gameId, cancellationToken);
 
         // have to load specs separately because ugh
         var specIds = await _store
@@ -255,7 +262,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         {
             foreach (var teamIdIterated in teams.Keys)
             {
-                var challenge = teamChallenges[teamIdIterated].FirstOrDefault(c => c.SpecId == specId);
+                var challenge = teamChallenges.ContainsKey(teamIdIterated) ? teamChallenges[teamIdIterated].FirstOrDefault(c => c.SpecId == specId) : null;
 
                 if (challenge is null || !challenge.HasDeployedGamespace)
                 {
