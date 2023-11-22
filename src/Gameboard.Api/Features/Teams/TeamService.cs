@@ -166,6 +166,7 @@ internal class TeamService : ITeamService
     {
         var players = await _store
             .WithNoTracking<Data.Player>()
+                .Include(p => p.Sponsor)
             .Where(p => p.TeamId == id)
             .ToArrayAsync();
 
