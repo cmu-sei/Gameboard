@@ -5,13 +5,13 @@ using Gameboard.Api.Features.Games.External;
 
 namespace Gameboard.Api.Features.Games;
 
-public enum GameStartPhase
+public enum GamePlayState
 {
+    NotRegistered,
     NotStarted,
     Starting,
     Started,
-    GameOver,
-    Failed
+    GameOver
 }
 
 public class GameStartRequest

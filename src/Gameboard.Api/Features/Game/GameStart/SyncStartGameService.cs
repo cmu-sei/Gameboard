@@ -132,6 +132,7 @@ internal class SyncStartGameService : ISyncStartGameService
     public async Task HandleSyncStartStateChanged(string gameId, CancellationToken cancellationToken)
     {
         var state = await GetSyncStartState(gameId, cancellationToken);
+        _logger.LogInformation($"Sync start state changed for game {gameId}. Ready? {state.Teams.Where(t => t.IsReady).Select(t => t.Id).ToArray()}");
         await _gameHubBus.SendSyncStartGameStateChanged(state);
 
         // IFF everyone is ready, start all sessions and return info about them

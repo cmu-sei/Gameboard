@@ -216,22 +216,63 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         };
     }
 
-    public async Task<GameStartPhase> GetStartPhase(string gameId, string teamId, CancellationToken cancellationToken)
+    public async Task<GamePlayState> GetGamePlayState(string gameId, string teamId, CancellationToken cancellationToken)
     {
-        // the GameStartService, which calls this code, already checks for game start/end dates,
-        // so all we have to do is load team data and translate "external game deploy states" to
-        // more general GameStartPhase
-        var teamExternalData = await _externalGameTeamService.GetTeam(teamId, cancellationToken);
-        if (teamExternalData is null)
-            return GameStartPhase.NotStarted;
+        // unlike normal games, the playability of external + sync-start games is a function of _all_ registered teams,
+        // not just the one passed here. We actually don't need the team parameter at all for this configuration.
+        // We define an external/sync-start game to be ready if all teams have all challenges with deployed 
+        // gamespaces.
+        var game = await _store
+            .WithNoTracking<Data.Game>()
+                .Include(g => g.Challenges.Select(c => new { c.Id, c.HasDeployedGamespace, c.TeamId }))
+                .Include(g => g.Players.Select(p => new { p.Id, p.TeamId }))
+            .SingleAsync(g => g.Id == gameId, cancellationToken);
 
-        return teamExternalData.DeployStatus switch
+        // have to load specs separately because ugh
+        var specIds = await _store
+            .WithNoTracking<Data.ChallengeSpec>()
+            .Where(s => s.GameId == gameId)
+            .Select(s => s.Id)
+            .ToArrayAsync(cancellationToken);
+
+        var teams = game
+            .Players
+            .GroupBy(p => p.TeamId)
+            .ToDictionary(g => g.Key, g => g.ToArray());
+
+        var teamChallenges = game
+            .Challenges
+            .GroupBy(c => c.TeamId)
+            .ToDictionary(c => c.Key, c => c.ToArray());
+
+        // the yuck part is that we have to determine whether every
+        // combination of spec and team exists and is deployed.
+        // ugly iteration time.
+        var anyChallenges = teamChallenges.Any(c => true);
+        var allDeployed = true;
+
+        foreach (var specId in specIds)
         {
-            ExternalGameDeployStatus.NotStarted => GameStartPhase.NotStarted,
-            ExternalGameDeployStatus.Deploying => GameStartPhase.Starting,
-            ExternalGameDeployStatus.Deployed => GameStartPhase.Started,
-            _ => GameStartPhase.Failed,
-        };
+            foreach (var teamIdIterated in teams.Keys)
+            {
+                var challenge = teamChallenges[teamIdIterated].FirstOrDefault(c => c.SpecId == specId);
+
+                if (challenge is null || !challenge.HasDeployedGamespace)
+                {
+                    allDeployed = false;
+                    break;
+                }
+            }
+            var allChallenges = teamChallenges.Values.Aggregate((accumulation, next) => accumulation.Concat(next).ToArray());
+        }
+
+        if (allDeployed)
+            return GamePlayState.Started;
+
+        if (anyChallenges)
+            return GamePlayState.Starting;
+
+        return GamePlayState.NotStarted;
     }
 
     public async Task TryCleanUpFailedDeploy(GameModeStartRequest request, Exception exception, CancellationToken cancellationToken)

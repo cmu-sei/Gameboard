@@ -8,25 +8,25 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Games.Start;
 
-public record GetGameStartPhaseQuery(string GameId, string TeamId, string ActingUserId) : IRequest<GameStartPhase>;
+public record GetGamePlayStateQuery(string GameId, string TeamId, string ActingUserId) : IRequest<GamePlayState>;
 
-internal class GetGameStartPhaseHandler : IRequestHandler<GetGameStartPhaseQuery, GameStartPhase>
+internal class GetGamePlayStateHandler : IRequestHandler<GetGamePlayStateQuery, GamePlayState>
 {
-    private readonly EntityExistsValidator<GetGameStartPhaseQuery, Data.Game> _gameExists;
+    private readonly EntityExistsValidator<GetGamePlayStateQuery, Data.Game> _gameExists;
     private readonly IGameService _gameService;
     private readonly IGameStartService _gameStartService;
-    private readonly EntityExistsValidator<GetGameStartPhaseQuery, Data.User> _userExists;
+    private readonly EntityExistsValidator<GetGamePlayStateQuery, Data.User> _userExists;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
-    private readonly IValidatorService<GetGameStartPhaseQuery> _validatorService;
+    private readonly IValidatorService<GetGamePlayStateQuery> _validatorService;
 
-    public GetGameStartPhaseHandler
+    public GetGamePlayStateHandler
     (
-        EntityExistsValidator<GetGameStartPhaseQuery, Data.Game> gameExists,
+        EntityExistsValidator<GetGamePlayStateQuery, Data.Game> gameExists,
         IGameService gameService,
         IGameStartService gameStartService,
-        EntityExistsValidator<GetGameStartPhaseQuery, Data.User> userExists,
+        EntityExistsValidator<GetGamePlayStateQuery, Data.User> userExists,
         UserRoleAuthorizer userRoleAuthorizer,
-        IValidatorService<GetGameStartPhaseQuery> validatorService
+        IValidatorService<GetGamePlayStateQuery> validatorService
     )
     {
         _gameExists = gameExists;
@@ -37,7 +37,7 @@ internal class GetGameStartPhaseHandler : IRequestHandler<GetGameStartPhaseQuery
         _validatorService = validatorService;
     }
 
-    public async Task<GameStartPhase> Handle(GetGameStartPhaseQuery request, CancellationToken cancellationToken)
+    public async Task<GamePlayState> Handle(GetGamePlayStateQuery request, CancellationToken cancellationToken)
     {
         // authorize
         var isPlaying = await _gameService.IsUserPlaying(request.GameId, request.ActingUserId);
@@ -52,6 +52,6 @@ internal class GetGameStartPhaseHandler : IRequestHandler<GetGameStartPhaseQuery
             .AddValidator(_userExists.UseProperty(r => r.ActingUserId));
         await _validatorService.Validate(request, cancellationToken);
 
-        return await _gameStartService.GetGameStartPhase(request.GameId, request.TeamId, cancellationToken);
+        return await _gameStartService.GetGamePlayState(request.GameId, request.TeamId, cancellationToken);
     }
 }

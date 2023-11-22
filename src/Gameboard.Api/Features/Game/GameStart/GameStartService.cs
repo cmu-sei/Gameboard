@@ -16,7 +16,7 @@ namespace Gameboard.Api.Features.Games.Start;
 
 public interface IGameStartService
 {
-    Task<GameStartPhase> GetGameStartPhase(string gameId, string teamId, CancellationToken cancellationToken);
+    Task<GamePlayState> GetGamePlayState(string gameId, string teamId, CancellationToken cancellationToken);
     Task<GameStartDeployedResources> PreDeployGameResources(PreDeployResourcesRequest request, CancellationToken cancellationToken);
     Task<GameStartContext> Start(GameStartRequest request, CancellationToken cancellationToken);
 }
@@ -76,7 +76,10 @@ internal class GameStartService : IGameStartService
         var gameModeStartService = ResolveGameModeStartService(game) ?? throw new NotImplementedException();
 
         // lock this down - only one start or predeploy per game Id
-        using var gameStartLock = await _lockService.GetExternalGameDeployLock(request.GameId).LockAsync(cancellationToken);
+        using var gameStartLock = await _lockService
+            .GetExternalGameDeployLock(request.GameId)
+            .LockAsync(cancellationToken);
+
         var startRequest = await LoadGameModeStartRequest(game, null, cancellationToken);
 
         try
@@ -101,27 +104,32 @@ internal class GameStartService : IGameStartService
         return null;
     }
 
-    public async Task<GameStartPhase> GetGameStartPhase(string gameId, string teamId, CancellationToken cancellationToken)
+    public async Task<GamePlayState> GetGamePlayState(string gameId, string teamId, CancellationToken cancellationToken)
     {
-        var game = await _store.Retrieve<Data.Game>(gameId);
+        var game = await _store.WithNoTracking<Data.Game>().SingleAsync(g => g.Id == gameId, cancellationToken);
+        var teamCaptain = await _teamService.ResolveCaptain(teamId, cancellationToken);
 
         // apply all these rules regardless of mode settings
         var nowish = _now.Get();
 
-        if (nowish > game.GameEnd)
-            return GameStartPhase.GameOver;
-        else if (nowish < game.GameStart)
-            return GameStartPhase.NotStarted;
+        if (teamCaptain.GameId != gameId)
+            return GamePlayState.NotRegistered;
+
+        if (nowish > game.GameEnd || (teamCaptain.SessionEnd.IsNotEmpty() && nowish > teamCaptain.SessionEnd))
+            return GamePlayState.GameOver;
+
+        if (nowish < game.GameStart)
+            return GamePlayState.NotStarted;
 
         // right now, external + sync/start is the only mode that has a dedicated service, so handle
         // that here and then just use some simplistic logic for other modes
         if (game.RequireSynchronizedStart && game.Mode == GameEngineMode.External)
         {
             var gameModeStartService = ResolveGameModeStartService(game);
-            return await gameModeStartService.GetStartPhase(gameId, teamId, cancellationToken);
+            return await gameModeStartService.GetGamePlayState(gameId, teamId, cancellationToken);
         }
 
-        return GameStartPhase.Started;
+        return GamePlayState.Started;
     }
 
     private IGameModeStartService ResolveGameModeStartService(Data.Game game)
