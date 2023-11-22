@@ -164,13 +164,17 @@ internal class TeamService : ITeamService
 
     public async Task<Team> GetTeam(string id)
     {
-        var players = await _playerStore.ListTeam(id).ToArrayAsync();
+        var players = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.TeamId == id)
+            .ToArrayAsync();
+
         if (players.Length == 0)
             return null;
 
         var team = _mapper.Map<Team>(players.First(p => p.IsManager));
 
-        team.Members = _mapper.Map<TeamMember[]>(players.Select(p => p.User));
+        team.Members = _mapper.Map<TeamMember[]>(players);
         team.Sponsors = _mapper.Map<Sponsor[]>(players.Select(p => p.Sponsor));
 
         return team;
