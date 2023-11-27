@@ -270,7 +270,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                     break;
                 }
             }
-            var allChallenges = teamChallenges.Values.Aggregate((accumulation, next) => accumulation.Concat(next).ToArray());
         }
 
         if (allDeployed)
