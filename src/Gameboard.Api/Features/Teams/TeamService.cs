@@ -321,21 +321,40 @@ internal class TeamService : ITeamService
             .Where(c => c.TeamId == teamId)
             .ToArrayAsync(cancellationToken);
 
-        foreach (var challenge in challenges)
-        {
-            if (sessionStart is not null)
-                challenge.StartTime = sessionStart.Value;
+        // foreach (var challenge in challenges)
+        // {
+        //     if (sessionStart is not null)
+        //         challenge.StartTime = sessionStart.Value;
 
-            if (sessionEnd is not null)
-                challenge.EndTime = sessionEnd.Value;
+        //     if (sessionEnd is not null)
+        //         challenge.EndTime = sessionEnd.Value;
+        // }
+        //
+        // await _store.SaveUpdateRange(challenges);
+
+        var challengeIds = await _store
+            .WithNoTracking<Data.Challenge>()
+            .Where(c => c.TeamId == teamId)
+            .Select(c => c.Id)
+            .ToArrayAsync(cancellationToken);
+
+        if (sessionStart is not null)
+        {
+            await _store
+                .WithNoTracking<Data.Challenge>()
+                .Where(c => challengeIds.Contains(c.Id))
+                .ExecuteUpdateAsync(up => up.SetProperty(c => c.StartTime, sessionStart.Value));
         }
 
-        await _store.SaveUpdateRange(challenges);
-
-        // and then their gamespaces (if the end time is changing)
         if (sessionEnd is not null)
         {
-            var gamespaceUpdates = challenges.Select(c => _gameEngine.ExtendSession(c, sessionEnd.Value));
+            await _store
+                .WithNoTracking<Data.Challenge>()
+                .Where(c => challengeIds.Contains(c.Id))
+                .ExecuteUpdateAsync(up => up.SetProperty(c => c.EndTime, sessionEnd.Value));
+
+            // and then their gamespaces (if the end time is changing)
+            var gamespaceUpdates = challengeIds.Select(cId => _gameEngine.ExtendSession(cId, sessionEnd.Value, GameEngineType.TopoMojo));
             await Task.WhenAll(gamespaceUpdates);
         }
     }

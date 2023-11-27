@@ -46,6 +46,11 @@ internal class TestGameEngineService : IGameEngineService
         return Task.CompletedTask;
     }
 
+    public Task ExtendSession(string challengeId, DateTimeOffset sessionEnd, GameEngineType gameEngineType)
+    {
+        return Task.CompletedTask;
+    }
+
     public Task<GameEngineGameState> GetChallengeState(GameEngineType gameEngineType, string stateJson)
     {
         return Task.FromResult(new GameEngineGameState());
