@@ -464,6 +464,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
                 // fire a thread for each task in the batch
                 var deployResults = await Task.WhenAll(batchTasks.ToArray());
+                Log($"Results with inactive gamespace state: {deployResults.Where(r => !r.IsActive).Count()}", request.Game.Id);
 
                 // after the asynchronous part is over, we need to do database updates to ensure the DB has the correct 
                 // game-engine-supplied state for each challenge
@@ -481,7 +482,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                                 .SetProperty(c => c.State, serializedState)
                         );
 
-                    Log($"""Updated gamespace states for challenge "{state.Id}.""", request.Game.Id);
+                    Log($"Updated gamespace states for challenge {state.Id}. Active status: {state.IsActive}", request.Game.Id);
                 }
 
                 Log($"Finished {deployResults.Length} tasks done for gamespace batch #{batchIndex}.", request.Game.Id);
