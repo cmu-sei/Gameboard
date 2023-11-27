@@ -446,7 +446,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                         ChallengeId = challenge.Challenge.Id,
                         GameEngineType = challenge.GameEngineType
                     });
-                    Log($"""Gamespace started for challenge "{challenge.Challenge.Id}".""", request.Game.Id);
+                    Log($"Gamespace started for challenge {challenge.Challenge.Id}.", request.Game.Id);
 
                     // record the created challenge/state for reporting
                     request.Context.GamespacesStarted.Add(challengeState);

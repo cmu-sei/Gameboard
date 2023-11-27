@@ -73,6 +73,7 @@ internal class SyncStartGameService : ISyncStartGameService
     {
         var game = await _store
             .WithNoTracking<Data.Game>()
+            .Include(g => g.Players)
             .SingleAsync(g => g.Id == gameId, cancellationToken);
 
         // a game and its challenges are "sync start ready" if either of the following are true:
@@ -88,13 +89,8 @@ internal class SyncStartGameService : ISyncStartGameService
             };
         }
 
-        var players = await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => p.GameId == gameId)
-            .ToArrayAsync(cancellationToken);
-
         // if we have no players, we're not ready to play
-        if (!players.Any())
+        if (!game.Players.Any())
         {
             return new SyncStartState
             {
@@ -105,7 +101,8 @@ internal class SyncStartGameService : ISyncStartGameService
         }
 
         var teams = new List<SyncStartTeam>();
-        var teamPlayers = players
+        var teamPlayers = game
+            .Players
             .GroupBy(p => p.TeamId)
             .ToDictionary(g => g.Key, g => g.ToList());
         var allTeamsReady = teamPlayers.All(team => team.Value.All(p => p.IsReady));
