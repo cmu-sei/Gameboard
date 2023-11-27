@@ -453,7 +453,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                     // transform info about the VMs so we can return them later, then report progress and move on
                     var gamespace = ChallengeStateToTeamGamespace(challengeState);
                     retVal.Add(gamespace.Id, gamespace);
-                    Log($"Challenge {gamespace.Id} has {gamespace.VmUris.Count()} VM(s): {string.Join(',', challengeState.Vms.Select(vm => vm.Name))}", request.Game.Id);
+
+                    Log($"Challenge {gamespace.Id} (deployed?: {gamespace.IsDeployed}) has {gamespace.VmUris.Count()} VM(s): {string.Join(',', challengeState.Vms.Select(vm => vm.Name))}", request.Game.Id);
                     await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.Context.ToUpdate());
 
                     // return the engine state of the challenge
