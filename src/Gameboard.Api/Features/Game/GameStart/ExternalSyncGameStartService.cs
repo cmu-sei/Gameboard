@@ -231,9 +231,13 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 GameId = g.Id,
                 Game = g,
                 Challenges = g.Challenges.Select(c => new { c.Id, c.HasDeployedGamespace, c.TeamId, c.SpecId }),
-                Players = g.Players.Select(p => new { p.Id, p.TeamId })
+                Players = g.Players.Select(p => new { p.Id, p.TeamId, p.IsReady })
             })
             .SingleAsync(g => g.GameId == gameId, cancellationToken);
+
+        // if any players aren't ready, we haven't started yet
+        if (game.Players.Any(p => !p.IsReady))
+            return GamePlayState.NotStarted;
 
         // have to load specs separately because ugh
         var specIds = await _store
