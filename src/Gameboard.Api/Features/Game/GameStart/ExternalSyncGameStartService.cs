@@ -439,7 +439,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 // resolve the challenges in this batch to tasks that call the game engine and ask it to start a gamespace
                 var batchTasks = batch.Select(async challenge =>
                 {
-                    Log(message: $"""Starting {challenge.GameEngineType} gamespace for challenge "{challenge.Challenge.Id}" (teamId "{challenge.TeamId}")...""", request.Game.Id);
+                    Log(message: $"Starting {challenge.GameEngineType} gamespace for challenge {challenge.Challenge.Id} (teamId {challenge.TeamId})...", request.Game.Id);
 
                     var challengeState = await _gameEngineService.StartGamespace(new GameEngineGamespaceStartRequest
                     {
@@ -455,7 +455,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                     var gamespace = ChallengeStateToTeamGamespace(challengeState);
                     retVal.Add(gamespace.Id, gamespace);
 
-                    Log($"Challenge {gamespace.Id} (deployed?: {gamespace.IsDeployed}) has {gamespace.VmUris.Count()} VM(s): {string.Join(',', challengeState.Vms.Select(vm => vm.Name))}", request.Game.Id);
+                    Log($"Challenge {gamespace.Id} has {gamespace.VmUris.Count()} VM(s): {string.Join(", ", challengeState.Vms.Select(vm => vm.Name))}", request.Game.Id);
                     await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.Context.ToUpdate());
 
                     // return the engine state of the challenge
@@ -464,7 +464,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
                 // fire a thread for each task in the batch
                 var deployResults = await Task.WhenAll(batchTasks.ToArray());
-                Log($"Results with inactive gamespace state: {deployResults.Where(r => !r.IsActive).Count()}", request.Game.Id);
 
                 // after the asynchronous part is over, we need to do database updates to ensure the DB has the correct 
                 // game-engine-supplied state for each challenge
@@ -494,7 +493,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         var totalVmCount = retVal.Values.SelectMany(gamespace => gamespace.VmUris).Count();
         var deployedGamespaceCount = retVal.Values.Select(gamespace => gamespace.IsDeployed).Count();
 
-        Log($"Finished deploying gamespaces: {totalGamespaceCount} gamespaces, {totalVmCount} VMs. {deployedGamespaceCount} gamespaces ready.", request.Game.Id);
+        Log($"Finished deploying gamespaces: {totalGamespaceCount} gamespaces ({deployedGamespaceCount} ready), {totalVmCount} VMs.", request.Game.Id);
         await _gameHubBus.SendExternalGameGamespacesDeployEnd(request.Context.ToUpdate());
         return retVal;
     }
