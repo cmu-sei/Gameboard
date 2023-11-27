@@ -1,4 +1,3 @@
-using System.Net;
 using Gameboard.Api.Common;
 using Gameboard.Api.Features.Games;
 

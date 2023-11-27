@@ -22,6 +22,7 @@ public sealed class ExternalGameStartMetaDataTeam
     public required string Id { get; set; }
     public required string Name { get; set; }
     public required IEnumerable<ExternalGameStartTeamGamespace> Gamespaces { get; set; }
+    public required IEnumerable<ExternalGameStartMetaDataPlayer> Players { get; set; }
 }
 
 public sealed class ExternalGameStartTeamGamespace
@@ -29,6 +30,12 @@ public sealed class ExternalGameStartTeamGamespace
     public required string Id { get; set; }
     public required IEnumerable<string> VmUris { get; set; }
     public required bool IsDeployed { get; set; }
+}
+
+public sealed class ExternalGameStartMetaDataPlayer
+{
+    public required string PlayerId { get; set; }
+    public required string UserId { get; set; }
 }
 
 public sealed class ExternalGameClientTeamConfig

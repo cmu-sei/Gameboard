@@ -142,6 +142,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
         // update external host and get configuration information for teams
         var externalHostTeamConfigs = await NotifyExternalGameHost(request, syncGameStartState, cancellationToken);
+
         // then assign a headless server to each team
         foreach (var team in request.Context.Teams)
         {
@@ -511,7 +512,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         return _batchService.Batch(challenges, batchSize);
     }
 
-    private ExternalGameStartMetaData BuildExternalGameMetaData(GameStartContext context, SyncStartGameStartedState syncgameStartState)
+    private ExternalGameStartMetaData BuildExternalGameMetaData(GameStartContext context, SyncStartGameStartedState syncGameStartState)
     {
         // build team objects to return
         var teamsToReturn = new List<ExternalGameStartMetaDataTeam>();
@@ -519,6 +520,14 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         {
             var teamChallenges = context.ChallengesCreated.Where(c => c.TeamId == team.Team.Id).Select(c => c.Challenge).ToArray();
             var teamGameStates = context.GamespacesStarted.Where(g => teamChallenges.Select(c => c.Id).Contains(g.Id)).ToArray();
+            var teamPlayers = !syncGameStartState.Teams.ContainsKey(team.Team.Id) ?
+                 Array.Empty<ExternalGameStartMetaDataPlayer>() :
+                syncGameStartState.Teams[team.Team.Id]
+                    .Select(p => new ExternalGameStartMetaDataPlayer
+                    {
+                        PlayerId = p.Id,
+                        UserId = p.UserId
+                    }).ToArray();
 
             var teamToReturn = new ExternalGameStartMetaDataTeam
             {
@@ -529,7 +538,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                     Id = gs.Id,
                     VmUris = _gameEngineService.GetGamespaceVms(gs).Select(vm => vm.Url),
                     IsDeployed = gs.IsActive
-                })
+                }),
+                Players = teamPlayers
             };
 
             teamsToReturn.Add(teamToReturn);
@@ -541,8 +551,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             Session = new ExternalGameStartMetaDataSession
             {
                 Now = _now.Get(),
-                SessionBegin = syncgameStartState.SessionBegin,
-                SessionEnd = syncgameStartState.SessionEnd
+                SessionBegin = syncGameStartState.SessionBegin,
+                SessionEnd = syncGameStartState.SessionEnd
             },
             Teams = teamsToReturn
         };

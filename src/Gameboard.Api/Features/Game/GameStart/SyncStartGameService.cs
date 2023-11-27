@@ -207,10 +207,11 @@ internal class SyncStartGameService : ISyncStartGameService
                 SessionEnd = sessionEnd,
                 Teams = validateStartResult.Players
                     .GroupBy(p => p.TeamId)
-                    .ToDictionary(p => p.Key, p => p.Select(p => new SimpleEntity
+                    .ToDictionary(p => p.Key, p => p.Select(p => new SyncStartGameStartedStatePlayer
                     {
                         Id = p.Id,
-                        Name = p.Name
+                        Name = p.Name,
+                        UserId = p.UserId
                     }))
             };
 
@@ -288,13 +289,14 @@ internal class SyncStartGameService : ISyncStartGameService
         };
     }
 
-    private IDictionary<string, IEnumerable<SimpleEntity>> PlayersToTeams(IEnumerable<ValidateSyncStartResultPlayer> players)
+    private IDictionary<string, IEnumerable<SyncStartGameStartedStatePlayer>> PlayersToTeams(IEnumerable<ValidateSyncStartResultPlayer> players)
         => players
             .GroupBy(p => p.TeamId)
-            .ToDictionary(p => p.Key, p => p.Select(p => new SimpleEntity
+            .ToDictionary(p => p.Key, p => p.Select(p => new SyncStartGameStartedStatePlayer
             {
                 Id = p.Id,
-                Name = p.Name
+                Name = p.Name,
+                UserId = p.UserId
             }));
 
     private async Task<ValidateSyncStartResult> ValidateSyncStart(string gameId, CancellationToken cancellationToken)
@@ -322,7 +324,8 @@ internal class SyncStartGameService : ISyncStartGameService
                 Name = string.IsNullOrEmpty(p.ApprovedName) ? p.Name : p.ApprovedName,
                 SessionBegin = p.SessionBegin.IsNotEmpty() ? p.SessionBegin : null,
                 SessionEnd = p.SessionEnd.IsNotEmpty() ? p.SessionEnd : null,
-                TeamId = p.TeamId
+                TeamId = p.TeamId,
+                UserId = p.UserId
             }).ToArrayAsync(cancellationToken);
 
         // if no players have a session or challenges, we assume we can start the game and everything's fine
