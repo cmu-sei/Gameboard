@@ -317,9 +317,35 @@ internal class TeamService : ITeamService
 
         // and their challenges
         var challenges = await _store
-            .WithTracking<Data.Challenge>()
+            .WithNoTracking<Data.Challenge>()
             .Where(c => c.TeamId == teamId)
+            .Select(c => new
+            {
+                c.Id,
+                c.GameEngineType
+            })
             .ToArrayAsync(cancellationToken);
+
+        // NOTE ABOUT THE BELOW:
+        //
+        // This query structure looks preferable since it only involves a single
+        // read/write. The issue we had was that during deployment of external +
+        // sync-start games, bringing the challenges back with tracking
+        // included a stale State property. (Not sure why, since we update
+        // the State to the game engine's representation of the state during 
+        // deployment). Since we were doing a full Update here, we ended up updating
+        // the State property of the challenge even though we're not explicitly doing that
+        // here, thus persisting the stale value. This may suggest a problem
+        // in the Store or some weird EF stuff we're not taking into account.
+        //
+        // TL;DR - debugging external + sync start deploy is really challenging because of
+        // external dependencies like Gamebrain, so we had to target our updates
+        // to the desired properties here and move on.
+
+        // var challenges = await _store
+        //     .WithTracking<Data.Challenge>()
+        //     .Where(c => c.TeamId == teamId)
+        //     .ToArrayAsync(cancellationToken);
 
         // foreach (var challenge in challenges)
         // {
@@ -332,29 +358,24 @@ internal class TeamService : ITeamService
         //
         // await _store.SaveUpdateRange(challenges);
 
-        var challengeIds = await _store
+        // resolve these to IDs to allow query translation
+        var challengeIds = challenges.Select(c => c.Id).ToArray();
+
+        await _store
             .WithNoTracking<Data.Challenge>()
-            .Where(c => c.TeamId == teamId)
-            .Select(c => c.Id)
-            .ToArrayAsync(cancellationToken);
+            .Where(c => challengeIds.Contains(c.Id))
+            .ExecuteUpdateAsync
+            (
+                up => up
+                    .SetProperty(c => c.StartTime, c => sessionStart ?? c.StartTime)
+                    .SetProperty(c => c.EndTime, c => sessionEnd ?? c.EndTime),
+                cancellationToken
+            );
 
-        if (sessionStart is not null)
-        {
-            await _store
-                .WithNoTracking<Data.Challenge>()
-                .Where(c => challengeIds.Contains(c.Id))
-                .ExecuteUpdateAsync(up => up.SetProperty(c => c.StartTime, sessionStart.Value));
-        }
-
+        // and then their gamespaces (if the end time is changing)
         if (sessionEnd is not null)
         {
-            await _store
-                .WithNoTracking<Data.Challenge>()
-                .Where(c => challengeIds.Contains(c.Id))
-                .ExecuteUpdateAsync(up => up.SetProperty(c => c.EndTime, sessionEnd.Value));
-
-            // and then their gamespaces (if the end time is changing)
-            var gamespaceUpdates = challengeIds.Select(cId => _gameEngine.ExtendSession(cId, sessionEnd.Value, GameEngineType.TopoMojo));
+            var gamespaceUpdates = challenges.Select(c => _gameEngine.ExtendSession(c.Id, sessionEnd.Value, c.GameEngineType));
             await Task.WhenAll(gamespaceUpdates);
         }
     }
