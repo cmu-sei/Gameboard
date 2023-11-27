@@ -22,7 +22,7 @@ public interface IExternalGameTeamService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<ExternalGameTeam> GetTeam(string teamId, CancellationToken cancellationToken);
-    Task UpdateGameDeployStatus(string gameId, ExternalGameDeployStatus status, CancellationToken cancellationToken);
+    Task UpdateGameDeployStatus(string gameId, ExternalGameTeamDeployStatus status, CancellationToken cancellationToken);
     Task UpdateTeamExternalUrl(string teamId, string url, CancellationToken cancellationToken);
 }
 
@@ -50,7 +50,7 @@ internal class ExternalGameTeamService : IExternalGameTeamService
             Id = _guids.GetGuid(),
             GameId = gameId,
             TeamId = teamId,
-            DeployStatus = ExternalGameDeployStatus.NotStarted
+            DeployStatus = ExternalGameTeamDeployStatus.NotStarted
         }).ToArray());
     }
 
@@ -65,7 +65,7 @@ internal class ExternalGameTeamService : IExternalGameTeamService
             .WithNoTracking<ExternalGameTeam>()
             .SingleOrDefaultAsync(r => r.TeamId == teamId);
 
-    public async Task UpdateGameDeployStatus(string gameId, ExternalGameDeployStatus status, CancellationToken cancellationToken)
+    public async Task UpdateGameDeployStatus(string gameId, ExternalGameTeamDeployStatus status, CancellationToken cancellationToken)
     {
         await _store
             .WithNoTracking<ExternalGameTeam>()

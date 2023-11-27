@@ -125,7 +125,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         Log("Gathering deploy data...", request.Game.Id);
 
         // update the external team metadata to reflect that we're deploying
-        await _externalGameTeamService.UpdateGameDeployStatus(request.Game.Id, ExternalGameDeployStatus.Deploying, cancellationToken);
+        await _externalGameTeamService.UpdateGameDeployStatus(request.Game.Id, ExternalGameTeamDeployStatus.Deploying, cancellationToken);
 
         // throw on cancel request so we can clean up the debris
         cancellationToken.ThrowIfCancellationRequested();
@@ -158,7 +158,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         }
 
         // last, update the team/game external deploy status to show we're done
-        await _externalGameTeamService.UpdateGameDeployStatus(request.Game.Id, ExternalGameDeployStatus.Deployed, cancellationToken);
+        await _externalGameTeamService.UpdateGameDeployStatus(request.Game.Id, ExternalGameTeamDeployStatus.Deployed, cancellationToken);
 
         // on we go
         Log("External game launched.", request.Game.Id);

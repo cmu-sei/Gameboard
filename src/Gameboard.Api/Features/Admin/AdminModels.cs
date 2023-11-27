@@ -7,7 +7,7 @@ namespace Gameboard.Api.Features.Admin;
 public sealed class ExternalGameAdminContext
 {
     public required SimpleEntity Game { get; set; }
-    public required ExternalGameDeployStatus OverallDeployStatus { get; set; }
+    public required ExternalGameAdminOverallDeployStatus OverallDeployStatus { get; set; }
     public required IEnumerable<SimpleEntity> Specs { get; set; }
     public required DateTimeOffset? StartTime { get; set; }
     public required DateTimeOffset? EndTime { get; set; }
@@ -19,7 +19,7 @@ public sealed class ExternalGameAdminTeam
 {
     public required string Id { get; set; }
     public required string Name { get; set; }
-    public required ExternalGameDeployStatus DeployStatus { get; set; }
+    public required ExternalGameTeamDeployStatus DeployStatus { get; set; }
     public required bool IsReady { get; set; }
     public required IEnumerable<SimpleSponsor> Sponsors { get; set; }
     public required IEnumerable<ExternalGameAdminChallenge> Challenges { get; set; }
@@ -51,4 +51,12 @@ public enum ExternalGameAdminPlayerStatus
     NotConnected,
     NotReady,
     Ready
+}
+
+public enum ExternalGameAdminOverallDeployStatus
+{
+    NotStarted,
+    PartiallyDeployed,
+    Deploying,
+    Deployed
 }

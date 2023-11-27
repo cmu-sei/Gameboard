@@ -116,12 +116,12 @@ internal class GetExternalGameAdminContextHandler : IRequestHandler<GetExternalG
         var captains = teams.Keys
             .ToDictionary(key => key, key => _teamService.ResolveCaptain(teams[key]));
 
-        var teamDeployStatuses = new Dictionary<string, ExternalGameDeployStatus>();
+        var teamDeployStatuses = new Dictionary<string, ExternalGameTeamDeployStatus>();
         foreach (var teamId in teams.Keys)
         {
             if (!teamChallenges.ContainsKey(teamId) || !teamChallenges[teamId].Any())
             {
-                teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.NotStarted);
+                teamDeployStatuses.Add(teamId, ExternalGameTeamDeployStatus.NotStarted);
                 continue;
             }
 
@@ -130,11 +130,11 @@ internal class GetExternalGameAdminContextHandler : IRequestHandler<GetExternalG
 
             if (allChallengesCreated && allGamespacesDeployed)
             {
-                teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.Deployed);
+                teamDeployStatuses.Add(teamId, ExternalGameTeamDeployStatus.Deployed);
                 continue;
             }
 
-            teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.Deploying);
+            teamDeployStatuses.Add(teamId, ExternalGameTeamDeployStatus.Deploying);
         }
 
         // and their readiness
@@ -144,11 +144,7 @@ internal class GetExternalGameAdminContextHandler : IRequestHandler<GetExternalG
             .ToDictionary(p => p.Id, p => p.IsReady);
 
         // the game's overall deploy status is the lowest value of all teams' deploy statuses
-        var overallDeployState = ExternalGameDeployStatus.NotStarted;
-        if (teamDeployStatuses.Values.All(s => s == ExternalGameDeployStatus.Deployed))
-            overallDeployState = ExternalGameDeployStatus.Deployed;
-        else if (teamDeployStatuses.Values.Any(s => s == ExternalGameDeployStatus.Deploying))
-            overallDeployState = ExternalGameDeployStatus.Deploying;
+        var overallDeployState = ResolveOverallDeployStatus(teamDeployStatuses.Values);
 
         return new ExternalGameAdminContext
         {
@@ -164,7 +160,7 @@ internal class GetExternalGameAdminContextHandler : IRequestHandler<GetExternalG
                 Name = captains[key].ApprovedName,
                 DeployStatus = teamDeployStatuses.ContainsKey(key) ?
                     teamDeployStatuses[key] :
-                    ExternalGameDeployStatus.NotStarted,
+                    ExternalGameTeamDeployStatus.NotStarted,
                 IsReady = teams[key].All(p => p.IsReady),
                 Challenges = gameData.Specs.Select(s =>
                     {
@@ -223,5 +219,19 @@ internal class GetExternalGameAdminContextHandler : IRequestHandler<GetExternalG
                 }),
             })
         };
+    }
+
+    private ExternalGameAdminOverallDeployStatus ResolveOverallDeployStatus(IEnumerable<ExternalGameTeamDeployStatus> teamStatuses)
+    {
+        if (teamStatuses.All(s => s == ExternalGameTeamDeployStatus.Deployed))
+            return ExternalGameAdminOverallDeployStatus.Deployed;
+
+        if (teamStatuses.All(s => s == ExternalGameTeamDeployStatus.NotStarted))
+            return ExternalGameAdminOverallDeployStatus.NotStarted;
+
+        if (teamStatuses.Any(s => s == ExternalGameTeamDeployStatus.Deploying))
+            return ExternalGameAdminOverallDeployStatus.Deploying;
+
+        return ExternalGameAdminOverallDeployStatus.PartiallyDeployed;
     }
 }
