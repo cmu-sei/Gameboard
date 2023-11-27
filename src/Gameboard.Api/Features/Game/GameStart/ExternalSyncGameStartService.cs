@@ -489,8 +489,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // notify and return
         var totalGamespaceCount = retVal.Count;
         var totalVmCount = retVal.Values.SelectMany(gamespace => gamespace.VmUris).Count();
+        var deployedGamespaceCount = retVal.Values.Select(gamespace => gamespace.IsDeployed).Count();
 
-        Log($"Finished deploying gamespaces: {totalGamespaceCount} gamespaces, {totalVmCount} VMs.", request.Game.Id);
+        Log($"Finished deploying gamespaces: {totalGamespaceCount} gamespaces, {totalVmCount} VMs. {deployedGamespaceCount} gamespaces ready.", request.Game.Id);
         await _gameHubBus.SendExternalGameGamespacesDeployEnd(request.Context.ToUpdate());
         return retVal;
     }
@@ -520,7 +521,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 Gamespaces = teamGameStates.Select(gs => new ExternalGameStartTeamGamespace
                 {
                     Id = gs.Id,
-                    VmUris = _gameEngineService.GetGamespaceVms(gs).Select(vm => vm.Url)
+                    VmUris = _gameEngineService.GetGamespaceVms(gs).Select(vm => vm.Url),
+                    IsDeployed = gs.IsActive
                 })
             };
 
@@ -560,6 +562,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         => new()
         {
             Id = state.Id,
+            IsDeployed = state.IsActive,
             VmUris = _gameEngineService.GetGamespaceVms(state).Select(vm => vm.Url)
         };
 

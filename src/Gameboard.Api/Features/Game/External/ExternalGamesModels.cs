@@ -28,6 +28,7 @@ public sealed class ExternalGameStartTeamGamespace
 {
     public required string Id { get; set; }
     public required IEnumerable<string> VmUris { get; set; }
+    public required bool IsDeployed { get; set; }
 }
 
 public sealed class ExternalGameClientTeamConfig
