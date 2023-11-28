@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -28,6 +27,15 @@ public class EnrollmentReportRecord
     public required int ChallengesPartiallySolvedCount { get; set; }
     public required int ChallengesCompletelySolvedCount { get; set; }
     public required double Score { get; set; }
+}
+
+public class EnrollmentReportByGameRecord
+{
+    public required ReportGameViewModel Game { get; set; }
+    public required int PlayerCount { get; set; }
+    public required IEnumerable<ReportSponsorViewModel> Sponsors { get; set; }
+    public required ReportSponsorViewModel TopSponsor { get; set; }
+    public required int TopSponsorPlayerCount { get; set; }
 }
 
 public sealed class EnrollmentReportStatSummary

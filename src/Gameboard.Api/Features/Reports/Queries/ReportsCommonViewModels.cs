@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Features.Reports;
 
