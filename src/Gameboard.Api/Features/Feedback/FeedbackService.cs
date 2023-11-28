@@ -16,27 +16,62 @@ namespace Gameboard.Api.Services
 {
     public class FeedbackService : _Service
     {
-        IFeedbackStore Store { get; }
+        IFeedbackStore FeedbackStore { get; }
 
         private IMemoryCache _localcache;
+        private IStore _store;
 
         public FeedbackService(
             ILogger<FeedbackService> logger,
             IMapper mapper,
             CoreOptions options,
-            IChallengeStore challenegeStore,
-            IFeedbackStore store,
+            IFeedbackStore feedbackStore,
+            IStore store,
             IMemoryCache localcache
         ) : base(logger, mapper, options)
         {
-            Store = store;
+            FeedbackStore = feedbackStore;
             _localcache = localcache;
+            _store = store;
         }
 
         public async Task<Feedback> Retrieve(FeedbackSearchParams model, string actorId)
         {
+            // for normal challenge and game feedback, we can just do simple lookups on the provided IDs.
+            // unfortunately, for practice mode, we need a special case.
+            // 
+            // since a user can solve a practice challenge multiple times, we actually don't care about the
+            // specific challengeID provided - we care if they've ever submitted feedback for a challenge
+            // with the specified specId. If they have, that feedback applies to every instance of the spec
+            // (challenge) theye've solved.
+            // 
+            // to manage this, we need to load the challenge (if they're asking for challenge-level feedback)
+            // and determine if it's a practice challenge. if so, do special logic and leave.
+            if (model.ChallengeId.IsNotEmpty())
+            {
+                var challenge = await _store
+                    .WithNoTracking<Data.Challenge>()
+                    .SingleAsync(c => c.Id == model.ChallengeId && c.SpecId == model.ChallengeSpecId);
+
+                if (challenge.PlayerMode == PlayerMode.Practice)
+                {
+                    var feedback = await _store
+                        .WithNoTracking<Data.Feedback>()
+                        .Where
+                        (
+                            f =>
+                                f.ChallengeSpecId == model.ChallengeSpecId &&
+                                f.UserId == actorId
+                        )
+                        .SingleOrDefaultAsync();
+
+                    return Mapper.Map<Feedback>(feedback);
+                }
+            }
+
+            // if we get here, we're just doing standard lookups with no special logic
             var lookup = MakeFeedbackLookup(model.GameId, model.ChallengeId, model.ChallengeSpecId, actorId);
-            var entity = await Store.Load(lookup);
+            var entity = await FeedbackStore.Load(lookup);
             return Mapper.Map<Feedback>(entity);
         }
 
@@ -44,7 +79,7 @@ namespace Gameboard.Api.Services
         public async Task<Feedback> Submit(FeedbackSubmission model, string actorId)
         {
             var lookup = MakeFeedbackLookup(model.GameId, model.ChallengeId, model.ChallengeSpecId, actorId);
-            var entity = await Store.Load(lookup);
+            var entity = await FeedbackStore.Load(lookup);
 
             if (model.Submit) // Only fully validate questions on submit as a slight optimization
             {
@@ -61,11 +96,11 @@ namespace Gameboard.Api.Services
                 }
                 Mapper.Map(model, entity);
                 entity.Timestamp = DateTimeOffset.UtcNow; // always last saved/submitted
-                await Store.Update(entity);
+                await FeedbackStore.Update(entity);
             }
             else // create new entity and assign player based on user/game combination
             {
-                var player = await Store.DbContext.Players.FirstOrDefaultAsync(s =>
+                var player = await FeedbackStore.DbContext.Players.FirstOrDefaultAsync(s =>
                     s.UserId == actorId &&
                     s.GameId == model.GameId
                 );
@@ -77,7 +112,7 @@ namespace Gameboard.Api.Services
                 entity.PlayerId = player.Id;
                 entity.Id = Guid.NewGuid().ToString("n");
                 entity.Timestamp = DateTimeOffset.UtcNow;
-                await Store.Create(entity);
+                await FeedbackStore.Create(entity);
             }
 
             return Mapper.Map<Feedback>(entity);
@@ -86,7 +121,7 @@ namespace Gameboard.Api.Services
         // List feedback responses based on params such as game/challenge filtering, skip/take, and sorting
         public async Task<FeedbackReportDetails[]> List(FeedbackSearchParams model)
         {
-            var q = Store.List(model.Term);
+            var q = FeedbackStore.List(model.Term);
 
             if (model.GameId.NotEmpty())
                 q = q.Where(u => u.GameId == model.GameId);
@@ -140,7 +175,7 @@ namespace Gameboard.Api.Services
         // check that the actor/user is enrolled in this game they are trying to submit feedback for
         public async Task<bool> UserIsEnrolled(string gameId, string userId)
         {
-            return await Store.DbContext.Users.AnyAsync(u =>
+            return await FeedbackStore.DbContext.Users.AnyAsync(u =>
                 u.Id == userId &&
                 u.Enrollments.Any(e => e.GameId == gameId)
             );
@@ -167,7 +202,7 @@ namespace Gameboard.Api.Services
         // Given a submission of questions and a gameId, check that the questions match the game template and meet requirements
         private async Task<bool> FeedbackMatchesTemplate(QuestionSubmission[] feedback, string gameId, string challengeId)
         {
-            var game = Mapper.Map<Game>(await Store.DbContext.Games.FindAsync(gameId));
+            var game = Mapper.Map<Game>(await FeedbackStore.DbContext.Games.FindAsync(gameId));
 
             var feedbackTemplate = GetTemplate(challengeId.IsEmpty(), game);
 
