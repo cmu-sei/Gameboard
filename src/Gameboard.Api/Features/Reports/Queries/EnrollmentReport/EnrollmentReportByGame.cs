@@ -35,14 +35,18 @@ internal class EnrollmentReportByGameHandler : IRequestHandler<EnrollmentReportB
             .GetBaseQuery(request.Parameters)
             .Select(p => new
             {
-                Game = new ReportGameViewModel
+                Game = new EnrollmentReportByGameGame
                 {
                     Id = p.GameId,
                     Name = p.Game.Name,
                     Season = p.Game.Season,
                     Series = p.Game.Division,
                     Track = p.Game.Track,
-                    IsTeamGame = p.Game.MaxTeamSize > 1
+                    IsTeamGame = p.Game.MaxTeamSize > 1,
+                    ExecutionClosed = p.Game.GameEnd,
+                    ExecutionOpen = p.Game.GameStart,
+                    RegistrationOpen = p.Game.RegistrationOpen,
+                    RegistrationClosed = p.Game.RegistrationClose
                 },
                 Sponsor = new ReportSponsorViewModel
                 {
