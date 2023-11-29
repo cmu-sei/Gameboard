@@ -60,6 +60,8 @@ internal class EnrollmentReportByGameHandler : IRequestHandler<EnrollmentReportB
             .ToArrayAsync(cancellationToken);
 
         // now do the stuff we can't easily translate to the db level
+        // this is just to make it easier to look up id/name/logo for hydration
+        // below
         var allSponsors = rawResults
             .Select(p => p.Sponsor)
             .GroupBy(s => s.Id)
@@ -67,30 +69,30 @@ internal class EnrollmentReportByGameHandler : IRequestHandler<EnrollmentReportB
             {
                 var first = s.First();
 
-                return new EnrollmentReportByGameSponsor
+                return new ReportSponsorViewModel
                 {
                     Id = s.Key,
                     Name = first.Name,
-                    LogoFileName = first.LogoFileName,
-                    PlayerCount = s.Count()
+                    LogoFileName = first.LogoFileName
                 };
             });
 
+        // how many total humans played the game?
         var gamePlayerCount = rawResults
             .GroupBy(g => g.Game.Id)
             .ToDictionary(gr => gr.Key, gr => gr.DistinctBy(p => p.UserId).Count());
 
+        // how many humans per sponsor per game?
         var gameSponsorPlayerCount = rawResults
             .GroupBy(g => new { GameId = g.Game.Id, SponsorId = g.Sponsor.Id })
             .Select(gr => new
             {
                 gr.Key.GameId,
                 gr.Key.SponsorId,
-                PlayerCount = gr.Count()
+                PlayerCount = gr.DistinctBy(result => result.UserId).Count()
             })
             .OrderBy(entry => entry.GameId)
-                .ThenByDescending(entry => entry.PlayerCount)
-            .ToArray();
+                .ThenByDescending(entry => entry.PlayerCount);
 
         var groupedResults = rawResults
             .GroupBy(p => p.Game.Id)
@@ -99,23 +101,32 @@ internal class EnrollmentReportByGameHandler : IRequestHandler<EnrollmentReportB
                 // all the game info should be the same, we just need
                 // a single instance to return the gameinfo
                 var gameInfo = gr.First();
-                var topSponsorId = gameSponsorPlayerCount
+                var thisGameSponsors = gameSponsorPlayerCount
                     .Where(c => c.GameId == gr.Key)
-                    .OrderByDescending(c => c.PlayerCount)
-                    .Select(c => c.SponsorId)
-                    .FirstOrDefault();
+                    .OrderByDescending(s => s.PlayerCount);
+                var topSponsor = thisGameSponsors.First();
 
                 return new EnrollmentReportByGameRecord
                 {
                     Game = gameInfo.Game,
                     PlayerCount = gamePlayerCount[gr.Key],
-                    Sponsors = gr
-                        .Select(entry => entry.Sponsor)
-                        .DistinctBy(s => s.Id)
-                        .Select(s => allSponsors[s.Id]),
-                    TopSponsor = allSponsors[topSponsorId]
+                    Sponsors = thisGameSponsors.Select(s => new EnrollmentReportByGameSponsor
+                    {
+                        Id = s.SponsorId,
+                        Name = allSponsors[topSponsor.SponsorId].Name,
+                        LogoFileName = allSponsors[topSponsor.SponsorId].LogoFileName,
+                        PlayerCount = s.PlayerCount
+                    }),
+                    TopSponsor = new EnrollmentReportByGameSponsor
+                    {
+                        Id = allSponsors[topSponsor.SponsorId].Id,
+                        Name = allSponsors[topSponsor.SponsorId].Name,
+                        LogoFileName = allSponsors[topSponsor.SponsorId].LogoFileName,
+                        PlayerCount = topSponsor.PlayerCount
+                    }
                 };
             })
+            .OrderBy(record => record.PlayerCount)
             .ToArray();
 
         return _reportsService.BuildResults(new ReportRawResults<EnrollmentReportByGameRecord>
