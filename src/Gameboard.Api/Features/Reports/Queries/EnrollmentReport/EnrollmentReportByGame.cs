@@ -113,8 +113,8 @@ internal class EnrollmentReportByGameHandler : IRequestHandler<EnrollmentReportB
                     Sponsors = thisGameSponsors.Select(s => new EnrollmentReportByGameSponsor
                     {
                         Id = s.SponsorId,
-                        Name = allSponsors[topSponsor.SponsorId].Name,
-                        LogoFileName = allSponsors[topSponsor.SponsorId].LogoFileName,
+                        Name = allSponsors[s.SponsorId].Name,
+                        LogoFileName = allSponsors[s.SponsorId].LogoFileName,
                         PlayerCount = s.PlayerCount
                     }),
                     TopSponsor = new EnrollmentReportByGameSponsor
