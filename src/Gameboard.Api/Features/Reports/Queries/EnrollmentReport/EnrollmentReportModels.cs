@@ -33,9 +33,16 @@ public class EnrollmentReportByGameRecord
 {
     public required ReportGameViewModel Game { get; set; }
     public required int PlayerCount { get; set; }
-    public required IEnumerable<ReportSponsorViewModel> Sponsors { get; set; }
-    public required ReportSponsorViewModel TopSponsor { get; set; }
-    public required int TopSponsorPlayerCount { get; set; }
+    public required IEnumerable<EnrollmentReportByGameSponsor> Sponsors { get; set; }
+    public required EnrollmentReportByGameSponsor TopSponsor { get; set; }
+}
+
+public sealed class EnrollmentReportByGameSponsor
+{
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public string LogoFileName { get; set; }
+    public int PlayerCount { get; set; }
 }
 
 public sealed class EnrollmentReportStatSummary

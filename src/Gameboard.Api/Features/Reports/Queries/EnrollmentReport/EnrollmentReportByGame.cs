@@ -58,8 +58,19 @@ internal class EnrollmentReportByGameHandler : IRequestHandler<EnrollmentReportB
         // now do the stuff we can't easily translate to the db level
         var allSponsors = rawResults
             .Select(p => p.Sponsor)
-            .DistinctBy(s => s.Id)
-            .ToDictionary(s => s.Id, s => s);
+            .GroupBy(s => s.Id)
+            .ToDictionary(s => s.Key, s =>
+            {
+                var first = s.First();
+
+                return new EnrollmentReportByGameSponsor
+                {
+                    Id = s.Key,
+                    Name = first.Name,
+                    LogoFileName = first.LogoFileName,
+                    PlayerCount = s.Count()
+                };
+            });
 
         var gamePlayerCount = rawResults
             .GroupBy(g => g.Game.Id)
@@ -74,13 +85,15 @@ internal class EnrollmentReportByGameHandler : IRequestHandler<EnrollmentReportB
                 PlayerCount = gr.Count()
             })
             .OrderBy(entry => entry.GameId)
-                .ThenBy(entry => entry.PlayerCount)
+                .ThenByDescending(entry => entry.PlayerCount)
             .ToArray();
 
         var groupedResults = rawResults
             .GroupBy(p => p.Game.Id)
             .Select(gr =>
             {
+                // all the game info should be the same, we just need
+                // a single instance to return the gameinfo
                 var gameInfo = gr.First();
                 var topSponsorId = gameSponsorPlayerCount
                     .Where(c => c.GameId == gr.Key)
@@ -94,12 +107,9 @@ internal class EnrollmentReportByGameHandler : IRequestHandler<EnrollmentReportB
                     PlayerCount = gamePlayerCount[gr.Key],
                     Sponsors = gr
                         .Select(entry => entry.Sponsor)
-                        .DistinctBy(s => s.Id),
-                    TopSponsor = allSponsors[topSponsorId],
-                    TopSponsorPlayerCount = gameSponsorPlayerCount
-                        .Where(c => c.GameId == gr.Key && c.SponsorId == topSponsorId)
-                        .Select(entry => entry.PlayerCount)
-                        .Single()
+                        .DistinctBy(s => s.Id)
+                        .Select(s => allSponsors[s.Id]),
+                    TopSponsor = allSponsors[topSponsorId]
                 };
             })
             .ToArray();
