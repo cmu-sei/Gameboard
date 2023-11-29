@@ -126,7 +126,7 @@ internal class EnrollmentReportByGameHandler : IRequestHandler<EnrollmentReportB
                     }
                 };
             })
-            .OrderBy(record => record.PlayerCount)
+            .OrderByDescending(record => record.PlayerCount)
             .ToArray();
 
         return _reportsService.BuildResults(new ReportRawResults<EnrollmentReportByGameRecord>
