@@ -5,16 +5,16 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record EnrollmentReportQuery(EnrollmentReportParameters Parameters, PagingArgs PagingArgs, User ActingUser) : IRequest<ReportResults<EnrollmentReportStatSummary, EnrollmentReportRecord>>, IReportQuery;
+public record EnrollmentReportSummaryQuery(EnrollmentReportParameters Parameters, PagingArgs PagingArgs, User ActingUser) : IRequest<ReportResults<EnrollmentReportRecord>>, IReportQuery;
 
-internal class EnrollmentReportQueryHandler : IRequestHandler<EnrollmentReportQuery, ReportResults<EnrollmentReportStatSummary, EnrollmentReportRecord>>
+internal class EnrollmentReportSummaryHandler : IRequestHandler<EnrollmentReportSummaryQuery, ReportResults<EnrollmentReportRecord>>
 {
     private readonly IEnrollmentReportService _enrollmentReportService;
     private readonly INowService _now;
     private readonly IPagingService _pagingService;
     private readonly ReportsQueryValidator _reportsQueryValidator;
 
-    public EnrollmentReportQueryHandler
+    public EnrollmentReportSummaryHandler
     (
         IEnrollmentReportService enrollmentReportService,
         INowService now,
@@ -28,16 +28,16 @@ internal class EnrollmentReportQueryHandler : IRequestHandler<EnrollmentReportQu
         _reportsQueryValidator = reportsQueryValidator;
     }
 
-    public async Task<ReportResults<EnrollmentReportStatSummary, EnrollmentReportRecord>> Handle(EnrollmentReportQuery request, CancellationToken cancellationToken)
+    public async Task<ReportResults<EnrollmentReportRecord>> Handle(EnrollmentReportSummaryQuery request, CancellationToken cancellationToken)
     {
         // validate
         await _reportsQueryValidator.Validate(request, cancellationToken);
 
         // pull and page results
-        var rawResults = await _enrollmentReportService.GetRawResults(request.Parameters, cancellationToken);
-        var paged = _pagingService.Page(rawResults.Records, request.PagingArgs);
+        var records = await _enrollmentReportService.GetRawResults(request.Parameters, cancellationToken);
+        var paged = _pagingService.Page(records, request.PagingArgs);
 
-        return new ReportResults<EnrollmentReportStatSummary, EnrollmentReportRecord>
+        return new ReportResults<EnrollmentReportRecord>
         {
             MetaData = new ReportMetaData
             {
@@ -45,7 +45,6 @@ internal class EnrollmentReportQueryHandler : IRequestHandler<EnrollmentReportQu
                 RunAt = _now.Get(),
                 Key = ReportKey.Enrollment
             },
-            OverallStats = rawResults.StatSummary,
             Records = paged.Items,
             Paging = paged.Paging
         };

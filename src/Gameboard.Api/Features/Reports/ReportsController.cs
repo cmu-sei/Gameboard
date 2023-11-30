@@ -33,8 +33,12 @@ public class ReportsController : ControllerBase
         => await _service.List();
 
     [HttpGet("enrollment")]
-    public Task<ReportResults<EnrollmentReportStatSummary, EnrollmentReportRecord>> GetEnrollmentReport([FromQuery] EnrollmentReportParameters parameters, [FromQuery] PagingArgs paging)
-        => _mediator.Send(new EnrollmentReportQuery(parameters, paging, _actingUser));
+    public Task<ReportResults<EnrollmentReportRecord>> GetEnrollmentReportSummary([FromQuery] EnrollmentReportParameters parameters, [FromQuery] PagingArgs paging)
+        => _mediator.Send(new EnrollmentReportSummaryQuery(parameters, paging, _actingUser));
+
+    [HttpGet("enrollment/stats")]
+    public Task<EnrollmentReportStatSummary> GetEnrollmentReportSummaryStats([FromQuery] EnrollmentReportParameters parameters)
+        => _mediator.Send(new EnrollmentReportSummaryStatsQuery(parameters, _actingUser));
 
     [HttpGet("enrollment/trend")]
     public Task<IDictionary<DateTimeOffset, EnrollmentReportLineChartGroup>> GetEnrollmentReportLineChart([FromQuery] EnrollmentReportParameters parameters)

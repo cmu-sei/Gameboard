@@ -28,7 +28,7 @@ internal class EnrollmentReportExportHandler : IRequestHandler<EnrollmentReportE
         // ignore paging parameters - for file export, we don't page
         var results = await _enrollmentReportService.GetRawResults(request.Parameters, cancellationToken);
 
-        return results.Records.Select(r => new EnrollmentReportCsvRecord
+        return results.Select(r => new EnrollmentReportCsvRecord
         {
             // user
             UserId = r.User.Id,
