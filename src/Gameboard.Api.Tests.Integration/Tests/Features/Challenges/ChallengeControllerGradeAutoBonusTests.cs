@@ -34,7 +34,7 @@ public class ChallengeControllerGradeAutoBonusTests
         await _testContext
             .WithDataState(state =>
             {
-                var bonus = state.Build<Data.ChallengeBonusCompleteSolveRank>(fixture, b =>
+                var bonus = state.Build<ChallengeBonusCompleteSolveRank>(fixture, b =>
                 {
                     b.Id = bonusId;
                     b.ChallengeBonusType = ChallengeBonusType.CompleteSolveRank;
@@ -48,7 +48,7 @@ public class ChallengeControllerGradeAutoBonusTests
                     g.Specs = state.Build<Data.ChallengeSpec>(fixture, spec =>
                     {
                         spec.Id = challengeSpecId;
-                        spec.Points = (int)baseScore;
+                        spec.Points = baseScore;
                         spec.Bonuses = (bonus as ChallengeBonus).ToCollection();
                     }).ToCollection();
 

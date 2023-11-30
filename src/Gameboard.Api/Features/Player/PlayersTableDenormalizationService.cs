@@ -39,7 +39,7 @@ internal class PlayersTableDenormalizationService : IPlayersTableDenormalization
         var challenges = await _store
             .WithNoTracking<Data.Challenge>()
                 .Include(c => c.AwardedBonuses)
-                    .ThenInclude(b => b.ChallengeBonus.PointValue)
+                    .ThenInclude(b => b.ChallengeBonus)
                 .Include(c => c.AwardedManualBonuses)
             .Where(c => c.TeamId == teamId)
             .ToArrayAsync(cancellationToken);
