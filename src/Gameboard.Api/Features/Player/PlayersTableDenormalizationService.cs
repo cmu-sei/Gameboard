@@ -38,10 +38,19 @@ internal class PlayersTableDenormalizationService : IPlayersTableDenormalization
         // update the team's scores (this fires after changes to the score)
         var challenges = await _store
             .WithNoTracking<Data.Challenge>()
+                .Include(c => c.AwardedBonuses)
+                    .ThenInclude(b => b.ChallengeBonus.PointValue)
+                .Include(c => c.AwardedManualBonuses)
             .Where(c => c.TeamId == teamId)
             .ToArrayAsync(cancellationToken);
 
-        var score = (int)challenges.Sum(c => c.Score);
+        var score = (int)challenges.Sum
+        (
+            c =>
+                c.Score +
+                c.AwardedBonuses.Sum(b => b.ChallengeBonus.PointValue) +
+                c.AwardedManualBonuses.Sum(m => m.PointValue)
+        );
         var time = challenges.Sum(c => c.Duration);
         var complete = challenges.Count(c => c.Result == ChallengeResult.Success);
         var partial = challenges.Count(c => c.Result == ChallengeResult.Partial);
