@@ -8,7 +8,6 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Teams;
-using Gameboard.Api.Structure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -29,14 +28,14 @@ internal class SyncStartGameService : ISyncStartGameService
     private readonly IExternalGameHostAccessTokenProvider _accessTokenProvider;
     private readonly IActingUserService _actingUserService;
     private readonly IAppUrlService _appUrlService;
-    private readonly BackgroundTaskContext _backgroundTaskContext;
+    private readonly BackgroundAsyncTaskContext _backgroundTaskContext;
     private readonly IGameHubBus _gameHubBus;
     private readonly ILockService _lockService;
     private readonly ILogger<SyncStartGameService> _logger;
     private readonly INowService _nowService;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IStore _store;
-    private readonly IBackgroundTaskQueue _taskQueue;
+    private readonly IBackgroundAsyncTaskQueueService _taskQueue;
     private readonly ITeamService _teamService;
 
     public SyncStartGameService
@@ -44,14 +43,14 @@ internal class SyncStartGameService : ISyncStartGameService
         IExternalGameHostAccessTokenProvider accessTokenProvider,
         IActingUserService actingUserService,
         IAppUrlService appUrlService,
-        BackgroundTaskContext backgroundTaskContext,
+        BackgroundAsyncTaskContext backgroundTaskContext,
         IGameHubBus gameHubBus,
         ILockService lockService,
         ILogger<SyncStartGameService> logger,
         INowService nowService,
         IServiceScopeFactory serviceScopeFactory,
         IStore store,
-        IBackgroundTaskQueue taskQueue,
+        IBackgroundAsyncTaskQueueService taskQueue,
         ITeamService teamService
     )
     {

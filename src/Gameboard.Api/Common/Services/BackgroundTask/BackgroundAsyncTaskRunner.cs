@@ -1,28 +1,28 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Structure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Nito.AsyncEx;
 
-namespace Gameboard.Api.Features.Games.External;
+namespace Gameboard.Api.Common.Services;
 
-internal class ExternalGamePreDeployService : BackgroundService
+internal class BackgroundAsyncTaskRunner
+ : BackgroundService
 {
-    private readonly BackgroundTaskContext _backgroundTaskContext;
-    private readonly ILogger<ExternalGamePreDeployService> _logger;
+    private readonly BackgroundAsyncTaskContext _backgroundTaskContext;
+    private readonly ILogger<BackgroundAsyncTaskRunner> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly AsyncLock _taskLock = new();
-    private readonly IBackgroundTaskQueue _taskQueue;
+    private readonly IBackgroundAsyncTaskQueueService _taskQueue;
 
-    public ExternalGamePreDeployService
+    public BackgroundAsyncTaskRunner
     (
-        BackgroundTaskContext backgroundTaskContext,
-        ILogger<ExternalGamePreDeployService> logger,
+        BackgroundAsyncTaskContext backgroundTaskContext,
+        ILogger<BackgroundAsyncTaskRunner> logger,
         IServiceScopeFactory serviceScopeFactory,
-        IBackgroundTaskQueue taskQueue
+        IBackgroundAsyncTaskQueueService taskQueue
     )
     {
         _backgroundTaskContext = backgroundTaskContext;
@@ -33,7 +33,7 @@ internal class ExternalGamePreDeployService : BackgroundService
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation($"{nameof(ExternalGamePreDeployService)} is running...");
+        _logger.LogInformation($"{nameof(BackgroundAsyncTaskRunner)} is running...");
         return ProcessTaskQueueAsync(stoppingToken);
     }
 
@@ -45,13 +45,13 @@ internal class ExternalGamePreDeployService : BackgroundService
             {
                 using (await _taskLock.LockAsync(stoppingToken))
                 {
-                    var attemptGuid = Guid.NewGuid().ToString("n");
+                    var attemptGuid = GuidService.StaticGenerateGuid();
                     var workItem = await _taskQueue.DequeueAsync(stoppingToken);
-                    _logger.LogInformation($"{nameof(ExternalGamePreDeployService)} is predeploying attempt {attemptGuid}...");
+                    _logger.LogInformation($"{nameof(BackgroundAsyncTaskRunner)} is working async task {attemptGuid}...");
 
                     using var scope = _serviceScopeFactory.CreateScope();
                     await workItem(stoppingToken);
-                    _logger.LogInformation($"{nameof(ExternalGamePreDeployService)} finished predeploying attempt {attemptGuid}.");
+                    _logger.LogInformation($"{nameof(BackgroundAsyncTaskRunner)} finished working async task {attemptGuid}.");
                 }
             }
             catch (OperationCanceledException)
@@ -68,7 +68,7 @@ internal class ExternalGamePreDeployService : BackgroundService
 
     public override async Task StopAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation($"{nameof(ExternalGamePreDeployService)} is stopping...");
+        _logger.LogInformation($"{nameof(BackgroundAsyncTaskRunner)} is stopping...");
         await base.StopAsync(stoppingToken);
     }
 }

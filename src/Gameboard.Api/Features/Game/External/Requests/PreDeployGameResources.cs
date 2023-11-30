@@ -19,8 +19,8 @@ internal class PreDeployExternalGameResourcesHandler : IRequestHandler<PreDeploy
     private readonly IExternalGameHostAccessTokenProvider _accessTokenProvider;
     private readonly IActingUserService _actingUserService;
     private readonly IAppUrlService _appUrlService;
-    private readonly IBackgroundTaskQueue _backgroundTaskQueue;
-    private readonly BackgroundTaskContext _backgroundTaskContext;
+    private readonly IBackgroundAsyncTaskQueueService _backgroundTaskQueue;
+    private readonly BackgroundAsyncTaskContext _backgroundTaskContext;
     private readonly GameWithModeExistsValidator<PreDeployExternalGameResourcesCommand> _gameExists;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
@@ -31,8 +31,8 @@ internal class PreDeployExternalGameResourcesHandler : IRequestHandler<PreDeploy
         IExternalGameHostAccessTokenProvider accessTokenProvider,
         IActingUserService actingUserService,
         IAppUrlService appUrlService,
-        IBackgroundTaskQueue backgroundTaskQueue,
-        BackgroundTaskContext backgroundTaskContext,
+        IBackgroundAsyncTaskQueueService backgroundTaskQueue,
+        BackgroundAsyncTaskContext backgroundTaskContext,
         GameWithModeExistsValidator<PreDeployExternalGameResourcesCommand> gameExists,
         IServiceScopeFactory serviceScopeFactory,
         UserRoleAuthorizer userRoleAuthorizer,

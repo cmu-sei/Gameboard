@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using Gameboard.Api.Structure;
+using Gameboard.Api.Common.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 
@@ -12,10 +12,10 @@ internal interface IExternalGameHostAccessTokenProvider
 
 internal class HttpContextAccessTokenProvider : IExternalGameHostAccessTokenProvider
 {
-    private readonly BackgroundTaskContext _backgroundTaskContext;
+    private readonly BackgroundAsyncTaskContext _backgroundTaskContext;
     private HttpContext _httpContext;
 
-    public HttpContextAccessTokenProvider(BackgroundTaskContext backgroundTaskContext, IHttpContextAccessor httpContextAccessor)
+    public HttpContextAccessTokenProvider(BackgroundAsyncTaskContext backgroundTaskContext, IHttpContextAccessor httpContextAccessor)
     {
         _backgroundTaskContext = backgroundTaskContext;
         _httpContext = httpContextAccessor.HttpContext;

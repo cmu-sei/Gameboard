@@ -3,19 +3,19 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
-namespace Gameboard.Api.Structure;
+namespace Gameboard.Api.Common.Services;
 
-public interface IBackgroundTaskQueue
+public interface IBackgroundAsyncTaskQueueService
 {
     ValueTask QueueBackgroundWorkItemAsync(Func<CancellationToken, ValueTask> workItem);
     ValueTask<Func<CancellationToken, ValueTask>> DequeueAsync(CancellationToken cancellationToken);
 }
 
-internal class BackgroundTaskQueue : IBackgroundTaskQueue
+internal class BackgroundAsyncTaskQueueService : IBackgroundAsyncTaskQueueService
 {
     private readonly Channel<Func<CancellationToken, ValueTask>> _queue;
 
-    public BackgroundTaskQueue()
+    public BackgroundAsyncTaskQueueService()
     {
         // number of items the channel is permitted to store (this is currently pretty arbitrary)
         _queue = Channel.CreateBounded<Func<CancellationToken, ValueTask>>(new BoundedChannelOptions(5)

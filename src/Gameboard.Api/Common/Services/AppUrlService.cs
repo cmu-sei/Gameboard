@@ -15,13 +15,13 @@ public interface IAppUrlService
 internal class AppUrlService : IAppUrlService
 {
     private readonly IWebHostEnvironment _env;
-    private readonly BackgroundTaskContext _backgroundTaskContext;
+    private readonly BackgroundAsyncTaskContext _backgroundTaskContext;
     private readonly HttpContext _httpContext;
 
     public AppUrlService
     (
         IWebHostEnvironment env,
-        BackgroundTaskContext backgroundTaskContext,
+        BackgroundAsyncTaskContext backgroundTaskContext,
         IHttpContextAccessor httpContextAccessor
     )
     {

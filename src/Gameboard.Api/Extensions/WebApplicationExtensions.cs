@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Hubs;
 using Gameboard.Api.Hubs;
@@ -73,7 +74,7 @@ internal static class WebApplicationExtensions
         try
         {
             using var serviceScope = app.Services.CreateScope();
-            var taskQueue = serviceScope.ServiceProvider.GetRequiredService<IBackgroundTaskQueue>();
+            var taskQueue = serviceScope.ServiceProvider.GetRequiredService<IBackgroundAsyncTaskQueueService>();
 
             taskQueue.QueueBackgroundWorkItemAsync(async cancellationToken =>
             {

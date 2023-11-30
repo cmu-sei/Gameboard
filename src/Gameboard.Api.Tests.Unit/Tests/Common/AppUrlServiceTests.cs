@@ -23,7 +23,7 @@ public class AppUrlServiceTests
         var sut = new AppUrlService
         (
             A.Fake<IWebHostEnvironment>(),
-            new BackgroundTaskContext(),
+            new BackgroundAsyncTaskContext(),
             httpContextAccessor
         );
 
@@ -50,7 +50,7 @@ public class AppUrlServiceTests
         var sut = new AppUrlService
         (
             A.Fake<IWebHostEnvironment>(),
-            new BackgroundTaskContext(),
+            new BackgroundAsyncTaskContext(),
             httpContextAccessor
         );
 

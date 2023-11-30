@@ -1,6 +1,6 @@
-namespace Gameboard.Api.Structure;
+namespace Gameboard.Api.Common.Services;
 
-public sealed class BackgroundTaskContext
+public sealed class BackgroundAsyncTaskContext
 {
     public string AccessToken { get; set; }
     public User ActingUser { get; set; }

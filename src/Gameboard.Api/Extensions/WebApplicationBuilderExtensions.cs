@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using Gameboard.Api.Features.Games.External;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
@@ -91,7 +91,7 @@ internal static class WebApplicationBuilderExtensions
             .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath);
 
         // HOSTED SERVICES
-        services.AddHostedService<ExternalGamePreDeployService>();
+        services.AddHostedService<BackgroundAsyncTaskRunner>();
 
         // don't add the recurring JobService during test - we don't want them interfere with CI
         if (!builder.Environment.IsTest())
