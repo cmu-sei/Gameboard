@@ -31,11 +31,6 @@ public interface IReportsService
 public class ReportsService : IReportsService
 {
     private static readonly string MULTI_SELECT_DELIMITER = ",";
-    public static readonly PagingArgs DEFAULT_PAGING = new()
-    {
-        PageNumber = 0,
-        PageSize = 20,
-    };
 
     private readonly IMapper _mapper;
     private readonly INowService _now;
