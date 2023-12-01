@@ -442,7 +442,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.HasIndex("GameId");
 
-                    b.ToTable("ExternalGameTeam");
+                    b.ToTable("ExternalGameTeams");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Feedback", b =>
@@ -846,6 +846,72 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.HasIndex("ParentSponsorId");
 
                     b.ToTable("Sponsors");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.SystemNotification", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTimeOffset?>("EndsOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("MarkdownContent")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("NotificationType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("StartsOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.ToTable("SystemNotifications");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.SystemNotificationInteraction", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset?>("DismissedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("SawCalloutOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("SawFullNotificationOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("SystemNotificationId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("SystemNotificationId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("SystemNotificationInteractions");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Ticket", b =>
@@ -1257,6 +1323,36 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("ParentSponsor");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.SystemNotification", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.User", "CreatedByUser")
+                        .WithMany("CreatedSystemNotifications")
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.SystemNotificationInteraction", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.SystemNotification", "SystemNotification")
+                        .WithMany("Interactions")
+                        .HasForeignKey("SystemNotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Gameboard.Api.Data.User", "User")
+                        .WithMany("SystemNotificationInteractions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SystemNotification");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Ticket", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.User", "Assignee")
@@ -1419,6 +1515,11 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("SponsoredUsers");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.SystemNotification", b =>
+                {
+                    b.Navigation("Interactions");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Ticket", b =>
                 {
                     b.Navigation("Activity");
@@ -1427,6 +1528,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
             modelBuilder.Entity("Gameboard.Api.Data.User", b =>
                 {
                     b.Navigation("ApiKeys");
+
+                    b.Navigation("CreatedSystemNotifications");
 
                     b.Navigation("Enrollments");
 
@@ -1437,6 +1540,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("PublishedCompetitiveCertificates");
 
                     b.Navigation("PublishedPracticeCertificates");
+
+                    b.Navigation("SystemNotificationInteractions");
 
                     b.Navigation("UpdatedPracticeModeSettings");
                 });
