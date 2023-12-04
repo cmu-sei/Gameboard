@@ -29,13 +29,11 @@ public interface IExternalGameTeamService
 internal class ExternalGameTeamService : IExternalGameTeamService
 {
     private readonly IGuidService _guids;
-    private readonly ILockService _lockService;
     private readonly IStore _store;
 
-    public ExternalGameTeamService(IGuidService guids, ILockService lockService, IStore store)
+    public ExternalGameTeamService(IGuidService guids, IStore store)
     {
         _guids = guids;
-        _lockService = lockService;
         _store = store;
     }
 

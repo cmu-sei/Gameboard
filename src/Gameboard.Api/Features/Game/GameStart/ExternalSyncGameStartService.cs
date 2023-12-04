@@ -231,7 +231,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             {
                 GameId = g.Id,
                 Game = g,
-                Challenges = g.Challenges.Select(c => new { c.Id, c.HasDeployedGamespace, c.TeamId, c.SpecId }),
+                Challenges = g.Challenges.Select(c => new { c.Id, c.HasDeployedGamespace, c.TeamId, c.SpecId, c.Score, c.Points }),
                 Players = g.Players.Select(p => new { p.Id, p.TeamId, p.IsReady })
             })
             .SingleAsync(g => g.GameId == gameId, cancellationToken);
@@ -267,9 +267,10 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         {
             foreach (var teamIdIterated in teams.Keys)
             {
+                // each team needs either a deployed challenge or an undeployed one that they've completed (based on score)
                 var challenge = teamChallenges.ContainsKey(teamIdIterated) ? teamChallenges[teamIdIterated].FirstOrDefault(c => c.SpecId == specId) : null;
 
-                if (challenge is null || !challenge.HasDeployedGamespace)
+                if (challenge is null || !(challenge.HasDeployedGamespace || challenge.Score >= challenge.Points))
                 {
                     _logger.LogInformation($"Game {gameId} is not in Started state because we either couldn't find a challenge for spec {specId} or the corresponding challenge isn't deployed (challenge null?: {challenge is null}, has gamespace?: {challenge?.HasDeployedGamespace})");
                     allDeployed = false;
@@ -414,8 +415,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         var retVal = new Dictionary<string, ExternalGameStartTeamGamespace>();
 
         // determine which challenges have been predeployed so we can skip them here
-        var notPredeployedChallenges = request.Context.ChallengesCreated.Where(c => !c.State.HasDeployedGamespace).ToArray();
-        var predeployedChallenges = request.Context.ChallengesCreated.Where(c => c.State.HasDeployedGamespace).ToArray();
+        var notPredeployedChallenges = request.Context.ChallengesCreated.Where(c => !c.State.IsActive).ToArray();
+        var predeployedChallenges = request.Context.ChallengesCreated.Where(c => c.State.IsActive).ToArray();
         Log($"{notPredeployedChallenges.Length} require deployment ({predeployedChallenges.Length} predeployed)...", request.Game.Id);
 
         // add all the predeployed gamespaces to our list so that it contains _all_ gamespaces at the end of this function
