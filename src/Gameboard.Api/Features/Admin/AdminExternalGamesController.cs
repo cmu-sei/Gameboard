@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Games.External;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;

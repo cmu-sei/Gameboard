@@ -112,9 +112,11 @@ internal class GameStartService : IGameStartService
         // apply all these rules regardless of mode settings
         var nowish = _now.Get();
 
+        // if the team isn't registered, their state reflects this
         if (teamCaptain.GameId != gameId)
             return GamePlayState.NotRegistered;
 
+        // if now is after the game end or after the team's session end, they're done
         if (nowish > game.GameEnd || (teamCaptain.SessionEnd.IsNotEmpty() && nowish > teamCaptain.SessionEnd))
             return GamePlayState.GameOver;
 

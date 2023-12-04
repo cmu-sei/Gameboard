@@ -126,9 +126,9 @@ internal class GetExternalGameAdminContextHandler : IRequestHandler<GetExternalG
             }
 
             var allChallengesCreated = specIds.All(specId => teamChallenges[teamId].Any(c => c.SpecId == specId));
-            var allGamespacesDeployed = teamChallenges[teamId].All(c => c.HasDeployedGamespace);
+            var allGamespacesDeployedOrFinished = teamChallenges[teamId].All(c => c.HasDeployedGamespace || c.Score >= c.Points);
 
-            if (allChallengesCreated && allGamespacesDeployed)
+            if (allChallengesCreated && allGamespacesDeployedOrFinished)
             {
                 teamDeployStatuses.Add(teamId, ExternalGameTeamDeployStatus.Deployed);
                 continue;

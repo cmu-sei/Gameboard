@@ -272,7 +272,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
                 if (challenge is null || !(challenge.HasDeployedGamespace || challenge.Score >= challenge.Points))
                 {
-                    _logger.LogInformation($"Game {gameId} is not in Started state because we either couldn't find a challenge for spec {specId} or the corresponding challenge isn't deployed (challenge null?: {challenge is null}, has gamespace?: {challenge?.HasDeployedGamespace})");
+                    _logger.LogInformation($"Game {gameId} is not in Started state because we either couldn't find a challenge for team {teamIdIterated} / spec {specId} or the corresponding challenge isn't deployed (challenge null?: {challenge is null}, has gamespace?: {challenge?.HasDeployedGamespace}, score: {challenge.Points}/{challenge.Score})");
                     allDeployed = false;
                     break;
                 }
