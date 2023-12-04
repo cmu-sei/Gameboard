@@ -25,6 +25,15 @@ public class SystemNotificationsController : ControllerBase
     public Task<IEnumerable<ViewSystemNotification>> GetVisibleNotifications()
         => _mediator.Send(new GetVisibleNotificationsQuery());
 
+    [HttpPut("system-notifications/{id}")]
+    public Task<ViewSystemNotification> UpdateSystemNotification([FromRoute] string id, [FromBody] UpdateSystemNotificationRequest request)
+        => _mediator.Send(new UpdateSystemNotificationCommand(request));
+
+
+    [HttpPost("system-notifications/{id}/interaction")]
+    public Task UpdateInteractions([FromRoute] string id, [FromBody] UpdateInteractionRequest request)
+        => _mediator.Send(new UpdateUserSystemNotificationInteractionCommand(id, request.InteractionType));
+
     [HttpGet("admin/system-notifications")]
     public Task<IEnumerable<AdminViewSystemNotification>> GetAllNotifications()
         => _mediator.Send(new GetAdminSystemNotificationsQuery());

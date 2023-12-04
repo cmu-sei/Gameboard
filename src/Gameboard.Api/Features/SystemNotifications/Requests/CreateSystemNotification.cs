@@ -1,7 +1,9 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.Core;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
 
@@ -15,19 +17,22 @@ internal class CreateSystemNotificationHandler : IRequestHandler<CreateSystemNot
     private readonly IStore _store;
     private readonly ISystemNotificationsService _systemNotificationsService;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
+    private readonly IValidatorService<CreateSystemNotificationCommand> _validatorService;
 
     public CreateSystemNotificationHandler
     (
         IActingUserService actingUserService,
         IStore store,
         ISystemNotificationsService systemNotificationsService,
-        UserRoleAuthorizer userRoleAuthorizer
+        UserRoleAuthorizer userRoleAuthorizer,
+        IValidatorService<CreateSystemNotificationCommand> validatorService
     )
     {
         _actingUserService = actingUserService;
         _store = store;
         _systemNotificationsService = systemNotificationsService;
         _userRoleAuthorizer = userRoleAuthorizer;
+        _validatorService = validatorService;
     }
 
     public async Task<ViewSystemNotification> Handle(CreateSystemNotificationCommand request, CancellationToken cancellationToken)
@@ -35,6 +40,20 @@ internal class CreateSystemNotificationHandler : IRequestHandler<CreateSystemNot
         _userRoleAuthorizer
             .AllowRoles(UserRole.Admin)
             .Authorize();
+
+        _validatorService.AddValidator
+        (
+            (req, ctx) =>
+            {
+                if (request.Create.Title.IsEmpty())
+                    ctx.AddValidationException(new MissingRequiredInput<CreateSystemNotificationCommand>(nameof(request.Create.Title), request));
+
+                if (request.Create.MarkdownContent.IsEmpty())
+                    ctx.AddValidationException(new MissingRequiredInput<CreateSystemNotificationCommand>(nameof(request.Create.MarkdownContent), request));
+            }
+        );
+
+        await _validatorService.Validate(request, cancellationToken);
 
         var created = await _store
             .Create(new SystemNotification

@@ -50,6 +50,7 @@ internal class GetVisibleNotificationsHandler : IRequestHandler<GetVisibleNotifi
             .Where(n => n.StartsOn == null || nowish > n.StartsOn)
             .Where(n => n.EndsOn == null || nowish < n.EndsOn)
             .Where(n => !n.Interactions.Any(i => i.UserId == actingUserId && i.DismissedOn != null))
+            .Where(n => !n.Interactions.Any(i => i.UserId == actingUserId && i.SawFullNotificationOn != null))
             .Select(entity => new ViewSystemNotification
             {
                 Id = entity.Id,
