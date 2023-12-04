@@ -861,6 +861,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<DateTimeOffset?>("EndsOn")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("MarkdownContent")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");

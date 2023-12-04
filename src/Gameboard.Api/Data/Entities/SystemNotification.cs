@@ -18,6 +18,7 @@ public class SystemNotification : IEntity
     public DateTimeOffset? StartsOn { get; set; }
     public DateTimeOffset? EndsOn { get; set; }
     public SystemNotificationType NotificationType { get; set; } = SystemNotificationType.GeneralInfo;
+    public bool IsDeleted { get; set; }
 
     // nav properties
     public string CreatedByUserId { get; set; }
