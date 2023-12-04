@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Gameboard.Api.Features.SystemNotifications;
 
-[Route("api/system-notifications")]
+[Route("api")]
 [Authorize]
 public class SystemNotificationsController : ControllerBase
 {
@@ -17,11 +17,15 @@ public class SystemNotificationsController : ControllerBase
         _mediator = mediator;
     }
 
-    [HttpPost]
+    [HttpPost("system-notifications")]
     public Task<ViewSystemNotification> CreateSystemNotification([FromBody] CreateSystemNotification createSystemNotification)
         => _mediator.Send(new CreateSystemNotificationCommand(createSystemNotification));
 
-    [HttpGet]
+    [HttpGet("system-notifications")]
     public Task<IEnumerable<ViewSystemNotification>> GetVisibleNotifications()
         => _mediator.Send(new GetVisibleNotificationsQuery());
+
+    [HttpGet("admin/system-notifications")]
+    public Task<IEnumerable<AdminViewSystemNotification>> GetAllNotifications()
+        => _mediator.Send(new GetAdminSystemNotificationsQuery());
 }

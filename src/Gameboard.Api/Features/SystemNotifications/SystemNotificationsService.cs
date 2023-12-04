@@ -24,7 +24,16 @@ internal class SystemNotificationsService : ISystemNotificationsService
         => _store
             .WithNoTracking<SystemNotification>()
                 .Include(n => n.CreatedByUser)
-            .Select(n => ToViewSystemNotification(n))
+            .Select(entity => new ViewSystemNotification
+            {
+                Id = entity.Id,
+                Title = entity.Title,
+                MarkdownContent = entity.MarkdownContent,
+                StartsOn = entity.StartsOn,
+                EndsOn = entity.EndsOn,
+                NotificationType = entity.NotificationType,
+                CreatedBy = new SimpleEntity { Id = entity.CreatedByUserId, Name = entity.CreatedByUser.ApprovedName }
+            })
             .SingleOrDefaultAsync(n => n.Id == id);
 
     public ViewSystemNotification ToViewSystemNotification(SystemNotification notification)

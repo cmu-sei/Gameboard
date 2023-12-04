@@ -50,7 +50,16 @@ internal class GetVisibleNotificationsHandler : IRequestHandler<GetVisibleNotifi
             .Where(n => n.StartsOn == null || nowish > n.StartsOn)
             .Where(n => n.EndsOn == null || nowish < n.EndsOn)
             .Where(n => !n.Interactions.Any(i => i.UserId == actingUserId && i.DismissedOn != null))
-            .Select(n => _systemNotificationService.ToViewSystemNotification(n))
+            .Select(entity => new ViewSystemNotification
+            {
+                Id = entity.Id,
+                Title = entity.Title,
+                MarkdownContent = entity.MarkdownContent,
+                StartsOn = entity.StartsOn,
+                EndsOn = entity.EndsOn,
+                NotificationType = entity.NotificationType,
+                CreatedBy = new SimpleEntity { Id = entity.CreatedByUserId, Name = entity.CreatedByUser.ApprovedName }
+            })
             .ToArrayAsync(cancellationToken);
     }
 }

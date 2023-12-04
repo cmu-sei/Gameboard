@@ -5,9 +5,9 @@ namespace Gameboard.Api.Data;
 
 public enum SystemNotificationType
 {
-    GeneralInfo,
-    Warning,
-    Emergency
+    GeneralInfo = 0,
+    Warning = 1,
+    Emergency = 2
 }
 
 public class SystemNotification : IEntity
