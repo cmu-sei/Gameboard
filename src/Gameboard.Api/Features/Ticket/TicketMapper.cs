@@ -42,6 +42,8 @@ public class TicketMapper : Profile
 
         CreateMap<Ticket, TicketNotification>();
         CreateMap<TicketActivity, TicketNotification>();
+        CreateMap<Data.User, TicketUser>()
+            .ForMember(d => d.IsSupportPersonnel, opt => opt.MapFrom(s => s.Role.HasFlag(UserRole.Support) || s.Role.HasFlag(UserRole.Admin)));
 
         JsonOptions = new JsonSerializerOptions
         {

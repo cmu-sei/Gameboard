@@ -30,9 +30,9 @@ namespace Gameboard.Api
 
         public string[] Attachments { get; set; }
 
-        public UserSimple Requester { get; set; }
-        public UserSimple Assignee { get; set; }
-        public UserSimple Creator { get; set; }
+        public TicketUser Requester { get; set; }
+        public TicketUser Assignee { get; set; }
+        public TicketUser Creator { get; set; }
         public ChallengeOverview Challenge { get; set; }
         public PlayerOverview Player { get; set; }
 
@@ -62,7 +62,6 @@ namespace Gameboard.Api
         public UserSimple Assignee { get; set; }
         public UserSimple Creator { get; set; }
         public ChallengeSummary Challenge { get; set; }
-
     }
 
     public class SelfTicketSubmission
@@ -125,8 +124,8 @@ namespace Gameboard.Api
         public DateTimeOffset Timestamp { get; set; }
         public DateTimeOffset LastUpdated { get; set; }
         public string[] Attachments { get; set; }
-        public UserSimple User { get; set; }
-        public UserSimple Assignee { get; set; }
+        public TicketUser User { get; set; }
+        public TicketUser Assignee { get; set; }
     }
 
     public class TicketSearchFilter : SearchFilter
@@ -213,5 +212,13 @@ namespace Gameboard.Api
         public string RequesterId { get; set; }
         public string Status { get; set; }
         public DateTimeOffset LastUpdated { get; set; }
+    }
+
+    public sealed class TicketUser
+    {
+        public required string Id { get; set; }
+        public required string ApprovedName { get; set; }
+        public required UserRole Role { get; set; }
+        public required bool IsSupportPersonnel { get; set; }
     }
 }
