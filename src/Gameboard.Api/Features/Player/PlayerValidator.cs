@@ -173,7 +173,7 @@ namespace Gameboard.Api.Validators
                 .Select(p => p.Id)
                 .ToArrayAsync();
 
-            if (teammateIds.Any())
+            if (!IsActingAsAdmin(request.Actor) && teammateIds.Any())
                 throw new ManagerCantUnenrollWhileTeammatesRemain(player.Id, player.TeamId, teammateIds);
         }
 
