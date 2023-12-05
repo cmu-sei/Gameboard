@@ -106,7 +106,7 @@ namespace Gameboard.Api.Validators
                 var state = await gameModeService.GetGamePlayState(model.GameId, CancellationToken.None);
 
                 if (state != GamePlayState.NotRegistered && state != GamePlayState.NotStarted)
-                    throw new CantEnrollWithIneligibleGamePlayState(model.UserId, model.GameId, state, GamePlayState.NotRegistered, GamePlayState.NotRegistered);
+                    throw new CantEnrollWithIneligibleGamePlayState(model.UserId, model.GameId, state, GamePlayState.NotRegistered, GamePlayState.NotStarted);
             }
 
             await Task.CompletedTask;

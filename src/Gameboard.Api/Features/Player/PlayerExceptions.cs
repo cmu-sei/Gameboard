@@ -33,7 +33,7 @@ internal class CantEnrollWithDefaultSponsor : GameboardValidationException
 internal class CantEnrollWithIneligibleGamePlayState : GameboardValidationException
 {
     internal CantEnrollWithIneligibleGamePlayState(string userId, string gameId, GamePlayState currentState, params GamePlayState[] permittedStates)
-        : base($"User {userId} can't enroll in game {gameId} because it's in an ineligible Game Play State({currentState}). Permitted states are: {string.Join(", ", permittedStates)}") { }
+        : base($"User {userId} can't enroll in game {gameId} because it's in an ineligible Game Play State ({currentState}). Permitted states are: {string.Join(", ", permittedStates)}") { }
 }
 
 internal class NoPlayerSponsorForGame : GameboardValidationException
