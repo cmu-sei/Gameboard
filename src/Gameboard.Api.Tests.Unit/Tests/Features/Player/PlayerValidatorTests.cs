@@ -1,4 +1,5 @@
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Validators;
 
@@ -37,7 +38,7 @@ public class PlayerValidatorTests
             TeamId = teamId
         };
 
-        var sut = new PlayerValidator(A.Fake<IPlayerStore>(), BuildStoreWithActingPlayer("manager", new Data.Player[]
+        var sut = new PlayerValidator(A.Fake<IGameModeServiceFactory>(), A.Fake<IPlayerStore>(), BuildStoreWithActingPlayer("manager", new Data.Player[]
         {
             managerPlayer, nonManagerPlayer
         }));
@@ -63,7 +64,7 @@ public class PlayerValidatorTests
         };
 
         var store = BuildStoreWithActingPlayer(player.Id, player);
-        var sut = new PlayerValidator(A.Fake<IPlayerStore>(), store);
+        var sut = new PlayerValidator(A.Fake<IGameModeServiceFactory>(), A.Fake<IPlayerStore>(), store);
 
         // act / assert
         await Should.NotThrowAsync(() => sut._validate(new PlayerUnenrollRequest
@@ -90,7 +91,7 @@ public class PlayerValidatorTests
         };
 
         var store = BuildStoreWithActingPlayer(player.Id, player);
-        var sut = new PlayerValidator(A.Fake<IPlayerStore>(), store);
+        var sut = new PlayerValidator(A.Fake<IGameModeServiceFactory>(), A.Fake<IPlayerStore>(), store);
 
         // act / assert
         Should.Throw<SessionAlreadyStarted>(async () => await sut._validate(new PlayerUnenrollRequest
@@ -117,7 +118,7 @@ public class PlayerValidatorTests
         };
 
         var store = BuildStoreWithActingPlayer(player.Id, player);
-        var sut = new PlayerValidator(A.Fake<IPlayerStore>(), store);
+        var sut = new PlayerValidator(A.Fake<IGameModeServiceFactory>(), A.Fake<IPlayerStore>(), store);
 
         // act / assert
         await Should.NotThrowAsync(() => sut._validate(new PlayerUnenrollRequest

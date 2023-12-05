@@ -8,7 +8,7 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Games.Start;
 
-public record GetGamePlayStateQuery(string GameId, string TeamId, string ActingUserId) : IRequest<GamePlayState>;
+public record GetGamePlayStateQuery(string GameId, string ActingUserId) : IRequest<GamePlayState>;
 
 internal class GetGamePlayStateHandler : IRequestHandler<GetGamePlayStateQuery, GamePlayState>
 {
@@ -52,6 +52,6 @@ internal class GetGamePlayStateHandler : IRequestHandler<GetGamePlayStateQuery, 
             .AddValidator(_userExists.UseProperty(r => r.ActingUserId));
         await _validatorService.Validate(request, cancellationToken);
 
-        return await _gameStartService.GetGamePlayState(request.GameId, request.TeamId, cancellationToken);
+        return await _gameStartService.GetGamePlayState(request.GameId, cancellationToken);
     }
 }

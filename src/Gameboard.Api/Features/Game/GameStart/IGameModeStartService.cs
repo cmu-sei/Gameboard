@@ -16,15 +16,14 @@ namespace Gameboard.Api.Features.Games.Start;
 public interface IGameModeStartService
 {
     /// <summary>
-    /// Indicates the playability of the given game for the given team. For example, in standard unsync'd games,
+    /// Indicates the playability of the given game. For example, in standard unsync'd games,
     /// this should return NotStarted if the execution window isn't open and should return GameOver if
-    /// the game's execution window is closed or if the team's session for the game is over.
+    /// the game's execution window is closed.
     /// </summary>
     /// <param name="gameId"></param>
-    /// <param name="teamId"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<GamePlayState> GetGamePlayState(string gameId, string teamId, CancellationToken cancellationToken);
+    public Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Deploy any resources (i.e. challenges, game engine gamespaces, etc.) for the game. Note that this happens

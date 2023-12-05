@@ -217,7 +217,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         };
     }
 
-    public async Task<GamePlayState> GetGamePlayState(string gameId, string teamId, CancellationToken cancellationToken)
+    public async Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken)
     {
         // unlike normal games, the playability of external + sync-start games is a function of _all_ registered teams,
         // not just the one passed here. We actually don't need the team parameter at all for this configuration.

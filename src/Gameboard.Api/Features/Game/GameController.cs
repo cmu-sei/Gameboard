@@ -147,11 +147,11 @@ namespace Gameboard.Api.Controllers
         public async Task<SyncStartState> GetSyncStartState(string gameId)
             => await _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
 
-        [HttpGet("/api/game/{gameId}/play-state/{teamId}")]
+        [HttpGet("/api/game/{gameId}/play-state")]
         [Authorize]
-        public async Task<GamePlayState> GetGamePlayState(string gameId, string teamId)
+        public async Task<GamePlayState> GetGamePlayState(string gameId)
         {
-            return await _mediator.Send(new GetGamePlayStateQuery(gameId, teamId, Actor.Id));
+            return await _mediator.Send(new GetGamePlayStateQuery(gameId, Actor.Id));
         }
 
         [HttpPost("/api/game/import")]
