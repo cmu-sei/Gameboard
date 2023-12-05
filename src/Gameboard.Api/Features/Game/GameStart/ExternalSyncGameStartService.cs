@@ -273,9 +273,15 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 // each team needs either a deployed challenge or an undeployed one that they've completed (based on score)
                 var challenge = teamChallenges.ContainsKey(teamIdIterated) ? teamChallenges[teamIdIterated].FirstOrDefault(c => c.SpecId == specId) : null;
 
-                if (challenge is null || !(challenge.HasDeployedGamespace || challenge.Score >= challenge.Points))
+                if (challenge is null)
                 {
-                    _logger.LogInformation($"Game {gameId} is not in Started state because we either couldn't find a challenge for team {teamIdIterated} / spec {specId} or the corresponding challenge isn't deployed (challenge null?: {challenge is null}, has gamespace?: {challenge?.HasDeployedGamespace}, score: {challenge.Points}/{challenge.Score})");
+                    _logger.LogInformation($"Game {gameId} is not in Started state because we couldn't find a challenge for team {teamIdIterated} / spec {specId}.");
+                    allDeployed = false;
+                }
+
+                if (!challenge.HasDeployedGamespace && challenge.Score < challenge.Points)
+                {
+                    _logger.LogInformation($"Game {gameId} is not in Started state because the challenge for team {teamIdIterated} / spec {specId} is undeployed and not finished.");
                     allDeployed = false;
                     break;
                 }
