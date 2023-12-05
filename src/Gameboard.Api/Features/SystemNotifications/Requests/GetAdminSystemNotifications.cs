@@ -32,6 +32,7 @@ internal class GetAdminSystemNotificationsHandler : IRequestHandler<GetAdminSyst
             .WithNoTracking<SystemNotification>()
                 .Include(n => n.Interactions)
                 .Include(n => n.CreatedByUser)
+            .Where(n => !n.IsDeleted)
             .Select(n => new AdminViewSystemNotification
             {
                 Id = n.Id,

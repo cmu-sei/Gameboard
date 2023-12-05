@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Features.SystemNotifications;
@@ -48,5 +49,6 @@ public enum InteractionType
 
 public sealed class UpdateInteractionRequest
 {
+    public required IEnumerable<string> SystemNotificationIds { get; set; }
     public required InteractionType InteractionType { get; set; }
 }

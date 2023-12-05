@@ -29,10 +29,14 @@ public class SystemNotificationsController : ControllerBase
     public Task<ViewSystemNotification> UpdateSystemNotification([FromRoute] string id, [FromBody] UpdateSystemNotificationRequest request)
         => _mediator.Send(new UpdateSystemNotificationCommand(request));
 
+    [HttpDelete("system-notifications/{id}")]
+    [Authorize(AppConstants.AdminPolicy)]
+    public Task DeleteSystemNotification([FromRoute] string id)
+        => _mediator.Send(new DeleteSystemNotificationCommand(id));
 
-    [HttpPost("system-notifications/{id}/interaction")]
-    public Task UpdateInteractions([FromRoute] string id, [FromBody] UpdateInteractionRequest request)
-        => _mediator.Send(new UpdateUserSystemNotificationInteractionCommand(id, request.InteractionType));
+    [HttpPost("system-notifications/interaction")]
+    public Task UpdateInteractions([FromBody] UpdateInteractionRequest request)
+        => _mediator.Send(new UpdateUserSystemNotificationInteractionCommand(request.SystemNotificationIds, request.InteractionType));
 
     [HttpGet("admin/system-notifications")]
     public Task<IEnumerable<AdminViewSystemNotification>> GetAllNotifications()

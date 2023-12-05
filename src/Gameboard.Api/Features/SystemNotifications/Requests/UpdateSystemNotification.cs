@@ -59,7 +59,7 @@ internal class UpdateSystemNotificationHandler : IRequestHandler<UpdateSystemNot
 
         await _store
             .WithNoTracking<SystemNotification>()
-            .Where(n => n.Id == request.Update.Id)
+            .Where(n => n.Id == request.Update.Id && !n.IsDeleted)
             .ExecuteUpdateAsync
             (
                 up => up

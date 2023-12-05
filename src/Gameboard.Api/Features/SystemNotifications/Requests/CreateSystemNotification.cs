@@ -65,7 +65,8 @@ internal class CreateSystemNotificationHandler : IRequestHandler<CreateSystemNot
                 NotificationType = request.Create.NotificationType.GetValueOrDefault() is not default(SystemNotificationType) ?
                     request.Create.NotificationType.Value :
                     SystemNotificationType.GeneralInfo,
-                CreatedByUserId = _actingUserService.Get().Id
+                CreatedByUserId = _actingUserService.Get().Id,
+                IsDeleted = false
             });
 
         return await _systemNotificationsService.Get(created.Id);

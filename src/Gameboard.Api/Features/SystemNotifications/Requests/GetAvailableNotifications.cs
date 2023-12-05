@@ -47,6 +47,7 @@ internal class GetVisibleNotificationsHandler : IRequestHandler<GetVisibleNotifi
 
         return await _store
             .WithNoTracking<SystemNotification>()
+            .Where(n => !n.IsDeleted)
             .Where(n => n.StartsOn == null || nowish > n.StartsOn)
             .Where(n => n.EndsOn == null || nowish < n.EndsOn)
             .Where(n => !n.Interactions.Any(i => i.UserId == actingUserId && i.DismissedOn != null))
