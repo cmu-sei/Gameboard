@@ -263,6 +263,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         var anyChallenges = teamChallenges.Any(c => true);
         var allDeployed = true;
 
+        if (!anyChallenges)
+            return GamePlayState.NotStarted;
+
         foreach (var specId in specIds)
         {
             foreach (var teamIdIterated in teams.Keys)
@@ -282,10 +285,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         if (allDeployed)
             return GamePlayState.Started;
 
-        if (anyChallenges)
-            return GamePlayState.Starting;
-
-        return GamePlayState.NotStarted;
+        return GamePlayState.Starting;
     }
 
     public async Task TryCleanUpFailedDeploy(GameModeStartRequest request, Exception exception, CancellationToken cancellationToken)
