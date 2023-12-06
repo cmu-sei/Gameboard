@@ -338,6 +338,7 @@ public partial class ChallengeService : _Service
     {
         var challenge = await _challengeStore.Retrieve(model.Id);
 
+        // log the appropriate event
         challenge.Events.Add(new ChallengeEvent
         {
             Id = _guids.GetGuid(),
