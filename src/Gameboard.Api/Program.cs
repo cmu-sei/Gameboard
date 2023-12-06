@@ -46,7 +46,7 @@ if (dbOnly)
 
     var dbOnlyApp = builder.Build();
     dbOnlyApp.Logger.LogInformation("Starting the app in dbonly mode...");
-    dbOnlyApp.Logger.LogInformation($"Connection string: ", settings.Database.ConnectionString);
+    dbOnlyApp.Logger.LogInformation($"Connection string: {settings.Database.ConnectionString}");
     dbOnlyApp.InitializeDatabase(settings, dbOnlyApp.Logger);
     dbOnlyApp.Logger.LogInformation("DB initialized.");
 
