@@ -18,7 +18,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Controllers
 {
-
     [Authorize]
     public class ChallengeController : _Controller
     {
