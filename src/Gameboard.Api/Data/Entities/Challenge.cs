@@ -27,6 +27,7 @@ public class Challenge : IEntity
     public DateTimeOffset EndTime { get; set; }
     public bool HasDeployedGamespace { get; set; }
     public GameEngineType GameEngineType { get; set; }
+    public ChallengeSubmission PendingSubmission { get; set; }
 
     [NotMapped]
     public ChallengeResult Result => Score >= Points
@@ -51,5 +52,6 @@ public class Challenge : IEntity
     public ICollection<ManualChallengeBonus> AwardedManualBonuses { get; set; } = new List<ManualChallengeBonus>();
     public ICollection<ChallengeEvent> Events { get; set; } = new List<ChallengeEvent>();
     public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
+    public ICollection<ChallengeSubmission> Submissions { get; set; } = new List<ChallengeSubmission>();
     public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
 }

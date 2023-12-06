@@ -3,6 +3,7 @@
 
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using ServiceStack;
 
 namespace Gameboard.Api.Data;
 
@@ -127,6 +128,14 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.TeamId).HasMaxLength(40);
             b.Property(u => u.GameId).HasMaxLength(40);
             b.Property(u => u.GraderKey).HasMaxLength(64);
+
+            b
+                .HasOne(c => c.PendingSubmission)
+                .WithOne(s => s.PendingSubmissionForChallenge);
+
+            b
+                .HasMany(c => c.Submissions)
+                .WithOne(s => s.SubmittedForChallenge);
         });
 
         builder.Entity<ChallengeBonus>(b =>
@@ -176,6 +185,15 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.Text).HasMaxLength(1024);
         });
 
+        builder.Entity<ChallengeGate>(b =>
+        {
+            b.HasOne(p => p.Game).WithMany(u => u.Prerequisites).OnDelete(DeleteBehavior.Cascade);
+            b.Property(g => g.Id).HasMaxLength(40);
+            b.Property(g => g.TargetId).HasMaxLength(40);
+            b.Property(g => g.RequiredId).HasMaxLength(40);
+            b.Property(g => g.GameId).HasMaxLength(40);
+        });
+
         builder.Entity<ChallengeSpec>(b =>
         {
             b.Property(u => u.Id).HasMaxLength(40);
@@ -184,15 +202,6 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.SolutionGuideUrl).HasMaxLength(1000);
 
             b.HasOne(p => p.Game).WithMany(u => u.Specs).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        builder.Entity<ChallengeGate>(b =>
-        {
-            b.HasOne(p => p.Game).WithMany(u => u.Prerequisites).OnDelete(DeleteBehavior.Cascade);
-            b.Property(g => g.Id).HasMaxLength(40);
-            b.Property(g => g.TargetId).HasMaxLength(40);
-            b.Property(g => g.RequiredId).HasMaxLength(40);
-            b.Property(g => g.GameId).HasMaxLength(40);
         });
 
         builder.Entity<Sponsor>(b =>
@@ -232,6 +241,12 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.PlayerId).HasMaxLength(40);
             b.Property(p => p.PlayerName).HasMaxLength(64);
             b.Property(u => u.UserId).HasMaxLength(40);
+        });
+
+        builder.Entity<ChallengeSubmissionAnswerData>(b =>
+        {
+            b.ToJson();
+            b.OwnsMany(d => d.Answers);
         });
 
         builder.Entity<PublishedCertificate>(b =>
