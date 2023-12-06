@@ -142,7 +142,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
 
             return new EnrollmentReportRecord
             {
-                User = new SimpleEntity { Id = p.UserId, Name = p.User.Name },
+                User = new SimpleEntity { Id = p.UserId, Name = p.User.ApprovedName },
                 Player = new EnrollmentReportPlayerViewModel
                 {
                     Id = p.Id,

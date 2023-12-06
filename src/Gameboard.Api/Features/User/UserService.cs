@@ -109,7 +109,7 @@ public class UserService
 
     public async Task<User> Update(ChangedUser model, bool sudo, bool admin = false)
     {
-        var entity = await _userStore.Retrieve(model.Id);
+        var entity = await _userStore.Retrieve(model.Id, q => q.Include(u => u.Sponsor));
 
         // with user stuff, there are super-users (sudoers) and admins
         // only admins can alter the roles of users
@@ -135,9 +135,15 @@ public class UserService
             entity.Name = model.Name.Trim();
 
             // sudoers change names without the "pending" step
-            entity.NameStatus = sudo ? entity.NameStatus : "pending";
+            entity.NameStatus = sudo ? entity.NameStatus : AppConstants.NameStatusPending;
             // and they automatically copy the requested name to the approved name
             entity.ApprovedName = sudo ? entity.Name : entity.ApprovedName;
+
+            // after shuffling the name, approved name, and status, check to ensure
+            // that the name and approved name are different. if they're the same,
+            // they're not in pending status (because the name is approved)
+            if (entity.Name == entity.ApprovedName && entity.NameStatus == AppConstants.NameStatusPending)
+                entity.NameStatus = string.Empty;
 
             // if the name is in use, change the namestatus to reflect this fact
             // check uniqueness
@@ -189,7 +195,7 @@ public class UserService
             q = q.Where(u => ((int)u.Role) > 0);
 
         if (model.WantsPending)
-            q = q.Where(u => u.NameStatus.Equals(AppConstants.NameStatusPending));
+            q = q.Where(u => u.NameStatus.Equals(AppConstants.NameStatusPending) && u.Name != u.ApprovedName);
 
         if (model.WantsDisallowed)
             q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus) && !u.NameStatus.Equals(AppConstants.NameStatusPending));
