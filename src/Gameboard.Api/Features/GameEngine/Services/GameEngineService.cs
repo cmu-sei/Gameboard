@@ -22,6 +22,7 @@ public interface IGameEngineService
     Task DeleteGamespace(Data.Challenge entity);
     Task DeleteGamespace(string id, GameEngineType gameEngineType);
     Task ExtendSession(Data.Challenge entity, DateTimeOffset sessionEnd);
+    Task ExtendSession(string challengeId, DateTimeOffset sessionEnd, GameEngineType gameEngineType);
     Task<GameEngineGameState> GetChallengeState(GameEngineType gameEngineType, string stateJson);
     Task<ConsoleSummary> GetConsole(Data.Challenge entity, ConsoleRequest model, bool observer);
     Task<GameEngineGameState> GetPreview(Data.ChallengeSpec spec);
@@ -333,12 +334,15 @@ public class GameEngineService : _Service, IGameEngineService
     }
 
     public Task ExtendSession(Data.Challenge entity, DateTimeOffset sessionEnd)
+        => ExtendSession(entity.Id, sessionEnd, entity.GameEngineType);
+
+    public Task ExtendSession(string challengeId, DateTimeOffset sessionEnd, GameEngineType gameEngineType)
     {
-        return entity.GameEngineType switch
+        return gameEngineType switch
         {
             GameEngineType.TopoMojo => Mojo.UpdateGamespaceAsync(new ChangedGamespace
             {
-                Id = entity.Id,
+                Id = challengeId,
                 ExpirationTime = sessionEnd
             }),
             _ => throw new NotImplementedException(),

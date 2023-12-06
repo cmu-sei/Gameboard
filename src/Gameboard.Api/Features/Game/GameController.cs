@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Gameboard.Api.Features.games;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Services;
@@ -28,7 +29,8 @@ namespace Gameboard.Api.Controllers
         public IHostEnvironment Env { get; }
         private readonly IMediator _mediator;
 
-        public GameController(
+        public GameController
+        (
             ILogger<GameController> logger,
             IDistributedCache cache,
             GameService gameService,
@@ -74,7 +76,6 @@ namespace Gameboard.Api.Controllers
         public async Task<ChallengeSpec[]> GetChallengeSpecs([FromRoute] string id)
         {
             await Validate(new Entity { Id = id });
-
             return await GameService.RetrieveChallengeSpecs(id);
         }
 
@@ -83,7 +84,6 @@ namespace Gameboard.Api.Controllers
         public async Task<SessionForecast[]> GetSessionForecast([FromRoute] string id)
         {
             await Validate(new Entity { Id = id });
-
             return await GameService.SessionForecast(id);
         }
 
@@ -108,11 +108,8 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpDelete("/api/game/{id}")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task Delete([FromRoute] string id)
-        {
-            await Validate(new Entity { Id = id });
-            await GameService.Delete(id);
-        }
+        public Task Delete([FromRoute] string id)
+            => _mediator.Send(new DeleteGameCommand(id));
 
         /// <summary>
         /// Find games
@@ -147,16 +144,15 @@ namespace Gameboard.Api.Controllers
 
         [HttpGet("/api/game/{gameId}/ready")]
         [Authorize]
-        public async Task<SyncStartState> IsGameReady(string gameId)
+        public async Task<SyncStartState> GetSyncStartState(string gameId)
             => await _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
 
-        [HttpGet("/api/game/{gameId}/start-phase")]
+        [HttpGet("/api/game/{gameId}/play-state")]
         [Authorize]
-        public async Task<GameStartPhase> GetStartPhase(string gameId)
+        public async Task<GamePlayState> GetGamePlayState(string gameId)
         {
-            return await _mediator.Send(new GetGameStartPhaseQuery(gameId, Actor.Id));
+            return await _mediator.Send(new GetGamePlayStateQuery(gameId, Actor.Id));
         }
-
 
         [HttpPost("/api/game/import")]
         [Authorize(AppConstants.DesignerPolicy)]
@@ -180,13 +176,11 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<UploadedFile>> UploadMapImage(string id, string type, IFormFile file)
         {
-            AuthorizeAny(
-                () => Actor.IsDesigner
-            );
+            AuthorizeAny(() => Actor.IsDesigner);
 
             await Validate(new Entity { Id = id });
 
-            string filename = $"{type}_{(new Random()).Next().ToString("x8")}{Path.GetExtension(file.FileName)}".ToLower();
+            string filename = $"{type}_{new Random().Next().ToString("x8")}{Path.GetExtension(file.FileName)}".ToLower();
             string path = Path.Combine(Options.ImageFolder, filename);
 
             using (var stream = new FileStream(path, FileMode.Create))
@@ -236,7 +230,6 @@ namespace Gameboard.Api.Controllers
             );
 
             await Validate(new Entity { Id = id });
-
             await GameService.ReRank(id);
         }
     }

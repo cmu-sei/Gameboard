@@ -21,6 +21,7 @@ public enum GameHubEventType
     ExternalGameLaunchEnd,
     ExternalGameLaunchFailure,
     PlayerJoined,
+    SyncStartGameStarted,
     SyncStartGameStarting,
     SyncStartGameStateChanged,
     VerifyAllPlayersConnectedStart,
@@ -31,18 +32,19 @@ public enum GameHubEventType
 
 public interface IGameHubEvent
 {
-    Task ExternalGameChallengesDeployStart(GameHubEvent<GameStartState> ev);
-    Task ExternalGameChallengesDeployProgressChange(GameHubEvent<GameStartState> ev);
-    Task ExternalGameChallengesDeployEnd(GameHubEvent<GameStartState> ev);
-    Task ExternalGameLaunchStart(GameHubEvent<GameStartState> ev);
-    Task ExternalGameLaunchEnd(GameHubEvent<GameStartState> ev);
-    Task ExternalGameLaunchFailure(GameHubEvent<GameStartState> ev);
-    Task ExternalGameGamespacesDeployStart(GameHubEvent<GameStartState> ev);
-    Task ExternalGameGamespacesDeployProgressChange(GameHubEvent<GameStartState> ev);
-    Task ExternalGameGamespacesDeployEnd(GameHubEvent<GameStartState> ev);
+    Task ExternalGameChallengesDeployStart(GameHubEvent<GameStartUpdate> ev);
+    Task ExternalGameChallengesDeployProgressChange(GameHubEvent<GameStartUpdate> ev);
+    Task ExternalGameChallengesDeployEnd(GameHubEvent<GameStartUpdate> ev);
+    Task ExternalGameLaunchStart(GameHubEvent<GameStartUpdate> ev);
+    Task ExternalGameLaunchEnd(GameHubEvent<GameStartUpdate> ev);
+    Task ExternalGameLaunchFailure(GameHubEvent<GameStartUpdate> ev);
+    Task ExternalGameGamespacesDeployStart(GameHubEvent<GameStartUpdate> ev);
+    Task ExternalGameGamespacesDeployProgressChange(GameHubEvent<GameStartUpdate> ev);
+    Task ExternalGameGamespacesDeployEnd(GameHubEvent<GameStartUpdate> ev);
     Task PlayerJoined(GameHubEvent<PlayerJoinedEvent> ev);
     Task SyncStartGameStateChanged(GameHubEvent<SyncStartState> ev);
-    Task SyncStartGameStarting(GameHubEvent<SyncStartGameStartedState> ev);
+    Task SyncStartGameStarted(GameHubEvent<SyncStartGameStartedState> ev);
+    Task SyncStartGameStarting(GameHubEvent<SyncStartState> ev);
     Task YouJoined(GameHubEvent<YouJoinedEvent> ev);
 }
 

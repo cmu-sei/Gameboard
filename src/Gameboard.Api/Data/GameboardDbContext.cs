@@ -59,6 +59,19 @@ public class GameboardDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        builder.Entity<ExternalGameTeam>(b =>
+        {
+            b.Property(s => s.Id).HasStandardGuidLength();
+            b.Property(s => s.TeamId)
+                .HasStandardGuidLength()
+                .IsRequired();
+
+            b.HasAlternateKey(s => new { s.TeamId, s.GameId });
+            b.HasOne(b => b.Game)
+                .WithMany(g => g.ExternalGameTeams)
+                .IsRequired();
+        });
+
         builder.Entity<Player>(b =>
         {
             b.HasKey(p => p.Id);
@@ -285,6 +298,38 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.AssigneeId).HasMaxLength(40);
             b.Property(u => u.Status).HasMaxLength(64);
         });
+
+        builder.Entity<SystemNotification>(b =>
+        {
+            b.HasKey(n => n.Id);
+            b.Property(n => n.Id).HasStandardGuidLength();
+            b.Property(n => n.Title)
+                .HasStandardNameLength()
+                .IsRequired();
+            b.Property(n => n.MarkdownContent).IsRequired();
+
+            // nav properties
+            b
+                .HasOne(n => n.CreatedByUser)
+                .WithMany(u => u.CreatedSystemNotifications)
+                .IsRequired();
+
+            b
+                .HasMany(n => n.Interactions)
+                .WithOne(i => i.SystemNotification)
+                .IsRequired();
+        });
+
+        builder.Entity<SystemNotificationInteraction>(b =>
+        {
+            b.HasKey(i => i.Id);
+            b.HasAlternateKey(i => new { i.SystemNotificationId, i.UserId });
+
+            b
+                .HasOne(i => i.User)
+                .WithMany(u => u.SystemNotificationInteractions)
+                .IsRequired();
+        });
     }
 
     public DbSet<ApiKey> ApiKeys { get; set; }
@@ -296,12 +341,15 @@ public class GameboardDbContext : DbContext
     public DbSet<ChallengeEvent> ChallengeEvents { get; set; }
     public DbSet<ChallengeSpec> ChallengeSpecs { get; set; }
     public DbSet<ChallengeGate> ChallengeGates { get; set; }
+    public DbSet<ExternalGameTeam> ExternalGameTeams { get; set; }
     public DbSet<Feedback> Feedback { get; set; }
     public DbSet<Game> Games { get; set; }
     public DbSet<ManualChallengeBonus> ManualChallengeBonuses { get; set; }
     public DbSet<Player> Players { get; set; }
     public DbSet<PublishedCertificate> PublishedCertificate { get; set; }
     public DbSet<Sponsor> Sponsors { get; set; }
+    public DbSet<SystemNotification> SystemNotifications { get; set; }
+    public DbSet<SystemNotificationInteraction> SystemNotificationInteractions { get; set; }
     public DbSet<Ticket> Tickets { get; set; }
     public DbSet<TicketActivity> TicketActivity { get; set; }
     public DbSet<User> Users { get; set; }

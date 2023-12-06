@@ -31,11 +31,6 @@ public interface IReportsService
 public class ReportsService : IReportsService
 {
     private static readonly string MULTI_SELECT_DELIMITER = ",";
-    public static readonly PagingArgs DEFAULT_PAGING = new()
-    {
-        PageNumber = 0,
-        PageSize = 20,
-    };
 
     private readonly IMapper _mapper;
     private readonly INowService _now;
@@ -141,16 +136,6 @@ public class ReportsService : IReportsService
     /// <returns></returns>
     public async Task<IDictionary<string, ReportTeamViewModel>> GetTeamsByPlayerIds(IEnumerable<string> playerIds, CancellationToken cancellationToken)
     {
-        var sponsors = await _store
-            .List<Data.Sponsor>()
-            .Select(s => new ReportSponsorViewModel
-            {
-                Id = s.Id,
-                Name = s.Name,
-                LogoFileName = s.Logo
-            })
-            .ToDictionaryAsync(s => s.LogoFileName, s => s, cancellationToken);
-
         var teamPlayers = await _store
             .List<Data.Player>()
                 .Include(p => p.Sponsor)

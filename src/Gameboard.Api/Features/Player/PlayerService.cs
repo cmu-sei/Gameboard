@@ -11,7 +11,6 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Games;
-using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Sponsors;
@@ -29,12 +28,12 @@ public class PlayerService
     private readonly INowService _now;
     private readonly IPracticeService _practiceService;
     private readonly IStore _store;
+    private readonly ISyncStartGameService _syncStartGameService;
     private readonly ITeamService _teamService;
 
     CoreOptions CoreOptions { get; }
     ChallengeService ChallengeService { get; set; }
     IPlayerStore PlayerStore { get; }
-    IGameStartService GameStartService { get; }
     IGameStore GameStore { get; }
     IGuidService GuidService { get; }
     IMemoryCache LocalCache { get; }
@@ -42,7 +41,6 @@ public class PlayerService
     public PlayerService(
         ChallengeService challengeService,
         CoreOptions coreOptions,
-        IGameStartService gameStartService,
         IGameStore gameStore,
         IGuidService guidService,
         IInternalHubBus hubBus,
@@ -52,6 +50,7 @@ public class PlayerService
         IPlayerStore playerStore,
         IPracticeService practiceService,
         IStore store,
+        ISyncStartGameService syncStartGameService,
         ITeamService teamService
     )
     {
@@ -61,13 +60,13 @@ public class PlayerService
         GuidService = guidService;
         _practiceService = practiceService;
         _now = now;
-        GameStartService = gameStartService;
         GameStore = gameStore;
         _hubBus = hubBus;
         LocalCache = memCache;
         _mapper = mapper;
         PlayerStore = playerStore;
         _store = store;
+        _syncStartGameService = syncStartGameService;
         _teamService = teamService;
     }
 
@@ -104,7 +103,7 @@ public class PlayerService
         await _hubBus.SendPlayerEnrolled(_mapper.Map<Player>(entity), actor);
 
         if (game.RequireSynchronizedStart)
-            await GameStartService.HandleSyncStartStateChanged(entity.GameId, cancellationToken);
+            await _syncStartGameService.HandleSyncStartStateChanged(entity.GameId, cancellationToken);
 
         // the initialized Data.Player only has the SponsorId, and we want to send down the complete
         // sponsor object. We could just manually attach it, but for now we're just going to reload
@@ -559,7 +558,7 @@ public class PlayerService
 
         // update sync start if needed
         if (gameIsSyncStart)
-            await GameStartService.HandleSyncStartStateChanged(playerModel.GameId, cancellationToken);
+            await _syncStartGameService.HandleSyncStartStateChanged(playerModel.GameId, cancellationToken);
     }
 
     public async Task<TeamChallenge[]> LoadChallengesForTeam(string teamId)

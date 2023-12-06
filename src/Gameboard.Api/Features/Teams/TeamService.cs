@@ -8,6 +8,7 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Practice;
 using Microsoft.EntityFrameworkCore;
@@ -30,10 +31,12 @@ public interface ITeamService
     Task<Data.Player> ResolveCaptain(string teamId, CancellationToken cancellationToken);
     Data.Player ResolveCaptain(IEnumerable<Data.Player> players);
     Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser, CancellationToken cancellationToken);
+    Task UpdateSessionStartAndEnd(string teamId, DateTimeOffset? sessionStart, DateTimeOffset? sessionEnd, CancellationToken cancellationToken);
 }
 
 internal class TeamService : ITeamService
 {
+    private readonly IExternalGameTeamService _externalGameTeamService;
     private readonly IGameEngineService _gameEngine;
     private readonly IMapper _mapper;
     private readonly IMemoryCache _memCache;
@@ -45,6 +48,7 @@ internal class TeamService : ITeamService
 
     public TeamService
     (
+        IExternalGameTeamService externalGameTeamService,
         IGameEngineService gameEngine,
         IMapper mapper,
         IMemoryCache memCache,
@@ -55,6 +59,7 @@ internal class TeamService : ITeamService
         IStore store
     )
     {
+        _externalGameTeamService = externalGameTeamService;
         _gameEngine = gameEngine;
         _mapper = mapper;
         _memCache = memCache;
@@ -74,6 +79,9 @@ internal class TeamService : ITeamService
             .WithNoTracking<Data.Player>()
             .Where(p => p.TeamId == teamId)
             .ExecuteDeleteAsync(cancellationToken);
+
+        // also delete any external data for this team
+        await _externalGameTeamService.DeleteTeamExternalData(cancellationToken, teamId);
 
         // notify hub that the team is deleted /players left so the client can respond
         await _teamHubService.SendTeamDeleted(teamState, actingUser);
@@ -156,13 +164,18 @@ internal class TeamService : ITeamService
 
     public async Task<Team> GetTeam(string id)
     {
-        var players = await _playerStore.ListTeam(id).ToArrayAsync();
+        var players = await _store
+            .WithNoTracking<Data.Player>()
+                .Include(p => p.Sponsor)
+            .Where(p => p.TeamId == id)
+            .ToArrayAsync();
+
         if (players.Length == 0)
             return null;
 
         var team = _mapper.Map<Team>(players.First(p => p.IsManager));
 
-        team.Members = _mapper.Map<TeamMember[]>(players.Select(p => p.User));
+        team.Members = _mapper.Map<TeamMember[]>(players);
         team.Sponsors = _mapper.Map<Sponsor[]>(players.Select(p => p.Sponsor));
 
         return team;
@@ -282,21 +295,88 @@ internal class TeamService : ITeamService
         };
     }
 
-    private async Task UpdateSessionEnd(string teamId, DateTimeOffset sessionEnd, CancellationToken cancellationToken)
+    private Task UpdateSessionEnd(string teamId, DateTimeOffset sessionEnd, CancellationToken cancellationToken)
+        => UpdateSessionStartAndEnd(teamId, null, sessionEnd, cancellationToken);
+
+    public async Task UpdateSessionStartAndEnd(string teamId, DateTimeOffset? sessionStart, DateTimeOffset? sessionEnd, CancellationToken cancellationToken)
     {
+        if (sessionStart is null && sessionEnd is null)
+            throw new ArgumentException($"Either {nameof(sessionStart)} or {nameof(sessionEnd)} must be non-null.");
+
         // update all players
         await _store
             .WithNoTracking<Data.Player>()
             .Where(p => p.TeamId == teamId)
-            .ExecuteUpdateAsync(up => up.SetProperty(p => p.SessionEnd, sessionEnd));
+            .ExecuteUpdateAsync
+            (
+                up => up
+                    .SetProperty(p => p.SessionBegin, p => sessionStart ?? p.SessionBegin)
+                    .SetProperty(p => p.SessionEnd, p => sessionEnd ?? p.SessionEnd),
+                cancellationToken
+            );
 
-        // and then their gamespaces
-        var gamespaceUpdates = await _store
+        // and their challenges
+        var challenges = await _store
             .WithNoTracking<Data.Challenge>()
             .Where(c => c.TeamId == teamId)
-            .Select(c => _gameEngine.ExtendSession(c, sessionEnd))
+            .Select(c => new
+            {
+                c.Id,
+                c.GameEngineType
+            })
             .ToArrayAsync(cancellationToken);
 
-        await Task.WhenAll(gamespaceUpdates);
+        // NOTE ABOUT THE BELOW:
+        //
+        // This query structure looks preferable since it only involves a single
+        // read/write. The issue we had was that during deployment of external +
+        // sync-start games, bringing the challenges back with tracking
+        // included a stale State property. (Not sure why, since we update
+        // the State to the game engine's representation of the state during 
+        // deployment). Since we were doing a full Update here, we ended up updating
+        // the State property of the challenge even though we're not explicitly doing that
+        // here, thus persisting the stale value. This may suggest a problem
+        // in the Store or some weird EF stuff we're not taking into account.
+        //
+        // TL;DR - debugging external + sync start deploy is really challenging because of
+        // external dependencies like Gamebrain, so we had to target our updates
+        // to the desired properties here and move on.
+
+        // var challenges = await _store
+        //     .WithTracking<Data.Challenge>()
+        //     .Where(c => c.TeamId == teamId)
+        //     .ToArrayAsync(cancellationToken);
+
+        // foreach (var challenge in challenges)
+        // {
+        //     if (sessionStart is not null)
+        //         challenge.StartTime = sessionStart.Value;
+
+        //     if (sessionEnd is not null)
+        //         challenge.EndTime = sessionEnd.Value;
+        // }
+        //
+        // await _store.SaveUpdateRange(challenges);
+
+        // resolve these to IDs to allow query translation
+        var challengeIds = challenges.Select(c => c.Id).ToArray();
+
+        await _store
+            .WithNoTracking<Data.Challenge>()
+            .Where(c => challengeIds.Contains(c.Id))
+            .ExecuteUpdateAsync
+            (
+                up => up
+                    .SetProperty(c => c.StartTime, c => sessionStart ?? c.StartTime)
+                    .SetProperty(c => c.EndTime, c => sessionEnd ?? c.EndTime),
+                cancellationToken
+            );
+
+        // and then their gamespaces (if the end time is changing)
+        if (sessionEnd is not null)
+        {
+            var gamespaceUpdates = challenges.Select(c => _gameEngine.ExtendSession(c.Id, sessionEnd.Value, c.GameEngineType));
+            await Task.WhenAll(gamespaceUpdates);
+        }
     }
 }

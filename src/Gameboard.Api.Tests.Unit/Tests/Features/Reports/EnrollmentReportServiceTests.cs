@@ -46,8 +46,8 @@ public class EnrollmentReportServiceTests
         var results = await sut.GetRawResults(new EnrollmentReportParameters(), CancellationToken.None);
 
         // then
-        results.Records.Count().ShouldBe(1);
-        results.Records.First().ChallengesCompletelySolvedCount.ShouldBe(1);
+        results.Count().ShouldBe(1);
+        results.First().ChallengesCompletelySolvedCount.ShouldBe(1);
     }
 
     [Theory, GameboardAutoData]
@@ -56,15 +56,13 @@ public class EnrollmentReportServiceTests
         // given 
         var sponsors = new List<Data.Sponsor>
         {
-            new Data.Sponsor
-            {
+            new() {
                 Id = "good-people",
                 Name = "The Good People",
                 Logo = "good-people.jpg",
                 Approved = true
             },
-            new Data.Sponsor
-            {
+            new() {
                 Id = "bad-eggs",
                 Name = "The Bad Eggs",
                 Logo = "bad-eggs.jpg",
@@ -107,9 +105,9 @@ public class EnrollmentReportServiceTests
         var results = await sut.GetRawResults(new EnrollmentReportParameters(), CancellationToken.None);
 
         // then
-        results.Records.Count().ShouldBe(2);
-        results.Records.First().Team.Sponsors.Count().ShouldBe(2);
-        results.Records.SelectMany(r => r.Challenges).DistinctBy(c => c.SpecId).Count().ShouldBe(1);
+        results.Count().ShouldBe(2);
+        results.First().Team.Sponsors.Count().ShouldBe(2);
+        results.SelectMany(r => r.Challenges).DistinctBy(c => c.SpecId).Count().ShouldBe(1);
     }
 
     [Theory, GameboardAutoData]
@@ -153,6 +151,6 @@ public class EnrollmentReportServiceTests
         var results = await sut.GetRawResults(new EnrollmentReportParameters(), CancellationToken.None);
 
         // then
-        results.Records.Count().ShouldBe(1);
+        results.Count().ShouldBe(1);
     }
 }

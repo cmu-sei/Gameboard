@@ -18,6 +18,12 @@ public static class DbContextOptionsBuilderExtensions
             return builder.LogTo(Console.WriteLine, new[] { DbLoggerCategory.Query.Name }, LogLevel.Debug);
         }
 
+        // warn us about queries that might benefit from query splitting
+        // We usually don't mind this, because split queries only matter if tables are very large, but 
+        // uncomment this to find issues if performance suffers or if warnings about split querying are 
+        // shown
+        // builder.ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning));
+
         if (env.IsDevOrTest())
         {
             Console.WriteLine("Starting in the dev environment. Enabling detailed/sensitive EF logging...");

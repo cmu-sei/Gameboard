@@ -1,7 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
@@ -16,7 +15,6 @@ public record UpdatePlayerReadyStateCommand(string PlayerId, bool IsReady, User 
 internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlayerReadyStateCommand>
 {
     private readonly UserRoleAuthorizer _authorizer;
-    private readonly IGameStartService _gameStartService;
     private readonly IMediator _mediator;
     private readonly EntityExistsValidator<UpdatePlayerReadyStateCommand, Data.Player> _playerExists;
     private readonly IStore _store;
@@ -26,7 +24,6 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
     public UpdatePlayerReadyStateCommandHandler
     (
         UserRoleAuthorizer authorizer,
-        IGameStartService gameStartService,
         IMediator mediator,
         EntityExistsValidator<UpdatePlayerReadyStateCommand, Data.Player> playerExists,
         IStore store,
@@ -34,7 +31,6 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
         IValidatorServiceFactory validatorServiceFactory)
     {
         _authorizer = authorizer;
-        _gameStartService = gameStartService;
         _mediator = mediator;
         _playerExists = playerExists;
         _store = store;
@@ -63,9 +59,7 @@ internal class UpdatePlayerReadyStateCommandHandler : IRequestHandler<UpdatePlay
             .AllowUserId(player.UserId);
 
         // update the player's db flag
+        // (the service also ensures that sync-start game events get raised)
         var playerReadyState = await _syncStartGameService.UpdatePlayerReadyState(request.PlayerId, request.IsReady, cancellationToken);
-
-        // notify listeners
-        await _gameStartService.HandleSyncStartStateChanged(player.GameId, cancellationToken);
     }
 }

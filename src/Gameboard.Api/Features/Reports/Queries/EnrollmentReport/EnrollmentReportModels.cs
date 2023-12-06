@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -28,6 +27,36 @@ public class EnrollmentReportRecord
     public required int ChallengesPartiallySolvedCount { get; set; }
     public required int ChallengesCompletelySolvedCount { get; set; }
     public required double Score { get; set; }
+}
+
+public class EnrollmentReportByGameRecord
+{
+    public required EnrollmentReportByGameGame Game { get; set; }
+    public required int PlayerCount { get; set; }
+    public required IEnumerable<EnrollmentReportByGameSponsor> Sponsors { get; set; }
+    public required EnrollmentReportByGameSponsor TopSponsor { get; set; }
+}
+
+public sealed class EnrollmentReportByGameGame
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required bool IsTeamGame { get; set; }
+    public required string Series { get; set; }
+    public required string Season { get; set; }
+    public required string Track { get; set; }
+    public required DateTimeOffset? RegistrationOpen { get; set; }
+    public required DateTimeOffset? RegistrationClosed { get; set; }
+    public required DateTimeOffset? ExecutionOpen { get; set; }
+    public required DateTimeOffset? ExecutionClosed { get; set; }
+}
+
+public sealed class EnrollmentReportByGameSponsor
+{
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public string LogoFileName { get; set; }
+    public int PlayerCount { get; set; }
 }
 
 public sealed class EnrollmentReportStatSummary

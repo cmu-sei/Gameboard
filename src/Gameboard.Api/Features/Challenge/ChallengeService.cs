@@ -241,8 +241,10 @@ public partial class ChallengeService : _Service
         q = q.Where(t => userTeams.Any(i => i == t.TeamId));
 
         DateTimeOffset recent = DateTimeOffset.UtcNow.AddDays(-1);
+        var practiceChallengesCutoff = _now.Get().AddDays(-7);
         q = q.Include(c => c.Player).Include(c => c.Game);
-        q = q.Where(c => c.Game.GameEnd > recent);
+        // band-aid for #296
+        q = q.Where(c => c.Game.GameEnd > recent || (c.PlayerMode == PlayerMode.Practice && c.StartTime >= practiceChallengesCutoff));
         q = q.OrderByDescending(p => p.StartTime);
 
         return await Mapper.ProjectTo<ChallengeOverview>(q).ToArrayAsync();
@@ -428,6 +430,7 @@ public partial class ChallengeService : _Service
 
         Logger.LogInformation($"Archiving {challenges.Count()} challenges.");
         var toArchiveIds = challenges.Select(c => c.Id).ToArray();
+
         var teamMemberMap = await _store
             .WithNoTracking<Data.Challenge>()
                 .Include(c => c.Player)
@@ -460,7 +463,7 @@ public partial class ChallengeService : _Service
 
         var toArchive = await Task.WhenAll(toArchiveTasks);
 
-        // handle 
+        // handle challenges that have been archived before
         var recordsAffected = await _store
             .WithNoTracking<Data.ArchivedChallenge>()
             .Where(c => toArchiveIds.Contains(c.Id))
@@ -469,11 +472,13 @@ public partial class ChallengeService : _Service
         if (recordsAffected > 0)
             Logger.LogWarning($"While attempting to archive challenges (Ids: {string.Join(",", toArchiveIds)}) resulted in the deletion of ${recordsAffected} stale archive records.");
 
-        await _store.DoTransaction(dbContext =>
+        await _store.DoTransaction(async dbContext =>
         {
-            dbContext.ArchivedChallenges.AddRange(_mapper.Map<Data.ArchivedChallenge[]>(toArchive));
+            // NOTE: see this function's comments to understand why it's here (and why it should someday go away)
+            dbContext.DetachUnchanged();
+            await dbContext.ArchivedChallenges.AddRangeAsync(_mapper.Map<Data.ArchivedChallenge[]>(toArchive));
             dbContext.Challenges.RemoveRange(challenges);
-            return Task.CompletedTask;
+            await dbContext.SaveChangesAsync();
         }, CancellationToken.None);
     }
 
@@ -483,7 +488,10 @@ public partial class ChallengeService : _Service
         var challenge = Mapper.Map<Challenge>(entity);
 
         if (!challenge.State.Vms.Any(v => v.Name == model.Name))
-            throw new ResourceNotFound<GameEngineVmState>("n/a", $"VMS for challenge {model.Name}");
+        {
+            var vmNames = string.Join(", ", challenge.State.Vms.Select(vm => vm.Name));
+            throw new ResourceNotFound<GameEngineVmState>("n/a", $"VMS for challenge {model.Name} - searching for {model.Name}, found these names: {vmNames}");
+        }
 
         var console = await _gameEngine.GetConsole(entity, model, observer);
         return console ?? throw new InvalidConsoleAction();

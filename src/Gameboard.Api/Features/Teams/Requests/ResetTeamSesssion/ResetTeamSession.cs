@@ -2,8 +2,9 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoMapper;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Games.Start;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
@@ -12,31 +13,37 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Teams;
 
-public record ResetTeamSessionCommand(string TeamId, bool UnenrollTeam, User ActingUser = null) : IRequest;
+public record ResetTeamSessionCommand(string TeamId, bool UnenrollTeam, User ActingUser) : IRequest;
 
 internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand>
 {
     private readonly ChallengeService _challengeService;
-    private readonly IGameStartService _gameStartService;
+    private readonly IInternalHubBus _hubBus;
     private readonly ILogger<ResetTeamSessionHandler> _logger;
+    private readonly IMapper _mapper;
     private readonly IStore _store;
+    private readonly ISyncStartGameService _syncStartGameService;
     private readonly ITeamService _teamService;
     private readonly IGameboardRequestValidator<ResetTeamSessionCommand> _validator;
 
     public ResetTeamSessionHandler
     (
         ChallengeService challengeService,
-        IGameStartService gameStartService,
+        IInternalHubBus hubBus,
         ILogger<ResetTeamSessionHandler> logger,
+        IMapper mapper,
         IStore store,
+        ISyncStartGameService syncStartGameService,
         ITeamService teamService,
         IGameboardRequestValidator<ResetTeamSessionCommand> validator
     )
     {
         _challengeService = challengeService;
-        _gameStartService = gameStartService;
+        _hubBus = hubBus;
         _logger = logger;
+        _mapper = mapper;
         _store = store;
+        _syncStartGameService = syncStartGameService;
         _teamService = teamService;
         _validator = validator;
     }
@@ -82,9 +89,20 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
                         .SetProperty(p => p.SessionMinutes, 0),
                     cancellationToken
                 );
+
+            // also get rid of any external game artifacts if they have any
+            await _store
+                .WithNoTracking<ExternalGameTeam>()
+                .Where(t => t.TeamId == request.TeamId)
+                .ExecuteDeleteAsync(cancellationToken);
+
+            // notify the SignalR hub (which only matters for external games right now - we clean some
+            // local storage stuff up if there's a reset).
+            var captain = await _teamService.ResolveCaptain(request.TeamId, cancellationToken);
+            await _hubBus.SendTeamSessionReset(_mapper.Map<Api.Player>(captain), request.ActingUser);
         }
 
         if (game.RequireSynchronizedStart)
-            await _gameStartService.HandleSyncStartStateChanged(game.Id, cancellationToken);
+            await _syncStartGameService.HandleSyncStartStateChanged(game.Id, cancellationToken);
     }
 }

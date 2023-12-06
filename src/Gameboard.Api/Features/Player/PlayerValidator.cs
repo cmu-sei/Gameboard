@@ -8,16 +8,25 @@ using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Games;
+using System.Threading;
 
 namespace Gameboard.Api.Validators
 {
     public class PlayerValidator : IModelValidator
     {
+        private readonly IGameModeServiceFactory _gameModeServiceFactory;
         private readonly IPlayerStore _playerStore;
         private readonly IStore _store;
 
-        public PlayerValidator(IPlayerStore playerStore, IStore store)
+        public PlayerValidator
+        (
+            IGameModeServiceFactory gameModeServiceFactory,
+            IPlayerStore playerStore,
+            IStore store
+        )
         {
+            _gameModeServiceFactory = gameModeServiceFactory;
             _playerStore = playerStore;
             _store = store;
         }
@@ -80,14 +89,24 @@ namespace Gameboard.Api.Validators
 
         private async Task _validate(NewPlayer model)
         {
-            if (!(await GameExists(model.GameId)))
-            {
+            if (!await GameExists(model.GameId))
                 throw new ResourceNotFound<Data.Game>(model.GameId);
-            }
 
-            if (!(await UserExists(model.UserId)))
-            {
+            if (!await UserExists(model.UserId))
                 throw new ResourceNotFound<User>(model.UserId);
+
+            // if the game is sync start and has started, don't allow registration
+            var game = await _store
+                .WithNoTracking<Data.Game>()
+                .SingleAsync(g => g.Id == model.GameId);
+
+            if (game.RequireSynchronizedStart && game.Mode == GameEngineMode.External)
+            {
+                var gameModeService = await _gameModeServiceFactory.Get(model.GameId);
+                var state = await gameModeService.GetGamePlayState(model.GameId, CancellationToken.None);
+
+                if (state != GamePlayState.NotRegistered && state != GamePlayState.NotStarted)
+                    throw new CantEnrollWithIneligibleGamePlayState(model.UserId, model.GameId, state, GamePlayState.NotRegistered, GamePlayState.NotStarted);
             }
 
             await Task.CompletedTask;
@@ -173,12 +192,12 @@ namespace Gameboard.Api.Validators
                 .Select(p => p.Id)
                 .ToArrayAsync();
 
-            if (teammateIds.Any())
+            if (!IsActingAsAdmin(request.Actor) && teammateIds.Any())
                 throw new ManagerCantUnenrollWhileTeammatesRemain(player.Id, player.TeamId, teammateIds);
         }
 
         private bool IsActingAsAdmin(User actor)
-            => (actor.IsAdmin || actor.IsRegistrar);
+            => actor.IsAdmin || actor.IsRegistrar;
 
         private async Task<bool> Exists(string id)
         {

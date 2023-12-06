@@ -1,7 +1,7 @@
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
 
 namespace Gameboard.Api.Tests.Unit;
 
@@ -20,7 +20,12 @@ public class AppUrlServiceTests
         httpContextAccessor.HttpContext = httpContext;
 
         // (sut)
-        var sut = new AppUrlService(A.Fake<IWebHostEnvironment>(), httpContextAccessor);
+        var sut = new AppUrlService
+        (
+            A.Fake<IWebHostEnvironment>(),
+            new BackgroundAsyncTaskContext(),
+            httpContextAccessor
+        );
 
         // when
         var result = sut.GetBaseUrl();
@@ -42,7 +47,12 @@ public class AppUrlServiceTests
         httpContextAccessor.HttpContext = httpContext;
 
         // (sut)
-        var sut = new AppUrlService(A.Fake<IWebHostEnvironment>(), httpContextAccessor);
+        var sut = new AppUrlService
+        (
+            A.Fake<IWebHostEnvironment>(),
+            new BackgroundAsyncTaskContext(),
+            httpContextAccessor
+        );
 
         // when
         var result = sut.ToAppAbsoluteUrl("mks");

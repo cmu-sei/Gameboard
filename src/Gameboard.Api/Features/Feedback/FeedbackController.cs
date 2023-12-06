@@ -2,12 +2,11 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-
-using Gameboard.Api.Services;
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
+using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
 
 namespace Gameboard.Api.Controllers
@@ -26,7 +25,7 @@ namespace Gameboard.Api.Controllers
             ChallengeService challengeService,
             FeedbackService feedbackService,
             PlayerService playerService
-        ): base(logger, cache, validator)
+        ) : base(logger, cache, validator)
         {
             ChallengeService = challengeService;
             FeedbackService = feedbackService;
@@ -42,12 +41,10 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<Feedback> Retrieve([FromQuery] FeedbackSearchParams model)
         {
-            AuthorizeAny(
-                () => FeedbackService.UserIsEnrolled(model.GameId, Actor.Id).Result
-            );
+            AuthorizeAny(() => FeedbackService.UserIsEnrolled(model.GameId, Actor.Id).Result);
+
             return await FeedbackService.Retrieve(model, Actor.Id);
         }
-
 
         /// <summary>
         /// Saves feedback response
@@ -56,7 +53,7 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPut("/api/feedback/submit")]
         [Authorize]
-        public async Task<Feedback> Submit([FromBody]FeedbackSubmission model)
+        public async Task<Feedback> Submit([FromBody] FeedbackSubmission model)
         {
             AuthorizeAny(
                 () => FeedbackService.UserIsEnrolled(model.GameId, Actor.Id).Result

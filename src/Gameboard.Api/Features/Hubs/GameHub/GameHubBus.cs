@@ -8,17 +8,18 @@ public interface IGameHubBus
 {
     Task SendPlayerJoined(string playerConnectionId, PlayerJoinedEvent ev);
     Task SendYouJoined(string userId, YouJoinedEvent ev);
-    Task SendExternalGameChallengesDeployStart(GameStartState state);
-    Task SendExternalGameChallengesDeployProgressChange(GameStartState state);
-    Task SendExternalGameChallengesDeployEnd(GameStartState state);
-    Task SendExternalGameLaunchStart(GameStartState state);
-    Task SendExternalGameLaunchEnd(GameStartState state);
-    Task SendExternalGameLaunchFailure(GameStartState state);
-    Task SendExternalGameGamespacesDeployStart(GameStartState state);
-    Task SendExternalGameGamespacesDeployProgressChange(GameStartState state);
-    Task SendExternalGameGamespacesDeployEnd(GameStartState state);
+    Task SendExternalGameChallengesDeployStart(GameStartUpdate state);
+    Task SendExternalGameChallengesDeployProgressChange(GameStartUpdate state);
+    Task SendExternalGameChallengesDeployEnd(GameStartUpdate state);
+    Task SendExternalGameLaunchStart(GameStartUpdate state);
+    Task SendExternalGameLaunchEnd(GameStartUpdate state);
+    Task SendExternalGameLaunchFailure(GameStartUpdate state);
+    Task SendExternalGameGamespacesDeployStart(GameStartUpdate state);
+    Task SendExternalGameGamespacesDeployProgressChange(GameStartUpdate state);
+    Task SendExternalGameGamespacesDeployEnd(GameStartUpdate state);
     Task SendSyncStartGameStateChanged(SyncStartState state);
-    Task SendSyncStartGameStarting(SyncStartGameStartedState state);
+    Task SendSyncStartGameStarted(SyncStartGameStartedState state);
+    Task SendSyncStartGameStarting(SyncStartState state);
 }
 
 internal class GameHubBus : IGameHubBus, IGameboardHubBus
@@ -29,12 +30,12 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
 
     public GameHubBus(IHubContext<GameHub, IGameHubEvent> hubContext) => _hubContext = hubContext;
 
-    public async Task SendExternalGameChallengesDeployStart(GameStartState state)
+    public async Task SendExternalGameChallengesDeployStart(GameStartUpdate state)
     {
         await _hubContext
             .Clients
             .Group(this.GetCanonicalGroupId(state.Game.Id))
-            .ExternalGameChallengesDeployStart(new GameHubEvent<GameStartState>
+            .ExternalGameChallengesDeployStart(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
                 EventType = GameHubEventType.ExternalGameChallengesDeployStart,
@@ -42,32 +43,32 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
             });
     }
 
-    public Task SendExternalGameChallengesDeployProgressChange(GameStartState state)
+    public Task SendExternalGameChallengesDeployProgressChange(GameStartUpdate state)
         => _hubContext
             .SendToGroup(this, state.Game.Id)
-            .ExternalGameChallengesDeployProgressChange(new GameHubEvent<GameStartState>
+            .ExternalGameChallengesDeployProgressChange(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
                 EventType = GameHubEventType.ExternalGameChallengesDeployProgressChange,
                 Data = state
             });
 
-    public Task SendExternalGameChallengesDeployEnd(GameStartState state)
+    public Task SendExternalGameChallengesDeployEnd(GameStartUpdate state)
         => _hubContext
             .SendToGroup(this, state.Game.Id)
-            .ExternalGameChallengesDeployEnd(new GameHubEvent<GameStartState>
+            .ExternalGameChallengesDeployEnd(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
                 EventType = GameHubEventType.ExternalGameChallengesDeployEnd,
                 Data = state
             });
 
-    public Task SendExternalGameLaunchStart(GameStartState state)
+    public Task SendExternalGameLaunchStart(GameStartUpdate state)
     {
         return _hubContext
             .Clients
             .Group(this.GetCanonicalGroupId(state.Game.Id))
-            .ExternalGameLaunchStart(new GameHubEvent<GameStartState>
+            .ExternalGameLaunchStart(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
                 EventType = GameHubEventType.ExternalGameLaunchStart,
@@ -75,31 +76,31 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
             });
     }
 
-    public Task SendExternalGameLaunchEnd(GameStartState state)
+    public Task SendExternalGameLaunchEnd(GameStartUpdate state)
         => _hubContext
             .SendToGroup(this, state.Game.Id)
-            .ExternalGameLaunchEnd(new GameHubEvent<GameStartState>
+            .ExternalGameLaunchEnd(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
                 EventType = GameHubEventType.ExternalGameLaunchStart,
                 Data = state
             });
 
-    public Task SendExternalGameLaunchFailure(GameStartState state)
+    public Task SendExternalGameLaunchFailure(GameStartUpdate state)
         => _hubContext
             .SendToGroup(this, state.Game.Id)
-            .ExternalGameLaunchFailure(new GameHubEvent<GameStartState>
+            .ExternalGameLaunchFailure(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
                 EventType = GameHubEventType.ExternalGameLaunchFailure,
                 Data = state
             });
 
-    public async Task SendExternalGameGamespacesDeployStart(GameStartState state)
+    public async Task SendExternalGameGamespacesDeployStart(GameStartUpdate state)
     {
         await _hubContext
             .SendToGroup(this, state.Game.Id)
-            .ExternalGameGamespacesDeployStart(new GameHubEvent<GameStartState>
+            .ExternalGameGamespacesDeployStart(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
                 EventType = GameHubEventType.ExternalGameGamespacesDeployStart,
@@ -107,11 +108,11 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
             });
     }
 
-    public async Task SendExternalGameGamespacesDeployProgressChange(GameStartState state)
+    public async Task SendExternalGameGamespacesDeployProgressChange(GameStartUpdate state)
     {
         await _hubContext
             .SendToGroup(this, state.Game.Id)
-            .ExternalGameGamespacesDeployProgressChange(new GameHubEvent<GameStartState>
+            .ExternalGameGamespacesDeployProgressChange(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
                 EventType = GameHubEventType.ExternalGameGamespacesDeployProgressChange,
@@ -119,11 +120,11 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
             });
     }
 
-    public async Task SendExternalGameGamespacesDeployEnd(GameStartState state)
+    public async Task SendExternalGameGamespacesDeployEnd(GameStartUpdate state)
     {
         await _hubContext
             .SendToGroup(this, state.Game.Id)
-            .ExternalGameGamespacesDeployEnd(new GameHubEvent<GameStartState>
+            .ExternalGameGamespacesDeployEnd(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
                 EventType = GameHubEventType.ExternalGameGamespacesDeployEnd,
@@ -143,11 +144,23 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
             });
     }
 
-    public async Task SendSyncStartGameStarting(SyncStartGameStartedState state)
+    public async Task SendSyncStartGameStarted(SyncStartGameStartedState state)
     {
         await _hubContext
             .SendToGroup(this, state.Game.Id)
-            .SyncStartGameStarting(new GameHubEvent<SyncStartGameStartedState>
+            .SyncStartGameStarted(new GameHubEvent<SyncStartGameStartedState>
+            {
+                GameId = state.Game.Id,
+                EventType = GameHubEventType.SyncStartGameStarted,
+                Data = state
+            });
+    }
+
+    public async Task SendSyncStartGameStarting(SyncStartState state)
+    {
+        await _hubContext
+            .SendToGroup(this, state.Game.Id)
+            .SyncStartGameStarting(new GameHubEvent<SyncStartState>
             {
                 GameId = state.Game.Id,
                 EventType = GameHubEventType.SyncStartGameStarting,

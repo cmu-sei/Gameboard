@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Microsoft.EntityFrameworkCore;
@@ -292,7 +291,9 @@ internal class PracticeModeReportService : IPracticeModeReportService
                     FullyCorrectCount = attempt.Player.CorrectCount
                 })
                 .OrderBy(a => a.Start)
-        });
+        })
+        .OrderBy(r => r.User.Name)
+        .ThenBy(r => r.Challenge.Name);
 
         return new()
         {

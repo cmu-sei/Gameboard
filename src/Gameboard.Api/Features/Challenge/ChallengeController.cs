@@ -297,7 +297,7 @@ namespace Gameboard.Api.Controllers
         {
             await Validate(new Entity { Id = model.SessionId });
             var isTeamMember = await ChallengeService.UserIsTeamPlayer(model.SessionId, Actor.Id);
-            Logger.LogInformation($"""Console access attempt on console "{model.Id}": User {Actor.Id}, roles {Actor.Role}, is team member? {isTeamMember}.""");
+            Logger.LogInformation($"Console access attempt ({model.Id} / {Actor.Id}): User {Actor.Id}, roles {Actor.Role}, on team = {isTeamMember} .");
 
             AuthorizeAny(
               () => Actor.IsDirector,
@@ -305,12 +305,12 @@ namespace Gameboard.Api.Controllers
               () => Actor.IsSupport,
               () => isTeamMember
             );
+
+            Logger.LogInformation($"""Console access attempt ({model.Id} / {Actor.Id}): Allowed.""");
             var result = await ChallengeService.GetConsole(model, isTeamMember.Equals(false));
 
             if (isTeamMember)
-                ActorMap.Update(
-                    await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.ApprovedName)
-                );
+                ActorMap.Update(await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.ApprovedName));
 
             return result;
         }

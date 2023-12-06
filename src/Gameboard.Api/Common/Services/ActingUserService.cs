@@ -1,3 +1,4 @@
+using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Common.Services;
@@ -11,9 +12,10 @@ internal class ActingUserService : IActingUserService
 {
     private readonly User _actingUser = null;
 
-    public ActingUserService(IHttpContextAccessor httpContextAccessor)
+    public ActingUserService(BackgroundAsyncTaskContext backgroundTaskContext, IHttpContextAccessor httpContextAccessor)
     {
         _actingUser = httpContextAccessor?.HttpContext?.User?.ToActor();
+        _actingUser ??= backgroundTaskContext.ActingUser;
     }
 
     public User Get()

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
-using Gameboard.Api.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
@@ -12,7 +11,8 @@ namespace Gameboard.Api.Features.Reports;
 public interface IEnrollmentReportService
 {
     IQueryable<Data.Player> GetBaseQuery(EnrollmentReportParameters parameters);
-    Task<EnrollmentReportRawResults> GetRawResults(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
+    Task<IEnumerable<EnrollmentReportRecord>> GetRawResults(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
+    Task<EnrollmentReportStatSummary> GetSummaryStats(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
 }
 
 internal class EnrollmentReportService : IEnrollmentReportService
@@ -80,10 +80,10 @@ internal class EnrollmentReportService : IEnrollmentReportService
         return query;
     }
 
-    public async Task<EnrollmentReportRawResults> GetRawResults(EnrollmentReportParameters parameters, CancellationToken cancellationToken)
+    public async Task<IEnumerable<EnrollmentReportRecord>> GetRawResults(EnrollmentReportParameters parameters, CancellationToken cancellationToken)
     {
         // finalize query - we have to do the rest "client" (application server) side
-        var players = await GetBaseQuery(parameters).ToListAsync(cancellationToken);
+        var players = await GetBaseQuery(parameters).ToArrayAsync(cancellationToken);
 
         // This is pretty messy. Here's why:
         //
@@ -179,16 +179,24 @@ internal class EnrollmentReportService : IEnrollmentReportService
             };
         });
 
-        var usersBySponsor = records
-            .Where(r => r.Player.Sponsor is not null)
-            .Select(r => new
+        return records;
+    }
+
+    public async Task<EnrollmentReportStatSummary> GetSummaryStats(EnrollmentReportParameters parameters, CancellationToken cancellationToken)
+    {
+        var query = GetBaseQuery(parameters);
+        var rawResults = await query.ToArrayAsync(cancellationToken);
+
+        var usersBySponsor = rawResults
+            .Where(p => p.Sponsor is not null)
+            .Select(p => new
             {
-                SponsorId = r.Player.Sponsor.Id,
-                UserId = r.User.Id
+                p.SponsorId,
+                p.UserId
             })
             .DistinctBy(sponsorUser => new { sponsorUser.SponsorId, sponsorUser.UserId })
             .GroupBy(r => r.SponsorId)
-            .OrderByDescending(g => g.Count())
+            .OrderByDescending(g => g.DistinctBy(su => su.UserId).Count())
             .ToDictionary(g => g.Key, g => g.DistinctBy(su => su.UserId).Count());
 
         // resolve the sponsor with the most unique users
@@ -197,32 +205,31 @@ internal class EnrollmentReportService : IEnrollmentReportService
         EnrollmentReportStatSummarySponsorPlayerCount sponsorWithMostPlayers = null;
         if (usersBySponsor.Any())
         {
-            var allSponsors = records.Select(r => r.Player.Sponsor).DistinctBy(s => s.Id);
+            var allSponsors = rawResults.Select(p => p.Sponsor).DistinctBy(s => s.Id);
             var sponsor = allSponsors.FirstOrDefault(s => s.Id == usersBySponsor.First().Key);
 
             if (sponsor is not null)
             {
                 sponsorWithMostPlayers = new()
                 {
-                    Sponsor = sponsor,
+                    Sponsor = new ReportSponsorViewModel
+                    {
+                        Id = sponsor.Id,
+                        Name = sponsor.Name,
+                        LogoFileName = sponsor.Logo
+                    },
                     DistinctPlayerCount = usersBySponsor[sponsor.Id]
                 };
             }
         }
 
-        var statSummary = new EnrollmentReportStatSummary
+        return new EnrollmentReportStatSummary
         {
-            DistinctGameCount = records.Select(r => r.Game.Id).Distinct().Count(),
-            DistinctPlayerCount = records.Select(r => r.User.Id).Distinct().Count(),
-            DistinctSponsorCount = usersBySponsor.Keys.Count,
-            SponsorWithMostPlayers = sponsorWithMostPlayers,
-            DistinctTeamCount = records.Select(p => p.Team.Id).Distinct().Count()
-        };
-
-        return new()
-        {
-            StatSummary = statSummary,
-            Records = records
+            DistinctGameCount = rawResults.Select(r => r.GameId).Distinct().Count(),
+            DistinctPlayerCount = rawResults.Select(r => r.UserId).Distinct().Count(),
+            DistinctSponsorCount = rawResults.Select(r => r.SponsorId).Distinct().Count(),
+            DistinctTeamCount = rawResults.Select(r => r.TeamId).Distinct().Count(),
+            SponsorWithMostPlayers = sponsorWithMostPlayers
         };
     }
 
