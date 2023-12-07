@@ -27,7 +27,13 @@ public class Challenge : IEntity
     public DateTimeOffset EndTime { get; set; }
     public bool HasDeployedGamespace { get; set; }
     public GameEngineType GameEngineType { get; set; }
-    public ChallengeQuestionSetAnswerData PendingSubmission { get; set; }
+
+    /// <summary>
+    /// A JSON string (using the ChallengeQuestionAnswerSetData model) of
+    /// submitted answers. See JSONEntities.cs for an explanation.
+    /// </summary>
+    // public string PendingSubmission { get; set; }
+    public string PendingSubmission { get; set; }
 
     [NotMapped]
     public ChallengeResult Result => Score >= Points

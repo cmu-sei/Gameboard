@@ -127,12 +127,6 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.TeamId).HasMaxLength(40);
             b.Property(u => u.GameId).HasMaxLength(40);
             b.Property(u => u.GraderKey).HasMaxLength(64);
-            b.HasGameboardJsonColumn(c => c.PendingSubmission, Database);
-
-            if (Database.IsSqlServer())
-                b.OwnsOne(c => c.PendingSubmission, ps => ps.ToJson());
-            else if (Database.IsNpgsql())
-                b.Property(c => c.PendingSubmission).HasColumnType("jsonb");
         });
 
         builder.Entity<ChallengeBonus>(b =>
@@ -203,8 +197,8 @@ public class GameboardDbContext : DbContext
 
         builder.Entity<ChallengeSubmission>(b =>
         {
-            b.Property(s => s.CreatedOn).IsRequired();
-            b.HasGameboardJsonColumn(s => s.Answers, Database);
+            b.Property(s => s.SubmittedOn).IsRequired();
+            b.Property(s => s.Answers).IsRequired();
 
             b
                 .HasOne(s => s.Challenge)
@@ -356,8 +350,9 @@ public class GameboardDbContext : DbContext
     public DbSet<ChallengeBonus> ChallengeBonuses { get; set; }
     public DbSet<ChallengeBonusCompleteSolveRank> ChallengeBonusesCompleteSolveRank { get; set; }
     public DbSet<ChallengeEvent> ChallengeEvents { get; set; }
-    public DbSet<ChallengeSpec> ChallengeSpecs { get; set; }
     public DbSet<ChallengeGate> ChallengeGates { get; set; }
+    public DbSet<ChallengeSpec> ChallengeSpecs { get; set; }
+    public DbSet<ChallengeSubmission> ChallengeSubmissions { get; set; }
     public DbSet<ExternalGameTeam> ExternalGameTeams { get; set; }
     public DbSet<Feedback> Feedback { get; set; }
     public DbSet<Game> Games { get; set; }

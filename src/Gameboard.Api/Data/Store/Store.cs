@@ -16,6 +16,7 @@ public interface IStore
     Task<bool> AnyAsync<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : class, IEntity;
     Task<int> CountAsync<TEntity>(Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder) where TEntity : class, IEntity;
     Task<TEntity> Create<TEntity>(TEntity entity) where TEntity : class, IEntity;
+    Task<TEntity> Create<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity;
     Task Delete<TEntity>(string id) where TEntity : class, IEntity;
     Task Delete<TEntity>(params TEntity[] entity) where TEntity : class, IEntity;
     Task DoTransaction(Func<GameboardDbContext, Task> operation, CancellationToken cancellationToken);
@@ -32,7 +33,6 @@ public interface IStore
     IQueryable<TEntity> List<TEntity>(bool enableTracking = false) where TEntity : class, IEntity;
     Task<TEntity> Retrieve<TEntity>(string id, bool enableTracking = false) where TEntity : class, IEntity;
     Task<TEntity> Retrieve<TEntity>(string id, Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder, bool enableTracking = false) where TEntity : class, IEntity;
-    Task<TEntity> SaveAdd<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity;
     Task<IEnumerable<TEntity>> SaveAddRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity;
     Task SaveRemoveRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity;
     Task<TEntity> SaveUpdate<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity;
@@ -68,13 +68,16 @@ internal class Store : IStore
         return await query.CountAsync();
     }
 
-    public async Task<TEntity> Create<TEntity>(TEntity entity) where TEntity : class, IEntity
+    public Task<TEntity> Create<TEntity>(TEntity entity) where TEntity : class, IEntity
+        => Create(entity, CancellationToken.None);
+
+    public async Task<TEntity> Create<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity
     {
         if (entity.Id.IsEmpty())
             entity.Id = _guids.GetGuid();
 
         _dbContext.Add(entity);
-        await _dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
         return entity;
     }
@@ -160,13 +163,6 @@ internal class Store : IStore
 
     public Task<TEntity> SingleOrDefaultAsync<TEntity>(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) where TEntity : class, IEntity
         => GetQueryBase<TEntity>().SingleOrDefaultAsync(predicate, cancellationToken);
-
-    public async Task<TEntity> SaveAdd<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity
-    {
-        _dbContext.Add(entity);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-        return entity;
-    }
 
     public async Task<IEnumerable<TEntity>> SaveAddRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity
     {

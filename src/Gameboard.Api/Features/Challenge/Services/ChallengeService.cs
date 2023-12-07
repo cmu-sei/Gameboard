@@ -34,6 +34,7 @@ public partial class ChallengeService : _Service
     private readonly INowService _now;
     private readonly IPlayerStore _playerStore;
     private readonly IChallengeDocsService _challengeDocsService;
+    private readonly IChallengeSubmissionsService _challengeSubmissionsService;
     private readonly IChallengeSyncService _challengeSyncService;
     private readonly IStore _store;
     private readonly ITeamService _teamService;
@@ -44,6 +45,7 @@ public partial class ChallengeService : _Service
         CoreOptions coreOptions,
         IChallengeStore challengeStore,
         IChallengeDocsService challengeDocsService,
+        IChallengeSubmissionsService challengeSubmissionsService,
         IChallengeSyncService challengeSyncService,
         IGameEngineService gameEngine,
         IGuidService guids,
@@ -61,6 +63,7 @@ public partial class ChallengeService : _Service
         _actorMap = actorMap;
         _challengeStore = challengeStore;
         _challengeDocsService = challengeDocsService;
+        _challengeSubmissionsService = challengeSubmissionsService;
         _challengeSyncService = challengeSyncService;
         _gameEngine = gameEngine;
         _guids = guids;
@@ -123,7 +126,7 @@ public partial class ChallengeService : _Service
         {
             var challenge = await BuildAndRegisterChallenge(model, spec, game, player, actorId, graderUrl, playerCount, model.Variant);
 
-            await _store.SaveAdd(challenge, cancellationToken);
+            await _store.Create(challenge, cancellationToken);
             await _challengeStore.UpdateEtd(challenge.SpecId);
 
             return Mapper.Map<Challenge>(challenge);
@@ -347,6 +350,15 @@ public partial class ChallengeService : _Service
             Timestamp = _now.Get(),
             Type = ChallengeEventType.Submission
         });
+
+        // record the submission
+        await _challengeSubmissionsService.LogSubmission
+        (
+            challenge.Id,
+            model.SectionIndex,
+            model.Questions.Select(q => q.Answer),
+            CancellationToken.None
+        );
 
         var state = await _gameEngine.GradeChallenge(challenge, model);
         await _challengeSyncService.Sync(challenge, state, CancellationToken.None);

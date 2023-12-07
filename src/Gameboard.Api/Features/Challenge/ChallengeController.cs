@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Hubs;
@@ -374,6 +375,16 @@ namespace Gameboard.Api.Controllers
         public Task<ChallengeSolutionGuide> GetSolutionGuide([FromRoute] string challengeId)
             => _mediator.Send(new GetChallengeSolutionGuideQuery(challengeId));
 
+        [HttpGet("api/challenge/{challengeId}/submissions")]
+        [Authorize]
+        public Task<GetChallengeSubmissionsResponse> GetSubmissions([FromRoute] string challengeId)
+            => _mediator.Send(new GetChallengeSubmissionsQuery(challengeId));
+
+        [HttpPut("api/challenge/{challengeId}/submissions/pending")]
+        [Authorize]
+        public Task UpdatePendingSubmission([FromRoute] string challengeId, [FromBody] ChallengeSubmissionAnswers submission)
+            => _mediator.Send(new SaveChallengePendingSubmissionCommand(challengeId, submission));
+
         /// <summary>
         /// Find challenges
         /// </summary>
@@ -383,7 +394,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ChallengeSummary[]> List([FromQuery] SearchFilter model)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsDirector,
                 () => Actor.IsSupport
             );
