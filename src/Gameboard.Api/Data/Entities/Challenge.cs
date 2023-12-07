@@ -27,7 +27,7 @@ public class Challenge : IEntity
     public DateTimeOffset EndTime { get; set; }
     public bool HasDeployedGamespace { get; set; }
     public GameEngineType GameEngineType { get; set; }
-    public ChallengeSubmission PendingSubmission { get; set; }
+    public ChallengeQuestionSetAnswerData PendingSubmission { get; set; }
 
     [NotMapped]
     public ChallengeResult Result => Score >= Points

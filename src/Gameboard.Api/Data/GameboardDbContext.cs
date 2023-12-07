@@ -3,7 +3,6 @@
 
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
-using ServiceStack;
 
 namespace Gameboard.Api.Data;
 
@@ -128,14 +127,12 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.TeamId).HasMaxLength(40);
             b.Property(u => u.GameId).HasMaxLength(40);
             b.Property(u => u.GraderKey).HasMaxLength(64);
+            b.HasGameboardJsonColumn(c => c.PendingSubmission, Database);
 
-            b
-                .HasOne(c => c.PendingSubmission)
-                .WithOne(s => s.PendingSubmissionForChallenge);
-
-            b
-                .HasMany(c => c.Submissions)
-                .WithOne(s => s.SubmittedForChallenge);
+            if (Database.IsSqlServer())
+                b.OwnsOne(c => c.PendingSubmission, ps => ps.ToJson());
+            else if (Database.IsNpgsql())
+                b.Property(c => c.PendingSubmission).HasColumnType("jsonb");
         });
 
         builder.Entity<ChallengeBonus>(b =>
@@ -204,6 +201,17 @@ public class GameboardDbContext : DbContext
             b.HasOne(p => p.Game).WithMany(u => u.Specs).OnDelete(DeleteBehavior.Cascade);
         });
 
+        builder.Entity<ChallengeSubmission>(b =>
+        {
+            b.Property(s => s.CreatedOn).IsRequired();
+            b.HasGameboardJsonColumn(s => s.Answers, Database);
+
+            b
+                .HasOne(s => s.Challenge)
+                .WithMany(c => c.Submissions)
+                .IsRequired();
+        });
+
         builder.Entity<Sponsor>(b =>
         {
             b.Property(u => u.Id).HasMaxLength(40);
@@ -241,12 +249,6 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.PlayerId).HasMaxLength(40);
             b.Property(p => p.PlayerName).HasMaxLength(64);
             b.Property(u => u.UserId).HasMaxLength(40);
-        });
-
-        builder.Entity<ChallengeSubmissionAnswerData>(b =>
-        {
-            b.ToJson();
-            b.OwnsMany(d => d.Answers);
         });
 
         builder.Entity<PublishedCertificate>(b =>
