@@ -43,7 +43,7 @@ public class GameEngineMapsTests
             LaunchpointUrl = "https://google.com",
             Players = new TopoMojo.Api.Client.Player[]
             {
-                new TopoMojo.Api.Client.Player
+                new()
                 {
                     GamespaceId = "33b9cf31-8686-4d95-b5a8-9fb1b7f8ce71",
                     SubjectId = "f4390dff-420d-47da-90c8-4c982eeab822",
@@ -59,7 +59,7 @@ public class GameEngineMapsTests
             IsActive = true,
             Vms = new TopoMojo.Api.Client.VmState[]
             {
-                new TopoMojo.Api.Client.VmState
+                new ()
                 {
                     Id = "10fccb66-6916-45e2-9a39-188d3a692d4a",
                     Name = "VM 1",
@@ -67,7 +67,7 @@ public class GameEngineMapsTests
                     IsRunning = true,
                     IsVisible = true
                 },
-                new TopoMojo.Api.Client.VmState
+                new ()
                 {
                     Id = "8d771689-8b37-48e7-b706-9efe1c64bdca",
                     Name = "VM 2",
@@ -132,7 +132,7 @@ public class GameEngineMapsTests
             IsActive = true,
             Players = new GameEnginePlayer[]
             {
-                new GameEnginePlayer
+                new()
                 {
                     SubjectId = fixture.Create<string>(),
                     IsManager = true
