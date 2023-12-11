@@ -340,8 +340,15 @@ public partial class ChallengeService : _Service
     public async Task<Challenge> Grade(GameEngineSectionSubmission model, User actor)
     {
         var challenge = await _challengeStore.Retrieve(model.Id);
-        var preGradeState = _jsonService.Deserialize<GameEngineGameState>(challenge.State);
-        var attemptsUsedBeforeGrading = preGradeState.Challenge.Attempts;
+
+        // determine how many attempts have been made prior to this one
+        var priorAttemptCount = 0;
+
+        if (challenge.State is not null)
+        {
+            var preGradeState = _jsonService.Deserialize<GameEngineGameState>(challenge.State);
+            priorAttemptCount = preGradeState.Challenge.Attempts;
+        }
 
         // log the appropriate event
         challenge.Events.Add(new ChallengeEvent
@@ -365,7 +372,7 @@ public partial class ChallengeService : _Service
         // The game engine (Topo, in most cases) may optionally not count this as an attempt if the answers are identical 
         // to a previous attempt, which means we need to be sure this consumed an attempt
         // before counting it as a new submission for logging purposes.
-        if (state.Challenge.Attempts > preGradeState.Challenge.Attempts)
+        if (state.Challenge.Attempts > priorAttemptCount)
         {
             // record the submission
             await _challengeSubmissionsService.LogSubmission
