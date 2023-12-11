@@ -243,7 +243,7 @@ public partial class ChallengeService : _Service
 
         q = q.Where(t => userTeams.Any(i => i == t.TeamId));
 
-        DateTimeOffset recent = DateTimeOffset.UtcNow.AddDays(-1);
+        var recent = DateTimeOffset.UtcNow.AddDays(-1);
         var practiceChallengesCutoff = _now.Get().AddDays(-7);
         q = q.Include(c => c.Player).Include(c => c.Game);
         // band-aid for #296
@@ -308,7 +308,7 @@ public partial class ChallengeService : _Service
             Id = _guids.GetGuid(),
             UserId = actorId,
             TeamId = challenge.TeamId,
-            Timestamp = DateTimeOffset.UtcNow,
+            Timestamp = _now.Get(),
             Type = ChallengeEventType.GamespaceOn
         });
 
@@ -327,7 +327,7 @@ public partial class ChallengeService : _Service
             Id = _guids.GetGuid(),
             UserId = actorId,
             TeamId = challenge.TeamId,
-            Timestamp = DateTimeOffset.UtcNow,
+            Timestamp = _now.Get(),
             Type = ChallengeEventType.GamespaceOff
         });
 
@@ -340,6 +340,8 @@ public partial class ChallengeService : _Service
     public async Task<Challenge> Grade(GameEngineSectionSubmission model, User actor)
     {
         var challenge = await _challengeStore.Retrieve(model.Id);
+        var preGradeState = _jsonService.Deserialize<GameEngineGameState>(challenge.State);
+        var attemptsUsedBeforeGrading = preGradeState.Challenge.Attempts;
 
         // log the appropriate event
         challenge.Events.Add(new ChallengeEvent
@@ -351,20 +353,30 @@ public partial class ChallengeService : _Service
             Type = ChallengeEventType.Submission
         });
 
-        // record the submission
-        await _challengeSubmissionsService.LogSubmission
-        (
-            challenge.Id,
-            model.SectionIndex,
-            model.Questions.Select(q => q.Answer),
-            CancellationToken.None
-        );
-
         var state = await _gameEngine.GradeChallenge(challenge, model);
         await _challengeSyncService.Sync(challenge, state, CancellationToken.None);
 
         // update the team score and award automatic bonuses
-        await _mediator.Send(new UpdateTeamChallengeBaseScoreCommand(challenge.Id, challenge.Score));
+        var updatedScore = await _mediator.Send(new UpdateTeamChallengeBaseScoreCommand(challenge.Id, challenge.Score));
+
+        // update the challenge object with the store
+        challenge.Score = updatedScore.Score.TotalScore;
+
+        // The game engine (Topo, in most cases) may optionally not count this as an attempt if the answers are identical 
+        // to a previous attempt, which means we need to be sure this consumed an attempt
+        // before counting it as a new submission for logging purposes.
+        if (state.Challenge.Attempts > preGradeState.Challenge.Attempts)
+        {
+            // record the submission
+            await _challengeSubmissionsService.LogSubmission
+            (
+                challenge.Id,
+                (int)updatedScore.Score.TotalScore,
+                model.SectionIndex,
+                model.Questions.Select(q => q.Answer),
+                CancellationToken.None
+            );
+        }
 
         if (challenge.PlayerMode == PlayerMode.Practice)
         {

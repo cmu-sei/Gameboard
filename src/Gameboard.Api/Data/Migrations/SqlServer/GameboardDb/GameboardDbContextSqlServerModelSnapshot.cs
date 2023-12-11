@@ -431,6 +431,11 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .IsRequired()
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<double>("Score")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("float")
+                        .HasDefaultValue(0.0);
+
                     b.Property<DateTimeOffset>("SubmittedOn")
                         .HasColumnType("datetimeoffset");
 

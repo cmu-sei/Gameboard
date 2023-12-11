@@ -6,6 +6,7 @@ public class ChallengeSubmission : IEntity
 {
     public string Id { get; set; }
     public DateTimeOffset SubmittedOn { get; set; }
+    public double Score { get; set; }
 
     /// <summary>
     /// A JSON string (represnting the ChallengeSubmissionAnswers model) of

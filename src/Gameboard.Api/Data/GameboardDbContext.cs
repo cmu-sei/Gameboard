@@ -199,6 +199,7 @@ public class GameboardDbContext : DbContext
         {
             b.Property(s => s.SubmittedOn).IsRequired();
             b.Property(s => s.Answers).IsRequired();
+            b.Property(s => s.Score).IsRequired().HasDefaultValue(0);
 
             b
                 .HasOne(s => s.Challenge)

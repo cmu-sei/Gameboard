@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -10,8 +11,8 @@ namespace Gameboard.Api.Features.Challenges;
 
 public interface IChallengeSubmissionsService
 {
-    Task LogSubmission(string challengeId, IEnumerable<string> answers, CancellationToken cancellationToken);
-    Task LogSubmission(string challengeId, int sectionIndex, IEnumerable<string> answers, CancellationToken cancellationToken);
+    Task LogSubmission(string challengeId, double score, IEnumerable<string> answers, CancellationToken cancellationToken);
+    Task LogSubmission(string challengeId, double score, int sectionIndex, IEnumerable<string> answers, CancellationToken cancellationToken);
     Task LogPendingSubmission(string challengeId, IEnumerable<string> answers, CancellationToken cancellationToken);
     Task LogPendingSubmission(string challengeId, int sectionIndex, IEnumerable<string> answers, CancellationToken cancellationToken);
 }
@@ -51,10 +52,10 @@ internal class ChallengeSubmissionsService : IChallengeSubmissionsService
             .ExecuteUpdateAsync(up => up.SetProperty(c => c.PendingSubmission, _jsonService.Serialize(answersEntity)), cancellationToken);
     }
 
-    public Task LogSubmission(string challengeId, IEnumerable<string> answers, CancellationToken cancellationToken)
-        => LogSubmission(challengeId, answers, cancellationToken);
+    public Task LogSubmission(string challengeId, double score, IEnumerable<string> answers, CancellationToken cancellationToken)
+        => LogSubmission(challengeId, score, 0, answers, cancellationToken);
 
-    public async Task LogSubmission(string challengeId, int sectionIndex, IEnumerable<string> answers, CancellationToken cancellationToken)
+    public async Task LogSubmission(string challengeId, double score, int sectionIndex, IEnumerable<string> answers, CancellationToken cancellationToken)
     {
         var answersEntity = new ChallengeSubmissionAnswers
         {
@@ -67,13 +68,16 @@ internal class ChallengeSubmissionsService : IChallengeSubmissionsService
         {
             Answers = _jsonService.Serialize(answersEntity),
             ChallengeId = challengeId,
+            Score = score,
             SubmittedOn = _now.Get()
         }, cancellationToken);
 
         // upon submission, pending answers are cleared
-        await _store
+        var rowsAffected = await _store
             .WithNoTracking<Data.Challenge>()
             .Where(c => c.Id == challengeId)
             .ExecuteUpdateAsync(up => up.SetProperty(c => c.PendingSubmission, null as string), cancellationToken);
+
+        Console.WriteLine(rowsAffected);
     }
 }

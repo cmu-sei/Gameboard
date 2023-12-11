@@ -362,10 +362,11 @@ namespace Gameboard.Api.Controllers
         [Authorize(AppConstants.ConsolePolicy)]
         public ConsoleActor GetConsoleActor([FromQuery] string uid)
         {
-            AuthorizeAny(
-              () => Actor.IsDirector,
-              () => Actor.IsObserver,
-              () => Actor.IsSupport
+            AuthorizeAny
+            (
+                () => Actor.IsDirector,
+                () => Actor.IsObserver,
+                () => Actor.IsSupport
             );
             return ChallengeService.GetConsoleActor(uid);
         }
