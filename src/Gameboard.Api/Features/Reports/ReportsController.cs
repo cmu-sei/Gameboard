@@ -48,6 +48,10 @@ public class ReportsController : ControllerBase
     public Task<ReportResults<EnrollmentReportByGameRecord>> GetEnrollmentReportByGame([FromQuery] EnrollmentReportParameters parameters, [FromQuery] PagingArgs pagingArgs)
         => _mediator.Send(new EnrollmentReportByGameQuery(parameters, pagingArgs, _actingUser));
 
+    [HttpGet("players")]
+    public Task<ReportResults<PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportParameters parameters, [FromQuery] PagingArgs pagingArgs)
+        => _mediator.Send(new GetPlayersReportQuery(parameters, pagingArgs, _actingUser));
+
     [HttpGet("practice-area")]
     public async Task<ReportResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>> GetPracticeModeReport([FromQuery] PracticeModeReportParameters parameters, [FromQuery] PagingArgs paging)
         => await _mediator.Send(new PracticeModeReportQuery(parameters, _actingUser, paging));
