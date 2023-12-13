@@ -16,7 +16,6 @@ namespace Gameboard.Api.Services
         GameboardDbContext Store { get; }
         ITicketStore TicketStore { get; }
         Defaults Defaults { get; }
-        ChallengeService _challengeService { get; }
 
         string blankName = "N/A";
 
@@ -26,13 +25,10 @@ namespace Gameboard.Api.Services
             CoreOptions options,
             Defaults defaults,
             GameboardDbContext store,
-            ITicketStore ticketStore,
-            ChallengeService challengeService,
-            GameService gameService
+            ITicketStore ticketStore
         ) : base(logger, mapper, options)
         {
             Store = store;
-            _challengeService = challengeService;
             TicketStore = ticketStore;
             Defaults = defaults;
         }
