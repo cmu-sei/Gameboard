@@ -110,14 +110,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 ctx.AddValidationException(new CantStartNonReadySynchronizedGame(syncStartState));
         });
 
-        _validator.AddValidator(async (req, ctx) =>
-        {
-            var gamePlayState = await GetGamePlayState(req.Game.Id, cancellationToken);
-
-            if (gamePlayState == GamePlayState.Started || gamePlayState == GamePlayState.GameOver)
-                ctx.AddValidationException(new CantStartGameInIneligiblePlayState(req.Game.Id, gamePlayState));
-        });
-
         await _validator.Validate(request, cancellationToken);
         Log($"Validation complete.", request.Game.Id);
     }
@@ -229,8 +221,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     {
         // unlike normal games, the playability of external + sync-start games is a function of _all_ registered teams,
         // not just the one passed here. We actually don't need the team parameter at all for this configuration.
-        // We define an external/sync-start game to be ready if all teams have all challenges with deployed 
-        // gamespaces.
+        // We define an external/sync-start game to be ready if all registered players are sync'd and all teams have 
+        // all challenges with deployed gamespaces.
         var game = await _store
             .WithNoTracking<Data.Game>()
                 .Include(g => g.Challenges)
