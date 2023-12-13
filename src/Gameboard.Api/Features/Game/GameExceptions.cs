@@ -29,6 +29,12 @@ internal class CantStartNonReadySynchronizedGame : GameboardValidationException
         => state.Teams.SelectMany(t => t.Players).Where(p => !p.IsReady);
 }
 
+internal class CantStartGameInIneligiblePlayState : GameboardValidationException
+{
+    public CantStartGameInIneligiblePlayState(string gameId, GamePlayState state)
+        : base($"Can't start game {gameId} in ineligible play state {state}.") { }
+}
+
 internal class CantStartStandardGameWithoutActingUserParameter : GameboardValidationException
 {
     public CantStartStandardGameWithoutActingUserParameter(string gameId) : base($"""Game start failure (gameId "{gameId}"): Game is a standard game, so the `actingUser` parameter is required.""") { }
