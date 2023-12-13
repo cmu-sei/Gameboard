@@ -277,6 +277,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 {
                     _logger.LogInformation($"Game {gameId} is not in Started state because we couldn't find a challenge for team {teamIdIterated} / spec {specId}.");
                     allDeployed = false;
+                    break;
                 }
 
                 if (!challenge.HasDeployedGamespace && challenge.Score < challenge.Points)
