@@ -110,6 +110,14 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 ctx.AddValidationException(new CantStartNonReadySynchronizedGame(syncStartState));
         });
 
+        _validator.AddValidator(async (req, ctx) =>
+        {
+            var gamePlayState = await GetGamePlayState(req.Game.Id, cancellationToken);
+
+            if (gamePlayState == GamePlayState.GameOver)
+                ctx.AddValidationException(new CantStartGameInIneligiblePlayState(req.Game.Id, gamePlayState));
+        });
+
         await _validator.Validate(request, cancellationToken);
         Log($"Validation complete.", request.Game.Id);
     }
