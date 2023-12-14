@@ -84,7 +84,11 @@ namespace Gameboard.Api
             }
             catch (Exception ex)
             {
+<<<<<<< Updated upstream
                 _logger.LogError("Exception renewing auth token ({exType}: {exMessage})", ex.GetType(), ex.Message);
+=======
+                _logger.LogError($"Exception renewing auth token. {ex.GetType().Name} - {ex.Message}");
+>>>>>>> Stashed changes
             }
 
             return null;
