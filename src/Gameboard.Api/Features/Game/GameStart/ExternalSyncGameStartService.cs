@@ -110,6 +110,14 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 ctx.AddValidationException(new CantStartNonReadySynchronizedGame(syncStartState));
         });
 
+        _validator.AddValidator(async (req, ctx) =>
+        {
+            var gamePlayState = await GetGamePlayState(req.Game.Id, cancellationToken);
+
+            if (gamePlayState == GamePlayState.GameOver)
+                ctx.AddValidationException(new CantStartGameInIneligiblePlayState(req.Game.Id, gamePlayState));
+        });
+
         await _validator.Validate(request, cancellationToken);
         Log($"Validation complete.", request.Game.Id);
     }
@@ -221,23 +229,37 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     {
         // unlike normal games, the playability of external + sync-start games is a function of _all_ registered teams,
         // not just the one passed here. We actually don't need the team parameter at all for this configuration.
-        // We define an external/sync-start game to be ready if all teams have all challenges with deployed 
-        // gamespaces.
-        var game = await _store
-            .WithNoTracking<Data.Game>()
-                .Include(g => g.Challenges)
-                .Include(g => g.Players)
-            .Select(g => new
+        // We define an external/sync-start game to be ready if all registered players are sync'd and all teams have 
+        // all challenges with deployed gamespaces.
+
+        // we split this into a bunch of smaller queries because EF's assumed behavior was too slow on a real db.
+        var players = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.GameId == gameId)
+            .Select(p => new
             {
-                GameId = g.Id,
-                Game = g,
-                Challenges = g.Challenges.Select(c => new { c.Id, c.HasDeployedGamespace, c.TeamId, c.SpecId, c.Score, c.Points }),
-                Players = g.Players.Select(p => new { p.Id, p.TeamId, p.IsReady })
+                p.Id,
+                p.IsReady,
+                p.TeamId
             })
-            .SingleAsync(g => g.GameId == gameId, cancellationToken);
+            .ToArrayAsync(cancellationToken);
+
+        var challenges = await _store
+            .WithNoTracking<Data.Challenge>()
+            .Where(c => c.GameId == gameId)
+            .Select(c => new
+            {
+                c.Id,
+                c.HasDeployedGamespace,
+                c.TeamId,
+                c.SpecId,
+                c.Score,
+                c.Points
+            })
+            .ToArrayAsync(cancellationToken);
 
         // if any players aren't ready, we haven't started yet
-        if (game.Players.Any(p => !p.IsReady))
+        if (players.Any(p => !p.IsReady))
             return GamePlayState.NotStarted;
 
         // have to load specs separately because ugh
@@ -247,13 +269,11 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             .Select(s => s.Id)
             .ToArrayAsync(cancellationToken);
 
-        var teams = game
-            .Players
+        var teams = players
             .GroupBy(p => p.TeamId)
             .ToDictionary(g => g.Key, g => g.ToArray());
 
-        var teamChallenges = game
-            .Challenges
+        var teamChallenges = challenges
             .GroupBy(c => c.TeamId)
             .ToDictionary(c => c.Key, c => c.ToArray());
 
@@ -277,6 +297,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 {
                     _logger.LogInformation($"Game {gameId} is not in Started state because we couldn't find a challenge for team {teamIdIterated} / spec {specId}.");
                     allDeployed = false;
+                    break;
                 }
 
                 if (!challenge.HasDeployedGamespace && challenge.Score < challenge.Points)

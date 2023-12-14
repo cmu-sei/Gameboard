@@ -83,6 +83,7 @@ internal class GameStartService : IGameStartService
             .LockAsync(cancellationToken);
 
         var startRequest = await LoadGameModeStartRequest(game, null, cancellationToken);
+        await gameModeService.ValidateStart(startRequest, cancellationToken);
 
         try
         {
