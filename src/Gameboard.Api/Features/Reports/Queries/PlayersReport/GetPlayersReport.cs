@@ -1,7 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
-using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,22 +14,19 @@ internal class GetPlayersReportHandler : IRequestHandler<GetPlayersReportQuery, 
     private readonly IPagingService _pagingService;
     private readonly ReportsQueryValidator _queryValidator;
     private readonly IPlayersReportService _reportService;
-    private readonly IValidatorService<GetPlayersReportQuery> _validatorService;
 
     public GetPlayersReportHandler
     (
         INowService nowService,
         IPagingService pagingService,
         ReportsQueryValidator queryValidator,
-        IPlayersReportService reportService,
-        IValidatorService<GetPlayersReportQuery> validatorService
+        IPlayersReportService reportService
     )
     {
         _nowService = nowService;
         _pagingService = pagingService;
         _queryValidator = queryValidator;
         _reportService = reportService;
-        _validatorService = validatorService;
     }
 
     public async Task<ReportResults<PlayersReportRecord>> Handle(GetPlayersReportQuery request, CancellationToken cancellationToken)

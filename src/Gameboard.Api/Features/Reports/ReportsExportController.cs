@@ -31,6 +31,14 @@ public class ReportsExportController : ControllerBase
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
     }
 
+    [HttpGet("players")]
+    [ProducesResponseType(typeof(FileContentResult), 200)]
+    public async Task<IActionResult> GetPlayersReportExport(PlayersReportParameters parameters)
+    {
+        var results = await _mediator.Send(new GetPlayersReportExportQuery(parameters, _actingUser));
+        return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
+    }
+
     [HttpGet("practice-area")]
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> GetPracticeModeReportExport(PracticeModeReportParameters parameters, CancellationToken cancellationToken)
