@@ -98,6 +98,18 @@ internal class PlayersReportService : IPlayersReportService
                     .OrderByDescending(p => p.SessionBegin)
                     .First().SessionBegin :
                     null,
+            CompletedCompetitiveChallengesCount = u
+                .Enrollments
+                .SelectMany(p => p.Challenges)
+                .Where(c => c.PlayerMode == PlayerMode.Competition)
+                .Where(c => c.Score >= c.Points)
+                .Count(),
+            CompletedPracticeChallengesCount = u
+                .Enrollments
+                .SelectMany(p => p.Challenges)
+                .Where(c => c.PlayerMode == PlayerMode.Practice)
+                .Where(c => c.Score >= c.Points)
+                .Count(),
             DeployedCompetitiveChallengesCount = u
                 .Enrollments
                 .SelectMany(p => p.Challenges)

@@ -39,6 +39,8 @@ internal class GetPlayersReportExportHandler : IRequestHandler<GetPlayersReportE
                 SponsorName = r.Sponsor.Name,
                 CreatedOn = r.CreatedOn,
                 LastPlayedOn = r.LastPlayedOn,
+                CompletedCompetitiveChallengesCount = r.CompletedCompetitiveChallengesCount,
+                CompletedPracticeChallengesCount = r.CompletedPracticeChallengesCount,
                 DeployedCompetitiveChallengesCount = r.DeployedCompetitiveChallengesCount,
                 DeployedPracticeChallengesCount = r.DeployedPracticeChallengesCount,
                 DistinctGamesPlayedCount = r.DistinctGamesPlayedCount,

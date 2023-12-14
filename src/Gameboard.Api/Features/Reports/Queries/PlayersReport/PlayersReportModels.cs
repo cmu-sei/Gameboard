@@ -21,8 +21,10 @@ public sealed class PlayersReportRecord
     public required ReportSponsorViewModel Sponsor { get; set; }
     public required DateTimeOffset CreatedOn { get; set; }
     public required DateTimeOffset? LastPlayedOn { get; set; }
-    public required int DeployedPracticeChallengesCount { get; set; }
+    public required int CompletedCompetitiveChallengesCount { get; set; }
+    public required int CompletedPracticeChallengesCount { get; set; }
     public required int DeployedCompetitiveChallengesCount { get; set; }
+    public required int DeployedPracticeChallengesCount { get; set; }
     public required int DistinctGamesPlayedCount { get; set; }
     public required int DistinctSeriesPlayedCount { get; set; }
     public required int DistinctTracksPlayedCount { get; set; }
@@ -37,10 +39,21 @@ public sealed class PlayersReportCsvRecord
     public required string SponsorName { get; set; }
     public required DateTimeOffset? CreatedOn { get; set; }
     public required DateTimeOffset? LastPlayedOn { get; set; }
+    public required int CompletedCompetitiveChallengesCount { get; set; }
+    public required int CompletedPracticeChallengesCount { get; set; }
     public required int DeployedPracticeChallengesCount { get; set; }
     public required int DeployedCompetitiveChallengesCount { get; set; }
     public required int DistinctGamesPlayedCount { get; set; }
     public required int DistinctSeriesPlayedCount { get; set; }
     public required int DistinctTracksPlayedCount { get; set; }
     public required int DistinctSeasonsPlayedCount { get; set; }
+}
+
+public sealed class PlayersReportStatSummary
+{
+    public required int UserCount { get; set; }
+    public required int UsersWithCompletedCompetitiveChallengeCount { get; set; }
+    public required int UsersWithDeployedCompetitiveChallengeCount { get; set; }
+    public required int UsersWithCompletedPracticeChallengeCount { get; set; }
+    public required int UsersWithDeployedPracticeChallengeCount { get; set; }
 }

@@ -49,7 +49,7 @@ public class ReportsController : ControllerBase
         => _mediator.Send(new EnrollmentReportByGameQuery(parameters, pagingArgs, _actingUser));
 
     [HttpGet("players")]
-    public Task<ReportResults<PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportParameters parameters, [FromQuery] PagingArgs pagingArgs)
+    public Task<ReportResults<PlayersReportStatSummary, PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportParameters parameters, [FromQuery] PagingArgs pagingArgs)
         => _mediator.Send(new GetPlayersReportQuery(parameters, pagingArgs, _actingUser));
 
     [HttpGet("practice-area")]
