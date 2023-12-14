@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Reports;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
@@ -14,18 +12,19 @@ public interface IPlayersReportService
 
 internal class PlayersReportService : IPlayersReportService
 {
+    private readonly IReportsService _reportsService;
     private readonly IStore _store;
 
-    public PlayersReportService
-    (
-        IStore store
-    )
+    public PlayersReportService(IReportsService reportsService, IStore store)
     {
+        _reportsService = reportsService;
         _store = store;
     }
 
     public IQueryable<PlayersReportRecord> GetQuery(PlayersReportParameters parameters)
     {
+        var sponsorCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Sponsors);
+
         var query = _store
             .WithNoTracking<Data.User>()
             .Include(u => u.Enrollments.OrderByDescending(p => p.SessionBegin))
@@ -43,7 +42,7 @@ internal class PlayersReportService : IPlayersReportService
                 CreatedOn = u.CreatedOn,
                 LastPlayedOn =
                 (
-                    u.Enrollments.FirstOrDefault() != null ?
+                    u.Enrollments.OrderByDescending(p => p.SessionBegin).FirstOrDefault() != null ?
                         u.Enrollments.First().SessionBegin :
                         null as DateTimeOffset?
                 ),
@@ -56,7 +55,33 @@ internal class PlayersReportService : IPlayersReportService
                     .Enrollments
                     .SelectMany(p => p.Challenges)
                     .Where(c => c.PlayerMode == PlayerMode.Practice)
-
+                    .Count(),
+                DistinctSeriesPlayed = u
+                    .Enrollments
+                    .Select(p => p.Game)
+                    .Select(g => g.Competition)
+                    .Where(c => c != string.Empty && c != null)
+                    .Distinct()
+                    .Count(),
+                DistinctTracksPlayed = u
+                    .Enrollments
+                    .Select(p => p.Game)
+                    .Select(g => g.Track)
+                    .Where(t => t != string.Empty && t != null)
+                    .Distinct()
+                    .Count(),
+                DistinctSeasonsPlayed = u
+                    .Enrollments
+                    .Select(p => p.Game)
+                    .Select(g => g.Season)
+                    .Where(s => s != string.Empty && s != null)
+                    .Distinct()
+                    .Count(),
+                DistinctGamesPlayed = u
+                    .Enrollments
+                    .Select(p => p.GameId)
+                    .Distinct()
+                    .Count()
             })
             // make the final type of the query base an
             // IQueryable<Data.User>
@@ -72,9 +97,17 @@ internal class PlayersReportService : IPlayersReportService
                 .WhereDateIsNotEmpty(u => u.CreatedOn)
                 .Where(u => u.CreatedOn <= parameters.CreatedDateEnd.Value);
 
-        if (parameters.SponsorId.IsNotEmpty())
+        if (parameters.LastPlayedDateStart is not null)
             query = query
-                .Where(u => u.SponsorId == parameters.SponsorId);
+                .Where(u => u.LastPlayedOn != null && u.LastPlayedOn >= parameters.LastPlayedDateStart.Value);
+
+        if (parameters.LastPlayedDateEnd is not null)
+            query = query
+                .Where(u => u.LastPlayedOn <= parameters.LastPlayedDateEnd.Value.ToEndDate());
+
+        if (sponsorCriteria.Any())
+            query = query
+                .Where(u => sponsorCriteria.Contains(u.SponsorId));
 
         return query.Select(u => new PlayersReportRecord
         {
@@ -87,6 +120,12 @@ internal class PlayersReportService : IPlayersReportService
             },
             CreatedOn = u.CreatedOn,
             LastPlayedOn = u.LastPlayedOn,
+            DeployedCompetitiveChallengesCount = u.DeployedCompetitiveChallengeCount,
+            DeployedPracticeChallengesCount = u.DeployedPracticeChallengeCount,
+            DistinctGamesPlayedCount = u.DistinctGamesPlayed,
+            DistinctSeasonsPlayedCount = u.DistinctSeasonsPlayed,
+            DistinctSeriesPlayedCount = u.DistinctSeriesPlayed,
+            DistinctTracksPlayedCount = u.DistinctTracksPlayed
         });
     }
 }

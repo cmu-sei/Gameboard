@@ -40,7 +40,7 @@ public class PlayersReportServiceTests
             .CallTo(() => fakeStore.WithNoTracking<Data.User>())
             .Returns(users);
 
-        var sut = new PlayersReportService(fakeStore);
+        var sut = new PlayersReportService(A.Fake<IReportsService>(), fakeStore);
 
         // when we call with no parameters, basically
         var results = sut.GetQuery(new PlayersReportParameters());

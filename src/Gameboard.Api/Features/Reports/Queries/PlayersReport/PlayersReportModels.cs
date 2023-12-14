@@ -8,17 +8,19 @@ public sealed class PlayersReportParameters
     public DateTimeOffset? CreatedDateEnd { get; set; }
     public DateTimeOffset? LastPlayedDateStart { get; set; }
     public DateTimeOffset? LastPlayedDateEnd { get; set; }
-    public int? DeployedCompetitiveChallengeCount { get; set; }
-    public int? DeployedPracticeChallengeCount { get; set; }
-    public string SponsorId { get; set; }
+    public string Sponsors { get; set; }
 }
 
 public sealed class PlayersReportRecord
 {
-    public SimpleEntity User { get; set; }
-    public ReportSponsorViewModel Sponsor { get; set; }
-    public DateTimeOffset CreatedOn { get; set; }
-    public DateTimeOffset? LastPlayedOn { get; set; }
-    public int DeployedPracticeChallenges { get; set; }
-    public int DeployedCompetitiveChallenges { get; set; }
+    public required SimpleEntity User { get; set; }
+    public required ReportSponsorViewModel Sponsor { get; set; }
+    public required DateTimeOffset CreatedOn { get; set; }
+    public required DateTimeOffset? LastPlayedOn { get; set; }
+    public required int DeployedPracticeChallengesCount { get; set; }
+    public required int DeployedCompetitiveChallengesCount { get; set; }
+    public required int DistinctGamesPlayedCount { get; set; }
+    public required int DistinctSeriesPlayedCount { get; set; }
+    public required int DistinctTracksPlayedCount { get; set; }
+    public required int DistinctSeasonsPlayedCount { get; set; }
 }

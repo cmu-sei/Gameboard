@@ -87,13 +87,13 @@ public class ReportsService : IReportsService
                 ExampleFields = new string[]
                 {
                     "Player & Sponsor",
-                    "Challenges Deployed"
+                    "Challenges Deployed",
+                    "Distinct Competitions Played"
                 },
                 ExampleParameters = new string[]
                 {
                     "Creation Date",
                     "Last Played Date",
-                    "Number of challenges deployed",
                     "Sponsor"
                 }
             },
