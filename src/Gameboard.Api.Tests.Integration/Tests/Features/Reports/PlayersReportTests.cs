@@ -13,7 +13,7 @@ public class PlayersReportTests
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task GivenOneMatch_WithMultiplePlayerRecords_SelectsMostRecent(IFixture fixture)
+    public async Task GivenOneMatch_WithMultiplePlayerRecords_SelectsMostRecent(string userId, IFixture fixture)
     {
         // given a single user with two player records
         var recentDate = DateTimeOffset.UtcNow;
@@ -23,7 +23,7 @@ public class PlayersReportTests
         {
             state.Add<Data.User>(fixture, u =>
             {
-                u.Id = fixture.Create<string>();
+                u.Id = userId;
                 u.Sponsor = fixture.Create<Data.Sponsor>();
                 u.Enrollments = new List<Data.Player>
                 {
@@ -46,7 +46,6 @@ public class PlayersReportTests
             .WithContentDeserializedAs<ReportResults<PlayersReportRecord>>();
 
         // then the player's lastplayedon date should be the more recent one
-        results.Records.Count().ShouldBe(1);
-        results.Records.First().LastPlayedOn.ShouldBe(recentDate);
+        results.Records.Single(r => r.User.Id == userId).LastPlayedOn.ShouldBe(recentDate);
     }
 }
