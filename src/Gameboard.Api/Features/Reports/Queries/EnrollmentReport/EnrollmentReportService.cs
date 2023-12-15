@@ -38,13 +38,14 @@ internal class EnrollmentReportService : IEnrollmentReportService
         var seriesCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Series);
         var sponsorCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Sponsors);
         var trackCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Tracks);
-        DateTimeOffset? enrollDateStart = parameters.EnrollDateStart.HasValue ? parameters.EnrollDateStart.Value.ToUniversalTime() : null;
-        DateTimeOffset? enrollDateEnd = parameters.EnrollDateEnd.HasValue ? parameters.EnrollDateEnd.Value.ToUniversalTime() : null;
+        DateTimeOffset? enrollDateStart = parameters.EnrollDateStart.HasValue ? parameters.EnrollDateStart.Value.ToEndDate().ToUniversalTime() : null;
+        DateTimeOffset? enrollDateEnd = parameters.EnrollDateEnd.HasValue ? parameters.EnrollDateEnd.Value.ToEndDate().ToUniversalTime() : null;
 
         // the fundamental unit of reporting here is really the player record (an "enrollment"), so resolve enrollments that
         // meet the filter criteria (and have at least one challenge completed in competitive mode)
         var query = _store
             .List<Data.Player>()
+            .AsSplitQuery()
             .Include(p => p.Game)
             .Include(p => p.Challenges.Where(c => c.PlayerMode == PlayerMode.Competition))
             .Include(p => p.User)

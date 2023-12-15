@@ -46,13 +46,14 @@ internal class SupportReportService : ISupportReportService
     public async Task<IEnumerable<SupportReportRecord>> QueryRecords(SupportReportParameters parameters)
     {
         // format parameters
-        DateTimeOffset? openedDateStart = parameters.OpenedDateStart.HasValue ? parameters.OpenedDateStart.Value.ToUniversalTime() : null;
-        DateTimeOffset? openedDateEnd = parameters.OpenedDateEnd.HasValue ? parameters.OpenedDateEnd.Value.ToUniversalTime() : null;
+        DateTimeOffset? openedDateStart = parameters.OpenedDateStart.HasValue ? parameters.OpenedDateStart.Value.ToEndDate().ToUniversalTime() : null;
+        DateTimeOffset? openedDateEnd = parameters.OpenedDateEnd.HasValue ? parameters.OpenedDateEnd.Value.ToEndDate().ToUniversalTime() : null;
         var labels = _reportsService.ParseMultiSelectCriteria(parameters.Labels);
         var statuses = _reportsService.ParseMultiSelectCriteria(parameters.Statuses);
 
         var query = _ticketStore
             .ListWithNoTracking()
+            .AsSplitQuery()
             .Include(t => t.Assignee)
             .Include(t => t.Challenge)
             .Include(t => t.Creator)

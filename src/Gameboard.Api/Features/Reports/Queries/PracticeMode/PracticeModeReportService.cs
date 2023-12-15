@@ -43,8 +43,8 @@ internal class PracticeModeReportService : IPracticeModeReportService
             .ToArrayAsync(cancellationToken);
 
         // process parameters
-        DateTimeOffset? startDate = parameters.PracticeDateStart.HasValue ? parameters.PracticeDateStart.Value.ToUniversalTime() : null;
-        DateTimeOffset? endDate = parameters.PracticeDateEnd.HasValue ? parameters.PracticeDateEnd.Value.ToUniversalTime() : null;
+        DateTimeOffset? startDate = parameters.PracticeDateStart.HasValue ? parameters.PracticeDateStart.Value.ToEndDate().ToUniversalTime() : null;
+        DateTimeOffset? endDate = parameters.PracticeDateEnd.HasValue ? parameters.PracticeDateEnd.Value.ToEndDate().ToUniversalTime() : null;
         var gameIds = _reportsService.ParseMultiSelectCriteria(parameters.Games);
         var sponsorIds = _reportsService.ParseMultiSelectCriteria(parameters.Sponsors);
         var seasons = _reportsService.ParseMultiSelectCriteria(parameters.Seasons);
@@ -53,6 +53,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
 
         var query = _store
             .List<Data.Challenge>()
+                .AsSplitQuery()
                 .Include(c => c.Game)
                 .Include(c => c.Player)
                     .ThenInclude(p => p.Sponsor)
