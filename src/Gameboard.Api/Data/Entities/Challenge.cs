@@ -32,7 +32,6 @@ public class Challenge : IEntity
     /// A JSON string (using the ChallengeQuestionAnswerSetData model) of
     /// submitted answers. See JSONEntities.cs for an explanation.
     /// </summary>
-    // public string PendingSubmission { get; set; }
     public string PendingSubmission { get; set; }
 
     [NotMapped]

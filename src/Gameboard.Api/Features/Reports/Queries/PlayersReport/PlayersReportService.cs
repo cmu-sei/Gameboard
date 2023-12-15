@@ -67,17 +67,17 @@ internal class PlayersReportService : IPlayersReportService
                 .Where(u => u.Enrollments.FirstOrDefault() != null && u.Enrollments.First().SessionBegin <= parameters.LastPlayedDateEnd.Value.ToEndDate().ToUniversalTime());
 
         if (seasonsCriteria.Any())
-            query = query.Where(u => u.Enrollments.Any(p => seasonsCriteria.Contains(p.Game.Season)));
+            query = query.Where(u => u.Enrollments.Any(p => seasonsCriteria.Contains(p.Game.Season.ToLower())));
 
         if (seriesCriteria.Any())
-            query = query.Where(u => u.Enrollments.Any(p => seriesCriteria.Contains(p.Game.Competition)));
+            query = query.Where(u => u.Enrollments.Any(p => seriesCriteria.Contains(p.Game.Competition.ToLower())));
 
         if (sponsorCriteria.Any())
             query = query
                 .Where(u => sponsorCriteria.Contains(u.SponsorId));
 
         if (tracksCriteria.Any())
-            query = query.Where(u => u.Enrollments.Any(p => tracksCriteria.Contains(p.Game.Track)));
+            query = query.Where(u => u.Enrollments.Any(p => tracksCriteria.Contains(p.Game.Track.ToLower())));
 
         return query.Select(u => new PlayersReportRecord
         {

@@ -60,6 +60,29 @@ public class ReportsService : IReportsService
         {
             new()
             {
+                Name = "Challenges",
+                Key = ReportKey.Challenges,
+                Description = "View a summary about the challenges running on Gameboard. See summaries describing scoring and popularity.",
+                ExampleFields = new string[]
+                {
+                    "Challenge Name",
+                    "Game",
+                    "Season",
+                    "Series",
+                    "Track",
+                    "Scoring Distribution",
+                    "Unique players"
+                },
+                ExampleParameters = new string[]
+                {
+                    "Season",
+                    "Series",
+                    "Track",
+                    "Game"
+                }
+            },
+            new()
+            {
                 Name = "Enrollment",
                 Key = ReportKey.Enrollment,
                 Description = "View a summary of player enrollment - who enrolled when, which sponsors do they represent, and how many of them actually played challenges.",
