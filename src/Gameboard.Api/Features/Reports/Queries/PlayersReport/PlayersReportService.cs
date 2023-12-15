@@ -52,7 +52,7 @@ internal class PlayersReportService : IPlayersReportService
         if (parameters.CreatedDateEnd is not null)
             query = query
                 .WhereDateIsNotEmpty(u => u.CreatedOn)
-                .Where(u => u.CreatedOn <= parameters.CreatedDateEnd.Value.ToUniversalTime());
+                .Where(u => u.CreatedOn <= parameters.CreatedDateEnd.Value.ToEndDate().ToUniversalTime());
 
         if (gamesCriteria.Any())
             query = query
