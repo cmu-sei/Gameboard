@@ -128,19 +128,22 @@ internal class PlayersReportService : IPlayersReportService
                 .Count(),
             DistinctSeasonsPlayedCount = u
                 .Enrollments
-                .Select(p => p.Game.Season)
+                .Select(p => p.Game)
+                .Select(g => g.Season)
                 .Where(s => s != null && s != string.Empty)
                 .Distinct()
                 .Count(),
             DistinctSeriesPlayedCount = u
                 .Enrollments
-                .Select(p => p.Game.Competition)
+                .Select(p => p.Game)
+                .Select(g => g.Competition)
                 .Where(s => s != null & s != string.Empty)
                 .Distinct()
                 .Count(),
             DistinctTracksPlayedCount = u
                 .Enrollments
-                .Select(p => p.Game.Track)
+                .Select(p => p.Game)
+                .Select(g => g.Track)
                 .Where(t => t != null & t != string.Empty)
                 .Distinct()
                 .Count()
