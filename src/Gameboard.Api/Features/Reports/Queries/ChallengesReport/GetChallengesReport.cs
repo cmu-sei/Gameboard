@@ -35,7 +35,7 @@ internal class GetChallengesReportHandler : IRequestHandler<GetChallengesReportQ
         await _validator.Validate(request, cancellationToken);
 
         var rawResults = await _challengesReportService.GetRawResults(request.Parameters, cancellationToken);
-        var statSummary = await _challengesReportService.GetStatSummary(rawResults);
+        var statSummary = _challengesReportService.GetStatSummary(rawResults);
         var paged = _pagingService.Page(rawResults, request.PagingArgs);
 
 

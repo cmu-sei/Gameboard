@@ -32,8 +32,8 @@ public sealed class ChallengesReportRecord
 
 public sealed class ChallengesReportStatSummary
 {
-    public required int ArchivedDeployCount { get; set; }
-    public required int DeployCount { get; set; }
+    public required int DeployCompetitiveCount { get; set; }
+    public required int DeployPracticeCount { get; set; }
     public required int SpecCount { get; set; }
     public required ChallengesReportStatSummaryPopularChallenge MostPopularCompetitiveChallenge { get; set; }
     public required ChallengesReportStatSummaryPopularChallenge MostPopularPracticeChallenge { get; set; }

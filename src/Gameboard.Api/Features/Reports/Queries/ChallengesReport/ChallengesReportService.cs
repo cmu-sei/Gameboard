@@ -12,7 +12,7 @@ namespace Gameboard.Api.Features.Reports;
 public interface IChallengesReportService
 {
     Task<IEnumerable<ChallengesReportRecord>> GetRawResults(ChallengesReportParameters parameters, CancellationToken cancellationToken);
-    Task<ChallengesReportStatSummary> GetStatSummary(IEnumerable<ChallengesReportRecord> records);
+    ChallengesReportStatSummary GetStatSummary(IEnumerable<ChallengesReportRecord> records);
 }
 
 internal class ChallengesReportService : IChallengesReportService
@@ -148,26 +148,23 @@ internal class ChallengesReportService : IChallengesReportService
             .ThenBy(r => r.Game.Name);
     }
 
-    public async Task<ChallengesReportStatSummary> GetStatSummary(IEnumerable<ChallengesReportRecord> records)
+    public ChallengesReportStatSummary GetStatSummary(IEnumerable<ChallengesReportRecord> records)
     {
         var specIds = records.Select(r => r.ChallengeSpec.Id).ToArray();
         var mostPopularCompetitiveChallengeSpec = records
             .Where(r => r.DeployCompetitiveCount > 0)
-            .OrderBy(r => r.DeployCompetitiveCount)
+            .OrderByDescending(r => r.DeployCompetitiveCount)
             .FirstOrDefault();
 
         var mostPopularPracticeChallengeSpec = records
             .Where(r => r.DeployPracticeCount > 0)
-            .OrderBy(r => r.DeployPracticeCount)
+            .OrderByDescending(r => r.DeployPracticeCount)
             .FirstOrDefault();
 
-        // compose summary stats (requires a call to archived challenges, pull if not needed later)
         return new ChallengesReportStatSummary
         {
-            ArchivedDeployCount = await _store
-                .WithNoTracking<Data.ArchivedChallenge>()
-                .CountAsync(),
-            DeployCount = records.Sum(r => r.DeployCompetitiveCount + r.DeployPracticeCount),
+            DeployCompetitiveCount = records.Sum(r => r.DeployCompetitiveCount),
+            DeployPracticeCount = records.Sum(r => r.DeployPracticeCount),
             SpecCount = records.Count(),
             MostPopularCompetitiveChallenge = mostPopularCompetitiveChallengeSpec is null ?
                 null :
