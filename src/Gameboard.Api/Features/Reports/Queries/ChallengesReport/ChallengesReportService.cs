@@ -12,6 +12,7 @@ namespace Gameboard.Api.Features.Reports;
 public interface IChallengesReportService
 {
     Task<IEnumerable<ChallengesReportRecord>> GetRawResults(ChallengesReportParameters parameters, CancellationToken cancellationToken);
+    Task<ChallengesReportStatSummary> GetStatSummary(IEnumerable<ChallengesReportRecord> records);
 }
 
 internal class ChallengesReportService : IChallengesReportService
@@ -145,5 +146,45 @@ internal class ChallengesReportService : IChallengesReportService
         })
         .OrderBy(r => r.ChallengeSpec.Name)
             .ThenBy(r => r.Game.Name);
+    }
+
+    public async Task<ChallengesReportStatSummary> GetStatSummary(IEnumerable<ChallengesReportRecord> records)
+    {
+        var specIds = records.Select(r => r.ChallengeSpec.Id).ToArray();
+        var mostPopularCompetitiveChallengeSpec = records
+            .Where(r => r.DeployCompetitiveCount > 0)
+            .OrderBy(r => r.DeployCompetitiveCount)
+            .FirstOrDefault();
+
+        var mostPopularPracticeChallengeSpec = records
+            .Where(r => r.DeployPracticeCount > 0)
+            .OrderBy(r => r.DeployPracticeCount)
+            .FirstOrDefault();
+
+        // compose summary stats (requires a call to archived challenges, pull if not needed later)
+        return new ChallengesReportStatSummary
+        {
+            ArchivedDeployCount = await _store
+                .WithNoTracking<Data.ArchivedChallenge>()
+                .CountAsync(),
+            DeployCount = records.Sum(r => r.DeployCompetitiveCount + r.DeployPracticeCount),
+            SpecCount = records.Count(),
+            MostPopularCompetitiveChallenge = mostPopularCompetitiveChallengeSpec is null ?
+                null :
+                new ChallengesReportStatSummaryPopularChallenge
+                {
+                    ChallengeName = mostPopularCompetitiveChallengeSpec.ChallengeSpec.Name,
+                    GameName = mostPopularCompetitiveChallengeSpec.Game.Name,
+                    DeployCount = mostPopularCompetitiveChallengeSpec.DeployCompetitiveCount
+                },
+            MostPopularPracticeChallenge = mostPopularPracticeChallengeSpec is null ?
+                null :
+                new ChallengesReportStatSummaryPopularChallenge
+                {
+                    ChallengeName = mostPopularPracticeChallengeSpec.ChallengeSpec.Name,
+                    GameName = mostPopularPracticeChallengeSpec.Game.Name,
+                    DeployCount = mostPopularPracticeChallengeSpec.DeployPracticeCount
+                }
+        };
     }
 }

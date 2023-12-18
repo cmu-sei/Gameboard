@@ -32,7 +32,18 @@ public sealed class ChallengesReportRecord
 
 public sealed class ChallengesReportStatSummary
 {
+    public required int ArchivedDeployCount { get; set; }
+    public required int DeployCount { get; set; }
+    public required int SpecCount { get; set; }
+    public required ChallengesReportStatSummaryPopularChallenge MostPopularCompetitiveChallenge { get; set; }
+    public required ChallengesReportStatSummaryPopularChallenge MostPopularPracticeChallenge { get; set; }
+}
 
+public sealed class ChallengesReportStatSummaryPopularChallenge
+{
+    public required int DeployCount { get; set; }
+    public required string ChallengeName { get; set; }
+    public required string GameName { get; set; }
 }
 
 public sealed class ChallengesReportExportRecord
