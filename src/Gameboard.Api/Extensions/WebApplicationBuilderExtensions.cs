@@ -91,11 +91,11 @@ internal static class WebApplicationBuilderExtensions
             .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath);
 
         // HOSTED SERVICES
-        services.AddHostedService<BackgroundAsyncTaskRunner>();
-
-        // don't add the recurring JobService during test - we don't want them interfere with CI
+        // don't add these during test - we don't want them interfere with CI
         if (!builder.Environment.IsTest())
-            services.AddHostedService<JobService>();
+            services
+                .AddHostedService<BackgroundAsyncTaskRunner>()
+                .AddHostedService<JobService>();
 
         services.AddSingleton
         (
