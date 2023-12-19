@@ -45,7 +45,7 @@ public class PlayersReportTests
             .GetAsync("/api/reports/players")
             .WithContentDeserializedAs<ReportResults<PlayersReportStatSummary, PlayersReportRecord>>();
 
-        // then the player's lastplayedon date should be the more recent one
+        // then the user's lastplayedon date should be the more recent one
         results.Records.Single(r => r.User.Id == userId).LastPlayedOn.ShouldBe(recentDate);
     }
 }
