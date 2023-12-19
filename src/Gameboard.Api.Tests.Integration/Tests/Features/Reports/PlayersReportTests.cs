@@ -16,8 +16,8 @@ public class PlayersReportTests
     public async Task GivenOneMatch_WithMultiplePlayerRecords_SelectsMostRecent(string userId, IFixture fixture)
     {
         // given a single user with two player records
-        var recentDate = DateTimeOffset.UtcNow;
-        var olderDate = recentDate.AddDays(-7);
+        var sessionDate = new DateTimeOffset(new DateTime(2023, 12, 19)).ToUniversalTime();
+        var olderDate = new DateTimeOffset(new DateTime(2023, 12, 11)).ToUniversalTime();
 
         await _testContext.WithDataState(state =>
         {
@@ -29,7 +29,7 @@ public class PlayersReportTests
                 {
                     state.Build<Data.Player>(fixture, p =>
                     {
-                        p.SessionBegin = recentDate;
+                        p.SessionBegin = sessionDate;
                     }),
                     state.Build<Data.Player>(fixture, p =>
                     {
@@ -46,6 +46,6 @@ public class PlayersReportTests
             .WithContentDeserializedAs<ReportResults<PlayersReportStatSummary, PlayersReportRecord>>();
 
         // then the user's lastplayedon date should be the more recent one
-        results.Records.Single(r => r.User.Id == userId).LastPlayedOn.ShouldBe(recentDate);
+        results.Records.Single(r => r.User.Id == userId).LastPlayedOn.ShouldBe(sessionDate);
     }
 }
