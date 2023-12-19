@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -25,10 +26,10 @@ public sealed class PlayersReportRecord
     public required int CompletedPracticeChallengesCount { get; set; }
     public required int DeployedCompetitiveChallengesCount { get; set; }
     public required int DeployedPracticeChallengesCount { get; set; }
-    public required int DistinctGamesPlayedCount { get; set; }
-    public required int DistinctSeriesPlayedCount { get; set; }
-    public required int DistinctTracksPlayedCount { get; set; }
-    public required int DistinctSeasonsPlayedCount { get; set; }
+    public required IEnumerable<string> DistinctGamesPlayed { get; set; }
+    public required IEnumerable<string> DistinctSeriesPlayed { get; set; }
+    public required IEnumerable<string> DistinctTracksPlayed { get; set; }
+    public required IEnumerable<string> DistinctSeasonsPlayed { get; set; }
 }
 
 public sealed class PlayersReportCsvRecord

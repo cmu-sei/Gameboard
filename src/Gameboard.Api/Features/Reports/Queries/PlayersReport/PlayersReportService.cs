@@ -92,8 +92,7 @@ internal class PlayersReportService : IPlayersReportService
             LastPlayedOn = u
                 .Enrollments
                 .OrderByDescending(p => p.SessionBegin)
-                .FirstOrDefault() != null ?
-                u
+                .FirstOrDefault() != null ? u
                     .Enrollments
                     .OrderByDescending(p => p.SessionBegin)
                     .First().SessionBegin :
@@ -120,33 +119,30 @@ internal class PlayersReportService : IPlayersReportService
                 .SelectMany(p => p.Challenges)
                 .Where(c => c.PlayerMode == PlayerMode.Practice)
                 .Count(),
-            DistinctGamesPlayedCount = u
+            DistinctGamesPlayed = u
                 .Enrollments
-                .Select(p => p.GameId)
+                .Select(p => p.Game)
+                .Select(g => g.Name)
                 .Where(gId => gId != null && gId != string.Empty)
-                .Distinct()
-                .Count(),
-            DistinctSeasonsPlayedCount = u
+                .Distinct(),
+            DistinctSeasonsPlayed = u
                 .Enrollments
                 .Select(p => p.Game)
                 .Select(g => g.Season)
                 .Where(s => s != null && s != string.Empty)
-                .Distinct()
-                .Count(),
-            DistinctSeriesPlayedCount = u
+                .Distinct(),
+            DistinctSeriesPlayed = u
                 .Enrollments
                 .Select(p => p.Game)
                 .Select(g => g.Competition)
                 .Where(s => s != null & s != string.Empty)
-                .Distinct()
-                .Count(),
-            DistinctTracksPlayedCount = u
+                .Distinct(),
+            DistinctTracksPlayed = u
                 .Enrollments
                 .Select(p => p.Game)
                 .Select(g => g.Track)
                 .Where(t => t != null & t != string.Empty)
-                .Distinct()
-                .Count()
+                .Distinct(),
         });
     }
 }

@@ -43,10 +43,10 @@ internal class GetPlayersReportExportHandler : IRequestHandler<GetPlayersReportE
                 CompletedPracticeChallengesCount = r.CompletedPracticeChallengesCount,
                 DeployedCompetitiveChallengesCount = r.DeployedCompetitiveChallengesCount,
                 DeployedPracticeChallengesCount = r.DeployedPracticeChallengesCount,
-                DistinctGamesPlayedCount = r.DistinctGamesPlayedCount,
-                DistinctSeasonsPlayedCount = r.DistinctSeasonsPlayedCount,
-                DistinctSeriesPlayedCount = r.DistinctSeriesPlayedCount,
-                DistinctTracksPlayedCount = r.DistinctTracksPlayedCount
+                DistinctGamesPlayedCount = r.DistinctGamesPlayed.Count(),
+                DistinctSeasonsPlayedCount = r.DistinctSeasonsPlayed.Count(),
+                DistinctSeriesPlayedCount = r.DistinctSeriesPlayed.Count(),
+                DistinctTracksPlayedCount = r.DistinctTracksPlayed.Count()
             })
             .ToArrayAsync(cancellationToken);
     }
