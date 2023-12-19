@@ -58,7 +58,31 @@ public class ReportsService : IReportsService
     {
         var reports = new ReportViewModel[]
         {
-            new() {
+            new()
+            {
+                Name = "Challenges",
+                Key = ReportKey.Challenges,
+                Description = "View a summary about the challenges running on Gameboard. See summaries describing scoring and popularity.",
+                ExampleFields = new string[]
+                {
+                    "Challenge Name",
+                    "Game",
+                    "Season",
+                    "Series",
+                    "Track",
+                    "Scoring Distribution",
+                    "Unique players"
+                },
+                ExampleParameters = new string[]
+                {
+                    "Season",
+                    "Series",
+                    "Track",
+                    "Game"
+                }
+            },
+            new()
+            {
                 Name = "Enrollment",
                 Key = ReportKey.Enrollment,
                 Description = "View a summary of player enrollment - who enrolled when, which sponsors do they represent, and how many of them actually played challenges.",
@@ -78,7 +102,26 @@ public class ReportsService : IReportsService
                     "Enrollment Date Range",
                 }
             },
-            new() {
+            new()
+            {
+                Name = "Players",
+                Key = ReportKey.Players,
+                Description = "View a summary of your players. See their basic information, their sponsors, and how many challenges they're playing.",
+                ExampleFields = new string[]
+                {
+                    "Player & Sponsor",
+                    "Challenges Deployed",
+                    "Distinct Competitions Played"
+                },
+                ExampleParameters = new string[]
+                {
+                    "Creation Date",
+                    "Last Played Date",
+                    "Sponsor"
+                }
+            },
+            new()
+            {
                 Name = "Practice Area",
                 Key = ReportKey.PracticeArea,
                 Description = "Check in on players who are spending free time honing their skills on Gameboard. See which challenges are practiced most, success rates, and which players are logging in to practice.",
@@ -100,7 +143,8 @@ public class ReportsService : IReportsService
                     "Sponsor"
                 }
             },
-            new() {
+            new()
+            {
                 Name = "Support",
                 Key = ReportKey.Support,
                 Description = "View a summary of the support tickets that have been created in Gameboard, including closer looks at submission times, ticket categories, and associated challenges.",

@@ -77,5 +77,15 @@ public class ChallengeControllerGradeTests
 
         player.Rank.ShouldBe(1);
         player.Score.ShouldBe(100);
+
+        // and also the challenge should have a grading event
+        var events = await _testContext
+            .GetDbContext()
+            .ChallengeEvents
+            .AsNoTracking()
+            .Where(e => e.ChallengeId == challengeId && e.Type == ChallengeEventType.Submission)
+            .ToArrayAsync();
+
+        events.Length.ShouldBe(1);
     }
 }

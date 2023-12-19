@@ -109,7 +109,7 @@ public class ChallengeSpecService : _Service
     /// game engine (for now, only Topomojo.)
     /// 
     /// "Active" here is defined as specs that are used by a game with a current
-    /// execution period and 
+    /// execution period or practice mode specs.
     /// </summary>
     /// <returns></returns>
     public async Task SyncActiveSpecs(CancellationToken cancellationToken)

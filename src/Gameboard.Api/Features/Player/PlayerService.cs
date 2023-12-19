@@ -166,12 +166,16 @@ public class PlayerService
                 entity
             );
 
-            entity.NameStatus = entity.Name != entity.ApprovedName ? "pending" : string.Empty;
+            entity.NameStatus = entity.Name != entity.ApprovedName ? AppConstants.NameStatusPending : string.Empty;
         }
         else
         {
             _mapper.Map(model, entity);
         }
+
+        // if manipulation of the names has caused Name to equal ApprovedName, clear any pending status
+        if (entity.Name == entity.ApprovedName && entity.NameStatus == AppConstants.NameStatusPending)
+            entity.NameStatus = string.Empty;
 
         if (prev.Name != entity.Name)
         {
@@ -388,7 +392,7 @@ public class PlayerService
             q = q.Where(p => !p.Advanced);
 
         if (model.WantsPending)
-            q = q.Where(u => u.NameStatus.Equals(AppConstants.NameStatusPending));
+            q = q.Where(p => p.NameStatus.Equals(AppConstants.NameStatusPending) && p.Name != p.ApprovedName);
 
         if (model.WantsDisallowed)
             q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus) && !u.NameStatus.Equals(AppConstants.NameStatusPending));

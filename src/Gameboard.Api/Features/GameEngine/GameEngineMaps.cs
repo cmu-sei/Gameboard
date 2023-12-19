@@ -55,7 +55,9 @@ public class GameEngineMaps : Profile
             .ForMember(c => c.TeamId, o => o.Ignore())
             .ForMember(c => c.Tickets, o => o.Ignore())
             .ForMember(c => c.AwardedBonuses, o => o.Ignore())
-            .ForMember(c => c.AwardedManualBonuses, o => o.Ignore());
+            .ForMember(c => c.AwardedManualBonuses, o => o.Ignore())
+            .ForMember(c => c.PendingSubmission, o => o.Ignore())
+            .ForMember(c => c.Submissions, o => o.Ignore());
 
         // engine: topo
         CreateMap<TopoMojo.Api.Client.AnswerSubmission, GameEngineAnswerSubmission>();

@@ -3,6 +3,7 @@ using System;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 {
     [DbContext(typeof(GameboardDbContextPostgreSQL))]
-    partial class GameboardDbContextPostgreSQLModelSnapshot : ModelSnapshot
+    [Migration("20231207203021_CreateChallengeSubmissionsSchema")]
+    partial class CreateChallengeSubmissionsSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -429,11 +432,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<string>("ChallengeId")
                         .IsRequired()
                         .HasColumnType("character varying(40)");
-
-                    b.Property<double>("Score")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("double precision")
-                        .HasDefaultValue(0.0);
 
                     b.Property<DateTimeOffset>("SubmittedOn")
                         .HasColumnType("timestamp with time zone");

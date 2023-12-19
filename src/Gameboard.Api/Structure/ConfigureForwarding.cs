@@ -20,7 +20,7 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             services.Configure<ForwardedHeadersOptions>(config => {
 
-                if (Enum.TryParse<ForwardedHeaders>(
+                if (Enum.TryParse(
                     options.TargetHeaders ?? "None",
                     true,
                     out ForwardedHeaders targets)
@@ -45,7 +45,7 @@ namespace Microsoft.Extensions.DependencyInjection
                     string[] net = item.Split('/');
 
                     if (IPAddress.TryParse(net.First(), out IPAddress ipaddr)
-                        && Int32.TryParse(net.Last(), out int prefix)
+                        && int.TryParse(net.Last(), out int prefix)
                     )
                     {
                         config.KnownNetworks.Add(new IPNetwork(ipaddr, prefix));

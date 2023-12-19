@@ -192,6 +192,7 @@ internal class SyncStartGameService : ISyncStartGameService
 
             var gameTeamIds = validateStartResult.Players.Select(p => p.TeamId).Distinct().ToArray();
             // TODO: combine these into a single DB call in the teams service (passing gameID)
+            _logger.LogInformation($"Adjusting session window for {gameTeamIds.Count()} teams...");
             foreach (var teamId in gameTeamIds)
             {
                 await _teamService.UpdateSessionStartAndEnd(teamId, sessionBegin, sessionEnd, cancellationToken);

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Features.Challenges;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -32,6 +33,10 @@ public class ReportsController : ControllerBase
     public async Task<IEnumerable<ReportViewModel>> List()
         => await _service.List();
 
+    [HttpGet("challenges")]
+    public Task<ReportResults<ChallengesReportStatSummary, ChallengesReportRecord>> GetChallengesReport([FromQuery] ChallengesReportParameters parameters, [FromQuery] PagingArgs paging)
+        => _mediator.Send(new GetChallengesReportQuery(parameters, paging, _actingUser));
+
     [HttpGet("enrollment")]
     public Task<ReportResults<EnrollmentReportRecord>> GetEnrollmentReportSummary([FromQuery] EnrollmentReportParameters parameters, [FromQuery] PagingArgs paging)
         => _mediator.Send(new EnrollmentReportSummaryQuery(parameters, paging, _actingUser));
@@ -47,6 +52,10 @@ public class ReportsController : ControllerBase
     [HttpGet("enrollment/by-game")]
     public Task<ReportResults<EnrollmentReportByGameRecord>> GetEnrollmentReportByGame([FromQuery] EnrollmentReportParameters parameters, [FromQuery] PagingArgs pagingArgs)
         => _mediator.Send(new EnrollmentReportByGameQuery(parameters, pagingArgs, _actingUser));
+
+    [HttpGet("players")]
+    public Task<ReportResults<PlayersReportStatSummary, PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportParameters parameters, [FromQuery] PagingArgs pagingArgs)
+        => _mediator.Send(new GetPlayersReportQuery(parameters, pagingArgs, _actingUser));
 
     [HttpGet("practice-area")]
     public async Task<ReportResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>> GetPracticeModeReport([FromQuery] PracticeModeReportParameters parameters, [FromQuery] PagingArgs paging)

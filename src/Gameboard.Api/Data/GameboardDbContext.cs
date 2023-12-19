@@ -176,6 +176,15 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.Text).HasMaxLength(1024);
         });
 
+        builder.Entity<ChallengeGate>(b =>
+        {
+            b.HasOne(p => p.Game).WithMany(u => u.Prerequisites).OnDelete(DeleteBehavior.Cascade);
+            b.Property(g => g.Id).HasMaxLength(40);
+            b.Property(g => g.TargetId).HasMaxLength(40);
+            b.Property(g => g.RequiredId).HasMaxLength(40);
+            b.Property(g => g.GameId).HasMaxLength(40);
+        });
+
         builder.Entity<ChallengeSpec>(b =>
         {
             b.Property(u => u.Id).HasMaxLength(40);
@@ -186,13 +195,16 @@ public class GameboardDbContext : DbContext
             b.HasOne(p => p.Game).WithMany(u => u.Specs).OnDelete(DeleteBehavior.Cascade);
         });
 
-        builder.Entity<ChallengeGate>(b =>
+        builder.Entity<ChallengeSubmission>(b =>
         {
-            b.HasOne(p => p.Game).WithMany(u => u.Prerequisites).OnDelete(DeleteBehavior.Cascade);
-            b.Property(g => g.Id).HasMaxLength(40);
-            b.Property(g => g.TargetId).HasMaxLength(40);
-            b.Property(g => g.RequiredId).HasMaxLength(40);
-            b.Property(g => g.GameId).HasMaxLength(40);
+            b.Property(s => s.SubmittedOn).IsRequired();
+            b.Property(s => s.Answers).IsRequired();
+            b.Property(s => s.Score).IsRequired().HasDefaultValue(0);
+
+            b
+                .HasOne(s => s.Challenge)
+                .WithMany(c => c.Submissions)
+                .IsRequired();
         });
 
         builder.Entity<Sponsor>(b =>
@@ -339,8 +351,9 @@ public class GameboardDbContext : DbContext
     public DbSet<ChallengeBonus> ChallengeBonuses { get; set; }
     public DbSet<ChallengeBonusCompleteSolveRank> ChallengeBonusesCompleteSolveRank { get; set; }
     public DbSet<ChallengeEvent> ChallengeEvents { get; set; }
-    public DbSet<ChallengeSpec> ChallengeSpecs { get; set; }
     public DbSet<ChallengeGate> ChallengeGates { get; set; }
+    public DbSet<ChallengeSpec> ChallengeSpecs { get; set; }
+    public DbSet<ChallengeSubmission> ChallengeSubmissions { get; set; }
     public DbSet<ExternalGameTeam> ExternalGameTeams { get; set; }
     public DbSet<Feedback> Feedback { get; set; }
     public DbSet<Game> Games { get; set; }

@@ -34,6 +34,7 @@ public partial class ChallengeService : _Service
     private readonly INowService _now;
     private readonly IPlayerStore _playerStore;
     private readonly IChallengeDocsService _challengeDocsService;
+    private readonly IChallengeSubmissionsService _challengeSubmissionsService;
     private readonly IChallengeSyncService _challengeSyncService;
     private readonly IStore _store;
     private readonly ITeamService _teamService;
@@ -44,6 +45,7 @@ public partial class ChallengeService : _Service
         CoreOptions coreOptions,
         IChallengeStore challengeStore,
         IChallengeDocsService challengeDocsService,
+        IChallengeSubmissionsService challengeSubmissionsService,
         IChallengeSyncService challengeSyncService,
         IGameEngineService gameEngine,
         IGuidService guids,
@@ -61,6 +63,7 @@ public partial class ChallengeService : _Service
         _actorMap = actorMap;
         _challengeStore = challengeStore;
         _challengeDocsService = challengeDocsService;
+        _challengeSubmissionsService = challengeSubmissionsService;
         _challengeSyncService = challengeSyncService;
         _gameEngine = gameEngine;
         _guids = guids;
@@ -123,7 +126,7 @@ public partial class ChallengeService : _Service
         {
             var challenge = await BuildAndRegisterChallenge(model, spec, game, player, actorId, graderUrl, playerCount, model.Variant);
 
-            await _store.SaveAdd(challenge, cancellationToken);
+            await _store.Create(challenge, cancellationToken);
             await _challengeStore.UpdateEtd(challenge.SpecId);
 
             return Mapper.Map<Challenge>(challenge);
@@ -240,7 +243,7 @@ public partial class ChallengeService : _Service
 
         q = q.Where(t => userTeams.Any(i => i == t.TeamId));
 
-        DateTimeOffset recent = DateTimeOffset.UtcNow.AddDays(-1);
+        var recent = DateTimeOffset.UtcNow.AddDays(-1);
         var practiceChallengesCutoff = _now.Get().AddDays(-7);
         q = q.Include(c => c.Player).Include(c => c.Game);
         // band-aid for #296
@@ -305,7 +308,7 @@ public partial class ChallengeService : _Service
             Id = _guids.GetGuid(),
             UserId = actorId,
             TeamId = challenge.TeamId,
-            Timestamp = DateTimeOffset.UtcNow,
+            Timestamp = _now.Get(),
             Type = ChallengeEventType.GamespaceOn
         });
 
@@ -324,7 +327,7 @@ public partial class ChallengeService : _Service
             Id = _guids.GetGuid(),
             UserId = actorId,
             TeamId = challenge.TeamId,
-            Timestamp = DateTimeOffset.UtcNow,
+            Timestamp = _now.Get(),
             Type = ChallengeEventType.GamespaceOff
         });
 
@@ -338,6 +341,16 @@ public partial class ChallengeService : _Service
     {
         var challenge = await _challengeStore.Retrieve(model.Id);
 
+        // determine how many attempts have been made prior to this one
+        var priorAttemptCount = 0;
+
+        if (challenge.State is not null)
+        {
+            var preGradeState = _jsonService.Deserialize<GameEngineGameState>(challenge.State);
+            priorAttemptCount = preGradeState.Challenge.Attempts;
+        }
+
+        // log the appropriate event
         challenge.Events.Add(new ChallengeEvent
         {
             Id = _guids.GetGuid(),
@@ -351,7 +364,26 @@ public partial class ChallengeService : _Service
         await _challengeSyncService.Sync(challenge, state, CancellationToken.None);
 
         // update the team score and award automatic bonuses
-        await _mediator.Send(new UpdateTeamChallengeBaseScoreCommand(challenge.Id, challenge.Score));
+        var updatedScore = await _mediator.Send(new UpdateTeamChallengeBaseScoreCommand(challenge.Id, challenge.Score));
+
+        // update the challenge object with the store
+        challenge.Score = updatedScore.Score.TotalScore;
+
+        // The game engine (Topo, in most cases) may optionally not count this as an attempt if the answers are identical 
+        // to a previous attempt, which means we need to be sure this consumed an attempt
+        // before counting it as a new submission for logging purposes.
+        if (state.Challenge.Attempts > priorAttemptCount)
+        {
+            // record the submission
+            await _challengeSubmissionsService.LogSubmission
+            (
+                challenge.Id,
+                (int)updatedScore.Score.TotalScore,
+                model.SectionIndex,
+                model.Questions.Select(q => q.Answer),
+                CancellationToken.None
+            );
+        }
 
         if (challenge.PlayerMode == PlayerMode.Practice)
         {

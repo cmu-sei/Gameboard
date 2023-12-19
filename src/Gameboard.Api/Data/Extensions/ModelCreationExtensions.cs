@@ -1,3 +1,7 @@
+using System;
+using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Gameboard.Api.Data;
@@ -12,4 +16,27 @@ public static class ModelCreationExtensions
 
     public static PropertyBuilder HasStandardUrlLength(this PropertyBuilder builder)
         => builder.HasMaxLength(200);
+
+    public static void HasGameboardJsonColumn<TEntity, TProperty>(this EntityTypeBuilder<TEntity> entityTypeBuilder, Expression<Func<TEntity, TProperty>> propertyExpression, DatabaseFacade db)
+        where TEntity : class, IEntity
+        where TProperty : class
+    {
+
+        if (db.IsNpgsql())
+        {
+            entityTypeBuilder.Property(propertyExpression).HasColumnType("jsonb");
+            return;
+        }
+
+        if (db.IsSqlServer())
+        {
+            entityTypeBuilder
+                .OwnsOne(propertyExpression, ownBuilder => ownBuilder.ToJson())
+                .Navigation(propertyExpression)
+                .IsRequired();
+            return;
+        }
+
+        throw new NotImplementedException($"""Json column configuration has not been created for database provider: {db.ProviderName}""");
+    }
 }

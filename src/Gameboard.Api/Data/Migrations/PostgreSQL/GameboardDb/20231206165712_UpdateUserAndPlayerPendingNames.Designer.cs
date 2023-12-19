@@ -3,6 +3,7 @@ using System;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 {
     [DbContext(typeof(GameboardDbContextPostgreSQL))]
-    partial class GameboardDbContextPostgreSQLModelSnapshot : ModelSnapshot
+    [Migration("20231206165712_UpdateUserAndPlayerPendingNames")]
+    partial class UpdateUserAndPlayerPendingNames
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -211,9 +214,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
-                        .HasColumnType("text");
-
-                    b.Property<string>("PendingSubmission")
                         .HasColumnType("text");
 
                     b.Property<string>("PlayerId")
@@ -415,34 +415,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.HasIndex("GameId");
 
                     b.ToTable("ChallengeSpecs");
-                });
-
-            modelBuilder.Entity("Gameboard.Api.Data.ChallengeSubmission", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Answers")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("ChallengeId")
-                        .IsRequired()
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<double>("Score")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("double precision")
-                        .HasDefaultValue(0.0);
-
-                    b.Property<DateTimeOffset>("SubmittedOn")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChallengeId");
-
-                    b.ToTable("ChallengeSubmissions");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.ExternalGameTeam", b =>
@@ -1249,17 +1221,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Game");
                 });
 
-            modelBuilder.Entity("Gameboard.Api.Data.ChallengeSubmission", b =>
-                {
-                    b.HasOne("Gameboard.Api.Data.Challenge", "Challenge")
-                        .WithMany("Submissions")
-                        .HasForeignKey("ChallengeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Challenge");
-                });
-
             modelBuilder.Entity("Gameboard.Api.Data.ExternalGameTeam", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
@@ -1507,8 +1468,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Events");
 
                     b.Navigation("Feedback");
-
-                    b.Navigation("Submissions");
 
                     b.Navigation("Tickets");
                 });

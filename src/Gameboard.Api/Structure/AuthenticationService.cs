@@ -84,7 +84,7 @@ namespace Gameboard.Api
             }
             catch (Exception ex)
             {
-                _logger.LogError("Exception renewing auth token.", ex);
+                _logger.LogError($"Exception renewing auth token. {ex.GetType().Name} - {ex.Message}");
             }
 
             return null;

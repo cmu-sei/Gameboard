@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Hubs;
@@ -18,7 +19,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Controllers
 {
-
     [Authorize]
     public class ChallengeController : _Controller
     {
@@ -362,10 +362,11 @@ namespace Gameboard.Api.Controllers
         [Authorize(AppConstants.ConsolePolicy)]
         public ConsoleActor GetConsoleActor([FromQuery] string uid)
         {
-            AuthorizeAny(
-              () => Actor.IsDirector,
-              () => Actor.IsObserver,
-              () => Actor.IsSupport
+            AuthorizeAny
+            (
+                () => Actor.IsDirector,
+                () => Actor.IsObserver,
+                () => Actor.IsSupport
             );
             return ChallengeService.GetConsoleActor(uid);
         }
@@ -374,6 +375,16 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public Task<ChallengeSolutionGuide> GetSolutionGuide([FromRoute] string challengeId)
             => _mediator.Send(new GetChallengeSolutionGuideQuery(challengeId));
+
+        [HttpGet("api/challenge/{challengeId}/submissions")]
+        [Authorize]
+        public Task<GetChallengeSubmissionsResponse> GetSubmissions([FromRoute] string challengeId)
+            => _mediator.Send(new GetChallengeSubmissionsQuery(challengeId));
+
+        [HttpPut("api/challenge/{challengeId}/submissions/pending")]
+        [Authorize]
+        public Task UpdatePendingSubmission([FromRoute] string challengeId, [FromBody] ChallengeSubmissionAnswers submission)
+            => _mediator.Send(new SaveChallengePendingSubmissionCommand(challengeId, submission));
 
         /// <summary>
         /// Find challenges
@@ -384,7 +395,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ChallengeSummary[]> List([FromQuery] SearchFilter model)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsDirector,
                 () => Actor.IsSupport
             );
