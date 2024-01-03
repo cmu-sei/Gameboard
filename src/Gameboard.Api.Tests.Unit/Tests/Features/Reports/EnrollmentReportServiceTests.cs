@@ -56,13 +56,15 @@ public class EnrollmentReportServiceTests
         // given 
         var sponsors = new List<Data.Sponsor>
         {
-            new() {
+            new()
+            {
                 Id = "good-people",
                 Name = "The Good People",
                 Logo = "good-people.jpg",
                 Approved = true
             },
-            new() {
+            new()
+            {
                 Id = "bad-eggs",
                 Name = "The Bad Eggs",
                 Logo = "bad-eggs.jpg",
@@ -116,7 +118,7 @@ public class EnrollmentReportServiceTests
         // given 
         var sponsors = new List<Data.Sponsor>
         {
-            new Data.Sponsor
+            new()
             {
                 Id = "good-people",
                 Name = "The Good People",
@@ -153,4 +155,42 @@ public class EnrollmentReportServiceTests
         // then
         results.Count().ShouldBe(1);
     }
+
+    [Theory, GameboardAutoData]
+    public async Task GetResults_WithPlayerWithNoChallenges_IsIncluded(IFixture fixture)
+    {
+        // given 
+        var sponsors = new List<Data.Sponsor>
+        {
+            new()
+            {
+                Id = "good-people",
+                Name = "The Good People",
+                Logo = "good-people.jpg"
+            }
+        }.BuildMock();
+
+        var player = fixture.Create<Data.Player>();
+        player.Challenges = Array.Empty<Data.Challenge>();
+        player.Sponsor = sponsors.First();
+        var players = player.ToEnumerable().BuildMock();
+
+        var reportsService = A.Fake<IReportsService>();
+        A.CallTo(() => reportsService.ParseMultiSelectCriteria(string.Empty))
+            .WithAnyArguments()
+            .Returns(Array.Empty<string>());
+
+        var store = A.Fake<IStore>();
+        A.CallTo(() => store.List<Data.Sponsor>(false)).Returns(sponsors);
+        A.CallTo(() => store.List<Data.Player>(false)).Returns(players);
+
+        var sut = new EnrollmentReportService(reportsService, store);
+
+        // when
+        var results = await sut.GetRawResults(new EnrollmentReportParameters(), CancellationToken.None);
+
+        // then
+        results.Count().ShouldBe(1);
+    }
+
 }

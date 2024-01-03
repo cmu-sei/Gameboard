@@ -63,7 +63,7 @@ internal class GetChallengeSubmissionsHandler : IRequestHandler<GetChallengeSubm
                 PendingSubmissionData = c.PendingSubmission,
                 c.Submissions
             })
-            .SingleAsync(c => c.ChallengeId == request.ChallengeId);
+            .SingleAsync(c => c.ChallengeId == request.ChallengeId, cancellationToken);
 
         ChallengeSubmissionAnswers pendingAnswers = null;
         var submittedAnswers = Array.Empty<ChallengeSubmissionViewModel>();

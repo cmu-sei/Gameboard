@@ -89,14 +89,12 @@ internal class PlayersReportService : IPlayersReportService
                 LogoFileName = u.Sponsor.Logo,
             },
             CreatedOn = u.CreatedOn,
-            LastPlayedOn = u
-                .Enrollments
-                .OrderByDescending(p => p.SessionBegin)
-                .FirstOrDefault() != null ? u
-                    .Enrollments
+            LastPlayedOn = u.Enrollments.Where(p => p.SessionBegin > DateTimeOffset.MinValue).Any() ?
+                u.Enrollments
+                    .Where(p => p.SessionBegin > DateTimeOffset.MinValue)
                     .OrderByDescending(p => p.SessionBegin)
                     .First().SessionBegin :
-                    null,
+                null,
             CompletedCompetitiveChallengesCount = u
                 .Enrollments
                 .SelectMany(p => p.Challenges)

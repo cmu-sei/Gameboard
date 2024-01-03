@@ -50,7 +50,9 @@ internal class EnrollmentReportService : IEnrollmentReportService
             .Include(p => p.Challenges.Where(c => c.PlayerMode == PlayerMode.Competition))
             .Include(p => p.User)
             .Include(p => p.Sponsor)
-            .Where(p => p.Challenges.Any(c => c.PlayerMode == PlayerMode.Competition))
+            // to be included in this report, the player record must have either no challenges OR have
+            // all of their challenges be in competitive mode
+            .Where(p => p.Challenges.Count() == 0 || p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
             .Where(p => p.TeamId != null && p.TeamId != string.Empty);
 
         if (enrollDateStart != null)
