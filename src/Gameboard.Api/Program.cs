@@ -4,6 +4,7 @@
 using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Gameboard.Api;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Extensions;
 using Gameboard.Api.Structure;
@@ -26,10 +27,10 @@ ConfToEnv.Load("appsettings.conf");
 ConfToEnv.Load($"appsettings.{envname}.conf");
 ConfToEnv.Load(appSettingsPath);
 
-startupLogger.LogInformation(message: $"Starting Gameboard in {envname} configuration.");
 
 // create an application builder
 var builder = WebApplication.CreateBuilder(args);
+startupLogger.LogInformation(message: $"Starting Gameboard in {builder.Environment.GetEnvironmentFriendlyName()} configuration.");
 
 // load settings and configure services
 var settings = builder.BuildAppSettings(startupLogger);
