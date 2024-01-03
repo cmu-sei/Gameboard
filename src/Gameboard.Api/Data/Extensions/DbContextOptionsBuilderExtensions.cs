@@ -26,11 +26,13 @@ public static class DbContextOptionsBuilderExtensions
 
         if (env.IsDevOrTest())
         {
-            builder.LogTo(Console.WriteLine, new[] { DbLoggerCategory.Query.Name }, LogLevel.Information);
+            builder.LogTo(Console.WriteLine, LogLevel.Information);
 
             if (env.IsDevelopment())
             {
                 Console.WriteLine("Starting in dev environment. Enabling detailed/sensitive EF logging...");
+
+                builder.LogTo(Console.WriteLine, new[] { DbLoggerCategory.Query.Name }, LogLevel.Information);
                 builder
                     .EnableDetailedErrors()
                     .EnableSensitiveDataLogging();
