@@ -1,7 +1,6 @@
 namespace Gameboard.Api.Tests.Integration;
 
-[Collection(TestCollectionNames.DbFixtureTests)]
-public class PlayerControllerEnlistTests
+public class PlayerControllerEnlistTests : IClassFixture<GameboardTestContext>
 {
     private readonly GameboardTestContext _testContext;
 

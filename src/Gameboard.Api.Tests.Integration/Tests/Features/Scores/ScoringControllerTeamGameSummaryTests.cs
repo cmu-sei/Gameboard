@@ -4,8 +4,7 @@ using Gameboard.Api.Features.Scores;
 
 namespace Gameboard.Api.Tests.Integration;
 
-[Collection(TestCollectionNames.DbFixtureTests)]
-public class ScoringControllerTeamGameSummaryTests
+public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTestContext>
 {
     private readonly GameboardTestContext _testContext;
 

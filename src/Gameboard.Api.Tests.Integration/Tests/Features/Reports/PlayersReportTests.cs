@@ -2,8 +2,7 @@ using Gameboard.Api.Features.Reports;
 
 namespace Gameboard.Api.Tests.Integration;
 
-[Collection(TestCollectionNames.DbFixtureTests)]
-public class PlayersReportTests
+public class PlayersReportTests : IClassFixture<GameboardTestContext>
 {
     private readonly GameboardTestContext _testContext;
 

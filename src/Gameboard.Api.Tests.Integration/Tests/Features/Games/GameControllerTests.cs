@@ -1,11 +1,6 @@
-using Gameboard.Api;
-using Gameboard.Api.Data;
-using Gameboard.Api.Features.Games;
-
 namespace Gameboard.Api.Tests.Integration;
 
-[Collection(TestCollectionNames.DbFixtureTests)]
-public class GameControllerTests
+public class GameControllerTests : IClassFixture<GameboardTestContext>
 {
     private readonly GameboardTestContext _testContext;
 

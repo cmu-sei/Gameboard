@@ -3,8 +3,7 @@ using Gameboard.Api.Features.UnityGames;
 
 namespace Gameboard.Api.Tests.Integration;
 
-[Collection(TestCollectionNames.DbFixtureTests)]
-public class UnityGameControllerTests
+public class UnityGameControllerTests : IClassFixture<GameboardTestContext>
 {
     private readonly GameboardTestContext _testContext;
 

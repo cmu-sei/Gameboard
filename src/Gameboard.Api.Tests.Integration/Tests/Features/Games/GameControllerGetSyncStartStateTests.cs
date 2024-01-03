@@ -3,8 +3,7 @@ using Gameboard.Api.Features.Games;
 
 namespace Gameboard.Api.Tests.Integration;
 
-[Collection(TestCollectionNames.DbFixtureTests)]
-public class GameControllerGetSyncStartStateTests
+public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestContext>
 {
     private readonly GameboardTestContext _testContext;
 

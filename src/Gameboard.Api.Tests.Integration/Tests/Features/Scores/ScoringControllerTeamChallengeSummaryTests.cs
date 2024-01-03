@@ -1,11 +1,6 @@
-using Gameboard.Api.Common;
-using Gameboard.Api.Data;
-using Gameboard.Api.Features.Scores;
-
 namespace Gameboard.Api.Tests.Integration;
 
-[Collection(TestCollectionNames.DbFixtureTests)]
-public class ScoringControllerTeamChallengeSummaryTests
+public class ScoringControllerTeamChallengeSummaryTests : IClassFixture<GameboardTestContext>
 {
     private readonly GameboardTestContext _testContext;
 
