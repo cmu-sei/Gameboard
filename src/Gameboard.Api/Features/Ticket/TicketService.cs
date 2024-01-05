@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Hubs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -16,27 +17,38 @@ namespace Gameboard.Api.Services
 {
     public class TicketService : _Service
     {
+        private readonly IActingUserService _actingUserService;
         private readonly IFileUploadService _fileUploadService;
         private readonly IGuidService _guids;
         private readonly INowService _now;
+        private readonly ISupportHubBus _supportHubBus;
         ITicketStore Store { get; }
 
         internal static char LABELS_DELIMITER = ' ';
 
         public TicketService(
+            IActingUserService actingUserService,
             IFileUploadService fileUploadService,
             IGuidService guids,
             ILogger<TicketService> logger,
             IMapper mapper,
             INowService now,
             CoreOptions options,
-            ITicketStore store
+            ITicketStore store,
+            ISupportHubBus supportHubBus
         ) : base(logger, mapper, options)
         {
             Store = store;
+            _actingUserService = actingUserService;
             _fileUploadService = fileUploadService;
             _guids = guids;
             _now = now;
+            _supportHubBus = supportHubBus;
+        }
+
+        public string GetFullKey(int key)
+        {
+            return Options.KeyPrefix + "-" + key.ToString();
         }
 
         public async Task<Ticket> Retrieve(string id)
@@ -53,15 +65,16 @@ namespace Gameboard.Api.Services
             return TransformInPlace(Mapper.Map<Ticket>(entity));
         }
 
-        public async Task<Ticket> Create(NewTicket model, string actorId, bool sudo)
+        public async Task<Ticket> Create(NewTicket model)
         {
             Data.Ticket entity;
             var timestamp = _now.Get();
+            var actingUser = _actingUserService.Get();
 
-            if (sudo) // staff with full management capability
+            if (actingUser.IsSupport) // staff with full management capability
             {
                 entity = Mapper.Map<Data.Ticket>(model);
-                AddActivity(entity, actorId, !entity.Status.IsEmpty(), !entity.AssigneeId.IsEmpty(), timestamp);
+                AddActivity(entity, actingUser.Id, !entity.Status.IsEmpty(), !entity.AssigneeId.IsEmpty(), timestamp);
                 entity.StaffCreated = true;
             }
             else
@@ -72,7 +85,7 @@ namespace Gameboard.Api.Services
             }
 
             if (entity.RequesterId.IsEmpty())
-                entity.RequesterId = actorId;
+                entity.RequesterId = actingUser.Id;
             if (entity.Status.IsEmpty())
                 entity.Status = "Open";
 
@@ -81,7 +94,7 @@ namespace Gameboard.Api.Services
                 await UpdatedSessionContext(entity);
             }
 
-            entity.CreatorId = actorId;
+            entity.CreatorId = actingUser.Id;
             entity.Created = timestamp;
             entity.LastUpdated = timestamp;
 
@@ -97,13 +110,30 @@ namespace Gameboard.Api.Services
             }
 
             await Store.Create(entity);
-            return TransformInPlace(Mapper.Map<Ticket>(entity));
+            var createdTicketModel = TransformInPlace(Mapper.Map<Ticket>(entity));
+
+            // at creation time, the entity doesn't have the full Creator user, but we add it to the returned value
+            // a) because that's helpful, and b) because the support hub needs to know
+            createdTicketModel.Creator = new TicketUser
+            {
+                Id = actingUser.Id,
+                ApprovedName = actingUser.ApprovedName,
+                Role = actingUser.Role,
+                IsSupportPersonnel = actingUser.IsAdmin || actingUser.IsSupport
+            };
+
+            // notify the signalR hub (sends browser notifications to support staff)
+            await _supportHubBus.SendTicketCreated(createdTicketModel);
+
+            return createdTicketModel;
         }
 
         public async Task<Ticket> Update(ChangedTicket model, string actorId, bool sudo)
         {
-            var entity = await Store.Retrieve(model.Id);
+            // need the creator to send updates
+            var entity = await Store.Retrieve(model.Id, q => q.Include(t => t.Creator));
             var timestamp = _now.Get();
+            var updateClosesTicket = false;
 
             if (sudo) // staff with full management capability
             {
@@ -118,6 +148,9 @@ namespace Gameboard.Api.Services
                 {
                     await UpdatedSessionContext(entity);
                 }
+
+                if (statusChanged && entity.Status == "Closed")
+                    updateClosesTicket = true;
             }
             else // regular participant can only edit a few fields
             {
@@ -131,7 +164,12 @@ namespace Gameboard.Api.Services
             entity.LastUpdated = timestamp;
 
             await Store.Update(entity);
-            return TransformInPlace(Mapper.Map<Ticket>(entity));
+            var updatedTicketModel = TransformInPlace(Mapper.Map<Ticket>(entity));
+
+            if (updateClosesTicket)
+                await _supportHubBus.SendTicketClosed(updatedTicketModel, _actingUserService.Get());
+
+            return updatedTicketModel;
         }
 
         public async Task<IEnumerable<TicketSummary>> List(TicketSearchFilter model, string userId, bool sudo)
@@ -248,7 +286,8 @@ namespace Gameboard.Api.Services
                 .Where(t => !t.Label.IsEmpty())
                 .SelectMany(t => TransformTicketLabels(t.Label))
                 .OrderBy(t => t)
-                .ToHashSet().ToArray();
+                .ToHashSet()
+                .ToArray();
 
             return b;
         }
@@ -392,7 +431,7 @@ namespace Gameboard.Api.Services
         {
             return tickets.Select(t =>
             {
-                t.FullKey = FullKey(t.Key);
+                t.FullKey = GetFullKey(t.Key);
                 return t;
             }).ToArray();
         }
@@ -401,11 +440,6 @@ namespace Gameboard.Api.Services
         {
             ticket.FullKey = TransformTicketKey(ticket.Key);
             return ticket;
-        }
-
-        private string FullKey(int key)
-        {
-            return Options.KeyPrefix + "-" + key.ToString();
         }
     }
 }

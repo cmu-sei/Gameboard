@@ -88,14 +88,6 @@ internal static class ServiceRegistrationExtensions
         return serviceCollection;
     }
 
-    // private static IServiceCollection RegisterScoped(IServiceCollection serviceCollection, IEnumerable<Type> types)
-    // {
-    //     foreach (var type in types)
-    //         serviceCollection.AddScoped(type);
-
-    //     return serviceCollection;
-    // }
-
     private static IServiceCollection RegisterScoped(IServiceCollection serviceCollection, IEnumerable<InterfaceTypeMap> types)
     {
         foreach (var type in types)

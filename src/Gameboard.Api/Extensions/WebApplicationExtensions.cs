@@ -54,6 +54,7 @@ internal static class WebApplicationExtensions
         app.MapHub<AppHub>("/hub").RequireAuthorization();
         app.MapHub<GameHub>("/hub/games").RequireAuthorization();
         app.MapHub<ScoreHub>("/hub/scores").RequireAuthorization();
+        app.MapHub<SupportHub>("/hub/support").RequireAuthorization();
         app.MapControllers().RequireAuthorization();
 
         return app;

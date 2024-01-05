@@ -26,8 +26,8 @@ namespace Gameboard.Api.Auth
             public const string Subject = "sub";
             public const string Name = "name";
         }
-
     }
+
     public class TicketAuthenticationHandler : AuthenticationHandler<TicketAuthenticationOptions>
     {
         private readonly IDistributedCache _cache;
@@ -80,9 +80,7 @@ namespace Gameboard.Api.Auth
             await _cache.RemoveAsync(key);
 
             string identity = value.Untagged();
-
             string name = value.Tag();
-
             string subject = Guid.TryParse(identity, out Guid guid)
                 ? guid.ToString()
                 : "";
@@ -93,8 +91,8 @@ namespace Gameboard.Api.Auth
             var principal = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     new Claim[] {
-                        new Claim(TicketAuthentication.ClaimNames.Subject, subject),
-                        new Claim(TicketAuthentication.ClaimNames.Name, name)
+                        new(TicketAuthentication.ClaimNames.Subject, subject),
+                        new(TicketAuthentication.ClaimNames.Name, name)
                     },
                     Scheme.Name
                 )
@@ -108,7 +106,6 @@ namespace Gameboard.Api.Auth
         protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
         {
             Response.Headers[TicketAuthentication.ChallengeHeaderName] = TicketAuthentication.AuthenticationScheme;
-
             await base.HandleChallengeAsync(properties);
         }
     }
