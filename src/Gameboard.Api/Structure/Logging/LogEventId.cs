@@ -7,6 +7,8 @@ public class LogEventId
     public const int Hub_Connection_Disconnected = 1002;
     public const int GameHub_Group_JoinStart = 1003;
     public const int GameHub_Group_JoinEnd = 1004;
+    public const int SupportHub_Staff_JoinStart = 1005;
+    public const int SupportHub_Staff_JoinEnd = 1006;
 
     public const int GameStart_Failed = 4001;
 }

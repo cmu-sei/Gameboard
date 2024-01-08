@@ -142,6 +142,11 @@ public class UserService
             }
         }
 
+        if (model.PlayAudioOnBrowserNotification is not null)
+        {
+            entity.PlayAudioOnBrowserNotification = model.PlayAudioOnBrowserNotification.Value;
+        }
+
         // if we're editing the (not-approved) name...
         if (model.Name.NotEmpty() && entity.Name != model.Name)
         {
