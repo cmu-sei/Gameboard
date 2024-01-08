@@ -3,7 +3,6 @@
 
 using System;
 using System.Linq;
-using Gameboard.Api.Features.Sponsors;
 
 namespace Gameboard.Api;
 
@@ -45,6 +44,7 @@ public class ChangedUser
     public string ApprovedName { get; set; }
     public string SponsorId { get; set; }
     public UserRole? Role { get; set; }
+    public bool? PlayAudioOnBrowserNotification { get; set; }
 }
 
 public class SelfChangedUser
@@ -70,6 +70,11 @@ public class UserSearch : SearchFilter
     public bool WantsRoles => Filter.Contains(UserRoleFilter);
     public bool WantsPending => Filter.Contains(NamePendingFilter);
     public bool WantsDisallowed => Filter.Contains(NameDisallowedFilter);
+}
+
+public class UserSettings
+{
+    public bool PlayAudioOnBrowserNotification { get; set; }
 }
 
 public class UserSimple : IUserViewModel

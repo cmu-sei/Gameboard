@@ -33,6 +33,7 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.NameStatus).HasMaxLength(40);
             b.Property(u => u.Email).HasMaxLength(64);
             b.Property(u => u.LoginCount).HasDefaultValueSql("0");
+            b.Property(u => u.PlayAudioOnBrowserNotification).HasDefaultValue(false);
 
             // nav properties
             b.HasOne(u => u.Sponsor).WithMany(s => s.SponsoredUsers)

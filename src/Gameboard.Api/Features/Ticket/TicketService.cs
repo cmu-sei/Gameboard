@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Hubs;
 using Microsoft.EntityFrameworkCore;
@@ -21,8 +22,9 @@ namespace Gameboard.Api.Services
         private readonly IFileUploadService _fileUploadService;
         private readonly IGuidService _guids;
         private readonly INowService _now;
+        private readonly IStore _store;
         private readonly ISupportHubBus _supportHubBus;
-        ITicketStore Store { get; }
+        ITicketStore TicketStore { get; }
 
         internal static char LABELS_DELIMITER = ' ';
 
@@ -34,15 +36,17 @@ namespace Gameboard.Api.Services
             IMapper mapper,
             INowService now,
             CoreOptions options,
-            ITicketStore store,
+            IStore store,
+            ITicketStore ticketStore,
             ISupportHubBus supportHubBus
         ) : base(logger, mapper, options)
         {
-            Store = store;
+            TicketStore = ticketStore;
             _actingUserService = actingUserService;
             _fileUploadService = fileUploadService;
             _guids = guids;
             _now = now;
+            _store = store;
             _supportHubBus = supportHubBus;
         }
 
@@ -53,14 +57,14 @@ namespace Gameboard.Api.Services
 
         public async Task<Ticket> Retrieve(string id)
         {
-            var entity = await Store.LoadDetails(id);
+            var entity = await TicketStore.LoadDetails(id);
             entity.Activity = entity.Activity.OrderByDescending(a => a.Timestamp).ToList();
             return TransformInPlace(Mapper.Map<Ticket>(entity));
         }
 
         public async Task<Ticket> Retrieve(int id)
         {
-            var entity = await Store.LoadDetails(id);
+            var entity = await TicketStore.LoadDetails(id);
             entity.Activity = entity.Activity.OrderByDescending(a => a.Timestamp).ToList();
             return TransformInPlace(Mapper.Map<Ticket>(entity));
         }
@@ -109,7 +113,7 @@ namespace Gameboard.Api.Services
                 entity.Attachments = Mapper.Map<string>(fileNames);
             }
 
-            await Store.Create(entity);
+            await TicketStore.Create(entity);
             var createdTicketModel = TransformInPlace(Mapper.Map<Ticket>(entity));
 
             // at creation time, the entity doesn't have the full Creator user, but we add it to the returned value
@@ -131,9 +135,12 @@ namespace Gameboard.Api.Services
         public async Task<Ticket> Update(ChangedTicket model, string actorId, bool sudo)
         {
             // need the creator to send updates
-            var entity = await Store.Retrieve(model.Id, q => q.Include(t => t.Creator));
+            var entity = await TicketStore.Retrieve(model.Id, q => q.Include(t => t.Creator));
+            var actingUser = _actingUserService.Get();
             var timestamp = _now.Get();
             var updateClosesTicket = false;
+            var updatedBySupport = false;
+            var updatedByUser = false;
 
             if (sudo) // staff with full management capability
             {
@@ -151,30 +158,41 @@ namespace Gameboard.Api.Services
 
                 if (statusChanged && entity.Status == "Closed")
                     updateClosesTicket = true;
+
+                updatedBySupport = true;
             }
             else // regular participant can only edit a few fields
             {
-
                 Mapper.Map(
                     Mapper.Map<SelfChangedTicket>(model),
                     entity
                 );
+
+                updatedByUser = true;
             }
 
             entity.LastUpdated = timestamp;
 
-            await Store.Update(entity);
+            await TicketStore.Update(entity);
             var updatedTicketModel = TransformInPlace(Mapper.Map<Ticket>(entity));
 
             if (updateClosesTicket)
                 await _supportHubBus.SendTicketClosed(updatedTicketModel, _actingUserService.Get());
+            else
+            {
+                if (updatedBySupport)
+                    await _supportHubBus.SendTicketUpdatedBySupport(updatedTicketModel, actingUser);
+
+                if (updatedByUser)
+                    await _supportHubBus.SendTicketUpdatedByUser(updatedTicketModel, actingUser);
+            }
 
             return updatedTicketModel;
         }
 
         public async Task<IEnumerable<TicketSummary>> List(TicketSearchFilter model, string userId, bool sudo)
         {
-            var q = Store.List(model.Term);
+            var q = TicketStore.List(model.Term);
 
             if (model.WantsOpen)
                 q = q.Where(t => t.Status == "Open");
@@ -192,7 +210,7 @@ namespace Gameboard.Api.Services
 
             if (!sudo) // normal user should only see "their" tickets (requester or team member)
             {
-                var userTeams = await Store.DbContext.Players
+                var userTeams = await TicketStore.DbContext.Players
                     .Where(p => p.UserId == userId && p.TeamId != null && p.TeamId != "")
                     .Select(p => p.TeamId)
                     .ToListAsync();
@@ -244,8 +262,10 @@ namespace Gameboard.Api.Services
 
         public async Task<TicketActivity> AddComment(NewTicketComment model, string actorId)
         {
-            var entity = await Store.Load(model.TicketId);
+            var entity = await TicketStore.Load(model.TicketId);
             var timestamp = _now.Get();
+            var actingUser = _actingUserService.Get();
+
             var commentActivity = new Data.TicketActivity
             {
                 Id = _guids.GetGuid(),
@@ -266,7 +286,7 @@ namespace Gameboard.Api.Services
 
             // Set the ticket status to be Open if it was closed before and someone leaves a new comment
             entity.Status = entity.Status == "Closed" ? "Open" : entity.Status;
-            await Store.Update(entity);
+            await TicketStore.Update(entity);
 
             var result = Mapper.Map<TicketActivity>(commentActivity);
             result.RequesterId = entity.RequesterId;
@@ -274,12 +294,25 @@ namespace Gameboard.Api.Services
             result.Key = entity.Key;
             result.Status = entity.Status;
 
+            // send signalR/browser notifications for updates
+            // (have to do some yuck to fill out the Ticket object)
+            var creator = await _store.WithNoTracking<Data.User>().SingleAsync(u => u.Id == entity.CreatorId);
+            entity.Creator = creator;
+
+            var mappedTicket = Mapper.Map<Ticket>(entity);
+            mappedTicket.FullKey = GetFullKey(entity.Key);
+
+            if (actingUser.IsSupport || actingUser.IsAdmin)
+                await _supportHubBus.SendTicketUpdatedBySupport(mappedTicket, actingUser);
+            else
+                await _supportHubBus.SendTicketUpdatedByUser(mappedTicket, actingUser);
+
             return result;
         }
 
         public async Task<string[]> ListLabels(SearchFilter model)
         {
-            var q = Store.List(model.Term);
+            var q = TicketStore.List(model.Term);
             var tickets = await Mapper.ProjectTo<TicketSummary>(q).ToArrayAsync();
 
             var b = tickets
@@ -294,7 +327,7 @@ namespace Gameboard.Api.Services
 
         public async Task<bool> UserIsEnrolled(string gameId, string userId)
         {
-            return await Store.DbContext.Users.AnyAsync(u =>
+            return await TicketStore.DbContext.Users.AnyAsync(u =>
                 u.Id == userId &&
                 u.Enrollments.Any(e => e.GameId == gameId)
             );
@@ -302,7 +335,7 @@ namespace Gameboard.Api.Services
 
         public async Task<bool> IsOwnerOrTeamMember(int ticketId, string userId)
         {
-            var ticket = await Store.Load(ticketId);
+            var ticket = await TicketStore.Load(ticketId);
             if (ticket == null)
                 return false;
             if (ticket.RequesterId == userId)
@@ -311,7 +344,7 @@ namespace Gameboard.Api.Services
                 return false;
 
             // if team associated with ticket, see if this user has an enrollment with matching teamId
-            return await Store.DbContext.Players.AnyAsync(p =>
+            return await TicketStore.DbContext.Players.AnyAsync(p =>
                 p.UserId == userId &&
                 p.TeamId == ticket.TeamId
             );
@@ -319,7 +352,7 @@ namespace Gameboard.Api.Services
 
         public async Task<bool> IsOwnerOrTeamMember(string ticketId, string userId)
         {
-            var ticket = await Store.Load(ticketId);
+            var ticket = await TicketStore.Load(ticketId);
             if (ticket == null)
                 return false;
             if (ticket.RequesterId == userId)
@@ -328,7 +361,7 @@ namespace Gameboard.Api.Services
                 return false;
 
             // if team associated with ticket, see if this user has an enrollment with matching teamId
-            return await Store.DbContext.Players.AnyAsync(p =>
+            return await TicketStore.DbContext.Players.AnyAsync(p =>
                 p.UserId == userId &&
                 p.TeamId == ticket.TeamId
             );
@@ -336,7 +369,7 @@ namespace Gameboard.Api.Services
 
         public async Task<bool> IsOwner(string ticketId, string userId)
         {
-            var ticket = await Store.Load(ticketId);
+            var ticket = await TicketStore.Load(ticketId);
             if (ticket == null)
                 return false;
             if (ticket.RequesterId == userId)
@@ -346,7 +379,7 @@ namespace Gameboard.Api.Services
 
         public async Task<bool> UserCanUpdate(string ticketId, string userId)
         {
-            var ticket = await Store.Load(ticketId);
+            var ticket = await TicketStore.Load(ticketId);
             if (ticket == null)
                 return false;
 
@@ -373,7 +406,7 @@ namespace Gameboard.Api.Services
         {
             if (!entity.ChallengeId.IsEmpty())
             {
-                var challenge = await Store.DbContext.Challenges.FirstOrDefaultAsync(c => c.Id == entity.ChallengeId);
+                var challenge = await TicketStore.DbContext.Challenges.FirstOrDefaultAsync(c => c.Id == entity.ChallengeId);
                 if (challenge != null)
                 {
                     entity.TeamId = challenge.TeamId;
@@ -383,7 +416,7 @@ namespace Gameboard.Api.Services
             }
             else if (!entity.PlayerId.IsEmpty())
             {
-                var player = await Store.DbContext.Players.FirstOrDefaultAsync(c =>
+                var player = await TicketStore.DbContext.Players.FirstOrDefaultAsync(c =>
                     c.Id == entity.PlayerId
                 );
                 if (player != null)

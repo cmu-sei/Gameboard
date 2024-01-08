@@ -19,6 +19,7 @@ public class User : IEntity
     public DateTimeOffset? LastLoginDate { get; set; }
     public int LoginCount { get; set; }
     public bool HasDefaultSponsor { get; set; }
+    public bool PlayAudioOnBrowserNotification { get; set; }
 
     // navigation properties
     public string SponsorId { get; set; }

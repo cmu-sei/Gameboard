@@ -7,6 +7,8 @@ public interface ISupportHubBus
 {
     Task SendTicketClosed(Ticket ticket, User closedBy);
     Task SendTicketCreated(Ticket ticket);
+    Task SendTicketUpdatedBySupport(Ticket ticket, User updatedBy);
+    Task SendTicketUpdatedByUser(Ticket ticket, User updatedBy);
 }
 
 internal class SupportHubBus : ISupportHubBus, IGameboardHubBus
@@ -48,6 +50,42 @@ internal class SupportHubBus : ISupportHubBus, IGameboardHubBus
             .TicketCreated(new SupportHubEvent<TicketCreatedEvent>
             {
                 EventType = SupportHubEventType.TicketCreated,
+                Data = evData
+            });
+    }
+
+    public async Task SendTicketUpdatedBySupport(Ticket ticket, User updatedBy)
+    {
+        var evData = new TicketUpdatedEvent
+        {
+            UpdatedBy = new SimpleEntity { Id = updatedBy.Id, Name = updatedBy.ApprovedName },
+            Ticket = ToHubModel(ticket)
+        };
+
+        await _hubContext
+            .Clients
+            .AllExcept(updatedBy.Id)
+            .TicketUpdatedBySupport(new SupportHubEvent<TicketUpdatedEvent>
+            {
+                EventType = SupportHubEventType.TicketUpdatedBySupport,
+                Data = evData
+            });
+    }
+
+    public async Task SendTicketUpdatedByUser(Ticket ticket, User updatedBy)
+    {
+        var evData = new TicketUpdatedEvent
+        {
+            UpdatedBy = new SimpleEntity { Id = updatedBy.Id, Name = updatedBy.ApprovedName },
+            Ticket = ToHubModel(ticket)
+        };
+
+        await _hubContext
+            .Clients
+            .AllExcept(updatedBy.Id)
+            .TicketUpdatedByUser(new SupportHubEvent<TicketUpdatedEvent>
+            {
+                EventType = SupportHubEventType.TicketUpdatedByUser,
                 Data = evData
             });
     }

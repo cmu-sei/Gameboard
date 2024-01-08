@@ -12,8 +12,8 @@ public enum SupportHubEventType
 {
     TicketClosed,
     TicketCreated,
-    TicketUpdatedByUser,
-    TicketUpdatedBySupport
+    TicketUpdatedBySupport,
+    TicketUpdatedByUser
 }
 
 public sealed class TicketClosedEvent
@@ -25,6 +25,12 @@ public sealed class TicketClosedEvent
 public sealed class TicketCreatedEvent
 {
     public required SupportHubTicket Ticket { get; set; }
+}
+
+public sealed class TicketUpdatedEvent
+{
+    public required SupportHubTicket Ticket { get; set; }
+    public required SimpleEntity UpdatedBy { get; set; }
 }
 
 public sealed class SupportHubTicket
@@ -41,4 +47,6 @@ public interface ISupportHubEvent
 {
     Task TicketClosed(SupportHubEvent<TicketClosedEvent> ev);
     Task TicketCreated(SupportHubEvent<TicketCreatedEvent> ev);
+    Task TicketUpdatedBySupport(SupportHubEvent<TicketUpdatedEvent> ev);
+    Task TicketUpdatedByUser(SupportHubEvent<TicketUpdatedEvent> ev);
 }
