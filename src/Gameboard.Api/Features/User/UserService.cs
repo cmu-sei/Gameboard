@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -18,13 +19,16 @@ public class UserService
     private readonly IMapper _mapper;
     private readonly INowService _now;
     private readonly SponsorService _sponsorService;
+    private readonly IStore _store;
     private readonly IStore<Data.User> _userStore;
     private readonly IMemoryCache _localcache;
     private readonly INameService _namesvc;
 
-    public UserService(
+    public UserService
+    (
         INowService now,
         SponsorService sponsorService,
+        IStore store,
         IStore<Data.User> userStore,
         IMapper mapper,
         IMemoryCache cache,
@@ -36,6 +40,7 @@ public class UserService
         _namesvc = namesvc;
         _now = now;
         _sponsorService = sponsorService;
+        _store = store;
         _userStore = userStore;
     }
 
@@ -110,6 +115,7 @@ public class UserService
     public async Task<User> Update(ChangedUser model, bool sudo, bool admin = false)
     {
         var entity = await _userStore.Retrieve(model.Id, q => q.Include(u => u.Sponsor));
+        var sponsorUpdated = false;
 
         // with user stuff, there are super-users (sudoers) and admins
         // only admins can alter the roles of users
@@ -124,9 +130,16 @@ public class UserService
         // everyone can change their sponsor and name
         if (model.SponsorId.NotEmpty())
         {
-            // the first change of the sponsor knocks off the "Default Sponsor" flag
+            // the first "update" to the sponsor (even if it's the same value) knocks off the "Default Sponsor" flag
             entity.HasDefaultSponsor = false;
-            entity.SponsorId = model.SponsorId;
+
+            // if the sponsor actually changes, note this so we can fix up any player records
+            // which have not yet started their session
+            if (entity.SponsorId != model.SponsorId)
+            {
+                entity.SponsorId = model.SponsorId;
+                sponsorUpdated = true;
+            }
         }
 
         // if we're editing the (not-approved) name...
@@ -165,6 +178,18 @@ public class UserService
 
         await _userStore.Update(entity);
         _localcache.Remove(entity.Id);
+
+        // if the user's sponsor change, update the sponsors of any player records they own which haven't actually
+        // started a session (https://github.com/cmu-sei/Gameboard/issues/326)
+        if (sponsorUpdated)
+        {
+            await _store
+                .WithNoTracking<Data.Player>()
+                .Where(p => p.UserId == model.Id)
+                .WhereDateIsEmpty(p => p.SessionBegin)
+                .ExecuteUpdateAsync(up => up.SetProperty(p => p.SponsorId, model.SponsorId));
+        }
+
         return _mapper.Map<User>(entity);
     }
 
