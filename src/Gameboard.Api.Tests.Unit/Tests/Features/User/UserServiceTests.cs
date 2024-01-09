@@ -1,5 +1,6 @@
 using AutoMapper;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Services;
 using Microsoft.Extensions.Caching.Memory;
@@ -12,14 +13,16 @@ public class UserServiceTests
     (
         INowService? now = null,
         SponsorService? sponsorService = null,
+        IStore? store = null,
         IStore<Data.User>? userStore = null,
         IMapper? mapper = null,
         IMemoryCache? cache = null,
         INameService? namesvc = null
-    ) => new UserService
+    ) => new
     (
         now ?? A.Fake<INowService>(),
         sponsorService ?? A.Fake<SponsorService>(),
+        store ?? A.Fake<IStore>(),
         userStore ?? A.Fake<IStore<Data.User>>(),
         mapper ?? A.Fake<IMapper>(),
         cache ?? A.Fake<IMemoryCache>(),

@@ -14,6 +14,7 @@ using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Games.Validators;
 using Gameboard.Api.Features.Reports;
 using Gameboard.Api.Features.UnityGames;
+using Gameboard.Api.Hubs;
 using Gameboard.Api.Structure;
 using Gameboard.Api.Structure.MediatR;
 
@@ -47,6 +48,7 @@ public static class ServiceStartupExtensions
             // but allowing multiple-interface classes causes things like IReportQuery implementers to get snagged
             .AddScoped<IExternalSyncGameStartService, ExternalSyncGameStartService>()
             .AddScoped<IGameHubBus, GameHubBus>()
+            .AddScoped<ISupportHubBus, SupportHubBus>()
             // so close to fixing this, but it's a very special snowflake of a binding
             .AddScoped<IUnityStore, UnityStore>()
             .AddInterfacesWithSingleImplementations();

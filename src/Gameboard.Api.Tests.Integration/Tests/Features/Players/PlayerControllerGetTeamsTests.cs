@@ -1,11 +1,9 @@
 using Gameboard.Api.Common;
 using Gameboard.Api.Features.Teams;
-using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
 
-[Collection(TestCollectionNames.DbFixtureTests)]
-public class PlayerControllerGetTeamsTests
+public class PlayerControllerGetTeamsTests : IClassFixture<GameboardTestContext>
 {
     private readonly GameboardTestContext _testContext;
 

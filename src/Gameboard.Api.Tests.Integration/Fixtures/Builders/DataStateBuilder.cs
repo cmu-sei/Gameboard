@@ -1,6 +1,5 @@
 using Gameboard.Api.Data;
 using Gameboard.Api.Tests.Shared;
-using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
@@ -10,7 +9,6 @@ public interface IDataStateBuilder
     IDataStateBuilder Add<TEntity>(IFixture fixture, Action<TEntity> entityBuilder) where TEntity : class, IEntity;
     IDataStateBuilder Add<TEntity>(TEntity entity, Action<TEntity>? entityBuilder = null) where TEntity : class, IEntity;
     IDataStateBuilder AddRange<TEntity>(ICollection<TEntity> entities) where TEntity : class, IEntity;
-    Task<TEntity?> GetFirstSeeded<TEntity>() where TEntity : class, IEntity;
 }
 
 internal class DataStateBuilder : IDataStateBuilder
@@ -44,10 +42,5 @@ internal class DataStateBuilder : IDataStateBuilder
             Add(entity);
 
         return this;
-    }
-
-    public async Task<TEntity?> GetFirstSeeded<TEntity>() where TEntity : class, IEntity
-    {
-        return await _dbContext.Set<TEntity>().FirstOrDefaultAsync();
     }
 }

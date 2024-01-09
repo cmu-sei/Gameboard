@@ -5,8 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
 
-[Collection(TestCollectionNames.DbFixtureTests)]
-public class ChallengeControllerGradeAutoBonusTests
+public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTestContext>
 {
     private readonly GameboardTestContext _testContext;
 

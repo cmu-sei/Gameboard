@@ -81,6 +81,21 @@ namespace Gameboard.Api.Controllers
         }
 
         /// <summary>
+        /// Get user-specific settings
+        /// 
+        /// NOTE: order is important here in the controller - need to avoid collisions with api/user/{id}.
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("api/user/settings")]
+        [Authorize]
+        public Task<UserSettings> GetSettings()
+            => _mediator.Send(new GetUserSettingsQuery());
+
+        [HttpPut("api/user/settings")]
+        public Task<UserSettings> UpdateSettings([FromBody] UpdateUserSettingsRequest request)
+            => _mediator.Send(new UpdateUserSettingsCommand(request));
+
+        /// <summary>
         /// Retrieve user
         /// </summary>
         /// <param name="id"></param>

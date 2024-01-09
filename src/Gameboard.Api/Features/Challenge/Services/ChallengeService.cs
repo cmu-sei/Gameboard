@@ -290,7 +290,7 @@ public partial class ChallengeService : _Service
 
         var result = Mapper.Map<Challenge>(challenge);
         GameEngineGameState state = new() { Markdown = spec.Text };
-        Transform(state);
+        state = TransformStateRelativeUrls(state);
         result.State = state;
         return result;
     }
@@ -559,6 +559,16 @@ public partial class ChallengeService : _Service
         return _actorMap.FindActor(userId);
     }
 
+    public GameEngineGameState TransformStateRelativeUrls(GameEngineGameState state)
+    {
+        state.Markdown = _challengeDocsService.ReplaceRelativeUris(state.Markdown);
+
+        if (state.Challenge is not null)
+            state.Challenge.Text = _challengeDocsService.ReplaceRelativeUris(state.Challenge.Text);
+
+        return state;
+    }
+
     internal async Task<ConsoleActor> SetConsoleActor(ConsoleRequest model, string id, string name)
     {
         var entity = await _challengeStore.DbSet
@@ -618,8 +628,7 @@ public partial class ChallengeService : _Service
             StartGamespace = newChallenge.StartGamespace,
             Variant = variant
         });
-
-        Transform(state);
+        state = TransformStateRelativeUrls(state);
 
         // manually map here - we need the player object and other references to stay the same for
         // db add
@@ -641,13 +650,5 @@ public partial class ChallengeService : _Service
         });
 
         return challenge;
-    }
-
-    private void Transform(GameEngineGameState state)
-    {
-        state.Markdown = _challengeDocsService.ReplaceRelativeUris(state.Markdown);
-
-        if (state.Challenge is not null)
-            state.Challenge.Text = _challengeDocsService.ReplaceRelativeUris(state.Challenge.Text);
     }
 }

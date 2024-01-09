@@ -64,7 +64,8 @@ public class PlayerStore : Store<Data.Player>, IPlayerStore
                 .ThenInclude(g => g.Specs)
             .Include(p => p.Game)
                 .ThenInclude(g => g.Prerequisites)
-            .Include(p => p.Challenges).ThenInclude(c => c.Events)
+            .Include(p => p.Challenges)
+                .ThenInclude(c => c.Events)
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (result.Game.AllowTeam)

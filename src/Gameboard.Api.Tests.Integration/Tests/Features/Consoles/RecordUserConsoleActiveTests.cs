@@ -1,11 +1,9 @@
 using Gameboard.Api.Common;
 using Gameboard.Api.Features.Consoles;
-using Gameboard.Api.Features.Practice;
 
 namespace Gameboard.Api.Tests.Integration;
 
-[Collection(TestCollectionNames.DbFixtureTests)]
-public class RecordUserConsoleActiveTests
+public class RecordUserConsoleActiveTests : IClassFixture<GameboardTestContext>
 {
     private readonly GameboardTestContext _testContext;
 

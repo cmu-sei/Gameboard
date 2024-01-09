@@ -11,9 +11,6 @@ using Testcontainers.PostgreSql;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
-[CollectionDefinition(TestCollectionNames.DbFixtureTests)]
-public class DbTestCollection : ICollectionFixture<GameboardTestContext> { }
-
 public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private PostgreSqlContainer? _container;
@@ -29,7 +26,6 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
 
             // Add DB context with connection to the container
             services.RemoveService<DbContext>();
-            // services.AddDbContext<GameboardDbContext, GameboardTestDbContext>(builder => builder.UseNpgsql(_container.GetConnectionString()));
             services.AddDbContext<GameboardDbContext, GameboardDbContextPostgreSQL>(builder =>
             {
                 builder.UseNpgsql(_container.GetConnectionString(), opts => opts.MigrationsAssembly("Gameboard.Api"));
@@ -61,13 +57,11 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
     {
         _container = new PostgreSqlBuilder()
             .WithHostname("localhost")
-            .WithPortBinding(5433)
             .WithUsername("foundry")
             .WithPassword("foundry")
             .WithImage("postgres:latest")
             .WithAutoRemove(true)
             .WithCleanUp(true)
-            // .WithName("GbIntegrationTests")
             .Build();
 
         // start up our testcontainer with the db

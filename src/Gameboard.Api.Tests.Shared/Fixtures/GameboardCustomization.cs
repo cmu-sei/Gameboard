@@ -102,7 +102,7 @@ public class GameboardCustomization : ICustomization
             RegistrationType = GameRegistrationType.Open
         });
 
-        fixture.Register(() => new Data.PracticeModeSettings
+        fixture.Register(() => new PracticeModeSettings
         {
             Id = fixture.Create<string>(),
             CertificateHtmlTemplate = null,

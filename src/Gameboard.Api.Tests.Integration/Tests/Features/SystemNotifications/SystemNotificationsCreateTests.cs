@@ -2,8 +2,7 @@ using Gameboard.Api.Features.SystemNotifications;
 
 namespace Gameboard.Api.Tests.Integration;
 
-[Collection(TestCollectionNames.DbFixtureTests)]
-public class SystemNotificationsCreateTests
+public class SystemNotificationsCreateTests : IClassFixture<GameboardTestContext>
 {
     private readonly GameboardTestContext _testContext;
 

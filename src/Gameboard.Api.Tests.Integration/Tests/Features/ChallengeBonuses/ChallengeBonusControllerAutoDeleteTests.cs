@@ -4,8 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration.ChallengeBonuses;
 
-[Collection(TestCollectionNames.DbFixtureTests)]
-public class ChallengeBonusControllerAutoDeleteTests
+public class ChallengeBonusControllerAutoDeleteTests : IClassFixture<GameboardTestContext>
 {
     private readonly GameboardTestContext _testContext;
 

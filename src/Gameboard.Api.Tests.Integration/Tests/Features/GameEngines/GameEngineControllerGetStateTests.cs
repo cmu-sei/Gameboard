@@ -3,8 +3,7 @@ using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api.Tests.Integration;
 
-[Collection(TestCollectionNames.DbFixtureTests)]
-public class GameEngineControllerGetStateTests
+public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestContext>
 {
     private readonly GameboardTestContext _testContext;
 

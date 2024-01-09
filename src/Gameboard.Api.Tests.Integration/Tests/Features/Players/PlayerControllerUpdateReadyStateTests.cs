@@ -4,8 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration.Players;
 
-[Collection(TestCollectionNames.DbFixtureTests)]
-public class PlayerControllerUpdatePlayerReadyTests
+public class PlayerControllerUpdatePlayerReadyTests : IClassFixture<GameboardTestContext>
 {
     private readonly GameboardTestContext _testContext;
 

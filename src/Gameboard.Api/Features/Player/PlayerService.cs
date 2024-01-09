@@ -286,7 +286,7 @@ public class PlayerService
 
         var q = BuildListQuery(model);
         var players = await _mapper.ProjectTo<Player>(q).ToArrayAsync();
-        var queriedPlayerIds = players.Select(p => p.Id).ToArray();
+        var queriedTeamIds = players.Select(p => p.TeamId).ToArray();
 
         // We used to store the team's sponsors (technically, the logo files of their sponsors)
         // in the players table as a delimited string column. This had the advantage of making it easy to pull back
@@ -297,8 +297,7 @@ public class PlayerService
         var teamSponsors = await _store
             .WithNoTracking<Data.Player>()
                 .Include(p => p.Sponsor)
-            .Where(p => queriedPlayerIds.Contains(p.Id))
-            .Where(p => p.TeamId != null)
+            .Where(p => queriedTeamIds.Contains(p.TeamId))
             .Select(p => new
             {
                 p.TeamId,
@@ -320,7 +319,6 @@ public class PlayerService
     {
         if (model.gid.IsEmpty())
             return Array.Empty<Standing>();
-
 
         model.Filter = model.Filter
             .Append(PlayerDataFilter.FilterScoredOnly)
@@ -448,6 +446,16 @@ public class PlayerService
         );
 
         mapped.ChallengeDocUrl = CoreOptions.ChallengeDocUrl;
+
+        // handle relative urls in challenge text
+        if (mapped.Challenges is not null)
+        {
+            foreach (var challenge in mapped.Challenges)
+            {
+                challenge.State = ChallengeService.TransformStateRelativeUrls(challenge.State);
+            }
+        }
+
         return mapped;
     }
 

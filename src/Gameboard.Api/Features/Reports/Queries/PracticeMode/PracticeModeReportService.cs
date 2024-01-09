@@ -118,6 +118,9 @@ internal class PracticeModeReportService : IPracticeModeReportService
                     .Select(c => c.SpecId)
                     .Distinct()
                     .Count(),
+                CompletionCount = challenges
+                    .Where(c => c.Score >= c.Points)
+                    .Count(),
                 PlayerCount = challenges
                     .Select(c => c.Player.UserId)
                     .Distinct()

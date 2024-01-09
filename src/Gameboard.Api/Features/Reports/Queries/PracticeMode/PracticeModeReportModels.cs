@@ -14,10 +14,11 @@ public class PracticeModeReportGrouping
 
 public sealed class PracticeModeReportOverallStats
 {
-    public int ChallengeCount { get; set; }
-    public int PlayerCount { get; set; }
-    public int SponsorCount { get; set; }
-    public int AttemptCount { get; set; }
+    public required int ChallengeCount { get; set; }
+    public required int PlayerCount { get; set; }
+    public required int SponsorCount { get; set; }
+    public required int AttemptCount { get; set; }
+    public required int CompletionCount { get; set; }
 }
 
 [JsonDerivedType(typeof(PracticeModeByChallengeReportRecord), typeDiscriminator: "byChallenge")]
@@ -190,4 +191,3 @@ public sealed class PracticeModeReportCsvRecord
     public required ChallengeResult ChallengeResult { get; set; }
     public required long DurationMs { get; set; }
 }
-

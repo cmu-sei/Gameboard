@@ -116,9 +116,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<Challenge> Preview([FromBody] NewChallenge model)
         {
-            AuthorizeAny(
-                () => IsSelf(model.PlayerId).Result
-            );
+            AuthorizeAny(() => IsSelf(model.PlayerId).Result);
 
             await Validate(model);
 
