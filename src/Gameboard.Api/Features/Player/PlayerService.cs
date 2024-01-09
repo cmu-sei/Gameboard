@@ -446,6 +446,16 @@ public class PlayerService
         );
 
         mapped.ChallengeDocUrl = CoreOptions.ChallengeDocUrl;
+
+        // handle relative urls in challenge text
+        if (mapped.Challenges is not null)
+        {
+            foreach (var challenge in mapped.Challenges)
+            {
+                challenge.State = ChallengeService.TransformStateRelativeUrls(challenge.State);
+            }
+        }
+
         return mapped;
     }
 
