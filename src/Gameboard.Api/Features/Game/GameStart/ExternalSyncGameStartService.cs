@@ -186,9 +186,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             .Select(c => c.Key)
             .ToArray();
 
-        // most of the time, a challenge needs an associated gamespace, but
-        // apparently in at least one case, it doesn't, so just warn about gamespaceless
-        // challenges
+        // most of the time, a challenge needs an associated gamespace, but apparently in at least one case, it doesn't, so just warn about gamespaceless challenges
         var challengeIdsWithNoGamespace = challengeDeployResults
             .SelectMany(c => c.Value)
             .Where(c => !gamespaces.ContainsKey(c.Id))
@@ -503,6 +501,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 foreach (var state in deployResults)
                 {
                     var serializedState = _jsonService.Serialize(state);
+                    var isGamespaceOn = state.IsActive && state.Vms is not null && state.Vms.Any();
 
                     await _store
                         .WithNoTracking<Data.Challenge>()
@@ -510,11 +509,11 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                         .ExecuteUpdateAsync
                         (
                             up => up
-                                .SetProperty(c => c.HasDeployedGamespace, state.IsActive)
+                                .SetProperty(c => c.HasDeployedGamespace, isGamespaceOn)
                                 .SetProperty(c => c.State, serializedState)
                         );
 
-                    Log($"Updated gamespace states for challenge {state.Id}. Active status: {state.IsActive}", request.Game.Id);
+                    Log($"Updated gamespace states for challenge {state.Id}. Gamespace on?: {isGamespaceOn}", request.Game.Id);
                 }
 
                 Log($"Finished {deployResults.Length} tasks done for gamespace batch #{batchIndex}.", request.Game.Id);

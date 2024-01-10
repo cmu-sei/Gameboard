@@ -49,10 +49,8 @@ namespace Gameboard.Api.Services
                 .ForMember(d => d.LastSyncTime, opt => opt.MapFrom(s => DateTimeOffset.UtcNow))
                 .ForMember(d => d.LastScoreTime, opt => opt.MapFrom(s => s.Challenge.LastScoreTime))
                 .ForMember(d => d.Score, opt => opt.MapFrom(s => s.Challenge.Score))
-                .ForMember(d => d.HasDeployedGamespace, opt => opt.MapFrom(s => s.IsActive))
-                .ForMember(d => d.State, opt => opt.MapFrom(s =>
-                    JsonSerializer.Serialize(s, JsonOptions))
-                )
+                .ForMember(d => d.HasDeployedGamespace, opt => opt.MapFrom(s => s.Vms != null && s.Vms.Any()))
+                .ForMember(d => d.State, opt => opt.MapFrom(s => JsonSerializer.Serialize(s, JsonOptions)))
             ;
 
             CreateMap<Data.Challenge, Challenge>()

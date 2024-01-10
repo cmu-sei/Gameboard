@@ -120,7 +120,7 @@ public class GameEngineMapsTests
     }
 
     [Theory, GameboardAutoData]
-    public void MapStateToChallenge_WithIsActiveTrueAndNoVms_YieldsHasActiveGamespaceTrue(IFixture fixture)
+    public void MapStateToChallenge_WithIsActiveTrueAndNoVms_YieldsHasActiveGamespaceFalse(IFixture fixture)
     {
         // given
         var state = new GameEngineGameState
@@ -152,6 +152,6 @@ public class GameEngineMapsTests
         var mapped = mapper.Map<Data.Challenge>(state);
 
         // then
-        mapped.HasDeployedGamespace.ShouldBeTrue();
+        mapped.HasDeployedGamespace.ShouldBeFalse();
     }
 }

@@ -303,6 +303,8 @@ public partial class ChallengeService : _Service
         if (await _teamService.IsAtGamespaceLimit(challenge.TeamId, game, cancellationToken))
             throw new GamespaceLimitReached(game.Id, challenge.TeamId);
 
+        // record the GamespaceOn event and manipulate the HasGamespaceDeployed property to accurately reflect
+        // the deployment state.
         challenge.Events.Add(new ChallengeEvent
         {
             Id = _guids.GetGuid(),
@@ -560,8 +562,7 @@ public partial class ChallengeService : _Service
     public async Task<List<ObserveChallenge>> GetChallengeConsoles(string gameId)
     {
         var q = _challengeStore.DbContext.Challenges
-            .Where(c => c.GameId == gameId &&
-                c.HasDeployedGamespace)
+            .Where(c => c.GameId == gameId && c.HasDeployedGamespace)
             .Include(c => c.Player)
             .OrderBy(c => c.Player.Name)
             .ThenBy(c => c.Name);
