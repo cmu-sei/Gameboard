@@ -16,7 +16,6 @@ public interface IChallengeStore : IStore<Challenge>
     Task<Data.Challenge> Load(string id);
     Task UpdateTeam(string teamId);
     Task UpdateEtd(string specId);
-    Task<int> ChallengeGamespaceCount(string teamId);
 }
 
 public class ChallengeStore : Store<Challenge>, IChallengeStore
@@ -140,13 +139,5 @@ public class ChallengeStore : Store<Challenge>, IChallengeStore
         }
 
         await DbContext.SaveChangesAsync();
-    }
-
-    public Task<int> ChallengeGamespaceCount(string teamId)
-    {
-        return DbSet.CountAsync(c =>
-            c.TeamId == teamId &&
-            c.HasDeployedGamespace.Equals(true)
-        );
     }
 }
