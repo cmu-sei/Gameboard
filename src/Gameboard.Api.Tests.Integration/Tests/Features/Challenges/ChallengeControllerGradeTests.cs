@@ -14,7 +14,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
     // NOTE: This version is trying to use grader key auth, but our test infrastructure
     // isn't correctly allowing us to replace services at test time. need to come back to this.
     [Theory, GbIntegrationAutoData]
-    public async Task UpdateTeamChallengeScore_WithFirstSolve_SetsExpectedRankAndScore
+    public async Task Grade_WithFirstSolve_SetsExpectedRankAndScore
     (
         string challengeId,
         string challengeSpecId,
@@ -86,5 +86,45 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
             .ToArrayAsync();
 
         events.Length.ShouldBe(1);
+    }
+
+    [Theory, GbIntegrationAutoData]
+    public async Task Grade_WithGamespaceExpired_ThrowsAndLogsEvent
+    (
+        string challengeId,
+        string challengeSpecId,
+        string userId,
+        IFixture fixture
+    )
+    {
+        var challengeStartTime = DateTime.UtcNow.AddDays(-1);
+        var challengeEndTime = DateTime.UtcNow.AddMinutes(-5);
+
+        // given a challenge which is expired (faked grading service)
+        await _testContext.WithDataState(state =>
+        {
+            state.Add<Data.Game>(fixture, g =>
+            {
+                g.Players = new List<Data.Player>
+                {
+                    new()
+                    {
+                        Challenges = new List<Data.Challenge>
+                        {
+                            new()
+                            {
+                                Id = challengeId,
+                                EndTime = challengeEndTime,
+                                StartTime = challengeStartTime,
+                                SpecId = challengeSpecId,
+                            }
+                        },
+                        UserId = userId
+                    }
+                };
+            });
+        });
+
+        // _testContext
     }
 }

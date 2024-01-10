@@ -8,16 +8,14 @@ namespace Gameboard.Api.Tests.Integration.Fixtures;
 internal class TestGameEngineService : IGameEngineService
 {
     private readonly ITestGradingResultService _gradingResultService;
-    private readonly IGameEngineStore _store;
     private readonly IGuidService _guids;
     private readonly IMapper _mapper;
 
-    public TestGameEngineService(IGuidService guids, IMapper mapper, IGameEngineStore store, ITestGradingResultService gradingResultService)
+    public TestGameEngineService(IGuidService guids, IMapper mapper, ITestGradingResultService gradingResultService)
     {
         _gradingResultService = gradingResultService;
         _guids = guids;
         _mapper = mapper;
-        _store = store;
     }
 
     public Task<IEnumerable<GameEngineSectionSubmission>> AuditChallenge(Api.Data.Challenge entity)

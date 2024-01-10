@@ -8,7 +8,7 @@ namespace Gameboard.Api.Tests.Integration.Fixtures;
 
 internal static class GameboardTestContextExtensions
 {
-    private static WebApplicationFactory<Program> BuildUserAuthentication(this GameboardTestContext testContext, TestAuthenticationUser? actingUser = null)
+    private static WebApplicationFactory<Program> BuildBaseFactory(GameboardTestContext testContext, TestAuthenticationUser? actingUser = null)
     {
         return testContext
             .WithWebHostBuilder(builder =>
@@ -43,7 +43,7 @@ internal static class GameboardTestContextExtensions
         var user = new TestAuthenticationUser();
         userBuilder?.Invoke(user);
 
-        return BuildUserAuthentication(testContext, user)
+        return BuildBaseFactory(testContext, user)
             .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
     }
 

@@ -2,6 +2,12 @@ using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
+public sealed class TestGradingResultServiceConfiguration
+{
+    public Action<GameEngineGameState>? GameStateBuilder { get; set; }
+    public Exception? ThrowsOnGrading { get; set; }
+}
+
 public interface ITestGradingResultService
 {
     GameEngineGameState Get(Data.Challenge challenge);

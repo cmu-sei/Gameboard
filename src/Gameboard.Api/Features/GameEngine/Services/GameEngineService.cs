@@ -122,16 +122,23 @@ public class GameEngineService : _Service, IGameEngineService
         }
     }
 
-    public Task<IEnumerable<GameEngineGameState>> GetGameState(string teamId)
-        => _store.GetGameStatesByTeam(teamId);
-
     public async Task<GameEngineGameState> GradeChallenge(Data.Challenge entity, GameEngineSectionSubmission model)
     {
         switch (entity.GameEngineType)
         {
             case GameEngineType.TopoMojo:
-                var gradingResult = await Mojo.GradeChallengeAsync(Mapper.Map<TopoMojo.Api.Client.SectionSubmission>(model));
-                return Mapper.Map<GameEngineGameState>(gradingResult);
+                try
+                {
+                    var gradingResult = await Mojo.GradeChallengeAsync(Mapper.Map<TopoMojo.Api.Client.SectionSubmission>(model));
+                    return Mapper.Map<GameEngineGameState>(gradingResult);
+                }
+                catch (TopoMojo.Api.Client.ApiException ex)
+                {
+                    if (ex.Message.Contains("GamespaceIsExpired"))
+                        throw new SubmissionIsForExpiredGamespace(entity.Id, ex);
+
+                    throw new GradingFailed(entity.Id, ex);
+                }
             case GameEngineType.Crucible:
                 return await _crucible.GradeChallenge(entity.Id, model);
             default:
