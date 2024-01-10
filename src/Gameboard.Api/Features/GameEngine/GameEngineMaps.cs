@@ -30,7 +30,7 @@ public class GameEngineMaps : Profile
 
         CreateMap<GameEngineGameState, Data.Challenge>()
             .ForMember(c => c.EndTime, o => o.MapFrom(s => s.ExpirationTime))
-            .ForMember(c => c.HasDeployedGamespace, o => o.MapFrom(s => s.IsActive))
+            .ForMember(c => c.HasDeployedGamespace, o => o.MapFrom(s => s.HasDeployedGamespace))
             .ForMember(c => c.LastScoreTime, o => o.MapFrom(s => s.Challenge.LastScoreTime))
             .ForMember(c => c.Id, o => o.MapFrom(s => s.Id))
             .ForMember(c => c.PlayerId, o => o.MapFrom(p => p.Players.Where(p => p.IsManager).First().SubjectId))

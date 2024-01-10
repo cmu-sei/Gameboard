@@ -80,7 +80,7 @@ public class CrucibleService : _Service, ICrucibleService
             IsActive = true,
             Players = new List<GameEnginePlayer>
             {
-                new GameEnginePlayer
+                new()
                 {
                     GamespaceId = evt.Id.ToString(),
                     SubjectId = player.TeamId,
@@ -107,7 +107,7 @@ public class CrucibleService : _Service, ICrucibleService
         var questions = await Alloy.GetEventQuestionsAsync(evt.Id);
         entity.Points = (int)questions.Sum(x => x.Weight);
 
-        state.Challenge = new GameEngineChallengeView()
+        state.Challenge = new()
         {
             Attempts = 0,
             MaxAttempts = 10,
