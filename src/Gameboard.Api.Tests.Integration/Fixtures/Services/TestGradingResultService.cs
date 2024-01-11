@@ -15,20 +15,20 @@ public interface ITestGradingResultService
 
 internal class TestGradingResultService : ITestGradingResultService
 {
-    private readonly double _score;
-    private readonly Action<GameEngineGameState> _gameStateBuilder;
+    private readonly TestGradingResultServiceConfiguration _config;
 
-    public TestGradingResultService(double score, Action<GameEngineGameState> gameStateBuilder)
+    public TestGradingResultService(TestGradingResultServiceConfiguration config)
     {
-        _gameStateBuilder = gameStateBuilder;
-        _score = score;
+        _config = config;
     }
 
     public GameEngineGameState Get(Data.Challenge challenge)
     {
+        if (_config.ThrowsOnGrading is not null)
+            throw _config.ThrowsOnGrading;
+
         var state = BuildChallengeStateFromChallenge(challenge);
-        _gameStateBuilder.Invoke(state);
-        state.Challenge.Score = _score;
+        _config?.GameStateBuilder?.Invoke(state);
         return state;
     }
 

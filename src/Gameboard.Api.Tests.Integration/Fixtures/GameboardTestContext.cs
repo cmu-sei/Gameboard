@@ -46,9 +46,9 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
             // dummy authorization service that lets everything through
             services.ReplaceService<IAuthorizationService, TestAuthorizationService>();
 
-            // add defaults for services that can be replaced in .ConfigureTestServices
+            // add defaults for services that are sometimes replaced in .ConfigureTestServices
             services.AddScoped<ITestGameEngineStateChangeService, TestGameEngineStateChangeService>();
-            services.AddScoped<ITestGradingResultService>(_ => new TestGradingResultService(0, (state) => { }));
+            services.AddScoped<ITestGradingResultService>(_ => new TestGradingResultService(new TestGradingResultServiceConfiguration()));
         });
     }
 

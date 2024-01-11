@@ -72,7 +72,7 @@ public class TestGameEngineService : IGameEngineService
         return Array.Empty<GameEngineGamespaceVm>();
     }
 
-    public Task<GameEngineGameState> GetPreview(Api.Data.ChallengeSpec spec)
+    public Task<GameEngineGameState> GetPreview(Data.ChallengeSpec spec)
     {
         return Task.FromResult(new GameEngineGameState());
     }
@@ -87,7 +87,7 @@ public class TestGameEngineService : IGameEngineService
         return Task.FromResult(Array.Empty<ExternalSpec>());
     }
 
-    public Task<GameEngineGameState> LoadGamespace(Api.Data.Challenge entity)
+    public Task<GameEngineGameState> LoadGamespace(Data.Challenge entity)
     {
         return Task.FromResult(new GameEngineGameState());
     }

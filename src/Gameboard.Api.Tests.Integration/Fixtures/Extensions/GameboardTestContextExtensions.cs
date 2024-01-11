@@ -58,16 +58,12 @@ internal static class GameboardTestContextExtensions
 
     public static HttpClient CreateHttpClientWithGraderConfig(this GameboardTestContext testContext, double gradedScore, string graderKey)
     {
-        var client = testContext
-            .WithWebHostBuilder(builder =>
-            {
-                builder.ConfigureTestServices(services =>
-                {
-                    var testGradingResult = new TestGradingResultService(gradedScore, builder => builder.Challenge.Score = gradedScore);
-                    services.ReplaceService<ITestGradingResultService, TestGradingResultService>(testGradingResult);
-                });
-            })
-            .CreateClient();
+        var client = BuildTestApplication(testContext, u => { }, services =>
+        {
+            var testGradingResult = new TestGradingResultService(new TestGradingResultServiceConfiguration { GameStateBuilder = state => state.Challenge.Score = gradedScore });
+            services.ReplaceService<ITestGradingResultService, TestGradingResultService>(testGradingResult);
+        })
+        .CreateClient();
 
         if (graderKey.IsNotEmpty())
         {

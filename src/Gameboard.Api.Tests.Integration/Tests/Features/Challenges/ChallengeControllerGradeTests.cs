@@ -93,6 +93,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
     (
         string challengeId,
         string challengeSpecId,
+        string sponsorId,
         string userId,
         IFixture fixture
     )
@@ -100,15 +101,18 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
         var challengeStartTime = DateTime.UtcNow.AddDays(-1);
         var challengeEndTime = DateTime.UtcNow.AddMinutes(-5);
 
-        // given a challenge which is expired (faked grading service)
+        // given a challenge and a faked game engine service
+        // which will throw an expired exception on grade
         await _testContext.WithDataState(state =>
         {
+            state.Add<Data.Sponsor>(fixture, s => s.Id = sponsorId);
             state.Add<Data.Game>(fixture, g =>
             {
                 g.Players = new List<Data.Player>
                 {
                     new()
                     {
+                        Id = fixture.Create<string>(),
                         Challenges = new List<Data.Challenge>
                         {
                             new()
@@ -119,12 +123,40 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
                                 SpecId = challengeSpecId,
                             }
                         },
-                        UserId = userId
+                        SponsorId = sponsorId,
+                        User = state.Build<Data.User>(fixture, u => u.Id = userId)
                     }
                 };
             });
         });
 
-        // _testContext
+        var exceptionToThrow = new SubmissionIsForExpiredGamespace(challengeId, null);
+        var submission = new GameEngineSectionSubmission
+        {
+            Id = challengeId,
+            SectionIndex = 0,
+            Timestamp = DateTimeOffset.UtcNow,
+            Questions = Array.Empty<GameEngineAnswerSubmission>()
+        };
+
+        var http = _testContext
+            .BuildTestApplication(u => u.Id = userId, services =>
+            {
+                var gradingResultConfig = new TestGradingResultServiceConfiguration { ThrowsOnGrading = exceptionToThrow };
+                services.ReplaceService<ITestGradingResultService, TestGradingResultService>(new TestGradingResultService(gradingResultConfig));
+            })
+            .CreateClient();
+
+        await http.PutAsync("/api/challenge/grade", submission.ToJsonBody());
+
+        var challengeEvents = await _testContext.GetDbContext()
+            .ChallengeEvents
+            .AsNoTracking()
+            .Where(ev => ev.ChallengeId == challengeId)
+            .OrderByDescending(ev => ev.Timestamp)
+            .ToArrayAsync();
+
+        challengeEvents.Length.ShouldBeGreaterThan(0);
+        challengeEvents.First().Type.ShouldBe(ChallengeEventType.SubmissionRejectedGamespaceExpired);
     }
 }
