@@ -18,6 +18,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using System.Security.Cryptography.Xml;
 
 namespace Gameboard.Api.Services;
 
@@ -315,6 +316,7 @@ public partial class ChallengeService : _Service
         });
 
         var state = await _gameEngine.StartGamespace(new GameEngineGamespaceStartRequest { ChallengeId = challenge.Id, GameEngineType = challenge.GameEngineType });
+        state = TransformStateRelativeUrls(state);
         await _challengeSyncService.Sync(challenge, state, cancellationToken);
 
         return Mapper.Map<Challenge>(challenge);
@@ -334,6 +336,7 @@ public partial class ChallengeService : _Service
         });
 
         var state = await _gameEngine.StopGamespace(challenge);
+        state = TransformStateRelativeUrls(state);
         await _challengeSyncService.Sync(challenge, state, CancellationToken.None);
 
         return Mapper.Map<Challenge>(challenge);
