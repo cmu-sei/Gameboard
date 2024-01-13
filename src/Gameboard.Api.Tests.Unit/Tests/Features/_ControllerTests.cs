@@ -1,6 +1,4 @@
-using Gameboard.Api;
 using Gameboard.Api.Controllers;
-using Gameboard.Api.Validators;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 

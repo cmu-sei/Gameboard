@@ -14,7 +14,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
     // NOTE: This version is trying to use grader key auth, but our test infrastructure
     // isn't correctly allowing us to replace services at test time. need to come back to this.
     [Theory, GbIntegrationAutoData]
-    public async Task UpdateTeamChallengeScore_WithFirstSolve_SetsExpectedRankAndScore
+    public async Task Grade_WithFirstSolve_SetsExpectedRankAndScore
     (
         string challengeId,
         string challengeSpecId,
@@ -86,5 +86,77 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
             .ToArrayAsync();
 
         events.Length.ShouldBe(1);
+    }
+
+    [Theory, GbIntegrationAutoData]
+    public async Task Grade_WithGamespaceExpired_ThrowsAndLogsEvent
+    (
+        string challengeId,
+        string challengeSpecId,
+        string sponsorId,
+        string userId,
+        IFixture fixture
+    )
+    {
+        var challengeStartTime = DateTime.UtcNow.AddDays(-1);
+        var challengeEndTime = DateTime.UtcNow.AddMinutes(-5);
+
+        // given a challenge and a faked game engine service
+        // which will throw an expired exception on grade
+        await _testContext.WithDataState(state =>
+        {
+            state.Add<Data.Sponsor>(fixture, s => s.Id = sponsorId);
+            state.Add<Data.Game>(fixture, g =>
+            {
+                g.Players = new List<Data.Player>
+                {
+                    new()
+                    {
+                        Id = fixture.Create<string>(),
+                        Challenges = new List<Data.Challenge>
+                        {
+                            new()
+                            {
+                                Id = challengeId,
+                                EndTime = challengeEndTime,
+                                StartTime = challengeStartTime,
+                                SpecId = challengeSpecId,
+                            }
+                        },
+                        SponsorId = sponsorId,
+                        User = state.Build<Data.User>(fixture, u => u.Id = userId)
+                    }
+                };
+            });
+        });
+
+        var exceptionToThrow = new SubmissionIsForExpiredGamespace(challengeId, null);
+        var submission = new GameEngineSectionSubmission
+        {
+            Id = challengeId,
+            SectionIndex = 0,
+            Timestamp = DateTimeOffset.UtcNow,
+            Questions = Array.Empty<GameEngineAnswerSubmission>()
+        };
+
+        var http = _testContext
+            .BuildTestApplication(u => u.Id = userId, services =>
+            {
+                var gradingResultConfig = new TestGradingResultServiceConfiguration { ThrowsOnGrading = exceptionToThrow };
+                services.ReplaceService<ITestGradingResultService, TestGradingResultService>(new TestGradingResultService(gradingResultConfig));
+            })
+            .CreateClient();
+
+        await http.PutAsync("/api/challenge/grade", submission.ToJsonBody());
+
+        var challengeEvents = await _testContext.GetDbContext()
+            .ChallengeEvents
+            .AsNoTracking()
+            .Where(ev => ev.ChallengeId == challengeId)
+            .OrderByDescending(ev => ev.Timestamp)
+            .ToArrayAsync();
+
+        challengeEvents.Length.ShouldBeGreaterThan(0);
+        challengeEvents.First().Type.ShouldBe(ChallengeEventType.SubmissionRejectedGamespaceExpired);
     }
 }
