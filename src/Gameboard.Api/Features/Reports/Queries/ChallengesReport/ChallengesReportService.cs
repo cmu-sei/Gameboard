@@ -139,9 +139,9 @@ internal class ChallengesReportService : IChallengesReportService
                 DeployCompetitiveCount = aggregations is not null ? aggregations.DeployCompetitiveCount : 0,
                 DeployPracticeCount = aggregations is not null ? aggregations.DeployPracticeCount : 0,
                 DistinctPlayerCount = aggregations is not null ? aggregations.DistinctPlayerCount : 0,
-                SolveCompleteCount = aggregations is not null ? aggregations.SolveZeroCount : 0,
+                SolveZeroCount = aggregations is not null ? aggregations.SolveZeroCount : 0,
                 SolvePartialCount = aggregations is not null ? aggregations.SolvePartialCount : 0,
-                SolveZeroCount = aggregations is not null ? aggregations.SolveCompleteCount : 0
+                SolveCompleteCount = aggregations is not null ? aggregations.SolveCompleteCount : 0
             };
         })
         .OrderBy(r => r.ChallengeSpec.Name)
