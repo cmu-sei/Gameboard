@@ -564,7 +564,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 {
                     Id = gs.Id,
                     VmUris = _gameEngineService.GetGamespaceVms(gs).Select(vm => vm.Url),
-                    IsDeployed = gs.IsActive
+                    IsDeployed = gs.HasDeployedGamespace
                 }),
                 Players = teamPlayers
             };
