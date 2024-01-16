@@ -5,19 +5,25 @@ using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
-internal class TestGameEngineService : IGameEngineService
+public class TestGameEngineService : IGameEngineService
 {
     private readonly ITestGradingResultService _gradingResultService;
-    private readonly IGameEngineStore _store;
+    private readonly ITestGameEngineStateChangeService _gameEngineStateChangeService;
     private readonly IGuidService _guids;
     private readonly IMapper _mapper;
 
-    public TestGameEngineService(IGuidService guids, IMapper mapper, IGameEngineStore store, ITestGradingResultService gradingResultService)
+    public TestGameEngineService
+    (
+        IGuidService guids,
+        IMapper mapper,
+        ITestGameEngineStateChangeService gameEngineStateChangeService,
+        ITestGradingResultService gradingResultService
+    )
     {
+        _gameEngineStateChangeService = gameEngineStateChangeService;
         _gradingResultService = gradingResultService;
         _guids = guids;
         _mapper = mapper;
-        _store = store;
     }
 
     public Task<IEnumerable<GameEngineSectionSubmission>> AuditChallenge(Api.Data.Challenge entity)
@@ -66,7 +72,7 @@ internal class TestGameEngineService : IGameEngineService
         return Array.Empty<GameEngineGamespaceVm>();
     }
 
-    public Task<GameEngineGameState> GetPreview(Api.Data.ChallengeSpec spec)
+    public Task<GameEngineGameState> GetPreview(Data.ChallengeSpec spec)
     {
         return Task.FromResult(new GameEngineGameState());
     }
@@ -81,7 +87,7 @@ internal class TestGameEngineService : IGameEngineService
         return Task.FromResult(Array.Empty<ExternalSpec>());
     }
 
-    public Task<GameEngineGameState> LoadGamespace(Api.Data.Challenge entity)
+    public Task<GameEngineGameState> LoadGamespace(Data.Challenge entity)
     {
         return Task.FromResult(new GameEngineGameState());
     }
@@ -135,11 +141,11 @@ internal class TestGameEngineService : IGameEngineService
 
     public Task<GameEngineGameState> StartGamespace(GameEngineGamespaceStartRequest request)
     {
-        return Task.FromResult(new GameEngineGameState());
+        return Task.FromResult(_gameEngineStateChangeService.StartGamespaceResult);
     }
 
     public Task<GameEngineGameState> StopGamespace(Data.Challenge entity)
     {
-        return Task.FromResult(new GameEngineGameState());
+        return Task.FromResult(_gameEngineStateChangeService.StopGamespaceResult);
     }
 }

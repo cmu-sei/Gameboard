@@ -8,8 +8,11 @@ namespace Gameboard.Api.Tests.Integration.Fixtures;
 
 internal static class GameboardTestContextExtensions
 {
-    private static WebApplicationFactory<Program> BuildUserAuthentication(this GameboardTestContext testContext, TestAuthenticationUser? actingUser = null)
+    public static WebApplicationFactory<Program> BuildTestApplication(this GameboardTestContext testContext, Action<TestAuthenticationUser>? actingUserBuilder, Action<IServiceCollection>? configureTestServices = null)
     {
+        var user = new TestAuthenticationUser();
+        actingUserBuilder?.Invoke(user);
+
         return testContext
             .WithWebHostBuilder(builder =>
             {
@@ -19,7 +22,7 @@ internal static class GameboardTestContextExtensions
                     services
                         .Configure<TestAuthenticationHandlerOptions>(options =>
                         {
-                            var finalActor = actingUser ?? new TestAuthenticationUser { };
+                            var finalActor = user;
 
                             options.DefaultUserId = finalActor.Id;
                             options.Actor = finalActor;
@@ -34,16 +37,16 @@ internal static class GameboardTestContextExtensions
                             .AddAuthenticationSchemes(TestAuthenticationHandler.AuthenticationSchemeName)
                             .Build();
                     });
+
+                    // and anything else the test wants
+                    configureTestServices?.Invoke(services);
                 });
             });
     }
 
     public static HttpClient CreateHttpClientWithActingUser(this GameboardTestContext testContext, Action<TestAuthenticationUser>? userBuilder = null)
     {
-        var user = new TestAuthenticationUser();
-        userBuilder?.Invoke(user);
-
-        return BuildUserAuthentication(testContext, user)
+        return BuildTestApplication(testContext, userBuilder)
             .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
     }
 
@@ -55,16 +58,12 @@ internal static class GameboardTestContextExtensions
 
     public static HttpClient CreateHttpClientWithGraderConfig(this GameboardTestContext testContext, double gradedScore, string graderKey)
     {
-        var client = testContext
-            .WithWebHostBuilder(builder =>
-            {
-                builder.ConfigureTestServices(services =>
-                {
-                    var testGradingResult = new TestGradingResultService(gradedScore, builder => builder.Challenge.Score = gradedScore);
-                    services.ReplaceService<ITestGradingResultService, TestGradingResultService>(testGradingResult);
-                });
-            })
-            .CreateClient();
+        var client = BuildTestApplication(testContext, u => { }, services =>
+        {
+            var testGradingResult = new TestGradingResultService(new TestGradingResultServiceConfiguration { GameStateBuilder = state => state.Challenge.Score = gradedScore });
+            services.ReplaceService<ITestGradingResultService, TestGradingResultService>(testGradingResult);
+        })
+        .CreateClient();
 
         if (graderKey.IsNotEmpty())
         {

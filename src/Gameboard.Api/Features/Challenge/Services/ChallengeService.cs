@@ -315,6 +315,7 @@ public partial class ChallengeService : _Service
         });
 
         var state = await _gameEngine.StartGamespace(new GameEngineGamespaceStartRequest { ChallengeId = challenge.Id, GameEngineType = challenge.GameEngineType });
+        state = TransformStateRelativeUrls(state);
         await _challengeSyncService.Sync(challenge, state, cancellationToken);
 
         return Mapper.Map<Challenge>(challenge);
@@ -334,6 +335,7 @@ public partial class ChallengeService : _Service
         });
 
         var state = await _gameEngine.StopGamespace(challenge);
+        state = TransformStateRelativeUrls(state);
         await _challengeSyncService.Sync(challenge, state, CancellationToken.None);
 
         return Mapper.Map<Challenge>(challenge);
@@ -352,7 +354,7 @@ public partial class ChallengeService : _Service
             priorAttemptCount = preGradeState.Challenge.Attempts;
         }
 
-        // log the appropriate event
+        // log the appropriate event (note that this won't get saved if the call to the game engine's Grade fails)
         challenge.Events.Add(new ChallengeEvent
         {
             Id = _guids.GetGuid(),
@@ -362,8 +364,35 @@ public partial class ChallengeService : _Service
             Type = ChallengeEventType.Submission
         });
 
-        var state = await _gameEngine.GradeChallenge(challenge, model);
-        await _challengeSyncService.Sync(challenge, state, CancellationToken.None);
+        GameEngineGameState postGradingState = null;
+
+        try
+        {
+            postGradingState = await _gameEngine.GradeChallenge(challenge, model);
+        }
+        catch (SubmissionIsForExpiredGamespace)
+        {
+            Logger.LogInformation($"Rejected a submission for challenge {challenge.Id}: the gamespace is expired.");
+            var challengeEvent = new ChallengeEvent
+            {
+                Id = _guids.GetGuid(),
+                ChallengeId = challenge.Id,
+                UserId = actor?.Id ?? null,
+                TeamId = challenge.TeamId,
+                Timestamp = _now.Get(),
+                Type = ChallengeEventType.SubmissionRejectedGamespaceExpired
+            };
+
+            // save and add the event to the entity for the return value
+            await _store.Create(challengeEvent);
+
+            throw;
+        }
+
+        if (postGradingState is null)
+            throw new InvalidOperationException("The post-grading state of the challenge was null.");
+
+        await _challengeSyncService.Sync(challenge, postGradingState, CancellationToken.None);
 
         // update the team score and award automatic bonuses
         var updatedScore = await _mediator.Send(new UpdateTeamChallengeBaseScoreCommand(challenge.Id, challenge.Score));
@@ -374,7 +403,7 @@ public partial class ChallengeService : _Service
         // The game engine (Topo, in most cases) may optionally not count this as an attempt if the answers are identical 
         // to a previous attempt, which means we need to be sure this consumed an attempt
         // before counting it as a new submission for logging purposes.
-        if (state.Challenge.Attempts > priorAttemptCount)
+        if (postGradingState.Challenge.Attempts > priorAttemptCount)
         {
             // record the submission
             await _challengeSubmissionsService.LogSubmission
@@ -403,6 +432,7 @@ public partial class ChallengeService : _Service
                 await _teamService.EndSession(challenge.TeamId, actor, CancellationToken.None);
             }
         }
+
         return Mapper.Map<Challenge>(challenge);
     }
 
@@ -533,15 +563,28 @@ public partial class ChallengeService : _Service
 
     public async Task<List<ObserveChallenge>> GetChallengeConsoles(string gameId)
     {
+        // retrieve challenges to list
         var q = _challengeStore.DbContext.Challenges
             .Where(c => c.GameId == gameId && c.HasDeployedGamespace)
             .Include(c => c.Player)
             .OrderBy(c => c.Player.Name)
             .ThenBy(c => c.Name);
         var challenges = Mapper.Map<ObserveChallenge[]>(await q.ToArrayAsync());
+
+        // resolve the name of the captain.
+        // (we used to depend on the name of all players being that of the captain, but
+        // we don't anymore because that was super unstable and weird)
+        var teamIds = challenges.Select(c => c.TeamId).ToArray();
+        var captains = await _teamService.ResolveCaptains(teamIds, CancellationToken.None);
+
         var result = new List<ObserveChallenge>();
         foreach (var challenge in challenges.Where(c => c.IsActive))
         {
+            // attempt to grab the captain's name if we were able to resolve it from the
+            // teamservice
+            var captain = captains.ContainsKey(challenge.TeamId) ? captains[challenge.TeamId] : null;
+            challenge.TeamName = captain?.ApprovedName ?? challenge.PlayerName;
+
             challenge.Consoles = challenge.Consoles
                 .Where(v => v.IsVisible)
                 .ToArray();

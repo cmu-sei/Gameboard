@@ -42,7 +42,8 @@ public enum ChallengeEventType
     Started,
     GamespaceOn,
     GamespaceOff,
-    Submission
+    Submission,
+    SubmissionRejectedGamespaceExpired
 }
 
 public enum ChallengeResult
