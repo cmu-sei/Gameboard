@@ -283,6 +283,7 @@ internal class TeamService : ITeamService
 
     public async Task<IDictionary<string, Data.Player>> ResolveCaptains(IEnumerable<string> teamIds, CancellationToken cancellationToken)
     {
+        var distinctTeamIds = teamIds.Distinct().ToArray();
         var teamMap = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => teamIds.Contains(p.TeamId))
@@ -290,7 +291,7 @@ internal class TeamService : ITeamService
             .ToDictionaryAsync(gr => gr.Key, gr => gr.ToList(), cancellationToken);
 
         var retVal = new Dictionary<string, Data.Player>();
-        foreach (var teamId in teamIds)
+        foreach (var teamId in distinctTeamIds)
         {
             Data.Player captain = null;
 
