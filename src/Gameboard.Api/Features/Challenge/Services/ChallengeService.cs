@@ -112,7 +112,9 @@ public partial class ChallengeService : _Service
         if (locked != lockval)
             throw new ChallengeStartPending();
 
-        var spec = await _store.WithNoTracking<Data.ChallengeSpec>().SingleAsync(s => s.Id == model.SpecId);
+        var spec = await _store
+            .WithNoTracking<Data.ChallengeSpec>()
+            .SingleAsync(s => s.Id == model.SpecId, cancellationToken);
 
         int playerCount = 1;
         if (game.AllowTeam)
