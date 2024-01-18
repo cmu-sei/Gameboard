@@ -275,9 +275,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<IEnumerable<GameEngineSectionSubmission>> Audit([FromRoute] string id)
         {
-            AuthorizeAny(
-                () => Actor.IsDirector
-            );
+            AuthorizeAny(() => Actor.IsDirector);
 
             await Validate(new Entity { Id = id });
 

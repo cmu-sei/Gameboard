@@ -56,7 +56,7 @@ internal class PlayersReportService : IPlayersReportService
 
         if (gamesCriteria.Any())
             query = query
-                .Where(u => u.Enrollments.Any(g => gamesCriteria.Contains(g.Id)));
+                .Where(u => u.Enrollments.Any(p => gamesCriteria.Contains(p.GameId)));
 
         if (parameters.LastPlayedDateStart is not null)
             query = query
