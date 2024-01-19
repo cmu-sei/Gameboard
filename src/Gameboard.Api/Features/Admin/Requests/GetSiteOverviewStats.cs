@@ -1,10 +1,61 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
+using Gameboard.Api.Data;
+using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
 
 namespace Gameboard.Api.Features.Admin;
 
 public sealed class GetSiteOverviewStatsResponse
 {
-
+    public required int ActiveCompetitiveChallenges { get; set; }
+    public required int ActivePracticeChallenges { get; set; }
+    public required int ActiveCompetitiveTeams { get; set; }
 }
 
 public record GetSiteOverviewStatsQuery() : IRequest<GetSiteOverviewStatsResponse>;
+
+internal class GetSiteOverviewStatsHandler : IRequestHandler<GetSiteOverviewStatsQuery, GetSiteOverviewStatsResponse>
+{
+    private readonly IActingUserService _actingUserService;
+    private readonly INowService _nowService;
+    private readonly IStore _store;
+    private readonly UserRoleAuthorizer _userRoleAuthorizer;
+
+    public GetSiteOverviewStatsHandler
+    (
+        IActingUserService actingUserService,
+        INowService nowService,
+        IStore store,
+        UserRoleAuthorizer userRoleAuthorizer
+    )
+    {
+        _actingUserService = actingUserService;
+        _nowService = nowService;
+        _store = store;
+        _userRoleAuthorizer = userRoleAuthorizer;
+    }
+
+    public async Task<GetSiteOverviewStatsResponse> Handle(GetSiteOverviewStatsQuery request, CancellationToken cancellationToken)
+    {
+        // authorize
+        _userRoleAuthorizer
+            .AllowRoles(UserRole.Admin, UserRole.Director, UserRole.Observer, UserRole.Support, UserRole.Designer)
+            .Authorize();
+
+        // pull data
+        var now = _nowService.Get();
+        var challengeData = await _store
+            .WithNoTracking<Data.Challenge>()
+            .WhereDateIsNotEmpty(c => c.StartTime)
+            .Where(c => c.StartTime <= now)
+            .Where(c => c.EndTime >= now || c.EndTime == DateTimeOffset.MinValue)
+            .Select(c => new
+            {
+
+            });
+    }
+}
