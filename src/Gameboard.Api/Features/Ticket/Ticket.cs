@@ -218,7 +218,6 @@ namespace Gameboard.Api
     {
         public required string Id { get; set; }
         public required string ApprovedName { get; set; }
-        public required UserRole Role { get; set; }
         public required bool IsSupportPersonnel { get; set; }
     }
 }

@@ -11,7 +11,7 @@ namespace Gameboard.Api.Services
 {
     public class ConsoleActorMap
     {
-        private readonly ConcurrentDictionary<string, ConsoleActor> _cache = new();
+        private static readonly ConcurrentDictionary<string, ConsoleActor> _cache = new();
 
         public ConsoleActorMap()
         {
@@ -52,21 +52,6 @@ namespace Gameboard.Api.Services
             ;
 
             return q.ToArray();
-        }
-
-        public Dictionary<string, List<string>> ReverseLookup(string gid)
-        {
-            var actorMap = _cache.Values.Where(a => a.GameId == gid).ToArray();
-            var vmToActor = new Dictionary<string, List<string>>();
-            foreach (var a in actorMap)
-            {
-                string key = $"{a.ChallengeId}#{a.VmName}";
-                if (vmToActor.ContainsKey(key))
-                    vmToActor[key].Add(a.UserName);
-                else
-                    vmToActor.Add(key, new List<string> { a.UserName });
-            }
-            return vmToActor;
         }
 
         public ConsoleActor FindActor(string uid)

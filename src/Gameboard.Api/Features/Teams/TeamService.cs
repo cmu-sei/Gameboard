@@ -30,6 +30,7 @@ public interface ITeamService
     Task<bool> IsOnTeam(string teamId, string userId);
     Task<Data.Player> ResolveCaptain(string teamId, CancellationToken cancellationToken);
     Data.Player ResolveCaptain(IEnumerable<Data.Player> players);
+    Task<IDictionary<string, Data.Player>> ResolveCaptains(IEnumerable<string> teamIds, CancellationToken cancellationToken);
     Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser, CancellationToken cancellationToken);
     Task UpdateSessionStartAndEnd(string teamId, DateTimeOffset? sessionStart, DateTimeOffset? sessionEnd, CancellationToken cancellationToken);
 }
@@ -278,6 +279,29 @@ internal class TeamService : ITeamService
         }
 
         return players.OrderBy(p => p.ApprovedName).First();
+    }
+
+    public async Task<IDictionary<string, Data.Player>> ResolveCaptains(IEnumerable<string> teamIds, CancellationToken cancellationToken)
+    {
+        var distinctTeamIds = teamIds.Distinct().ToArray();
+        var teamMap = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => teamIds.Contains(p.TeamId))
+            .GroupBy(p => p.TeamId)
+            .ToDictionaryAsync(gr => gr.Key, gr => gr.ToList(), cancellationToken);
+
+        var retVal = new Dictionary<string, Data.Player>();
+        foreach (var teamId in distinctTeamIds)
+        {
+            Data.Player captain = null;
+
+            if (teamMap.TryGetValue(teamId, out List<Data.Player> value))
+                captain = ResolveCaptain(value);
+
+            retVal.Add(teamId, captain);
+        }
+
+        return retVal;
     }
 
     private async Task<TeamState> GetTeamState(string teamId, SimpleEntity actor, CancellationToken cancellationToken)

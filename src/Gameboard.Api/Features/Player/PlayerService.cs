@@ -17,6 +17,7 @@ using Gameboard.Api.Features.Sponsors;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Services;
 
@@ -24,6 +25,7 @@ public class PlayerService
 {
     private readonly IInternalHubBus _hubBus;
     private readonly TimeSpan _idmapExpiration = new(0, 30, 0);
+    private readonly ILogger<PlayerService> _logger;
     private readonly IMapper _mapper;
     private readonly INowService _now;
     private readonly IPracticeService _practiceService;
@@ -44,6 +46,7 @@ public class PlayerService
         IGameStore gameStore,
         IGuidService guidService,
         IInternalHubBus hubBus,
+        ILogger<PlayerService> logger,
         IMapper mapper,
         IMemoryCache memCache,
         INowService now,
@@ -62,6 +65,7 @@ public class PlayerService
         _now = now;
         GameStore = gameStore;
         _hubBus = hubBus;
+        _logger = logger;
         LocalCache = memCache;
         _mapper = mapper;
         PlayerStore = playerStore;
@@ -803,7 +807,10 @@ public class PlayerService
                 p.SessionEnd > nowStamp, cancellationToken);
 
             if (count >= settings.MaxConcurrentPracticeSessions.Value)
-                throw new PracticeSessionLimitReached(model.UserId, count, settings.MaxConcurrentPracticeSessions.Value);
+            {
+                _logger.LogWarning($"Can't start a new practice session. There are {count} active practice sessions, and the limit is {settings.MaxConcurrentPracticeSessions.Value}.");
+                throw new PracticeSessionLimitReached();
+            }
         }
 
         var entity = InitializePlayer(model, user, settings.DefaultPracticeSessionLengthMinutes);

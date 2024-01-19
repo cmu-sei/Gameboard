@@ -18,7 +18,6 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using System.Security.Cryptography.Xml;
 
 namespace Gameboard.Api.Services;
 
@@ -113,7 +112,9 @@ public partial class ChallengeService : _Service
         if (locked != lockval)
             throw new ChallengeStartPending();
 
-        var spec = await _store.WithNoTracking<Data.ChallengeSpec>().SingleAsync(s => s.Id == model.SpecId);
+        var spec = await _store
+            .WithNoTracking<Data.ChallengeSpec>()
+            .SingleAsync(s => s.Id == model.SpecId, cancellationToken);
 
         int playerCount = 1;
         if (game.AllowTeam)
@@ -564,15 +565,28 @@ public partial class ChallengeService : _Service
 
     public async Task<List<ObserveChallenge>> GetChallengeConsoles(string gameId)
     {
+        // retrieve challenges to list
         var q = _challengeStore.DbContext.Challenges
             .Where(c => c.GameId == gameId && c.HasDeployedGamespace)
             .Include(c => c.Player)
             .OrderBy(c => c.Player.Name)
             .ThenBy(c => c.Name);
         var challenges = Mapper.Map<ObserveChallenge[]>(await q.ToArrayAsync());
+
+        // resolve the name of the captain.
+        // (we used to depend on the name of all players being that of the captain, but
+        // we don't anymore because that was super unstable and weird)
+        var teamIds = challenges.Select(c => c.TeamId).ToArray();
+        var captains = await _teamService.ResolveCaptains(teamIds, CancellationToken.None);
+
         var result = new List<ObserveChallenge>();
         foreach (var challenge in challenges.Where(c => c.IsActive))
         {
+            // attempt to grab the captain's name if we were able to resolve it from the
+            // teamservice
+            var captain = captains.ContainsKey(challenge.TeamId) ? captains[challenge.TeamId] : null;
+            challenge.TeamName = captain?.ApprovedName ?? challenge.PlayerName;
+
             challenge.Consoles = challenge.Consoles
                 .Where(v => v.IsVisible)
                 .ToArray();

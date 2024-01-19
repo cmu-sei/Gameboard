@@ -146,6 +146,7 @@ public class ObserveChallenge
 {
     public string Id { get; set; }
     public string TeamId { get; set; }
+    public string TeamName { get; set; }
     public string Name { get; set; }
     public string Tag { get; set; }
     public string PlayerId { get; set; }

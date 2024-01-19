@@ -122,7 +122,6 @@ namespace Gameboard.Api.Services
             {
                 Id = actingUser.Id,
                 ApprovedName = actingUser.ApprovedName,
-                Role = actingUser.Role,
                 IsSupportPersonnel = actingUser.IsAdmin || actingUser.IsSupport
             };
 

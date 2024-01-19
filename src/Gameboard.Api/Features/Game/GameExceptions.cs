@@ -74,7 +74,7 @@ public class PlayerWrongGameIDException : Exception { }
 
 internal class PracticeSessionLimitReached : GameboardValidationException
 {
-    public PracticeSessionLimitReached(string userId, int userSessionCount, int practiceSessionLimit) : base($"Can't start a new practice session. User \"{userId}\" has \"{userSessionCount}\" practice sessions, and the limit is \"{practiceSessionLimit}\".") { }
+    public PracticeSessionLimitReached() : base($"No practice sessions are available right now. Try again later.") { }
 }
 
 internal class SessionLimitReached : GameboardValidationException
