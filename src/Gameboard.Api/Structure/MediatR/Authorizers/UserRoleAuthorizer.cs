@@ -6,7 +6,7 @@ namespace Gameboard.Api.Structure.MediatR.Authorizers;
 internal class UserRoleAuthorizer : IAuthorizer
 {
     private readonly IActingUserService _actingUserService;
-    private IEnumerable<UserRole> _allowedRoles { get; set; } = new List<UserRole> { UserRole.Admin };
+    private IEnumerable<UserRole> _allowedRoles = new List<UserRole> { UserRole.Admin };
     private string _allowUserId;
 
     public UserRoleAuthorizer(IActingUserService actingUserService)
