@@ -1,8 +1,13 @@
 using System.Collections.Generic;
-using Gameboard.Api.Common;
 using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.Teams;
+
+internal class CantExtendUnstartedSession : GameboardValidationException
+{
+    internal CantExtendUnstartedSession(string teamId)
+        : base($"Can't extend session for team {teamId}: Their session hasn't started.") { }
+}
 
 internal class CaptainResolutionFailure : GameboardException
 {

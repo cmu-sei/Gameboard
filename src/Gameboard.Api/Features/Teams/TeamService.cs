@@ -327,6 +327,21 @@ internal class TeamService : ITeamService
         if (sessionStart is null && sessionEnd is null)
             throw new ArgumentException($"Either {nameof(sessionStart)} or {nameof(sessionEnd)} must be non-null.");
 
+        // be sure they have an active session before we go extending things
+        if (sessionEnd is not null)
+        {
+            var playersWithNoSession = await _store
+                .WithNoTracking<Data.Player>()
+                .Where(p => p.TeamId == teamId)
+                .WhereDateIsEmpty(p => p.SessionBegin)
+                .AnyAsync(cancellationToken);
+
+            if (playersWithNoSession)
+            {
+                throw new CantExtendUnstartedSession(teamId);
+            }
+        }
+
         // update all players
         await _store
             .WithNoTracking<Data.Player>()
