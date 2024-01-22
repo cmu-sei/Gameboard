@@ -43,7 +43,7 @@ internal class UpdatePracticeModeSettingsValidator : IGameboardRequestValidator<
 
         _validatorService.AddValidator((request, context) =>
         {
-            if (request.Settings.MaxConcurrentPracticeSessions.HasValue && request.Settings.MaxConcurrentPracticeSessions <= 0)
+            if (request.Settings.MaxConcurrentPracticeSessions.HasValue && request.Settings.MaxConcurrentPracticeSessions < 0)
                 context.AddValidationException(new PracticeModeSettingsInvalid(nameof(PracticeModeSettings.MaxConcurrentPracticeSessions), request.Settings.MaxConcurrentPracticeSessions.Value.ToString(), "Max concurrent practice sessions must be either null or non-negative."));
 
             return Task.CompletedTask;
@@ -52,7 +52,7 @@ internal class UpdatePracticeModeSettingsValidator : IGameboardRequestValidator<
         _validatorService.AddValidator((request, context) =>
         {
             if (request.Settings.MaxPracticeSessionLengthMinutes.HasValue && request.Settings.MaxPracticeSessionLengthMinutes <= 0)
-                context.AddValidationException(new PracticeModeSettingsInvalid(nameof(PracticeModeSettings.MaxPracticeSessionLengthMinutes), request.Settings.MaxPracticeSessionLengthMinutes.Value.ToString(), "Max practice session length must be either null or non-negative."));
+                context.AddValidationException(new PracticeModeSettingsInvalid(nameof(PracticeModeSettings.MaxPracticeSessionLengthMinutes), request.Settings.MaxPracticeSessionLengthMinutes.Value.ToString(), "Max practice session length must be either null or positive."));
 
             return Task.CompletedTask;
         });
