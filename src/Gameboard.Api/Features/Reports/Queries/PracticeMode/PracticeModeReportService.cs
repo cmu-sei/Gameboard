@@ -43,7 +43,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
             .ToArrayAsync(cancellationToken);
 
         // process parameters
-        DateTimeOffset? startDate = parameters.PracticeDateStart.HasValue ? parameters.PracticeDateStart.Value.ToEndDate().ToUniversalTime() : null;
+        DateTimeOffset? startDate = parameters.PracticeDateStart.HasValue ? parameters.PracticeDateStart.Value.ToUniversalTime() : null;
         DateTimeOffset? endDate = parameters.PracticeDateEnd.HasValue ? parameters.PracticeDateEnd.Value.ToEndDate().ToUniversalTime() : null;
         var gameIds = _reportsService.ParseMultiSelectCriteria(parameters.Games);
         var sponsorIds = _reportsService.ParseMultiSelectCriteria(parameters.Sponsors);
