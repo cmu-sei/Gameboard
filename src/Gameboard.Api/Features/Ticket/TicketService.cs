@@ -410,6 +410,17 @@ namespace Gameboard.Api.Services
                 {
                     entity.TeamId = challenge.TeamId;
                     entity.PlayerId = challenge.PlayerId;
+                    entity.Label = "";
+
+                    // auto-add the "practice-challenge" tag - should be there if this is a practice challenge
+                    if (challenge.PlayerMode == PlayerMode.Practice)
+                    {
+                        if (!entity.Label.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries).Contains("practice-challenge"))
+                        {
+                            entity.Label += entity.Label + " practice-challenge".Trim();
+                        }
+                    }
+
                     return;
                 }
             }

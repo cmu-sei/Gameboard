@@ -15,7 +15,6 @@ namespace Gameboard.Api.Features.Player;
 
 internal class ResetSessionCommandValidator : IGameboardRequestValidator<ResetTeamSessionCommand>
 {
-    private readonly PlayerService _playerService;
     private readonly IStore _store;
     private readonly TeamExistsValidator<ResetTeamSessionCommand> _teamExistsValidator;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
@@ -23,14 +22,12 @@ internal class ResetSessionCommandValidator : IGameboardRequestValidator<ResetTe
 
     public ResetSessionCommandValidator
     (
-        PlayerService playerService,
         IStore store,
         TeamExistsValidator<ResetTeamSessionCommand> teamExistsValidator,
         UserRoleAuthorizer userRoleAuthorizer,
         IValidatorService<ResetTeamSessionCommand> validatorService
     )
     {
-        _playerService = playerService;
         _store = store;
         _teamExistsValidator = teamExistsValidator;
         _userRoleAuthorizer = userRoleAuthorizer;

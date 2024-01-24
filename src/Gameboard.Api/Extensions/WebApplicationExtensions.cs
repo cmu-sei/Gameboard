@@ -5,7 +5,6 @@ using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Hubs;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
-using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

@@ -166,7 +166,7 @@ public class GameService : _Service, IGameService
             q = q.Where(g => g.IsPublished);
 
         if (model.WantsCompetitive)
-            q = q.Where(g => g.PlayerMode == PlayerMode.Competition);
+            q = q.Where(g => g.PlayerMode == PlayerMode.Competition || g.ShowOnHomePageInPracticeMode);
         if (model.WantsPresent)
             q = q.Where(g => g.GameEnd > now && g.GameStart < now);
         if (model.WantsFuture)
