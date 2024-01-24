@@ -82,6 +82,7 @@ internal class ChallengeSyncService : IChallengeSyncService
         // Just load them all, then sync one by one.
         var challenges = await _store
             .WithNoTracking<Data.Challenge>()
+                .Include(c => c.Player)
             .Where(c => c.Player.SessionEnd < now && (c.LastSyncTime < c.Player.SessionEnd || c.EndTime == DateTimeOffset.MinValue))
             .ToArrayAsync(cancellationToken);
 
@@ -103,7 +104,12 @@ internal class ChallengeSyncService : IChallengeSyncService
                 await _store
                     .WithNoTracking<Data.Challenge>()
                     .Where(c => c.Id == challenge.Id)
-                    .ExecuteUpdateAsync(up => up.SetProperty(c => c.LastSyncTime, now));
+                    .ExecuteUpdateAsync
+                    (
+                        up => up
+                            .SetProperty(c => c.LastSyncTime, now)
+                            .SetProperty(c => c.EndTime, challenge.Player.SessionEnd)
+                    );
             }
             catch (Exception ex)
             {
