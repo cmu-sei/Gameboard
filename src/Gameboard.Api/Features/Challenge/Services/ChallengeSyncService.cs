@@ -82,9 +82,10 @@ internal class ChallengeSyncService : IChallengeSyncService
         // Just load them all, then sync one by one.
         var challenges = await _store
             .WithNoTracking<Data.Challenge>()
-            .Where(c => c.LastSyncTime < c.Player.SessionEnd && c.Player.SessionEnd < now)
+            .Where(c => c.Player.SessionEnd < now && (c.LastSyncTime < c.Player.SessionEnd || c.EndTime == DateTimeOffset.MinValue))
             .ToArrayAsync(cancellationToken);
 
+        _logger.LogInformation($"The ChallengeSyncService is synchronizing {challenges.Length} challenges...");
         foreach (var challenge in challenges)
         {
             try
@@ -112,6 +113,9 @@ internal class ChallengeSyncService : IChallengeSyncService
 
         // prune the map just to ensure we don't have any stragglers
         _consoleActorMap.Prune();
+
+        // let them know we're done
+        _logger.LogInformation($"The ChallengeSyncService finished synchronizing {challenges.Length} challenges.");
     }
 
     internal class SyncEntry
