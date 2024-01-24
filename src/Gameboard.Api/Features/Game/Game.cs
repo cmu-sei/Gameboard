@@ -48,6 +48,7 @@ public class GameDetail
     public string CardText3 { get; set; }
     public string Mode { get; set; }
     public PlayerMode PlayerMode { get; set; }
+    public bool ShowOnHomePageInPracticeMode { get; set; }
 }
 
 public class Game : GameDetail
