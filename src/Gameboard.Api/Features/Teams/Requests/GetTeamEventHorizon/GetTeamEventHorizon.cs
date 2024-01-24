@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,23 +18,32 @@ public record GetTeamEventHorizonQuery(string TeamId) : IRequest<EventHorizon>;
 internal class GetTeamEventHorizonHandler : IRequestHandler<GetTeamEventHorizonQuery, EventHorizon>
 {
     private readonly IActingUserService _actingUserService;
+    private readonly IGuidService _guidService;
+    private readonly IJsonService _jsonService;
     private readonly IStore _store;
     private readonly TeamExistsValidator<GetTeamEventHorizonQuery> _teamExists;
+    private readonly ITeamService _teamService;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
     private readonly IValidatorService<GetTeamEventHorizonQuery> _validator;
 
     public GetTeamEventHorizonHandler
     (
         IActingUserService actingUserService,
+        IGuidService guidService,
+        IJsonService jsonService,
         IStore store,
         TeamExistsValidator<GetTeamEventHorizonQuery> teamExists,
+        ITeamService teamService,
         UserRoleAuthorizer userRoleAuthorizer,
         IValidatorService<GetTeamEventHorizonQuery> validator
     )
     {
         _actingUserService = actingUserService;
+        _guidService = guidService;
+        _jsonService = jsonService;
         _store = store;
         _teamExists = teamExists;
+        _teamService = teamService;
         _userRoleAuthorizer = userRoleAuthorizer;
         _validator = validator;
     }
@@ -63,6 +74,225 @@ internal class GetTeamEventHorizonHandler : IRequestHandler<GetTeamEventHorizonQ
             .Validate(request, cancellationToken);
 
         // and awaaaaay we go
+        // pull sources for events
+        var challenges = await _store
+            .WithNoTracking<Data.Challenge>()
+            .Include(c => c.Events)
+            .Include(c => c.Game)
+            .Include(c => c.Submissions)
+            .Where(c => c.TeamId == request.TeamId)
+            .ToArrayAsync(cancellationToken);
 
+        // make sure we have exactly one game
+        var games = challenges.Select(c => c.Game).ToArray();
+        if (games.Select(g => g.Id).Distinct().Count() > 1)
+            throw new Exception($"Team has {request.TeamId} challenges in multiple games.");
+        var game = games.First();
+
+        // and exactly one captain
+        var captain = await _teamService.ResolveCaptain(request.TeamId, cancellationToken);
+
+        // have to pull specs separately because of foreign key silliness
+        var specIds = challenges.Select(c => c.SpecId).ToArray();
+        var challengeSpecs = await _store
+            .WithNoTracking<Data.ChallengeSpec>()
+            .Where(cs => specIds.Contains(cs.Id))
+            .ToArrayAsync(cancellationToken);
+
+        // manually compose the events since they come from different sources
+        var events = new List<IEventHorizonEvent>();
+
+        // Started comes from challenge table
+        // we use the Challenges table rather than an equivalent event in ChallengeEvents
+        // because that's the value we typically send when the client asks for a challenge's
+        // start time
+        var challengeStartedEvents = challenges
+            .Select(c => new EventHorizonEvent
+            {
+                // we present these with an Id because the client needs to be able
+                // to differentiate between events, but we don't have a real representation of this
+                Id = _guidService.GetGuid(),
+                ChallengeId = c.Id,
+                Type = EventHorizonEventType.ChallengeStarted,
+                Timestamp = c.StartTime
+            });
+        events.AddRange(challengeStartedEvents);
+
+        // gamespace on/off comes from ChallengeEvents
+        var gamespaceEvents = BuildGamespaceEvents(challenges);
+
+        events.AddRange(gamespaceEvents);
+
+        // submission/solve events come from ChallengeSubmissions
+        var challengeMaxScores = challenges.ToDictionary(c => c.Id, c => (double)c.Points);
+        var submissions = challenges.SelectMany(c => c.Submissions).ToArray();
+        var submissionEvents = BuildSubmissionEvents(submissions, challengeMaxScores);
+        events.AddRange(submissionEvents);
+
+        // finally, build the event horizon response
+        return new EventHorizon
+        {
+            Game = new EventHorizonGame
+            {
+                Id = game.Id,
+                Name = game.Name,
+                ChallengeSpecs = challengeSpecs.Select(s => new EventHorizonChallengeSpec
+                {
+                    Id = s.Id,
+                    Name = s.Name,
+                    MaxAttempts = game.MaxAttempts,
+                    MaxPossibleScore = s.Points
+                })
+            },
+            Team = new EventHorizonTeam
+            {
+                Id = request.TeamId,
+                Name = captain.ApprovedName,
+                Challenges = challenges.Select(c => new EventHorizonTeamChallenge
+                {
+                    Id = c.Id,
+                    SpecId = c.SpecId
+                }),
+                Session = new EventHorizonSession
+                {
+                    Start = captain.SessionBegin,
+                    End = captain.SessionEnd.IsEmpty() ? null : captain.SessionEnd,
+                },
+                Events = events
+            }
+        };
+    }
+
+    /// <summary>
+    /// Maps a GamespaceOn/GamespaceOff entry from the ChallengeEvents table to an EventHorizonEvent.
+    /// </summary>
+    /// <param name="challenges"></param>
+    /// <returns></returns>
+    private IEnumerable<EventHorizonGamespaceOnOffEvent> BuildGamespaceEvents(IEnumerable<Data.Challenge> challenges)
+    {
+        var retVal = new List<EventHorizonGamespaceOnOffEvent>();
+
+        // we grab the start/end times just in case there's a gamespace Off event before any On events
+        // or vice versa (and autofill with on with the challenge start/end)
+        var challengeStartEndTimes = challenges
+            .ToDictionary(c => c.Id, c => new { c.StartTime, c.EndTime });
+
+        // group and order the events so we can match up Start/On with Off
+        var events = challenges
+            .SelectMany(c => c.Events)
+            .Where(e => e.Type == ChallengeEventType.Started || e.Type == ChallengeEventType.GamespaceOn || e.Type == ChallengeEventType.GamespaceOff)
+            .GroupBy(e => e.ChallengeId)
+            .ToDictionary(gr => gr.Key, gr => gr.ToArray());
+
+        foreach (var challengeId in events.Keys)
+        {
+            Data.ChallengeEvent lastOnEvent = null;
+            foreach (var gamespaceEvent in events[challengeId].OrderBy(e => e.Timestamp))
+            {
+                if (gamespaceEvent.Type == ChallengeEventType.GamespaceOn || gamespaceEvent.Type == ChallengeEventType.Started)
+                    lastOnEvent = gamespaceEvent;
+                else if (gamespaceEvent.Type == ChallengeEventType.GamespaceOff)
+                {
+                    var lastOnTimestamp = lastOnEvent?.Timestamp ?? challengeStartEndTimes[challengeId].StartTime;
+
+                    retVal.Add(new EventHorizonGamespaceOnOffEvent
+                    {
+                        Id = lastOnEvent.Id,
+                        ChallengeId = challengeId,
+                        Timestamp = lastOnTimestamp,
+                        Type = EventHorizonEventType.GamespaceOnOff,
+                        EventData = new EventHorizonGamespaceOnOffEventData
+                        {
+                            OffAt = gamespaceEvent.Timestamp
+                        }
+                    });
+
+                    lastOnEvent = null;
+                }
+            }
+
+            // if we have a straggling "on" event, pretend it ends at the end of the challenge window
+            if (lastOnEvent is not null)
+            {
+                retVal.Add(new EventHorizonGamespaceOnOffEvent
+                {
+                    Id = lastOnEvent.Id,
+                    ChallengeId = lastOnEvent.ChallengeId,
+                    Timestamp = lastOnEvent.Timestamp,
+                    Type = EventHorizonEventType.GamespaceOnOff,
+                    EventData = new EventHorizonGamespaceOnOffEventData { OffAt = challengeStartEndTimes[lastOnEvent.ChallengeId].EndTime }
+                });
+            }
+        }
+
+        return retVal.OrderBy(e => e.Timestamp).ToArray();
+    }
+
+    private IEnumerable<IEventHorizonEvent> BuildSubmissionEvents(IEnumerable<ChallengeSubmission> submissions, IDictionary<string, double> challengeSolveScores)
+    {
+        // we'll return a list of submission/solve events
+        var retVal = new List<IEventHorizonEvent>();
+
+        // the submission events care about which attempt number this is and how many total attempts they used,
+        // so compute those first
+        var submissionAttemptCounts = submissions
+            .GroupBy(s => s.Id)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        // we also have to do things like order/rank the submissions to determine which
+        // attempt happened in each event
+        var orderedSubmissions = submissions
+           .OrderBy(s => s.ChallengeId)
+               .ThenBy(s => s.SubmittedOn)
+           .ToArray();
+
+        var currentChallengeId = "";
+        var currentSubmissionRank = 0;
+
+        foreach (var submission in orderedSubmissions)
+        {
+            if (submission.ChallengeId != currentChallengeId)
+            {
+                currentChallengeId = submission.ChallengeId;
+                currentSubmissionRank = 0;
+            }
+
+            currentSubmissionRank += 1;
+
+            if (submission.Score >= challengeSolveScores[submission.ChallengeId])
+                retVal.Add(new EventHorizonSolveCompleteEvent
+                {
+                    Id = submission.Id,
+                    ChallengeId = submission.ChallengeId,
+                    Timestamp = submission.SubmittedOn,
+                    Type = EventHorizonEventType.SolveComplete,
+                    EventData = new()
+                    {
+                        AttemptsUsed = currentSubmissionRank,
+                        FinalScore = submission.Score
+                    }
+                });
+            else
+            {
+                var answers = _jsonService.Deserialize<ChallengeSubmissionAnswers>(submission.Answers);
+
+                // read the answers from the JSON blob
+                retVal.Add(new EventHorizonSubmissionScoredEvent
+                {
+                    Id = submission.Id,
+                    ChallengeId = submission.ChallengeId,
+                    Timestamp = submission.SubmittedOn,
+                    Type = EventHorizonEventType.SubmissionScored,
+                    EventData = new()
+                    {
+                        Answers = answers.Answers,
+                        AttemptNumber = currentSubmissionRank,
+                        Score = submission.Score
+                    }
+                });
+            }
+        }
+
+        return retVal;
     }
 }

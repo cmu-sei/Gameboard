@@ -1,18 +1,22 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Gameboard.Api.Features.Teams;
 
 public enum EventHorizonEventType
 {
-    ChallengeDeployed,
-    GamespaceStarted,
-    GamespaceStopped,
+    ChallengeStarted,
+    GamespaceOnOff,
     SolveComplete,
     SubmissionRejected,
     SubmissionScored
 }
 
+[JsonDerivedType(typeof(EventHorizonEvent))]
+[JsonDerivedType(typeof(EventHorizonGamespaceOnOffEvent))]
+[JsonDerivedType(typeof(EventHorizonSolveCompleteEvent))]
+[JsonDerivedType(typeof(EventHorizonSubmissionScoredEvent))]
 public interface IEventHorizonEvent
 {
     public string Id { get; set; }
@@ -29,13 +33,23 @@ public class EventHorizonEvent : IEventHorizonEvent
     public required DateTimeOffset Timestamp { get; set; }
 }
 
+public sealed class EventHorizonGamespaceOnOffEvent : EventHorizonEvent, IEventHorizonEvent
+{
+    public required EventHorizonGamespaceOnOffEventData EventData { get; set; }
+}
+
+public sealed class EventHorizonGamespaceOnOffEventData
+{
+    public required DateTimeOffset OffAt { get; set; }
+}
+
 public sealed class EventHorizonSolveCompleteEventData
 {
     public required int AttemptsUsed { get; set; }
     public required double FinalScore { get; set; }
 }
 
-public sealed class EventHorizonSolveCompleteEvent : EventHorizonEvent
+public sealed class EventHorizonSolveCompleteEvent : EventHorizonEvent, IEventHorizonEvent
 {
     public required EventHorizonSolveCompleteEventData EventData { get; set; }
 }
@@ -71,7 +85,7 @@ public sealed class EventHorizonTeam
 
 public sealed class EventHorizonSession
 {
-    public required DateTimeOffset Begin { get; set; }
+    public required DateTimeOffset Start { get; set; }
     public required DateTimeOffset? End { get; set; }
 }
 
