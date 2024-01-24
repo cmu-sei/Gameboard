@@ -50,6 +50,7 @@ public class Game : IEntity
     public string Mode { get; set; }
     public PlayerMode PlayerMode { get; set; }
     public bool RequireSynchronizedStart { get; set; } = false;
+    public bool ShowOnHomePageInPracticeMode { get; set; } = false;
 
     public ICollection<ChallengeSpec> Specs { get; set; } = new List<ChallengeSpec>();
     public ICollection<ExternalGameTeam> ExternalGameTeams { get; set; } = new List<ExternalGameTeam>();

@@ -649,6 +649,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<int>("SessionMinutes")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("ShowOnHomePageInPracticeMode")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Sponsor")
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
