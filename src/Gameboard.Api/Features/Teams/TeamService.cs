@@ -328,7 +328,7 @@ internal class TeamService : ITeamService
             throw new ArgumentException($"Either {nameof(sessionStart)} or {nameof(sessionEnd)} must be non-null.");
 
         // be sure they have an active session before we go extending things
-        if (sessionEnd is not null)
+        if (sessionStart is null && sessionEnd is not null)
         {
             var playersWithNoSession = await _store
                 .WithNoTracking<Data.Player>()

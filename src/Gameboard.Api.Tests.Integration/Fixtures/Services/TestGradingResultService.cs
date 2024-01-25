@@ -4,6 +4,7 @@ namespace Gameboard.Api.Tests.Integration.Fixtures;
 
 public sealed class TestGradingResultServiceConfiguration
 {
+    public bool IncrementAttempts { get; set; } = true;
     public Action<GameEngineGameState>? GameStateBuilder { get; set; }
     public Exception? ThrowsOnGrading { get; set; }
 }
@@ -54,7 +55,7 @@ internal class TestGradingResultService : ITestGradingResultService
             WhenCreated = challenge.StartTime,
             Challenge = new GameEngineChallengeView
             {
-
+                Attempts = _config.IncrementAttempts ? 1 : 0,
                 MaxPoints = challenge.Points,
                 Score = challenge.Score
             }

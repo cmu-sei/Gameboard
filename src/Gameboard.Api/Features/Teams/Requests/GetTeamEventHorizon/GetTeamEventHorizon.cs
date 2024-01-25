@@ -83,6 +83,9 @@ internal class GetTeamEventHorizonHandler : IRequestHandler<GetTeamEventHorizonQ
             .Where(c => c.TeamId == request.TeamId)
             .ToArrayAsync(cancellationToken);
 
+        if (challenges.Length == 0)
+            return null;
+
         // make sure we have exactly one game
         var games = challenges.Select(c => c.Game).ToArray();
         if (games.Select(g => g.Id).Distinct().Count() > 1)

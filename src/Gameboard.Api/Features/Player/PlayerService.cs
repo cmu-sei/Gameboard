@@ -245,7 +245,8 @@ public class PlayerService
 
         foreach (var p in team)
         {
-            p.SessionMinutes = game.SessionMinutes;
+            p.IsLateStart = sessionWindow.IsLateStart;
+            p.SessionMinutes = sessionWindow.LengthInMinutes;
             p.SessionBegin = sessionWindow.Start;
             p.SessionEnd = sessionWindow.End;
         }
@@ -276,12 +277,22 @@ public class PlayerService
         return asViewModel;
     }
 
-    public DateRange CalculateSessionWindow(Data.Game game, DateTimeOffset sessionStart)
-        => new()
+    internal PlayerCalculatedSessionWindow CalculateSessionWindow(Data.Game game, DateTimeOffset sessionStart)
+    {
+        var normalSessionEnd = sessionStart.AddMinutes(game.SessionMinutes);
+        var finalSessionEnd = normalSessionEnd;
+
+        if (game.GameEnd < normalSessionEnd)
+            finalSessionEnd = game.GameEnd;
+
+        return new()
         {
             Start = sessionStart,
-            End = sessionStart.AddMinutes(game.SessionMinutes)
+            End = finalSessionEnd,
+            LengthInMinutes = (finalSessionEnd - sessionStart).TotalMinutes,
+            IsLateStart = finalSessionEnd < normalSessionEnd
         };
+    }
 
     public async Task<Player[]> List(PlayerDataFilter model, bool sudo = false)
     {

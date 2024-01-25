@@ -18,6 +18,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
     (
         string challengeId,
         string challengeSpecId,
+        string gameId,
         string graderKey,
         string teamId,
         IFixture fixture
@@ -30,6 +31,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
             {
                 state.Add<Data.Game>(fixture, g =>
                 {
+                    g.Id = gameId;
                     g.Specs = state.Build<Data.ChallengeSpec>(fixture, spec =>
                     {
                         spec.Id = challengeSpecId;
@@ -39,6 +41,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
                     g.Challenges = state.Build<Data.Challenge>(fixture, c =>
                     {
                         c.Id = challengeId;
+                        c.GameId = gameId;
                         c.GraderKey = graderKey.ToSha256();
                         c.Points = 0;
                         c.Score = 0;
@@ -91,6 +94,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
     [Theory, GbIntegrationAutoData]
     public async Task Grade_WithGamespaceExpired_ThrowsAndLogsEvent
     (
+        string gameId,
         string challengeId,
         string challengeSpecId,
         string sponsorId,
@@ -108,6 +112,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
             state.Add<Data.Sponsor>(fixture, s => s.Id = sponsorId);
             state.Add<Data.Game>(fixture, g =>
             {
+                g.Id = gameId;
                 g.Players = new List<Data.Player>
                 {
                     new()
@@ -121,6 +126,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
                                 EndTime = challengeEndTime,
                                 StartTime = challengeStartTime,
                                 SpecId = challengeSpecId,
+                                GameId = gameId
                             }
                         },
                         SponsorId = sponsorId,
@@ -153,10 +159,10 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
             .ChallengeEvents
             .AsNoTracking()
             .Where(ev => ev.ChallengeId == challengeId)
+            .Where(ev => ev.Type == ChallengeEventType.SubmissionRejectedGamespaceExpired)
             .OrderByDescending(ev => ev.Timestamp)
             .ToArrayAsync();
 
-        challengeEvents.Length.ShouldBeGreaterThan(0);
-        challengeEvents.First().Type.ShouldBe(ChallengeEventType.SubmissionRejectedGamespaceExpired);
+        challengeEvents.Length.ShouldBe(1);
     }
 }
