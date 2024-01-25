@@ -349,8 +349,12 @@ public partial class ChallengeService : _Service
 
     public async Task<Challenge> Grade(GameEngineSectionSubmission model, User actor)
     {
-        var challenge = await _challengeStore.Retrieve(model.Id, q => q.Include(c => c.Game));
         var now = _now.Get();
+        var challenge = await _store
+            .WithNoTracking<Data.Challenge>()
+            .Include(c => c.Game)
+            .SingleAsync(c => c.Id == model.Id);
+
 
         // ensure that the game hasn't ended - if it has, we have to bounce this one
         if (now > challenge.Game.GameEnd)

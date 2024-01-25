@@ -91,6 +91,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
     [Theory, GbIntegrationAutoData]
     public async Task Grade_WithGamespaceExpired_ThrowsAndLogsEvent
     (
+        string gameId,
         string challengeId,
         string challengeSpecId,
         string sponsorId,
@@ -108,6 +109,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
             state.Add<Data.Sponsor>(fixture, s => s.Id = sponsorId);
             state.Add<Data.Game>(fixture, g =>
             {
+                g.Id = gameId;
                 g.Players = new List<Data.Player>
                 {
                     new()
@@ -121,6 +123,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
                                 EndTime = challengeEndTime,
                                 StartTime = challengeStartTime,
                                 SpecId = challengeSpecId,
+                                GameId = gameId
                             }
                         },
                         SponsorId = sponsorId,
