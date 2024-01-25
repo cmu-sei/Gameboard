@@ -355,7 +355,6 @@ public partial class ChallengeService : _Service
             .Include(c => c.Game)
             .SingleAsync(c => c.Id == model.Id);
 
-
         // ensure that the game hasn't ended - if it has, we have to bounce this one
         if (now > challenge.Game.GameEnd)
         {
