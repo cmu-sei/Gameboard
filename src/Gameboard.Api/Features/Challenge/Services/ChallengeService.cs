@@ -423,8 +423,9 @@ public partial class ChallengeService : _Service
         // update the team score and award automatic bonuses
         var updatedScore = await _mediator.Send(new UpdateTeamChallengeBaseScoreCommand(challenge.Id, challenge.Score));
 
-        // update the challenge object with the store
-        challenge.Score = updatedScore.Score.TotalScore;
+        // update the challenge object with the score (note that we omit bonuses here because we want the 
+        // score in the players table only to count base completion score for now
+        challenge.Score = updatedScore.Score.CompletionScore;
 
         // The game engine (Topo, in most cases) may optionally not count this as an attempt if the answers are identical 
         // to a previous attempt, which means we need to be sure this consumed an attempt
