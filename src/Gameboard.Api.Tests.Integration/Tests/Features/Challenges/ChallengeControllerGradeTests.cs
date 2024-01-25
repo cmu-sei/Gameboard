@@ -159,10 +159,10 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
             .ChallengeEvents
             .AsNoTracking()
             .Where(ev => ev.ChallengeId == challengeId)
+            .Where(ev => ev.Type == ChallengeEventType.SubmissionRejectedGamespaceExpired)
             .OrderByDescending(ev => ev.Timestamp)
             .ToArrayAsync();
 
-        challengeEvents.Length.ShouldBeGreaterThan(0);
-        challengeEvents.First().Type.ShouldBe(ChallengeEventType.SubmissionRejectedGamespaceExpired);
+        challengeEvents.Length.ShouldBe(1);
     }
 }
