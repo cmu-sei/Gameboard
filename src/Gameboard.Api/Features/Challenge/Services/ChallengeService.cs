@@ -89,6 +89,7 @@ public partial class ChallengeService : _Service
 
     public async Task<Challenge> Create(NewChallenge model, string actorId, string graderUrl, CancellationToken cancellationToken)
     {
+        var now = _now.Get();
         var player = await _store.WithNoTracking<Data.Player>().SingleAsync(p => p.Id == model.PlayerId);
         var game = await _store
             .WithNoTracking<Data.Game>()
@@ -100,6 +101,9 @@ public partial class ChallengeService : _Service
 
         if (!await IsUnlocked(player, game, model.SpecId))
             throw new ChallengeLocked();
+
+        if (now > game.GameEnd)
+            throw new CantStartBecauseGameExecutionPeriodIsOver(model.SpecId, model.PlayerId, game.GameEnd, now);
 
         var lockkey = $"{player.TeamId}{model.SpecId}";
         var lockval = _guids.GetGuid();
@@ -345,7 +349,23 @@ public partial class ChallengeService : _Service
 
     public async Task<Challenge> Grade(GameEngineSectionSubmission model, User actor)
     {
-        var challenge = await _challengeStore.Retrieve(model.Id);
+        var challenge = await _challengeStore.Retrieve(model.Id, q => q.Include(c => c.Game));
+        var now = _now.Get();
+
+        // ensure that the game hasn't ended - if it has, we have to bounce this one
+        if (now > challenge.Game.GameEnd)
+        {
+            await _store.Create(new ChallengeEvent
+            {
+                Id = _guids.GetGuid(),
+                UserId = actor?.Id ?? null,
+                TeamId = challenge.TeamId,
+                Timestamp = now,
+                Type = ChallengeEventType.SubmissionRejectedGameEnded
+            });
+
+            throw new CantGradeBecauseGameExecutionPeriodIsOver(challenge.Id, challenge.Game.GameEnd, now);
+        }
 
         // determine how many attempts have been made prior to this one
         var priorAttemptCount = 0;
@@ -362,7 +382,7 @@ public partial class ChallengeService : _Service
             Id = _guids.GetGuid(),
             UserId = actor?.Id ?? null,
             TeamId = challenge.TeamId,
-            Timestamp = _now.Get(),
+            Timestamp = now,
             Type = ChallengeEventType.Submission
         });
 
@@ -381,7 +401,7 @@ public partial class ChallengeService : _Service
                 ChallengeId = challenge.Id,
                 UserId = actor?.Id ?? null,
                 TeamId = challenge.TeamId,
-                Timestamp = _now.Get(),
+                Timestamp = now,
                 Type = ChallengeEventType.SubmissionRejectedGamespaceExpired
             };
 

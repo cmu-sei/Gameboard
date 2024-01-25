@@ -21,7 +21,7 @@ public class Player : IEntity
     public PlayerRole Role { get; set; }
     public DateTimeOffset SessionBegin { get; set; }
     public DateTimeOffset SessionEnd { get; set; }
-    public int SessionMinutes { get; set; }
+    public double SessionMinutes { get; set; }
     public int Rank { get; set; }
     public int Score { get; set; }
     public long Time { get; set; }
@@ -32,6 +32,7 @@ public class Player : IEntity
     public User User { get; set; }
     public Game Game { get; set; }
     public DateTimeOffset WhenCreated { get; set; }
+    public bool IsLateStart { get; set; }
 
     // navigation properties
     public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();

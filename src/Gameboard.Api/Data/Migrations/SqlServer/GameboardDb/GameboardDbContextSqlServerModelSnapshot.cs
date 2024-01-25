@@ -727,6 +727,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<bool>("IsLateStart")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsReady")
                         .HasColumnType("bit");
 
@@ -759,8 +762,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<DateTimeOffset>("SessionEnd")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<int>("SessionMinutes")
-                        .HasColumnType("int");
+                    b.Property<double>("SessionMinutes")
+                        .HasColumnType("float");
 
                     b.Property<string>("SponsorId")
                         .IsRequired()

@@ -25,13 +25,14 @@ public class Player
     public PlayerRole Role { get; set; }
     public DateTimeOffset SessionBegin { get; set; }
     public DateTimeOffset SessionEnd { get; set; }
-    public int SessionMinutes { get; set; }
+    public double SessionMinutes { get; set; }
     public int Rank { get; set; }
     public int Score { get; set; }
     public long Time { get; set; }
     public int CorrectCount { get; set; }
     public int PartialCount { get; set; }
     public bool Advanced { get; set; }
+    public bool IsLateStart { get; set; }
     public bool IsManager { get; set; }
     public bool IsReady { get; set; }
     public PlayerMode Mode { get; set; }
@@ -198,6 +199,14 @@ public class PlayerCertificate
     public Game Game { get; set; }
     public Player Player { get; set; }
     public string Html { get; set; }
+}
+
+public class PlayerCalculatedSessionWindow
+{
+    public required DateTimeOffset Start { get; set; }
+    public required DateTimeOffset End { get; set; }
+    public required double LengthInMinutes { get; set; }
+    public required bool IsLateStart { get; set; }
 }
 
 public class PlayerUpdatedViewModel
