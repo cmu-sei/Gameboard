@@ -379,10 +379,11 @@ public partial class ChallengeService : _Service
             priorAttemptCount = preGradeState.Challenge.Attempts;
         }
 
-        // log the appropriate event (note that this won't get saved if the call to the game engine's Grade fails)
-        challenge.Events.Add(new ChallengeEvent
+        // log the appropriate event
+        await _store.Create(new ChallengeEvent
         {
             Id = _guids.GetGuid(),
+            ChallengeId = challenge.Id,
             UserId = actor?.Id ?? null,
             TeamId = challenge.TeamId,
             Timestamp = now,
