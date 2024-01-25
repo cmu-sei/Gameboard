@@ -18,6 +18,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
     (
         string challengeId,
         string challengeSpecId,
+        string gameId,
         string graderKey,
         string teamId,
         IFixture fixture
@@ -30,6 +31,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
             {
                 state.Add<Data.Game>(fixture, g =>
                 {
+                    g.Id = gameId;
                     g.Specs = state.Build<Data.ChallengeSpec>(fixture, spec =>
                     {
                         spec.Id = challengeSpecId;
