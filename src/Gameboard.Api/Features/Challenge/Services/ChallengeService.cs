@@ -352,11 +352,20 @@ public partial class ChallengeService : _Service
         var now = _now.Get();
         var challenge = await _store
             .WithNoTracking<Data.Challenge>()
-            .Include(c => c.Game)
             .SingleAsync(c => c.Id == model.Id);
 
+        // have to retrieve game end separately due to a bug with Store (tracked entity issue)
+        var gameEnd = await _store
+            .WithNoTracking<Data.Game>()
+            .Where(g => g.Id == challenge.GameId)
+            .Select(g => g.GameEnd)
+            .SingleAsync();
+
+        // kludge to stop tracking problems
+        _store.GetDbContext().ChangeTracker.Clear();
+
         // ensure that the game hasn't ended - if it has, we have to bounce this one
-        if (now > challenge.Game.GameEnd)
+        if (now > gameEnd)
         {
             await _store.Create(new ChallengeEvent
             {
@@ -367,7 +376,7 @@ public partial class ChallengeService : _Service
                 Type = ChallengeEventType.SubmissionRejectedGameEnded
             });
 
-            throw new CantGradeBecauseGameExecutionPeriodIsOver(challenge.Id, challenge.Game.GameEnd, now);
+            throw new CantGradeBecauseGameExecutionPeriodIsOver(challenge.Id, gameEnd, now);
         }
 
         // determine how many attempts have been made prior to this one
