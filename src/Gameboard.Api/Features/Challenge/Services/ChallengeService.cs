@@ -352,7 +352,6 @@ public partial class ChallengeService : _Service
         var now = _now.Get();
         var challenge = await _store
             .WithNoTracking<Data.Challenge>()
-            .Include(c => c.Game)
             .SingleAsync(c => c.Id == model.Id);
 
         // have to retrieve game end separately due to a bug with Store (tracked entity issue)
@@ -361,6 +360,9 @@ public partial class ChallengeService : _Service
             .Where(g => g.Id == challenge.GameId)
             .Select(g => g.GameEnd)
             .SingleAsync();
+
+        // kludge to stop tracking problems
+        _store.GetDbContext().ChangeTracker.Clear();
 
         // ensure that the game hasn't ended - if it has, we have to bounce this one
         if (now > gameEnd)
