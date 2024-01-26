@@ -78,12 +78,14 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
             .GetDbContext()
             .AwardedChallengeBonuses
             .Include(b => b.ChallengeBonus)
+            .Include(b => b.Challenge)
             .AsNoTracking()
             .FirstOrDefaultAsync(b => b.ChallengeId == challengeId);
 
         // then
         awardedBonus.ShouldNotBeNull();
         awardedBonus.ChallengeBonus.PointValue.ShouldBe(bonusPoints);
+        awardedBonus.Challenge.Score.ShouldBe(baseScore);
     }
 
     [Theory, GbIntegrationAutoData]

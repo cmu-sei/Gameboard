@@ -96,6 +96,18 @@ internal class TeamService : ITeamService
         // find the team and their captain
         var captain = await ResolveCaptain(request.TeamId, cancellationToken);
 
+        // be sure they have an active session before we go extending things
+        var playersWithNoSession = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.TeamId == request.TeamId)
+            .WhereDateIsEmpty(p => p.SessionBegin)
+            .AnyAsync(cancellationToken);
+
+        if (playersWithNoSession)
+        {
+            throw new CantExtendUnstartedSession(request.TeamId);
+        }
+
         // in competitive mode, session end is what's requested in the API call
         var finalSessionEnd = request.NewSessionEnd;
         // in practice mode, there's special super secret logic (which is currently that the request results in 
@@ -326,21 +338,6 @@ internal class TeamService : ITeamService
     {
         if (sessionStart is null && sessionEnd is null)
             throw new ArgumentException($"Either {nameof(sessionStart)} or {nameof(sessionEnd)} must be non-null.");
-
-        // be sure they have an active session before we go extending things
-        if (sessionStart is null && sessionEnd is not null)
-        {
-            var playersWithNoSession = await _store
-                .WithNoTracking<Data.Player>()
-                .Where(p => p.TeamId == teamId)
-                .WhereDateIsEmpty(p => p.SessionBegin)
-                .AnyAsync(cancellationToken);
-
-            if (playersWithNoSession)
-            {
-                throw new CantExtendUnstartedSession(teamId);
-            }
-        }
 
         // update all players
         await _store

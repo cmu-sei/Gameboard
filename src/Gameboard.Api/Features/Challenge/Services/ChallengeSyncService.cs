@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Runtime.InteropServices.Marshalling;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -82,9 +83,14 @@ internal class ChallengeSyncService : IChallengeSyncService
         // Just load them all, then sync one by one.
         var challenges = await _store
             .WithNoTracking<Data.Challenge>()
-                .Include(c => c.Player)
             .Where(c => c.Player.SessionEnd < now && (c.LastSyncTime < c.Player.SessionEnd || c.EndTime == DateTimeOffset.MinValue))
             .ToArrayAsync(cancellationToken);
+
+        var playerIds = challenges.Select(c => c.PlayerId).Distinct().ToArray();
+        var playerSessionEnds = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => playerIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, p => p.SessionEnd, cancellationToken);
 
         _logger.LogInformation($"The ChallengeSyncService is synchronizing {challenges.Length} challenges...");
         foreach (var challenge in challenges)
@@ -108,7 +114,7 @@ internal class ChallengeSyncService : IChallengeSyncService
                     (
                         up => up
                             .SetProperty(c => c.LastSyncTime, now)
-                            .SetProperty(c => c.EndTime, challenge.Player.SessionEnd)
+                            .SetProperty(c => c.EndTime, c => playerSessionEnds.ContainsKey(challenge.PlayerId) ? playerSessionEnds[challenge.PlayerId] : c.EndTime)
                     );
             }
             catch (Exception ex)
