@@ -115,7 +115,7 @@ public class GameService : _Service, IGameService
             return q;
 
         if (model.WantsCompetitive)
-            q = q.Where(g => g.PlayerMode == PlayerMode.Competition);
+            q = q.Where(g => g.PlayerMode == PlayerMode.Competition || g.ShowOnHomePageInPracticeMode);
 
         if (model.WantsPractice)
             q = q.Where(g => g.PlayerMode == PlayerMode.Practice);
