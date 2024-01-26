@@ -23,7 +23,6 @@ public interface IGameStartService
 internal class GameStartService : IGameStartService
 {
     private readonly IActingUserService _actingUserService;
-    // private readonly IExternalSyncGameStartService _externalSyncGameStartService;
     private readonly IGameModeServiceFactory _gameModeServiceFactory;
     private readonly ILockService _lockService;
     private readonly ILogger<GameStartService> _logger;
@@ -35,7 +34,6 @@ internal class GameStartService : IGameStartService
     public GameStartService
     (
         IActingUserService actingUserService,
-        // IExternalSyncGameStartService externalSyncGameStartService,
         IGameModeServiceFactory gameModeServiceFactory,
         ILockService lockService,
         ILogger<GameStartService> logger,
@@ -46,7 +44,6 @@ internal class GameStartService : IGameStartService
     )
     {
         _actingUserService = actingUserService;
-        // _externalSyncGameStartService = externalSyncGameStartService;
         _gameModeServiceFactory = gameModeServiceFactory;
         _lockService = lockService;
         _logger = logger;
