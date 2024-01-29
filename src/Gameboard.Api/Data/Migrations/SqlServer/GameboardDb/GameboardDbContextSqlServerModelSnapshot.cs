@@ -532,6 +532,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<bool>("AllowLateStart")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("AllowPreview")
                         .HasColumnType("bit");
 
