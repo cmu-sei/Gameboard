@@ -243,6 +243,11 @@ public class PlayerService
 
         var sessionWindow = CalculateSessionWindow(game, _now.Get());
 
+
+        // rule: if the player/team is starting late, this must be allowed on the game level
+        if (sessionWindow.IsLateStart && !game.AllowLateStart)
+            throw new CantLateStart(player.Id, game.Id, game.GameEnd, game.SessionMinutes);
+
         foreach (var p in team)
         {
             p.IsLateStart = sessionWindow.IsLateStart;
@@ -506,7 +511,7 @@ public class PlayerService
         var player = await _store
             .WithTracking<Data.Player>()
             .Include(p => p.Sponsor)
-            .SingleOrDefaultAsync(p => p.Id == model.PlayerId);
+            .SingleOrDefaultAsync(p => p.Id == model.PlayerId, cancellationToken);
 
         if (player is null)
             throw new ResourceNotFound<Data.Player>(model.PlayerId);

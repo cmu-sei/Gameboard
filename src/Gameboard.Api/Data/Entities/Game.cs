@@ -37,6 +37,7 @@ public class Game : IEntity
     public int SessionLimit { get; set; } = 0;
     public int GamespaceLimitPerSession { get; set; } = 1;
     public bool IsPublished { get; set; }
+    public bool AllowLateStart { get; set; }
     public bool AllowPreview { get; set; }
     public bool AllowReset { get; set; }
     public string Key { get; set; }
