@@ -102,7 +102,7 @@ public partial class ChallengeService : _Service
         if (!await IsUnlocked(player, game, model.SpecId))
             throw new ChallengeLocked();
 
-        if (now > game.GameEnd)
+        if (game.IsCompetitionMode && now > game.GameEnd)
             throw new CantStartBecauseGameExecutionPeriodIsOver(model.SpecId, model.PlayerId, game.GameEnd, now);
 
         var lockkey = $"{player.TeamId}{model.SpecId}";
@@ -355,17 +355,17 @@ public partial class ChallengeService : _Service
             .SingleAsync(c => c.Id == model.Id);
 
         // have to retrieve game end separately due to a bug with Store (tracked entity issue)
-        var gameEnd = await _store
+        var gameProperties = await _store
             .WithNoTracking<Data.Game>()
             .Where(g => g.Id == challenge.GameId)
-            .Select(g => g.GameEnd)
+            .Select(g => new { g.PlayerMode, g.GameEnd })
             .SingleAsync();
 
         // kludge to stop tracking problems
         _store.GetDbContext().ChangeTracker.Clear();
 
         // ensure that the game hasn't ended - if it has, we have to bounce this one
-        if (now > gameEnd)
+        if (gameProperties.PlayerMode == PlayerMode.Competition && now > gameProperties.GameEnd)
         {
             await _store.Create(new ChallengeEvent
             {
@@ -376,7 +376,7 @@ public partial class ChallengeService : _Service
                 Type = ChallengeEventType.SubmissionRejectedGameEnded
             });
 
-            throw new CantGradeBecauseGameExecutionPeriodIsOver(challenge.Id, gameEnd, now);
+            throw new CantGradeBecauseGameExecutionPeriodIsOver(challenge.Id, gameProperties.GameEnd, now);
         }
 
         // determine how many attempts have been made prior to this one
