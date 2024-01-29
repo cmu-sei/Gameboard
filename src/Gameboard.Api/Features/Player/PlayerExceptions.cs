@@ -8,8 +8,8 @@ namespace Gameboard.Api.Features.Player;
 
 internal class CantLateStart : GameboardValidationException
 {
-    internal CantLateStart(string captainPlayerId, string gameId, DateTimeOffset gameEnd, int sessionLength)
-        : base($"Can't start team {captainPlayerId} in game {gameId}. The game ends at {gameEnd}, which is within a session length of {sessionLength} minutes from now.") { }
+    internal CantLateStart(string teamName, string gameName, DateTimeOffset gameEnd, int sessionLength)
+        : base($"Can't start team {teamName} in game {gameName}. The game ends at {gameEnd}, which is within a session length of {sessionLength} minutes from now.") { }
 }
 
 internal class CantResolveTeamFromCode : GameboardException
