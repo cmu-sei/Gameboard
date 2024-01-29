@@ -246,7 +246,7 @@ public class PlayerService
 
         // rule: if the player/team is starting late, this must be allowed on the game level
         if (sessionWindow.IsLateStart && !game.AllowLateStart)
-            throw new CantLateStart(player.Id, game.Id, game.GameEnd, game.SessionMinutes);
+            throw new CantLateStart(player.Name, game.Name, game.GameEnd, game.SessionMinutes);
 
         foreach (var p in team)
         {
