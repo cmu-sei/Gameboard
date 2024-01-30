@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -41,15 +42,19 @@ internal class GetChallengesReportExportHandler : IRequestHandler<GetChallengesR
             CurrentPlayerMode = r.PlayerModeCurrent,
             Points = r.Points,
             GameEngineTags = string.Join(",", r.Tags),
+            AttemptCount = r.AttemptCount,
             AvgCompleteSolveTimeMs = r.AvgCompleteSolveTimeMs,
+            AvgCompleteSolveTime = r.AvgCompleteSolveTimeMs is not null ? TimeSpan.FromMilliseconds(r.AvgCompleteSolveTimeMs.Value).ToString("g") : null,
             AvgScore = r.AvgScore,
             DeployCompetitiveCount = r.DeployCompetitiveCount,
             DeployPracticeCount = r.DeployPracticeCount,
             DistinctPlayerCount = r.DistinctPlayerCount,
             SolveZeroCount = r.SolveZeroCount,
             SolvePartialCount = r.SolvePartialCount,
-            SolveCompleteCount = r.SolveCompleteCount
-        })
-        .ToArray();
+            SolveCompleteCount = r.SolveCompleteCount,
+            SolveZeroPct = r.AttemptCount > 0 ? (r.SolveZeroCount / r.AttemptCount) : null,
+            SolvePartialPct = r.AttemptCount > 0 ? (r.SolvePartialCount / r.AttemptCount) : null,
+            SolveCompletePct = r.AttemptCount > 0 ? (r.SolveCompleteCount / r.AttemptCount) : null
+        });
     }
 }
