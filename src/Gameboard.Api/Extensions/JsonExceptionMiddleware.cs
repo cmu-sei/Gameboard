@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Gameboard.Api;
-using Gameboard.Api.Common;
 using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -40,7 +39,8 @@ namespace Gameboard.Api
                 if (!context.Response.HasStarted)
                 {
                     context.Response.StatusCode = 500;
-                    string message = "Error";
+                    var message = "Error";
+                    var code = string.Empty;
                     Type type = ex.GetType();
 
                     if (typeof(GameboardException).IsAssignableFrom(type))
@@ -52,6 +52,7 @@ namespace Gameboard.Api
                     {
                         context.Response.StatusCode = 400;
                         message = ex.Message;
+                        code = ex.GetType().ToExceptionCode();
                     }
                     else if (ex is InvalidOperationException || type.Namespace.StartsWith("Gameboard"))
                     {
@@ -62,7 +63,7 @@ namespace Gameboard.Api
                             .Replace("Exception", "");
                     }
 
-                    await context.Response.WriteAsync(JsonSerializer.Serialize(new { message = message }));
+                    await context.Response.WriteAsync(JsonSerializer.Serialize(new { message, code }));
                 }
             }
 

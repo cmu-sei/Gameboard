@@ -94,7 +94,6 @@ namespace Gameboard.Api
 
     public class ActionForbidden : Exception { }
     public class EntityNotFound : Exception { }
-    public class GameNotActive : Exception { }
     public class SessionNotAdjustable : Exception { }
     public class InvalidTeamSize : Exception { }
     public class InvalidConsoleAction : Exception { }

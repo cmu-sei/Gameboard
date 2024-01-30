@@ -1,6 +1,7 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices.Marshalling;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -81,10 +82,7 @@ internal class ChallengeSyncService : IChallengeSyncService
         // (there's no multi-id signature), and we can't parallelize this because DbContext can't be used concurrently.
         // 
         // Just load them all, then sync one by one.
-        var challenges = await _store
-            .WithNoTracking<Data.Challenge>()
-            .Where(c => c.Player.SessionEnd != DateTimeOffset.MinValue && c.Player.SessionEnd < now && (c.LastSyncTime < c.Player.SessionEnd || c.EndTime == DateTimeOffset.MinValue))
-            .ToArrayAsync(cancellationToken);
+        var challenges = await GetExpiredChallengesForSync(now, cancellationToken);
 
         var playerIds = challenges.Select(c => c.PlayerId).Distinct().ToArray();
         var playerSessionEnds = await _store
@@ -92,7 +90,7 @@ internal class ChallengeSyncService : IChallengeSyncService
             .Where(p => playerIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, p => p.SessionEnd, cancellationToken);
 
-        _logger.LogInformation($"The ChallengeSyncService is synchronizing {challenges.Length} challenges...");
+        _logger.LogInformation($"The ChallengeSyncService is synchronizing {challenges.Count()} challenges...");
         foreach (var challenge in challenges)
         {
             try
@@ -127,7 +125,7 @@ internal class ChallengeSyncService : IChallengeSyncService
         _consoleActorMap.Prune();
 
         // let them know we're done
-        _logger.LogInformation($"The ChallengeSyncService finished synchronizing {challenges.Length} challenges.");
+        _logger.LogInformation($"The ChallengeSyncService finished synchronizing {challenges.Count()} challenges.");
     }
 
     internal class SyncEntry
@@ -137,5 +135,13 @@ internal class ChallengeSyncService : IChallengeSyncService
 
         public SyncEntry(Data.Challenge challenge, GameEngineGameState state) =>
             (Challenge, State) = (challenge, state);
+    }
+
+    internal async Task<IEnumerable<Data.Challenge>> GetExpiredChallengesForSync(DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        return await _store
+            .WithNoTracking<Data.Challenge>()
+            .Where(c => c.Player.SessionEnd != DateTimeOffset.MinValue && c.Player.SessionEnd < now && (c.LastSyncTime < c.Player.SessionEnd || c.EndTime == DateTimeOffset.MinValue))
+            .ToArrayAsync(cancellationToken);
     }
 }
