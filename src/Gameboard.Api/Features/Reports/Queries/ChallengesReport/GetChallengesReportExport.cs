@@ -42,7 +42,6 @@ internal class GetChallengesReportExportHandler : IRequestHandler<GetChallengesR
             CurrentPlayerMode = r.PlayerModeCurrent,
             Points = r.Points,
             GameEngineTags = string.Join(",", r.Tags),
-            AttemptCount = r.AttemptCount,
             AvgCompleteSolveTimeMs = r.AvgCompleteSolveTimeMs,
             AvgCompleteSolveTime = r.AvgCompleteSolveTimeMs is not null ? TimeSpan.FromMilliseconds(r.AvgCompleteSolveTimeMs.Value).ToString("g") : null,
             AvgScore = r.AvgScore,
@@ -52,9 +51,9 @@ internal class GetChallengesReportExportHandler : IRequestHandler<GetChallengesR
             SolveZeroCount = r.SolveZeroCount,
             SolvePartialCount = r.SolvePartialCount,
             SolveCompleteCount = r.SolveCompleteCount,
-            SolveZeroPct = r.AttemptCount > 0 ? (r.SolveZeroCount / r.AttemptCount) : null,
-            SolvePartialPct = r.AttemptCount > 0 ? (r.SolvePartialCount / r.AttemptCount) : null,
-            SolveCompletePct = r.AttemptCount > 0 ? (r.SolveCompleteCount / r.AttemptCount) : null
+            SolveZeroPct = r.DeployCompetitiveCount > 0 ? (r.SolveZeroCount / r.DeployCompetitiveCount) : null,
+            SolvePartialPct = r.DeployCompetitiveCount > 0 ? (r.SolvePartialCount / r.DeployCompetitiveCount) : null,
+            SolveCompletePct = r.DeployCompetitiveCount > 0 ? (r.SolveCompleteCount / r.DeployCompetitiveCount) : null
         });
     }
 }

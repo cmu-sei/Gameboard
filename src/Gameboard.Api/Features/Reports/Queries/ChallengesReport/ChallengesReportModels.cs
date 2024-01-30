@@ -20,7 +20,6 @@ public sealed class ChallengesReportRecord
     public required IEnumerable<string> Tags { get; set; }
 
     // aggregations
-    public required int AttemptCount { get; set; }
     public required double? AvgScore { get; set; }
     public required double? AvgCompleteSolveTimeMs { get; set; }
     public required int DeployCompetitiveCount { get; set; }
@@ -59,7 +58,6 @@ public sealed class ChallengesReportExportRecord
     public required PlayerMode CurrentPlayerMode { get; set; }
     public required int Points { get; set; }
     public required string GameEngineTags { get; set; }
-    public required int AttemptCount { get; set; }
     public required double? AvgCompleteSolveTimeMs { get; set; }
     public required string AvgCompleteSolveTime { get; set; }
     public required double? AvgScore { get; set; }

@@ -88,7 +88,6 @@ internal class ChallengesReportService : IChallengesReportService
             .GroupBy(c => c.SpecId)
             .ToDictionaryAsync(group => group.Key, group => new
             {
-                AttemptCount = group.Count(),
                 AvgScore = group.Any() ? group.Average(c => c.Score) as double? : null,
                 AvgCompleteSolveTimeMs = group.Where(c => c.Score >= c.Points).Any() ? group
                     .Where(c => c.Score >= c.Points)
@@ -135,7 +134,6 @@ internal class ChallengesReportService : IChallengesReportService
                 PlayerModeCurrent = cs.PlayerModeCurrent,
                 Points = cs.Points,
                 Tags = cs.Tags.IsNotEmpty() ? cs.Tags.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) : Array.Empty<string>(),
-                AttemptCount = aggregations is not null ? aggregations.AttemptCount : 0,
                 AvgCompleteSolveTimeMs = aggregations?.AvgCompleteSolveTimeMs,
                 AvgScore = aggregations?.AvgScore,
                 DeployCompetitiveCount = aggregations is not null ? aggregations.DeployCompetitiveCount : 0,
