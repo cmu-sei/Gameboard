@@ -73,7 +73,10 @@ public class TicketStore : Store<Ticket>, ITicketStore
                 t.Requester.ApprovedName.ToLower().Contains(term) ||
                 t.Assignee.ApprovedName.ToLower().Contains(term) ||
                 t.Challenge.Name.ToLower().Contains(term) ||
-                t.Challenge.Tag.ToLower().Contains(term)
+                t.Challenge.Tag.ToLower().Contains(term) ||
+                t.TeamId.ToLower().Contains(term) ||
+                t.PlayerId.ToLower().Contains(term) ||
+                t.RequesterId.ToLower().Contains(term)
             );
         }
 
