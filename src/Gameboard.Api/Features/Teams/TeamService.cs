@@ -104,9 +104,7 @@ internal class TeamService : ITeamService
             .AnyAsync(cancellationToken);
 
         if (playersWithNoSession)
-        {
             throw new CantExtendUnstartedSession(request.TeamId);
-        }
 
         // in competitive mode, session end is what's requested in the API call
         var finalSessionEnd = request.NewSessionEnd;
@@ -248,7 +246,7 @@ internal class TeamService : ITeamService
             if (affectedPlayers != 1)
                 throw new PromotionFailed(teamId, newCaptainPlayerId, affectedPlayers);
 
-            await transaction.CommitAsync();
+            await transaction.CommitAsync(cancellationToken);
         }
 
         await _teamHubService.SendPlayerRoleChanged(_mapper.Map<Api.Player>(newCaptain), actingUser);
