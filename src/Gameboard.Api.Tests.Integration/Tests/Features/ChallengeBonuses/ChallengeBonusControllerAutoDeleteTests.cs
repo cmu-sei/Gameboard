@@ -1,5 +1,7 @@
 using Gameboard.Api.Common;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.ChallengeBonuses;
+using Gameboard.Api.Structure;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration.ChallengeBonuses;
@@ -82,10 +84,8 @@ public class ChallengeBonusControllerAutoDeleteTests : IClassFixture<GameboardTe
         var httpClient = _testContext.CreateHttpClientWithAuthRole(UserRole.Designer);
 
         // when delete is called, then it should fail validation
-        var isValidationException = await httpClient
+        await httpClient
             .DeleteAsync($"api/game/{gameId}/bonus/config")
-            .YieldsGameboardValidationException();
-
-        isValidationException.ShouldBeTrue();
+            .ShouldYieldGameboardValidationException<GameboardAggregatedValidationExceptions>();
     }
 }

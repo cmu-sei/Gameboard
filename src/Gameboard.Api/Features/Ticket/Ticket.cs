@@ -17,8 +17,10 @@ namespace Gameboard.Api
         public string AssigneeId { get; set; }
         public string CreatorId { get; set; }
         public string ChallengeId { get; set; }
+        public bool IsTeamGame { get; set; }
         public string PlayerId { get; set; }
         public string TeamId { get; set; }
+        public string TeamName { get; set; }
         public string Summary { get; set; }
         public string Description { get; set; }
         public string Status { get; set; }

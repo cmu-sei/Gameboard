@@ -24,9 +24,7 @@ public static class HttpExtensions
             var deserialized = JsonSerializer.Deserialize<T>(rawResponse, serializerOptions);
 
             if (deserialized != null)
-            {
                 return deserialized;
-            }
         }
         catch (Exception ex)
         {

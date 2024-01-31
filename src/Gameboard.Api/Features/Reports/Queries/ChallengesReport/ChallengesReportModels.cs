@@ -59,6 +59,7 @@ public sealed class ChallengesReportExportRecord
     public required int Points { get; set; }
     public required string GameEngineTags { get; set; }
     public required double? AvgCompleteSolveTimeMs { get; set; }
+    public required string AvgCompleteSolveTime { get; set; }
     public required double? AvgScore { get; set; }
     public required int DeployCompetitiveCount { get; set; }
     public required int DeployPracticeCount { get; set; }
@@ -66,4 +67,7 @@ public sealed class ChallengesReportExportRecord
     public required int SolveZeroCount { get; set; }
     public required int SolvePartialCount { get; set; }
     public required int SolveCompleteCount { get; set; }
+    public required double? SolveZeroPct { get; set; }
+    public required double? SolvePartialPct { get; set; }
+    public required double? SolveCompletePct { get; set; }
 }

@@ -15,3 +15,9 @@ internal class ResponseContentEmpty : GameboardIntegrationTestException
 {
     public ResponseContentEmpty() : base("Deserialization failed because the body of the response is empty.") { }
 }
+
+internal class WrongExceptionType : GameboardIntegrationTestException
+{
+    public WrongExceptionType(Type expectedType, string responseContent)
+        : base($"The response suggests that the wrong exception was thrown (expected {expectedType}). Message content: {responseContent}") { }
+}

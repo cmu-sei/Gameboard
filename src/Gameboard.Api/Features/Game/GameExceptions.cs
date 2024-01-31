@@ -11,6 +11,12 @@ internal class CantDeleteGameWithPlayers : GameboardValidationException
         : base($"Game {gameId} can't be deleted because it has {playerCount} players.") { }
 }
 
+internal class GameNotActive : GameboardValidationException
+{
+    public GameNotActive(string gameId, DateTimeOffset startTime, DateTimeOffset endTime)
+        : base($"Game {gameId} execution period is inactive (ran from {startTime}-{endTime} )") { }
+}
+
 internal class CantStartGameWithNoPlayers : GameboardException
 {
     public CantStartGameWithNoPlayers(string gameId) : base($"Can't start game {gameId} - no players are registered.") { }

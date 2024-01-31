@@ -106,12 +106,15 @@ internal class ChallengesReportService : IChallengesReportService
                     .Count(),
                 SolveZeroCount = group
                     .Where(c => c.Score == 0)
+                    .Where(c => c.PlayerMode == PlayerMode.Competition)
                     .Count(),
                 SolvePartialCount = group
                     .Where(c => c.Score > 0 && c.Score < c.Points)
+                    .Where(c => c.PlayerMode == PlayerMode.Competition)
                     .Count(),
                 SolveCompleteCount = group
                     .Where(c => c.Score >= c.Points)
+                    .Where(c => c.PlayerMode == PlayerMode.Competition)
                     .Count()
             });
 
