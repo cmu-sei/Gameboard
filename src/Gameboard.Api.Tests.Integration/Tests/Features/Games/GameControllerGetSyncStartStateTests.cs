@@ -1,5 +1,6 @@
 using Gameboard.Api.Common;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Tests.Integration;
 
@@ -105,12 +106,11 @@ public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestC
             });
         });
 
-        var yieldsValidationFailure = await _testContext
+        // when
+        await _testContext
             .CreateDefaultClient()
             .GetAsync($"/api/game/{gameId}/ready")
-            .YieldsGameboardValidationException();
-
-        // when / then
-        yieldsValidationFailure.ShouldBeTrue();
+            // then
+            .ShouldYieldGameboardValidationException<GameboardAggregatedValidationExceptions>();
     }
 }

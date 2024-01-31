@@ -208,7 +208,7 @@ public class PlayerService
 
         // rule: game's execution period has to be open
         if (!sudo && game.IsLive.Equals(false))
-            throw new GameNotActive();
+            throw new GameNotActive(game.Id, game.GameStart, game.GameEnd);
 
         // rule: players per team has to be within the game's constraint
         if (
@@ -242,7 +242,6 @@ public class PlayerService
         }
 
         var sessionWindow = CalculateSessionWindow(game, _now.Get());
-
 
         // rule: if the player/team is starting late, this must be allowed on the game level
         if (sessionWindow.IsLateStart && !game.AllowLateStart)

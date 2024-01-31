@@ -370,6 +370,7 @@ public partial class ChallengeService : _Service
             await _store.Create(new ChallengeEvent
             {
                 Id = _guids.GetGuid(),
+                ChallengeId = challenge.Id,
                 UserId = actor?.Id ?? null,
                 TeamId = challenge.TeamId,
                 Timestamp = now,

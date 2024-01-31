@@ -1,22 +1,29 @@
+using Gameboard.Api.Structure;
+
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
 internal static class AssertionExtensions
 {
-    public static async Task<bool> IsGameboardValidationException(this HttpContent content)
-    {
-        var stringContent = await content.ReadAsStringAsync();
-        return stringContent.Contains("GAMEBOARD VALIDATION EXCEPTION");
-    }
-
-    public static async Task<bool> YieldsGameboardValidationException(this Task<HttpResponseMessage> request)
-    {
-        var response = await request;
-        return await response.Content.IsGameboardValidationException();
-    }
-
     public static async Task<bool> IsEmpty(this HttpContent content)
     {
         var bytesContent = await content.ReadAsByteArrayAsync();
         return bytesContent.Length == 0;
     }
+
+    public static async Task ShouldYieldGameboardValidationException<T>(this Task<HttpResponseMessage> request) where T : GameboardValidationException
+    {
+        var response = await request;
+        var responseContent = await response.Content.ReadAsStringAsync();
+
+        if (!IsExceptionString<T>(responseContent))
+            throw new WrongExceptionType(typeof(T), responseContent);
+    }
+
+    private static bool IsGameboardValidationExceptionString<T>(string responseContent) where T : GameboardValidationException
+    {
+        return responseContent.Contains("GAMEBOARD VALIDATION EXCEPTION");
+    }
+
+    private static bool IsExceptionString<T>(string responseContent) where T : GameboardValidationException
+        => responseContent.Contains(typeof(T).ToExceptionCode());
 }
