@@ -280,11 +280,22 @@ public class GameEngineService : _Service, IGameEngineService
 
     public async Task<GameEngineGameState> StartGamespace(GameEngineGamespaceStartRequest request)
     {
-        return request.GameEngineType switch
+        if (request.GameEngineType == GameEngineType.TopoMojo)
         {
-            GameEngineType.TopoMojo => Mapper.Map<GameEngineGameState>(await Mojo.StartGamespaceAsync(request.ChallengeId)),
-            _ => throw new NotImplementedException(),
-        };
+            try
+            {
+                var state = await Mojo.StartGamespaceAsync(request.ChallengeId);
+                return Mapper.Map<GameEngineGameState>(state);
+            }
+            catch (TopoMojo.Api.Client.ApiException ex)
+            {
+                throw new GamespaceStartFailure(request.ChallengeId, GameEngineType.TopoMojo, ex);
+            }
+
+        }
+
+        // we don't have an alloy implementation yet
+        throw new NotImplementedException();
     }
 
     public async Task<GameEngineGameState> StopGamespace(Data.Challenge entity)

@@ -61,7 +61,7 @@ internal class ExternalGameTeamService : IExternalGameTeamService
     public Task<ExternalGameTeam> GetTeam(string teamId, CancellationToken cancellationToken)
         => _store
             .WithNoTracking<ExternalGameTeam>()
-            .SingleOrDefaultAsync(r => r.TeamId == teamId);
+            .SingleOrDefaultAsync(r => r.TeamId == teamId, cancellationToken);
 
     public async Task UpdateGameDeployStatus(string gameId, ExternalGameTeamDeployStatus status, CancellationToken cancellationToken)
     {
