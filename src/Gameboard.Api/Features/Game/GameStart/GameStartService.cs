@@ -57,7 +57,7 @@ internal class GameStartService : IGameStartService
     {
         var game = await _store.Retrieve<Data.Game>(request.GameId);
         var gameModeService = await _gameModeServiceFactory.Get(request.GameId);
-        var startRequest = await LoadGameModeStartRequest(game, request.TeamIds, cancellationToken);
+        var startRequest = await LoadGameModeStartRequest(game, request.TeamIds, false, cancellationToken);
 
         // lock this down - only one start or predeploy per game Id
         using var gameStartLock = await _lockService.GetExternalGameDeployLock(request.GameId).LockAsync(cancellationToken);
@@ -79,7 +79,7 @@ internal class GameStartService : IGameStartService
             .GetExternalGameDeployLock(request.GameId)
             .LockAsync(cancellationToken);
 
-        var startRequest = await LoadGameModeStartRequest(game, null, cancellationToken);
+        var startRequest = await LoadGameModeStartRequest(game, null, true, cancellationToken);
         await gameModeService.ValidateStart(startRequest, cancellationToken);
 
         try
@@ -140,10 +140,11 @@ internal class GameStartService : IGameStartService
     /// <param name="game"></param>
     /// <param name="teamIds"></param>
     /// <param name="cancellationToken"></param>
+    /// <param name="abortOnGamespaceStartFailure"></param>
     /// <returns></returns>
     /// <exception cref="CantStartGameWithNoPlayers"></exception>
     /// <exception cref="CaptainResolutionFailure"></exception>
-    private async Task<GameModeStartRequest> LoadGameModeStartRequest(Data.Game game, IEnumerable<string> teamIds, CancellationToken cancellationToken)
+    private async Task<GameModeStartRequest> LoadGameModeStartRequest(Data.Game game, IEnumerable<string> teamIds, bool abortOnGamespaceStartFailure, CancellationToken cancellationToken)
     {
         var now = _now.Get();
         var loadAllTeams = teamIds is null || !teamIds.Any();
@@ -211,6 +212,7 @@ internal class GameStartService : IGameStartService
 
         return new GameModeStartRequest
         {
+            AbortOnGamespaceStartFailure = abortOnGamespaceStartFailure,
             Game = new SimpleEntity { Id = game.Id, Name = game.Name },
             Context = context
         };
