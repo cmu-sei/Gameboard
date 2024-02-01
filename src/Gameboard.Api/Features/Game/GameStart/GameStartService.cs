@@ -57,7 +57,7 @@ internal class GameStartService : IGameStartService
     {
         var game = await _store.Retrieve<Data.Game>(request.GameId);
         var gameModeService = await _gameModeServiceFactory.Get(request.GameId);
-        var startRequest = await LoadGameModeStartRequest(game, request.TeamIds, false, cancellationToken);
+        var startRequest = await LoadGameModeStartRequest(game, request.TeamIds, cancellationToken);
 
         // lock this down - only one start or predeploy per game Id
         using var gameStartLock = await _lockService.GetExternalGameDeployLock(request.GameId).LockAsync(cancellationToken);
@@ -79,7 +79,7 @@ internal class GameStartService : IGameStartService
             .GetExternalGameDeployLock(request.GameId)
             .LockAsync(cancellationToken);
 
-        var startRequest = await LoadGameModeStartRequest(game, null, true, cancellationToken);
+        var startRequest = await LoadGameModeStartRequest(game, null, cancellationToken);
         await gameModeService.ValidateStart(startRequest, cancellationToken);
 
         try
@@ -94,11 +94,15 @@ internal class GameStartService : IGameStartService
             await gameModeService.TryCleanUpFailedDeploy(startRequest, ex, cancellationToken);
 
             // for convenience, reset (but don't unenroll) the teams
-            _logger.LogError(message: $"Deployment failed for game {startRequest.Game.Id}. Resetting sessions and cleaning up gamespaces for {startRequest.Context.Teams.Count()} teams.");
+            _logger.LogError(message: $"Deployment failed for game {startRequest.Game.Id}. Resetting sessions for {startRequest.Context.Teams.Count} teams. Archiving challenges/completing gamespaces?: {gameModeService.ArchiveChallengesOnStartFailure}");
+
             foreach (var team in startRequest.Context.Teams)
             {
-                await _mediator.Send(new ResetTeamSessionCommand(team.Team.Id, false, _actingUserService.Get()));
+                // only archive challenges if the game mode asks us too
+                await _mediator.Send(new ResetTeamSessionCommand(team.Team.Id, false, gameModeService.ArchiveChallengesOnStartFailure, _actingUserService.Get()), cancellationToken);
             }
+
+            _logger.LogInformation($"All teams reset for game {startRequest.Game.Id}.");
         }
 
         return null;
@@ -140,11 +144,10 @@ internal class GameStartService : IGameStartService
     /// <param name="game"></param>
     /// <param name="teamIds"></param>
     /// <param name="cancellationToken"></param>
-    /// <param name="abortOnGamespaceStartFailure"></param>
     /// <returns></returns>
     /// <exception cref="CantStartGameWithNoPlayers"></exception>
     /// <exception cref="CaptainResolutionFailure"></exception>
-    private async Task<GameModeStartRequest> LoadGameModeStartRequest(Data.Game game, IEnumerable<string> teamIds, bool abortOnGamespaceStartFailure, CancellationToken cancellationToken)
+    private async Task<GameModeStartRequest> LoadGameModeStartRequest(Data.Game game, IEnumerable<string> teamIds, CancellationToken cancellationToken)
     {
         var now = _now.Get();
         var loadAllTeams = teamIds is null || !teamIds.Any();
@@ -212,7 +215,6 @@ internal class GameStartService : IGameStartService
 
         return new GameModeStartRequest
         {
-            AbortOnGamespaceStartFailure = abortOnGamespaceStartFailure,
             Game = new SimpleEntity { Id = game.Id, Name = game.Name },
             Context = context
         };

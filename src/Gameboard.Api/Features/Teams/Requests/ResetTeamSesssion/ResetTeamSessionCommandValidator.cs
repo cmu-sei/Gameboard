@@ -5,10 +5,10 @@ using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Teams;
-using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Player;
@@ -36,7 +36,11 @@ internal class ResetSessionCommandValidator : IGameboardRequestValidator<ResetTe
 
     public async Task Validate(ResetTeamSessionCommand request, CancellationToken cancellationToken)
     {
-        // get the game first - we need it to know if we need to update the sync start state later,
+        // can't unenroll team but keep challenges
+        if (request.UnenrollTeam && !request.ArchiveChallenges)
+            throw new BadHttpRequestException("Can't specify to unenroll the team but preserve their challenges when resetting.");
+
+        // get the game - we need it to know if we need to update the sync start state later,
         // and we need to validate that it can be reset
         var players = await _store
             .WithNoTracking<Data.Player>()

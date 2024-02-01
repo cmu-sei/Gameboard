@@ -23,6 +23,7 @@ public interface IExternalGameTeamService
     /// <returns></returns>
     Task<ExternalGameTeam> GetTeam(string teamId, CancellationToken cancellationToken);
     Task UpdateGameDeployStatus(string gameId, ExternalGameTeamDeployStatus status, CancellationToken cancellationToken);
+    Task UpdateTeamDeployStatus(IEnumerable<string> teamIds, ExternalGameTeamDeployStatus status, CancellationToken cancellationToken);
     Task UpdateTeamExternalUrl(string teamId, string url, CancellationToken cancellationToken);
 }
 
@@ -70,6 +71,13 @@ internal class ExternalGameTeamService : IExternalGameTeamService
             .Where(d => d.GameId == gameId)
             .ExecuteUpdateAsync(up => up.SetProperty(d => d.DeployStatus, status));
     }
+
+    public Task UpdateTeamDeployStatus(IEnumerable<string> teamIds, ExternalGameTeamDeployStatus status, CancellationToken cancellationToken)
+        => _store
+            .WithNoTracking<ExternalGameTeam>()
+            .Where(t => teamIds.Contains(t.TeamId))
+            .ExecuteUpdateAsync(up => up.SetProperty(t => t.DeployStatus, status), cancellationToken);
+
 
     public async Task UpdateTeamExternalUrl(string teamId, string url, CancellationToken cancellationToken)
     {

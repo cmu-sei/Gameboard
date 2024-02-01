@@ -3,6 +3,13 @@ using System.Collections.Generic;
 
 namespace Gameboard.Api.Features.Games.External;
 
+/// <summary>
+/// This is basically a "frozen" API that pushes data to an external
+/// game host after the game is launched. 
+/// 
+/// CHANGING THIS WILL REQUIRE EXTERNAL HOSTS (E.G. CUBESPACE) TO
+/// CHANGE THEIR CODE.
+/// </summary>
 public sealed class ExternalGameStartMetaData
 {
     public required SimpleEntity Game { get; set; }

@@ -9,6 +9,7 @@ public enum GamePlayState
 {
     NotRegistered,
     NotStarted,
+    DeployingResources,
     Starting,
     Started,
     GameOver
@@ -21,7 +22,6 @@ public class GameStartRequest
 
 public sealed class GameModeStartRequest
 {
-    public required bool AbortOnGamespaceStartFailure { get; set; }
     public required GameStartContext Context { get; set; }
     public required SimpleEntity Game { get; set; }
 }
