@@ -7,6 +7,12 @@ public sealed class CantPreDeployNonExternalGame : GameboardValidationException
         : base($"Can't predeploy resources for game {gameId} - it's not external/sync-start.") { }
 }
 
+public sealed class CantResolveTeamDeployStatus : GameboardException
+{
+    public CantResolveTeamDeployStatus(string gameId, string teamId)
+        : base($"Couldn't resolve deploy status for team {teamId} in game {gameId}.") { }
+}
+
 public sealed class GameHasUnexpectedEngineMode : GameboardValidationException
 {
     public GameHasUnexpectedEngineMode(string gameId, string engineMode, string expectedEngineMode)

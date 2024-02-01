@@ -7,7 +7,6 @@ namespace Gameboard.Api.Features.Games;
 
 public enum GamePlayState
 {
-    NotRegistered,
     NotStarted,
     DeployingResources,
     Starting,
