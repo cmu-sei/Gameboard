@@ -21,9 +21,9 @@ public class GameStartRequest
 
 public sealed class GameModeStartRequest
 {
-    public required SimpleEntity Game { get; set; }
-    public required GameStartContext Context { get; set; }
     public required bool AbortOnGamespaceStartFailure { get; set; }
+    public required GameStartContext Context { get; set; }
+    public required SimpleEntity Game { get; set; }
 }
 
 public sealed class GameStartContext
