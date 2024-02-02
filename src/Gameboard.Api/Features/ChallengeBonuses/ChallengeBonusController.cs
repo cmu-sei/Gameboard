@@ -31,15 +31,19 @@ public class ChallengeBonusController : ControllerBase
         => await _mediator.Send(new DeleteGameAutoBonusesConfigCommand(gameId));
 
     [HttpPost("challenge/{challengeId}/bonus/manual")]
-    public async Task<ActionResult> AddManualBonus([FromRoute] string challengeId, [FromBody] CreateManualChallengeBonus model)
+    public async Task<ActionResult> AddManualBonus([FromRoute] string challengeId, [FromBody] CreateManualBonus model)
     {
-        await _mediator.Send(new AddManualBonusCommand(challengeId, model));
+        await _mediator.Send(new AddManualBonusCommand(challengeId, null, model));
         return Ok();
     }
 
+    [HttpPost("team/{teamId}/bonus/manual")]
+    public Task AddManualTeamBonus([FromRoute] string teamId, [FromBody] CreateManualBonus model)
+        => _mediator.Send(new AddManualBonusCommand(null, teamId, model));
+
     [HttpGet("challenge/{challengeId}/bonus/manual")]
     public Task<IEnumerable<ManualChallengeBonusViewModel>> List([FromRoute] string challengeId)
-        => _mediator.Send(new ListManualBonusesQuery(challengeId));
+        => _mediator.Send(new ListManualChallengeBonusesQuery(challengeId));
 
     [HttpDelete("bonus/manual/{manualBonusId}")]
     public Task DeleteManualBonus(string manualBonusId)

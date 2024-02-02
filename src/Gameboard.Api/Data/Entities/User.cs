@@ -27,7 +27,7 @@ public class User : IEntity
     public ICollection<ApiKey> ApiKeys { get; set; } = new List<ApiKey>();
     public ICollection<SystemNotification> CreatedSystemNotifications { get; set; } = new List<SystemNotification>();
     public ICollection<Player> Enrollments { get; set; } = new List<Player>();
-    public ICollection<ManualChallengeBonus> EnteredManualChallengeBonuses { get; set; } = new List<ManualChallengeBonus>();
+    public ICollection<ManualBonus> EnteredManualChallengeBonuses { get; set; } = new List<ManualBonus>();
     public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
     public ICollection<PublishedCompetitiveCertificate> PublishedCompetitiveCertificates { get; set; } = new List<PublishedCompetitiveCertificate>();
     public ICollection<PublishedPracticeCertificate> PublishedPracticeCertificates { get; set; } = new List<PublishedPracticeCertificate>();

@@ -8,20 +8,29 @@ using Gameboard.Api.Structure.MediatR.Validators;
 internal class AddManualBonusValidator : IGameboardRequestValidator<AddManualBonusCommand>
 {
     private readonly EntityExistsValidator<AddManualBonusCommand, Data.Challenge> _challengeExists;
+    private readonly TeamExistsValidator<AddManualBonusCommand> _teamExists;
     private readonly IValidatorService<AddManualBonusCommand> _validatorService;
 
     public AddManualBonusValidator
     (
         EntityExistsValidator<AddManualBonusCommand, Data.Challenge> challengeExists,
+        TeamExistsValidator<AddManualBonusCommand> teamExists,
         IValidatorService<AddManualBonusCommand> validatorService
     )
     {
         _challengeExists = challengeExists;
+        _teamExists = teamExists;
         _validatorService = validatorService;
     }
 
     public async Task Validate(AddManualBonusCommand request, CancellationToken cancellationToken)
     {
+        _validatorService.AddValidator((req, context) =>
+        {
+            if ((req.ChallengeId.IsEmpty() && req.TeamId.IsEmpty()) || (req.ChallengeId.IsNotEmpty() && req.TeamId.IsNotEmpty()))
+                context.AddValidationException(new InvalidManualBonusConfiguration(req.ChallengeId, req.TeamId));
+        });
+
         _validatorService.AddValidator((request, context) =>
         {
             if (request.Model.PointValue <= 0)
@@ -34,7 +43,10 @@ internal class AddManualBonusValidator : IGameboardRequestValidator<AddManualBon
                 context.AddValidationException(new MissingRequiredInput<string>(nameof(request.Model.Description), request.Model.Description));
         });
 
-        _validatorService.AddValidator(_challengeExists.UseProperty(r => r.ChallengeId));
+        if (request.ChallengeId.IsNotEmpty())
+            _validatorService.AddValidator(_challengeExists.UseProperty(r => r.ChallengeId));
+        else
+            _validatorService.AddValidator(_teamExists.UseProperty(r => r.TeamId));
 
         await _validatorService.Validate(request, cancellationToken);
     }

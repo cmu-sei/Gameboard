@@ -20,12 +20,6 @@ public sealed class GameAutomaticBonusSolveRank
     public required int SolveRank { get; set; }
 }
 
-public sealed class GameSpecsAutomaticBonusState
-{
-    public required string GameId { get; set; }
-    public required IDictionary<string, GameSpecsAutomaticBonusSpecState> SpecStates { get; set; }
-}
-
 public sealed class GameSpecsAutomaticBonusSpecState
 {
     public required IEnumerable<string> AwardedBonusesIds { get; set; }
@@ -40,7 +34,7 @@ public sealed class PerChallengeAutomaticBonusSolveRank
     public required int SolveRank { get; set; }
 }
 
-public class CreateManualChallengeBonus
+public class CreateManualBonus
 {
     public string Description { get; set; }
     public double PointValue { get; set; }

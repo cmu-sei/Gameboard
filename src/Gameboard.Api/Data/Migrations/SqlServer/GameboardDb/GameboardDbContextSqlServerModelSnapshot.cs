@@ -673,13 +673,10 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("Games");
                 });
 
-            modelBuilder.Entity("Gameboard.Api.Data.ManualChallengeBonus", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.ManualBonus", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
-
-                    b.Property<string>("ChallengeId")
                         .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("Description")
@@ -697,13 +694,18 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<double>("PointValue")
                         .HasColumnType("float");
 
-                    b.HasKey("Id");
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
 
-                    b.HasIndex("ChallengeId");
+                    b.HasKey("Id");
 
                     b.HasIndex("EnteredByUserId");
 
-                    b.ToTable("ManualChallengeBonuses");
+                    b.ToTable("ManualBonuses");
+
+                    b.HasDiscriminator<int>("Type");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
@@ -1149,6 +1151,30 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.HasDiscriminator().HasValue(0);
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.ManualChallengeBonus", b =>
+                {
+                    b.HasBaseType("Gameboard.Api.Data.ManualBonus");
+
+                    b.Property<string>("ChallengeId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasIndex("ChallengeId");
+
+                    b.HasDiscriminator().HasValue(0);
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.ManualTeamBonus", b =>
+                {
+                    b.HasBaseType("Gameboard.Api.Data.ManualBonus");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasDiscriminator().HasValue(1);
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.PublishedCompetitiveCertificate", b =>
                 {
                     b.HasBaseType("Gameboard.Api.Data.PublishedCertificate");
@@ -1323,19 +1349,12 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Gameboard.Api.Data.ManualChallengeBonus", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.ManualBonus", b =>
                 {
-                    b.HasOne("Gameboard.Api.Data.Challenge", "Challenge")
-                        .WithMany("AwardedManualBonuses")
-                        .HasForeignKey("ChallengeId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
                     b.HasOne("Gameboard.Api.Data.User", "EnteredByUser")
                         .WithMany("EnteredManualChallengeBonuses")
                         .HasForeignKey("EnteredByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Challenge");
 
                     b.Navigation("EnteredByUser");
                 });
@@ -1478,6 +1497,17 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .IsRequired();
 
                     b.Navigation("Sponsor");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.ManualChallengeBonus", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Challenge", "Challenge")
+                        .WithMany("AwardedManualBonuses")
+                        .HasForeignKey("ChallengeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Challenge");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.PublishedCompetitiveCertificate", b =>

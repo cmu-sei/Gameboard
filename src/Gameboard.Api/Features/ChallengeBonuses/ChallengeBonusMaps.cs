@@ -7,7 +7,7 @@ public class ChallengeBonusMaps : Profile
 {
     public ChallengeBonusMaps()
     {
-        CreateMap<ManualChallengeBonus, ManualChallengeBonusViewModel>()
+        CreateMap<ManualBonus, ManualChallengeBonusViewModel>()
             .ForMember(vm => vm.EnteredBy, o => o.MapFrom(m => new SimpleEntity
             {
                 Id = m.EnteredByUserId,

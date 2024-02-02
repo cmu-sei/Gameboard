@@ -51,9 +51,9 @@ internal class GetChallengesReportExportHandler : IRequestHandler<GetChallengesR
             SolveZeroCount = r.SolveZeroCount,
             SolvePartialCount = r.SolvePartialCount,
             SolveCompleteCount = r.SolveCompleteCount,
-            SolveZeroPct = r.DeployCompetitiveCount > 0 ? (r.SolveZeroCount / r.DeployCompetitiveCount) : null,
-            SolvePartialPct = r.DeployCompetitiveCount > 0 ? (r.SolvePartialCount / r.DeployCompetitiveCount) : null,
-            SolveCompletePct = r.DeployCompetitiveCount > 0 ? (r.SolveCompleteCount / r.DeployCompetitiveCount) : null
+            SolveZeroPct = r.DeployCompetitiveCount > 0 ? ((double)r.SolveZeroCount / r.DeployCompetitiveCount) : null,
+            SolvePartialPct = r.DeployCompetitiveCount > 0 ? ((double)r.SolvePartialCount / r.DeployCompetitiveCount) : null,
+            SolveCompletePct = r.DeployCompetitiveCount > 0 ? ((double)r.SolveCompleteCount / r.DeployCompetitiveCount) : null
         });
     }
 }

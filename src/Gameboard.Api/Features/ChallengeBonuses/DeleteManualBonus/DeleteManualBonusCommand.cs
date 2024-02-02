@@ -1,11 +1,12 @@
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.ChallengeBonuses;
 
@@ -13,24 +14,24 @@ public record DeleteManualBonusCommand(string ManualBonusId) : IRequest;
 
 internal class DeleteManualBonusCommandHandler : IRequestHandler<DeleteManualBonusCommand>
 {
-    private readonly IStore<ManualChallengeBonus> _challengeBonusStore;
+    private readonly IStore _store;
 
     // validators
-    private readonly EntityExistsValidator<DeleteManualBonusCommand, ManualChallengeBonus> _bonusExists;
+    private readonly EntityExistsValidator<DeleteManualBonusCommand, ManualBonus> _bonusExists;
     private readonly IValidatorService<DeleteManualBonusCommand> _validatorService;
 
     // authorizers 
     private readonly UserRoleAuthorizer _roleAuthorizer;
 
     public DeleteManualBonusCommandHandler(
-        IStore<ManualChallengeBonus> challengeBonusStore,
-        EntityExistsValidator<DeleteManualBonusCommand, ManualChallengeBonus> bonusExists,
+        EntityExistsValidator<DeleteManualBonusCommand, ManualBonus> bonusExists,
         UserRoleAuthorizer roleAuthorizer,
+        IStore store,
         IValidatorService<DeleteManualBonusCommand> validatorService)
     {
         _bonusExists = bonusExists;
-        _challengeBonusStore = challengeBonusStore;
         _roleAuthorizer = roleAuthorizer;
+        _store = store;
         _validatorService = validatorService;
     }
 
@@ -41,6 +42,9 @@ internal class DeleteManualBonusCommandHandler : IRequestHandler<DeleteManualBon
             .Authorize();
 
         _validatorService.AddValidator(_bonusExists.UseProperty(r => r.ManualBonusId));
-        await _challengeBonusStore.Delete(request.ManualBonusId);
+        await _store
+            .WithNoTracking<ManualBonus>()
+            .Where(b => b.Id == request.ManualBonusId)
+            .ExecuteDeleteAsync(cancellationToken);
     }
 }

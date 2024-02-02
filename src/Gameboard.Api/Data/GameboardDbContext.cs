@@ -155,16 +155,35 @@ public class GameboardDbContext : DbContext
             b.HasOne(a => a.Challenge).WithMany(c => c.AwardedBonuses).OnDelete(DeleteBehavior.Cascade);
         });
 
-        builder.Entity<ManualChallengeBonus>(b =>
+        builder.Entity<ManualBonus>(b =>
         {
+            b
+                .HasDiscriminator(b => b.Type)
+                .HasValue<ManualChallengeBonus>(ManualBonusType.Challenge)
+                .HasValue<ManualTeamBonus>(ManualBonusType.Manual);
+
             b.Property(b => b.Id).HasStandardGuidLength();
             b.Property(b => b.Description).HasMaxLength(200);
             b.Property(b => b.EnteredOn)
                 .HasDefaultValueSql("NOW()")
                 .ValueGeneratedOnAdd();
-
-            b.HasOne(m => m.Challenge).WithMany(c => c.AwardedManualBonuses).OnDelete(DeleteBehavior.Cascade);
             b.HasOne(m => m.EnteredByUser).WithMany(u => u.EnteredManualChallengeBonuses).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<ManualChallengeBonus>(b =>
+        {
+            b
+                .HasOne(m => m.Challenge)
+                .WithMany(c => c.AwardedManualBonuses).OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+
+        });
+
+        builder.Entity<ManualTeamBonus>(b =>
+        {
+            b
+                .Property(m => m.TeamId)
+                .IsRequired();
         });
 
         builder.Entity<ChallengeEvent>(b =>
@@ -358,7 +377,7 @@ public class GameboardDbContext : DbContext
     public DbSet<ExternalGameTeam> ExternalGameTeams { get; set; }
     public DbSet<Feedback> Feedback { get; set; }
     public DbSet<Game> Games { get; set; }
-    public DbSet<ManualChallengeBonus> ManualChallengeBonuses { get; set; }
+    public DbSet<ManualBonus> ManualBonuses { get; set; }
     public DbSet<Player> Players { get; set; }
     public DbSet<PublishedCertificate> PublishedCertificate { get; set; }
     public DbSet<Sponsor> Sponsors { get; set; }
