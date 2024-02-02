@@ -168,6 +168,7 @@ internal class ScoringService : IScoringService
 
         var manualTeamBonuses = await _store
             .WithNoTracking<ManualTeamBonus>()
+                .Include(t => t.EnteredByUser)
             .Where(b => b.TeamId == captain.TeamId)
             .ToListAsync();
 
@@ -196,7 +197,15 @@ internal class ScoringService : IScoringService
                 }
             }).ToArray(),
             LiveSessionEnds = teamSessionEnd,
-            ManualTeamBonuses = Array.Empty<ManualTeamBonus>(),
+            ManualBonuses = manualTeamBonuses.Select(b => new ManualTeamBonusViewModel
+            {
+                Id = b.Id,
+                Description = b.Description,
+                PointValue = b.PointValue,
+                EnteredBy = new SimpleEntity { Id = b.EnteredByUserId, Name = b.EnteredByUser.ApprovedName },
+                EnteredOn = b.EnteredOn,
+                TeamId = b.TeamId
+            }),
             OverallScore = CalculateScore(pointsFromChallenges, bonusPoints, manualTeamBonusPoints, manualChallengeBonusPoints),
             Rank = rank,
             TotalTimeMs = captain.Time,

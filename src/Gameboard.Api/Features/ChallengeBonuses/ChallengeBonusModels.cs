@@ -47,12 +47,21 @@ public class UpdateManualChallengeBonus
     public double PointValue { get; set; }
 }
 
-public class ManualChallengeBonusViewModel
+public abstract class ManualBonusViewModel
 {
     public string Id { get; set; }
     public string Description { get; set; }
     public double PointValue { get; set; }
     public DateTimeOffset EnteredOn { get; set; }
     public SimpleEntity EnteredBy { get; set; }
+}
+
+public class ManualChallengeBonusViewModel : ManualBonusViewModel
+{
     public string ChallengeId { get; set; }
+}
+
+public class ManualTeamBonusViewModel : ManualBonusViewModel
+{
+    public string TeamId { get; set; }
 }

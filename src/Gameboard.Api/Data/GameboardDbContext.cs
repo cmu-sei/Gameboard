@@ -167,7 +167,7 @@ public class GameboardDbContext : DbContext
             b.Property(b => b.EnteredOn)
                 .HasDefaultValueSql("NOW()")
                 .ValueGeneratedOnAdd();
-            b.HasOne(m => m.EnteredByUser).WithMany(u => u.EnteredManualChallengeBonuses).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(m => m.EnteredByUser).WithMany(u => u.EnteredManualBonuses).OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<ManualChallengeBonus>(b =>

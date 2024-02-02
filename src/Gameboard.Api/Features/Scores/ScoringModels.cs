@@ -56,7 +56,7 @@ public sealed class GameScoreTeam
     public required DateTimeOffset? LiveSessionEnds { get; set; }
     public required Score OverallScore { get; set; }
     public required double TotalTimeMs { get; set; }
-    public required IEnumerable<ManualTeamBonus> ManualTeamBonuses { get; set; } = Array.Empty<ManualTeamBonus>();
+    public required IEnumerable<ManualTeamBonusViewModel> ManualBonuses { get; set; } = Array.Empty<ManualTeamBonusViewModel>();
     public required IEnumerable<TeamChallengeScore> Challenges { get; set; }
 }
 
