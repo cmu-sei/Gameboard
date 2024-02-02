@@ -19,7 +19,7 @@ public class TeamServiceTests
         var playerStore = A.Fake<IPlayerStore>();
         var sut = new TeamService
         (
-            A.Fake<IExternalGameTeamService>(),
+            A.Fake<IExternalGameService>(),
             A.Fake<IGameEngineService>(),
             A.Fake<IMapper>(),
             A.Fake<IMemoryCache>(),
