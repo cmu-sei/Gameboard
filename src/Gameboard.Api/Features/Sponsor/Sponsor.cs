@@ -44,5 +44,6 @@ public class UpdateSponsorRequest
 
 public class SponsorSearch
 {
+    public string ExcludeSponsorId { get; set; }
     public bool? HasParent { get; set; }
 }

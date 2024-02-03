@@ -1,7 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
-using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
@@ -44,9 +43,8 @@ internal class CreateSponsorHandler : IRequestHandler<CreateSponsorCommand, Spon
         {
             if (request.Model.Name.IsEmpty())
                 context.AddValidationException(new MissingRequiredInput<string>(nameof(request.Model.Name), request.Model.Name));
-
-            return Task.CompletedTask;
         });
+
         await _validatorService.Validate(request, cancellationToken);
 
         // create sponsor without logo - we can upload after
