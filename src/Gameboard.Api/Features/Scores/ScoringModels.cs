@@ -77,7 +77,7 @@ public class TeamChallengeScore
     public required TimeSpan? TimeElapsed { get; set; }
 
     public required IEnumerable<GameScoreAutoChallengeBonus> Bonuses { get; set; }
-    public required IEnumerable<ManualChallengeBonusViewModel> ManualChallengeBonuses { get; set; }
+    public required IEnumerable<ManualChallengeBonusViewModel> ManualBonuses { get; set; }
     public required IEnumerable<GameScoreAutoChallengeBonus> UnclaimedBonuses { get; set; }
 }
 

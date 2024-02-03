@@ -256,7 +256,7 @@ internal class ScoringService : IScoringService
                 Description = ab.ChallengeBonus.Description,
                 PointValue = ab.ChallengeBonus.PointValue
             }),
-            ManualChallengeBonuses = _mapper.Map<ManualChallengeBonusViewModel[]>(challenge.AwardedManualBonuses),
+            ManualBonuses = _mapper.Map<ManualChallengeBonusViewModel[]>(challenge.AwardedManualBonuses),
             UnclaimedBonuses = _mapper.Map<IEnumerable<GameScoreAutoChallengeBonus>>(unawardedBonuses.Where(b => b.ChallengeSpecId == challenge.SpecId))
         };
     }
