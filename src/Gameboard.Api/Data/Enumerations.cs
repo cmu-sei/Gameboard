@@ -39,12 +39,13 @@ public enum GameRegistrationType
 
 public enum ChallengeEventType
 {
-    Started,
-    GamespaceOn,
-    GamespaceOff,
-    Submission,
-    SubmissionRejectedGamespaceExpired,
-    SubmissionRejectedGameEnded
+    Started = 0,
+    GamespaceOn = 1,
+    GamespaceOff = 2,
+    Submission = 3,
+    SubmissionRejectedGamespaceExpired = 4,
+    SubmissionRejectedGameEnded = 5,
+    Regraded = 6
 }
 
 public enum ChallengeResult
