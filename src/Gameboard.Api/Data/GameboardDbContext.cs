@@ -1,6 +1,7 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
@@ -329,6 +330,22 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.UserId).HasMaxLength(40);
             b.Property(u => u.AssigneeId).HasMaxLength(40);
             b.Property(u => u.Status).HasMaxLength(64);
+        });
+
+        builder.Entity<SupportSettings>(b =>
+        {
+            b.HasKey(b => b.Id);
+            b.Property(b => b.Id).HasStandardGuidLength();
+            b
+                .Property(b => b.UpdatedOn)
+                .IsRequired();
+
+            b
+                .HasOne(b => b.UpdatedByUser)
+                .WithOne(u => u.UpdatedSupportSettings)
+                .HasForeignKey<SupportSettings>(s => s.UpdatedByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired();
         });
 
         builder.Entity<SystemNotification>(b =>

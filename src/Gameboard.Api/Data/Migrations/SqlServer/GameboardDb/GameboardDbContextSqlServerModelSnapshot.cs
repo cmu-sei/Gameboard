@@ -890,6 +890,30 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("Sponsors");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.SupportSettings", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("SupportPageGreeting")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTimeOffset>("UpdatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UpdatedByUserId")
+                        .IsUnique();
+
+                    b.ToTable("SupportSettings");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.SystemNotification", b =>
                 {
                     b.Property<string>("Id")
@@ -1352,7 +1376,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
             modelBuilder.Entity("Gameboard.Api.Data.ManualBonus", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.User", "EnteredByUser")
-                        .WithMany("EnteredManualChallengeBonuses")
+                        .WithMany("EnteredManualBonuses")
                         .HasForeignKey("EnteredByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
@@ -1399,6 +1423,17 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasForeignKey("ParentSponsorId");
 
                     b.Navigation("ParentSponsor");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.SupportSettings", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.User", "UpdatedByUser")
+                        .WithOne("UpdatedSupportSettings")
+                        .HasForeignKey("Gameboard.Api.Data.SupportSettings", "UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .IsRequired();
+
+                    b.Navigation("UpdatedByUser");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.SystemNotification", b =>
@@ -1624,7 +1659,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.Navigation("Enrollments");
 
-                    b.Navigation("EnteredManualChallengeBonuses");
+                    b.Navigation("EnteredManualBonuses");
 
                     b.Navigation("Feedback");
 
@@ -1635,6 +1670,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("SystemNotificationInteractions");
 
                     b.Navigation("UpdatedPracticeModeSettings");
+
+                    b.Navigation("UpdatedSupportSettings");
                 });
 #pragma warning restore 612, 618
         }

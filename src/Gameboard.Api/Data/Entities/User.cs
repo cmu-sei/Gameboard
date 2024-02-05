@@ -33,4 +33,5 @@ public class User : IEntity
     public ICollection<PublishedPracticeCertificate> PublishedPracticeCertificates { get; set; } = new List<PublishedPracticeCertificate>();
     public ICollection<SystemNotificationInteraction> SystemNotificationInteractions { get; set; } = new List<SystemNotificationInteraction>();
     public PracticeModeSettings UpdatedPracticeModeSettings { get; set; }
+    public SupportSettings UpdatedSupportSettings { get; set; }
 }
