@@ -708,16 +708,18 @@ public class PlayerService
             .Include(p => p.Game)
             .Include(p => p.User)
                 .ThenInclude(u => u.PublishedCompetitiveCertificates)
+            .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
             .FirstOrDefaultAsync(p => p.Id == id);
 
         var playerCount = await PlayerStore.DbSet
-            .Where(p => p.GameId == player.GameId &&
-                p.SessionEnd > DateTimeOffset.MinValue)
+            .Where(p => p.GameId == player.GameId && p.SessionEnd > DateTimeOffset.MinValue)
+            .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
             .CountAsync();
 
         var teamCount = await PlayerStore.DbSet
             .Where(p => p.GameId == player.GameId &&
                 p.SessionEnd > DateTimeOffset.MinValue)
+            .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
             .GroupBy(p => p.TeamId)
             .CountAsync();
 
