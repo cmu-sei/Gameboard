@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Teams;
@@ -17,7 +16,6 @@ public record GameScoreQuery(string GameId) : IRequest<GameScore>;
 
 internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, GameScore>
 {
-    private readonly IMapper _mapper;
     private readonly IScoringService _scoringService;
     private readonly IStore _store;
     private readonly ITeamService _teamService;
@@ -27,7 +25,6 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
 
     public GameScoreQueryHandler
     (
-        IMapper mapper,
         EntityExistsValidator<GameScoreQuery, Data.Game> gameExists,
         IScoringService scoringService,
         IStore store,
@@ -35,7 +32,6 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
         IValidatorService<GameScoreQuery> validator
     )
     {
-        _mapper = mapper;
         _scoringService = scoringService;
         _store = store;
         _teamService = teamService;
@@ -72,7 +68,7 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
         var teamScores = new Dictionary<string, GameScoreTeam>();
         foreach (var teamId in captains.Keys)
         {
-            teamScores.Add(teamId, await _scoringService.GetTeamGameScore(teamId, captains[teamId].Rank));
+            teamScores.Add(teamId, await _scoringService.GetTeamScore(teamId));
         }
 
         var teamRanks = _scoringService.ComputeTeamRanks(teamScores.Values.ToList());
@@ -89,8 +85,9 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
             Teams = players
                 .Keys
                 .Select(teamId => teamScores[teamId])
-                .OrderBy(t => t.Rank)
+                .OrderByDescending(t => t.OverallScore.TotalScore)
                     .ThenByDescending(t => t.OverallScore.TotalScore)
+                        .ThenBy(t => t.TotalTimeMs)
         };
     }
 }

@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Players;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +16,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
 {
     private readonly IGuidService _guidService;
     private readonly IMapper _mapper;
-    private readonly IPlayersTableDenormalizationService _playersTableDenormalizationService;
+    private readonly IMediator _mediator;
     private readonly IScoringService _scoringService;
     private readonly IStore _store;
     private readonly IGameboardRequestValidator<UpdateTeamChallengeBaseScoreCommand> _validator;
@@ -27,7 +26,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
     (
         IGuidService guidService,
         IMapper mapper,
-        IPlayersTableDenormalizationService playersTableDenormalizationService,
+        IMediator mediator,
         IScoringService scoringService,
         IStore store,
         IGameboardRequestValidator<UpdateTeamChallengeBaseScoreCommand> validator,
@@ -36,7 +35,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
     {
         _guidService = guidService;
         _mapper = mapper;
-        _playersTableDenormalizationService = playersTableDenormalizationService;
+        _mediator = mediator;
         _scoringService = scoringService;
         _store = store;
         _validator = validator;
@@ -103,9 +102,8 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
         // commit it
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        // also update the players table
-        // (this is a denormalization of the data in the Challenges table)
-        await _playersTableDenormalizationService.UpdateTeamData(updateChallenge.TeamId, cancellationToken);
+        // notify score-interested listeners that a team has scored
+        await _mediator.Publish(new ScoreChangedNotification(updateChallenge.TeamId));
 
         // have to query the scoring service to compose a complete score (which includes manual bonuses)
         return _mapper.Map<TeamChallengeScore>(await _scoringService.GetTeamChallengeScore(updateChallenge.Id));

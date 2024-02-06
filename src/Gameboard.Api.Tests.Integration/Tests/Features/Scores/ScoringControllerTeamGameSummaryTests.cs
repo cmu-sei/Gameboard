@@ -94,7 +94,7 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
         // when
         var result = await httpClient
             .GetAsync($"api/team/{teamId}/score")
-            .WithContentDeserializedAs<TeamGameScoreQueryResponse>();
+            .WithContentDeserializedAs<TeamScoreQueryResponse>();
 
         // then
         result.ShouldNotBeNull();

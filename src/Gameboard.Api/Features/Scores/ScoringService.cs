@@ -17,7 +17,7 @@ public interface IScoringService
 {
     Task<GameScoringConfig> GetGameScoringConfig(string gameId);
     Task<TeamChallengeScore> GetTeamChallengeScore(string challengeId);
-    Task<GameScoreTeam> GetTeamGameScore(string teamId, int rank);
+    Task<GameScoreTeam> GetTeamScore(string teamId);
     Dictionary<string, int> ComputeTeamRanks(IEnumerable<GameScoreTeam> teamScores);
 }
 
@@ -136,7 +136,7 @@ internal class ScoringService : IScoringService
         return BuildTeamScoreChallenge(challenge, spec, unawardedBonuses);
     }
 
-    public async Task<GameScoreTeam> GetTeamGameScore(string teamId, int rank)
+    public async Task<GameScoreTeam> GetTeamScore(string teamId)
     {
         var players = await _store
             .WithNoTracking<Data.Player>()
@@ -181,6 +181,7 @@ internal class ScoringService : IScoringService
         // add the session end iff the team is currently playing
         var now = _now.Get();
         DateTimeOffset? teamSessionEnd = captain.SessionBegin > now && captain.SessionEnd < now ? captain.SessionEnd : null;
+        var overallScore = CalculateScore(pointsFromChallenges, bonusPoints, manualTeamBonusPoints, manualChallengeBonusPoints);
 
         return new GameScoreTeam
         {
@@ -206,9 +207,9 @@ internal class ScoringService : IScoringService
                 EnteredOn = b.EnteredOn,
                 TeamId = b.TeamId
             }),
-            OverallScore = CalculateScore(pointsFromChallenges, bonusPoints, manualTeamBonusPoints, manualChallengeBonusPoints),
-            Rank = rank,
+            OverallScore = overallScore,
             TotalTimeMs = captain.Time,
+            RemainingTimeMs = teamSessionEnd is null || teamSessionEnd < now ? null : (teamSessionEnd.Value - _now.Get()).TotalMilliseconds,
             Challenges = challenges.Select
             (
                 c =>

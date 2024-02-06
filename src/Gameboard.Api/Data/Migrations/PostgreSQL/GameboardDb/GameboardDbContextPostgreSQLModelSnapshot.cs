@@ -445,6 +445,59 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.ToTable("ChallengeSubmissions");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.DenormalizedTeamScore", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<double>("CumulativeTimeMs")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("GameId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<double>("ScoreAutoBonus")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("ScoreChallenge")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("ScoreManualBonus")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("ScoreOverall")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("SolveCountComplete")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SolveCountNone")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SolveCountPartial")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("TeamName")
+                        .HasColumnType("text");
+
+                    b.Property<double?>("TimeRemainingMs")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameId");
+
+                    b.ToTable("DenormalizedTeamScores");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ExternalGameTeam", b =>
                 {
                     b.Property<string>("Id")
@@ -1324,6 +1377,17 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Challenge");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.DenormalizedTeamScore", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Game", "Game")
+                        .WithMany("DenormalizedTeamScores")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Game");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ExternalGameTeam", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
@@ -1609,6 +1673,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
             modelBuilder.Entity("Gameboard.Api.Data.Game", b =>
                 {
                     b.Navigation("Challenges");
+
+                    b.Navigation("DenormalizedTeamScores");
 
                     b.Navigation("ExternalGameTeams");
 

@@ -52,10 +52,10 @@ public sealed class GameScoreTeam
 {
     public required SimpleEntity Team { get; set; }
     public required IEnumerable<PlayerWithSponsor> Players { get; set; }
-    public required int Rank { get; set; }
     public required DateTimeOffset? LiveSessionEnds { get; set; }
     public required Score OverallScore { get; set; }
     public required double TotalTimeMs { get; set; }
+    public required double? RemainingTimeMs { get; set; }
     public required IEnumerable<ManualTeamBonusViewModel> ManualBonuses { get; set; } = Array.Empty<ManualTeamBonusViewModel>();
     public required IEnumerable<TeamChallengeScore> Challenges { get; set; }
 }
@@ -81,23 +81,23 @@ public class TeamChallengeScore
     public required IEnumerable<GameScoreAutoChallengeBonus> UnclaimedBonuses { get; set; }
 }
 
-public sealed class ScoreboardPlayer
+// model explicitly for the denormalized "/scoreboard" endpoint
+public sealed class ScoreboardData
+{
+    public required ScoreboardDataGame Game { get; set; }
+    public required IEnumerable<ScoreboardDataTeam> Teams { get; set; } = new List<ScoreboardDataTeam>();
+}
+
+public sealed class ScoreboardDataGame
 {
     public required string Id { get; set; }
     public required string Name { get; set; }
-    public required PlayerRole Role { get; set; }
-    public required string AvatarFileName { get; set; }
+    public required bool IsTeamGame { get; set; }
+    public required int SpecCount { get; set; }
 }
 
-// this is used internally by ScoringService, but we project into more sensible
-// models for API endpoints
-internal class ScoreboardDataSet
+public sealed class ScoreboardDataTeam
 {
-    public required GameScoringConfig GameInfo { get; set; }
-    public required IEnumerable<Gameboard.Api.Data.ChallengeSpec> ChallengeSpecs { get; set; }
-    public required IDictionary<string, SimpleEntity> TeamCaptains { get; set; }
-    public required IDictionary<string, Gameboard.Api.Data.Challenge[]> TeamChallenges { get; set; }
-    public required IDictionary<string, IEnumerable<ScoreboardPlayer>> TeamPlayers { get; set; }
-    public required IDictionary<string, int> TeamRanks { get; set; }
-    public required IEnumerable<ChallengeBonus> UnawardedBonuses { get; set; }
+    public IEnumerable<PlayerWithSponsor> Players { get; set; }
+    public DenormalizedTeamScore Score { get; set; }
 }

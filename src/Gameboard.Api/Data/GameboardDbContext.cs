@@ -228,6 +228,22 @@ public class GameboardDbContext : DbContext
                 .IsRequired();
         });
 
+        builder.Entity<DenormalizedTeamScore>(b =>
+        {
+            b.Property(d => d.Id).HasStandardGuidLength();
+            b.Property(d => d.GameId)
+                .HasStandardGuidLength()
+                .IsRequired();
+            b.Property(d => d.TeamId)
+                .HasStandardGuidLength()
+                .IsRequired();
+
+            b
+                .HasOne(d => d.Game)
+                .WithMany(g => g.DenormalizedTeamScores)
+                .IsRequired();
+        });
+
         builder.Entity<Sponsor>(b =>
         {
             b.Property(u => u.Id).HasMaxLength(40);
@@ -391,6 +407,7 @@ public class GameboardDbContext : DbContext
     public DbSet<ChallengeGate> ChallengeGates { get; set; }
     public DbSet<ChallengeSpec> ChallengeSpecs { get; set; }
     public DbSet<ChallengeSubmission> ChallengeSubmissions { get; set; }
+    public DbSet<DenormalizedTeamScore> DenormalizedTeamScores { get; set; }
     public DbSet<ExternalGameTeam> ExternalGameTeams { get; set; }
     public DbSet<Feedback> Feedback { get; set; }
     public DbSet<Game> Games { get; set; }
