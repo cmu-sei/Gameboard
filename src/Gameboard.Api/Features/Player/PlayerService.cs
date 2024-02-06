@@ -117,7 +117,7 @@ public class PlayerService
             await _store
                 .WithNoTracking<Data.Player>()
                 .Include(p => p.Sponsor)
-                .SingleAsync(p => p.Id == entity.Id)
+                .SingleAsync(p => p.Id == entity.Id, cancellationToken)
         );
     }
 
