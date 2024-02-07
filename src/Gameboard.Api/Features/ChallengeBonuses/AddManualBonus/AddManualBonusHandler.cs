@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
@@ -13,6 +14,7 @@ public record AddManualBonusCommand(string ChallengeId, string TeamId, CreateMan
 internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
 {
     private readonly IActingUserService _actingUserService;
+    private readonly IMediator _mediator;
     private readonly INowService _now;
     private readonly IStore _store;
 
@@ -22,14 +24,17 @@ internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
     // authorizers 
     private readonly UserRoleAuthorizer _roleAuthorizer;
 
-    public AddManualBonusHandler(
+    public AddManualBonusHandler
+    (
         IActingUserService actingUserService,
+        IMediator mediator,
         INowService now,
         UserRoleAuthorizer roleAuthorizer,
         IStore store,
         IGameboardRequestValidator<AddManualBonusCommand> validator)
     {
         _actingUserService = actingUserService;
+        _mediator = mediator;
         _now = now;
         _roleAuthorizer = roleAuthorizer;
         _store = store;
@@ -65,5 +70,9 @@ internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
                 EnteredByUserId = _actingUserService.Get().Id,
                 PointValue = request.Model.PointValue
             });
+
+        // adding a manual bonus will change the team's score, so we need to 
+        // manually refresh the denormalization of the scoreboard
+        await _mediator.Publish(new ScoreChangedNotification(request.TeamId));
     }
 }

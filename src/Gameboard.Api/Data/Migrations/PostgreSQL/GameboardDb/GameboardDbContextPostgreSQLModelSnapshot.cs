@@ -459,6 +459,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
+                    b.Property<int>("Rank")
+                        .HasColumnType("integer");
+
                     b.Property<double>("ScoreAutoBonus")
                         .HasColumnType("double precision");
 
@@ -488,7 +491,7 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<string>("TeamName")
                         .HasColumnType("text");
 
-                    b.Property<double?>("TimeRemainingMs")
+                    b.Property<double?>("TimeToSessionEndMs")
                         .HasColumnType("double precision");
 
                     b.HasKey("Id");

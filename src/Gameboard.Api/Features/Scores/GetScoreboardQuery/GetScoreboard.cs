@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -10,7 +9,6 @@ using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using ServiceStack;
 
 namespace Gameboard.Api.Features.Scores;
 
@@ -19,17 +17,20 @@ public record GetScoreboardQuery(string GameId) : IRequest<ScoreboardData>;
 internal class GetScoreboardHandler : IRequestHandler<GetScoreboardQuery, ScoreboardData>
 {
     private readonly EntityExistsValidator<GetScoreboardQuery, Data.Game> _gameExists;
+    private readonly IScoreDenormalizationService _scoringDenormalizationService;
     private readonly IStore _store;
     private readonly IValidatorService<GetScoreboardQuery> _validatorService;
 
     public GetScoreboardHandler
     (
         EntityExistsValidator<GetScoreboardQuery, Data.Game> gameExists,
+        IScoreDenormalizationService scoringDenormalizationService,
         IStore store,
         IValidatorService<GetScoreboardQuery> validatorService
     )
     {
         _gameExists = gameExists;
+        _scoringDenormalizationService = scoringDenormalizationService;
         _store = store;
         _validatorService = validatorService;
     }
@@ -46,17 +47,25 @@ internal class GetScoreboardHandler : IRequestHandler<GetScoreboardQuery, Scoreb
             .WithNoTracking<Data.Game>()
             .SingleAsync(g => g.Id == request.GameId, cancellationToken);
 
-        var teams = await _store
-            .WithNoTracking<DenormalizedTeamScore>()
-            .Where(s => s.GameId == request.GameId)
-            .OrderByDescending(s => s.ScoreOverall)
-                .ThenBy(s => s.CumulativeTimeMs)
-            .ToArrayAsync(cancellationToken);
+        var teams = await LoadDenormalizedTeams(request.GameId, cancellationToken);
+
+        // if the teams aren't in the denormalized table, it's probably because this is an older game
+        // that denormalized data hasn't been generated for yet. Do it here:
+        if (!teams.Any())
+        {
+            // force the game to rerank
+            await _scoringDenormalizationService.DenormalizeGame(request.GameId, cancellationToken);
+
+            // then pull teams again
+            teams = await LoadDenormalizedTeams(request.GameId, cancellationToken);
+        }
 
         var teamPlayers = await _store
             .WithNoTracking<Data.Player>()
             .Include(p => p.Sponsor)
-            .GroupBy(p => p.TeamId).ToDictionaryAsync(k => k.Key, k => k.Select(p => new PlayerWithSponsor
+            .Where(p => p.GameId == request.GameId)
+            .GroupBy(p => p.TeamId)
+            .ToDictionaryAsync(k => k.Key, k => k.Select(p => new PlayerWithSponsor
             {
                 Id = p.Id,
                 Name = p.ApprovedName,
@@ -66,7 +75,7 @@ internal class GetScoreboardHandler : IRequestHandler<GetScoreboardQuery, Scoreb
                     Name = p.Sponsor.Name,
                     Logo = p.Sponsor.Logo
                 }
-            }));
+            }), cancellationToken);
 
         var specCount = await _store
             .WithNoTracking<Data.ChallengeSpec>()
@@ -85,9 +94,19 @@ internal class GetScoreboardHandler : IRequestHandler<GetScoreboardQuery, Scoreb
             },
             Teams = teams.Select(t => new ScoreboardDataTeam
             {
+                IsAdvancedToNextRound = false,
                 Players = teamPlayers.TryGetValue(t.TeamId, out IEnumerable<PlayerWithSponsor> value) ? value : Array.Empty<PlayerWithSponsor>(),
-                Score = t
+                Score = t,
             })
         };
     }
+
+    private async Task<IEnumerable<DenormalizedTeamScore>> LoadDenormalizedTeams(string gameId, CancellationToken cancellationToken)
+        => await _store
+            .WithNoTracking<DenormalizedTeamScore>()
+            .Where(s => s.GameId == gameId)
+            .OrderBy(s => s.Rank)
+            .Where(s => s.ScoreOverall > 0)
+            .Where(s => s.Rank != 0)
+            .ToArrayAsync(cancellationToken);
 }

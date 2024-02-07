@@ -61,14 +61,14 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
         if (updateChallenge.Result == ChallengeResult.Success && updateChallenge.PlayerMode == PlayerMode.Competition)
         {
             var spec = await _store
-            .WithNoTracking<Data.ChallengeSpec>()
-            .Include
-            (
-                spec => spec
-                    .Bonuses
-                    .Where(b => b.ChallengeBonusType == ChallengeBonusType.CompleteSolveRank)
-                    .OrderBy(b => (b as ChallengeBonusCompleteSolveRank).SolveRank)
-            ).SingleAsync(spec => spec.Id == updateChallenge.SpecId, cancellationToken);
+                .WithNoTracking<Data.ChallengeSpec>()
+                .Include
+                (
+                    spec => spec
+                        .Bonuses
+                        .Where(b => b.ChallengeBonusType == ChallengeBonusType.CompleteSolveRank)
+                        .OrderBy(b => (b as ChallengeBonusCompleteSolveRank).SolveRank)
+                ).SingleAsync(spec => spec.Id == updateChallenge.SpecId, cancellationToken);
 
             // other copies of this challenge for other teams who have a solve
             var otherTeamChallenges = await _store
@@ -84,19 +84,16 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
                 .ToArrayAsync(cancellationToken);
 
             // if they have a full solve, compute their ordinal rank by time and award them the appropriate challenge bonus
-            if (updateChallenge.Result == ChallengeResult.Success)
-            {
-                var availableBonuses = spec
+            var availableBonuses = spec
                     .Bonuses
                     .Where(bonus => !otherTeamChallenges.SelectMany(c => c.AwardedBonuses).Any(otherTeamBonus => otherTeamBonus.ChallengeBonusId == bonus.Id));
 
-                if (availableBonuses.Any() && (availableBonuses.First() as ChallengeBonusCompleteSolveRank).SolveRank == otherTeamChallenges.Length + 1)
-                    updateChallenge.AwardedBonuses.Add(new AwardedChallengeBonus
-                    {
-                        Id = _guidService.GetGuid(),
-                        ChallengeBonusId = availableBonuses.First().Id
-                    });
-            }
+            if (availableBonuses.Any() && (availableBonuses.First() as ChallengeBonusCompleteSolveRank).SolveRank == otherTeamChallenges.Length + 1)
+                updateChallenge.AwardedBonuses.Add(new AwardedChallengeBonus
+                {
+                    Id = _guidService.GetGuid(),
+                    ChallengeBonusId = availableBonuses.First().Id
+                });
         }
 
         // commit it

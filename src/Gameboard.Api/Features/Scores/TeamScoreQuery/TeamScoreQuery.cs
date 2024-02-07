@@ -13,7 +13,7 @@ namespace Gameboard.Api.Features.Scores;
 public sealed class TeamScoreQueryResponse
 {
     public GameScoreGameInfo GameInfo { get; set; }
-    public GameScoreTeam Score { get; set; }
+    public TeamScore Score { get; set; }
 }
 
 public record GetTeamScoreQuery(string TeamId) : IRequest<TeamScoreQueryResponse>;
@@ -59,7 +59,7 @@ internal class GetTeamScoreHandler : IRequestHandler<GetTeamScoreQuery, TeamScor
                 IsTeamGame = game.IsTeamGame(),
                 Specs = gameSpecConfig.Specs
             },
-            Score = await _scoreService.GetTeamScore(request.TeamId)
+            Score = await _scoreService.GetTeamScore(request.TeamId, cancellationToken)
         };
     }
 }

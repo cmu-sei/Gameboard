@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
@@ -21,6 +22,7 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
     private readonly IInternalHubBus _hubBus;
     private readonly ILogger<ResetTeamSessionHandler> _logger;
     private readonly IMapper _mapper;
+    private readonly IMediator _mediator;
     private readonly IStore _store;
     private readonly ISyncStartGameService _syncStartGameService;
     private readonly ITeamService _teamService;
@@ -32,6 +34,7 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
         IInternalHubBus hubBus,
         ILogger<ResetTeamSessionHandler> logger,
         IMapper mapper,
+        IMediator mediator,
         IStore store,
         ISyncStartGameService syncStartGameService,
         ITeamService teamService,
@@ -42,6 +45,7 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
         _hubBus = hubBus;
         _logger = logger;
         _mapper = mapper;
+        _mediator = mediator;
         _store = store;
         _syncStartGameService = syncStartGameService;
         _teamService = teamService;
@@ -101,6 +105,8 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
             var captain = await _teamService.ResolveCaptain(request.TeamId, cancellationToken);
             await _hubBus.SendTeamSessionReset(_mapper.Map<Api.Player>(captain), request.ActingUser);
         }
+
+        await _mediator.Publish(new ScoreChangedNotification(request.TeamId), cancellationToken);
 
         if (game.RequireSynchronizedStart)
             await _syncStartGameService.HandleSyncStartStateChanged(game.Id, cancellationToken);

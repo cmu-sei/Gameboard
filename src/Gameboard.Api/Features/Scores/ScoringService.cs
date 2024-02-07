@@ -8,6 +8,7 @@ using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,9 +17,10 @@ namespace Gameboard.Api.Features.Scores;
 public interface IScoringService
 {
     Task<GameScoringConfig> GetGameScoringConfig(string gameId);
+    Task<GameScore> GetGameScore(string gameId, CancellationToken cancellationToken);
+    Task<TeamScore> GetTeamScore(string teamId, CancellationToken cancellationToken);
     Task<TeamChallengeScore> GetTeamChallengeScore(string challengeId);
-    Task<GameScoreTeam> GetTeamScore(string teamId);
-    Dictionary<string, int> ComputeTeamRanks(IEnumerable<GameScoreTeam> teamScores);
+    IDictionary<string, int> GetTeamkRanks(IEnumerable<TeamForRanking> teams);
 }
 
 internal class ScoringService : IScoringService
@@ -45,30 +47,6 @@ internal class ScoringService : IScoringService
         _now = now;
         _store = store;
         _teamService = teamService;
-    }
-
-    public Dictionary<string, int> ComputeTeamRanks(IEnumerable<GameScoreTeam> teamScores)
-    {
-        var scoreRank = 0;
-        GameScoreTeam lastScore = null;
-        var rankedTeamScores = teamScores
-            .OrderByDescending(s => s.OverallScore.TotalScore)
-            .ThenBy(s => s.TotalTimeMs)
-            .ToArray();
-        var teamRanks = new Dictionary<string, int>();
-
-        foreach (var teamScore in rankedTeamScores)
-        {
-            if (lastScore is null || teamScore.OverallScore.TotalScore != lastScore.OverallScore.TotalScore || teamScore.TotalTimeMs != lastScore.TotalTimeMs)
-            {
-                scoreRank += 1;
-            }
-
-            teamRanks.Add(teamScore.Team.Id, scoreRank);
-            lastScore = teamScore;
-        }
-
-        return teamRanks;
     }
 
     public async Task<GameScoringConfig> GetGameScoringConfig(string gameId)
@@ -136,7 +114,48 @@ internal class ScoringService : IScoringService
         return BuildTeamScoreChallenge(challenge, spec, unawardedBonuses);
     }
 
-    public async Task<GameScoreTeam> GetTeamScore(string teamId)
+    public async Task<GameScore> GetGameScore(string gameId, CancellationToken cancellationToken)
+    {
+        var game = await _store.WithNoTracking<Data.Game>().SingleAsync(g => g.Id == gameId);
+        var scoringConfig = await GetGameScoringConfig(gameId);
+        var players = await _store
+            .WithNoTracking<Data.Player>()
+            .Include(p => p.Sponsor)
+            .Where(p => p.GameId == gameId)
+            .GroupBy(p => p.TeamId)
+            .Select(g => new { TeamId = g.Key, Players = g.ToList() })
+            .ToDictionaryAsync(g => g.TeamId, g => g.Players, cancellationToken);
+
+        var captains = players.Keys
+            .Select(teamId => _teamService.ResolveCaptain(players[teamId]))
+            .ToDictionary(captain => captain.TeamId, captain => captain);
+
+        // have to do these synchronously because we can't reuse the dbcontext
+        // TODO: maybe a scoring service function that retrieves all at once and composes
+        var teamScores = new Dictionary<string, TeamScore>();
+        foreach (var teamId in captains.Keys)
+        {
+            teamScores.Add(teamId, await GetTeamScore(teamId, cancellationToken));
+        }
+
+        return new GameScore
+        {
+            Game = new GameScoreGameInfo
+            {
+                Id = game.Id,
+                Name = game.Name,
+                Specs = scoringConfig.Specs,
+                IsTeamGame = game.IsTeamGame()
+            },
+            Teams = players
+                .Keys
+                .Select(teamId => teamScores[teamId])
+                .OrderByDescending(t => t.OverallScore.TotalScore)
+                    .ThenBy(t => t.CumulativeTimeMs)
+        };
+    }
+
+    public async Task<TeamScore> GetTeamScore(string teamId, CancellationToken cancellationToken)
     {
         var players = await _store
             .WithNoTracking<Data.Player>()
@@ -183,7 +202,7 @@ internal class ScoringService : IScoringService
         DateTimeOffset? teamSessionEnd = captain.SessionBegin > now && captain.SessionEnd < now ? captain.SessionEnd : null;
         var overallScore = CalculateScore(pointsFromChallenges, bonusPoints, manualTeamBonusPoints, manualChallengeBonusPoints);
 
-        return new GameScoreTeam
+        return new TeamScore
         {
             Team = new SimpleEntity { Id = captain.TeamId, Name = captain.ApprovedName },
             Players = players.Select(p => new PlayerWithSponsor
@@ -197,7 +216,6 @@ internal class ScoringService : IScoringService
                     Logo = p.Sponsor.Logo
                 }
             }).ToArray(),
-            LiveSessionEnds = teamSessionEnd,
             ManualBonuses = manualTeamBonuses.Select(b => new ManualTeamBonusViewModel
             {
                 Id = b.Id,
@@ -207,8 +225,9 @@ internal class ScoringService : IScoringService
                 EnteredOn = b.EnteredOn,
                 TeamId = b.TeamId
             }),
+            IsAdvancedToNextRound = captain.Advanced,
             OverallScore = overallScore,
-            TotalTimeMs = captain.Time,
+            CumulativeTimeMs = captain.Time,
             RemainingTimeMs = teamSessionEnd is null || teamSessionEnd < now ? null : (teamSessionEnd.Value - _now.Get()).TotalMilliseconds,
             Challenges = challenges.Select
             (
@@ -225,6 +244,27 @@ internal class ScoringService : IScoringService
                 }
             )
         };
+    }
+
+    public IDictionary<string, int> GetTeamkRanks(IEnumerable<TeamForRanking> teams)
+    {
+        var scoreRank = 0;
+        TeamForRanking lastScore = null;
+        var retVal = new Dictionary<string, int>();
+        var ranked = teams.OrderByDescending(t => t.OverallScore).ThenBy(t => t.CumulativeTimeMs);
+
+        foreach (var team in ranked)
+        {
+            if (lastScore is null || team.OverallScore != lastScore.OverallScore || team.CumulativeTimeMs != lastScore.CumulativeTimeMs)
+            {
+                scoreRank += 1;
+            }
+
+            retVal.Add(team.TeamId, scoreRank);
+            lastScore = team;
+        }
+
+        return retVal;
     }
 
     internal IEnumerable<Data.ChallengeBonus> ResolveUnawardedBonuses(IEnumerable<Data.ChallengeSpec> specs, IEnumerable<Data.Challenge> challenges)

@@ -21,26 +21,23 @@ public class ScoreChangedNotification : INotification
 
 internal class ScoreChangedNotificationHandler : INotificationHandler<ScoreChangedNotification>
 {
-    private readonly IScoringService _scoringService;
+    private readonly IScoreDenormalizationService _scoreDenormalizationService;
     private readonly IStore _store;
-    private readonly ITeamService _teamService;
 
     public ScoreChangedNotificationHandler
     (
-        IScoringService scoringService,
-        IStore store,
-        ITeamService teamService
+        IScoreDenormalizationService scoringDenormalizationService,
+        IStore store
     )
     {
-        _scoringService = scoringService;
+        _scoreDenormalizationService = scoringDenormalizationService;
         _store = store;
-        _teamService = teamService;
     }
 
     public async Task Handle(ScoreChangedNotification notification, CancellationToken cancellationToken)
     {
         await DoLegacyRerank(notification.TeamId, cancellationToken);
-        await DenormalizeScore(notification.TeamId, cancellationToken);
+        await _scoreDenormalizationService.DenormalizeTeam(notification.TeamId, cancellationToken);
     }
 
     private async Task DoLegacyRerank(string teamId, CancellationToken cancellationToken)
@@ -102,38 +99,5 @@ internal class ScoreChangedNotificationHandler : INotificationHandler<ScoreChang
             // save it up
             await ctx.SaveChangesAsync(cancellationToken);
         }, cancellationToken);
-    }
-
-    private async Task DenormalizeScore(string teamId, CancellationToken cancellationToken)
-    {
-        var updatedScore = await _scoringService.GetTeamScore(teamId);
-        var gameId = await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => p.TeamId == teamId)
-            .Select(p => p.GameId)
-            .SingleAsync(cancellationToken);
-
-        var captain = await _teamService.ResolveCaptain(teamId, cancellationToken);
-
-        await _store
-            .WithNoTracking<DenormalizedTeamScore>()
-            .Where(s => s.TeamId == teamId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await _store.Create(new DenormalizedTeamScore
-        {
-            GameId = gameId,
-            TeamId = teamId,
-            TeamName = captain.ApprovedName,
-            ScoreOverall = updatedScore.OverallScore.TotalScore,
-            ScoreAutoBonus = updatedScore.OverallScore.BonusScore,
-            ScoreManualBonus = updatedScore.OverallScore.ManualBonusScore,
-            ScoreChallenge = updatedScore.OverallScore.CompletionScore,
-            SolveCountNone = updatedScore.Challenges.Where(c => c.Result == ChallengeResult.None).Count(),
-            SolveCountComplete = updatedScore.Challenges.Where(c => c.Result == ChallengeResult.Success).Count(),
-            SolveCountPartial = updatedScore.Challenges.Where(c => c.Result == ChallengeResult.Partial).Count(),
-            CumulativeTimeMs = updatedScore.TotalTimeMs,
-            TimeRemainingMs = updatedScore.RemainingTimeMs
-        });
     }
 }

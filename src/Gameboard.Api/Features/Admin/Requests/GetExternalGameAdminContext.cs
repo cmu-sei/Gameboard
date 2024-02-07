@@ -162,7 +162,7 @@ internal class GetExternalGameAdminContextHandler : IRequestHandler<GetExternalG
                     teamDeployStatuses[key] :
                     ExternalGameTeamDeployStatus.NotStarted,
                 IsReady = teams[key].All(p => p.IsReady),
-                Challenges = gameData.Specs.Select(s =>
+                Challenges = gameData.Specs.OrderBy(s => s.Name).Select(s =>
                     {
                         // note that the team may not have any challenges and thus not be
                         // in the challenge dictionary. If they aren't, use default

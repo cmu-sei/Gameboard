@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
-using Gameboard.Api;
 using Gameboard.Api.Data;
+
+namespace Gameboard.Api.Features.Scores;
 
 public sealed class Score
 {
@@ -37,7 +38,7 @@ public class GameScoringConfigChallengeBonus
 public class GameScore
 {
     public required GameScoreGameInfo Game { get; set; }
-    public required IEnumerable<GameScoreTeam> Teams { get; set; }
+    public required IEnumerable<TeamScore> Teams { get; set; }
 }
 
 public sealed class GameScoreGameInfo
@@ -48,13 +49,13 @@ public sealed class GameScoreGameInfo
     public required IEnumerable<GameScoringConfigChallengeSpec> Specs { get; set; }
 }
 
-public sealed class GameScoreTeam
+public sealed class TeamScore
 {
     public required SimpleEntity Team { get; set; }
     public required IEnumerable<PlayerWithSponsor> Players { get; set; }
-    public required DateTimeOffset? LiveSessionEnds { get; set; }
+    public required bool IsAdvancedToNextRound { get; set; }
     public required Score OverallScore { get; set; }
-    public required double TotalTimeMs { get; set; }
+    public required double CumulativeTimeMs { get; set; }
     public required double? RemainingTimeMs { get; set; }
     public required IEnumerable<ManualTeamBonusViewModel> ManualBonuses { get; set; } = Array.Empty<ManualTeamBonusViewModel>();
     public required IEnumerable<TeamChallengeScore> Challenges { get; set; }
@@ -81,6 +82,13 @@ public class TeamChallengeScore
     public required IEnumerable<GameScoreAutoChallengeBonus> UnclaimedBonuses { get; set; }
 }
 
+public sealed class TeamForRanking
+{
+    public required string TeamId { get; set; }
+    public required double OverallScore { get; set; }
+    public required double CumulativeTimeMs { get; set; }
+}
+
 // model explicitly for the denormalized "/scoreboard" endpoint
 public sealed class ScoreboardData
 {
@@ -98,6 +106,7 @@ public sealed class ScoreboardDataGame
 
 public sealed class ScoreboardDataTeam
 {
-    public IEnumerable<PlayerWithSponsor> Players { get; set; }
-    public DenormalizedTeamScore Score { get; set; }
+    public required bool IsAdvancedToNextRound { get; set; }
+    public required IEnumerable<PlayerWithSponsor> Players { get; set; }
+    public required DenormalizedTeamScore Score { get; set; }
 }

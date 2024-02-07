@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Gameboard.Api.Features.Hubs;
+using Gameboard.Api.Features.Scores;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Gameboard.Api.Hubs;

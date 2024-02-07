@@ -1,3 +1,5 @@
+using Gameboard.Api.Features.Scores;
+
 namespace Gameboard.Api.Tests.Integration;
 
 public class ScoringControllerTeamChallengeSummaryTests : IClassFixture<GameboardTestContext>
