@@ -104,9 +104,11 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
             // local storage stuff up if there's a reset).
             var captain = await _teamService.ResolveCaptain(request.TeamId, cancellationToken);
             await _hubBus.SendTeamSessionReset(_mapper.Map<Api.Player>(captain), request.ActingUser);
-        }
 
-        await _mediator.Publish(new ScoreChangedNotification(request.TeamId), cancellationToken);
+            // for now, we only raise the score changing event if we're keeping the team enrolled
+            // (need to do this in the opposite order if we're resetting)
+            await _mediator.Publish(new ScoreChangedNotification(request.TeamId), cancellationToken);
+        }
 
         if (game.RequireSynchronizedStart)
             await _syncStartGameService.HandleSyncStartStateChanged(game.Id, cancellationToken);

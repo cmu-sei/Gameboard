@@ -36,8 +36,8 @@ internal class ScoreChangedNotificationHandler : INotificationHandler<ScoreChang
 
     public async Task Handle(ScoreChangedNotification notification, CancellationToken cancellationToken)
     {
-        await DoLegacyRerank(notification.TeamId, cancellationToken);
         await _scoreDenormalizationService.DenormalizeTeam(notification.TeamId, cancellationToken);
+        await DoLegacyRerank(notification.TeamId, cancellationToken);
     }
 
     private async Task DoLegacyRerank(string teamId, CancellationToken cancellationToken)
