@@ -14,7 +14,6 @@ using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Games.External;
@@ -469,7 +468,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
                 // after the asynchronous part is over, we need to do database updates to ensure the DB has the correct 
                 // game-engine-supplied state for each challenge
-                foreach (var state in deployResults)
+                foreach (var state in deployResults.Where(state => state is not null))
                 {
                     string serializedState = null;
                     var isGamespaceOn = false;
@@ -504,7 +503,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         var deployedGamespaceCount = retVal.Values.Select(gamespace => gamespace.IsDeployed).Count();
 
         Log($"Finished deploying gamespaces: {totalGamespaceCount} gamespaces ({deployedGamespaceCount} ready), {totalVmCount} visible VMs.", request.Game.Id);
-        Log($"Undeployed/unstarted gamespaces: {request.Context.GamespaceIdsStartFailed}", request.Game.Id);
+        Log($"Undeployed/unstarted gamespaces: {string.Join(", ", request.Context.GamespaceIdsStartFailed)}", request.Game.Id);
         await _gameHubBus.SendExternalGameGamespacesDeployEnd(request.Context.ToUpdate());
         return retVal;
     }
