@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Structure.MediatR;
@@ -17,6 +18,7 @@ public record GetScoreboardQuery(string GameId) : IRequest<ScoreboardData>;
 internal class GetScoreboardHandler : IRequestHandler<GetScoreboardQuery, ScoreboardData>
 {
     private readonly EntityExistsValidator<GetScoreboardQuery, Data.Game> _gameExists;
+    private readonly INowService _now;
     private readonly IScoreDenormalizationService _scoringDenormalizationService;
     private readonly IStore _store;
     private readonly IValidatorService<GetScoreboardQuery> _validatorService;
@@ -24,12 +26,14 @@ internal class GetScoreboardHandler : IRequestHandler<GetScoreboardQuery, Scoreb
     public GetScoreboardHandler
     (
         EntityExistsValidator<GetScoreboardQuery, Data.Game> gameExists,
+        INowService now,
         IScoreDenormalizationService scoringDenormalizationService,
         IStore store,
         IValidatorService<GetScoreboardQuery> validatorService
     )
     {
         _gameExists = gameExists;
+        _now = now;
         _scoringDenormalizationService = scoringDenormalizationService;
         _store = store;
         _validatorService = validatorService;
@@ -83,12 +87,16 @@ internal class GetScoreboardHandler : IRequestHandler<GetScoreboardQuery, Scoreb
             .Where(s => !s.Disabled)
             .CountAsync(cancellationToken);
 
+        var now = _now.Get();
+        var isLive = game.GameStart.IsNotEmpty() && game.GameStart >= now && game.GameEnd.IsNotEmpty();
+
         return new ScoreboardData
         {
             Game = new ScoreboardDataGame
             {
                 Id = game.Id,
                 Name = game.Name,
+                IsLiveUntil = game.GameEnd,
                 IsTeamGame = game.IsTeamGame(),
                 SpecCount = specCount
             },

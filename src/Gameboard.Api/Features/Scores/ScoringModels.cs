@@ -100,6 +100,7 @@ public sealed class ScoreboardDataGame
 {
     public required string Id { get; set; }
     public required string Name { get; set; }
+    public required DateTimeOffset? IsLiveUntil { get; set; }
     public required bool IsTeamGame { get; set; }
     public required int SpecCount { get; set; }
 }
