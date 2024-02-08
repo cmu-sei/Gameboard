@@ -1,9 +1,16 @@
+using System.Collections.Generic;
 using Gameboard.Api.Structure;
 
 public sealed class CantPreDeployNonExternalGame : GameboardValidationException
 {
     public CantPreDeployNonExternalGame(string gameId)
         : base($"Can't predeploy resources for game {gameId} - it's not external/sync-start.") { }
+}
+
+public sealed class CantResolveTeamDeployStatus : GameboardException
+{
+    public CantResolveTeamDeployStatus(string gameId, string teamId)
+        : base($"Couldn't resolve deploy status for team {teamId} in game {gameId}.") { }
 }
 
 public sealed class GameHasUnexpectedEngineMode : GameboardValidationException
@@ -16,4 +23,10 @@ public sealed class GameHasUnexpectedSyncStart : GameboardValidationException
 {
     public GameHasUnexpectedSyncStart(string gameId, bool expectsSyncStart)
         : base($"Game {gameId} has unexpected sync start setting. Expected: {expectsSyncStart} (Actual: {!expectsSyncStart})") { }
+}
+
+public sealed class GameResourcesArentDeployedOnStart : GameboardException
+{
+    public GameResourcesArentDeployedOnStart(string gameId, IEnumerable<string> undeployedGamespaceIds)
+        : base($"Couldn't launch game {gameId}: some of its gamespaces aren't deployed ({string.Join(", ", undeployedGamespaceIds)}).") { }
 }

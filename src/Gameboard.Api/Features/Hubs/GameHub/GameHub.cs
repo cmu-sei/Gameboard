@@ -120,8 +120,7 @@ public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
 
     private IList<string> AddUserToGameCache(string gameId, Data.Player player)
     {
-        IList<string> userIds;
-        if (!_cache.TryGetValue(gameId, out userIds))
+        if (!_cache.TryGetValue(gameId, out IList<string> userIds))
         {
             var opts = new MemoryCacheEntryOptions();
             opts.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(player.SessionMinutes);
@@ -134,8 +133,7 @@ public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
 
     private void RemoveUserFromGameCache(string gameId, string userId)
     {
-        IList<string> userIdList;
-        if (_cache.TryGetValue<IList<string>>(gameId, out userIdList))
+        if (_cache.TryGetValue(gameId, out IList<string> userIdList))
         {
             userIdList.Remove(userId);
             _cache.Set(gameId, userIdList);

@@ -6,7 +6,7 @@ using Gameboard.Api.Features.Teams;
 using Microsoft.Extensions.Caching.Memory;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Practice;
-using Gameboard.Api.Features.Games.External;
+using MediatR;
 
 namespace Gameboard.Api.Tests.Unit;
 
@@ -19,9 +19,9 @@ public class TeamServiceTests
         var playerStore = A.Fake<IPlayerStore>();
         var sut = new TeamService
         (
-            A.Fake<IExternalGameTeamService>(),
             A.Fake<IGameEngineService>(),
             A.Fake<IMapper>(),
+            A.Fake<IMediator>(),
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
             A.Fake<IInternalHubBus>(),

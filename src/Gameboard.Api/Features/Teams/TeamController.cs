@@ -63,10 +63,8 @@ public class TeamController : ControllerBase
         => _mediator.Send(new GetTeamEventHorizonQuery(teamId));
 
     [HttpPost("{teamId}/session")]
-    public async Task ResetSession([FromRoute] string teamId, [FromBody] ResetTeamSessionCommand request, CancellationToken cancellationToken)
-    {
-        await _mediator.Send(new ResetTeamSessionCommand(teamId, request.UnenrollTeam, _actingUserService.Get()), cancellationToken);
-    }
+    public Task ResetSession([FromRoute] string teamId, [FromBody] ResetTeamSessionCommand request, CancellationToken cancellationToken)
+        => _mediator.Send(new ResetTeamSessionCommand(teamId, request.UnenrollTeam, true, _actingUserService.Get()), cancellationToken);
 
     [HttpPut("{teamId}/ready")]
     [Authorize]

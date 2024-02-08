@@ -7,8 +7,8 @@ namespace Gameboard.Api.Features.Games;
 
 public enum GamePlayState
 {
-    NotRegistered,
     NotStarted,
+    DeployingResources,
     Starting,
     Started,
     GameOver
@@ -21,8 +21,8 @@ public class GameStartRequest
 
 public sealed class GameModeStartRequest
 {
-    public required SimpleEntity Game { get; set; }
     public required GameStartContext Context { get; set; }
+    public required SimpleEntity Game { get; set; }
 }
 
 public sealed class GameStartContext
@@ -33,6 +33,7 @@ public sealed class GameStartContext
     public List<GameStartContextChallenge> ChallengesCreated { get; } = new List<GameStartContextChallenge>();
     public required int TotalChallengeCount { get; set; }
     public List<GameEngineGameState> GamespacesStarted { get; } = new List<GameEngineGameState>();
+    public List<string> GamespaceIdsStartFailed { get; } = new List<string>();
     public required int TotalGamespaceCount { get; set; }
     public required double SessionLengthMinutes { get; set; }
     public required IEnumerable<string> SpecIds { get; set; }
@@ -48,7 +49,7 @@ public sealed class GameStartDeployedResources
 
 public sealed class GameStartDeployedTeamResources
 {
-    public required IEnumerable<GameStartDeployedChallenge> Resources { get; set; }
+    public required IEnumerable<GameStartDeployedChallenge> Challenges { get; set; }
 }
 
 public sealed class GameStartContextChallenge
@@ -98,6 +99,7 @@ public sealed class GameStartUpdate
     public int ChallengesCreated { get; set; } = 0;
     public int ChallengesTotal { get; set; } = 0;
     public int GamespacesStarted { get; set; } = 0;
+    public int GamespacesStartFailed { get; set; } = 0;
     public int GamespacesTotal { get; set; } = 0;
     public DateTimeOffset StartTime { get; set; }
     public required DateTimeOffset Now { get; set; }
@@ -114,6 +116,7 @@ public static class GameStartContextExtensions
             ChallengesCreated = context.ChallengesCreated.Count,
             ChallengesTotal = context.TotalChallengeCount,
             GamespacesStarted = context.GamespacesStarted.Count,
+            GamespacesStartFailed = context.GamespaceIdsStartFailed.Count,
             GamespacesTotal = context.TotalGamespaceCount,
             StartTime = context.StartTime,
             Now = DateTimeOffset.UtcNow,
