@@ -96,7 +96,7 @@ internal class GetScoreboardHandler : IRequestHandler<GetScoreboardQuery, Scoreb
             {
                 Id = game.Id,
                 Name = game.Name,
-                IsLiveUntil = game.GameEnd,
+                IsLiveUntil = isLive ? game.GameEnd : null,
                 IsTeamGame = game.IsTeamGame(),
                 SpecCount = specCount
             },
