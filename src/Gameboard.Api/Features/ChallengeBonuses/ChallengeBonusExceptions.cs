@@ -3,6 +3,12 @@ using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.ChallengeBonuses;
 
+public sealed class CantResolveManualBonusType : GameboardValidationException
+{
+    public CantResolveManualBonusType(string manualBonusId)
+        : base($"Couldn't resolve the type of manual bonus {manualBonusId}") { }
+}
+
 public sealed class GameAutoBonusCantBeNonPositive : GameboardValidationException
 {
     public GameAutoBonusCantBeNonPositive(string gameId, IEnumerable<double> pointValues)
