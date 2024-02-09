@@ -79,6 +79,12 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
         {
             _logger.LogInformation($"Deleting player records for team {request.TeamId}");
             await _teamService.DeleteTeam(request.TeamId, new SimpleEntity { Id = request.ActingUser.Id, Name = request.ActingUser.ApprovedName }, cancellationToken);
+
+            // also get rid of any external game artifacts if they have any
+            await _store
+                .WithNoTracking<ExternalGameTeam>()
+                .Where(t => t.TeamId == request.TeamId)
+                .ExecuteDeleteAsync(cancellationToken);
         }
         else
         {
@@ -109,12 +115,6 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
             // (need to do this in the opposite order if we're resetting)
             await _mediator.Publish(new ScoreChangedNotification(request.TeamId), cancellationToken);
         }
-
-        // also get rid of any external game artifacts if they have any
-        await _store
-            .WithNoTracking<ExternalGameTeam>()
-            .Where(t => t.TeamId == request.TeamId)
-            .ExecuteDeleteAsync(cancellationToken);
 
         if (gameInfo.RequireSynchronizedStart)
             await _syncStartGameService.HandleSyncStartStateChanged(gameInfo.Id, cancellationToken);
