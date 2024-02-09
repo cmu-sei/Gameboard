@@ -2,7 +2,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Teams;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
