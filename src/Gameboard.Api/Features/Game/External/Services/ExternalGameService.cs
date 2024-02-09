@@ -25,8 +25,8 @@ public interface IExternalGameService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<ExternalGameTeam> GetTeam(string teamId, CancellationToken cancellationToken);
-    Task UpdateGameDeployStatus(string gameId, ExternalGameTeamDeployStatus status, CancellationToken cancellationToken);
-    Task UpdateTeamDeployStatus(IEnumerable<string> teamIds, ExternalGameTeamDeployStatus status, CancellationToken cancellationToken);
+    Task UpdateGameDeployStatus(string gameId, ExternalGameDeployStatus status, CancellationToken cancellationToken);
+    Task UpdateTeamDeployStatus(IEnumerable<string> teamIds, ExternalGameDeployStatus status, CancellationToken cancellationToken);
     Task UpdateTeamExternalUrl(string teamId, string url, CancellationToken cancellationToken);
 }
 
@@ -62,7 +62,7 @@ internal class ExternalGameService : IExternalGameService
             Id = _guids.GetGuid(),
             GameId = gameId,
             TeamId = teamId,
-            DeployStatus = ExternalGameTeamDeployStatus.NotStarted
+            DeployStatus = ExternalGameDeployStatus.NotStarted
         }).ToArray());
     }
 
@@ -132,18 +132,24 @@ internal class ExternalGameService : IExternalGameService
         var captains = teams.Keys
             .ToDictionary(key => key, key => _teamService.ResolveCaptain(teams[key]));
 
-        var teamDeployStatuses = new Dictionary<string, ExternalGameTeamDeployStatus>();
+        var teamDeployStatuses = new Dictionary<string, ExternalGameDeployStatus>();
         foreach (var teamId in teams.Keys)
         {
-            if (gameData.ExternalGameTeams.Any(t => t.TeamId == teamId && (t.DeployStatus == ExternalGameTeamDeployStatus.Deploying || t.ExternalGameUrl is null)))
+            if (gameData.ExternalGameTeams.Any(t => t.ExternalGameUrl is null))
             {
-                teamDeployStatuses.Add(teamId, ExternalGameTeamDeployStatus.Deploying);
+                teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.PartiallyDeployed);
+                continue;
+            }
+
+            if (gameData.ExternalGameTeams.Any(t => t.TeamId == teamId && t.DeployStatus == ExternalGameDeployStatus.Deploying))
+            {
+                teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.Deploying);
                 continue;
             }
 
             if (!teamChallenges.ContainsKey(teamId) || !teamChallenges[teamId].Any())
             {
-                teamDeployStatuses.Add(teamId, ExternalGameTeamDeployStatus.NotStarted);
+                teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.NotStarted);
                 continue;
             }
 
@@ -152,7 +158,7 @@ internal class ExternalGameService : IExternalGameService
 
             if (allChallengesCreated && allGamespacesDeployedOrFinished)
             {
-                teamDeployStatuses.Add(teamId, ExternalGameTeamDeployStatus.Deployed);
+                teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.Deployed);
                 continue;
             }
 
@@ -182,7 +188,7 @@ internal class ExternalGameService : IExternalGameService
                 Name = captains[key].ApprovedName,
                 DeployStatus = teamDeployStatuses.ContainsKey(key) ?
                     teamDeployStatuses[key] :
-                    ExternalGameTeamDeployStatus.NotStarted,
+                    ExternalGameDeployStatus.NotStarted,
                 IsReady = teams[key].All(p => p.IsReady),
                 Challenges = gameData.Specs.Select(s =>
                 {
@@ -248,7 +254,7 @@ internal class ExternalGameService : IExternalGameService
             .WithNoTracking<ExternalGameTeam>()
             .SingleOrDefaultAsync(r => r.TeamId == teamId, cancellationToken);
 
-    public async Task UpdateGameDeployStatus(string gameId, ExternalGameTeamDeployStatus status, CancellationToken cancellationToken)
+    public async Task UpdateGameDeployStatus(string gameId, ExternalGameDeployStatus status, CancellationToken cancellationToken)
     {
         await _store
             .WithNoTracking<ExternalGameTeam>()
@@ -256,7 +262,7 @@ internal class ExternalGameService : IExternalGameService
             .ExecuteUpdateAsync(up => up.SetProperty(d => d.DeployStatus, status));
     }
 
-    public Task UpdateTeamDeployStatus(IEnumerable<string> teamIds, ExternalGameTeamDeployStatus status, CancellationToken cancellationToken)
+    public Task UpdateTeamDeployStatus(IEnumerable<string> teamIds, ExternalGameDeployStatus status, CancellationToken cancellationToken)
         => _store
             .WithNoTracking<ExternalGameTeam>()
             .Where(t => teamIds.Contains(t.TeamId))
@@ -271,17 +277,17 @@ internal class ExternalGameService : IExternalGameService
             .ExecuteUpdateAsync(up => up.SetProperty(t => t.ExternalGameUrl, url), cancellationToken);
     }
 
-    private ExternalGameStateDeployStatus ResolveOverallDeployStatus(IEnumerable<ExternalGameTeamDeployStatus> teamStatuses)
+    private ExternalGameDeployStatus ResolveOverallDeployStatus(IEnumerable<ExternalGameDeployStatus> teamStatuses)
     {
-        if (teamStatuses.All(s => s == ExternalGameTeamDeployStatus.Deployed))
-            return ExternalGameStateDeployStatus.Deployed;
+        if (teamStatuses.All(s => s == ExternalGameDeployStatus.Deployed))
+            return ExternalGameDeployStatus.Deployed;
 
-        if (teamStatuses.All(s => s == ExternalGameTeamDeployStatus.NotStarted))
-            return ExternalGameStateDeployStatus.NotStarted;
+        if (teamStatuses.All(s => s == ExternalGameDeployStatus.NotStarted) || !teamStatuses.Any())
+            return ExternalGameDeployStatus.NotStarted;
 
-        if (teamStatuses.Any(s => s == ExternalGameTeamDeployStatus.Deploying))
-            return ExternalGameStateDeployStatus.Deploying;
+        if (teamStatuses.Any(s => s == ExternalGameDeployStatus.Deploying))
+            return ExternalGameDeployStatus.Deploying;
 
-        return ExternalGameStateDeployStatus.PartiallyDeployed;
+        return ExternalGameDeployStatus.PartiallyDeployed;
     }
 }

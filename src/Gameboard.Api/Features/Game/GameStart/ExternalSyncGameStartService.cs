@@ -192,7 +192,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         var teamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();
         await _externalGameService.CreateTeams(request.Game.Id, teamIds, cancellationToken);
         // update the external team metadata to reflect that we're deploying
-        await _externalGameService.UpdateTeamDeployStatus(teamIds, ExternalGameTeamDeployStatus.Deploying, cancellationToken);
+        await _externalGameService.UpdateTeamDeployStatus(teamIds, ExternalGameDeployStatus.Deploying, cancellationToken);
 
         // deploy challenges and gamespaces
         var challengeDeployResults = await DeployChallenges(request, cancellationToken);
@@ -229,7 +229,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         }
 
         // log that we're done deploying these teams
-        await _externalGameService.UpdateTeamDeployStatus(teamIds, ExternalGameTeamDeployStatus.Deployed, cancellationToken);
+        await _externalGameService.UpdateTeamDeployStatus(teamIds, ExternalGameDeployStatus.Deployed, cancellationToken);
 
         return new GameStartDeployedResources
         {
@@ -242,13 +242,13 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     {
         var gameState = await _externalGameService.GetExternalGameState(gameId, cancellationToken);
 
-        if (gameState.OverallDeployStatus == ExternalGameStateDeployStatus.NotStarted)
+        if (gameState.OverallDeployStatus == ExternalGameDeployStatus.NotStarted)
             return GamePlayState.NotStarted;
 
         if (!gameState.Teams.Any() || gameState.Teams.Any(t => !t.IsReady) || !gameState.Teams.SelectMany(t => t.Challenges).Any())
             return GamePlayState.NotStarted;
 
-        if (gameState.OverallDeployStatus == ExternalGameStateDeployStatus.Deploying)
+        if (gameState.OverallDeployStatus == ExternalGameDeployStatus.Deploying)
             return GamePlayState.DeployingResources;
 
         if (gameState.HasNonStandardSessionWindow)
@@ -267,18 +267,11 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // notify the teams that something is amiss
         await _gameHubBus.SendExternalGameLaunchFailure(request.Context.ToUpdate());
 
-        // clean up external team metadata (deploy statuses and external links like Unity headless URLs)
-        var cleanupTeamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();
-        try
-        {
-            await _externalGameService.DeleteTeamExternalData(cancellationToken, cleanupTeamIds);
-        }
-        catch (Exception deleteExternalTeamDataException)
-        {
-            Log($"Error cleaning up external team data (teams: {string.Join(',', cleanupTeamIds)}): {deleteExternalTeamDataException.GetType().Name} :: {deleteExternalTeamDataException.Message}", request.Game.Id);
-        }
-
         // NOT CLEANING UP GAMESPACES FOR NOW - MAYBE WE CAN REUSE
+        // clean up external team metadata (deploy statuses and external links like Unity headless URLs)
+        // var cleanupTeamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();
+        // await _externalGameService.DeleteTeamExternalData(cancellationToken, cleanupTeamIds);
+
         // the GameStartService which orchestrates all game starts will automatically clean up challenges
         // if an exception was thrown, but we still need to clean up any created tm gamespaces (if
         // we're not trying to reuse them)

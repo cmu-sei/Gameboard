@@ -13,7 +13,7 @@ namespace Gameboard.Api.Features.Games.External;
 public sealed class GetExternalTeamDataResponse
 {
     public required string TeamId { get; set; }
-    public required ExternalGameTeamDeployStatus DeployStatus { get; set; }
+    public required ExternalGameDeployStatus DeployStatus { get; set; }
     public required string ExternalUrl { get; set; }
 }
 
