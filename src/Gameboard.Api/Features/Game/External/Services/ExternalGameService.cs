@@ -135,7 +135,7 @@ internal class ExternalGameService : IExternalGameService
         var teamDeployStatuses = new Dictionary<string, ExternalGameTeamDeployStatus>();
         foreach (var teamId in teams.Keys)
         {
-            if (gameData.ExternalGameTeams.Any(t => t.TeamId == teamId && t.DeployStatus == ExternalGameTeamDeployStatus.Deploying))
+            if (gameData.ExternalGameTeams.Any(t => t.TeamId == teamId && (t.DeployStatus == ExternalGameTeamDeployStatus.Deploying || t.ExternalGameUrl is null)))
             {
                 teamDeployStatuses.Add(teamId, ExternalGameTeamDeployStatus.Deploying);
                 continue;

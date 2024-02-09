@@ -77,7 +77,5 @@ internal class ChallengeSubmissionsService : IChallengeSubmissionsService
             .WithNoTracking<Data.Challenge>()
             .Where(c => c.Id == challengeId)
             .ExecuteUpdateAsync(up => up.SetProperty(c => c.PendingSubmission, null as string), cancellationToken);
-
-        Console.WriteLine(rowsAffected);
     }
 }
