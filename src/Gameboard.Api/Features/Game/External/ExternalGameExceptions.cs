@@ -13,6 +13,12 @@ public sealed class CantResolveTeamDeployStatus : GameboardException
         : base($"Couldn't resolve deploy status for team {teamId} in game {gameId}.") { }
 }
 
+public sealed class CantResolveGameDeployStatus : GameboardException
+{
+    public CantResolveGameDeployStatus(string gameId)
+        : base($"Couldn't resolve deploy status for game {gameId}.") { }
+}
+
 public sealed class GameHasUnexpectedEngineMode : GameboardValidationException
 {
     public GameHasUnexpectedEngineMode(string gameId, string engineMode, string expectedEngineMode)

@@ -251,10 +251,13 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         if (gameState.OverallDeployStatus == ExternalGameDeployStatus.Deploying)
             return GamePlayState.DeployingResources;
 
-        if (gameState.HasNonStandardSessionWindow)
+        if (gameState.OverallDeployStatus == ExternalGameDeployStatus.Deployed)
+            return GamePlayState.Started;
+
+        if (gameState.HasNonStandardSessionWindow || gameState.OverallDeployStatus == ExternalGameDeployStatus.PartiallyDeployed)
             return GamePlayState.Starting;
 
-        return GamePlayState.Started;
+        throw new CantResolveGameDeployStatus(gameId);
     }
 
     public async Task TryCleanUpFailedDeploy(GameModeStartRequest request, Exception exception, CancellationToken cancellationToken)
