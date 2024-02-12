@@ -94,8 +94,7 @@ internal class ScoreDenormalizationService : IScoreDenormalizationService
             SolveCountNone = team.Challenges.Where(c => c.Result == ChallengeResult.None).Count(),
             SolveCountComplete = team.Challenges.Where(c => c.Result == ChallengeResult.Success).Count(),
             SolveCountPartial = team.Challenges.Where(c => c.Result == ChallengeResult.Partial).Count(),
-            CumulativeTimeMs = team.CumulativeTimeMs,
-            TimeToSessionEndMs = timeRemaining.TotalMilliseconds > 0 ? timeRemaining.TotalMilliseconds : null
+            CumulativeTimeMs = captain.Time
         });
 
         // force reranking

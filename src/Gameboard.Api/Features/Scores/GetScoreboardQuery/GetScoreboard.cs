@@ -10,6 +10,7 @@ using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Features.Scores;
 
@@ -69,16 +70,14 @@ internal class GetScoreboardHandler : IRequestHandler<GetScoreboardQuery, Scoreb
             .Include(p => p.Sponsor)
             .Where(p => p.GameId == request.GameId)
             .GroupBy(p => p.TeamId)
-            .ToDictionaryAsync(k => k.Key, k => k.Select(p => new PlayerWithSponsor
+            .ToDictionaryAsync(k => k.Key, k => k.Select(p => new
             {
-                Id = p.Id,
-                Name = p.ApprovedName,
-                Sponsor = new SimpleSponsor
-                {
-                    Id = p.SponsorId,
-                    Name = p.Sponsor.Name,
-                    Logo = p.Sponsor.Logo
-                }
+                p.Id,
+                p.ApprovedName,
+                p.SessionEnd,
+                p.SponsorId,
+                SponsorName = p.Sponsor.Name,
+                SponsorLogo = p.Sponsor.Logo
             }), cancellationToken);
 
         var specCount = await _store
@@ -88,7 +87,7 @@ internal class GetScoreboardHandler : IRequestHandler<GetScoreboardQuery, Scoreb
             .CountAsync(cancellationToken);
 
         var now = _now.Get();
-        var isLive = game.GameStart.IsNotEmpty() && game.GameStart >= now && game.GameEnd.IsNotEmpty();
+        var isLive = game.GameStart.IsNotEmpty() && game.GameStart <= now && game.GameEnd.IsNotEmpty() && game.GameEnd >= now;
 
         return new ScoreboardData
         {
@@ -100,11 +99,32 @@ internal class GetScoreboardHandler : IRequestHandler<GetScoreboardQuery, Scoreb
                 IsTeamGame = game.IsTeamGame(),
                 SpecCount = specCount
             },
-            Teams = teams.Select(t => new ScoreboardDataTeam
+            Teams = teams.Select(t =>
             {
-                IsAdvancedToNextRound = false,
-                Players = teamPlayers.TryGetValue(t.TeamId, out IEnumerable<PlayerWithSponsor> value) ? value : Array.Empty<PlayerWithSponsor>(),
-                Score = t,
+                var teamData = teamPlayers.ContainsKey(t.TeamId) ? teamPlayers[t.TeamId] : null;
+                var sessionEnd = teamData?.FirstOrDefault()?.SessionEnd;
+
+                if (sessionEnd is null || sessionEnd.Value.IsEmpty() || sessionEnd < now)
+                    sessionEnd = null;
+
+                return new ScoreboardDataTeam
+                {
+
+                    IsAdvancedToNextRound = false,
+                    SessionEnds = sessionEnd,
+                    Players = teamData is null ? Array.Empty<PlayerWithSponsor>() : teamData.Select(p => new PlayerWithSponsor
+                    {
+                        Id = p.Id,
+                        Name = p.ApprovedName,
+                        Sponsor = new SimpleSponsor
+                        {
+                            Id = p.SponsorId,
+                            Name = p.SponsorName,
+                            Logo = p.SponsorLogo
+                        }
+                    }),
+                    Score = t,
+                };
             })
         };
     }

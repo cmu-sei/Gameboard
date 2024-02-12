@@ -78,6 +78,12 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
         if (request.UnenrollTeam)
         {
             _logger.LogInformation($"Deleting player records for team {request.TeamId}");
+
+            // for now, we only raise the score changing event if we're keeping the team enrolled
+            // (need to do this in the opposite order if we're resetting)
+            // we need to do this _before_ deleting the team above
+            await _mediator.Publish(new ScoreChangedNotification(request.TeamId), cancellationToken);
+
             await _teamService.DeleteTeam(request.TeamId, new SimpleEntity { Id = request.ActingUser.Id, Name = request.ActingUser.ApprovedName }, cancellationToken);
 
             // also get rid of any external game artifacts if they have any
@@ -106,14 +112,13 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
                     cancellationToken
                 );
 
+            // can do this after cleaning up the actual players
+            await _mediator.Publish(new ScoreChangedNotification(request.TeamId), cancellationToken);
+
             // notify the SignalR hub (which only matters for external games right now - we clean some
             // local storage stuff up if there's a reset).
             var captain = await _teamService.ResolveCaptain(request.TeamId, cancellationToken);
             await _hubBus.SendTeamSessionReset(_mapper.Map<Api.Player>(captain), request.ActingUser);
-
-            // for now, we only raise the score changing event if we're keeping the team enrolled
-            // (need to do this in the opposite order if we're resetting)
-            await _mediator.Publish(new ScoreChangedNotification(request.TeamId), cancellationToken);
         }
 
         if (gameInfo.RequireSynchronizedStart)

@@ -1,3 +1,5 @@
+using System;
+
 namespace Gameboard.Api.Data;
 
 public class DenormalizedTeamScore : IEntity
@@ -17,7 +19,6 @@ public class DenormalizedTeamScore : IEntity
     public required int SolveCountComplete { get; set; }
 
     public required double CumulativeTimeMs { get; set; }
-    public required double? TimeToSessionEndMs { get; set; }
 
     public required string GameId { get; set; }
     public Data.Game Game { get; set; }

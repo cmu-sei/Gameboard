@@ -108,6 +108,7 @@ public sealed class ScoreboardDataGame
 public sealed class ScoreboardDataTeam
 {
     public required bool IsAdvancedToNextRound { get; set; }
+    public required DateTimeOffset? SessionEnds { get; set; }
     public required IEnumerable<PlayerWithSponsor> Players { get; set; }
     public required DenormalizedTeamScore Score { get; set; }
 }

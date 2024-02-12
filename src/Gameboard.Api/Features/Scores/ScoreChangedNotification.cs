@@ -35,8 +35,11 @@ internal class ScoreChangedNotificationHandler : INotificationHandler<ScoreChang
 
     public async Task Handle(ScoreChangedNotification notification, CancellationToken cancellationToken)
     {
-        await _scoreDenormalizationService.DenormalizeTeam(notification.TeamId, cancellationToken);
+        // first to the legacy logic (which also includes updating the players table)
+        // we can drop this when we're confident in the new scoreboard and can move that logic
+        // into the new denormalized schema
         await DoLegacyRerank(notification.TeamId, cancellationToken);
+        await _scoreDenormalizationService.DenormalizeTeam(notification.TeamId, cancellationToken);
     }
 
     private async Task DoLegacyRerank(string teamId, CancellationToken cancellationToken)

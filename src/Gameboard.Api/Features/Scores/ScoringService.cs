@@ -196,6 +196,7 @@ internal class ScoringService : IScoringService
         var manualTeamBonusPoints = manualTeamBonuses.Select(b => b.PointValue).ToArray();
         var bonusPoints = challenges.SelectMany(c => c.AwardedBonuses.Select(b => b.ChallengeBonus.PointValue)).ToArray();
         var pointsFromChallenges = challenges.Select(c => (double)c.Score);
+        var cumulativeTimeMs = challenges.Sum(c => c.Duration);
 
         // add the session end iff the team is currently playing
         var now = _now.Get();
@@ -227,7 +228,7 @@ internal class ScoringService : IScoringService
             }),
             IsAdvancedToNextRound = captain.Advanced,
             OverallScore = overallScore,
-            CumulativeTimeMs = captain.Time,
+            CumulativeTimeMs = cumulativeTimeMs,
             RemainingTimeMs = teamSessionEnd is null || teamSessionEnd < now ? null : (teamSessionEnd.Value - _now.Get()).TotalMilliseconds,
             Challenges = challenges.Select
             (
