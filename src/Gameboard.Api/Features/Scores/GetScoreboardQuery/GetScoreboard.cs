@@ -10,7 +10,6 @@ using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using TopoMojo.Api.Client;
 
 namespace Gameboard.Api.Features.Scores;
 
