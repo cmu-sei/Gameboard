@@ -54,6 +54,11 @@ internal class ExternalGameService : IExternalGameService
     public async Task CreateTeams(string gameId, IEnumerable<string> teamIds, CancellationToken cancellationToken)
     {
         // first, delete any metadata associated with a previous attempt
+        await _store
+            .WithNoTracking<ExternalGameTeam>()
+            .Where(t => t.GameId == gameId)
+            .ExecuteDeleteAsync(cancellationToken);
+
         await DeleteTeamExternalData(cancellationToken, teamIds.ToArray());
 
         // then create an entry for each team in this game
