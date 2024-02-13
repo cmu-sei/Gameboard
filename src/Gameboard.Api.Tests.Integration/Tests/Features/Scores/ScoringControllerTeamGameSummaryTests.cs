@@ -44,8 +44,7 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
                 {
                     p.Id = playerId;
                     // need to rethink default entities
-                    p.User = null;
-                    p.UserId = playerUserId;
+                    p.User = state.Build<Data.User>(fixture, u => u.Id = playerUserId);
                     p.TeamId = teamId;
                     p.Challenges = new List<Data.Challenge>
                     {
