@@ -20,7 +20,7 @@ public interface IScoringService
     Task<GameScore> GetGameScore(string gameId, CancellationToken cancellationToken);
     Task<TeamScore> GetTeamScore(string teamId, CancellationToken cancellationToken);
     Task<TeamChallengeScore> GetTeamChallengeScore(string challengeId);
-    IDictionary<string, int> GetTeamkRanks(IEnumerable<TeamForRanking> teams);
+    IDictionary<string, int> GetTeamRanks(IEnumerable<TeamForRanking> teams);
 }
 
 internal class ScoringService : IScoringService
@@ -247,7 +247,7 @@ internal class ScoringService : IScoringService
         };
     }
 
-    public IDictionary<string, int> GetTeamkRanks(IEnumerable<TeamForRanking> teams)
+    public IDictionary<string, int> GetTeamRanks(IEnumerable<TeamForRanking> teams)
     {
         var scoreRank = 0;
         TeamForRanking lastScore = null;

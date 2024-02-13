@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -107,7 +106,7 @@ internal class ScoreDenormalizationService : IScoreDenormalizationService
             .WithTracking<DenormalizedTeamScore>()
             .Where(t => t.GameId == gameId)
             .ToArrayAsync();
-        var rankedTeams = _scoringService.GetTeamkRanks(teams.Select(t => new TeamForRanking
+        var rankedTeams = _scoringService.GetTeamRanks(teams.Select(t => new TeamForRanking
         {
             CumulativeTimeMs = t.CumulativeTimeMs,
             OverallScore = t.ScoreOverall,
