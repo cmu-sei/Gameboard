@@ -10,6 +10,7 @@ using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Hubs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -24,6 +25,7 @@ namespace Gameboard.Api.Services
         private readonly INowService _now;
         private readonly IStore _store;
         private readonly ISupportHubBus _supportHubBus;
+        private readonly ITeamService _teamService;
         ITicketStore TicketStore { get; }
 
         internal static char LABELS_DELIMITER = ' ';
@@ -38,7 +40,8 @@ namespace Gameboard.Api.Services
             CoreOptions options,
             IStore store,
             ITicketStore ticketStore,
-            ISupportHubBus supportHubBus
+            ISupportHubBus supportHubBus,
+            ITeamService teamService
         ) : base(logger, mapper, options)
         {
             TicketStore = ticketStore;
@@ -48,6 +51,7 @@ namespace Gameboard.Api.Services
             _now = now;
             _store = store;
             _supportHubBus = supportHubBus;
+            _teamService = teamService;
         }
 
         public string GetFullKey(int key)
@@ -59,14 +63,40 @@ namespace Gameboard.Api.Services
         {
             var entity = await TicketStore.LoadDetails(id);
             entity.Activity = entity.Activity.OrderByDescending(a => a.Timestamp).ToList();
-            return TransformInPlace(Mapper.Map<Ticket>(entity));
+            var ticket = TransformInPlace(Mapper.Map<Ticket>(entity));
+
+            if (entity.PlayerId.IsNotEmpty() && entity.TeamId.IsNotEmpty())
+            {
+                var team = await _teamService.GetTeam(entity.TeamId);
+                ticket.TeamName = team.ApprovedName;
+            }
+
+            if (entity.Challenge is not null)
+            {
+                ticket.IsTeamGame = ticket.Challenge.AllowTeam;
+            }
+
+            return ticket;
         }
 
         public async Task<Ticket> Retrieve(int id)
         {
             var entity = await TicketStore.LoadDetails(id);
             entity.Activity = entity.Activity.OrderByDescending(a => a.Timestamp).ToList();
-            return TransformInPlace(Mapper.Map<Ticket>(entity));
+            var ticket = TransformInPlace(Mapper.Map<Ticket>(entity));
+
+            if (entity.PlayerId.IsNotEmpty() && entity.TeamId.IsNotEmpty())
+            {
+                var team = await _teamService.GetTeam(entity.TeamId);
+                ticket.TeamName = team.ApprovedName;
+            }
+
+            if (entity.Challenge is not null)
+            {
+                ticket.IsTeamGame = ticket.Challenge.AllowTeam;
+            }
+
+            return ticket;
         }
 
         public async Task<Ticket> Create(NewTicket model)
@@ -215,7 +245,7 @@ namespace Gameboard.Api.Services
                     .ToListAsync();
 
                 q = q.Where(t => t.RequesterId == userId ||
-                        userTeams.Any(i => i == t.TeamId));
+                    userTeams.Any(i => i == t.TeamId));
             }
 
             // Ordering in descending order

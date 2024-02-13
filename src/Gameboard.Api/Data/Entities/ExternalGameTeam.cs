@@ -1,11 +1,6 @@
-namespace Gameboard.Api.Data;
+using Gameboard.Api.Features.Games.External;
 
-public enum ExternalGameTeamDeployStatus
-{
-    NotStarted = 1,
-    Deploying = 2,
-    Deployed = 3,
-}
+namespace Gameboard.Api.Data;
 
 /// <summary>
 /// Holds metadata about each team which participates in a game
@@ -22,7 +17,7 @@ public class ExternalGameTeam : IEntity
     public string Id { get; set; }
     public string TeamId { get; set; }
     public string ExternalGameUrl { get; set; }
-    public ExternalGameTeamDeployStatus DeployStatus { get; set; }
+    public ExternalGameDeployStatus DeployStatus { get; set; }
 
     // nav properties
     public string GameId { get; set; }

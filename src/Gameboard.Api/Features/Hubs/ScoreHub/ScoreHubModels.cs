@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Gameboard.Api.Features.Scores;
 
 namespace Gameboard.Api.Hubs;
 

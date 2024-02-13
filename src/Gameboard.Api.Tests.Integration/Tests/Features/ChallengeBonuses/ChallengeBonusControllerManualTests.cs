@@ -26,7 +26,7 @@ public class ChallengeBonusControllerManualTests : IClassFixture<GameboardTestCo
             state.Add<Data.Challenge>(fixture, c => c.Id = challengeId);
         });
 
-        var bonus = new CreateManualChallengeBonus
+        var bonus = new CreateManualBonus
         {
             Description = description,
             PointValue = pointsValue
@@ -44,8 +44,9 @@ public class ChallengeBonusControllerManualTests : IClassFixture<GameboardTestCo
         // then
         var storedBonus = await _testContext
             .GetDbContext()
-            .ManualChallengeBonuses
+            .ManualBonuses
             .AsNoTracking()
+            .Where(b => b.Type == Data.ManualBonusType.Challenge)
             .FirstAsync();
 
         storedBonus.EnteredByUserId.ShouldBe(userId);

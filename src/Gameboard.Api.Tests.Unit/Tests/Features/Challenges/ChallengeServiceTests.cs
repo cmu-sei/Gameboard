@@ -101,6 +101,7 @@ public class ChallengeServiceTests
 
         var sut = new ChallengeService
         (
+            A.Fake<IActingUserService>(),
             A.Fake<ConsoleActorMap>(),
             A.Fake<CoreOptions>(),
             A.Fake<IChallengeStore>(),
@@ -222,6 +223,7 @@ public class ChallengeServiceTests
 
         var sut = new ChallengeService
         (
+            A.Fake<IActingUserService>(),
             A.Fake<ConsoleActorMap>(),
             A.Fake<CoreOptions>(),
             A.Fake<IChallengeStore>(),

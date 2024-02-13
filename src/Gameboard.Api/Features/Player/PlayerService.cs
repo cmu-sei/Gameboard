@@ -117,7 +117,7 @@ public class PlayerService
             await _store
                 .WithNoTracking<Data.Player>()
                 .Include(p => p.Sponsor)
-                .SingleAsync(p => p.Id == entity.Id)
+                .SingleAsync(p => p.Id == entity.Id, cancellationToken)
         );
     }
 
@@ -708,16 +708,18 @@ public class PlayerService
             .Include(p => p.Game)
             .Include(p => p.User)
                 .ThenInclude(u => u.PublishedCompetitiveCertificates)
+            .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
             .FirstOrDefaultAsync(p => p.Id == id);
 
         var playerCount = await PlayerStore.DbSet
-            .Where(p => p.GameId == player.GameId &&
-                p.SessionEnd > DateTimeOffset.MinValue)
+            .Where(p => p.GameId == player.GameId && p.SessionEnd > DateTimeOffset.MinValue)
+            .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
             .CountAsync();
 
         var teamCount = await PlayerStore.DbSet
             .Where(p => p.GameId == player.GameId &&
                 p.SessionEnd > DateTimeOffset.MinValue)
+            .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
             .GroupBy(p => p.TeamId)
             .CountAsync();
 
@@ -740,20 +742,23 @@ public class PlayerService
                 p.Game.CertificateTemplate != null &&
                 p.Game.CertificateTemplate.Length > 0
             )
+            .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
             .WhereIsScoringPlayer()
             .OrderByDescending(p => p.Game.GameEnd)
             .ToArrayAsync();
 
-        return completedSessions.Select(c => CertificateFromTemplate(c,
+        return completedSessions.Select
+        (
+            c => CertificateFromTemplate(c,
                     PlayerStore.DbSet
-                        .Where(p => p.Game == c.Game &&
-                            p.SessionEnd > DateTimeOffset.MinValue)
+                        .Where(p => p.Game == c.Game && p.SessionEnd > DateTimeOffset.MinValue)
+                        .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
                         .WhereIsScoringPlayer()
                         .Count(),
                     PlayerStore.DbSet
-                        .Where(p => p.Game == c.Game &&
-                            p.SessionEnd > DateTimeOffset.MinValue)
+                        .Where(p => p.Game == c.Game && p.SessionEnd > DateTimeOffset.MinValue)
                         .WhereIsScoringPlayer()
+                        .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
                         .GroupBy(p => p.TeamId).Count()
                 )).ToArray();
     }

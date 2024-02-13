@@ -8,6 +8,12 @@ internal class GradingFailed : GameboardException
     public GradingFailed(string challengeId, Exception innerException) : base($"Grading failed for challenge {challengeId}.", innerException) { }
 }
 
+internal class GamespaceStartFailure : GameboardException
+{
+    public GamespaceStartFailure(string gamespaceId, GameEngineType gameEngineType, Exception innerEx)
+        : base($"Failed to start gamespace {gamespaceId} (engine: {gameEngineType})", innerEx) { }
+}
+
 internal class SubmissionIsForExpiredGamespace : GameboardValidationException
 {
     public SubmissionIsForExpiredGamespace(string challengeId, Exception innerException) : base($"Couldn't make submission for challenge {challengeId}: The associated gamespace is expired.", innerException) { }

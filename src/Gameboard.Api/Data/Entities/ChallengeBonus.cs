@@ -40,17 +40,33 @@ public class AwardedChallengeBonus : IEntity
     public Challenge Challenge { get; set; }
 }
 
-public class ManualChallengeBonus : IEntity
+public enum ManualBonusType
+{
+    Challenge = 0,
+    Manual = 1
+}
+
+public abstract class ManualBonus : IEntity
 {
     public string Id { get; set; }
     public string Description { get; set; }
     public DateTimeOffset EnteredOn { get; set; }
     public double PointValue { get; set; }
+    public ManualBonusType Type { get; set; }
 
     // nav properties
     public string EnteredByUserId { get; set; }
     public User EnteredByUser { get; set; }
+}
 
+public class ManualChallengeBonus : ManualBonus
+{
+    // adds an associated challenge
     public string ChallengeId { get; set; }
     public Challenge Challenge { get; set; }
+}
+
+public class ManualTeamBonus : ManualBonus
+{
+    public string TeamId { get; set; }
 }

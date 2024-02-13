@@ -8,9 +8,9 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
-using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Practice;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -37,9 +37,9 @@ public interface ITeamService
 
 internal class TeamService : ITeamService
 {
-    private readonly IExternalGameTeamService _externalGameTeamService;
     private readonly IGameEngineService _gameEngine;
     private readonly IMapper _mapper;
+    private readonly IMediator _mediator;
     private readonly IMemoryCache _memCache;
     private readonly INowService _now;
     private readonly IInternalHubBus _teamHubService;
@@ -49,9 +49,9 @@ internal class TeamService : ITeamService
 
     public TeamService
     (
-        IExternalGameTeamService externalGameTeamService,
         IGameEngineService gameEngine,
         IMapper mapper,
+        IMediator mediator,
         IMemoryCache memCache,
         INowService now,
         IInternalHubBus teamHubService,
@@ -60,9 +60,9 @@ internal class TeamService : ITeamService
         IStore store
     )
     {
-        _externalGameTeamService = externalGameTeamService;
         _gameEngine = gameEngine;
         _mapper = mapper;
+        _mediator = mediator;
         _memCache = memCache;
         _now = now;
         _playerStore = playerStore;
@@ -82,7 +82,8 @@ internal class TeamService : ITeamService
             .ExecuteDeleteAsync(cancellationToken);
 
         // also delete any external data for this team
-        await _externalGameTeamService.DeleteTeamExternalData(cancellationToken, teamId);
+        // TODO (fold hub call into this as well)
+        await _mediator.Publish(new TeamDeletedNotification(teamId));
 
         // notify hub that the team is deleted /players left so the client can respond
         await _teamHubService.SendTeamDeleted(teamState, actingUser);
@@ -104,9 +105,7 @@ internal class TeamService : ITeamService
             .AnyAsync(cancellationToken);
 
         if (playersWithNoSession)
-        {
             throw new CantExtendUnstartedSession(request.TeamId);
-        }
 
         // in competitive mode, session end is what's requested in the API call
         var finalSessionEnd = request.NewSessionEnd;
@@ -248,7 +247,7 @@ internal class TeamService : ITeamService
             if (affectedPlayers != 1)
                 throw new PromotionFailed(teamId, newCaptainPlayerId, affectedPlayers);
 
-            await transaction.CommitAsync();
+            await transaction.CommitAsync(cancellationToken);
         }
 
         await _teamHubService.SendPlayerRoleChanged(_mapper.Map<Api.Player>(newCaptain), actingUser);

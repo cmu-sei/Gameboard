@@ -5,10 +5,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Features.games;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.Start;
+using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
 using MediatR;
@@ -27,13 +29,16 @@ namespace Gameboard.Api.Controllers
         GameService GameService { get; }
         public CoreOptions Options { get; }
         public IHostEnvironment Env { get; }
+
         private readonly IMediator _mediator;
+        private readonly IScoreDenormalizationService _scoreDenormalization;
 
         public GameController
         (
             ILogger<GameController> logger,
             IDistributedCache cache,
             GameService gameService,
+            IScoreDenormalizationService scoreDenormalization,
             GameValidator validator,
             CoreOptions options,
             IMediator mediator,
@@ -44,6 +49,7 @@ namespace Gameboard.Api.Controllers
             Options = options;
             Env = env;
             _mediator = mediator;
+            _scoreDenormalization = scoreDenormalization;
         }
 
         /// <summary>
@@ -220,10 +226,11 @@ namespace Gameboard.Api.Controllers
         /// Rerank a game's players
         /// </summary>
         /// <param name="id">id</param>
+        /// <param name="cancellationToken">id</param>
         /// <returns></returns>
         [HttpPost("/api/game/{id}/rerank")]
         [Authorize(AppConstants.AdminPolicy)]
-        public async Task Rerank([FromRoute] string id)
+        public async Task Rerank([FromRoute] string id, CancellationToken cancellationToken)
         {
             AuthorizeAny(
                 () => Actor.IsDesigner
@@ -231,6 +238,7 @@ namespace Gameboard.Api.Controllers
 
             await Validate(new Entity { Id = id });
             await GameService.ReRank(id);
+            await _scoreDenormalization.DenormalizeGame(id, cancellationToken);
         }
     }
 }

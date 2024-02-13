@@ -46,6 +46,12 @@ internal class UpdateSponsorHandler : IRequestHandler<UpdateSponsorCommand, Spon
             .Authorize();
 
         _validatorService.AddValidator(_sponsorExists.UseProperty(r => r.Model.Id));
+        _validatorService.AddValidator((req, ctx) =>
+        {
+            if (req.Model.Id == req.Model.ParentSponsorId)
+                ctx.AddValidationException(new CantSetSponsorAsParentOfItself(req.Model.Id));
+        });
+
         await _validatorService.Validate(request, cancellationToken);
 
         // update

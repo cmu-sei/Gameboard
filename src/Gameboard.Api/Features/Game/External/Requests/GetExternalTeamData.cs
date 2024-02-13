@@ -13,7 +13,7 @@ namespace Gameboard.Api.Features.Games.External;
 public sealed class GetExternalTeamDataResponse
 {
     public required string TeamId { get; set; }
-    public required ExternalGameTeamDeployStatus DeployStatus { get; set; }
+    public required ExternalGameDeployStatus DeployStatus { get; set; }
     public required string ExternalUrl { get; set; }
 }
 
@@ -21,20 +21,20 @@ public record GetExternalTeamDataQuery(string TeamId, User ActingUser) : IReques
 
 internal class GetExternalTeamDataQueryHandler : IRequestHandler<GetExternalTeamDataQuery, GetExternalTeamDataResponse>
 {
-    private readonly IExternalGameTeamService _externalGameTeamService;
+    private readonly IExternalGameService _externalGameService;
     private readonly IStore _store;
     private readonly TeamExistsValidator<GetExternalTeamDataQuery> _teamExists;
     private readonly IValidatorService<GetExternalTeamDataQuery> _validator;
 
     public GetExternalTeamDataQueryHandler
     (
-        IExternalGameTeamService externalGameTeamService,
+        IExternalGameService externalGameService,
         IStore store,
         TeamExistsValidator<GetExternalTeamDataQuery> teamExists,
         IValidatorService<GetExternalTeamDataQuery> validator
     )
     {
-        _externalGameTeamService = externalGameTeamService;
+        _externalGameService = externalGameService;
         _store = store;
         _teamExists = teamExists;
         _validator = validator;
@@ -57,7 +57,7 @@ internal class GetExternalTeamDataQueryHandler : IRequestHandler<GetExternalTeam
         await _validator.Validate(request, cancellationToken);
 
         // get the metadata for this team's participation in the external game
-        var teamData = await _externalGameTeamService.GetTeam(request.TeamId, cancellationToken);
+        var teamData = await _externalGameService.GetTeam(request.TeamId, cancellationToken);
 
         if (teamData is null)
             throw new ResourceNotFound<ExternalGameTeam>(request.TeamId);

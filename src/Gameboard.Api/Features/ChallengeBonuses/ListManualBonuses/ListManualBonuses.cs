@@ -13,31 +13,31 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.ChallengeBonuses;
 
-public record ListManualBonusesQuery(string ChallengeId) : IRequest<IEnumerable<ManualChallengeBonusViewModel>>;
+public record ListManualChallengeBonusesQuery(string ChallengeId) : IRequest<IEnumerable<ManualChallengeBonusViewModel>>;
 
-internal class ListManualBonusesHandler : IRequestHandler<ListManualBonusesQuery, IEnumerable<ManualChallengeBonusViewModel>>
+internal class ListManualChallengeBonusesHandler : IRequestHandler<ListManualChallengeBonusesQuery, IEnumerable<ManualChallengeBonusViewModel>>
 {
     private readonly UserRoleAuthorizer _authorizer;
-    private readonly IStore<ManualChallengeBonus> _challengeBonusStore;
-    private readonly EntityExistsValidator<ListManualBonusesQuery, Data.Challenge> _challengeExists;
+    private readonly EntityExistsValidator<ListManualChallengeBonusesQuery, Data.Challenge> _challengeExists;
     private readonly IMapper _mapper;
-    private readonly IValidatorService<ListManualBonusesQuery> _validatorService;
+    private readonly IStore _store;
+    private readonly IValidatorService<ListManualChallengeBonusesQuery> _validatorService;
 
-    public ListManualBonusesHandler(
+    public ListManualChallengeBonusesHandler(
         UserRoleAuthorizer authorizer,
-        IStore<ManualChallengeBonus> challengeBonusStore,
-        EntityExistsValidator<ListManualBonusesQuery, Data.Challenge> challengeExists,
+        EntityExistsValidator<ListManualChallengeBonusesQuery, Data.Challenge> challengeExists,
         IMapper mapper,
-        IValidatorService<ListManualBonusesQuery> validatorService)
+        IStore store,
+        IValidatorService<ListManualChallengeBonusesQuery> validatorService)
     {
         _authorizer = authorizer;
-        _challengeBonusStore = challengeBonusStore;
         _challengeExists = challengeExists;
         _mapper = mapper;
+        _store = store;
         _validatorService = validatorService;
     }
 
-    public async Task<IEnumerable<ManualChallengeBonusViewModel>> Handle(ListManualBonusesQuery request, CancellationToken cancellationToken)
+    public async Task<IEnumerable<ManualChallengeBonusViewModel>> Handle(ListManualChallengeBonusesQuery request, CancellationToken cancellationToken)
     {
         _authorizer
             .AllowRoles(UserRole.Admin, UserRole.Designer, UserRole.Support)
@@ -49,9 +49,9 @@ internal class ListManualBonusesHandler : IRequestHandler<ListManualBonusesQuery
         return await _mapper
             .ProjectTo<ManualChallengeBonusViewModel>
             (
-                _challengeBonusStore
-                .List()
-                .Where(b => b.ChallengeId == request.ChallengeId)
+                _store
+                    .WithNoTracking<ManualChallengeBonus>()
+                    .Where(b => b.ChallengeId == request.ChallengeId)
             ).ToListAsync(cancellationToken);
     }
 }

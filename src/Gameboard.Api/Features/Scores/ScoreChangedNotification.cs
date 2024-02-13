@@ -2,38 +2,47 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Gameboard.Api.Features.Players;
+namespace Gameboard.Api.Features.Scores;
 
-/// <summary>
-/// Okay. Stick with me.
-/// 
-/// The Players table contains denormalized data that can be derived from
-/// the Challenges table (like score, which is the sum of the challenge scores 
-/// plus bonuses, and time, which is the total of the sum of the differences between 
-/// challenge start/end time). 
-/// 
-/// We denormalize the data because we show it on the scoreboard, and the scoreboard
-/// automatically refreshes itself periodically (60 seconds as of now) so we don't want to manually
-/// query all this data every time. To make this work we manually fire this logic off when one 
-/// of the pieces of data that we denormalize here changes.
-/// </summary>
-public interface IPlayersTableDenormalizationService
+public class ScoreChangedNotification : INotification
 {
-    Task UpdateTeamData(string teamId, CancellationToken cancellationToken);
+    private readonly string _teamId;
+    public string TeamId { get => _teamId; }
+
+    public ScoreChangedNotification(string teamId)
+    {
+        _teamId = teamId;
+    }
 }
 
-internal class PlayersTableDenormalizationService : IPlayersTableDenormalizationService
+internal class ScoreChangedNotificationHandler : INotificationHandler<ScoreChangedNotification>
 {
+    private readonly IScoreDenormalizationService _scoreDenormalizationService;
     private readonly IStore _store;
 
-    public PlayersTableDenormalizationService(IStore store)
+    public ScoreChangedNotificationHandler
+    (
+        IScoreDenormalizationService scoringDenormalizationService,
+        IStore store
+    )
     {
+        _scoreDenormalizationService = scoringDenormalizationService;
         _store = store;
     }
 
-    public async Task UpdateTeamData(string teamId, CancellationToken cancellationToken)
+    public async Task Handle(ScoreChangedNotification notification, CancellationToken cancellationToken)
+    {
+        // first to the legacy logic (which also includes updating the players table)
+        // we can drop this when we're confident in the new scoreboard and can move that logic
+        // into the new denormalized schema
+        await DoLegacyRerank(notification.TeamId, cancellationToken);
+        await _scoreDenormalizationService.DenormalizeTeam(notification.TeamId, cancellationToken);
+    }
+
+    private async Task DoLegacyRerank(string teamId, CancellationToken cancellationToken)
     {
         // update the team's scores (this fires after changes to the score)
         var challenges = await _store

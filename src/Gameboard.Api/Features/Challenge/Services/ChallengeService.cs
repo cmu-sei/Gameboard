@@ -23,6 +23,7 @@ namespace Gameboard.Api.Services;
 
 public partial class ChallengeService : _Service
 {
+    private readonly IActingUserService _actingUserService;
     private readonly ConsoleActorMap _actorMap;
     private readonly IChallengeStore _challengeStore;
     private readonly IGameEngineService _gameEngine;
@@ -41,6 +42,7 @@ public partial class ChallengeService : _Service
 
     public ChallengeService
     (
+        IActingUserService actingUserService,
         ConsoleActorMap actorMap,
         CoreOptions coreOptions,
         IChallengeStore challengeStore,
@@ -60,6 +62,7 @@ public partial class ChallengeService : _Service
         ITeamService teamService
     ) : base(logger, mapper, coreOptions)
     {
+        _actingUserService = actingUserService;
         _actorMap = actorMap;
         _challengeStore = challengeStore;
         _challengeDocsService = challengeDocsService;
@@ -482,6 +485,16 @@ public partial class ChallengeService : _Service
 
         var state = await _gameEngine.RegradeChallenge(challenge);
         await _challengeSyncService.Sync(challenge, state, CancellationToken.None);
+
+        // log an event for successful regrading
+        await _store.Create(new ChallengeEvent
+        {
+            ChallengeId = id,
+            TeamId = challenge.TeamId,
+            Timestamp = _now.Get(),
+            Type = ChallengeEventType.Regraded,
+            UserId = _actingUserService.Get().Id
+        });
 
         // update the team score and award automatic bonuses
         if (state.Challenge.Score != currentScore)

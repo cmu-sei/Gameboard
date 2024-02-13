@@ -25,11 +25,16 @@ public class ScoringController : ControllerBase
     public async Task<GameScore> GetGameScore([FromRoute] string gameId)
         => await _mediator.Send(new GameScoreQuery(gameId));
 
+    [HttpGet("game/{gameId}/scoreboard")]
+    [AllowAnonymous]
+    public Task<ScoreboardData> GetScoreboard([FromRoute] string gameId)
+        => _mediator.Send(new GetScoreboardQuery(gameId));
+
     [HttpGet("challenge/{challengeId}/score")]
     public async Task<TeamChallengeScore> GetTeamChallengeScoreSummary([FromRoute] string challengeId)
         => await _mediator.Send(new TeamChallengeScoreQuery(challengeId));
 
     [HttpGet("team/{teamId}/score")]
-    public async Task<TeamGameScoreQueryResponse> GetTeamGameScoreSummary([FromRoute] string teamId)
-        => await _mediator.Send(new TeamGameScoreQuery(teamId));
+    public async Task<TeamScoreQueryResponse> GetTeamGameScoreSummary([FromRoute] string teamId)
+        => await _mediator.Send(new GetTeamScoreQuery(teamId));
 }

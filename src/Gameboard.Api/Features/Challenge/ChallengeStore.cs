@@ -14,8 +14,11 @@ public interface IChallengeStore : IStore<Challenge>
 {
     Task<Data.Challenge> Load(NewChallenge model);
     Task<Data.Challenge> Load(string id);
-    Task UpdateTeam(string teamId);
     Task UpdateEtd(string specId);
+
+    // Want to obselete this, but it causes a compiler warning
+    // [Obsolete("To update a team's challenge score, use MediatR to send an UpdateTeamChallengeScore command.")]
+    Task UpdateTeam(string teamId);
 }
 
 public class ChallengeStore : Store<Challenge>, IChallengeStore

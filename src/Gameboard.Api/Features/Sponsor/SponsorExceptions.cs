@@ -1,7 +1,12 @@
-using Gameboard.Api.Features.Player;
 using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.Sponsors;
+
+internal class CantSetSponsorAsParentOfItself : GameboardValidationException
+{
+    public CantSetSponsorAsParentOfItself(string id)
+        : base($"Sponsor {id} can't be set as parent of itself.") { }
+}
 
 internal class CouldntResolveDefaultSponsor : GameboardException
 {

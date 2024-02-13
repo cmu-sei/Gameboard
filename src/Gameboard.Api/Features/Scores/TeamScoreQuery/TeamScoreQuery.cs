@@ -10,28 +10,28 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Scores;
 
-public sealed class TeamGameScoreQueryResponse
+public sealed class TeamScoreQueryResponse
 {
     public GameScoreGameInfo GameInfo { get; set; }
-    public GameScoreTeam Score { get; set; }
+    public TeamScore Score { get; set; }
 }
 
-public record TeamGameScoreQuery(string TeamId) : IRequest<TeamGameScoreQueryResponse>;
+public record GetTeamScoreQuery(string TeamId) : IRequest<TeamScoreQueryResponse>;
 
-internal class TeamGameScoreQueryHandler : IRequestHandler<TeamGameScoreQuery, TeamGameScoreQueryResponse>
+internal class GetTeamScoreHandler : IRequestHandler<GetTeamScoreQuery, TeamScoreQueryResponse>
 {
     private readonly IScoringService _scoreService;
     private readonly IStore _store;
-    private readonly TeamExistsValidator<TeamGameScoreQuery> _teamExists;
+    private readonly TeamExistsValidator<GetTeamScoreQuery> _teamExists;
     private readonly ITeamService _teamService;
-    private readonly IValidatorService<TeamGameScoreQuery> _validatorService;
+    private readonly IValidatorService<GetTeamScoreQuery> _validatorService;
 
-    public TeamGameScoreQueryHandler(
+    public GetTeamScoreHandler(
         IScoringService scoreService,
         IStore store,
-        TeamExistsValidator<TeamGameScoreQuery> teamExists,
+        TeamExistsValidator<GetTeamScoreQuery> teamExists,
         ITeamService teamService,
-        IValidatorService<TeamGameScoreQuery> validatorService)
+        IValidatorService<GetTeamScoreQuery> validatorService)
     {
         _scoreService = scoreService;
         _store = store;
@@ -40,7 +40,7 @@ internal class TeamGameScoreQueryHandler : IRequestHandler<TeamGameScoreQuery, T
         _validatorService = validatorService;
     }
 
-    public async Task<TeamGameScoreQueryResponse> Handle(TeamGameScoreQuery request, CancellationToken cancellationToken)
+    public async Task<TeamScoreQueryResponse> Handle(GetTeamScoreQuery request, CancellationToken cancellationToken)
     {
         _validatorService.AddValidator(_teamExists.UseProperty(r => r.TeamId));
         await _validatorService.Validate(request, cancellationToken);
@@ -50,7 +50,7 @@ internal class TeamGameScoreQueryHandler : IRequestHandler<TeamGameScoreQuery, T
         var game = await _store.WithNoTracking<Data.Game>().SingleAsync(g => g.Id == gameId, cancellationToken);
         var gameSpecConfig = await _scoreService.GetGameScoringConfig(game.Id);
 
-        return new TeamGameScoreQueryResponse
+        return new TeamScoreQueryResponse
         {
             GameInfo = new GameScoreGameInfo
             {
@@ -59,7 +59,7 @@ internal class TeamGameScoreQueryHandler : IRequestHandler<TeamGameScoreQuery, T
                 IsTeamGame = game.IsTeamGame(),
                 Specs = gameSpecConfig.Specs
             },
-            Score = await _scoreService.GetTeamGameScore(request.TeamId, 1)
+            Score = await _scoreService.GetTeamScore(request.TeamId, cancellationToken)
         };
     }
 }

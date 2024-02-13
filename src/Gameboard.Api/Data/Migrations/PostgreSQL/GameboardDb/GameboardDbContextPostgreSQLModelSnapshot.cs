@@ -445,6 +445,62 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.ToTable("ChallengeSubmissions");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.DenormalizedTeamScore", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<double>("CumulativeTimeMs")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("GameId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int>("Rank")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("ScoreAutoBonus")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("ScoreChallenge")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("ScoreManualBonus")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("ScoreOverall")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("SolveCountComplete")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SolveCountNone")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SolveCountPartial")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("TeamName")
+                        .HasColumnType("text");
+
+                    b.Property<double?>("TimeToSessionEndMs")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameId");
+
+                    b.ToTable("DenormalizedTeamScores");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ExternalGameTeam", b =>
                 {
                     b.Property<string>("Id")
@@ -672,13 +728,10 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.ToTable("Games");
                 });
 
-            modelBuilder.Entity("Gameboard.Api.Data.ManualChallengeBonus", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.ManualBonus", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<string>("ChallengeId")
                         .HasColumnType("character varying(40)");
 
                     b.Property<string>("Description")
@@ -696,13 +749,18 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<double>("PointValue")
                         .HasColumnType("double precision");
 
-                    b.HasKey("Id");
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
 
-                    b.HasIndex("ChallengeId");
+                    b.HasKey("Id");
 
                     b.HasIndex("EnteredByUserId");
 
-                    b.ToTable("ManualChallengeBonuses");
+                    b.ToTable("ManualBonuses");
+
+                    b.HasDiscriminator<int>("Type");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
@@ -884,6 +942,30 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.HasIndex("ParentSponsorId");
 
                     b.ToTable("Sponsors");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.SupportSettings", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("SupportPageGreeting")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTimeOffset>("UpdatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UpdatedByUserId")
+                        .IsUnique();
+
+                    b.ToTable("SupportSettings");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.SystemNotification", b =>
@@ -1149,6 +1231,30 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.HasDiscriminator().HasValue(0);
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.ManualChallengeBonus", b =>
+                {
+                    b.HasBaseType("Gameboard.Api.Data.ManualBonus");
+
+                    b.Property<string>("ChallengeId")
+                        .IsRequired()
+                        .HasColumnType("character varying(40)");
+
+                    b.HasIndex("ChallengeId");
+
+                    b.HasDiscriminator().HasValue(0);
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.ManualTeamBonus", b =>
+                {
+                    b.HasBaseType("Gameboard.Api.Data.ManualBonus");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasDiscriminator().HasValue(1);
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.PublishedCompetitiveCertificate", b =>
                 {
                     b.HasBaseType("Gameboard.Api.Data.PublishedCertificate");
@@ -1274,6 +1380,17 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Challenge");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.DenormalizedTeamScore", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Game", "Game")
+                        .WithMany("DenormalizedTeamScores")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Game");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ExternalGameTeam", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
@@ -1323,19 +1440,12 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Gameboard.Api.Data.ManualChallengeBonus", b =>
+            modelBuilder.Entity("Gameboard.Api.Data.ManualBonus", b =>
                 {
-                    b.HasOne("Gameboard.Api.Data.Challenge", "Challenge")
-                        .WithMany("AwardedManualBonuses")
-                        .HasForeignKey("ChallengeId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
                     b.HasOne("Gameboard.Api.Data.User", "EnteredByUser")
-                        .WithMany("EnteredManualChallengeBonuses")
+                        .WithMany("EnteredManualBonuses")
                         .HasForeignKey("EnteredByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Challenge");
 
                     b.Navigation("EnteredByUser");
                 });
@@ -1380,6 +1490,17 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasForeignKey("ParentSponsorId");
 
                     b.Navigation("ParentSponsor");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.SupportSettings", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.User", "UpdatedByUser")
+                        .WithOne("UpdatedSupportSettings")
+                        .HasForeignKey("Gameboard.Api.Data.SupportSettings", "UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .IsRequired();
+
+                    b.Navigation("UpdatedByUser");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.SystemNotification", b =>
@@ -1480,6 +1601,17 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Sponsor");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.ManualChallengeBonus", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Challenge", "Challenge")
+                        .WithMany("AwardedManualBonuses")
+                        .HasForeignKey("ChallengeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Challenge");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.PublishedCompetitiveCertificate", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
@@ -1545,6 +1677,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 {
                     b.Navigation("Challenges");
 
+                    b.Navigation("DenormalizedTeamScores");
+
                     b.Navigation("ExternalGameTeams");
 
                     b.Navigation("Feedback");
@@ -1594,7 +1728,7 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
                     b.Navigation("Enrollments");
 
-                    b.Navigation("EnteredManualChallengeBonuses");
+                    b.Navigation("EnteredManualBonuses");
 
                     b.Navigation("Feedback");
 
@@ -1605,6 +1739,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("SystemNotificationInteractions");
 
                     b.Navigation("UpdatedPracticeModeSettings");
+
+                    b.Navigation("UpdatedSupportSettings");
                 });
 #pragma warning restore 612, 618
         }

@@ -54,6 +54,7 @@ public class Game : IEntity
     public bool ShowOnHomePageInPracticeMode { get; set; } = false;
 
     public ICollection<ChallengeSpec> Specs { get; set; } = new List<ChallengeSpec>();
+    public ICollection<DenormalizedTeamScore> DenormalizedTeamScores = new List<DenormalizedTeamScore>();
     public ICollection<ExternalGameTeam> ExternalGameTeams { get; set; } = new List<ExternalGameTeam>();
     public ICollection<Player> Players { get; set; } = new List<Player>();
     public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();

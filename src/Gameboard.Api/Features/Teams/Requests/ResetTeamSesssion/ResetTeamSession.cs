@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
@@ -13,7 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Teams;
 
-public record ResetTeamSessionCommand(string TeamId, bool UnenrollTeam, User ActingUser) : IRequest;
+public record ResetTeamSessionCommand(string TeamId, bool UnenrollTeam, bool ArchiveChallenges, User ActingUser) : IRequest;
 
 internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand>
 {
@@ -21,6 +22,7 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
     private readonly IInternalHubBus _hubBus;
     private readonly ILogger<ResetTeamSessionHandler> _logger;
     private readonly IMapper _mapper;
+    private readonly IMediator _mediator;
     private readonly IStore _store;
     private readonly ISyncStartGameService _syncStartGameService;
     private readonly ITeamService _teamService;
@@ -32,6 +34,7 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
         IInternalHubBus hubBus,
         ILogger<ResetTeamSessionHandler> logger,
         IMapper mapper,
+        IMediator mediator,
         IStore store,
         ISyncStartGameService syncStartGameService,
         ITeamService teamService,
@@ -42,6 +45,7 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
         _hubBus = hubBus;
         _logger = logger;
         _mapper = mapper;
+        _mediator = mediator;
         _store = store;
         _syncStartGameService = syncStartGameService;
         _teamService = teamService;
@@ -54,21 +58,39 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
 
         // clean up all challenges
         _logger.LogInformation($"Resetting session for team {request.TeamId}");
-        await _challengeService.ArchiveTeamChallenges(request.TeamId);
 
         // we need to look up whether the game is sync start first, because we're about to delete the
         // team, possibly
-        var game = await _store
+        var gameInfo = await _store
             .WithNoTracking<Data.Player>()
                 .Include(p => p.Game)
             .Where(p => p.TeamId == request.TeamId)
-            .Select(p => p.Game)
+            .Select(p => new { p.Game.Id, p.Game.RequireSynchronizedStart })
             .FirstAsync(cancellationToken);
+
+        if (request.ArchiveChallenges)
+        {
+            _logger.LogInformation($"Archiving challenges for team {request.TeamId}");
+            await _challengeService.ArchiveTeamChallenges(request.TeamId);
+        }
 
         // delete players from the team iff. requested
         if (request.UnenrollTeam)
         {
+            _logger.LogInformation($"Deleting player records for team {request.TeamId}");
+
+            // for now, we only raise the score changing event if we're keeping the team enrolled
+            // (need to do this in the opposite order if we're resetting)
+            // we need to do this _before_ deleting the team above
+            await _mediator.Publish(new ScoreChangedNotification(request.TeamId), cancellationToken);
+
             await _teamService.DeleteTeam(request.TeamId, new SimpleEntity { Id = request.ActingUser.Id, Name = request.ActingUser.ApprovedName }, cancellationToken);
+
+            // also get rid of any external game artifacts if they have any
+            await _store
+                .WithNoTracking<ExternalGameTeam>()
+                .Where(t => t.TeamId == request.TeamId)
+                .ExecuteDeleteAsync(cancellationToken);
         }
         else
         {
@@ -90,11 +112,8 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
                     cancellationToken
                 );
 
-            // also get rid of any external game artifacts if they have any
-            await _store
-                .WithNoTracking<ExternalGameTeam>()
-                .Where(t => t.TeamId == request.TeamId)
-                .ExecuteDeleteAsync(cancellationToken);
+            // can do this after cleaning up the actual players
+            await _mediator.Publish(new ScoreChangedNotification(request.TeamId), cancellationToken);
 
             // notify the SignalR hub (which only matters for external games right now - we clean some
             // local storage stuff up if there's a reset).
@@ -102,7 +121,7 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
             await _hubBus.SendTeamSessionReset(_mapper.Map<Api.Player>(captain), request.ActingUser);
         }
 
-        if (game.RequireSynchronizedStart)
-            await _syncStartGameService.HandleSyncStartStateChanged(game.Id, cancellationToken);
+        if (gameInfo.RequireSynchronizedStart)
+            await _syncStartGameService.HandleSyncStartStateChanged(gameInfo.Id, cancellationToken);
     }
 }

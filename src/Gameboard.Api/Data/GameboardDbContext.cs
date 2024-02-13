@@ -1,6 +1,7 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
@@ -155,16 +156,35 @@ public class GameboardDbContext : DbContext
             b.HasOne(a => a.Challenge).WithMany(c => c.AwardedBonuses).OnDelete(DeleteBehavior.Cascade);
         });
 
-        builder.Entity<ManualChallengeBonus>(b =>
+        builder.Entity<ManualBonus>(b =>
         {
+            b
+                .HasDiscriminator(b => b.Type)
+                .HasValue<ManualChallengeBonus>(ManualBonusType.Challenge)
+                .HasValue<ManualTeamBonus>(ManualBonusType.Manual);
+
             b.Property(b => b.Id).HasStandardGuidLength();
             b.Property(b => b.Description).HasMaxLength(200);
             b.Property(b => b.EnteredOn)
                 .HasDefaultValueSql("NOW()")
                 .ValueGeneratedOnAdd();
+            b.HasOne(m => m.EnteredByUser).WithMany(u => u.EnteredManualBonuses).OnDelete(DeleteBehavior.Restrict);
+        });
 
-            b.HasOne(m => m.Challenge).WithMany(c => c.AwardedManualBonuses).OnDelete(DeleteBehavior.Cascade);
-            b.HasOne(m => m.EnteredByUser).WithMany(u => u.EnteredManualChallengeBonuses).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<ManualChallengeBonus>(b =>
+        {
+            b
+                .HasOne(m => m.Challenge)
+                .WithMany(c => c.AwardedManualBonuses).OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+
+        });
+
+        builder.Entity<ManualTeamBonus>(b =>
+        {
+            b
+                .Property(m => m.TeamId)
+                .IsRequired();
         });
 
         builder.Entity<ChallengeEvent>(b =>
@@ -205,6 +225,22 @@ public class GameboardDbContext : DbContext
             b
                 .HasOne(s => s.Challenge)
                 .WithMany(c => c.Submissions)
+                .IsRequired();
+        });
+
+        builder.Entity<DenormalizedTeamScore>(b =>
+        {
+            b.Property(d => d.Id).HasStandardGuidLength();
+            b.Property(d => d.GameId)
+                .HasStandardGuidLength()
+                .IsRequired();
+            b.Property(d => d.TeamId)
+                .HasStandardGuidLength()
+                .IsRequired();
+
+            b
+                .HasOne(d => d.Game)
+                .WithMany(g => g.DenormalizedTeamScores)
                 .IsRequired();
         });
 
@@ -312,6 +348,22 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.Status).HasMaxLength(64);
         });
 
+        builder.Entity<SupportSettings>(b =>
+        {
+            b.HasKey(b => b.Id);
+            b.Property(b => b.Id).HasStandardGuidLength();
+            b
+                .Property(b => b.UpdatedOn)
+                .IsRequired();
+
+            b
+                .HasOne(b => b.UpdatedByUser)
+                .WithOne(u => u.UpdatedSupportSettings)
+                .HasForeignKey<SupportSettings>(s => s.UpdatedByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired();
+        });
+
         builder.Entity<SystemNotification>(b =>
         {
             b.HasKey(n => n.Id);
@@ -355,10 +407,11 @@ public class GameboardDbContext : DbContext
     public DbSet<ChallengeGate> ChallengeGates { get; set; }
     public DbSet<ChallengeSpec> ChallengeSpecs { get; set; }
     public DbSet<ChallengeSubmission> ChallengeSubmissions { get; set; }
+    public DbSet<DenormalizedTeamScore> DenormalizedTeamScores { get; set; }
     public DbSet<ExternalGameTeam> ExternalGameTeams { get; set; }
     public DbSet<Feedback> Feedback { get; set; }
     public DbSet<Game> Games { get; set; }
-    public DbSet<ManualChallengeBonus> ManualChallengeBonuses { get; set; }
+    public DbSet<ManualBonus> ManualBonuses { get; set; }
     public DbSet<Player> Players { get; set; }
     public DbSet<PublishedCertificate> PublishedCertificate { get; set; }
     public DbSet<Sponsor> Sponsors { get; set; }

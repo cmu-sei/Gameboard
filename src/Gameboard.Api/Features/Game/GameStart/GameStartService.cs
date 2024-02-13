@@ -94,11 +94,15 @@ internal class GameStartService : IGameStartService
             await gameModeService.TryCleanUpFailedDeploy(startRequest, ex, cancellationToken);
 
             // for convenience, reset (but don't unenroll) the teams
-            _logger.LogError(message: $"Deployment failed for game {startRequest.Game.Id}. Resetting sessions and cleaning up gamespaces for {startRequest.Context.Teams.Count()} teams.");
+            _logger.LogError(message: $"Deployment failed for game {startRequest.Game.Id}. Resetting sessions for {startRequest.Context.Teams.Count} teams. Archiving challenges/completing gamespaces?: {gameModeService.ArchiveChallengesOnStartFailure}");
+
             foreach (var team in startRequest.Context.Teams)
             {
-                await _mediator.Send(new ResetTeamSessionCommand(team.Team.Id, false, _actingUserService.Get()));
+                // only archive challenges if the game mode asks us too
+                await _mediator.Send(new ResetTeamSessionCommand(team.Team.Id, false, gameModeService.ArchiveChallengesOnStartFailure, _actingUserService.Get()), cancellationToken);
             }
+
+            _logger.LogInformation($"All teams reset for game {startRequest.Game.Id}.");
         }
 
         return null;

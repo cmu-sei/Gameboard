@@ -117,6 +117,11 @@ public class SponsorService : ISponsorService
             query = query.Where(s => (s.ParentSponsorId != null) == hasParentBool);
         }
 
+        if (model.ExcludeSponsorId.IsNotEmpty())
+        {
+            query = query.Where(s => s.Id != model.ExcludeSponsorId);
+        }
+
         query = query.OrderBy(s => s.Name);
 
         return await _mapper.ProjectTo<Sponsor>(query).ToArrayAsync();

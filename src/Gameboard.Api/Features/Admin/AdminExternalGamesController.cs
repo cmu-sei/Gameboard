@@ -18,7 +18,7 @@ public class AdminExternalGamesController : ControllerBase
     }
 
     [HttpGet("{gameId}")]
-    public Task<ExternalGameAdminContext> GetExternalGameAdminContext([FromRoute] string gameId)
+    public Task<ExternalGameState> GetExternalGameAdminContext([FromRoute] string gameId)
         => _mediator.Send(new GetExternalGameAdminContextRequest(gameId));
 
     [HttpPost("{gameId}/pre-deploy")]

@@ -1,20 +1,22 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
-using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Features.ChallengeBonuses;
 
-public record AddManualBonusCommand(string ChallengeId, CreateManualChallengeBonus Model) : IRequest;
+public record AddManualBonusCommand(string ChallengeId, string TeamId, CreateManualBonus Model) : IRequest;
 
 internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
 {
-    private readonly IStore<ManualChallengeBonus> _challengeBonusStore;
-    private readonly User _actor;
+    private readonly IActingUserService _actingUserService;
+    private readonly IMediator _mediator;
+    private readonly INowService _now;
+    private readonly IStore _store;
 
     // validators
     private readonly IGameboardRequestValidator<AddManualBonusCommand> _validator;
@@ -22,15 +24,20 @@ internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
     // authorizers 
     private readonly UserRoleAuthorizer _roleAuthorizer;
 
-    public AddManualBonusHandler(
-        IStore<ManualChallengeBonus> challengeBonusStore,
+    public AddManualBonusHandler
+    (
+        IActingUserService actingUserService,
+        IMediator mediator,
+        INowService now,
         UserRoleAuthorizer roleAuthorizer,
-        IGameboardRequestValidator<AddManualBonusCommand> validator,
-        IHttpContextAccessor httpContextAccessor)
+        IStore store,
+        IGameboardRequestValidator<AddManualBonusCommand> validator)
     {
-        _actor = httpContextAccessor.HttpContext.User.ToActor();
-        _challengeBonusStore = challengeBonusStore;
+        _actingUserService = actingUserService;
+        _mediator = mediator;
+        _now = now;
         _roleAuthorizer = roleAuthorizer;
+        _store = store;
         _validator = validator;
     }
 
@@ -42,12 +49,30 @@ internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
 
         await _validator.Validate(request, cancellationToken);
 
-        await _challengeBonusStore.Create(new ManualChallengeBonus
-        {
-            ChallengeId = request.ChallengeId,
-            Description = request.Model.Description,
-            EnteredByUserId = _actor.Id,
-            PointValue = request.Model.PointValue,
-        });
+        // this endpoint can either of two entities (using EF table-per-hierarchy)
+        // if the challengeId is set, it's a manual challenge bonus, otherwise it's
+        // a manual team bonus
+        if (request.ChallengeId.IsNotEmpty())
+            await _store.Create(new ManualChallengeBonus
+            {
+                ChallengeId = request.ChallengeId,
+                Description = request.Model.Description,
+                EnteredOn = _now.Get(),
+                EnteredByUserId = _actingUserService.Get().Id,
+                PointValue = request.Model.PointValue
+            });
+        else
+            await _store.Create(new ManualTeamBonus
+            {
+                TeamId = request.TeamId,
+                Description = request.Model.Description,
+                EnteredOn = _now.Get(),
+                EnteredByUserId = _actingUserService.Get().Id,
+                PointValue = request.Model.PointValue
+            });
+
+        // adding a manual bonus will change the team's score, so we need to 
+        // manually refresh the denormalization of the scoreboard
+        await _mediator.Publish(new ScoreChangedNotification(request.TeamId));
     }
 }
