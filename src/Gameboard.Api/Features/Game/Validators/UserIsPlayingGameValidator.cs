@@ -14,7 +14,10 @@ public class UserIsPlayingGameValidator : IGameboardValidator
     private string _userId;
     private readonly IStore _store;
 
-    public UserIsPlayingGameValidator(IStore store) => _store = store;
+    public UserIsPlayingGameValidator(IStore store)
+    {
+        _store = store;
+    }
 
     public UserIsPlayingGameValidator UseGameId(string gameId)
     {
