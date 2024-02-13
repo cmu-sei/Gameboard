@@ -5,7 +5,7 @@ namespace Gameboard.Api.Features.Scores;
 public sealed class CantAccessThisScore : GameboardValidationException
 {
     public CantAccessThisScore(string message)
-        : base($"You don't have access to this score. This is usually because you're either not on an eligible team. ({message})") { }
+        : base($"You don't have access to this score. This is usually because the game hasn't ended yet and you're not on an eligible team. ({message})") { }
 }
 
 public sealed class CantAwardNegativePointValue : GameboardValidationException

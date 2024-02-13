@@ -1,11 +1,13 @@
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
-using Gameboard.Api.Features.Games.Validators;
+using Gameboard.Api.Data;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Scores;
 
@@ -15,8 +17,9 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
 {
     private readonly IActingUserService _actingUserService;
     private readonly EntityExistsValidator<GameScoreQuery, Data.Game> _gameExists;
+    private readonly INowService _nowService;
     private readonly IScoringService _scoringService;
-    private readonly UserIsPlayingGameValidator _userIsPlaying;
+    private readonly IStore _store;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
     private readonly IValidatorService<GameScoreQuery> _validator;
 
@@ -24,8 +27,9 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
     (
         IActingUserService actingUserService,
         EntityExistsValidator<GameScoreQuery, Data.Game> gameExists,
+        INowService nowService,
         IScoringService scoringService,
-        UserIsPlayingGameValidator userIsPlaying,
+        IStore store,
         UserRoleAuthorizer userRoleAuthorizer,
         IValidatorService<GameScoreQuery> validator
     )
@@ -33,8 +37,9 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
         _actingUserService = actingUserService;
         _gameExists = gameExists.UseProperty(q => q.GameId);
         _userRoleAuthorizer = userRoleAuthorizer;
+        _nowService = nowService;
         _scoringService = scoringService;
-        _userIsPlaying = userIsPlaying;
+        _store = store;
         _userRoleAuthorizer = userRoleAuthorizer;
         _validator = validator;
     }
@@ -46,12 +51,22 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
 
         if (!_userRoleAuthorizer.AllowRoles(UserRole.Admin, UserRole.Support, UserRole.Tester, UserRole.Designer).WouldAuthorize())
         {
-            _validator.AddValidator
-            (
-                _userIsPlaying
-                    .UseGameId(request.GameId)
-                    .UseUserId(_actingUserService.Get().Id)
-            );
+            // can only access game score details when the game is over
+            _validator.AddValidator(async (req, ctx) =>
+            {
+                var now = _nowService.Get();
+                var game = await _store
+                    .WithNoTracking<Data.Game>()
+                    .Select(g => new
+                    {
+                        g.Id,
+                        g.GameEnd
+                    })
+                    .SingleOrDefaultAsync(g => g.Id == req.GameId && g.GameEnd <= now);
+
+                if (game is null)
+                    ctx.AddValidationException(new CantAccessThisScore("game hasn't ended"));
+            });
         }
 
         await _validator.Validate(request, cancellationToken);

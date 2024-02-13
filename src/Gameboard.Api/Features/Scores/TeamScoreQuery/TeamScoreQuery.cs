@@ -26,6 +26,7 @@ public record GetTeamScoreQuery(string TeamId) : IRequest<TeamScoreQueryResponse
 internal class GetTeamScoreHandler : IRequestHandler<GetTeamScoreQuery, TeamScoreQueryResponse>
 {
     private readonly IActingUserService _actingUserService;
+    private readonly INowService _nowService;
     private readonly IScoringService _scoreService;
     private readonly IStore _store;
     private readonly TeamExistsValidator<GetTeamScoreQuery> _teamExists;
@@ -35,6 +36,7 @@ internal class GetTeamScoreHandler : IRequestHandler<GetTeamScoreQuery, TeamScor
 
     public GetTeamScoreHandler(
         IActingUserService actingUserService,
+        INowService nowService,
         IScoringService scoreService,
         IStore store,
         TeamExistsValidator<GetTeamScoreQuery> teamExists,
@@ -43,6 +45,7 @@ internal class GetTeamScoreHandler : IRequestHandler<GetTeamScoreQuery, TeamScor
         IValidatorService<GetTeamScoreQuery> validatorService)
     {
         _actingUserService = actingUserService;
+        _nowService = nowService;
         _scoreService = scoreService;
         _store = store;
         _teamExists = teamExists;
@@ -55,16 +58,33 @@ internal class GetTeamScoreHandler : IRequestHandler<GetTeamScoreQuery, TeamScor
     {
         _validatorService.AddValidator(_teamExists.UseProperty(r => r.TeamId));
 
-        var userId = _actingUserService.Get().Id;
-
         if (!_userRoleAuthorizer.AllowRoles(UserRole.Admin, UserRole.Designer, UserRole.Support, UserRole.Tester).WouldAuthorize())
         {
             _validatorService.AddValidator(async (req, ctx) =>
             {
+                var gameInfo = await _store
+                    .WithNoTracking<Data.Game>()
+                    .Where(g => g.Players.Any(p => p.TeamId == req.TeamId))
+                    .Select(g => new
+                    {
+                        g.Id,
+                        g.GameEnd
+                    })
+                    .SingleAsync(cancellationToken);
+
+                var now = _nowService.Get();
+
+                // if the game is over, this data is generally available
+                if (gameInfo.GameEnd <= now)
+                    return;
+
+                // otherwise, you need to be on the team you're looking at
+                var userId = _actingUserService.Get().Id;
                 var isOnTeam = await _store
                     .WithNoTracking<Data.Player>()
                     .Where(p => p.TeamId == request.TeamId)
                     .Where(p => p.UserId == userId)
+                    .Where(p => p.GameId == gameInfo.Id)
                     .AnyAsync(cancellationToken);
 
                 if (!isOnTeam)
