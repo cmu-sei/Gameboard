@@ -203,13 +203,6 @@ internal class ScoringService : IScoringService
         DateTimeOffset? teamSessionEnd = captain.SessionBegin > now && captain.SessionEnd < now ? captain.SessionEnd : null;
         var overallScore = CalculateScore(pointsFromChallenges, bonusPoints, manualTeamBonusPoints, manualChallengeBonusPoints);
 
-        // for now, try to borrow rank from the denormalized score table (we don't maintain it on any other table since it's
-        // derived information)
-        var denormalizedScore = await _store
-            .WithNoTracking<DenormalizedTeamScore>()
-            .Where(t => t.TeamId == teamId && t.GameId == game.Id)
-            .SingleOrDefaultAsync(cancellationToken);
-
         return new TeamScore
         {
             Team = new SimpleEntity { Id = captain.TeamId, Name = captain.ApprovedName },
@@ -235,7 +228,6 @@ internal class ScoringService : IScoringService
             }),
             IsAdvancedToNextRound = captain.Advanced,
             OverallScore = overallScore,
-            Rank = denormalizedScore is not null ? denormalizedScore.Rank : 0,
             CumulativeTimeMs = cumulativeTimeMs,
             RemainingTimeMs = teamSessionEnd is null || teamSessionEnd < now ? null : (teamSessionEnd.Value - _now.Get()).TotalMilliseconds,
             Challenges = challenges.Select
