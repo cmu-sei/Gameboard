@@ -18,6 +18,8 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
     (
         IFixture fixture,
         string gameId,
+        string playerId,
+        string playerUserId,
         string teamId,
         string challenge1Id,
         string challenge2Id,
@@ -40,6 +42,9 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
                 g.Id = gameId;
                 g.Players = state.Build<Data.Player>(fixture, p =>
                 {
+                    p.Id = playerId;
+                    // need to rethink default entities
+                    p.User = state.Build<Data.User>(fixture, u => u.Id = playerUserId);
                     p.TeamId = teamId;
                     p.Challenges = new List<Data.Challenge>
                     {
@@ -48,6 +53,7 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
                             c.Id = challenge1Id;
                             c.Points = baseScore1;
                             c.Score = baseScore1;
+                            c.PlayerId = playerId;
                             c.GameId = gameId;
                             c.TeamId = teamId;
                             c.AwardedManualBonuses = new List<ManualChallengeBonus>()
@@ -73,6 +79,7 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
                             c.Id = challenge2Id;
                             c.Points = baseScore2;
                             c.Score = baseScore2;
+                            c.PlayerId = playerId;
                             c.GameId = gameId;
                             c.TeamId = teamId;
                             c.AwardedManualBonuses = new ManualChallengeBonus
@@ -88,8 +95,8 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
             });
         });
 
-        // anon access is ok 👍
-        var httpClient = _testContext.CreateClient();
+        // only accessible by elevated roles or players on the team 👍
+        var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = playerUserId);
 
         // when
         var result = await httpClient
