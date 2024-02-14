@@ -55,6 +55,7 @@ public sealed class TeamScore
     public required IEnumerable<PlayerWithSponsor> Players { get; set; }
     public required bool IsAdvancedToNextRound { get; set; }
     public required Score OverallScore { get; set; }
+    public required int Rank { get; set; }
     public required double CumulativeTimeMs { get; set; }
     public required double? RemainingTimeMs { get; set; }
     public required IEnumerable<ManualTeamBonusViewModel> ManualBonuses { get; set; } = Array.Empty<ManualTeamBonusViewModel>();
