@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace Gameboard.Api
 {
-     public class FeedbackSubmission
+    public class FeedbackSubmission
     {
         // UserId and PlayerId are set automatically when saved
         public string ChallengeId { get; set; }
@@ -32,7 +32,7 @@ namespace Gameboard.Api
     {
         public string Type { get; set; } = "text"; // if unspecified in config
         public bool Required { get; set; } = false; // if unspecified in config
-        
+
         // For 'likert' type questions only
         public int Min { get; set; } = 1;
         public int Max { get; set; }
@@ -49,22 +49,22 @@ namespace Gameboard.Api
 
     public class GameFeedbackTemplate
     {
-        public QuestionTemplate[] Game { get; set; } = new QuestionTemplate[0];
-        public QuestionTemplate[] Challenge { get; set; } = new QuestionTemplate[0];
+        public QuestionTemplate[] Game { get; set; } = Array.Empty<QuestionTemplate>();
+        public QuestionTemplate[] Challenge { get; set; } = Array.Empty<QuestionTemplate>();
         public string Message { get; set; }
     }
-    
+
 
     public class Feedback
     {
-        public string Id { get; set; } 
-        public string UserId { get; set; } 
-        public string PlayerId { get; set; } 
-        public string ChallengeId { get; set; } 
-        public string ChallengeSpecId { get; set; } 
+        public string Id { get; set; }
+        public string UserId { get; set; }
+        public string PlayerId { get; set; }
+        public string ChallengeId { get; set; }
+        public string ChallengeSpecId { get; set; }
         public string GameId { get; set; }
-        public QuestionSubmission[] Questions { get; set; } 
-        public bool Submitted { get; set; } 
+        public QuestionSubmission[] Questions { get; set; }
+        public bool Submitted { get; set; }
         public DateTimeOffset Timestamp { get; set; }
     }
 
@@ -74,17 +74,17 @@ namespace Gameboard.Api
         public string ChallengeTag { get; set; }
     }
 
-    public class FeedbackSearchParams: SearchFilter
+    public class FeedbackSearchParams : SearchFilter
     {
         public const string GameType = "game";
         public const string ChallengeType = "challenge";
         public const string SortOldest = "oldest";
         public const string SortNewest = "newest";
         public const string Submitted = "submitted";
-        public string GameId { get; set; } 
-        public string ChallengeSpecId { get; set; } 
-        public string ChallengeId { get; set; } 
-        public string Type { get; set; } 
+        public string GameId { get; set; }
+        public string ChallengeSpecId { get; set; }
+        public string ChallengeId { get; set; }
+        public string Type { get; set; }
         public string SubmitStatus { get; set; }
         public bool WantsGame => Type == GameType;
         public bool WantsChallenge => Type == ChallengeType;
@@ -97,12 +97,12 @@ namespace Gameboard.Api
     // Order of properties below determines order of columns in CSV export
     public class FeedbackReportExport
     {
-        public string UserId { get; set; } 
-        public string PlayerId { get; set; } 
+        public string UserId { get; set; }
+        public string PlayerId { get; set; }
         public string ApprovedName { get; set; }
-        public string ChallengeId { get; set; } 
+        public string ChallengeId { get; set; }
         public string ChallengeTag { get; set; }
-        public bool Submitted { get; set; } 
+        public bool Submitted { get; set; }
         public DateTimeOffset Timestamp { get; set; }
     }
 
@@ -114,12 +114,12 @@ namespace Gameboard.Api
     public class FeedbackStats
     {
         public string GameId { get; set; }
-        public string ChallengeSpecId { get; set; } 
+        public string ChallengeSpecId { get; set; }
         public int ConfiguredCount { get; set; }
         public int LikertCount { get; set; }
         public int TextCount { get; set; }
         public int SelectOneCount { get; set; }
-        public int SelectManyCount { get; set;}
+        public int SelectManyCount { get; set; }
         public int RequiredCount { get; set; }
         public int ResponsesCount { get; set; }
         public int MaxResponseCount { get; set; }
