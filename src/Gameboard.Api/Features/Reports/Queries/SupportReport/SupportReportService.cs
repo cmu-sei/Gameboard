@@ -122,8 +122,11 @@ internal class SupportReportService : ISupportReportService
     public async Task<IEnumerable<SupportReportRecord>> QueryRecords(SupportReportParameters parameters)
     {
         // format parameters
-        DateTimeOffset? openedDateStart = parameters.OpenedDateStart.HasValue ? parameters.OpenedDateStart.Value.ToEndDate().ToUniversalTime() : null;
+        DateTimeOffset? openedDateStart = parameters.OpenedDateStart.HasValue ? parameters.OpenedDateStart.Value.ToUniversalTime() : null;
         DateTimeOffset? openedDateEnd = parameters.OpenedDateEnd.HasValue ? parameters.OpenedDateEnd.Value.ToEndDate().ToUniversalTime() : null;
+        DateTimeOffset? updatedDateStart = parameters.UpdatedDateStart.HasValue ? parameters.UpdatedDateStart.Value.ToUniversalTime() : null;
+        DateTimeOffset? updatedDateEnd = parameters.UpdatedDateEnd.HasValue ? parameters.UpdatedDateEnd.Value.ToEndDate().ToUniversalTime() : null;
+
         var labels = _reportsService.ParseMultiSelectCriteria(parameters.Labels);
         var statuses = _reportsService.ParseMultiSelectCriteria(parameters.Statuses);
 
@@ -152,6 +155,12 @@ internal class SupportReportService : ISupportReportService
         if (openedDateEnd != null)
             query = query
                 .Where(t => t.Created <= openedDateEnd);
+
+        if (updatedDateStart is not null)
+            query = query.Where(t => t.LastUpdated >= updatedDateStart);
+
+        if (updatedDateEnd is not null)
+            query = query.Where(t => t.LastUpdated <= updatedDateEnd);
 
         var rightNow = _now.Get();
         if (parameters.MinutesSinceOpen is not null)

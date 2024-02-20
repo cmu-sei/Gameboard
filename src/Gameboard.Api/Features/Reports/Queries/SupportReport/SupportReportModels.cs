@@ -19,6 +19,8 @@ public class SupportReportParameters
     public double? MinutesSinceUpdate { get; set; }
     public DateTimeOffset? OpenedDateStart { get; set; }
     public DateTimeOffset? OpenedDateEnd { get; set; }
+    public DateTimeOffset? UpdatedDateStart { get; set; }
+    public DateTimeOffset? UpdatedDateEnd { get; set; }
     public SupportReportTicketWindow? OpenedWindow { get; set; }
     public string Statuses { get; set; }
 }
