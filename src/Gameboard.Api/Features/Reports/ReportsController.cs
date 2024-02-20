@@ -66,12 +66,12 @@ public class ReportsController : ControllerBase
         => await _mediator.Send(new PracticeModeReportPlayerModeSummaryQuery(id, isPractice, _actingUser));
 
     [HttpGet("support")]
-    public async Task<ReportResults<SupportReportRecord>> GetSupportReport([FromQuery] SupportReportParameters reportParams, [FromQuery] PagingArgs pagingArgs)
-        => await _mediator.Send(new SupportReportQuery(reportParams, pagingArgs, _actingUser));
+    public Task<ReportResults<SupportReportStatSummary, SupportReportRecord>> GetSupportReport([FromQuery] SupportReportParameters reportParams, [FromQuery] PagingArgs pagingArgs)
+        => _mediator.Send(new SupportReportQuery(reportParams, pagingArgs, _actingUser));
 
     [HttpGet("metaData")]
-    public async Task<ReportMetaData> GetReportMetaData([FromQuery] string reportKey)
-        => await _mediator.Send(new GetMetaDataQuery(reportKey, _actingUser));
+    public Task<ReportMetaData> GetReportMetaData([FromQuery] string reportKey)
+        => _mediator.Send(new GetMetaDataQuery(reportKey, _actingUser));
 
     [HttpGet("parameter/challenge-specs/{gameId?}")]
     public Task<IEnumerable<SimpleEntity>> GetChallengeSpecs(string gameId = null)

@@ -1,13 +1,12 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Common;
 using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record SupportReportQuery(SupportReportParameters Parameters, PagingArgs PagingArgs, User ActingUser) : IRequest<ReportResults<SupportReportRecord>>, IReportQuery;
+public record SupportReportQuery(SupportReportParameters Parameters, PagingArgs PagingArgs, User ActingUser) : IRequest<ReportResults<SupportReportStatSummary, SupportReportRecord>>, IReportQuery;
 
-internal class SupportReportQueryHandler : IRequestHandler<SupportReportQuery, ReportResults<SupportReportRecord>>
+internal class SupportReportQueryHandler : IRequestHandler<SupportReportQuery, ReportResults<SupportReportStatSummary, SupportReportRecord>>
 {
     private readonly IReportsService _reportsService;
     private readonly ISupportReportService _service;
@@ -25,17 +24,23 @@ internal class SupportReportQueryHandler : IRequestHandler<SupportReportQuery, R
         _validator = validator;
     }
 
-    public async Task<ReportResults<SupportReportRecord>> Handle(SupportReportQuery request, CancellationToken cancellationToken)
+    public async Task<ReportResults<SupportReportStatSummary, SupportReportRecord>> Handle(SupportReportQuery request, CancellationToken cancellationToken)
     {
+        // validate access
         await _validator.Validate(request, cancellationToken);
 
-        return _reportsService.BuildResults(new ReportRawResults<SupportReportRecord>
+        // build the results and summary
+        var records = await _service.QueryRecords(request.Parameters);
+        var stats = _service.GetStatSummary(records);
+
+        return _reportsService.BuildResults(new ReportRawResults<SupportReportStatSummary, SupportReportRecord>
         {
             PagingArgs = request.PagingArgs,
             ParameterSummary = null,
             Records = await _service.QueryRecords(request.Parameters),
             ReportKey = ReportKey.Support,
-            Title = "Support Report"
+            Title = "Support Report",
+            OverallStats = stats
         });
     }
 }
