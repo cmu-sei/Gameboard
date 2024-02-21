@@ -297,13 +297,9 @@ internal class TeamService : ITeamService
         var captains = players.Where(p => p.IsManager);
 
         if (captains.Count() == 1)
-        {
             return captains.First();
-        }
         else if (captains.Count() > 1)
-        {
             return captains.OrderBy(c => c.ApprovedName).First();
-        }
 
         return players.OrderBy(p => p.ApprovedName).First();
     }

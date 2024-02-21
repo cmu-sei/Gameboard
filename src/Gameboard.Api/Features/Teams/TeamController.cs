@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -35,10 +34,9 @@ public class TeamController : ControllerBase
     public async Task<Team> GetTeam(string teamId)
         => await _mediator.Send(new GetTeamQuery(teamId, _actingUserService.Get()));
 
-    // this is awkward - really, 
     [HttpGet("search")]
-    public Task<IEnumerable<Team>> GetTeams([FromQuery] string teamIds)
-        => _mediator.Send(new GetTeamsQuery(teamIds.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)));
+    public Task<IEnumerable<Team>> SearchTeams([FromQuery] string ids)
+        => _mediator.Send(new GetTeamsQuery(ids.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)));
 
     /// <summary>
     /// Extend or end a team's session. If no value is supplied for the SessionEnd property of the
