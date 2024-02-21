@@ -1,7 +1,5 @@
 using Gameboard.Api.Common;
-using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.GameEngine;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
