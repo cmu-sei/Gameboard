@@ -17,15 +17,6 @@ public class GameboardCustomization : ICustomization
     private void RegisterDefaultEntityModels(IFixture fixture)
     {
         fixture.Register(() => fixture);
-
-        // this is necessary for us because we use EF with multiple navigation properties
-        // which ultimately result in circular references. We ignore the behavior in
-        // autofixture because it breaks tests which autofix entities with these references
-        // and we already know about the circular references - they're by design.
-        // fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
-        //     .ForEach(b => fixture.Behaviors.Remove(b));
-        // fixture.Behaviors.Add(new OmitOnRecursionBehavior());
-
         fixture.Customizations.Add(new IdBuilder());
         var now = DateTimeOffset.UtcNow;
 
@@ -125,7 +116,6 @@ public class GameboardCustomization : ICustomization
         {
             Id = fixture.Create<string>(),
             User = fixture.Create<Data.User>(),
-            Game = fixture.Create<Data.Game>(),
             ApprovedName = "Test Player",
             Sponsor = fixture.Create<Data.Sponsor>(),
             Role = PlayerRole.Manager,

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Bcpg;
 
 namespace Gameboard.Api.Tests.Integration;
 
@@ -12,34 +13,33 @@ public class ChallengeBonusControllerManualTests : IClassFixture<GameboardTestCo
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task AddManual_WithValidData_Succeeds(string challengeId, string userId, string description, double pointsValue, IFixture fixture)
+    public async Task AddManual_WithChallenge_Succeeds(string challengeId, string userId, string description, double pointsValue, IFixture fixture)
     {
         // given
         await _testContext.WithDataState(state =>
         {
+            state.Add<Data.Challenge>(fixture, c => c.Id = challengeId);
             state.Add<Data.User>(fixture, u =>
             {
                 u.Id = userId;
                 u.Role = UserRole.Support;
             });
-
-            state.Add<Data.Challenge>(fixture, c => c.Id = challengeId);
         });
 
         var bonus = new CreateManualBonus
         {
             Description = description,
-            PointValue = pointsValue
+            PointValue = pointsValue,
         };
 
-        var httpClient = _testContext.CreateHttpClientWithActingUser(u =>
-        {
-            u.Id = userId;
-            u.Role = UserRole.Support;
-        });
-
         // when
-        await httpClient.PostAsync($"api/challenge/{challengeId}/bonus/manual", bonus.ToJsonBody());
+        await _testContext
+            .CreateHttpClientWithActingUser(u =>
+            {
+                u.Id = userId;
+                u.Role = UserRole.Support;
+            })
+            .PostAsync($"api/challenge/{challengeId}/bonus/manual", bonus.ToJsonBody());
 
         // then
         var storedBonus = await _testContext

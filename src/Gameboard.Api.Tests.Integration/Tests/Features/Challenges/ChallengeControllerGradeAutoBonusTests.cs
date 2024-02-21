@@ -55,7 +55,11 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
                     {
                         c.Id = challengeId;
                         c.GraderKey = graderKey.ToSha256();
-                        c.Player = state.Build<Data.Player>(fixture, p => p.TeamId = teamId);
+                        c.Player = state.Build<Data.Player>(fixture, p =>
+                        {
+                            p.GameId = gameId;
+                            p.TeamId = teamId;
+                        });
                         c.SpecId = challengeSpecId;
                         c.TeamId = teamId;
                     }).ToCollection();
@@ -110,6 +114,8 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
             {
                 state.Add<Data.Game>(fixture, g =>
                 {
+                    g.Id = gameId;
+
                     g.Specs = state.Build<Data.ChallengeSpec>(fixture, spec =>
                     {
                         spec.Id = challengeSpecId;

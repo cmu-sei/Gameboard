@@ -41,7 +41,6 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
                     g.Challenges = state.Build<Data.Challenge>(fixture, c =>
                     {
                         c.Id = challengeId;
-                        c.GameId = gameId;
                         c.GraderKey = graderKey.ToSha256();
                         c.Points = 0;
                         c.Score = 0;
@@ -49,6 +48,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
                         c.TeamId = teamId;
                         c.Player = state.Build<Data.Player>(fixture, p =>
                         {
+                            p.GameId = gameId;
                             p.Score = 0;
                             p.Rank = 0;
                             p.TeamId = teamId;

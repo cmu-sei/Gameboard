@@ -26,6 +26,7 @@ public interface ITeamService
     Task<string> GetGameId(string teamId, CancellationToken cancellationToken);
     Task<int> GetSessionCount(string teamId, string gameId, CancellationToken cancellationToken);
     Task<Team> GetTeam(string id);
+    Task<IEnumerable<Team>> GetTeams(IEnumerable<string> ids);
     Task<bool> IsAtGamespaceLimit(string teamId, Data.Game game, CancellationToken cancellationToken);
     Task<bool> IsOnTeam(string teamId, string userId);
     Task<Data.Player> ResolveCaptain(string teamId, CancellationToken cancellationToken);
@@ -176,21 +177,36 @@ internal class TeamService : ITeamService
 
     public async Task<Team> GetTeam(string id)
     {
-        var players = await _store
+        var team = await GetTeams(id.ToEnumerable());
+
+        if (team.Count() != 1)
+            throw new ResourceNotFound<Team>(id);
+
+        return team.Single();
+    }
+
+    public async Task<IEnumerable<Team>> GetTeams(IEnumerable<string> ids)
+    {
+        var retVal = new List<Team>();
+        var teamPlayers = await _store
             .WithNoTracking<Data.Player>()
                 .Include(p => p.Sponsor)
-            .Where(p => p.TeamId == id)
-            .ToArrayAsync();
+            .Where(p => ids.Contains(p.TeamId))
+            .GroupBy(p => p.TeamId, p => p)
+            .ToDictionaryAsync(gr => gr.Key, gr => gr.ToArray());
 
-        if (players.Length == 0)
-            return null;
+        if (teamPlayers.Count == 0)
+            return Array.Empty<Team>();
 
-        var team = _mapper.Map<Team>(players.First(p => p.IsManager));
+        foreach (var teamId in teamPlayers.Keys)
+        {
+            var team = _mapper.Map<Team>(ResolveCaptain(teamPlayers[teamId]));
+            team.Members = _mapper.Map<TeamMember[]>(teamPlayers[teamId]);
+            team.Sponsors = _mapper.Map<Sponsor[]>(teamPlayers[teamId].Select(p => p.Sponsor));
+            retVal.Add(team);
+        }
 
-        team.Members = _mapper.Map<TeamMember[]>(players);
-        team.Sponsors = _mapper.Map<Sponsor[]>(players.Select(p => p.Sponsor));
-
-        return team;
+        return retVal;
     }
 
     public async Task<bool> IsAtGamespaceLimit(string teamId, Data.Game game, CancellationToken cancellationToken)
