@@ -97,8 +97,8 @@ public class TeamControllerGetTeamsTests : IClassFixture<GameboardTestContext>
 
         // when we ask for the team by Id
         var result = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Observer)
-            .GetAsync($"api/team/search?teamIds={teamId},{otherTeamId}")
+            .CreateHttpClientWithAuthRole(UserRole.Support)
+            .GetAsync($"api/admin/team/search?teamIds={teamId},{otherTeamId}")
             .WithContentDeserializedAs<IEnumerable<Team>>();
 
         // we should get back two tames

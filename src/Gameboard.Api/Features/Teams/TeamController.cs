@@ -34,10 +34,6 @@ public class TeamController : ControllerBase
     public async Task<Team> GetTeam(string teamId)
         => await _mediator.Send(new GetTeamQuery(teamId, _actingUserService.Get()));
 
-    [HttpGet("search")]
-    public Task<IEnumerable<Team>> SearchTeams([FromQuery] string ids)
-        => _mediator.Send(new GetTeamsQuery(ids.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)));
-
     /// <summary>
     /// Extend or end a team's session. If no value is supplied for the SessionEnd property of the
     /// body, the session is ended. Otherwise, the session end date/time is updated to the requested 

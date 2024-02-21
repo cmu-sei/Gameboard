@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -15,6 +17,10 @@ public class AdminTeamsController : ControllerBase
     {
         _mediator = mediator;
     }
+
+    [HttpGet("search")]
+    public Task<IEnumerable<Team>> SearchTeams([FromQuery] string ids)
+        => _mediator.Send(new GetTeamsQuery(ids.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)));
 
     [HttpPut("session")]
     public Task<AdminExtendTeamSessionResponse> ExtendTeamSessions([FromBody] AdminExtendTeamSessionRequest request)
