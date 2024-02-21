@@ -164,6 +164,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // update external host and get configuration information for teams
         var externalHostTeamConfigs = await NotifyExternalGameHost(request, syncGameStartState, cancellationToken);
 
+        // log what we got
+        Log($"External host team configurations: {_jsonService.Serialize(externalHostTeamConfigs)}", request.Game.Id);
+
         // then assign a headless server to each team
         foreach (var team in request.Context.Teams)
         {
