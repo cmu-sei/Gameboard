@@ -312,20 +312,9 @@ public partial class ChallengeService : _Service
         if (await _teamService.IsAtGamespaceLimit(challenge.TeamId, game, cancellationToken))
             throw new GamespaceLimitReached(game.Id, challenge.TeamId);
 
-        // record the GamespaceOn event and manipulate the HasGamespaceDeployed property to accurately reflect
-        // the deployment state.
-        challenge.Events.Add(new ChallengeEvent
-        {
-            Id = _guids.GetGuid(),
-            UserId = actorId,
-            TeamId = challenge.TeamId,
-            Timestamp = _now.Get(),
-            Type = ChallengeEventType.GamespaceOn
-        });
-
         var state = await _gameEngine.StartGamespace(new GameEngineGamespaceStartRequest { ChallengeId = challenge.Id, GameEngineType = challenge.GameEngineType });
         state = TransformStateRelativeUrls(state);
-        await _challengeSyncService.Sync(challenge, state, cancellationToken);
+        await _challengeSyncService.Sync(challenge, state, actorId, cancellationToken);
 
         return Mapper.Map<Challenge>(challenge);
     }
@@ -333,20 +322,10 @@ public partial class ChallengeService : _Service
     public async Task<Challenge> StopGamespace(string id, string actorId)
     {
         var challenge = await _challengeStore.Retrieve(id);
-
-        challenge.Events.Add(new ChallengeEvent
-        {
-            Id = _guids.GetGuid(),
-            UserId = actorId,
-            TeamId = challenge.TeamId,
-            Timestamp = _now.Get(),
-            Type = ChallengeEventType.GamespaceOff
-        });
-
         var state = await _gameEngine.StopGamespace(challenge);
         state = TransformStateRelativeUrls(state);
-        await _challengeSyncService.Sync(challenge, state, CancellationToken.None);
 
+        await _challengeSyncService.Sync(challenge, state, actorId, CancellationToken.None);
         return Mapper.Map<Challenge>(challenge);
     }
 
@@ -431,7 +410,7 @@ public partial class ChallengeService : _Service
         if (postGradingState is null)
             throw new InvalidOperationException("The post-grading state of the challenge was null.");
 
-        await _challengeSyncService.Sync(challenge, postGradingState, CancellationToken.None);
+        await _challengeSyncService.Sync(challenge, postGradingState, actor.Id, CancellationToken.None);
 
         // update the team score and award automatic bonuses
         var updatedScore = await _mediator.Send(new UpdateTeamChallengeBaseScoreCommand(challenge.Id, challenge.Score));
@@ -482,9 +461,11 @@ public partial class ChallengeService : _Service
         var challenge = await _challengeStore.Retrieve(id);
         // preserve the score prior to regrade
         double currentScore = challenge.Score;
+        // who's regrading?
+        var actingUserId = _actingUserService.Get()?.Id;
 
         var state = await _gameEngine.RegradeChallenge(challenge);
-        await _challengeSyncService.Sync(challenge, state, CancellationToken.None);
+        await _challengeSyncService.Sync(challenge, state, actingUserId, CancellationToken.None);
 
         // log an event for successful regrading
         await _store.Create(new ChallengeEvent
@@ -493,7 +474,7 @@ public partial class ChallengeService : _Service
             TeamId = challenge.TeamId,
             Timestamp = _now.Get(),
             Type = ChallengeEventType.Regraded,
-            UserId = _actingUserService.Get().Id
+            UserId = actingUserId
         });
 
         // update the team score and award automatic bonuses

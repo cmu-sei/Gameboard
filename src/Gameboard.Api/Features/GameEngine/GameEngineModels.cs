@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
-// These are data-annotated to support automatic JSON schema generation for Gamebrain dev
 namespace Gameboard.Api.Features.GameEngine;
 
 public class GameEngineChallengeRegistration
