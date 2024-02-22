@@ -348,7 +348,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 }
                 else
                 {
-                    Log($"""Creating challenge for team {team.Team.Id}, spec "{specId}"...""", request.Game.Id);
+                    Log($"Creating challenge for team {team.Team.Id}, spec {specId}...", request.Game.Id);
                     deployedChallenge = await _challengeService.Create
                     (
                         new NewChallenge
