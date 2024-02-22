@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Features.Scores;
@@ -26,13 +27,20 @@ public sealed class GameScoringConfigChallengeSpec
     public required double CompletionScore { get; set; }
     public required IEnumerable<GameScoringConfigChallengeBonus> PossibleBonuses { get; set; }
     public required double MaxPossibleScore { get; set; }
+    public required string SupportKey { get; set; }
 }
 
+[JsonDerivedType(typeof(GameScoringChallengeBonusSolveRank), typeDiscriminator: "solveRank")]
 public class GameScoringConfigChallengeBonus
 {
     public required string Id { get; set; }
     public required string Description { get; set; }
     public required double PointValue { get; set; }
+}
+
+public sealed class GameScoringChallengeBonusSolveRank : GameScoringConfigChallengeBonus
+{
+    public required int SolveRank { get; set; }
 }
 
 public class GameScore

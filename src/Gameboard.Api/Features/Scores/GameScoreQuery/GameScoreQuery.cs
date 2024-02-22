@@ -15,7 +15,6 @@ public record GameScoreQuery(string GameId) : IRequest<GameScore>;
 
 internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, GameScore>
 {
-    private readonly IActingUserService _actingUserService;
     private readonly EntityExistsValidator<GameScoreQuery, Data.Game> _gameExists;
     private readonly INowService _nowService;
     private readonly IScoringService _scoringService;
@@ -25,7 +24,6 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
 
     public GameScoreQueryHandler
     (
-        IActingUserService actingUserService,
         EntityExistsValidator<GameScoreQuery, Data.Game> gameExists,
         INowService nowService,
         IScoringService scoringService,
@@ -34,7 +32,6 @@ internal sealed class GameScoreQueryHandler : IRequestHandler<GameScoreQuery, Ga
         IValidatorService<GameScoreQuery> validator
     )
     {
-        _actingUserService = actingUserService;
         _gameExists = gameExists.UseProperty(q => q.GameId);
         _userRoleAuthorizer = userRoleAuthorizer;
         _nowService = nowService;
