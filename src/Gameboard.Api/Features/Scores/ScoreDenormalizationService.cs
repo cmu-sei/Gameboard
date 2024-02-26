@@ -114,9 +114,7 @@ internal class ScoreDenormalizationService : IScoreDenormalizationService
         }));
 
         foreach (var team in teams)
-        {
             team.Rank = rankedTeams.ContainsKey(team.TeamId) ? rankedTeams[team.TeamId] : 0;
-        }
 
         await _store.SaveUpdateRange(teams);
     }

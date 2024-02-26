@@ -86,7 +86,12 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
             // if they have a full solve, compute their ordinal rank by time and award them the appropriate challenge bonus
             var availableBonuses = spec
                     .Bonuses
-                    .Where(bonus => !otherTeamChallenges.SelectMany(c => c.AwardedBonuses).Any(otherTeamBonus => otherTeamBonus.ChallengeBonusId == bonus.Id));
+                    .Where
+                    (
+                        bonus => !otherTeamChallenges
+                            .SelectMany(c => c.AwardedBonuses)
+                            .Any(otherTeamBonus => otherTeamBonus.ChallengeBonusId == bonus.Id)
+                    );
 
             if (availableBonuses.Any() && (availableBonuses.First() as ChallengeBonusCompleteSolveRank).SolveRank == otherTeamChallenges.Length + 1)
                 updateChallenge.AwardedBonuses.Add(new AwardedChallengeBonus

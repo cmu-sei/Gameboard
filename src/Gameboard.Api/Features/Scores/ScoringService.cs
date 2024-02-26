@@ -269,9 +269,7 @@ internal class ScoringService : IScoringService
         foreach (var team in ranked)
         {
             if (lastScore is null || team.OverallScore != lastScore.OverallScore || team.CumulativeTimeMs != lastScore.CumulativeTimeMs)
-            {
                 scoreRank += 1;
-            }
 
             retVal.Add(team.TeamId, scoreRank);
             lastScore = team;
