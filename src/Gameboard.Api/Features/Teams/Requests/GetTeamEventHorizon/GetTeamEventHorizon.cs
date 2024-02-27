@@ -190,6 +190,7 @@ internal class GetTeamEventHorizonHandler : IRequestHandler<GetTeamEventHorizonQ
         foreach (var challengeId in events.Keys)
         {
             Data.ChallengeEvent lastOnEvent = null;
+
             foreach (var gamespaceEvent in events[challengeId].OrderBy(e => e.Timestamp))
             {
                 if (gamespaceEvent.Type == ChallengeEventType.GamespaceOn || gamespaceEvent.Type == ChallengeEventType.Started)

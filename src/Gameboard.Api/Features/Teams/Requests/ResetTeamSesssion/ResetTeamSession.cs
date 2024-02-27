@@ -77,13 +77,7 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
         // delete players from the team iff. requested
         if (request.UnenrollTeam)
         {
-            _logger.LogInformation($"Deleting player records for team {request.TeamId}");
-
-            // for now, we only raise the score changing event if we're keeping the team enrolled
-            // (need to do this in the opposite order if we're resetting)
-            // we need to do this _before_ deleting the team above
-            await _mediator.Publish(new ScoreChangedNotification(request.TeamId), cancellationToken);
-
+            _logger.LogInformation($"Deleting players/challenges/metadata for team {request.TeamId}");
             await _teamService.DeleteTeam(request.TeamId, new SimpleEntity { Id = request.ActingUser.Id, Name = request.ActingUser.ApprovedName }, cancellationToken);
 
             // also get rid of any external game artifacts if they have any
