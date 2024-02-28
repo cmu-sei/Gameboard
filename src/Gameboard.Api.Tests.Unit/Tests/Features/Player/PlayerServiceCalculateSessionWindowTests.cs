@@ -17,7 +17,7 @@ public class PlayerServiceCalculateSessionWindowTests
         var sut = PlayerServiceTestHelpers.GetTestableSut();
 
         // when the session length properties are calculated
-        var result = sut.CalculateSessionWindow(game, sessionStart);
+        var result = sut.CalculateSessionWindow(game, false, sessionStart);
 
         // then session end should be equal to the game end
         result.End.ShouldBe(gameEnd);
@@ -39,7 +39,7 @@ public class PlayerServiceCalculateSessionWindowTests
         var sut = PlayerServiceTestHelpers.GetTestableSut();
 
         // when the session length properties are calculated
-        var result = sut.CalculateSessionWindow(game, sessionStart);
+        var result = sut.CalculateSessionWindow(game, false, sessionStart);
 
         // then session end should be equal to the game end
         result.End.ShouldBe(sessionEnd);
@@ -60,7 +60,7 @@ public class PlayerServiceCalculateSessionWindowTests
         var sut = PlayerServiceTestHelpers.GetTestableSut();
 
         // when the session length properties are calculated
-        var result = sut.CalculateSessionWindow(game, sessionStart);
+        var result = sut.CalculateSessionWindow(game, false, sessionStart);
 
         // the session end should be equal to the game end
         result.IsLateStart.ShouldBeTrue();
@@ -81,7 +81,7 @@ public class PlayerServiceCalculateSessionWindowTests
         var sut = PlayerServiceTestHelpers.GetTestableSut();
 
         // when the session length properties are calculated
-        var result = sut.CalculateSessionWindow(game, sessionStart);
+        var result = sut.CalculateSessionWindow(game, false, sessionStart);
 
         // the session end should be equal to the game end
         result.IsLateStart.ShouldBeFalse();
