@@ -45,15 +45,20 @@ internal class GetAppActiveChallengesHandler : IRequestHandler<GetAppActiveChall
 
         var challenges = await _appOverviewService
             .GetActiveChallenges()
-            .Include(c => c.Game)
             .Select(c => new
             {
                 c.Id,
                 c.Name,
                 c.SpecId,
                 c.TeamId,
-                Game = new SimpleEntity { Id = c.GameId, Name = c.Game.Name },
-                GameEngine = c.GameEngineType,
+                // Game = new AppActiveChallengeGame
+                // {
+                //     Id = c.GameId,
+                //     Name = c.Game.Name,
+                //     Engine = c.GameEngineType,
+                //     IsTeamGame = c.Game.MaxTeamSize > 1
+                // },
+                // GameEngine = c.GameEngineType,
                 c.StartTime,
             })
             .ToArrayAsync(cancellationToken);
@@ -64,6 +69,7 @@ internal class GetAppActiveChallengesHandler : IRequestHandler<GetAppActiveChall
         // get specs separately because _ugh_
         var specs = await _store
             .WithNoTracking<Data.ChallengeSpec>()
+            .Include(s => s.Game)
             .Where(s => specIds.Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, s => s, cancellationToken);
 
@@ -80,17 +86,24 @@ internal class GetAppActiveChallengesHandler : IRequestHandler<GetAppActiveChall
             .Select(gr =>
             {
                 // the dictionary is a key/value store of spec Id to various challenge data
+                var specId = gr.Key;
                 var sampleChallenge = gr.Value.First();
 
                 return new AppActiveChallengeSpec
                 {
                     Id = gr.Key,
                     Name = gr.Value.First().Name,
+                    Tag = specs[specId].Tag,
+                    Game = new AppActiveChallengeGame
+                    {
+                        Id = specs[specId].GameId,
+                        Name = specs[specId].Game.Name,
+                        IsTeamGame = specs[specId].Game.MaxTeamSize > 1,
+                        Engine = specs[specId].GameEngineType
+                    },
                     Challenges = gr.Value.Select(c => new AppActiveChallenge
                     {
                         Id = c.Id,
-                        Game = c.Game,
-                        GameEngine = c.GameEngine,
                         StartedAt = c.StartTime,
                         Team = new AppActiveChallengeTeam
                         {
@@ -103,8 +116,10 @@ internal class GetAppActiveChallengesHandler : IRequestHandler<GetAppActiveChall
                             } : null
                         }
                     })
+                    .OrderBy(s => s.Team.Name)
                 };
-            });
+            })
+            .OrderBy(spec => spec.Name);
 
         return new GetAppActiveChallengesResponse(results);
     }
