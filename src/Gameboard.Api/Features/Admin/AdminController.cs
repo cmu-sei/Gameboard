@@ -17,4 +17,8 @@ public class AdminController : ControllerBase
     [HttpGet("stats")]
     public Task<GetSiteOverviewStatsResponse> GetSiteOverviewStats()
         => _mediator.Send(new GetSiteOverviewStatsQuery());
+
+    [HttpGet("active-challenges")]
+    public Task<GetAppActiveChallengesResponse> GetActiveChallenges([FromQuery] string playerMode)
+        => _mediator.Send(new GetAppActiveChallengesQuery(playerMode.ToLower() == "practice" ? PlayerMode.Practice : PlayerMode.Competition));
 }

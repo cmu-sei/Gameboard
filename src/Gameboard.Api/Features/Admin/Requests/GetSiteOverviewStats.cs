@@ -22,17 +22,20 @@ public record GetSiteOverviewStatsQuery() : IRequest<GetSiteOverviewStatsRespons
 
 internal class GetSiteOverviewStatsHandler : IRequestHandler<GetSiteOverviewStatsQuery, GetSiteOverviewStatsResponse>
 {
+    private readonly IAppOverviewService _appOverviewService;
     private readonly INowService _nowService;
     private readonly IStore _store;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
 
     public GetSiteOverviewStatsHandler
     (
+        IAppOverviewService appOverviewService,
         INowService nowService,
         IStore store,
         UserRoleAuthorizer userRoleAuthorizer
     )
     {
+        _appOverviewService = appOverviewService;
         _nowService = nowService;
         _store = store;
         _userRoleAuthorizer = userRoleAuthorizer;
@@ -47,11 +50,8 @@ internal class GetSiteOverviewStatsHandler : IRequestHandler<GetSiteOverviewStat
 
         // pull data
         var now = _nowService.Get();
-        var challengeData = await _store
-            .WithNoTracking<Data.Challenge>()
-            .WhereDateIsNotEmpty(c => c.StartTime)
-            .Where(c => c.StartTime <= now)
-            .Where(c => c.EndTime >= now || c.EndTime == DateTimeOffset.MinValue)
+        var challengeData = await _appOverviewService
+            .GetActiveChallenges()
             .Select(c => new
             {
                 c.Id,
