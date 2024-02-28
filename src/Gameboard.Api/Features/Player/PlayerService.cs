@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -241,10 +242,10 @@ public class PlayerService
                 throw new SessionLimitReached(player.TeamId, game.Id, sessionCount, game.SessionLimit);
         }
 
-        var sessionWindow = CalculateSessionWindow(game, _now.Get());
+        var sessionWindow = CalculateSessionWindow(game, sudo, _now.Get());
 
         // rule: if the player/team is starting late, this must be allowed on the game level
-        if (sessionWindow.IsLateStart && !game.AllowLateStart)
+        if (!sudo && sessionWindow.IsLateStart && !game.AllowLateStart)
             throw new CantLateStart(player.Name, game.Name, game.GameEnd, game.SessionMinutes);
 
         foreach (var p in team)
@@ -281,12 +282,12 @@ public class PlayerService
         return asViewModel;
     }
 
-    internal PlayerCalculatedSessionWindow CalculateSessionWindow(Data.Game game, DateTimeOffset sessionStart)
+    internal PlayerCalculatedSessionWindow CalculateSessionWindow(Data.Game game, bool isElevatedUser, DateTimeOffset sessionStart)
     {
         var normalSessionEnd = sessionStart.AddMinutes(game.SessionMinutes);
         var finalSessionEnd = normalSessionEnd;
 
-        if (game.GameEnd < normalSessionEnd)
+        if (!isElevatedUser && game.GameEnd < normalSessionEnd)
             finalSessionEnd = game.GameEnd;
 
         return new()
