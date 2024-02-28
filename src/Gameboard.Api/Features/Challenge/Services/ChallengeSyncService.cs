@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -17,7 +16,7 @@ namespace Gameboard.Api.Features.Challenges;
 
 public interface IChallengeSyncService
 {
-    Task Sync(Data.Challenge challenge, GameEngineGameState challengeState, CancellationToken cancellationToken);
+    Task Sync(Data.Challenge challenge, GameEngineGameState challengeState, string actingUserId, CancellationToken cancellationToken);
     Task SyncExpired(CancellationToken cancellationToken);
 }
 
@@ -51,8 +50,8 @@ internal class ChallengeSyncService : IChallengeSyncService
         _store = store;
     }
 
-    public Task Sync(Data.Challenge challenge, GameEngineGameState state, CancellationToken cancellationToken)
-        => Sync(cancellationToken, new SyncEntry(challenge, state));
+    public Task Sync(Data.Challenge challenge, GameEngineGameState state, string actingUserId, CancellationToken cancellationToken)
+        => Sync(cancellationToken, new SyncEntry(actingUserId, challenge, state));
 
     private async Task Sync(CancellationToken cancellationToken, params SyncEntry[] entries)
     {
@@ -67,6 +66,22 @@ internal class ChallengeSyncService : IChallengeSyncService
             // there we need to NOT overwrite the playerId on the entity during the call to Map. Obviously, we could fix this by setting a rule on the map, 
             // but I'm leaving it here because this is the anomalous case.
             var playerId = entry.Challenge.PlayerId;
+
+            // before we map the new state to the challenge, check for changes in HasDeployedGamespace.
+            // if they're unequal, log a gamespace event.
+            if (entry.Challenge.HasDeployedGamespace != entry.State.HasDeployedGamespace)
+            {
+                await _store.Create(new ChallengeEvent
+                {
+                    ChallengeId = entry.Challenge.Id,
+                    TeamId = entry.Challenge.TeamId,
+                    Text = "Inferred from game engine sync",
+                    Timestamp = _now.Get(),
+                    Type = entry.Challenge.HasDeployedGamespace ? ChallengeEventType.GamespaceOff : ChallengeEventType.GamespaceOn,
+                    UserId = entry.ActingUserId, // can be null, which is what we want for now
+                });
+            }
+
             _mapper.Map(entry.State, entry.Challenge);
             entry.Challenge.PlayerId = playerId;
             entry.Challenge.LastSyncTime = _now.Get();
@@ -97,7 +112,7 @@ internal class ChallengeSyncService : IChallengeSyncService
             {
                 var state = await _gameEngine.LoadGamespace(challenge);
                 _consoleActorMap.RemoveTeam(challenge.TeamId);
-                await Sync(challenge, state, cancellationToken);
+                await Sync(challenge, state, null, cancellationToken);
                 _logger.LogInformation($"The challenge sync service sync'd data for challenge {challenge.Id}.");
             }
             catch (ApiException apiEx)
@@ -128,14 +143,7 @@ internal class ChallengeSyncService : IChallengeSyncService
         _logger.LogInformation($"The ChallengeSyncService finished synchronizing {challenges.Count()} challenges.");
     }
 
-    internal class SyncEntry
-    {
-        public Data.Challenge Challenge { get; private set; }
-        public GameEngineGameState State { get; private set; }
-
-        public SyncEntry(Data.Challenge challenge, GameEngineGameState state) =>
-            (Challenge, State) = (challenge, state);
-    }
+    internal record SyncEntry(string ActingUserId, Data.Challenge Challenge, GameEngineGameState State);
 
     internal async Task<IEnumerable<Data.Challenge>> GetExpiredChallengesForSync(DateTimeOffset now, CancellationToken cancellationToken)
     {

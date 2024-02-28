@@ -26,6 +26,7 @@ public class EnrollmentReportServiceTests
 
         var player = fixture.Create<Data.Player>();
         player.Challenges = new Data.Challenge[] { challenge };
+        player.Game = fixture.Create<Data.Game>();
         player.Game.PlayerMode = PlayerMode.Competition;
         player.Sponsor = sponsors.First();
 
@@ -51,7 +52,7 @@ public class EnrollmentReportServiceTests
     }
 
     [Theory, GameboardAutoData]
-    public async Task GetResults_WithOneTeamRecord_ReportsExpectedValues(IFixture fixture)
+    public async Task GetResults_WithOneTeamRecord_ReportsExpectedValues(string gameId, IFixture fixture)
     {
         // given 
         var sponsors = new List<Data.Sponsor>
@@ -76,10 +77,15 @@ public class EnrollmentReportServiceTests
         challenge.Points = 50;
         challenge.Score = 50;
         challenge.PlayerMode = PlayerMode.Competition;
+        challenge.GameId = gameId;
+
+        var game = fixture.Create<Data.Game>();
+        game.Id = gameId;
+        game.PlayerMode = PlayerMode.Competition;
 
         var player1 = fixture.Create<Data.Player>();
         player1.Challenges = new Data.Challenge[] { challenge };
-        player1.Game.PlayerMode = PlayerMode.Competition;
+        player1.Game = game;
         player1.Sponsor = sponsors.First();
         player1.Role = PlayerRole.Manager;
 
@@ -133,6 +139,7 @@ public class EnrollmentReportServiceTests
 
         var player = fixture.Create<Data.Player>();
         player.Challenges = new Data.Challenge[] { challenge };
+        player.Game = fixture.Create<Data.Game>();
         player.Game.PlayerMode = PlayerMode.Practice;
         player.Sponsor = sponsors.First();
 
@@ -172,6 +179,7 @@ public class EnrollmentReportServiceTests
 
         var player = fixture.Create<Data.Player>();
         player.Challenges = Array.Empty<Data.Challenge>();
+        player.Game = fixture.Create<Data.Game>();
         player.Sponsor = sponsors.First();
         var players = player.ToEnumerable().BuildMock();
 

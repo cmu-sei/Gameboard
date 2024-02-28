@@ -36,8 +36,8 @@ internal class ScoreChangedNotificationHandler : INotificationHandler<ScoreChang
     public async Task Handle(ScoreChangedNotification notification, CancellationToken cancellationToken)
     {
         // first to the legacy logic (which also includes updating the players table)
-        // we can drop this when we're confident in the new scoreboard and can move that logic
-        // into the new denormalized schema
+        // we can drop this when we're confident in the new scoreboard and reassess how we'll
+        // handle the Score/Rank/Time etc. in the Players table
         await DoLegacyRerank(notification.TeamId, cancellationToken);
         await _scoreDenormalizationService.DenormalizeTeam(notification.TeamId, cancellationToken);
     }
@@ -51,6 +51,7 @@ internal class ScoreChangedNotificationHandler : INotificationHandler<ScoreChang
                     .ThenInclude(b => b.ChallengeBonus)
                 .Include(c => c.AwardedManualBonuses)
             .Where(c => c.TeamId == teamId)
+            .Where(c => c.PlayerMode == PlayerMode.Competition)
             .ToArrayAsync(cancellationToken);
 
         var score = (int)challenges.Sum(c => c.Score);

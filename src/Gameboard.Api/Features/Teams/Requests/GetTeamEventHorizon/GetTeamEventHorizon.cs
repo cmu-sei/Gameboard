@@ -190,17 +190,20 @@ internal class GetTeamEventHorizonHandler : IRequestHandler<GetTeamEventHorizonQ
         foreach (var challengeId in events.Keys)
         {
             Data.ChallengeEvent lastOnEvent = null;
+
             foreach (var gamespaceEvent in events[challengeId].OrderBy(e => e.Timestamp))
             {
                 if (gamespaceEvent.Type == ChallengeEventType.GamespaceOn || gamespaceEvent.Type == ChallengeEventType.Started)
                     lastOnEvent = gamespaceEvent;
                 else if (gamespaceEvent.Type == ChallengeEventType.GamespaceOff)
                 {
+                    // it's technically possible for a challenge to have a gamespace off event but no on event.
+                    // if so, make the start time the challenge's start.
                     var lastOnTimestamp = lastOnEvent?.Timestamp ?? challengeStartEndTimes[challengeId].StartTime;
 
                     retVal.Add(new EventHorizonGamespaceOnOffEvent
                     {
-                        Id = lastOnEvent.Id,
+                        Id = lastOnEvent?.Id ?? gamespaceEvent.Id,
                         ChallengeId = challengeId,
                         Timestamp = lastOnTimestamp,
                         Type = EventHorizonEventType.GamespaceOnOff,

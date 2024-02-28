@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -9,12 +8,6 @@ public enum SupportReportTicketWindow
     BusinessHours,
     EveningHours,
     OffHours
-}
-
-public enum SupportReportLabelsModifier
-{
-    HasAll,
-    HasAny
 }
 
 public class SupportReportParameters
@@ -26,8 +19,32 @@ public class SupportReportParameters
     public double? MinutesSinceUpdate { get; set; }
     public DateTimeOffset? OpenedDateStart { get; set; }
     public DateTimeOffset? OpenedDateEnd { get; set; }
+    public DateTimeOffset? UpdatedDateStart { get; set; }
+    public DateTimeOffset? UpdatedDateEnd { get; set; }
     public SupportReportTicketWindow? OpenedWindow { get; set; }
     public string Statuses { get; set; }
+}
+
+public sealed class SupportReportStatSummary
+{
+    public required SupportReportStatSummaryLabel AllTicketsMostPopularLabel { get; set; }
+    public required SupportReportStatSummaryLabel OpenTicketsMostPopularLabel { get; set; }
+    public required int OpenTicketsCount { get; set; }
+    public required int AllTicketsCount { get; set; }
+    public required SupportReportStatSummaryChallengeSpec ChallengeSpecWithMostTickets { get; set; }
+}
+
+public sealed class SupportReportStatSummaryChallengeSpec
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required int TicketCount { get; set; }
+}
+
+public sealed class SupportReportStatSummaryLabel
+{
+    public required string Label { get; set; }
+    public required int TicketCount { get; set; }
 }
 
 public class SupportReportRecord
@@ -42,6 +59,7 @@ public class SupportReportRecord
     public required SimpleEntity RequestedBy { get; set; }
     public required SimpleEntity Game { get; set; }
     public required SimpleEntity Challenge { get; set; }
+    public required string ChallengeSpecId { get; set; }
     public required IEnumerable<string> AttachmentUris { get; set; }
     public required IEnumerable<string> Labels { get; set; }
     public required string Summary { get; set; }

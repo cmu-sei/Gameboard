@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -69,9 +70,7 @@ internal class ScoringService : IScoringService
                 var maxPossibleScore = (double)s.Points;
 
                 if (s.Bonuses.Any(b => b.PointValue > 0))
-                {
                     maxPossibleScore += s.Bonuses.OrderByDescending(b => b.PointValue).First().PointValue;
-                }
 
                 return new GameScoringConfigChallengeSpec
                 {
@@ -80,10 +79,23 @@ internal class ScoringService : IScoringService
                     Description = s.Description,
                     CompletionScore = s.Points,
                     PossibleBonuses = s.Bonuses
-                        .Select(b => _mapper.Map<GameScoringConfigChallengeBonus>(b))
+                        .Select(b =>
+                        {
+                            if (b is not ChallengeBonusCompleteSolveRank)
+                                throw new NotImplementedException("Can't resolve subclasee of ChallengeBonus for game score config.");
+
+                            return new GameScoringChallengeBonusSolveRank
+                            {
+                                Id = b.Id,
+                                Description = b.Description,
+                                PointValue = b.PointValue,
+                                SolveRank = (b as ChallengeBonusCompleteSolveRank).SolveRank
+                            };
+                        })
                         .OrderByDescending(b => b.PointValue)
                             .ThenBy(b => b.Description),
-                    MaxPossibleScore = maxPossibleScore
+                    MaxPossibleScore = maxPossibleScore,
+                    SupportKey = s.Tag
                 };
             }).
             OrderBy(config => config.Name)
@@ -257,9 +269,7 @@ internal class ScoringService : IScoringService
         foreach (var team in ranked)
         {
             if (lastScore is null || team.OverallScore != lastScore.OverallScore || team.CumulativeTimeMs != lastScore.CumulativeTimeMs)
-            {
                 scoreRank += 1;
-            }
 
             retVal.Add(team.TeamId, scoreRank);
             lastScore = team;

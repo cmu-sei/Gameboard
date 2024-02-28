@@ -38,7 +38,6 @@ internal class GetChallengesReportHandler : IRequestHandler<GetChallengesReportQ
         var statSummary = _challengesReportService.GetStatSummary(rawResults);
         var paged = _pagingService.Page(rawResults, request.PagingArgs);
 
-
         return new ReportResults<ChallengesReportStatSummary, ChallengesReportRecord>
         {
             MetaData = new ReportMetaData

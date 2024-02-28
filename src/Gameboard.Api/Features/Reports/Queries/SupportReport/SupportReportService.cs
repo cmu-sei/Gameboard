@@ -12,6 +12,7 @@ namespace Gameboard.Api.Features.Reports;
 
 public interface ISupportReportService
 {
+    SupportReportStatSummary GetStatSummary(IEnumerable<SupportReportRecord> records);
     SupportReportTicketWindow GetTicketDateSupportWindow(DateTimeOffset ticketDate);
     Task<IEnumerable<SupportReportRecord>> QueryRecords(SupportReportParameters parameters);
 }
@@ -43,11 +44,89 @@ internal class SupportReportService : ISupportReportService
         _ticketStore = ticketStore;
     }
 
+    public SupportReportStatSummary GetStatSummary(IEnumerable<SupportReportRecord> records)
+    {
+        if (records is null || !records.Any())
+        {
+            return new SupportReportStatSummary
+            {
+                AllTicketsCount = 0,
+                AllTicketsMostPopularLabel = null,
+                OpenTicketsCount = 0,
+                OpenTicketsMostPopularLabel = null,
+                ChallengeSpecWithMostTickets = null
+            };
+        }
+
+        var totalLabelCounts = new Dictionary<string, int>();
+        var openLabelCounts = new Dictionary<string, int>();
+        var openTicketCount = 0;
+        var challengeSpecMap = new Dictionary<string, SupportReportStatSummaryChallengeSpec>();
+
+        foreach (var record in records)
+        {
+            foreach (var label in record.Labels)
+            {
+                totalLabelCounts.EnsureKey(label, 0);
+                totalLabelCounts[label] += 1;
+
+                if (record.Status.ToLower() != "closed")
+                {
+                    openLabelCounts.EnsureKey(label, 0);
+                    openLabelCounts[label] += 1;
+                    openTicketCount += 1;
+                }
+            }
+
+            if (record.Challenge is not null && record.ChallengeSpecId.IsNotEmpty())
+            {
+                challengeSpecMap.EnsureKey(record.ChallengeSpecId, new SupportReportStatSummaryChallengeSpec
+                {
+                    Id = record.Challenge.Id,
+                    Name = record.Challenge.Name,
+                    TicketCount = 0
+                });
+
+                challengeSpecMap[record.ChallengeSpecId].TicketCount += 1;
+            }
+        }
+
+        var mostPopularLabel = totalLabelCounts
+            .Select(l => (KeyValuePair<string, int>?)l)
+            .OrderByDescending(k => k.Value.Value)
+            .FirstOrDefault();
+
+        var openMostPopularLabel = openLabelCounts
+            .Select(l => (KeyValuePair<string, int>?)l)
+            .OrderByDescending(k => k.Value.Value)
+            .FirstOrDefault();
+
+        return new SupportReportStatSummary
+        {
+            AllTicketsCount = records.Count(),
+            AllTicketsMostPopularLabel = mostPopularLabel is null ? null : new SupportReportStatSummaryLabel
+            {
+                Label = mostPopularLabel.Value.Key,
+                TicketCount = mostPopularLabel.Value.Value
+            },
+            OpenTicketsCount = openTicketCount,
+            OpenTicketsMostPopularLabel = openMostPopularLabel is null ? null : new SupportReportStatSummaryLabel
+            {
+                Label = openMostPopularLabel.Value.Key,
+                TicketCount = openMostPopularLabel.Value.Value
+            },
+            ChallengeSpecWithMostTickets = !challengeSpecMap.Any() ? null : challengeSpecMap.OrderByDescending(k => k.Value.TicketCount).First().Value
+        };
+    }
+
     public async Task<IEnumerable<SupportReportRecord>> QueryRecords(SupportReportParameters parameters)
     {
         // format parameters
-        DateTimeOffset? openedDateStart = parameters.OpenedDateStart.HasValue ? parameters.OpenedDateStart.Value.ToEndDate().ToUniversalTime() : null;
+        DateTimeOffset? openedDateStart = parameters.OpenedDateStart.HasValue ? parameters.OpenedDateStart.Value.ToUniversalTime() : null;
         DateTimeOffset? openedDateEnd = parameters.OpenedDateEnd.HasValue ? parameters.OpenedDateEnd.Value.ToEndDate().ToUniversalTime() : null;
+        DateTimeOffset? updatedDateStart = parameters.UpdatedDateStart.HasValue ? parameters.UpdatedDateStart.Value.ToUniversalTime() : null;
+        DateTimeOffset? updatedDateEnd = parameters.UpdatedDateEnd.HasValue ? parameters.UpdatedDateEnd.Value.ToEndDate().ToUniversalTime() : null;
+
         var labels = _reportsService.ParseMultiSelectCriteria(parameters.Labels);
         var statuses = _reportsService.ParseMultiSelectCriteria(parameters.Statuses);
 
@@ -76,6 +155,12 @@ internal class SupportReportService : ISupportReportService
         if (openedDateEnd != null)
             query = query
                 .Where(t => t.Created <= openedDateEnd);
+
+        if (updatedDateStart is not null)
+            query = query.Where(t => t.LastUpdated >= updatedDateStart);
+
+        if (updatedDateEnd is not null)
+            query = query.Where(t => t.LastUpdated <= updatedDateEnd);
 
         var rightNow = _now.Get();
         if (parameters.MinutesSinceOpen is not null)
@@ -113,6 +198,7 @@ internal class SupportReportService : ISupportReportService
             RequestedBy = _mapper.Map<SimpleEntity>(t.Requester),
             Game = t.Player == null ? null : _mapper.Map<SimpleEntity>(t.Player.Game),
             Challenge = _mapper.Map<SimpleEntity>(t.Challenge),
+            ChallengeSpecId = t.Challenge?.SpecId,
             AttachmentUris = _jsonService.Deserialize<List<string>>(t.Attachments),
             Labels = _ticketService.TransformTicketLabels(t.Label),
             ActivityCount = t.Activity.Count()

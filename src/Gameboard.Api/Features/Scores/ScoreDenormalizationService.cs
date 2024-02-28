@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Scores;
@@ -15,7 +16,7 @@ public interface IScoreDenormalizationService
     Task DenormalizeTeam(string teamId, CancellationToken cancellationToken);
 }
 
-internal class ScoreDenormalizationService : IScoreDenormalizationService
+internal class ScoreDenormalizationService : IScoreDenormalizationService, INotificationHandler<TeamDeletedNotification>
 {
     private readonly INowService _nowService;
     private readonly IScoringService _scoringService;
@@ -57,6 +58,33 @@ internal class ScoreDenormalizationService : IScoreDenormalizationService
     {
         var teamScore = await _scoringService.GetTeamScore(teamId, cancellationToken);
         await DenormalizeTeam(teamScore, cancellationToken);
+    }
+
+    public async Task Handle(TeamDeletedNotification notification, CancellationToken cancellationToken)
+    {
+        // it's possible that a team being deleted may not appear in the DenormalizedTeamScores
+        // table yet, but if they do, we need to rerank the games they're associated with
+        // (and have to do it a bit weirdly because of schema nonsense)
+        var teamGames = await _store
+            .WithNoTracking<DenormalizedTeamScore>()
+            .Where(s => s.TeamId == notification.TeamId)
+            .Select(s => s.GameId)
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
+
+        if (teamGames.Any())
+        {
+            // delete the dangling records
+            await _store
+                .WithNoTracking<DenormalizedTeamScore>()
+                .Where(s => s.TeamId == notification.TeamId)
+                .ExecuteDeleteAsync(cancellationToken);
+
+            // then rerank relevant games (there should be 1 at most,
+            // but no teams entity means we shouldn't assume)
+            foreach (var gameId in teamGames)
+                await RerankGame(gameId);
+        }
     }
 
     private async Task DenormalizeTeam(TeamScore team, CancellationToken cancellationToken)
@@ -114,9 +142,7 @@ internal class ScoreDenormalizationService : IScoreDenormalizationService
         }));
 
         foreach (var team in teams)
-        {
             team.Rank = rankedTeams.ContainsKey(team.TeamId) ? rankedTeams[team.TeamId] : 0;
-        }
 
         await _store.SaveUpdateRange(teams);
     }

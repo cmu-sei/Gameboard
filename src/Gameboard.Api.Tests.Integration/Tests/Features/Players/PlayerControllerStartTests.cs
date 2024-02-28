@@ -133,6 +133,7 @@ public class PlayerControllerStartTests : IClassFixture<GameboardTestContext>
             .PutAsync($"/api/player/{playerId}/start", startRequest.ToJsonBody())
             .WithContentDeserializedAs<Player>();
 
+        // the player should have a shortened session window consistent with the remaining execution time
         Math.Round(result.SessionMinutes).ShouldBe(60);
     }
 }
