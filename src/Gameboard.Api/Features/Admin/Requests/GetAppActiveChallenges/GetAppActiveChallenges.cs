@@ -45,21 +45,15 @@ internal class GetAppActiveChallengesHandler : IRequestHandler<GetAppActiveChall
 
         var challenges = await _appOverviewService
             .GetActiveChallenges()
+            .Where(c => c.PlayerMode == request.PlayerMode)
             .Select(c => new
             {
                 c.Id,
                 c.Name,
                 c.SpecId,
                 c.TeamId,
-                // Game = new AppActiveChallengeGame
-                // {
-                //     Id = c.GameId,
-                //     Name = c.Game.Name,
-                //     Engine = c.GameEngineType,
-                //     IsTeamGame = c.Game.MaxTeamSize > 1
-                // },
-                // GameEngine = c.GameEngineType,
                 c.StartTime,
+                HasTickets = c.Tickets.Any(t => t.Status != "closed")
             })
             .ToArrayAsync(cancellationToken);
 
@@ -105,6 +99,7 @@ internal class GetAppActiveChallengesHandler : IRequestHandler<GetAppActiveChall
                     {
                         Id = c.Id,
                         StartedAt = c.StartTime,
+                        HasTickets = c.HasTickets,
                         Team = new AppActiveChallengeTeam
                         {
                             Id = c.TeamId,

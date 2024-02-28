@@ -17,6 +17,7 @@ public sealed class AppActiveChallenge
     public required string Id { get; set; }
     public required AppActiveChallengeTeam Team { get; set; }
     public required DateTimeOffset StartedAt { get; set; }
+    public required bool HasTickets { get; set; }
 }
 
 public sealed class AppActiveChallengeGame
