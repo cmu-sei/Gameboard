@@ -1,5 +1,4 @@
 using Gameboard.Api.Common.Services;
-using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 
