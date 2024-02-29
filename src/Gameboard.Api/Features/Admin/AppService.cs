@@ -5,17 +5,17 @@ using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Features.Admin;
 
-public interface IAppOverviewService
+public interface IAppService
 {
     IQueryable<Data.Challenge> GetActiveChallenges();
 }
 
-internal class AppOverviewService : IAppOverviewService
+internal class AppService : IAppService
 {
     private readonly INowService _now;
     private readonly IStore _store;
 
-    public AppOverviewService(INowService now, IStore store)
+    public AppService(INowService now, IStore store)
     {
         _now = now;
         _store = store;

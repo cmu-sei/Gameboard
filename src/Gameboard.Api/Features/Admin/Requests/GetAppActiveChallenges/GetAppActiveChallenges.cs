@@ -18,14 +18,14 @@ public sealed record GetAppActiveChallengesResponse
 
 internal class GetAppActiveChallengesHandler : IRequestHandler<GetAppActiveChallengesQuery, GetAppActiveChallengesResponse>
 {
-    private readonly IAppOverviewService _appOverviewService;
+    private readonly IAppService _appOverviewService;
     private readonly IStore _store;
     private readonly ITeamService _teamService;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
 
     public GetAppActiveChallengesHandler
     (
-        IAppOverviewService appOverviewService,
+        IAppService appOverviewService,
         IStore store,
         ITeamService teamService,
         UserRoleAuthorizer userRoleAuthorizer

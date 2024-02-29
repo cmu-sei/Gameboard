@@ -21,4 +21,8 @@ public class AdminController : ControllerBase
     [HttpGet("active-challenges")]
     public Task<GetAppActiveChallengesResponse> GetActiveChallenges([FromQuery] string playerMode)
         => _mediator.Send(new GetAppActiveChallengesQuery(playerMode.ToLower() == "practice" ? PlayerMode.Practice : PlayerMode.Competition));
+
+    [HttpGet("active-teams")]
+    public Task<GetAppActiveTeamsResponse> GetActiveTeams()
+        => _mediator.Send(new GetAppActiveTeamsQuery());
 }

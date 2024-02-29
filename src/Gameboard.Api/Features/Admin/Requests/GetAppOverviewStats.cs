@@ -22,14 +22,14 @@ public record GetAppOverviewStatsQuery() : IRequest<GetAppOverviewStatsResponse>
 
 internal class GetAppOverviewStatsHandler : IRequestHandler<GetAppOverviewStatsQuery, GetAppOverviewStatsResponse>
 {
-    private readonly IAppOverviewService _appOverviewService;
+    private readonly IAppService _appOverviewService;
     private readonly INowService _nowService;
     private readonly IStore _store;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
 
     public GetAppOverviewStatsHandler
     (
-        IAppOverviewService appOverviewService,
+        IAppService appOverviewService,
         INowService nowService,
         IStore store,
         UserRoleAuthorizer userRoleAuthorizer
