@@ -52,6 +52,7 @@ internal class GetAppActiveTeamsHandler : IRequestHandler<GetAppActiveTeamsQuery
         var nowish = _now.Get();
         var activeTeamsAndGames = await _appService
             .GetActiveChallenges()
+            .Where(c => c.PlayerMode == PlayerMode.Competition)
             .Select(c => new { c.TeamId, c.GameId, c.Game.Name, c.Game.MaxTeamSize })
             .Distinct()
             .ToArrayAsync(cancellationToken);
