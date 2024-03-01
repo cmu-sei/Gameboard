@@ -368,6 +368,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
                 {
                     Challenge = new SimpleEntity { Id = deployedChallenge.Id, Name = deployedChallenge.Name },
                     GameEngineType = deployedChallenge.GameEngineType,
+                    IsFullySolved = deployedChallenge.Score >= deployedChallenge.Points,
                     State = deployedChallenge.State,
                     TeamId = team.Team.Id
                 });
@@ -391,8 +392,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
         // determine which challenges have been predeployed so we can skip them here
         var notPredeployedChallenges = request.Context.ChallengesCreated.Where(c => !c.State.IsActive).ToArray();
-        var predeployedChallenges = request.Context.ChallengesCreated.Where(c => c.State.IsActive).ToArray();
-        Log($"{notPredeployedChallenges.Length} require deployment ({predeployedChallenges.Length} predeployed)...", request.Game.Id);
+        var predeployedChallenges = request.Context.ChallengesCreated.Where(c => c.State.IsActive || c.IsFullySolved).ToArray();
+        Log($"{notPredeployedChallenges.Length} require deployment ({predeployedChallenges.Length} predeployed or already solved)...", request.Game.Id);
 
         // add all the predeployed gamespaces to our list so that it contains _all_ gamespaces at the end of this function
         foreach (var predeployedState in predeployedChallenges.Select(c => c.State))
