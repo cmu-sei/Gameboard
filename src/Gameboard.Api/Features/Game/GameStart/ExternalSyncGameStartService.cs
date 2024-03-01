@@ -396,10 +396,10 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         var notPredeployedChallenges = request.Context.ChallengesCreated.Where(c => !c.State.IsActive && !c.IsFullySolved).ToArray();
         var predeployedChallenges = request.Context.ChallengesCreated.Where(c => !notPredeployedChallenges.Any(d => d.Challenge.Id == c.Challenge.Id)).ToArray();
 
-        Log($"There are {request.Context.ChallengesCreated} total challenges.", request.Game.Id);
+        Log($"There are {request.Context.ChallengesCreated.Count()} total challenges.", request.Game.Id);
         Log($"{notPredeployedChallenges.Length} require deployment.", request.Game.Id);
-        Log($"{request.Context.ChallengesCreated.Where(c => c.IsFullySolved)} are fully solved.", request.Game.Id);
-        Log($"{request.Context.ChallengesCreated.Where(c => !c.IsFullySolved && c.State.IsActive)} have been predeployed.", request.Game.Id);
+        Log($"{request.Context.ChallengesCreated.Where(c => c.IsFullySolved).Count()} are fully solved.", request.Game.Id);
+        Log($"{request.Context.ChallengesCreated.Where(c => !c.IsFullySolved && c.State.IsActive).Count()} have been predeployed.", request.Game.Id);
 
         // add all the predeployed gamespaces to our list so that it contains _all_ gamespaces at the end of this function
         foreach (var predeployedState in predeployedChallenges.Select(c => c.State))
