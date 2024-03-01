@@ -11,6 +11,7 @@ public sealed class AppActiveTeam
     public required DateRange Session { get; set; }
     public required AppActiveTeamGame Game { get; set; }
     public required int DeployedChallengeCount { get; set; }
+    public required bool HasTickets { get; set; }
     public required bool IsLateStart { get; set; }
     public required double Score { get; set; }
     public required double? MsRemaining { get; set; }

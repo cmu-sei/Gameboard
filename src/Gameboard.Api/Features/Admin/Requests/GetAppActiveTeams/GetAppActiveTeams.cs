@@ -64,6 +64,13 @@ internal class GetAppActiveTeamsHandler : IRequestHandler<GetAppActiveTeamsQuery
             .GroupBy(c => c.TeamId)
             .ToDictionaryAsync(gr => gr.Key, gr => gr.Count());
 
+        var teamIdsWithTickets = await _store
+            .WithNoTracking<Data.Ticket>()
+            .Where(t => t.Status != "Closed")
+            .Select(t => t.TeamId)
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
+
         var scores = new Dictionary<string, double>();
         foreach (var captain in captains)
         {
@@ -88,6 +95,7 @@ internal class GetAppActiveTeamsHandler : IRequestHandler<GetAppActiveTeamsQuery
                     Start = captain.SessionBegin,
                     End = captain.SessionEnd
                 },
+                HasTickets = teamIdsWithTickets.Contains(captain.TeamId),
                 IsLateStart = captain.IsLateStart,
                 DeployedChallengeCount = challenges.TryGetValue(p.Value.TeamId, out int challengeCount) ? challengeCount : 0,
                 Score = scores.TryGetValue(captain.TeamId, out double value) ? value : 0,
