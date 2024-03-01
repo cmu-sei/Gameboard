@@ -358,7 +358,8 @@ public partial class ChallengeService : _Service
         _store.GetDbContext().ChangeTracker.Clear();
 
         // ensure that the game hasn't ended - if it has, we have to bounce this one
-        if (gameProperties.PlayerMode == PlayerMode.Competition && now > gameProperties.GameEnd)
+        var canPlayOutsideExecutionWindow = actor.IsAdmin || actor.IsRegistrar || actor.IsDesigner || actor.IsSupport;
+        if (!canPlayOutsideExecutionWindow && gameProperties.PlayerMode == PlayerMode.Competition && now > gameProperties.GameEnd)
         {
             await _store.Create(new ChallengeEvent
             {
