@@ -391,9 +391,15 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         var retVal = new Dictionary<string, ExternalGameStartTeamGamespace>();
 
         // determine which challenges have been predeployed so we can skip them here
-        var notPredeployedChallenges = request.Context.ChallengesCreated.Where(c => !c.State.IsActive).ToArray();
-        var predeployedChallenges = request.Context.ChallengesCreated.Where(c => c.State.IsActive || c.IsFullySolved).ToArray();
-        Log($"{notPredeployedChallenges.Length} require deployment ({predeployedChallenges.Length} predeployed or already solved)...", request.Game.Id);
+        // note that challenges which have been solved are also skipped (we don't want to redeploy gamespaces for solved challenges if a deploy request occurs
+        // after the game has started)
+        var notPredeployedChallenges = request.Context.ChallengesCreated.Where(c => !c.State.IsActive && !c.IsFullySolved).ToArray();
+        var predeployedChallenges = request.Context.ChallengesCreated.Where(c => !notPredeployedChallenges.Any(d => d.Challenge.Id == c.Challenge.Id)).ToArray();
+
+        Log($"There are {request.Context.ChallengesCreated} total challenges.", request.Game.Id);
+        Log($"{notPredeployedChallenges.Length} require deployment.", request.Game.Id);
+        Log($"{request.Context.ChallengesCreated.Where(c => c.IsFullySolved)} are fully solved.", request.Game.Id);
+        Log($"{request.Context.ChallengesCreated.Where(c => !c.IsFullySolved && c.State.IsActive)} have been predeployed.", request.Game.Id);
 
         // add all the predeployed gamespaces to our list so that it contains _all_ gamespaces at the end of this function
         foreach (var predeployedState in predeployedChallenges.Select(c => c.State))
