@@ -94,6 +94,11 @@ public partial class ChallengeService : _Service
     {
         var now = _now.Get();
         var player = await _store.WithNoTracking<Data.Player>().SingleAsync(p => p.Id == model.PlayerId);
+
+        // Would ideally do this using the acting user service, but background deployment (caused by sync start)
+        // may not play well with that as of now.
+        // var actingUser = _actingUserService.Get();
+
         var game = await _store
             .WithNoTracking<Data.Game>()
             .Include(g => g.Prerequisites)
@@ -105,8 +110,14 @@ public partial class ChallengeService : _Service
         if (!await IsUnlocked(player, game, model.SpecId))
             throw new ChallengeLocked();
 
+        // if we're outside the execution window, we need to be sure the acting person is an admin
         if (game.IsCompetitionMode && now > game.GameEnd)
-            throw new CantStartBecauseGameExecutionPeriodIsOver(model.SpecId, model.PlayerId, game.GameEnd, now);
+        {
+            var actingUser = await _store.WithNoTracking<Data.User>().SingleOrDefaultAsync(u => u.Id == actorId);
+
+            if (!actingUser.Role.HasFlag(UserRole.Admin | UserRole.Designer | UserRole.Director | UserRole.Tester))
+                throw new CantStartBecauseGameExecutionPeriodIsOver(model.SpecId, model.PlayerId, game.GameEnd, now);
+        }
 
         var lockkey = $"{player.TeamId}{model.SpecId}";
         var lockval = _guids.GetGuid();
@@ -347,7 +358,8 @@ public partial class ChallengeService : _Service
         _store.GetDbContext().ChangeTracker.Clear();
 
         // ensure that the game hasn't ended - if it has, we have to bounce this one
-        if (gameProperties.PlayerMode == PlayerMode.Competition && now > gameProperties.GameEnd)
+        var canPlayOutsideExecutionWindow = actor.IsAdmin || actor.IsRegistrar || actor.IsDesigner || actor.IsSupport;
+        if (!canPlayOutsideExecutionWindow && gameProperties.PlayerMode == PlayerMode.Competition && now > gameProperties.GameEnd)
         {
             await _store.Create(new ChallengeEvent
             {

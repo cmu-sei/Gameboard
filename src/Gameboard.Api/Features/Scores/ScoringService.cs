@@ -1,7 +1,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -121,7 +120,7 @@ internal class ScoringService : IScoringService
             .Where(c => c.SpecId == challenge.SpecId)
             .ToArrayAsync();
         var spec = await _challengeSpecStore.Retrieve(challenge.SpecId);
-        var unawardedBonuses = ResolveUnawardedBonuses(new Data.ChallengeSpec[] { spec }, allChallenges);
+        var unawardedBonuses = await ResolveUnawardedBonuses(new Data.ChallengeSpec[] { spec });
 
         return BuildTeamScoreChallenge(challenge, spec, unawardedBonuses);
     }
@@ -203,7 +202,7 @@ internal class ScoringService : IScoringService
             .Where(b => b.TeamId == captain.TeamId)
             .ToListAsync();
 
-        var unawardedBonuses = ResolveUnawardedBonuses(specs, challenges);
+        var unawardedBonuses = await ResolveUnawardedBonuses(specs);
         var manualChallengeBonusPoints = challenges.SelectMany(c => c.AwardedManualBonuses.Select(b => b.PointValue)).ToArray();
         var manualTeamBonusPoints = manualTeamBonuses.Select(b => b.PointValue).ToArray();
         var bonusPoints = challenges.SelectMany(c => c.AwardedBonuses.Select(b => b.ChallengeBonus.PointValue)).ToArray();
@@ -278,14 +277,21 @@ internal class ScoringService : IScoringService
         return retVal;
     }
 
-    internal IEnumerable<Data.ChallengeBonus> ResolveUnawardedBonuses(IEnumerable<Data.ChallengeSpec> specs, IEnumerable<Data.Challenge> challenges)
+    internal async Task<IEnumerable<Data.ChallengeBonus>> ResolveUnawardedBonuses(IEnumerable<Data.ChallengeSpec> specs)
     {
-        var awardedBonusIds = challenges.SelectMany(c => c.AwardedBonuses).Select(b => b.ChallengeBonusId);
+        var specIds = specs.Select(s => s.Id).ToArray();
 
-        return specs
-            .SelectMany(s => s.Bonuses)
-            .Where(b => !awardedBonusIds.Contains(b.Id))
-            .ToArray();
+        return await _store
+            .WithNoTracking<ChallengeBonus>()
+            .Where(b => specIds.Contains(b.ChallengeSpecId))
+            .Where(b => !b.AwardedTo.Any())
+            .ToArrayAsync();
+        // return await _store
+        //     .WithNoTracking<AwardedChallengeBonus>()
+        //         .Include(b => b.ChallengeBonus)
+        //     .Where(b => specIds.Contains(b.ChallengeBonus.ChallengeSpecId))
+        //     .Select(b => b.ChallengeBonus)
+        //     .ToArrayAsync();
     }
 
     internal TeamChallengeScore BuildTeamScoreChallenge(Data.Challenge challenge, Data.ChallengeSpec spec, IEnumerable<Data.ChallengeBonus> unawardedBonuses)

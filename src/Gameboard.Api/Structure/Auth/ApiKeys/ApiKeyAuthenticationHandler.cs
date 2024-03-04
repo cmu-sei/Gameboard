@@ -49,14 +49,15 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
 
         if (user == null)
         {
-            Logger.Log(LogLevel.Warning, $"x-api-key authentication failed for key '{apiKey}'.");
+            Logger.Log(LogLevel.Warning, $"x-api-key authentication failed.");
             return AuthenticateResult.Fail(new InvalidApiKey(apiKey));
         }
 
         var principal = new ClaimsPrincipal(
             new ClaimsIdentity
             (
-                new Claim[] {
+                new Claim[]
+                {
                     new(AppConstants.SubjectClaimName, user.Id),
                     new(AppConstants.NameClaimName, user.Name),
                 },
@@ -64,7 +65,7 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
             )
         );
 
-        Logger.Log(LogLevel.Information, $"User {user.ApprovedName} authenticated with x-api-key '{apiKey}'.");
+        Logger.Log(LogLevel.Information, $"User {user.ApprovedName} authenticated with x-api-key.");
         return AuthenticateResult.Success(new AuthenticationTicket(principal, Scheme.Name));
     }
 
