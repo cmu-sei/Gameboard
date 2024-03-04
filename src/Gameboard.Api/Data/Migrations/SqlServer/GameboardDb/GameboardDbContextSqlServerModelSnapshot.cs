@@ -492,9 +492,6 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<string>("TeamName")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<double?>("TimeToSessionEndMs")
-                        .HasColumnType("float");
-
                     b.HasKey("Id");
 
                     b.HasIndex("GameId");
