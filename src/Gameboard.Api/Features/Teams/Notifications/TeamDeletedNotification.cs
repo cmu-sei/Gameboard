@@ -10,25 +10,16 @@ public sealed class TeamDeletedNotification : INotification
     public string TeamId { get; private set; }
 
     public TeamDeletedNotification(string teamId)
-    {
-        TeamId = teamId;
-    }
+        => TeamId = teamId;
 }
 
 internal sealed class TeamDeletedHandler : INotificationHandler<TeamDeletedNotification>
 {
     private readonly IExternalGameService _externalGameService;
 
-    public TeamDeletedHandler
-    (
-        IExternalGameService externalGameService
-    )
-    {
-        _externalGameService = externalGameService;
-    }
+    public TeamDeletedHandler(IExternalGameService externalGameService)
+        => _externalGameService = externalGameService;
 
-    public async Task Handle(TeamDeletedNotification notification, CancellationToken cancellationToken)
-    {
-        await _externalGameService.DeleteTeamExternalData(cancellationToken, notification.TeamId);
-    }
+    public Task Handle(TeamDeletedNotification notification, CancellationToken cancellationToken)
+        => _externalGameService.DeleteTeamExternalData(cancellationToken, notification.TeamId);
 }
