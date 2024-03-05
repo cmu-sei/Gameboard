@@ -26,12 +26,6 @@ internal class EmptyExternalStartupEndpoint : GameboardException
         : base($"""Game ${gameId} doesn't have a configured "startup" endpoint (current value: "{startupUrl}".)""") { }
 }
 
-internal class EmptyExtendTeamSessionEndpoint : GameboardException
-{
-    public EmptyExtendTeamSessionEndpoint(string gameId)
-        : base($"""Game {gameId} doesn't have a configured "extend session" endpoint.""") { }
-}
-
 public sealed class GameHasUnexpectedEngineMode : GameboardValidationException
 {
     public GameHasUnexpectedEngineMode(string gameId, string engineMode, string expectedEngineMode)
