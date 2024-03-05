@@ -1,5 +1,3 @@
-using System;
-
 namespace Gameboard.Api.Data;
 
 public class DenormalizedTeamScore : IEntity
