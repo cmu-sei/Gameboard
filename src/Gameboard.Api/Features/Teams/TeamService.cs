@@ -123,6 +123,9 @@ internal class TeamService : ITeamService
         captain.SessionEnd = finalSessionEnd;
         var captainModel = _mapper.Map<Api.Player>(captain);
 
+        // notify listeners of the session extension
+        await _mediator.Publish(new TeamSessionExtendedNotification(request.TeamId, request.NewSessionEnd), cancellationToken);
+
         // update the notifications hub on the client side
         await _teamHubService.SendTeamUpdated(captainModel, request.Actor);
         await _teamHubService.SendTeamSessionExtended(new TeamState
@@ -424,9 +427,6 @@ internal class TeamService : ITeamService
         {
             var gamespaceUpdates = challenges.Select(c => _gameEngine.ExtendSession(c.Id, sessionEnd.Value, c.GameEngineType));
             await Task.WhenAll(gamespaceUpdates);
-
-            // notify listeners of the session extension
-            await _mediator.Publish(new TeamSessionExtendedNotification(teamId, sessionEnd.Value), cancellationToken);
         }
     }
 }

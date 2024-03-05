@@ -168,7 +168,7 @@ internal class SyncStartGameService : ISyncStartGameService
         _logger.LogInformation($"Acquiring asynchronous lock for sync start game {gameId}...");
         using (await _lockService.GetSyncStartGameLock(gameId).LockAsync(cancellationToken))
         {
-            _logger.LogInformation($"Acquired asynchronous lock for sync start game {gameId}");
+            _logger.LogInformation($"Acquired asynchronous lock for sync start game {gameId}.");
 
             // validate that the various conditions we need in order to sync start a game are available:
             _logger.LogInformation($"Validating sync start for game {gameId}.");
