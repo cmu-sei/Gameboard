@@ -89,22 +89,26 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
         else
         {
             // if we're not deleting the team, we still reset the session properties
-            await _store
-                .WithNoTracking<Data.Player>()
+            var players = await _store
+                .WithTracking<Data.Player>()
                 .Where(p => p.TeamId == request.TeamId)
-                .ExecuteUpdateAsync
-                (
-                    p => p
-                        .SetProperty(p => p.CorrectCount, 0)
-                        .SetProperty(p => p.IsReady, false)
-                        .SetProperty(p => p.PartialCount, 0)
-                        .SetProperty(p => p.Rank, 0)
-                        .SetProperty(p => p.Score, 0)
-                        .SetProperty(p => p.SessionBegin, DateTimeOffset.MinValue)
-                        .SetProperty(p => p.SessionEnd, DateTimeOffset.MinValue)
-                        .SetProperty(p => p.SessionMinutes, 0),
-                    cancellationToken
-                );
+                .ToArrayAsync(cancellationToken);
+
+            foreach (var player in players)
+            {
+                var advancedScore = player.AdvancedWithScore is not null ? player.AdvancedWithScore.Value : 0;
+
+                player.CorrectCount = 0;
+                player.IsReady = false;
+                player.PartialCount = 0;
+                player.Rank = 0;
+                player.Score = (int)advancedScore;
+                player.SessionBegin = DateTimeOffset.MinValue;
+                player.SessionEnd = DateTimeOffset.MinValue;
+                player.SessionMinutes = 0;
+            }
+
+            await _store.SaveUpdateRange(players);
 
             // can do this after cleaning up the actual players
             await _mediator.Publish(new ScoreChangedNotification(request.TeamId), cancellationToken);
