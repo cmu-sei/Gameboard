@@ -54,6 +54,7 @@ public class Game : IEntity
     public bool RequireSynchronizedStart { get; set; } = false;
     public bool ShowOnHomePageInPracticeMode { get; set; } = false;
 
+    public ICollection<Player> AdvancedPlayers { get; set; }
     public ICollection<ChallengeSpec> Specs { get; set; } = new List<ChallengeSpec>();
     public ICollection<DenormalizedTeamScore> DenormalizedTeamScores = new List<DenormalizedTeamScore>();
     public ICollection<ExternalGameTeam> ExternalGameTeams { get; set; } = new List<ExternalGameTeam>();

@@ -34,7 +34,16 @@ public class Player : IEntity
     public DateTimeOffset WhenCreated { get; set; }
     public bool IsLateStart { get; set; }
 
-    // navigation properties
+    // advancement tracking
+    public string AdvancedFromGameId { get; set; }
+    public Game AdvancedFromGame { get; set; }
+    public string AdvancedFromPlayerID { get; set; }
+    public Player AdvancedFromPlayer { get; set; }
+    public ICollection<Player> AdvancedToPlayers { get; set; }
+    public string AdvancedFromTeamId { get; set; }
+    public double? AdvancedWithScore { get; set; }
+
+    // other navigation properties
     public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
     public string SponsorId { get; set; }
     public Sponsor Sponsor { get; set; }

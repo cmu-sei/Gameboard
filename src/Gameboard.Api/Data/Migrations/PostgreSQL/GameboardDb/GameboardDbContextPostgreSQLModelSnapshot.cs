@@ -772,6 +772,19 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<bool>("Advanced")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("AdvancedFromGameId")
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("AdvancedFromPlayerID")
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("AdvancedFromTeamId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<double?>("AdvancedWithScore")
+                        .HasColumnType("double precision");
+
                     b.Property<string>("ApprovedName")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -844,6 +857,10 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AdvancedFromGameId");
+
+                    b.HasIndex("AdvancedFromPlayerID");
 
                     b.HasIndex("GameId");
 
@@ -1452,6 +1469,16 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
                 {
+                    b.HasOne("Gameboard.Api.Data.Game", "AdvancedFromGame")
+                        .WithMany("AdvancedPlayers")
+                        .HasForeignKey("AdvancedFromGameId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Gameboard.Api.Data.Player", "AdvancedFromPlayer")
+                        .WithMany("AdvancedToPlayers")
+                        .HasForeignKey("AdvancedFromPlayerID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
                         .WithMany("Players")
                         .HasForeignKey("GameId");
@@ -1466,6 +1493,10 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .WithMany("Enrollments")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("AdvancedFromGame");
+
+                    b.Navigation("AdvancedFromPlayer");
 
                     b.Navigation("Game");
 
@@ -1675,6 +1706,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.Game", b =>
                 {
+                    b.Navigation("AdvancedPlayers");
+
                     b.Navigation("Challenges");
 
                     b.Navigation("DenormalizedTeamScores");
@@ -1694,6 +1727,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
                 {
+                    b.Navigation("AdvancedToPlayers");
+
                     b.Navigation("Challenges");
 
                     b.Navigation("Feedback");
