@@ -37,7 +37,7 @@ public class Player : IEntity
     // advancement tracking
     public string AdvancedFromGameId { get; set; }
     public Game AdvancedFromGame { get; set; }
-    public string AdvancedFromPlayerID { get; set; }
+    public string AdvancedFromPlayerId { get; set; }
     public Player AdvancedFromPlayer { get; set; }
     public ICollection<Player> AdvancedToPlayers { get; set; }
     public string AdvancedFromTeamId { get; set; }

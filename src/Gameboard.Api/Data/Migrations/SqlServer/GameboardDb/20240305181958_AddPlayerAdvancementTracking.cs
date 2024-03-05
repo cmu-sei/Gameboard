@@ -17,7 +17,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
-                name: "AdvancedFromPlayerID",
+                name: "AdvancedFromPlayerId",
                 table: "Players",
                 type: "nvarchar(40)",
                 nullable: true);
@@ -41,9 +41,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                 column: "AdvancedFromGameId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Players_AdvancedFromPlayerID",
+                name: "IX_Players_AdvancedFromPlayerId",
                 table: "Players",
-                column: "AdvancedFromPlayerID");
+                column: "AdvancedFromPlayerId");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_Players_Games_AdvancedFromGameId",
@@ -54,9 +54,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                 onDelete: ReferentialAction.SetNull);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_Players_Players_AdvancedFromPlayerID",
+                name: "FK_Players_Players_AdvancedFromPlayerId",
                 table: "Players",
-                column: "AdvancedFromPlayerID",
+                column: "AdvancedFromPlayerId",
                 principalTable: "Players",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.SetNull);
@@ -70,7 +70,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                 table: "Players");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_Players_Players_AdvancedFromPlayerID",
+                name: "FK_Players_Players_AdvancedFromPlayerId",
                 table: "Players");
 
             migrationBuilder.DropIndex(
@@ -78,7 +78,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                 table: "Players");
 
             migrationBuilder.DropIndex(
-                name: "IX_Players_AdvancedFromPlayerID",
+                name: "IX_Players_AdvancedFromPlayerId",
                 table: "Players");
 
             migrationBuilder.DropColumn(
@@ -86,7 +86,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                 table: "Players");
 
             migrationBuilder.DropColumn(
-                name: "AdvancedFromPlayerID",
+                name: "AdvancedFromPlayerId",
                 table: "Players");
 
             migrationBuilder.DropColumn(

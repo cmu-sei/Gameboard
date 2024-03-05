@@ -778,7 +778,7 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<string>("AdvancedFromGameId")
                         .HasColumnType("character varying(40)");
 
-                    b.Property<string>("AdvancedFromPlayerID")
+                    b.Property<string>("AdvancedFromPlayerId")
                         .HasColumnType("character varying(40)");
 
                     b.Property<string>("AdvancedFromTeamId")
@@ -863,7 +863,7 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
                     b.HasIndex("AdvancedFromGameId");
 
-                    b.HasIndex("AdvancedFromPlayerID");
+                    b.HasIndex("AdvancedFromPlayerId");
 
                     b.HasIndex("GameId");
 
@@ -1479,7 +1479,7 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
                     b.HasOne("Gameboard.Api.Data.Player", "AdvancedFromPlayer")
                         .WithMany("AdvancedToPlayers")
-                        .HasForeignKey("AdvancedFromPlayerID")
+                        .HasForeignKey("AdvancedFromPlayerId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Gameboard.Api.Data.Game", "Game")

@@ -31,11 +31,16 @@ public class Player
     public long Time { get; set; }
     public int CorrectCount { get; set; }
     public int PartialCount { get; set; }
-    public bool Advanced { get; set; }
     public bool IsLateStart { get; set; }
     public bool IsManager { get; set; }
     public bool IsReady { get; set; }
     public PlayerMode Mode { get; set; }
+
+    public bool Advanced { get; set; }
+    public string AdvancedFromGameId { get; set; }
+    public string AdvancedFromPlayerId { get; set; }
+    public string AdvancedFromTeamId { get; set; }
+    public double AdvancedWithScore { get; set; }
 }
 
 public class NewPlayer

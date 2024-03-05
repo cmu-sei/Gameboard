@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Dynamic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,6 +23,7 @@ namespace Gameboard.Api.Services;
 
 public class PlayerService
 {
+    private readonly IGuidService _guids;
     private readonly IInternalHubBus _hubBus;
     private readonly TimeSpan _idmapExpiration = new(0, 30, 0);
     private readonly ILogger<PlayerService> _logger;
@@ -65,6 +65,7 @@ public class PlayerService
         _practiceService = practiceService;
         _now = now;
         GameStore = gameStore;
+        _guids = guidService;
         _hubBus = hubBus;
         _logger = logger;
         LocalCache = memCache;
@@ -679,23 +680,28 @@ public class PlayerService
 
         foreach (var team in teams)
         {
-            string newId = Guid.NewGuid().ToString("n");
+            string newId = _guids.GetGuid();
 
             foreach (var player in team)
             {
                 player.Advanced = true;
-
-                enrollments.Add(new Data.Player
+                var newPlayer = new Data.Player
                 {
                     TeamId = newId,
                     UserId = player.UserId,
                     GameId = model.NextGameId,
+                    AdvancedFromGameId = player.GameId,
+                    AdvancedFromPlayerId = player.Id,
+                    AdvancedFromTeamId = player.TeamId,
+                    AdvancedWithScore = model.WithScores ? player.Score : null,
                     ApprovedName = player.ApprovedName,
                     Name = player.Name,
                     SponsorId = player.SponsorId,
                     Role = player.Role,
                     Score = model.WithScores ? player.Score : 0
-                });
+                };
+
+                enrollments.Add(newPlayer);
             }
         }
 
