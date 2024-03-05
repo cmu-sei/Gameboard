@@ -625,9 +625,12 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("ExternalGameStartupUrl")
+                    b.Property<string>("ExternalGameStartupEndpoint")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ExternalGameTeamExtendedEndpoint")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FeedbackConfig")
                         .HasColumnType("nvarchar(max)");

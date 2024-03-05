@@ -47,8 +47,8 @@ public class Game : IEntity
 
     // mode stuff
     public string ExternalGameClientUrl { get; set; }
-    public string ExternalGameStartupUrl { get; set; }
-    public string ExternalGameTeamExtendedUrl { get; set; }
+    public string ExternalGameStartupEndpoint { get; set; }
+    public string ExternalGameTeamExtendedEndpoint { get; set; }
     public string Mode { get; set; }
     public PlayerMode PlayerMode { get; set; }
     public bool RequireSynchronizedStart { get; set; } = false;

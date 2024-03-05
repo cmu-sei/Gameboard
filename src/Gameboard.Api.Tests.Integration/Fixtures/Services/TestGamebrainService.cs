@@ -10,6 +10,11 @@ internal class TestGamebrainService : IGamebrainService
         return Task.FromResult("{}");
     }
 
+    public Task ExtendTeamSession(string teamId, DateTimeOffset newSessionEnd, CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+
     public Task<string> GetGameState(string gameId, string teamId)
     {
         return Task.FromResult("{}");

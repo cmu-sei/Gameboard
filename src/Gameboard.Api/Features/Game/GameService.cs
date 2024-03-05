@@ -12,7 +12,6 @@ using AutoMapper;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.Games;
 
 namespace Gameboard.Api.Services;
 
@@ -29,7 +28,6 @@ public interface IGameService
     Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo);
     Task ReRank(string id);
     Task<Game> Retrieve(string id, bool accessHidden = true);
-    Task<string> ResolveExternalStartupUrl(string gameId);
     Task<ChallengeSpec[]> RetrieveChallengeSpecs(string id);
     Task<SessionForecast[]> SessionForecast(string id);
     Task Update(ChangedGame account);
@@ -89,7 +87,8 @@ public class GameService : _Service, IGameService
     {
         if (game.Mode != GameEngineMode.External)
         {
-            game.ExternalGameStartupUrl = null;
+            game.ExternalGameStartupEndpoint = null;
+            game.ExternalGameTeamExtendedEndpoint = null;
         }
 
         var entity = await _store.Retrieve(game.Id);
@@ -198,16 +197,6 @@ public class GameService : _Service, IGameService
             b = b.OrderBy(g => g.Year).ThenBy(g => g.Month);
 
         return b.ToArray();
-    }
-
-    public async Task<string> ResolveExternalStartupUrl(string gameId)
-    {
-        var game = await Retrieve(gameId);
-
-        if (game.ExternalGameStartupUrl.IsEmpty())
-            throw new EmptyExternalStartupUrl(gameId, game.ExternalGameStartupUrl);
-
-        return game.ExternalGameStartupUrl.TrimEnd('/');
     }
 
     public async Task<ChallengeSpec[]> RetrieveChallengeSpecs(string id)

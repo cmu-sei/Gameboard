@@ -424,6 +424,9 @@ internal class TeamService : ITeamService
         {
             var gamespaceUpdates = challenges.Select(c => _gameEngine.ExtendSession(c.Id, sessionEnd.Value, c.GameEngineType));
             await Task.WhenAll(gamespaceUpdates);
+
+            // notify listeners of the session extension
+            await _mediator.Publish(new TeamSessionExtendedNotification(teamId, sessionEnd.Value), cancellationToken);
         }
     }
 }

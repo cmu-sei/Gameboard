@@ -51,11 +51,6 @@ internal class ChallengeResolutionFailure : GameboardException
     public ChallengeResolutionFailure(string teamId, IEnumerable<string> challengeIds) : base($"Couldn't resolve a Unity challenge for team {teamId}. They have {challengeIds.Count()} challenges ({String.Join(" | ", challengeIds)})") { }
 }
 
-internal class EmptyExternalStartupUrl : GameboardException
-{
-    public EmptyExternalStartupUrl(string gameId, string startupUrl) : base($"""Game ${gameId} doesn't have a configured {nameof(Game.ExternalGameStartupUrl)} configured (current value: "{startupUrl}")""") { }
-}
-
 internal class GameIsNotSyncStart : GameboardValidationException
 {
     public GameIsNotSyncStart(string gameId, string whyItMatters) : base($"""Game "{gameId}" is not a sync-start game. {whyItMatters}""") { }

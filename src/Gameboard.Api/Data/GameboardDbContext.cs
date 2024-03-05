@@ -113,8 +113,8 @@ public class GameboardDbContext : DbContext
             b.Property(p => p.CardText3).HasMaxLength(64);
             b.Property(p => p.Mode).HasMaxLength(40);
             b.Property(p => p.ExternalGameClientUrl).HasStandardUrlLength();
-            b.Property(p => p.ExternalGameTeamExtendedUrl).HasStandardUrlLength();
-            b.Property(p => p.ExternalGameStartupUrl).HasStandardUrlLength();
+            b.Property(p => p.ExternalGameStartupEndpoint).HasStandardUrlLength();
+            b.Property(p => p.ExternalGameStartupEndpoint).HasStandardUrlLength();
         });
 
 
