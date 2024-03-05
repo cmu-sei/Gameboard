@@ -6,11 +6,10 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.UnityGames;
-using Gameboard.Api.Services;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -30,6 +29,7 @@ internal class GamebrainService : IGamebrainService
 {
     private readonly IExternalGameHostAccessTokenProvider _accessTokenProvider;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IJsonService _jsonService;
     private readonly ILogger<GamebrainService> _logger;
     private readonly IStore _store;
     private readonly ITeamService _teamService;
@@ -38,6 +38,7 @@ internal class GamebrainService : IGamebrainService
     (
         IExternalGameHostAccessTokenProvider accessTokenProvider,
         IHttpClientFactory httpClientFactory,
+        IJsonService jsonService,
         ILogger<GamebrainService> logger,
         IStore store,
         ITeamService teamService
@@ -45,10 +46,11 @@ internal class GamebrainService : IGamebrainService
     (
         _accessTokenProvider,
         _httpClientFactory,
+        _jsonService,
         _logger,
         _store,
         _teamService
-    ) = (accessTokenProvider, httpClientFactory, logger, store, teamService);
+    ) = (accessTokenProvider, httpClientFactory, jsonService, logger, store, teamService);
 
     public async Task ExtendTeamSession(string teamId, DateTimeOffset newSessionEnd, CancellationToken cancellationToken)
     {
@@ -71,11 +73,19 @@ internal class GamebrainService : IGamebrainService
         // make the request to the external game host
         _logger.LogInformation($"Posting a team extension ({newSessionEnd}) to external game host at {extendEndpoint}.");
         var client = await CreateGamebrain();
-        var response = await client
+
+        try
+        {
+            var response = await client
             .PutAsJsonAsync(extendEndpoint, new { NewSessionEnd = newSessionEnd }, cancellationToken);
 
-        response.EnsureSuccessStatusCode();
-        _logger.LogInformation($"Successfully extended the team.");
+            response.EnsureSuccessStatusCode();
+            _logger.LogInformation($"Successfully extended the team.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"""The external gamehost for game {gameId} is configured with a "team extend" endpoint at {extendEndpoint}, but the request to it failed ({ex.GetType().Name} :: {ex.Message}).""");
+        }
     }
 
     public async Task<IEnumerable<ExternalGameClientTeamConfig>> StartGame(ExternalGameStartMetaData metaData)
@@ -95,8 +105,7 @@ internal class GamebrainService : IGamebrainService
         // create a client and post the data
         var client = await CreateGamebrain();
 
-        _logger.LogInformation($"Client base address: {client.BaseAddress}");
-        _logger.LogInformation($"Posting startup data to to the external game host at {client.BaseAddress}/{startupUrl}/{metaData.Game.Id}: {metaData}");
+        _logger.LogInformation($"Posting startup data to to the external game host at {client.BaseAddress}/{startupUrl}: {_jsonService.Serialize(metaData)}");
         var teamConfigResponse = await client
             .PostAsJsonAsync($"{startupUrl}", metaData)
             .WithContentDeserializedAs<IDictionary<string, string>>();
