@@ -259,24 +259,6 @@ public class PlayerService
 
         await PlayerStore.Update(team);
 
-        if (player.Score > 0)
-        {
-            var challenge = new Data.Challenge
-            {
-                Id = Guid.NewGuid().ToString("n"),
-                PlayerId = player.Id,
-                TeamId = player.TeamId,
-                GameId = player.GameId,
-                SpecId = "_initialscore_",
-                Name = "_initialscore_",
-                Points = player.Score,
-                Score = player.Score,
-            };
-
-            PlayerStore.DbContext.Add(challenge);
-            await PlayerStore.DbContext.SaveChangesAsync();
-        }
-
         var asViewModel = _mapper.Map<Player>(player);
         await _hubBus.SendTeamSessionStarted(asViewModel, actor);
 
@@ -621,7 +603,7 @@ public class PlayerService
         return teams;
     }
 
-    public async Task<IEnumerable<Team>> ObserveTeams(string id)
+    public async Task<IEnumerable<ObserveTeam>> ObserveTeams(string id)
     {
         var players = await PlayerStore.List()
             .Where(p => p.GameId == id)
@@ -636,7 +618,7 @@ public class PlayerService
 
         var teams = captains
             .Values
-            .Select(c => new Team
+            .Select(c => new ObserveTeam
             {
                 TeamId = c.TeamId,
                 ApprovedName = c.ApprovedName,
@@ -650,7 +632,7 @@ public class PlayerService
                 CorrectCount = c.CorrectCount,
                 PartialCount = c.PartialCount,
                 Advanced = c.Advanced,
-                Members = players.Where(p => p.TeamId == c.TeamId).Select(i => new TeamMember
+                Members = players.Where(p => p.TeamId == c.TeamId).Select(i => new ObserveTeamPlayer
                 {
                     Id = i.UserId,
                     ApprovedName = i.User.ApprovedName,

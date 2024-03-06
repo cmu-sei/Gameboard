@@ -463,6 +463,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<int>("Rank")
                         .HasColumnType("int");
 
+                    b.Property<double?>("ScoreAdvanced")
+                        .HasColumnType("float");
+
                     b.Property<double>("ScoreAutoBonus")
                         .HasColumnType("float");
 

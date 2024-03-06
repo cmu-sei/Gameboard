@@ -194,6 +194,8 @@ internal class TeamService : ITeamService
         var teamPlayers = await _store
             .WithNoTracking<Data.Player>()
                 .Include(p => p.Sponsor)
+                .Include(p => p.AdvancedFromGame)
+                .Include(p => p.AdvancedFromPlayer)
             .Where(p => ids.Contains(p.TeamId))
             .GroupBy(p => p.TeamId, p => p)
             .ToDictionaryAsync(gr => gr.Key, gr => gr.ToArray());
@@ -203,9 +205,24 @@ internal class TeamService : ITeamService
 
         foreach (var teamId in teamPlayers.Keys)
         {
-            var team = _mapper.Map<Team>(ResolveCaptain(teamPlayers[teamId]));
+            var captain = ResolveCaptain(teamPlayers[teamId]);
+            var team = _mapper.Map<Team>(captain);
+
             team.Members = _mapper.Map<TeamMember[]>(teamPlayers[teamId]);
             team.Sponsors = _mapper.Map<Sponsor[]>(teamPlayers[teamId].Select(p => p.Sponsor));
+
+            if (captain.AdvancedFromGame is not null)
+            {
+                team.AdvancedFromGame = new SimpleEntity { Id = captain.AdvancedFromGameId, Name = captain.AdvancedFromGame.Name };
+                team.IsAdvancedFromTeamGame = captain.AdvancedFromGame.IsTeamGame();
+            }
+
+            if (captain.AdvancedFromPlayer is not null)
+                team.AdvancedFromPlayer = new SimpleEntity { Id = captain.AdvancedFromPlayerId, Name = captain.AdvancedFromPlayer.ApprovedName };
+
+            team.AdvancedFromTeamId = captain.AdvancedFromTeamId;
+            team.AdvancedWithScore = captain.AdvancedWithScore;
+
             retVal.Add(team);
         }
 

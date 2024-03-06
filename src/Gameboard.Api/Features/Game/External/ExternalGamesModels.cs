@@ -65,7 +65,7 @@ public enum ExternalGameDeployStatus
 /// This is basically a "frozen" API that pushes data to an external
 /// game host after the game is launched. 
 /// 
-/// CHANGING THIS WILL REQUIRE EXTERNAL HOSTS (E.G. CUBESPACE) TO
+/// CHANGING THIS WILL REQUIRE EXTERNAL HOSTS (E.G. GAMEBRAIN) TO
 /// CHANGE THEIR CODE.
 /// </summary>
 public sealed class ExternalGameStartMetaData

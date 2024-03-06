@@ -7,10 +7,11 @@ namespace Gameboard.Api.Features.Scores;
 
 public sealed class Score
 {
-    public double CompletionScore { get; set; }
-    public double ManualBonusScore { get; set; }
-    public double BonusScore { get; set; }
-    public double TotalScore { get; set; }
+    public required double? AdvancedScore { get; set; }
+    public required double CompletionScore { get; set; }
+    public required double ManualBonusScore { get; set; }
+    public required double BonusScore { get; set; }
+    public required double TotalScore { get; set; }
 }
 
 public sealed class GameScoringConfig

@@ -115,6 +115,7 @@ internal class ScoreDenormalizationService : IScoreDenormalizationService, INoti
             TeamName = captain.ApprovedName,
             Rank = 0,
             ScoreOverall = team.OverallScore.TotalScore,
+            ScoreAdvanced = team.OverallScore.AdvancedScore ?? 0,
             ScoreAutoBonus = team.OverallScore.BonusScore,
             ScoreManualBonus = team.OverallScore.ManualBonusScore,
             ScoreChallenge = team.OverallScore.CompletionScore,
