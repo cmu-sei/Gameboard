@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
-using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
@@ -79,12 +78,6 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
         {
             _logger.LogInformation($"Deleting players/challenges/metadata for team {request.TeamId}");
             await _teamService.DeleteTeam(request.TeamId, new SimpleEntity { Id = request.ActingUser.Id, Name = request.ActingUser.ApprovedName }, cancellationToken);
-
-            // also get rid of any external game artifacts if they have any
-            await _store
-                .WithNoTracking<ExternalGameTeam>()
-                .Where(t => t.TeamId == request.TeamId)
-                .ExecuteDeleteAsync(cancellationToken);
         }
         else
         {
@@ -94,6 +87,7 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
                 .Where(p => p.TeamId == request.TeamId)
                 .ToArrayAsync(cancellationToken);
 
+            // reset appropriate stats in the original denormalized score
             foreach (var player in players)
             {
                 var advancedScore = player.AdvancedWithScore is not null ? player.AdvancedWithScore.Value : 0;
@@ -110,14 +104,14 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
 
             await _store.SaveUpdateRange(players);
 
-            // can do this after cleaning up the actual players
-            await _mediator.Publish(new ScoreChangedNotification(request.TeamId), cancellationToken);
-
             // notify the SignalR hub (which only matters for external games right now - we clean some
             // local storage stuff up if there's a reset).
             var captain = await _teamService.ResolveCaptain(request.TeamId, cancellationToken);
             await _hubBus.SendTeamSessionReset(_mapper.Map<Api.Player>(captain), request.ActingUser);
         }
+
+        // publish reset notification to listeners
+        await _mediator.Publish(new TeamSessionResetNotification(gameInfo.Id, request.TeamId), cancellationToken);
 
         if (gameInfo.RequireSynchronizedStart)
             await _syncStartGameService.HandleSyncStartStateChanged(gameInfo.Id, cancellationToken);

@@ -7,16 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Scores;
 
-public class ScoreChangedNotification : INotification
-{
-    private readonly string _teamId;
-    public string TeamId { get => _teamId; }
-
-    public ScoreChangedNotification(string teamId)
-    {
-        _teamId = teamId;
-    }
-}
+public record ScoreChangedNotification(string TeamId) : INotification;
 
 internal class ScoreChangedNotificationHandler : INotificationHandler<ScoreChangedNotification>
 {

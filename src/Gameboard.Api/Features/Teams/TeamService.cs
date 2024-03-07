@@ -82,9 +82,8 @@ internal class TeamService : ITeamService
             .Where(p => p.TeamId == teamId)
             .ExecuteDeleteAsync(cancellationToken);
 
-        // also delete any external data for this team
-        // TODO (fold hub call into this as well)
-        await _mediator.Publish(new TeamDeletedNotification(teamId));
+        // notify app listeners
+        await _mediator.Publish(new TeamDeletedNotification(teamId), cancellationToken);
 
         // notify hub that the team is deleted /players left so the client can respond
         await _teamHubService.SendTeamDeleted(teamState, actingUser);
