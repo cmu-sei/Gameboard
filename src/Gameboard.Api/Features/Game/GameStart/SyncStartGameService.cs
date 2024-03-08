@@ -145,6 +145,7 @@ internal class SyncStartGameService : ISyncStartGameService
         // if we're not ready, 
         if (!validationResult.CanStart)
         {
+            _logger.LogInformation($" Failed sync start state: {_jsonService.Serialize(validationResult)}");
             _logger.LogInformation($"Can't start sync-start game {gameId}. {validationResult.Players.Count()} | {validationResult.AllPlayersReady} | {validationResult.HasStartedPlayers}");
             return;
         }
