@@ -145,22 +145,9 @@ internal class SyncStartGameService : ISyncStartGameService
         // if we're not ready, 
         if (!validationResult.CanStart)
         {
-            _logger.LogInformation($" Failed sync start state: {_jsonService.Serialize(validationResult)}");
             _logger.LogInformation($"Can't start sync-start game {gameId}. {validationResult.Players.Count()} | {validationResult.AllPlayersReady} | {validationResult.HasStartedPlayers}");
             return;
         }
-
-        // var state = await GetSyncStartState(gameId, cancellationToken);
-        // _logger.LogInformation($"Sync start state changed for game {gameId}. Ready? {state.Teams.Where(t => t.IsReady).Select(t => t.Id).ToArray()}");
-        // await _gameHubBus.SendSyncStartGameStateChanged(state);
-
-        // // if anyone's not ready, or if any of the sessions have already started, bail out - we don't need to do anything
-        // if (!state.IsReady || state.AllSessionsStarted)
-        //     return;
-
-        // // IFF everyone is ready, start all sessions and return info about them
-        // if (!state.IsReady)
-        //     return;
 
         // for now, we're assuming the "happy path" of sync start games being external games, but we'll separate them later
         // NOTE: we also use a background service to kick this off, as it's a long-running task. Updates on the status
