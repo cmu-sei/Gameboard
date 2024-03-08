@@ -30,6 +30,7 @@ internal class SyncStartGameService : ISyncStartGameService
     private readonly IAppUrlService _appUrlService;
     private readonly BackgroundAsyncTaskContext _backgroundTaskContext;
     private readonly IGameHubBus _gameHubBus;
+    private readonly IJsonService _jsonService;
     private readonly ILockService _lockService;
     private readonly ILogger<SyncStartGameService> _logger;
     private readonly INowService _nowService;
@@ -45,6 +46,7 @@ internal class SyncStartGameService : ISyncStartGameService
         IAppUrlService appUrlService,
         BackgroundAsyncTaskContext backgroundTaskContext,
         IGameHubBus gameHubBus,
+        IJsonService jsonService,
         ILockService lockService,
         ILogger<SyncStartGameService> logger,
         INowService nowService,
@@ -59,6 +61,7 @@ internal class SyncStartGameService : ISyncStartGameService
         _appUrlService = appUrlService;
         _backgroundTaskContext = backgroundTaskContext;
         _gameHubBus = gameHubBus;
+        _jsonService = jsonService;
         _lockService = lockService;
         _logger = logger;
         _nowService = nowService;
@@ -135,6 +138,20 @@ internal class SyncStartGameService : ISyncStartGameService
     {
         var validationResult = await ValidateSyncStart(gameId, cancellationToken);
         _logger.LogInformation($"Sync start state changed for game {gameId}. Can start?: {validationResult.CanStart}");
+
+        // if we're not ready, 
+        if (!validationResult.CanStart)
+        {
+            _logger.LogInformation($"Can't start sync-start game {gameId}. Already started?: {validationResult.IsStarted}. All ready?: {validationResult.SyncStartState.IsReady}.");
+
+            if (!validationResult.IsStarted && validationResult.SyncStartState.IsReady)
+            {
+                // if this condition occurs, we'd like more in the logs to have context
+                _logger.LogInformation($"Dumping sync start validation: {_jsonService.Serialize(validationResult)}");
+            }
+            return;
+        }
+
         // var state = await GetSyncStartState(gameId, cancellationToken);
         // _logger.LogInformation($"Sync start state changed for game {gameId}. Ready? {state.Teams.Where(t => t.IsReady).Select(t => t.Id).ToArray()}");
         // await _gameHubBus.SendSyncStartGameStateChanged(state);
@@ -172,9 +189,6 @@ internal class SyncStartGameService : ISyncStartGameService
     /// </param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns></returns>
-    /// <exception cref="CantSynchronizeNonSynchronizedGame">This call fails if the game is not marked as `RequiresSyncStart`.</exception>
-    /// <exception cref="CantStartNonReadySynchronizedGame">This call fails if initiated before all players have set their `IsReady` to true.</exception>
-    /// <exception cref="SynchronizedGameHasPlayersWithSessionsBeforeStart">This call fails if any players already have an active game session when it starts.</exception>
     public async Task<SyncStartGameStartedState> StartSynchronizedSession(string gameId, double countdownSeconds, CancellationToken cancellationToken)
     {
         _logger.LogInformation($"Acquiring asynchronous lock for sync start game {gameId}...");
@@ -182,15 +196,19 @@ internal class SyncStartGameService : ISyncStartGameService
         {
             _logger.LogInformation($"Acquired asynchronous lock for sync start game {gameId}.");
 
+
             // validate that the various conditions we need in order to sync start a game are available:
             _logger.LogInformation($"Validating sync start for game {gameId}.");
             var validateStartResult = await ValidateSyncStart(gameId, cancellationToken);
 
-            if (validateStartResult.IsStarted)
-            {
-                _logger.LogInformation($"Sync session is already started for game {gameId}.");
-                return GetStartedStateFromValidationResult(validateStartResult);
-            }
+            if (!validateStartResult.CanStart)
+                throw new CantStartSynchronizedSession(gameId, validateStartResult);
+
+            // if (validateStartResult.IsStarted)
+            // {
+            //     _logger.LogInformation($"Sync session is already started for game {gameId}.");
+            //     return GetStartedStateFromValidationResult(validateStartResult);
+            // }
 
             // now that the quitters (and by quitters I mean attempts to start a sync game that is already started) 
             // are gone, notify signalR that it's business time.

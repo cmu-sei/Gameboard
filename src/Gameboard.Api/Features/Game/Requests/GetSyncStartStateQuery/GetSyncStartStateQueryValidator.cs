@@ -47,7 +47,7 @@ internal class GetSyncStartStateQueryValidator : IGameboardRequestValidator<GetS
             var game = await _gameService.Retrieve(request.GameId);
             if (!game.RequireSynchronizedStart)
             {
-                context.AddValidationException(new GameIsNotSyncStart(request.GameId, "Can't read the sync start state of a non-sync-start game."));
+                context.AddValidationException(new ExternalGameIsNotSyncStart(request.GameId, "Can't read the sync start state of a non-sync-start game."));
             }
         });
         await _validatorService.Validate(request, cancellationToken);

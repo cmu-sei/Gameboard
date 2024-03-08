@@ -46,14 +46,20 @@ internal class CantStartStandardGameWithoutActingUserParameter : GameboardValida
     public CantStartStandardGameWithoutActingUserParameter(string gameId) : base($"""Game start failure (gameId "{gameId}"): Game is a standard game, so the `actingUser` parameter is required.""") { }
 }
 
+internal class CantStartSynchronizedSession : GameboardException
+{
+    public CantStartSynchronizedSession(string gameId, ValidateSyncStartResult validationResult)
+        : base($"Can't start sync session for game {gameId}. Validation result: {validationResult.CanStart} | {validationResult.IsStarted} | {validationResult.SyncStartState.IsReady}") { }
+}
+
 internal class ChallengeResolutionFailure : GameboardException
 {
     public ChallengeResolutionFailure(string teamId, IEnumerable<string> challengeIds) : base($"Couldn't resolve a Unity challenge for team {teamId}. They have {challengeIds.Count()} challenges ({String.Join(" | ", challengeIds)})") { }
 }
 
-internal class GameIsNotSyncStart : GameboardValidationException
+internal class ExternalGameIsNotSyncStart : GameboardValidationException
 {
-    public GameIsNotSyncStart(string gameId, string whyItMatters) : base($"""Game "{gameId}" is not a sync-start game. {whyItMatters}""") { }
+    public ExternalGameIsNotSyncStart(string gameId, string whyItMatters) : base($"""Game "{gameId}" is not a sync-start game. {whyItMatters}""") { }
 }
 
 public class GameModeIsntExternal : GameboardValidationException
