@@ -8,6 +8,7 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -142,13 +143,7 @@ internal class SyncStartGameService : ISyncStartGameService
         // if we're not ready, 
         if (!validationResult.CanStart)
         {
-            _logger.LogInformation($"Can't start sync-start game {gameId}. Already started?: {validationResult.IsStarted}. All ready?: {validationResult.SyncStartState.IsReady}.");
-
-            if (!validationResult.IsStarted && validationResult.SyncStartState.IsReady)
-            {
-                // if this condition occurs, we'd like more in the logs to have context
-                _logger.LogInformation($"Dumping sync start validation: {_jsonService.Serialize(validationResult)}");
-            }
+            _logger.LogInformation($"Can't start sync-start game {gameId}. {validationResult.Players.Count()} | {validationResult.AllPlayersReady} | {validationResult.HasStartedPlayers} | {validationResult.IsStarted}");
             return;
         }
 
@@ -196,19 +191,12 @@ internal class SyncStartGameService : ISyncStartGameService
         {
             _logger.LogInformation($"Acquired asynchronous lock for sync start game {gameId}.");
 
-
             // validate that the various conditions we need in order to sync start a game are available:
             _logger.LogInformation($"Validating sync start for game {gameId}.");
             var validateStartResult = await ValidateSyncStart(gameId, cancellationToken);
 
             if (!validateStartResult.CanStart)
                 throw new CantStartSynchronizedSession(gameId, validateStartResult);
-
-            // if (validateStartResult.IsStarted)
-            // {
-            //     _logger.LogInformation($"Sync session is already started for game {gameId}.");
-            //     return GetStartedStateFromValidationResult(validateStartResult);
-            // }
 
             // now that the quitters (and by quitters I mean attempts to start a sync game that is already started) 
             // are gone, notify signalR that it's business time.
@@ -298,24 +286,6 @@ internal class SyncStartGameService : ISyncStartGameService
             endTimes.All(end => end is not null);
     }
 
-    // private SyncStartGameStartedState GetStartedStateFromValidationResult(ValidateSyncStartResult result)
-    // {
-    //     if (!result.IsStarted)
-    //         return null;
-
-    //     var nullGuardedPlayers = result.Players.Where(p => p.SessionBegin is not null && p.SessionEnd is not null);
-    //     var sessionBegin = nullGuardedPlayers.Select(p => p.SessionBegin.Value).Distinct().Single();
-    //     var sessionEnd = nullGuardedPlayers.Select(p => p.SessionEnd.Value).Distinct().Single();
-
-    //     return new SyncStartGameStartedState
-    //     {
-    //         Game = new SimpleEntity { Id = result.Game.Id, Name = result.Game.Name },
-    //         SessionBegin = sessionBegin,
-    //         SessionEnd = sessionEnd,
-    //         Teams = PlayersToTeams(result.Players)
-    //     };
-    // }
-
     private IDictionary<string, IEnumerable<SyncStartGameStartedStatePlayer>> PlayersToTeams(IEnumerable<ValidateSyncStartResultPlayer> players)
         => players
             .GroupBy(p => p.TeamId)
@@ -362,14 +332,19 @@ internal class SyncStartGameService : ISyncStartGameService
                 UserId = p.UserId
             }).ToArrayAsync(cancellationToken);
 
+        // just for clarity, the game can start when:
+        // - there are a nonzero number of players
+        // - all players have marked "ready" (or had it marked for them by an admin)
+        // - the game doesn't contain any players with started sessions
+        // - all the player sessions are aligned
         var allPlayersReady = players.All(p => p.IsReady);
-        var gameIsStarted = players.All(p => p.SessionBegin.IsNotEmpty()) && GetPlayersAreSynchronized(players);
+        var gameIsStarted = GetPlayersAreSynchronized(players);
         var hasStartedPlayers = players.Any(p => p.SessionBegin.IsNotEmpty() || p.SessionEnd.IsNotEmpty());
 
         // if the game is started, or if any players have sessions, don't start,
         return new ValidateSyncStartResult
         {
-            CanStart = allPlayersReady && !gameIsStarted && !hasStartedPlayers,
+            CanStart = players.Length > 0 && allPlayersReady && !gameIsStarted && !hasStartedPlayers,
             Game = game,
             AllPlayersReady = allPlayersReady,
             HasStartedPlayers = hasStartedPlayers,
