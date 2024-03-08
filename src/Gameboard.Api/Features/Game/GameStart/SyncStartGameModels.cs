@@ -64,16 +64,27 @@ public sealed class UpdateIsReadyModel
 public sealed class ValidateSyncStartResult
 {
     public required bool CanStart { get; set; }
-    public required Data.Game Game { get; set; }
+    public required ValidateSyncStartGame Game { get; set; }
+    public required bool AllPlayersReady { get; set; }
+    public required bool HasStartedPlayers { get; set; }
     public required bool IsStarted { get; set; }
     public required IEnumerable<ValidateSyncStartResultPlayer> Players { get; set; }
     public required SyncStartState SyncStartState { get; set; }
+}
+
+public sealed class ValidateSyncStartGame
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required bool IsSyncStart { get; set; }
+    public required int SessionMinutes { get; set; }
 }
 
 public sealed class ValidateSyncStartResultPlayer
 {
     public required string Id { get; set; }
     public required string Name { get; set; }
+    public required bool IsReady { get; set; }
     public required DateTimeOffset? SessionBegin { get; set; }
     public required DateTimeOffset? SessionEnd { get; set; }
     public required string TeamId { get; set; }
