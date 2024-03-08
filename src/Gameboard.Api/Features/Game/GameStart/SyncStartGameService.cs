@@ -84,6 +84,7 @@ internal class SyncStartGameService : ISyncStartGameService
             {
                 Game = new SimpleEntity { Id = game.Id, Name = game.Name },
                 Teams = Array.Empty<SyncStartTeam>(),
+                AllSessionsStarted = false,
                 IsReady = true
             };
         }
@@ -95,6 +96,7 @@ internal class SyncStartGameService : ISyncStartGameService
             {
                 Game = new SimpleEntity { Id = game.Id, Name = game.Name },
                 Teams = Array.Empty<SyncStartTeam>(),
+                AllSessionsStarted = false,
                 IsReady = false
             };
         }
@@ -104,7 +106,9 @@ internal class SyncStartGameService : ISyncStartGameService
             .Players
             .GroupBy(p => p.TeamId)
             .ToDictionary(g => g.Key, g => g.ToList());
+
         var allTeamsReady = teamPlayers.All(team => team.Value.All(p => p.IsReady));
+        var allTeamsSessionStarted = teamPlayers.All(team => team.Value.All(p => p.SessionBegin.IsNotEmpty()));
 
         return new SyncStartState
         {
@@ -119,21 +123,29 @@ internal class SyncStartGameService : ISyncStartGameService
                     Name = p.ApprovedName,
                     IsReady = p.IsReady
                 }),
+                HasStartedSession = teamPlayers[teamId].All(p => p.SessionBegin.IsNotEmpty()),
                 IsReady = teamPlayers[teamId].All(p => p.IsReady)
             }),
+            AllSessionsStarted = allTeamsSessionStarted,
             IsReady = allTeamsReady
         };
     }
 
     public async Task HandleSyncStartStateChanged(string gameId, CancellationToken cancellationToken)
     {
-        var state = await GetSyncStartState(gameId, cancellationToken);
-        _logger.LogInformation($"Sync start state changed for game {gameId}. Ready? {state.Teams.Where(t => t.IsReady).Select(t => t.Id).ToArray()}");
-        await _gameHubBus.SendSyncStartGameStateChanged(state);
+        var validationResult = await ValidateSyncStart(gameId, cancellationToken);
+        _logger.LogInformation($"Sync start state changed for game {gameId}. Can start?: {validationResult.CanStart}");
+        // var state = await GetSyncStartState(gameId, cancellationToken);
+        // _logger.LogInformation($"Sync start state changed for game {gameId}. Ready? {state.Teams.Where(t => t.IsReady).Select(t => t.Id).ToArray()}");
+        // await _gameHubBus.SendSyncStartGameStateChanged(state);
 
-        // IFF everyone is ready, start all sessions and return info about them
-        if (!state.IsReady)
-            return;
+        // // if anyone's not ready, or if any of the sessions have already started, bail out - we don't need to do anything
+        // if (!state.IsReady || state.AllSessionsStarted)
+        //     return;
+
+        // // IFF everyone is ready, start all sessions and return info about them
+        // if (!state.IsReady)
+        //     return;
 
         // for now, we're assuming the "happy path" of sync start games being external games, but we'll separate them later
         // NOTE: we also use a background service to kick this off, as it's a long-running task. Updates on the status
@@ -146,7 +158,7 @@ internal class SyncStartGameService : ISyncStartGameService
         {
             using var scope = _serviceScopeFactory.CreateScope();
             var gameStartService = scope.ServiceProvider.GetRequiredService<IGameStartService>();
-            await gameStartService.Start(new GameStartRequest { GameId = state.Game.Id }, cancellationToken);
+            await gameStartService.Start(new GameStartRequest { GameId = gameId }, cancellationToken);
         });
     }
 
@@ -322,14 +334,14 @@ internal class SyncStartGameService : ISyncStartGameService
             {
                 Id = p.Id,
                 Name = string.IsNullOrEmpty(p.ApprovedName) ? p.Name : p.ApprovedName,
-                SessionBegin = p.SessionBegin.IsNotEmpty() ? p.SessionBegin : null,
-                SessionEnd = p.SessionEnd.IsNotEmpty() ? p.SessionEnd : null,
+                SessionBegin = p.SessionBegin,
+                SessionEnd = p.SessionEnd,
                 TeamId = p.TeamId,
                 UserId = p.UserId
             }).ToArrayAsync(cancellationToken);
 
         // if no players have a session or challenges, we assume we can start the game and everything's fine
-        if (players.All(p => p.SessionBegin is null && p.SessionEnd is null))
+        if (players.All(p => p.SessionBegin.IsEmpty() && p.SessionEnd.IsEmpty()))
         {
             return new ValidateSyncStartResult
             {
