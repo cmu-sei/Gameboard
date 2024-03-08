@@ -139,6 +139,9 @@ internal class SyncStartGameService : ISyncStartGameService
         var validationResult = await ValidateSyncStart(gameId, cancellationToken);
         _logger.LogInformation($"Sync start state changed for game {gameId}. Can start?: {validationResult.CanStart}");
 
+        // notify listeners about the change
+        await _gameHubBus.SendSyncStartGameStateChanged(validationResult.SyncStartState);
+
         // if we're not ready, 
         if (!validationResult.CanStart)
         {
