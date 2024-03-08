@@ -49,7 +49,7 @@ internal class CantStartStandardGameWithoutActingUserParameter : GameboardValida
 internal class CantStartSynchronizedSession : GameboardException
 {
     public CantStartSynchronizedSession(string gameId, ValidateSyncStartResult validationResult)
-        : base($"Can't start sync session for game {gameId}. Validation result: {validationResult.CanStart} | {validationResult.IsStarted} | {validationResult.SyncStartState.IsReady}") { }
+        : base($"Can't start sync session for game {gameId}. Validation result: {validationResult.CanStart} | {validationResult.SyncStartState.IsReady}") { }
 }
 
 internal class ChallengeResolutionFailure : GameboardException

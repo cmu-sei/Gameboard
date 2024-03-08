@@ -53,31 +53,6 @@ public class ObserveTeam
     public required long Time { get; set; }
     public required IEnumerable<ObserveTeamPlayer> Members { get; set; }
     public required IEnumerable<Sponsor> Sponsors { get; set; }
-
-    // .Select(c => new Team
-    // {
-    //     TeamId = c.TeamId,
-    //     ApprovedName = c.ApprovedName,
-    //     Sponsors = _mapper.Map<Sponsor[]>(players.Where(p => p.TeamId == c.TeamId).Select(p => p.Sponsor)),
-    //     GameId = c.GameId,
-    //     SessionBegin = c.SessionBegin,
-    //     SessionEnd = c.SessionEnd,
-    //     Rank = c.Rank,
-    //     Score = c.Score,
-    //     Time = c.Time,
-    //     CorrectCount = c.CorrectCount,
-    //     PartialCount = c.PartialCount,
-    //     Advanced = c.Advanced,
-    //     Members = players.Where(p => p.TeamId == c.TeamId).Select(i => new TeamMember
-    //     {
-    //         Id = i.UserId,
-    //         ApprovedName = i.User.ApprovedName,
-    //         Role = i.Role,
-    //         UserId = i.UserId
-    //     }).OrderBy(p => p.ApprovedName).ToArray()
-    // })
-    // .OrderBy(c => c.ApprovedName)
-    // .ToArray();
 }
 
 public sealed class ObserveTeamPlayer
@@ -155,7 +130,6 @@ public class NotificationHubTeamSessionEvent
 public class TeamState
 {
     public required string Id { get; set; }
-    // public Api.Player ActingPlayer { get; set; }
     public required string ApprovedName { get; set; }
     public required string Name { get; set; }
     public required string NameStatus { get; set; }

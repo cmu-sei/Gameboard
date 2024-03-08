@@ -8,7 +8,6 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Teams;
-using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -143,7 +142,7 @@ internal class SyncStartGameService : ISyncStartGameService
         // if we're not ready, 
         if (!validationResult.CanStart)
         {
-            _logger.LogInformation($"Can't start sync-start game {gameId}. {validationResult.Players.Count()} | {validationResult.AllPlayersReady} | {validationResult.HasStartedPlayers} | {validationResult.IsStarted}");
+            _logger.LogInformation($"Can't start sync-start game {gameId}. {validationResult.Players.Count()} | {validationResult.AllPlayersReady} | {validationResult.HasStartedPlayers}");
             return;
         }
 
@@ -338,17 +337,15 @@ internal class SyncStartGameService : ISyncStartGameService
         // - the game doesn't contain any players with started sessions
         // - all the player sessions are aligned
         var allPlayersReady = players.All(p => p.IsReady);
-        var gameIsStarted = GetPlayersAreSynchronized(players);
         var hasStartedPlayers = players.Any(p => p.SessionBegin.IsNotEmpty() || p.SessionEnd.IsNotEmpty());
 
         // if the game is started, or if any players have sessions, don't start,
         return new ValidateSyncStartResult
         {
-            CanStart = players.Length > 0 && allPlayersReady && !gameIsStarted && !hasStartedPlayers,
+            CanStart = players.Length > 0 && allPlayersReady && !hasStartedPlayers,
             Game = game,
             AllPlayersReady = allPlayersReady,
             HasStartedPlayers = hasStartedPlayers,
-            IsStarted = gameIsStarted,
             Players = players,
             SyncStartState = state
         };

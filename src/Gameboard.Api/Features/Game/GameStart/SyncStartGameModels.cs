@@ -67,7 +67,6 @@ public sealed class ValidateSyncStartResult
     public required ValidateSyncStartGame Game { get; set; }
     public required bool AllPlayersReady { get; set; }
     public required bool HasStartedPlayers { get; set; }
-    public required bool IsStarted { get; set; }
     public required IEnumerable<ValidateSyncStartResultPlayer> Players { get; set; }
     public required SyncStartState SyncStartState { get; set; }
 }
