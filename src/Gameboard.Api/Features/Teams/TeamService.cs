@@ -83,7 +83,7 @@ internal class TeamService : ITeamService
             .ExecuteDeleteAsync(cancellationToken);
 
         // notify app listeners
-        await _mediator.Publish(new TeamDeletedNotification(teamId), cancellationToken);
+        await _mediator.Publish(new TeamDeletedNotification(teamState.GameId, teamState.Id), cancellationToken);
 
         // notify hub that the team is deleted /players left so the client can respond
         await _teamHubService.SendTeamDeleted(teamState, actingUser);
@@ -131,7 +131,9 @@ internal class TeamService : ITeamService
         {
             Id = captain.TeamId,
             ApprovedName = captain.ApprovedName,
+            GameId = captain.GameId,
             Name = captain.Name,
+            NameStatus = captain.NameStatus,
             SessionBegin = captain.SessionBegin,
             SessionEnd = finalSessionEnd,
             Actor = new SimpleEntity { Id = request.Actor.Id, Name = request.Actor.ApprovedName }
@@ -355,6 +357,8 @@ internal class TeamService : ITeamService
             Id = teamId,
             ApprovedName = captain.ApprovedName,
             Name = captain.Name,
+            NameStatus = captain.NameStatus,
+            GameId = captain.GameId,
             SessionBegin = captain.SessionBegin.IsEmpty() ? null : captain.SessionBegin,
             SessionEnd = captain.SessionEnd.IsEmpty() ? null : captain.SessionEnd,
             Actor = actor

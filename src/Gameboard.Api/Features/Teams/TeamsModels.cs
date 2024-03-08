@@ -155,10 +155,11 @@ public class NotificationHubTeamSessionEvent
 public class TeamState
 {
     public required string Id { get; set; }
-    public Api.Player ActingPlayer { get; set; }
+    // public Api.Player ActingPlayer { get; set; }
     public required string ApprovedName { get; set; }
-    public string Name { get; set; }
-    public string NameStatus { get; set; }
+    public required string Name { get; set; }
+    public required string NameStatus { get; set; }
+    public required string GameId { get; set; }
     public DateTimeOffset? SessionBegin { get; set; }
     public DateTimeOffset? SessionEnd { get; set; }
     public required SimpleEntity Actor { get; set; }

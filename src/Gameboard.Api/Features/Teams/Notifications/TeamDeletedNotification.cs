@@ -1,25 +1,31 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Features.Games.External;
+using Gameboard.Api.Features.Scores;
 using MediatR;
 
 namespace Gameboard.Api.Features.Teams;
 
-public sealed class TeamDeletedNotification : INotification
-{
-    public string TeamId { get; private set; }
-
-    public TeamDeletedNotification(string teamId)
-        => TeamId = teamId;
-}
+public record TeamDeletedNotification(string GameId, string TeamId) : INotification;
 
 internal sealed class TeamDeletedHandler : INotificationHandler<TeamDeletedNotification>
 {
     private readonly IExternalGameService _externalGameService;
+    private readonly IScoreDenormalizationService _scoreDenormalizer;
 
-    public TeamDeletedHandler(IExternalGameService externalGameService)
-        => _externalGameService = externalGameService;
+    public TeamDeletedHandler
+    (
+        IExternalGameService externalGameService,
+        IScoreDenormalizationService scoreDenormalizer
+    )
+    {
+        _externalGameService = externalGameService;
+        _scoreDenormalizer = scoreDenormalizer;
+    }
 
-    public Task Handle(TeamDeletedNotification notification, CancellationToken cancellationToken)
-        => _externalGameService.DeleteTeamExternalData(cancellationToken, notification.TeamId);
+    public async Task Handle(TeamDeletedNotification notification, CancellationToken cancellationToken)
+    {
+        await _externalGameService.DeleteTeamExternalData(cancellationToken, notification.TeamId);
+        await _scoreDenormalizer.DenormalizeGame(notification.GameId, cancellationToken);
+    }
 }

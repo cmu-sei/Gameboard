@@ -105,6 +105,8 @@ internal class InternalHubBus : IInternalHubBus
             Id = p.TeamId,
             ApprovedName = p.ApprovedName,
             Name = p.Name,
+            NameStatus = p.NameStatus,
+            GameId = p.GameId,
             SessionBegin = p.SessionBegin.IsEmpty() ? null : p.SessionBegin,
             SessionEnd = p.SessionEnd.IsEmpty() ? null : p.SessionEnd,
             Actor = actor.ToSimpleEntity(),
@@ -131,6 +133,8 @@ internal class InternalHubBus : IInternalHubBus
                     Id = captain.TeamId,
                     ApprovedName = captain.ApprovedName,
                     Name = captain.Name,
+                    NameStatus = captain.NameStatus,
+                    GameId = captain.GameId,
                     SessionBegin = null,
                     SessionEnd = null,
                     Actor = actor.ToSimpleEntity()
@@ -146,7 +150,9 @@ internal class InternalHubBus : IInternalHubBus
         {
             Id = p.TeamId,
             ApprovedName = p.ApprovedName,
+            GameId = p.GameId,
             Name = p.Name,
+            NameStatus = p.NameStatus,
             SessionBegin = p.SessionBegin.IsEmpty() ? null : p.SessionBegin,
             SessionEnd = p.SessionEnd.IsEmpty() ? null : p.SessionEnd,
             Actor = new SimpleEntity { Id = actor.Id, Name = actor.ApprovedName }
