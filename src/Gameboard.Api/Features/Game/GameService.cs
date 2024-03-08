@@ -113,6 +113,9 @@ public class GameService : _Service, IGameService
         if (model == null)
             return q;
 
+        if (model.WantsAdvanceable)
+            q = q.Where(g => g.GameEnd > now);
+
         if (model.WantsCompetitive)
             q = q.Where(g => g.PlayerMode == PlayerMode.Competition || g.ShowOnHomePageInPracticeMode);
 
