@@ -26,7 +26,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     GROUP BY c."TeamId";
 
                     UPDATE "Players" AS p
-                    SET "AdvancedWithScore" = c."Score"
+                    SET 
+                        "AdvancedWithScore" = c."Score",
+                        "Score" = p."Score" + c."Score"
                     FROM InitialScoreChallenges AS c
                     WHERE c."TeamId" = p."TeamId";
                         
