@@ -138,3 +138,10 @@ public class TeamState
     public DateTimeOffset? SessionEnd { get; set; }
     public required SimpleEntity Actor { get; set; }
 }
+
+public class TeamHubSessionResetEvent
+{
+    public required string Id { get; set; }
+    public required string GameId { get; set; }
+    public required SimpleEntity ActingUser { get; set; }
+}

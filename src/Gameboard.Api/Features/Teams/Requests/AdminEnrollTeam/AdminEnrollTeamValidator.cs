@@ -75,7 +75,7 @@ internal class AdminEnrollTeamValidator : IGameboardRequestValidator<AdminEnroll
             if (gameInfo is null)
                 ctx.AddValidationException(new ResourceNotFound<Data.Game>(req.GameId));
 
-            if (gameInfo.MaxTeamSize < req.UserIds.Count() || gameInfo.MinTeamSize > req.UserIds.Count())
+            if ((gameInfo.MaxTeamSize > 0 && gameInfo.MaxTeamSize < req.UserIds.Count()) || (gameInfo.MinTeamSize > 0 && gameInfo.MinTeamSize > req.UserIds.Count()))
                 ctx.AddValidationException(new CantJoinTeamBecausePlayerCount(req.GameId, req.UserIds.Count(), 0, gameInfo.MinTeamSize, gameInfo.MaxTeamSize));
 
             var allUserIds = new List<string>(req.UserIds);

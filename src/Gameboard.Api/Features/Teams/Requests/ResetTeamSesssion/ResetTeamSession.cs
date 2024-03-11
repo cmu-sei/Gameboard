@@ -111,7 +111,12 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
         // notify the SignalR hub (which only matters for external games right now - we clean some
         // local storage stuff up if there's a reset).
         var captain = await _teamService.ResolveCaptain(request.TeamId, cancellationToken);
-        await _hubBus.SendTeamSessionReset(_mapper.Map<Api.Player>(captain), request.ActingUser);
+        await _hubBus.SendTeamSessionReset(new TeamHubSessionResetEvent
+        {
+            Id = captain.TeamId,
+            GameId = captain.GameId,
+            ActingUser = request.ActingUser.ToSimpleEntity()
+        });
 
         if (gameInfo.RequireSynchronizedStart)
             await _syncStartGameService.HandleSyncStartStateChanged(gameInfo.Id, cancellationToken);
