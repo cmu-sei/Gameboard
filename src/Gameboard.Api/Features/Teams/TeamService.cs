@@ -29,10 +29,10 @@ public interface ITeamService
     Task<IEnumerable<Team>> GetTeams(IEnumerable<string> ids);
     Task<bool> IsAtGamespaceLimit(string teamId, Data.Game game, CancellationToken cancellationToken);
     Task<bool> IsOnTeam(string teamId, string userId);
+    Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser, CancellationToken cancellationToken);
     Task<Data.Player> ResolveCaptain(string teamId, CancellationToken cancellationToken);
     Data.Player ResolveCaptain(IEnumerable<Data.Player> players);
     Task<IDictionary<string, Data.Player>> ResolveCaptains(IEnumerable<string> teamIds, CancellationToken cancellationToken);
-    Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser, CancellationToken cancellationToken);
     Task UpdateSessionStartAndEnd(string teamId, DateTimeOffset? sessionStart, DateTimeOffset? sessionEnd, CancellationToken cancellationToken);
 }
 
@@ -267,17 +267,17 @@ internal class TeamService : ITeamService
 
         using (var transaction = await _playerStore.DbContext.Database.BeginTransactionAsync())
         {
-            await _playerStore
-                .List()
+            await _store
+                .WithNoTracking<Data.Player>()
                 .Where(p => p.TeamId == teamId)
-                .ExecuteUpdateAsync(p => p.SetProperty(p => p.Role, p => PlayerRole.Member));
+                .ExecuteUpdateAsync(p => p.SetProperty(p => p.Role, PlayerRole.Member));
 
-            var affectedPlayers = await _playerStore
-                .List()
+            var affectedPlayers = await _store
+                .WithNoTracking<Data.Player>()
                 .Where(p => p.Id == newCaptainPlayerId)
                 .ExecuteUpdateAsync
                 (
-                    p => p.SetProperty(p => p.Role, p => PlayerRole.Manager)
+                    p => p.SetProperty(p => p.Role, PlayerRole.Manager)
                 );
 
             // this automatically rolls back the transaction

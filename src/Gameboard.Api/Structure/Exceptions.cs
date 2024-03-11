@@ -17,7 +17,7 @@ namespace Gameboard.Api
         internal AdminImpersonationFail(string userId, UserRole roles) : base($"Acting user {userId} attempted to execute this request as an admin but is not one (roles: {roles})") { }
     }
 
-    internal class AlreadyRegistered : GameboardException
+    internal class AlreadyRegistered : GameboardValidationException
     {
         internal AlreadyRegistered(string userId, string gameId) : base($"Player {userId} is already registered for game {gameId}.") { }
     }

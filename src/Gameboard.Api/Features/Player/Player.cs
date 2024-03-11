@@ -47,6 +47,7 @@ public class NewPlayer
 {
     public string UserId { get; set; }
     public string GameId { get; set; }
+    // Looks unused
     public string Name { get; set; }
 }
 
