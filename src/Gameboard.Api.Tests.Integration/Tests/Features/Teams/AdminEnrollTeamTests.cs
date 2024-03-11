@@ -44,7 +44,12 @@ public class AdminEnrollTeamTests : IClassFixture<GameboardTestContext>
                 u.SponsorId = sponsorId;
             });
 
-            state.Add<Data.Game>(fixture, g => g.Id = gameId);
+            state.Add<Data.Game>(fixture, g =>
+            {
+                g.Id = gameId;
+                g.MinTeamSize = 1;
+                g.MaxTeamSize = 2;
+            });
         });
 
         // when the registrar tries to team them up

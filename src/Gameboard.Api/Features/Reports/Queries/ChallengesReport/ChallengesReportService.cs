@@ -65,21 +65,21 @@ internal class ChallengesReportService : IChallengesReportService
             endDateCondition = c => c.EndTime <= parameters.StartDateEnd.Value.ToEndDate().ToUniversalTime();
 
         var specs = await query
-        .Select(cs => new
-        {
-            cs.Id,
-            cs.Name,
-            cs.GameId,
-            GameName = cs.Game.Name,
-            cs.Game.Season,
-            cs.Game.Competition,
-            cs.Game.Track,
-            cs.Game.MaxTeamSize,
-            PlayerModeCurrent = cs.Game.PlayerMode,
-            cs.Points,
-            cs.Tags
-        })
-        .ToArrayAsync(cancellationToken);
+            .Select(cs => new
+            {
+                cs.Id,
+                cs.Name,
+                cs.GameId,
+                GameName = cs.Game.Name,
+                cs.Game.Season,
+                cs.Game.Competition,
+                cs.Game.Track,
+                cs.Game.MaxTeamSize,
+                PlayerModeCurrent = cs.Game.PlayerMode,
+                cs.Points,
+                cs.Tags
+            })
+            .ToArrayAsync(cancellationToken);
 
         var specIds = specs.Select(cs => cs.Id).ToArray();
 

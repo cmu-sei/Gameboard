@@ -47,7 +47,16 @@ internal class AdminEnrollTeamValidator : IGameboardRequestValidator<AdminEnroll
         if (request.PlayerMode == PlayerMode.Practice)
             throw new NotImplementedException($"This feature only allows registration for competitive games.");
 
-        _validator.AddValidator(_gameExists.UseProperty(r => r.GameId));
+        // game must exist and have legal player counts
+        var game = await _store
+            .WithNoTracking<Data.Game>()
+            .Select(g => new
+            {
+                g.Id,
+                g.MinTeamSize,
+                g.MaxTeamSize
+            })
+            .SingleOrDefaultAsync(g => g.Id == request.GameId, cancellationToken);
 
         _validator.AddValidator(async (req, ctx) =>
         {
@@ -57,12 +66,17 @@ internal class AdminEnrollTeamValidator : IGameboardRequestValidator<AdminEnroll
                 .Select(g => new
                 {
                     g.Id,
-                    g.PlayerMode
+                    g.PlayerMode,
+                    g.MinTeamSize,
+                    g.MaxTeamSize
                 })
                 .SingleOrDefaultAsync();
 
             if (gameInfo is null)
                 ctx.AddValidationException(new ResourceNotFound<Data.Game>(req.GameId));
+
+            if (gameInfo.MaxTeamSize < req.UserIds.Count() || gameInfo.MinTeamSize > req.UserIds.Count())
+                ctx.AddValidationException(new CantJoinTeamBecausePlayerCount(req.GameId, req.UserIds.Count(), 0, gameInfo.MinTeamSize, gameInfo.MaxTeamSize));
 
             var allUserIds = new List<string>(req.UserIds);
             if (req.CaptainUserId.IsNotEmpty() && !allUserIds.Any(uId => uId == request.CaptainUserId))
