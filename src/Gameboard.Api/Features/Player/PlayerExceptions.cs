@@ -14,7 +14,14 @@ internal class CantLateStart : GameboardValidationException
 
 internal class CantResolveTeamFromCode : GameboardException
 {
-    internal CantResolveTeamFromCode(string code, string[] teamIds) : base($"""Couldn't resolve a unique team from invitation code "{code}": {teamIds.Count()} have this code ({string.Join(",", teamIds)}). """) { }
+    internal CantResolveTeamFromCode(string code, string[] teamIds)
+        : base($"""Couldn't resolve a unique team from invitation code "{code}": {teamIds.Count()} have this code ({string.Join(",", teamIds)}). """) { }
+}
+
+internal class CantStartSessionOfOtherPlayer : GameboardValidationException
+{
+    internal CantStartSessionOfOtherPlayer(string playerId, string userId)
+        : base($"Couldn't find a player with ID {playerId} owned by your user ({userId}).") { }
 }
 
 internal class InvalidExtendSessionRequest : GameboardException

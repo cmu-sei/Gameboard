@@ -204,8 +204,11 @@ public class PlayerService
     public async Task<Player> StartSession(SessionStartRequest model, User actor, bool sudo)
     {
         var team = await PlayerStore.ListTeamByPlayer(model.PlayerId);
-
         var player = team.First();
+
+        if (!sudo && player.UserId != actor.Id)
+            throw new CantStartSessionOfOtherPlayer(model.PlayerId, actor.Id);
+
         var game = await PlayerStore.DbContext.Games.SingleOrDefaultAsync(g => g.Id == player.GameId);
 
         // rule: game's execution period has to be open
