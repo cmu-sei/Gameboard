@@ -30,7 +30,7 @@ internal class NotOnSameTeam : GameboardException
 
 internal class PlayersAreFromMultipleTeams : GameboardValidationException
 {
-    internal PlayersAreFromMultipleTeams(IEnumerable<string> teamIds, string message = null) : base($"""${(string.IsNullOrWhiteSpace(message) ? "" : $"{message}.")} The players evaluated are from zero or multiple teams ({string.Join(",", teamIds)})""") { }
+    internal PlayersAreFromMultipleTeams(IEnumerable<string> teamIds, string message = null) : base($"""{(string.IsNullOrWhiteSpace(message) ? "" : "{message}.")} The players evaluated are from zero or multiple teams ({string.Join(",", teamIds)})""") { }
 }
 
 internal class PlayersAreInMultipleGames : GameboardValidationException
