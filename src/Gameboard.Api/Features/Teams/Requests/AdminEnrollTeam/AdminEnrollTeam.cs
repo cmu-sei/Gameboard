@@ -72,24 +72,17 @@ internal class AdminEnrollTeamHandler : IRequestHandler<AdminEnrollTeamRequest, 
             var newPlayer = await _playerService.Enroll(new NewPlayer { GameId = request.GameId, UserId = userId }, actingUser, cancellationToken);
             createdPlayers.Add(newPlayer);
 
-            // if this is the captain (or if one wasn't specified), remember them for team-up purposes
+            // if this is the captain (or if one wasn't specified), make them a team-up code
             if ((request.CaptainUserId.IsNotEmpty() && userId == request.CaptainUserId) || request.CaptainUserId.IsEmpty())
             {
                 captainPlayer = newPlayer;
-                teamUpCode = await _store
+                teamUpCode = _guids.GetGuid();
+                await _store
                     .WithNoTracking<Data.Player>()
-                    .Where(p => p.Id == newPlayer.Id)
-                    .Select(p => p.InviteCode)
-                    .SingleAsync(cancellationToken);
+                    .Where(p => p.Id == captainPlayer.Id)
+                    .ExecuteUpdateAsync(up => up.SetProperty(p => p.InviteCode, teamUpCode));
             }
         }
-
-        // by default, players don't have an invitation code, so make one for the captain.
-        var invitationCode = _guids.GetGuid();
-        await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => p.Id == captainPlayer.Id)
-            .ExecuteUpdateAsync(up => up.SetProperty(p => p.InviteCode, invitationCode));
 
         // team everyone up
         foreach (var player in createdPlayers.Where(p => p.Id != captainPlayer.Id))

@@ -2,10 +2,8 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
-using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -13,14 +11,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Teams;
 
-public record ResetTeamSessionCommand(string TeamId, bool UnenrollTeam, bool ArchiveChallenges, User ActingUser) : IRequest;
+public record ResetTeamSessionCommand(string TeamId, bool UnenrollTeam, User ActingUser) : IRequest;
 
 internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand>
 {
-    private readonly ChallengeService _challengeService;
     private readonly IInternalHubBus _hubBus;
     private readonly ILogger<ResetTeamSessionHandler> _logger;
-    private readonly IMapper _mapper;
     private readonly IMediator _mediator;
     private readonly IStore _store;
     private readonly ISyncStartGameService _syncStartGameService;
@@ -29,10 +25,8 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
 
     public ResetTeamSessionHandler
     (
-        ChallengeService challengeService,
         IInternalHubBus hubBus,
         ILogger<ResetTeamSessionHandler> logger,
-        IMapper mapper,
         IMediator mediator,
         IStore store,
         ISyncStartGameService syncStartGameService,
@@ -40,10 +34,8 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
         IGameboardRequestValidator<ResetTeamSessionCommand> validator
     )
     {
-        _challengeService = challengeService;
         _hubBus = hubBus;
         _logger = logger;
-        _mapper = mapper;
         _mediator = mediator;
         _store = store;
         _syncStartGameService = syncStartGameService;
@@ -66,12 +58,6 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
             .Where(p => p.TeamId == request.TeamId)
             .Select(p => new { p.Game.Id, p.Game.RequireSynchronizedStart })
             .FirstAsync(cancellationToken);
-
-        if (request.ArchiveChallenges)
-        {
-            _logger.LogInformation($"Archiving challenges for team {request.TeamId}");
-            await _challengeService.ArchiveTeamChallenges(request.TeamId);
-        }
 
         // delete players from the team iff. requested
         if (request.UnenrollTeam)

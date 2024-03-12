@@ -80,8 +80,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         _validator = validator;
     }
 
-    public bool ArchiveChallengesOnStartFailure { get => false; }
-
     public async Task ValidateStart(GameModeStartRequest request, CancellationToken cancellationToken)
     {
         Log("Validating external / sync-start game request...", request.Game.Id);

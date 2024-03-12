@@ -36,10 +36,6 @@ internal class ResetSessionCommandValidator : IGameboardRequestValidator<ResetTe
 
     public async Task Validate(ResetTeamSessionCommand request, CancellationToken cancellationToken)
     {
-        // can't unenroll team but keep challenges
-        if (request.UnenrollTeam && !request.ArchiveChallenges)
-            throw new BadHttpRequestException("Can't specify to unenroll the team but preserve their challenges when resetting.");
-
         // get the game - we need it to know if we need to update the sync start state later,
         // and we need to validate that it can be reset
         var players = await _store

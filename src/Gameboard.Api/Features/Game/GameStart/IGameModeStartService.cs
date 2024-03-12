@@ -15,8 +15,6 @@ namespace Gameboard.Api.Features.Games.Start;
 // the logic that happens when a game starts (e.g. ExternalSyncGameStartService for #4)
 public interface IGameModeStartService
 {
-    public bool ArchiveChallengesOnStartFailure { get; }
-
     /// <summary>
     /// Indicates the playability of the given game. For example, in standard unsync'd games,
     /// this should return NotStarted if the execution window isn't open and should return GameOver if

@@ -2,6 +2,8 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Gameboard.Api;
@@ -67,6 +69,8 @@ public class UserSearch : SearchFilter
     public const string UserRoleFilter = "roles";
     public const string NamePendingFilter = "pending";
     public const string NameDisallowedFilter = "disallowed";
+    public string EligibleForGameId { get; set; }
+    public string ExcludeIds { get; set; }
     public bool WantsRoles => Filter.Contains(UserRoleFilter);
     public bool WantsPending => Filter.Contains(NamePendingFilter);
     public bool WantsDisallowed => Filter.Contains(NameDisallowedFilter);
