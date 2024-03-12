@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Gameboard.Api;
 using Gameboard.Api.Structure;
 
 public sealed class CantPreDeployNonExternalGame : GameboardValidationException
@@ -17,6 +18,12 @@ public sealed class CantResolveGameDeployStatus : GameboardException
 {
     public CantResolveGameDeployStatus(string gameId)
         : base($"Couldn't resolve deploy status for game {gameId}.") { }
+}
+
+internal class EmptyExternalStartupEndpoint : GameboardException
+{
+    public EmptyExternalStartupEndpoint(string gameId, string startupUrl)
+        : base($"""Game ${gameId} doesn't have a configured "startup" endpoint (current value: "{startupUrl}".)""") { }
 }
 
 public sealed class GameHasUnexpectedEngineMode : GameboardValidationException

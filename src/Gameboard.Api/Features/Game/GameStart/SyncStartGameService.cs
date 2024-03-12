@@ -30,6 +30,7 @@ internal class SyncStartGameService : ISyncStartGameService
     private readonly IAppUrlService _appUrlService;
     private readonly BackgroundAsyncTaskContext _backgroundTaskContext;
     private readonly IGameHubBus _gameHubBus;
+    private readonly IJsonService _jsonService;
     private readonly ILockService _lockService;
     private readonly ILogger<SyncStartGameService> _logger;
     private readonly INowService _nowService;
@@ -45,6 +46,7 @@ internal class SyncStartGameService : ISyncStartGameService
         IAppUrlService appUrlService,
         BackgroundAsyncTaskContext backgroundTaskContext,
         IGameHubBus gameHubBus,
+        IJsonService jsonService,
         ILockService lockService,
         ILogger<SyncStartGameService> logger,
         INowService nowService,
@@ -59,6 +61,7 @@ internal class SyncStartGameService : ISyncStartGameService
         _appUrlService = appUrlService;
         _backgroundTaskContext = backgroundTaskContext;
         _gameHubBus = gameHubBus;
+        _jsonService = jsonService;
         _lockService = lockService;
         _logger = logger;
         _nowService = nowService;
@@ -84,6 +87,7 @@ internal class SyncStartGameService : ISyncStartGameService
             {
                 Game = new SimpleEntity { Id = game.Id, Name = game.Name },
                 Teams = Array.Empty<SyncStartTeam>(),
+                AllSessionsStarted = false,
                 IsReady = true
             };
         }
@@ -95,6 +99,7 @@ internal class SyncStartGameService : ISyncStartGameService
             {
                 Game = new SimpleEntity { Id = game.Id, Name = game.Name },
                 Teams = Array.Empty<SyncStartTeam>(),
+                AllSessionsStarted = false,
                 IsReady = false
             };
         }
@@ -104,7 +109,9 @@ internal class SyncStartGameService : ISyncStartGameService
             .Players
             .GroupBy(p => p.TeamId)
             .ToDictionary(g => g.Key, g => g.ToList());
+
         var allTeamsReady = teamPlayers.All(team => team.Value.All(p => p.IsReady));
+        var allTeamsSessionStarted = teamPlayers.All(team => team.Value.All(p => p.SessionBegin.IsNotEmpty()));
 
         return new SyncStartState
         {
@@ -119,21 +126,28 @@ internal class SyncStartGameService : ISyncStartGameService
                     Name = p.ApprovedName,
                     IsReady = p.IsReady
                 }),
+                HasStartedSession = teamPlayers[teamId].All(p => p.SessionBegin.IsNotEmpty()),
                 IsReady = teamPlayers[teamId].All(p => p.IsReady)
             }),
+            AllSessionsStarted = allTeamsSessionStarted,
             IsReady = allTeamsReady
         };
     }
 
     public async Task HandleSyncStartStateChanged(string gameId, CancellationToken cancellationToken)
     {
-        var state = await GetSyncStartState(gameId, cancellationToken);
-        _logger.LogInformation($"Sync start state changed for game {gameId}. Ready? {state.Teams.Where(t => t.IsReady).Select(t => t.Id).ToArray()}");
-        await _gameHubBus.SendSyncStartGameStateChanged(state);
+        var validationResult = await ValidateSyncStart(gameId, cancellationToken);
+        _logger.LogInformation($"Sync start state changed for game {gameId}. Can start?: {validationResult.CanStart}");
 
-        // IFF everyone is ready, start all sessions and return info about them
-        if (!state.IsReady)
+        // notify listeners about the change
+        await _gameHubBus.SendSyncStartGameStateChanged(validationResult.SyncStartState);
+
+        // if we're not ready, 
+        if (!validationResult.CanStart)
+        {
+            _logger.LogInformation($"Can't start sync-start game {gameId}. {validationResult.Players.Count()} | {validationResult.AllPlayersReady} | {validationResult.HasStartedPlayers}");
             return;
+        }
 
         // for now, we're assuming the "happy path" of sync start games being external games, but we'll separate them later
         // NOTE: we also use a background service to kick this off, as it's a long-running task. Updates on the status
@@ -146,7 +160,7 @@ internal class SyncStartGameService : ISyncStartGameService
         {
             using var scope = _serviceScopeFactory.CreateScope();
             var gameStartService = scope.ServiceProvider.GetRequiredService<IGameStartService>();
-            await gameStartService.Start(new GameStartRequest { GameId = state.Game.Id }, cancellationToken);
+            await gameStartService.Start(new GameStartRequest { GameId = gameId }, cancellationToken);
         });
     }
 
@@ -160,25 +174,19 @@ internal class SyncStartGameService : ISyncStartGameService
     /// </param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns></returns>
-    /// <exception cref="CantSynchronizeNonSynchronizedGame">This call fails if the game is not marked as `RequiresSyncStart`.</exception>
-    /// <exception cref="CantStartNonReadySynchronizedGame">This call fails if initiated before all players have set their `IsReady` to true.</exception>
-    /// <exception cref="SynchronizedGameHasPlayersWithSessionsBeforeStart">This call fails if any players already have an active game session when it starts.</exception>
     public async Task<SyncStartGameStartedState> StartSynchronizedSession(string gameId, double countdownSeconds, CancellationToken cancellationToken)
     {
         _logger.LogInformation($"Acquiring asynchronous lock for sync start game {gameId}...");
         using (await _lockService.GetSyncStartGameLock(gameId).LockAsync(cancellationToken))
         {
-            _logger.LogInformation($"Acquired asynchronous lock for sync start game {gameId}");
+            _logger.LogInformation($"Acquired asynchronous lock for sync start game {gameId}.");
 
             // validate that the various conditions we need in order to sync start a game are available:
             _logger.LogInformation($"Validating sync start for game {gameId}.");
             var validateStartResult = await ValidateSyncStart(gameId, cancellationToken);
 
-            if (validateStartResult.IsStarted)
-            {
-                _logger.LogInformation($"Sync session is already started for game {gameId}.");
-                return GetStartedStateFromValidationResult(validateStartResult);
-            }
+            if (!validateStartResult.CanStart)
+                throw new CantStartSynchronizedSession(gameId, validateStartResult);
 
             // now that the quitters (and by quitters I mean attempts to start a sync game that is already started) 
             // are gone, notify signalR that it's business time.
@@ -258,9 +266,6 @@ internal class SyncStartGameService : ISyncStartGameService
 
     private bool GetPlayersAreSynchronized(IEnumerable<ValidateSyncStartResultPlayer> players)
     {
-        if (players.Count() <= 1)
-            return true;
-
         var startTimes = players.Select(p => p.SessionBegin).Distinct().ToArray();
         var endTimes = players.Select(p => p.SessionEnd).Distinct().ToArray();
 
@@ -269,24 +274,6 @@ internal class SyncStartGameService : ISyncStartGameService
             startTimes.All(start => start is not null) &&
             endTimes.Length == 1 &&
             endTimes.All(end => end is not null);
-    }
-
-    private SyncStartGameStartedState GetStartedStateFromValidationResult(ValidateSyncStartResult result)
-    {
-        if (!result.IsStarted)
-            return null;
-
-        var nullGuardedPlayers = result.Players.Where(p => p.SessionBegin is not null && p.SessionEnd is not null);
-        var sessionBegin = nullGuardedPlayers.Select(p => p.SessionBegin.Value).Distinct().Single();
-        var sessionEnd = nullGuardedPlayers.Select(p => p.SessionEnd.Value).Distinct().Single();
-
-        return new SyncStartGameStartedState
-        {
-            Game = new SimpleEntity { Id = result.Game.Id, Name = result.Game.Name },
-            SessionBegin = sessionBegin,
-            SessionEnd = sessionEnd,
-            Teams = PlayersToTeams(result.Players)
-        };
     }
 
     private IDictionary<string, IEnumerable<SyncStartGameStartedStatePlayer>> PlayersToTeams(IEnumerable<ValidateSyncStartResultPlayer> players)
@@ -302,14 +289,20 @@ internal class SyncStartGameService : ISyncStartGameService
     private async Task<ValidateSyncStartResult> ValidateSyncStart(string gameId, CancellationToken cancellationToken)
     {
         // make sure we have a legal sync start game
-        var game = await _store.WithNoTracking<Data.Game>().SingleAsync(g => g.Id == gameId, cancellationToken);
+        var game = await _store.WithNoTracking<Data.Game>()
+            .Select(g => new ValidateSyncStartGame
+            {
+                Id = g.Id,
+                Name = g.Name,
+                IsSyncStart = g.RequireSynchronizedStart,
+                SessionMinutes = g.SessionMinutes
+            })
+            .SingleAsync(g => g.Id == gameId, cancellationToken);
 
-        if (!game.RequireSynchronizedStart)
+        if (!game.IsSyncStart)
             throw new CantSynchronizeNonSynchronizedGame(gameId);
 
         var state = await GetSyncStartState(gameId, cancellationToken);
-        if (!state.IsReady)
-            throw new CantStartNonReadySynchronizedGame(state);
 
         // ensure no one has already started - if they have, things will get gnarly quick  
         //
@@ -322,42 +315,30 @@ internal class SyncStartGameService : ISyncStartGameService
             {
                 Id = p.Id,
                 Name = string.IsNullOrEmpty(p.ApprovedName) ? p.Name : p.ApprovedName,
-                SessionBegin = p.SessionBegin.IsNotEmpty() ? p.SessionBegin : null,
-                SessionEnd = p.SessionEnd.IsNotEmpty() ? p.SessionEnd : null,
+                IsReady = p.IsReady,
+                SessionBegin = p.SessionBegin,
+                SessionEnd = p.SessionEnd,
                 TeamId = p.TeamId,
                 UserId = p.UserId
             }).ToArrayAsync(cancellationToken);
 
-        // if no players have a session or challenges, we assume we can start the game and everything's fine
-        if (players.All(p => p.SessionBegin is null && p.SessionEnd is null))
-        {
-            return new ValidateSyncStartResult
-            {
-                CanStart = true,
-                Game = game,
-                IsStarted = false,
-                Players = players,
-                SyncStartState = state
-            };
-        }
-        else if (GetPlayersAreSynchronized(players))
-        {
-            return new ValidateSyncStartResult
-            {
-                CanStart = true,
-                Game = game,
-                IsStarted = true,
-                Players = players,
-                SyncStartState = state
-            };
-        }
+        // just for clarity, the game can start when:
+        // - there are a nonzero number of players
+        // - all players have marked "ready" (or had it marked for them by an admin)
+        // - the game doesn't contain any players with started sessions
+        // - all the player sessions are aligned
+        var allPlayersReady = players.All(p => p.IsReady);
+        var hasStartedPlayers = players.Any(p => p.SessionBegin.IsNotEmpty() || p.SessionEnd.IsNotEmpty());
 
-        var playerIdsWithSessions = players
-            .Where(p => p.SessionBegin is not null || p.SessionEnd is not null)
-            .Select(p => p.Id);
-        if (playerIdsWithSessions.Any())
-            throw new SynchronizedGameHasPlayersWithSessionsBeforeStart(gameId, playerIdsWithSessions);
-
-        return null;
+        // if the game is started, or if any players have sessions, don't start,
+        return new ValidateSyncStartResult
+        {
+            CanStart = players.Length > 0 && allPlayersReady && !hasStartedPlayers,
+            Game = game,
+            AllPlayersReady = allPlayersReady,
+            HasStartedPlayers = hasStartedPlayers,
+            Players = players,
+            SyncStartState = state
+        };
     }
 }

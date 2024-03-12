@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Dynamic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,6 +23,7 @@ namespace Gameboard.Api.Services;
 
 public class PlayerService
 {
+    private readonly IGuidService _guids;
     private readonly IInternalHubBus _hubBus;
     private readonly TimeSpan _idmapExpiration = new(0, 30, 0);
     private readonly ILogger<PlayerService> _logger;
@@ -65,6 +65,7 @@ public class PlayerService
         _practiceService = practiceService;
         _now = now;
         GameStore = gameStore;
+        _guids = guidService;
         _hubBus = hubBus;
         _logger = logger;
         LocalCache = memCache;
@@ -203,8 +204,11 @@ public class PlayerService
     public async Task<Player> StartSession(SessionStartRequest model, User actor, bool sudo)
     {
         var team = await PlayerStore.ListTeamByPlayer(model.PlayerId);
-
         var player = team.First();
+
+        if (!sudo && player.UserId != actor.Id)
+            throw new CantStartSessionOfOtherPlayer(model.PlayerId, actor.Id);
+
         var game = await PlayerStore.DbContext.Games.SingleOrDefaultAsync(g => g.Id == player.GameId);
 
         // rule: game's execution period has to be open
@@ -257,24 +261,6 @@ public class PlayerService
         }
 
         await PlayerStore.Update(team);
-
-        if (player.Score > 0)
-        {
-            var challenge = new Data.Challenge
-            {
-                Id = Guid.NewGuid().ToString("n"),
-                PlayerId = player.Id,
-                TeamId = player.TeamId,
-                GameId = player.GameId,
-                SpecId = "_initialscore_",
-                Name = "_initialscore_",
-                Points = player.Score,
-                Score = player.Score,
-            };
-
-            PlayerStore.DbContext.Add(challenge);
-            await PlayerStore.DbContext.SaveChangesAsync();
-        }
 
         var asViewModel = _mapper.Map<Player>(player);
         await _hubBus.SendTeamSessionStarted(asViewModel, actor);
@@ -620,7 +606,7 @@ public class PlayerService
         return teams;
     }
 
-    public async Task<IEnumerable<Team>> ObserveTeams(string id)
+    public async Task<IEnumerable<ObserveTeam>> ObserveTeams(string id)
     {
         var players = await PlayerStore.List()
             .Where(p => p.GameId == id)
@@ -635,7 +621,7 @@ public class PlayerService
 
         var teams = captains
             .Values
-            .Select(c => new Team
+            .Select(c => new ObserveTeam
             {
                 TeamId = c.TeamId,
                 ApprovedName = c.ApprovedName,
@@ -649,7 +635,7 @@ public class PlayerService
                 CorrectCount = c.CorrectCount,
                 PartialCount = c.PartialCount,
                 Advanced = c.Advanced,
-                Members = players.Where(p => p.TeamId == c.TeamId).Select(i => new TeamMember
+                Members = players.Where(p => p.TeamId == c.TeamId).Select(i => new ObserveTeamPlayer
                 {
                     Id = i.UserId,
                     ApprovedName = i.User.ApprovedName,
@@ -679,23 +665,28 @@ public class PlayerService
 
         foreach (var team in teams)
         {
-            string newId = Guid.NewGuid().ToString("n");
+            string newId = _guids.GetGuid();
 
             foreach (var player in team)
             {
                 player.Advanced = true;
-
-                enrollments.Add(new Data.Player
+                var newPlayer = new Data.Player
                 {
                     TeamId = newId,
                     UserId = player.UserId,
                     GameId = model.NextGameId,
+                    AdvancedFromGameId = player.GameId,
+                    AdvancedFromPlayerId = player.Id,
+                    AdvancedFromTeamId = player.TeamId,
+                    AdvancedWithScore = model.WithScores ? player.Score : null,
                     ApprovedName = player.ApprovedName,
                     Name = player.Name,
                     SponsorId = player.SponsorId,
                     Role = player.Role,
                     Score = model.WithScores ? player.Score : 0
-                });
+                };
+
+                enrollments.Add(newPlayer);
             }
         }
 

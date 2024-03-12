@@ -7,16 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Scores;
 
-public class ScoreChangedNotification : INotification
-{
-    private readonly string _teamId;
-    public string TeamId { get => _teamId; }
-
-    public ScoreChangedNotification(string teamId)
-    {
-        _teamId = teamId;
-    }
-}
+public record ScoreChangedNotification(string TeamId) : INotification;
 
 internal class ScoreChangedNotificationHandler : INotificationHandler<ScoreChangedNotification>
 {
@@ -54,10 +45,10 @@ internal class ScoreChangedNotificationHandler : INotificationHandler<ScoreChang
             .Where(c => c.PlayerMode == PlayerMode.Competition)
             .ToArrayAsync(cancellationToken);
 
-        var score = (int)challenges.Sum(c => c.Score);
-        var time = challenges.Sum(c => c.Duration);
         var complete = challenges.Count(c => c.Result == ChallengeResult.Success);
         var partial = challenges.Count(c => c.Result == ChallengeResult.Partial);
+        var score = (int)challenges.Sum(c => c.Score);
+        var time = challenges.Sum(c => c.Duration);
 
         // we do this with tracking for the convenience of knowing which gameId we're affecting
         await _store.DoTransaction(async ctx =>
@@ -76,9 +67,13 @@ internal class ScoreChangedNotificationHandler : INotificationHandler<ScoreChang
 
             foreach (var player in teamPlayers)
             {
+                // have to add their advancement score here, because any challenge points
+                // are added to it to calculate their current score
+                var playerScore = player.AdvancedWithScore is not null ? player.AdvancedWithScore.Value : 0;
+
                 player.CorrectCount = complete;
                 player.PartialCount = partial;
-                player.Score = score;
+                player.Score = score + (int)playerScore;
                 player.Time = time;
             }
 

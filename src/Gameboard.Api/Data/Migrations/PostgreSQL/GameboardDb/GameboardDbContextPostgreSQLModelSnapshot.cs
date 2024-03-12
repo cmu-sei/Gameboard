@@ -462,6 +462,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<int>("Rank")
                         .HasColumnType("integer");
 
+                    b.Property<double?>("ScoreAdvanced")
+                        .HasColumnType("double precision");
+
                     b.Property<double>("ScoreAutoBonus")
                         .HasColumnType("double precision");
 
@@ -490,9 +493,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
                     b.Property<string>("TeamName")
                         .HasColumnType("text");
-
-                    b.Property<double?>("TimeToSessionEndMs")
-                        .HasColumnType("double precision");
 
                     b.HasKey("Id");
 
@@ -627,9 +627,12 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<string>("ExternalGameStartupUrl")
+                    b.Property<string>("ExternalGameStartupEndpoint")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ExternalGameTeamExtendedEndpoint")
+                        .HasColumnType("text");
 
                     b.Property<string>("FeedbackConfig")
                         .HasColumnType("text");
@@ -772,6 +775,19 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<bool>("Advanced")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("AdvancedFromGameId")
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("AdvancedFromPlayerId")
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("AdvancedFromTeamId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<double?>("AdvancedWithScore")
+                        .HasColumnType("double precision");
+
                     b.Property<string>("ApprovedName")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -844,6 +860,10 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AdvancedFromGameId");
+
+                    b.HasIndex("AdvancedFromPlayerId");
 
                     b.HasIndex("GameId");
 
@@ -1452,6 +1472,16 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
                 {
+                    b.HasOne("Gameboard.Api.Data.Game", "AdvancedFromGame")
+                        .WithMany("AdvancedPlayers")
+                        .HasForeignKey("AdvancedFromGameId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Gameboard.Api.Data.Player", "AdvancedFromPlayer")
+                        .WithMany("AdvancedToPlayers")
+                        .HasForeignKey("AdvancedFromPlayerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
                         .WithMany("Players")
                         .HasForeignKey("GameId");
@@ -1466,6 +1496,10 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .WithMany("Enrollments")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("AdvancedFromGame");
+
+                    b.Navigation("AdvancedFromPlayer");
 
                     b.Navigation("Game");
 
@@ -1675,6 +1709,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.Game", b =>
                 {
+                    b.Navigation("AdvancedPlayers");
+
                     b.Navigation("Challenges");
 
                     b.Navigation("DenormalizedTeamScores");
@@ -1694,6 +1730,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
                 {
+                    b.Navigation("AdvancedToPlayers");
+
                     b.Navigation("Challenges");
 
                     b.Navigation("Feedback");

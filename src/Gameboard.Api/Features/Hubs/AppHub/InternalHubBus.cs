@@ -17,7 +17,7 @@ public interface IInternalHubBus
     Task SendPlayerLeft(Api.Player p, User actor);
     Task SendTeamDeleted(TeamState teamState, SimpleEntity actor);
     Task SendPlayerRoleChanged(Api.Player p, User actor);
-    Task SendTeamSessionReset(Api.Player captain, User actor);
+    Task SendTeamSessionReset(TeamHubSessionResetEvent resetEvent);
     Task SendTeamSessionStarted(Api.Player p, User actor);
     Task SendTeamSessionExtended(TeamState teamState, User actor);
     Task SendTeamUpdated(Api.Player p, User actor);
@@ -105,6 +105,8 @@ internal class InternalHubBus : IInternalHubBus
             Id = p.TeamId,
             ApprovedName = p.ApprovedName,
             Name = p.Name,
+            NameStatus = p.NameStatus,
+            GameId = p.GameId,
             SessionBegin = p.SessionBegin.IsEmpty() ? null : p.SessionBegin,
             SessionEnd = p.SessionEnd.IsEmpty() ? null : p.SessionEnd,
             Actor = actor.ToSimpleEntity(),
@@ -120,23 +122,25 @@ internal class InternalHubBus : IInternalHubBus
             });
     }
 
-    public async Task SendTeamSessionReset(Api.Player captain, User actor)
+    public async Task SendTeamSessionReset(TeamHubSessionResetEvent resetEvent)
     {
         await _hubContext.Clients
-            .Group(captain.TeamId)
+            .Group(resetEvent.Id)
             .TeamEvent(new HubEvent<TeamState>
             {
                 Model = new TeamState
                 {
-                    Id = captain.TeamId,
-                    ApprovedName = captain.ApprovedName,
-                    Name = captain.Name,
+                    Id = resetEvent.Id,
+                    ApprovedName = "",
+                    Name = "",
+                    NameStatus = "",
+                    GameId = resetEvent.GameId,
                     SessionBegin = null,
                     SessionEnd = null,
-                    Actor = actor.ToSimpleEntity()
+                    Actor = resetEvent.ActingUser
                 },
                 Action = EventAction.SessionReset,
-                ActingUser = actor.ToSimpleEntity()
+                ActingUser = resetEvent.ActingUser
             });
     }
 
@@ -146,7 +150,9 @@ internal class InternalHubBus : IInternalHubBus
         {
             Id = p.TeamId,
             ApprovedName = p.ApprovedName,
+            GameId = p.GameId,
             Name = p.Name,
+            NameStatus = p.NameStatus,
             SessionBegin = p.SessionBegin.IsEmpty() ? null : p.SessionBegin,
             SessionEnd = p.SessionEnd.IsEmpty() ? null : p.SessionEnd,
             Actor = new SimpleEntity { Id = actor.Id, Name = actor.ApprovedName }

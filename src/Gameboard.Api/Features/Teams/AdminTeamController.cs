@@ -18,6 +18,10 @@ public class AdminTeamsController : ControllerBase
         _mediator = mediator;
     }
 
+    [HttpPost]
+    public Task<AdminEnrollTeamResponse> Create([FromBody] AdminEnrollTeamRequest request)
+        => _mediator.Send(request);
+
     [HttpGet("search")]
     public Task<IEnumerable<Team>> SearchTeams([FromQuery] string ids)
         => _mediator.Send(new GetTeamsQuery(ids.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)));

@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
@@ -6,6 +7,7 @@ using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.ChallengeBonuses;
 
@@ -52,7 +54,9 @@ internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
         // this endpoint can either of two entities (using EF table-per-hierarchy)
         // if the challengeId is set, it's a manual challenge bonus, otherwise it's
         // a manual team bonus
+        var resolvedTeamId = request.TeamId;
         if (request.ChallengeId.IsNotEmpty())
+        {
             await _store.Create(new ManualChallengeBonus
             {
                 ChallengeId = request.ChallengeId,
@@ -61,6 +65,16 @@ internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
                 EnteredByUserId = _actingUserService.Get().Id,
                 PointValue = request.Model.PointValue
             });
+
+            // we need set the teamId based on this challenge since
+            // the request doesn't pass it and the mediator notification
+            // needs to know
+            resolvedTeamId = await _store
+                .WithNoTracking<Data.Challenge>()
+                .Where(c => c.Id == request.ChallengeId)
+                .Select(c => c.TeamId)
+                .SingleAsync(cancellationToken);
+        }
         else
             await _store.Create(new ManualTeamBonus
             {
@@ -73,6 +87,6 @@ internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
 
         // adding a manual bonus will change the team's score, so we need to 
         // manually refresh the denormalization of the scoreboard
-        await _mediator.Publish(new ScoreChangedNotification(request.TeamId));
+        await _mediator.Publish(new ScoreChangedNotification(resolvedTeamId));
     }
 }

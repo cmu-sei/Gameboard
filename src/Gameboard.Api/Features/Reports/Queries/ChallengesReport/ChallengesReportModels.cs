@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Gameboard.Api.Features.Reports;
 
@@ -5,6 +6,8 @@ namespace Gameboard.Api.Features.Challenges;
 
 public sealed class ChallengesReportParameters
 {
+    public required DateTimeOffset? StartDateStart { get; set; }
+    public required DateTimeOffset? StartDateEnd { get; set; }
     public required string Games { get; set; }
     public required string Seasons { get; set; }
     public required string Series { get; set; }

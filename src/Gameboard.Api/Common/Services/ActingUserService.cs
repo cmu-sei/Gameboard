@@ -1,4 +1,3 @@
-using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Common.Services;

@@ -212,7 +212,7 @@ internal class ScoringService : IScoringService
         // add the session end iff the team is currently playing
         var now = _now.Get();
         DateTimeOffset? teamSessionEnd = captain.SessionBegin > now && captain.SessionEnd < now ? captain.SessionEnd : null;
-        var overallScore = CalculateScore(pointsFromChallenges, bonusPoints, manualTeamBonusPoints, manualChallengeBonusPoints);
+        var overallScore = CalculateScore(pointsFromChallenges, bonusPoints, manualTeamBonusPoints, manualChallengeBonusPoints, captain.AdvancedWithScore);
 
         return new TeamScore
         {
@@ -286,12 +286,6 @@ internal class ScoringService : IScoringService
             .Where(b => specIds.Contains(b.ChallengeSpecId))
             .Where(b => !b.AwardedTo.Any())
             .ToArrayAsync();
-        // return await _store
-        //     .WithNoTracking<AwardedChallengeBonus>()
-        //         .Include(b => b.ChallengeBonus)
-        //     .Where(b => specIds.Contains(b.ChallengeBonus.ChallengeSpecId))
-        //     .Select(b => b.ChallengeBonus)
-        //     .ToArrayAsync();
     }
 
     internal TeamChallengeScore BuildTeamScoreChallenge(Data.Challenge challenge, Data.ChallengeSpec spec, IEnumerable<Data.ChallengeBonus> unawardedBonuses)
@@ -319,23 +313,25 @@ internal class ScoringService : IScoringService
         };
     }
 
-    internal Score CalculateScore(double challengePoints, IEnumerable<double> bonusPoints, IEnumerable<double> manualTeamBonusPoints, IEnumerable<double> manualChallengeBonusPoints)
+    internal Score CalculateScore(double challengePoints, IEnumerable<double> bonusPoints, IEnumerable<double> manualTeamBonusPoints, IEnumerable<double> manualChallengeBonusPoints, double? advancedScore = null)
     {
-        return CalculateScore(new double[] { challengePoints }, bonusPoints, manualTeamBonusPoints, manualChallengeBonusPoints);
+        return CalculateScore(new double[] { challengePoints }, bonusPoints, manualTeamBonusPoints, manualChallengeBonusPoints, advancedScore);
     }
 
-    internal Score CalculateScore(IEnumerable<double> challengesPoints, IEnumerable<double> bonusPoints, IEnumerable<double> manualTeamBonusPoints, IEnumerable<double> manualChallengeBonusPoints)
+    internal Score CalculateScore(IEnumerable<double> challengesPoints, IEnumerable<double> bonusPoints, IEnumerable<double> manualTeamBonusPoints, IEnumerable<double> manualChallengeBonusPoints, double? advancedScore)
     {
         var solveScore = challengesPoints.Sum();
         var bonusScore = bonusPoints.Sum();
         var manualBonusScore = manualChallengeBonusPoints.Sum() + manualTeamBonusPoints.Sum();
+        var addAdvancedScore = advancedScore is not null ? advancedScore.Value : 0;
 
         return new Score
         {
+            AdvancedScore = advancedScore,
             CompletionScore = solveScore,
             BonusScore = bonusScore,
             ManualBonusScore = manualBonusScore,
-            TotalScore = solveScore + bonusScore + manualBonusScore
+            TotalScore = solveScore + bonusScore + manualBonusScore + addAdvancedScore
         };
     }
 

@@ -223,7 +223,7 @@ namespace Gameboard.Api.Controllers
         /// <returns>Team[]</returns>
         [HttpGet("/api/teams/observe/{id}")]
         [Authorize]
-        public async Task<IEnumerable<Team>> ObserveTeams([FromRoute] string id)
+        public async Task<IEnumerable<ObserveTeam>> ObserveTeams([FromRoute] string id)
         {
             AuthorizeAny(
                 () => Actor.IsDirector,

@@ -47,12 +47,14 @@ public class Game : IEntity
 
     // mode stuff
     public string ExternalGameClientUrl { get; set; }
-    public string ExternalGameStartupUrl { get; set; }
+    public string ExternalGameStartupEndpoint { get; set; }
+    public string ExternalGameTeamExtendedEndpoint { get; set; }
     public string Mode { get; set; }
     public PlayerMode PlayerMode { get; set; }
     public bool RequireSynchronizedStart { get; set; } = false;
     public bool ShowOnHomePageInPracticeMode { get; set; } = false;
 
+    public ICollection<Player> AdvancedPlayers { get; set; }
     public ICollection<ChallengeSpec> Specs { get; set; } = new List<ChallengeSpec>();
     public ICollection<DenormalizedTeamScore> DenormalizedTeamScores = new List<DenormalizedTeamScore>();
     public ICollection<ExternalGameTeam> ExternalGameTeams { get; set; } = new List<ExternalGameTeam>();

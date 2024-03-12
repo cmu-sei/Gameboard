@@ -463,6 +463,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<int>("Rank")
                         .HasColumnType("int");
 
+                    b.Property<double?>("ScoreAdvanced")
+                        .HasColumnType("float");
+
                     b.Property<double>("ScoreAutoBonus")
                         .HasColumnType("float");
 
@@ -491,9 +494,6 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.Property<string>("TeamName")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<double?>("TimeToSessionEndMs")
-                        .HasColumnType("float");
 
                     b.HasKey("Id");
 
@@ -628,9 +628,12 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("ExternalGameStartupUrl")
+                    b.Property<string>("ExternalGameStartupEndpoint")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ExternalGameTeamExtendedEndpoint")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FeedbackConfig")
                         .HasColumnType("nvarchar(max)");
@@ -773,6 +776,19 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<bool>("Advanced")
                         .HasColumnType("bit");
 
+                    b.Property<string>("AdvancedFromGameId")
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("AdvancedFromPlayerId")
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("AdvancedFromTeamId")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<double?>("AdvancedWithScore")
+                        .HasColumnType("float");
+
                     b.Property<string>("ApprovedName")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
@@ -845,6 +861,10 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AdvancedFromGameId");
+
+                    b.HasIndex("AdvancedFromPlayerId");
 
                     b.HasIndex("GameId");
 
@@ -1452,6 +1472,16 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
                 {
+                    b.HasOne("Gameboard.Api.Data.Game", "AdvancedFromGame")
+                        .WithMany("AdvancedPlayers")
+                        .HasForeignKey("AdvancedFromGameId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Gameboard.Api.Data.Player", "AdvancedFromPlayer")
+                        .WithMany("AdvancedToPlayers")
+                        .HasForeignKey("AdvancedFromPlayerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
                         .WithMany("Players")
                         .HasForeignKey("GameId");
@@ -1466,6 +1496,10 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .WithMany("Enrollments")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("AdvancedFromGame");
+
+                    b.Navigation("AdvancedFromPlayer");
 
                     b.Navigation("Game");
 
@@ -1675,6 +1709,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.Game", b =>
                 {
+                    b.Navigation("AdvancedPlayers");
+
                     b.Navigation("Challenges");
 
                     b.Navigation("DenormalizedTeamScores");
@@ -1694,6 +1730,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.Player", b =>
                 {
+                    b.Navigation("AdvancedToPlayers");
+
                     b.Navigation("Challenges");
 
                     b.Navigation("Feedback");

@@ -1,5 +1,3 @@
-using System;
-
 namespace Gameboard.Api.Data;
 
 public class DenormalizedTeamScore : IEntity
@@ -13,6 +11,7 @@ public class DenormalizedTeamScore : IEntity
     public required double ScoreAutoBonus { get; set; }
     public required double ScoreManualBonus { get; set; }
     public required double ScoreChallenge { get; set; }
+    public required double? ScoreAdvanced { get; set; }
 
     public required int SolveCountNone { get; set; }
     public required int SolveCountPartial { get; set; }

@@ -98,7 +98,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             }
 
             if (!game.RequireSynchronizedStart)
-                ctx.AddValidationException(new GameIsNotSyncStart(game.Id, $"""{nameof(ExternalSyncGameStartService)} can't start this game because it's not sync-start."""));
+                ctx.AddValidationException(new ExternalGameIsNotSyncStart(game.Id, $"""{nameof(ExternalSyncGameStartService)} can't start this game because it's not sync-start."""));
 
             if (game.Mode != GameEngineMode.External)
                 ctx.AddValidationException(new GameModeIsntExternal(game.Id, $"""{nameof(ExternalSyncGameStartService)} can't start this game because it's not an external game."""));

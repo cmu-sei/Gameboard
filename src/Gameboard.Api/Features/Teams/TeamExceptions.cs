@@ -9,6 +9,12 @@ internal class CantExtendUnstartedSession : GameboardValidationException
         : base($"Can't extend session for team {teamId}: Their session hasn't started.") { }
 }
 
+internal class CantJoinTeamBecausePlayerCount : GameboardValidationException
+{
+    public CantJoinTeamBecausePlayerCount(string gameId, int playersToJoin, int teamSizeCurrent, int teamSizeMin, int teamSizeMax)
+        : base($"Can't add {playersToJoin} player(s) to the team. This team has {teamSizeCurrent} player(s) (min team size is {teamSizeMin}, max team size is {teamSizeMax}).") { }
+}
+
 internal class CaptainResolutionFailure : GameboardException
 {
     internal CaptainResolutionFailure(string teamId, string message = null)
@@ -24,7 +30,7 @@ internal class NotOnSameTeam : GameboardException
 
 internal class PlayersAreFromMultipleTeams : GameboardValidationException
 {
-    internal PlayersAreFromMultipleTeams(IEnumerable<string> teamIds, string message = null) : base($"""${(string.IsNullOrWhiteSpace(message) ? "" : $"{message}.")} The players evaluated are from zero or multiple teams ({string.Join(",", teamIds)})""") { }
+    internal PlayersAreFromMultipleTeams(IEnumerable<string> teamIds, string message = null) : base($"""{(string.IsNullOrWhiteSpace(message) ? "" : "{message}.")} The players evaluated are from zero or multiple teams ({string.Join(",", teamIds)})""") { }
 }
 
 internal class PlayersAreInMultipleGames : GameboardValidationException

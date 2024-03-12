@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
-using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
@@ -79,41 +78,44 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
         {
             _logger.LogInformation($"Deleting players/challenges/metadata for team {request.TeamId}");
             await _teamService.DeleteTeam(request.TeamId, new SimpleEntity { Id = request.ActingUser.Id, Name = request.ActingUser.ApprovedName }, cancellationToken);
-
-            // also get rid of any external game artifacts if they have any
-            await _store
-                .WithNoTracking<ExternalGameTeam>()
-                .Where(t => t.TeamId == request.TeamId)
-                .ExecuteDeleteAsync(cancellationToken);
         }
         else
         {
             // if we're not deleting the team, we still reset the session properties
-            await _store
-                .WithNoTracking<Data.Player>()
+            var players = await _store
+                .WithTracking<Data.Player>()
                 .Where(p => p.TeamId == request.TeamId)
-                .ExecuteUpdateAsync
-                (
-                    p => p
-                        .SetProperty(p => p.CorrectCount, 0)
-                        .SetProperty(p => p.IsReady, false)
-                        .SetProperty(p => p.PartialCount, 0)
-                        .SetProperty(p => p.Rank, 0)
-                        .SetProperty(p => p.Score, 0)
-                        .SetProperty(p => p.SessionBegin, DateTimeOffset.MinValue)
-                        .SetProperty(p => p.SessionEnd, DateTimeOffset.MinValue)
-                        .SetProperty(p => p.SessionMinutes, 0),
-                    cancellationToken
-                );
+                .ToArrayAsync(cancellationToken);
 
-            // can do this after cleaning up the actual players
-            await _mediator.Publish(new ScoreChangedNotification(request.TeamId), cancellationToken);
+            // reset appropriate stats in the original denormalized score
+            foreach (var player in players)
+            {
+                var advancedScore = player.AdvancedWithScore is not null ? player.AdvancedWithScore.Value : 0;
 
-            // notify the SignalR hub (which only matters for external games right now - we clean some
-            // local storage stuff up if there's a reset).
-            var captain = await _teamService.ResolveCaptain(request.TeamId, cancellationToken);
-            await _hubBus.SendTeamSessionReset(_mapper.Map<Api.Player>(captain), request.ActingUser);
+                player.CorrectCount = 0;
+                player.IsReady = false;
+                player.PartialCount = 0;
+                player.Rank = 0;
+                player.Score = (int)advancedScore;
+                player.SessionBegin = DateTimeOffset.MinValue;
+                player.SessionEnd = DateTimeOffset.MinValue;
+                player.SessionMinutes = 0;
+            }
+
+            await _store.SaveUpdateRange(players);
         }
+
+        // publish reset notification to listeners
+        await _mediator.Publish(new TeamSessionResetNotification(gameInfo.Id, request.TeamId), cancellationToken);
+
+        // notify the SignalR hub (which only matters for external games right now - we clean some
+        // local storage stuff up if there's a reset).
+        await _hubBus.SendTeamSessionReset(new TeamHubSessionResetEvent
+        {
+            Id = request.TeamId,
+            GameId = gameInfo.Id,
+            ActingUser = request.ActingUser.ToSimpleEntity()
+        });
 
         if (gameInfo.RequireSynchronizedStart)
             await _syncStartGameService.HandleSyncStartStateChanged(gameInfo.Id, cancellationToken);

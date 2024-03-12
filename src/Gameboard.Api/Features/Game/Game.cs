@@ -36,7 +36,8 @@ public class GameDetail
     public int SessionLimit { get; set; }
     public int GamespaceLimitPerSession { get; set; }
     public string ExternalGameClientUrl { get; set; }
-    public string ExternalGameStartupUrl { get; set; }
+    public string ExternalGameTeamExtendedEndpoint { get; set; }
+    public string ExternalGameStartupEndpoint { get; set; }
     public bool IsPublished { get; set; }
     public bool RequireSponsoredTeam { get; set; }
     public bool RequireSynchronizedStart { get; set; }
@@ -73,11 +74,13 @@ public class ChangedGame : Game { }
 
 public class GameSearchFilter : SearchFilter
 {
+    private const string AdvanceableFilter = "advanceable";
     private const string CompetitiveFilter = "competitive";
     private const string PracticeFilter = "practice";
     private const string PastFilter = "past";
     private const string PresentFilter = "present";
     private const string FutureFilter = "future";
+    public bool WantsAdvanceable => Filter.Contains(AdvanceableFilter);
     public bool WantsCompetitive => Filter.Contains(CompetitiveFilter);
     public bool WantsPractice => Filter.Contains(PracticeFilter);
     public bool WantsPresent => Filter.Contains(PresentFilter);

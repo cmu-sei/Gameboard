@@ -1,7 +1,6 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,21 +24,6 @@ public class GameboardDbContext : DbContext
     {
         base.OnModelCreating(builder);
 
-        builder.Entity<User>(b =>
-        {
-            b.Property(u => u.Id).HasMaxLength(40);
-            b.Property(u => u.Username).HasMaxLength(64);
-            b.Property(u => u.ApprovedName).HasMaxLength(64);
-            b.Property(u => u.Name).HasMaxLength(64);
-            b.Property(u => u.NameStatus).HasMaxLength(40);
-            b.Property(u => u.Email).HasMaxLength(64);
-            b.Property(u => u.LoginCount).HasDefaultValueSql("0");
-            b.Property(u => u.PlayAudioOnBrowserNotification).HasDefaultValue(false);
-
-            // nav properties
-            b.HasOne(u => u.Sponsor).WithMany(s => s.SponsoredUsers)
-                .IsRequired();
-        });
         builder.Entity<ApiKey>(k =>
         {
             k.Property(k => k.Id).HasMaxLength(40);
@@ -86,12 +70,23 @@ public class GameboardDbContext : DbContext
             b.Property(p => p.Name).HasMaxLength(64);
             b.Property(p => p.NameStatus).HasMaxLength(40);
             b.Property(p => p.InviteCode).HasMaxLength(40);
+            b.Property(p => p.AdvancedFromTeamId).HasStandardGuidLength();
 
             // nav properties
             b.HasOne(p => p.User).WithMany(u => u.Enrollments).OnDelete(DeleteBehavior.Cascade);
             b
                 .HasOne(p => p.Sponsor).WithMany(s => s.SponsoredPlayers)
                 .IsRequired();
+
+            b
+                .HasOne(p => p.AdvancedFromGame)
+                .WithMany(g => g.AdvancedPlayers)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            b
+                .HasOne(p => p.AdvancedFromPlayer)
+                .WithMany(p => p.AdvancedToPlayers)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<Game>(b =>
@@ -113,7 +108,8 @@ public class GameboardDbContext : DbContext
             b.Property(p => p.CardText3).HasMaxLength(64);
             b.Property(p => p.Mode).HasMaxLength(40);
             b.Property(p => p.ExternalGameClientUrl).HasStandardUrlLength();
-            b.Property(p => p.ExternalGameStartupUrl).HasStandardUrlLength();
+            b.Property(p => p.ExternalGameStartupEndpoint).HasStandardUrlLength();
+            b.Property(p => p.ExternalGameStartupEndpoint).HasStandardUrlLength();
         });
 
 
@@ -393,6 +389,22 @@ public class GameboardDbContext : DbContext
             b
                 .HasOne(i => i.User)
                 .WithMany(u => u.SystemNotificationInteractions)
+                .IsRequired();
+        });
+
+        builder.Entity<User>(b =>
+        {
+            b.Property(u => u.Id).HasMaxLength(40);
+            b.Property(u => u.Username).HasMaxLength(64);
+            b.Property(u => u.ApprovedName).HasMaxLength(64);
+            b.Property(u => u.Name).HasMaxLength(64);
+            b.Property(u => u.NameStatus).HasMaxLength(40);
+            b.Property(u => u.Email).HasMaxLength(64);
+            b.Property(u => u.LoginCount).HasDefaultValueSql("0");
+            b.Property(u => u.PlayAudioOnBrowserNotification).HasDefaultValue(false);
+
+            // nav properties
+            b.HasOne(u => u.Sponsor).WithMany(s => s.SponsoredUsers)
                 .IsRequired();
         });
     }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
@@ -51,6 +52,18 @@ internal class ChallengesReportService : IChallengesReportService
         if (tracksCriteria.Any())
             query = query.Where(cs => tracksCriteria.Contains(cs.Game.Track.ToLower()));
 
+        // the date filters apply to challenges, not to specs
+        DateTimeOffset? startDateStart = parameters.StartDateStart.HasValue ? parameters.StartDateStart.Value.ToUniversalTime() : null;
+        DateTimeOffset? startDateEnd = parameters.StartDateEnd.HasValue ? parameters.StartDateEnd.Value.ToEndDate().ToUniversalTime() : null;
+        Expression<Func<Data.Challenge, bool>> startDateCondition = c => true;
+        Expression<Func<Data.Challenge, bool>> endDateCondition = c => true;
+
+        if (parameters.StartDateStart.HasValue)
+            startDateCondition = c => c.StartTime >= parameters.StartDateStart.Value.ToUniversalTime();
+
+        if (parameters.StartDateEnd.HasValue)
+            endDateCondition = c => c.EndTime <= parameters.StartDateEnd.Value.ToEndDate().ToUniversalTime();
+
         var specs = await query
             .Select(cs => new
             {
@@ -75,6 +88,8 @@ internal class ChallengesReportService : IChallengesReportService
                 .Include(c => c.Player)
             .AsSplitQuery()
             .Where(c => specIds.Contains(c.SpecId))
+            .Where(startDateCondition)
+            .Where(endDateCondition)
             .Select(c => new
             {
                 c.Id,
