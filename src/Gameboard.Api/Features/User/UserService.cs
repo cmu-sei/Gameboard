@@ -230,6 +230,16 @@ public class UserService
         if (model.WantsDisallowed)
             q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus) && !u.NameStatus.Equals(AppConstants.NameStatusPending));
 
+        if (model.EligibleForGameId.IsNotEmpty())
+            q = q.Where(u => !u.Enrollments.Any(p => p.GameId == model.EligibleForGameId && p.Mode == PlayerMode.Competition && p.Game.PlayerMode == PlayerMode.Competition));
+
+        if (model.ExcludeIds.IsNotEmpty())
+        {
+            var splitIds = model.ExcludeIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (splitIds.Any())
+                q = q.Where(u => !splitIds.Contains(u.Id));
+        }
+
         q = q.OrderBy(p => p.ApprovedName);
         q = q.Skip(model.Skip);
 

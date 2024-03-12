@@ -141,12 +141,8 @@ namespace Gameboard.Api.Controllers
         [Authorize(AppConstants.RegistrarPolicy)]
         public async Task Delete([FromRoute] string id)
         {
-            AuthorizeAny(
-                () => Actor.IsRegistrar
-            );
-
+            AuthorizeAny(() => Actor.IsRegistrar);
             await Validate(new Entity { Id = id });
-
             await UserService.Delete(id);
         }
 
@@ -168,7 +164,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<IEnumerable<UserOnly>> List([FromQuery] UserSearch model)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsRegistrar,
                 () => Actor.IsObserver
             );

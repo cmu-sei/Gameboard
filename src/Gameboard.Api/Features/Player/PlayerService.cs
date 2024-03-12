@@ -552,12 +552,12 @@ public class PlayerService
 
     public async Task Unenroll(PlayerUnenrollRequest request, CancellationToken cancellationToken)
     {
-        // they probably don't have challenge data on an unenroll, but in case an admin does this
-        // or something, we'll clean up their challenges
+        // make sure we've got a real player
         var player = await _store
             .WithNoTracking<Data.Player>()
             .Include(p => p.Game)
             .SingleAsync(p => p.Id == request.PlayerId, cancellationToken);
+
         // record sync start state because we need to raise events after we're done if the game is sync start
         var gameIsSyncStart = player.Game.RequireSynchronizedStart;
 
