@@ -8,7 +8,6 @@ using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Player;
@@ -51,7 +50,15 @@ internal class ResetSessionCommandValidator : IGameboardRequestValidator<ResetTe
         // users with a correct role can do this, but those without can only do it if they're on the
         // team being reset AND if the game allows reset AND if no players on the team have
         // started a session
-        _userRoleAuthorizer.AllowRoles(UserRole.Admin, UserRole.Designer, UserRole.Tester, UserRole.Support);
+        _userRoleAuthorizer.AllowRoles
+        (
+            UserRole.Admin,
+            UserRole.Designer,
+            UserRole.Registrar,
+            UserRole.Support,
+            UserRole.Tester
+        );
+
         if (!_userRoleAuthorizer.WouldAuthorize())
         {
             if (!players.Any(p => p.UserId == request.ActingUser.Id))

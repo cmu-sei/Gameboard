@@ -29,6 +29,9 @@ internal sealed class TeamDeletedHandler : INotificationHandler<TeamDeletedNotif
 
     public async Task Handle(TeamDeletedNotification notification, CancellationToken cancellationToken)
     {
+        // under current behavior, a team being deleted should never have challenges because their session
+        // must first be reset. but just in case, archive any remaining challenges (which sends the
+        // "completed" notification to game engines).
         await _challengeService.ArchiveTeamChallenges(notification.TeamId);
         await _externalGameService.DeleteTeamExternalData(cancellationToken, notification.TeamId);
         await _scoreDenormalizer.DenormalizeGame(notification.GameId, cancellationToken);
