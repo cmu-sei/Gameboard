@@ -90,12 +90,14 @@ internal class ExternalGameService : IExternalGameService
             .SingleAsync(g => g.Id == gameId, cancellationToken);
 
         var specIds = gameData.Specs.Select(s => s.Id).ToArray();
+        var teamIds = gameData.Players.Select(p => p.TeamId).Distinct();
 
         // get challenges separately because of SpecId nonsense
         // group by TeamId for quicker lookups
         var teamChallenges = await _store
             .WithNoTracking<Data.Challenge>()
             .Where(c => specIds.Contains(c.SpecId))
+            .Where(c => teamIds.Contains(c.TeamId))
             .GroupBy(c => c.TeamId)
             .ToDictionaryAsync(g => g.Key, g => g.ToArray(), cancellationToken);
 
@@ -132,7 +134,6 @@ internal class ExternalGameService : IExternalGameService
         var teams = gameData.Players
             .GroupBy(p => p.TeamId)
             .ToDictionary(g => g.Key, g => g.ToArray());
-        var teamIds = teams.Select(entry => entry.Key).ToArray();
 
         var captains = teams.Keys
             .ToDictionary(key => key, key => _teamService.ResolveCaptain(teams[key]));
