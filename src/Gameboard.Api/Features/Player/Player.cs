@@ -37,7 +37,7 @@ public class Player
     public PlayerMode Mode { get; set; }
 
     public bool Advanced { get; set; }
-    public string AdvancedFromGameId { get; set; }
+    public SimpleEntity AdvancedFromGame { get; set; }
     public string AdvancedFromPlayerId { get; set; }
     public string AdvancedFromTeamId { get; set; }
     public double? AdvancedWithScore { get; set; }

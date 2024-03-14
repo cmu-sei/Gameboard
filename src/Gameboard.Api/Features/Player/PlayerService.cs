@@ -361,6 +361,7 @@ public class PlayerService
         var q = PlayerStore.List()
             .Include(p => p.User)
             .Include(p => p.Sponsor)
+            .Include(p => p.AdvancedFromGame)
             .AsNoTracking();
 
         if (model.WantsMode)
