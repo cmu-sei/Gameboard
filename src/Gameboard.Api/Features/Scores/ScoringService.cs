@@ -255,6 +255,7 @@ internal class ScoringService : IScoringService
                     return BuildTeamScoreChallenge(c, spec, unawardedBonuses);
                 }
             )
+            .Where(c => c is not null)
         };
     }
 
