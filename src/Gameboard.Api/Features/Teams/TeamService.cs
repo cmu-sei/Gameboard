@@ -256,7 +256,7 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
 
     public async Task<bool> IsOnTeam(string teamId, string userId)
     {
-        return (await GetUserTeamIds(userId)).Any(uId => uId == userId);
+        return (await GetUserTeamIds(userId)).Any(tId => tId == teamId);
     }
 
     public async Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser, CancellationToken cancellationToken)
