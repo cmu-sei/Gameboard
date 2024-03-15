@@ -56,7 +56,7 @@ internal class GetTeamScoreHandler : IRequestHandler<GetTeamScoreQuery, TeamScor
     {
         _validatorService.AddValidator(_teamExists.UseProperty(r => r.TeamId));
 
-        if (!_userRoleAuthorizer.AllowRoles(UserRole.Admin, UserRole.Designer, UserRole.Support, UserRole.Tester).WouldAuthorize())
+        if (!_userRoleAuthorizer.AllowRoles(UserRole.Admin, UserRole.Observer).WouldAuthorize())
         {
             _validatorService.AddValidator(async (req, ctx) =>
             {
@@ -66,14 +66,15 @@ internal class GetTeamScoreHandler : IRequestHandler<GetTeamScoreQuery, TeamScor
                     .Select(g => new
                     {
                         g.Id,
-                        g.GameEnd
+                        g.GameEnd,
+                        g.AllowPublicScoreboardAccess
                     })
                     .SingleAsync(cancellationToken);
 
                 var now = _nowService.Get();
 
                 // if the game is over, this data is generally available
-                if (gameInfo.GameEnd <= now)
+                if (gameInfo.GameEnd <= now && gameInfo.AllowPublicScoreboardAccess)
                     return;
 
                 // otherwise, you need to be on the team you're looking at

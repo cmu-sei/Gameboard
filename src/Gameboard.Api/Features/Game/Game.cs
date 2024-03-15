@@ -42,6 +42,7 @@ public class GameDetail
     public bool RequireSponsoredTeam { get; set; }
     public bool RequireSynchronizedStart { get; set; }
     public bool AllowLateStart { get; set; }
+    public bool AllowPublicScoreboardAccess { get; set; }
     public bool AllowPreview { get; set; }
     public bool AllowReset { get; set; }
     public string Key { get; set; }

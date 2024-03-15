@@ -67,6 +67,9 @@ public class GameService : _Service, IGameService
         if (model.Mode.IsEmpty())
             model.Mode = GameEngineMode.Standard;
 
+        // by default, enable public scoreboard access (after the game has ended)
+        model.AllowPublicScoreboardAccess = true;
+
         var entity = Mapper.Map<Data.Game>(model);
 
         await _store.Create(entity);
