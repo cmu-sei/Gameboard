@@ -16,6 +16,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 type: "boolean",
                 nullable: false,
                 defaultValue: false);
+
+            migrationBuilder.Sql($"""UPDATE "Games" SET "AllowPublicScoreboardAccess" = TRUE""");
         }
 
         /// <inheritdoc />

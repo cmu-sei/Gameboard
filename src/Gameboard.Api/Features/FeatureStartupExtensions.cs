@@ -14,6 +14,7 @@ using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Games.Validators;
 using Gameboard.Api.Features.Reports;
 using Gameboard.Api.Features.Scores;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Structure;
@@ -51,6 +52,7 @@ public static class ServiceStartupExtensions
             .AddScoped<IGameHubBus, GameHubBus>()
             .AddScoped<IScoreDenormalizationService, ScoreDenormalizationService>()
             .AddScoped<ISupportHubBus, SupportHubBus>()
+            .AddScoped<ITeamService, TeamService>()
             // so close to fixing this, but it's a very special snowflake of a binding
             .AddScoped<IUnityStore, UnityStore>()
             .AddInterfacesWithSingleImplementations();

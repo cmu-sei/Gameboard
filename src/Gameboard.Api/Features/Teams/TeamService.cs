@@ -12,7 +12,6 @@ using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Practice;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Api.Features.Teams;
 
@@ -27,6 +26,7 @@ public interface ITeamService
     Task<int> GetSessionCount(string teamId, string gameId, CancellationToken cancellationToken);
     Task<Team> GetTeam(string id);
     Task<IEnumerable<Team>> GetTeams(IEnumerable<string> ids);
+    Task<string[]> GetUserTeamIds(string userId);
     Task<bool> IsAtGamespaceLimit(string teamId, Data.Game game, CancellationToken cancellationToken);
     Task<bool> IsOnTeam(string teamId, string userId);
     Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser, CancellationToken cancellationToken);
@@ -36,12 +36,12 @@ public interface ITeamService
     Task UpdateSessionStartAndEnd(string teamId, DateTimeOffset? sessionStart, DateTimeOffset? sessionEnd, CancellationToken cancellationToken);
 }
 
-internal class TeamService : ITeamService
+internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNotification>
 {
+    private readonly ICacheService _cacheService;
     private readonly IGameEngineService _gameEngine;
     private readonly IMapper _mapper;
     private readonly IMediator _mediator;
-    private readonly IMemoryCache _memCache;
     private readonly INowService _now;
     private readonly IInternalHubBus _teamHubService;
     private readonly IPlayerStore _playerStore;
@@ -50,10 +50,10 @@ internal class TeamService : ITeamService
 
     public TeamService
     (
+        ICacheService cacheService,
         IGameEngineService gameEngine,
         IMapper mapper,
         IMediator mediator,
-        IMemoryCache memCache,
         INowService now,
         IInternalHubBus teamHubService,
         IPlayerStore playerStore,
@@ -61,10 +61,10 @@ internal class TeamService : ITeamService
         IStore store
     )
     {
+        _cacheService = cacheService;
         _gameEngine = gameEngine;
         _mapper = mapper;
         _mediator = mediator;
-        _memCache = memCache;
         _now = now;
         _playerStore = playerStore;
         _practiceService = practiceService;
@@ -230,6 +230,24 @@ internal class TeamService : ITeamService
         return retVal;
     }
 
+    public Task<string[]> GetUserTeamIds(string userId)
+        => _cacheService.GetOrCreateAsync
+        (
+            GetUserTeamIdsCacheKey(userId),
+            async entry =>
+            {
+                var userTeamIds = await _store
+                    .WithNoTracking<Data.Player>()
+                    .Where(p => p.UserId == userId)
+                    .Select(p => p.TeamId)
+                    .Distinct()
+                    .ToArrayAsync();
+
+                entry.Value = userTeamIds;
+                return userTeamIds;
+            }
+        );
+
     public async Task<bool> IsAtGamespaceLimit(string teamId, Data.Game game, CancellationToken cancellationToken)
     {
         var activeGameChallenges = await GetChallengesWithActiveGamespace(teamId, game.Id, cancellationToken);
@@ -238,20 +256,7 @@ internal class TeamService : ITeamService
 
     public async Task<bool> IsOnTeam(string teamId, string userId)
     {
-        // simple serialize to indicate whether this user and team are a match
-        var cacheKey = $"{teamId}|{userId}";
-
-        if (_memCache.TryGetValue(cacheKey, out bool cachedIsOnTeam))
-            return cachedIsOnTeam;
-
-        var teamUserIds = await _playerStore
-            .ListTeam(teamId)
-            .Select(p => p.UserId).ToArrayAsync();
-
-        var isOnTeam = teamUserIds.Contains(userId);
-        _memCache.Set(cacheKey, isOnTeam, TimeSpan.FromMinutes(30));
-
-        return isOnTeam;
+        return (await GetUserTeamIds(userId)).Any(uId => uId == userId);
     }
 
     public async Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser, CancellationToken cancellationToken)
@@ -449,4 +454,10 @@ internal class TeamService : ITeamService
             await Task.WhenAll(gamespaceUpdates);
         }
     }
+
+    public Task Handle(UserJoinedTeamNotification notification, CancellationToken cancellationToken)
+        => Task.Run(() => _cacheService.Invalidate(GetUserTeamIdsCacheKey(notification.UserId)), cancellationToken);
+
+    private string GetUserTeamIdsCacheKey(string userId)
+        => $"UserTeamIds:{userId}";
 }

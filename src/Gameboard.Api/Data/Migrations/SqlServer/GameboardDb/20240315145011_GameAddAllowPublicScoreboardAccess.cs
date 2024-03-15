@@ -16,6 +16,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                 type: "bit",
                 nullable: false,
                 defaultValue: false);
+
+            migrationBuilder.Sql("UPDATE Games SET AllowPublicScoreboardAccess = 1");
         }
 
         /// <inheritdoc />
