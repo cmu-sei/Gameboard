@@ -593,6 +593,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<bool>("AllowPreview")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("AllowPublicScoreboardAccess")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("AllowReset")
                         .HasColumnType("boolean");
 

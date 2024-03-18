@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +15,7 @@ namespace Gameboard.Api.Features.Scores;
 
 public interface IScoringService
 {
+    Task<bool> CanAccessTeamScoreDetail(string teamId, CancellationToken cancellationToken);
     Task<GameScoringConfig> GetGameScoringConfig(string gameId);
     Task<GameScore> GetGameScore(string gameId, CancellationToken cancellationToken);
     Task<TeamScore> GetTeamScore(string teamId, CancellationToken cancellationToken);
@@ -25,8 +25,7 @@ public interface IScoringService
 
 internal class ScoringService : IScoringService
 {
-    private readonly IChallengeStore _challengeStore;
-    private readonly IStore<Data.ChallengeSpec> _challengeSpecStore;
+    private readonly IActingUserService _actingUserService;
     private readonly IMapper _mapper;
     private readonly INowService _now;
     private readonly IStore _store;
@@ -34,19 +33,42 @@ internal class ScoringService : IScoringService
 
     public ScoringService
     (
-        IChallengeStore challengeStore,
-        IStore<Data.ChallengeSpec> challengeSpecStore,
+        IActingUserService actingUserService,
         IMapper mapper,
         INowService now,
         IStore store,
         ITeamService teamService)
     {
-        _challengeStore = challengeStore;
-        _challengeSpecStore = challengeSpecStore;
+        _actingUserService = actingUserService;
         _mapper = mapper;
         _now = now;
         _store = store;
         _teamService = teamService;
+    }
+
+    public async Task<bool> CanAccessTeamScoreDetail(string teamId, CancellationToken cancellationToken)
+    {
+        var gameId = await _teamService.GetGameId(teamId, cancellationToken);
+        var game = await _store
+            .WithNoTracking<Data.Game>()
+            .Where(g => g.Id == gameId)
+            .SingleAsync(cancellationToken);
+
+        if (game.AllowPublicScoreboardAccess && game.GameEnd.IsNotEmpty() && game.GameEnd <= _now.Get())
+            return true;
+
+        var currentUser = _actingUserService.Get();
+        if (currentUser is not null)
+        {
+            if (currentUser.IsAdmin || currentUser.IsObserver)
+                return true;
+
+            var userTeamIds = await _teamService.GetUserTeamIds(currentUser.Id);
+            if (userTeamIds.Contains(teamId))
+                return true;
+        }
+
+        return false;
     }
 
     public async Task<GameScoringConfig> GetGameScoringConfig(string gameId)
@@ -103,8 +125,9 @@ internal class ScoringService : IScoringService
 
     public async Task<TeamChallengeScore> GetTeamChallengeScore(string challengeId)
     {
-        var challenge = await _challengeStore
-            .List()
+        var challenge = await _store
+            .WithNoTracking<Data.Challenge>()
+            .Include(c => c.Game)
             .Include(c => c.Player)
             .Include(c => c.AwardedBonuses)
                 .ThenInclude(b => b.ChallengeBonus)
@@ -115,13 +138,12 @@ internal class ScoringService : IScoringService
             return null;
 
         // get the specId so we can pull other competing challenges if there are bonuses
-        var allChallenges = await _challengeStore
-            .List()
-            .Where(c => c.SpecId == challenge.SpecId)
-            .ToArrayAsync();
-        var spec = await _challengeSpecStore.Retrieve(challenge.SpecId);
-        var unawardedBonuses = await ResolveUnawardedBonuses(new Data.ChallengeSpec[] { spec });
+        var spec = await _store
+            .WithNoTracking<Data.ChallengeSpec>()
+            .Where(s => s.Id == challenge.SpecId)
+            .SingleAsync();
 
+        var unawardedBonuses = await ResolveUnawardedBonuses(new string[] { spec.Id });
         return BuildTeamScoreChallenge(challenge, spec, unawardedBonuses);
     }
 
@@ -202,7 +224,7 @@ internal class ScoringService : IScoringService
             .Where(b => b.TeamId == captain.TeamId)
             .ToListAsync();
 
-        var unawardedBonuses = await ResolveUnawardedBonuses(specs);
+        var unawardedBonuses = await ResolveUnawardedBonuses(specs.Select(s => s.Id).ToArray());
         var manualChallengeBonusPoints = challenges.SelectMany(c => c.AwardedManualBonuses.Select(b => b.PointValue)).ToArray();
         var manualTeamBonusPoints = manualTeamBonuses.Select(b => b.PointValue).ToArray();
         var bonusPoints = challenges.SelectMany(c => c.AwardedBonuses.Select(b => b.ChallengeBonus.PointValue)).ToArray();
@@ -278,16 +300,12 @@ internal class ScoringService : IScoringService
         return retVal;
     }
 
-    internal async Task<IEnumerable<Data.ChallengeBonus>> ResolveUnawardedBonuses(IEnumerable<Data.ChallengeSpec> specs)
-    {
-        var specIds = specs.Select(s => s.Id).ToArray();
-
-        return await _store
+    internal Task<ChallengeBonus[]> ResolveUnawardedBonuses(IEnumerable<string> specIds)
+        => _store
             .WithNoTracking<ChallengeBonus>()
             .Where(b => specIds.Contains(b.ChallengeSpecId))
             .Where(b => !b.AwardedTo.Any())
             .ToArrayAsync();
-    }
 
     internal TeamChallengeScore BuildTeamScoreChallenge(Data.Challenge challenge, Data.ChallengeSpec spec, IEnumerable<Data.ChallengeBonus> unawardedBonuses)
     {

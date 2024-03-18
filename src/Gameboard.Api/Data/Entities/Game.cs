@@ -39,6 +39,7 @@ public class Game : IEntity
     public bool IsPublished { get; set; }
     public bool AllowLateStart { get; set; }
     public bool AllowPreview { get; set; }
+    public bool AllowPublicScoreboardAccess { get; set; }
     public bool AllowReset { get; set; }
     public string Key { get; set; }
     public string CardText1 { get; set; }
