@@ -145,6 +145,7 @@ namespace Gameboard.Api
         public bool WantsNotClosed => Filter.Contains(NotClosedFilter);
         public bool WantsAssignedToMe => Filter.Contains(AssignedToMeFilter);
         public bool WantsUnassigned => Filter.Contains(UnassignedFilter);
+        public string WithAllLabels { get; set; }
 
         // Ordering logic - set up string constants, then check if they're in the request
         public const string KeyOrderString = "key";

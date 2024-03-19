@@ -26,10 +26,8 @@ public class UnityGameController : _Controller
 {
     private static readonly SemaphoreSlim SP_CHALLENGE_DATA = new SemaphoreSlim(1, 1);
     private readonly IChallengeStore _challengeStore;
-    private readonly ConsoleActorMap _actorMap;
     private readonly IGamebrainService _gamebrainService;
     private readonly GameService _gameService;
-    private readonly IHttpClientFactory _httpClientFactory;
     private readonly IHubContext<AppHub, IAppHubEvent> _hub;
     private readonly IMapper _mapper;
     private readonly IUnityGameService _unityGameService;
@@ -40,22 +38,17 @@ public class UnityGameController : _Controller
         ILogger<UnityGameController> logger,
         UnityGamesValidator validator,
         // other stuff
-        ConsoleActorMap actorMap,
         GameService gameService,
-        PlayerService playerService,
         IChallengeStore challengeStore,
         IGamebrainService gamebrainService,
-        IHttpClientFactory httpClientFactory,
         IUnityGameService unityGameService,
         IHubContext<AppHub, IAppHubEvent> hub,
         IMapper mapper
     ) : base(logger, cache, validator)
     {
-        _actorMap = actorMap;
         _challengeStore = challengeStore;
         _gamebrainService = gamebrainService;
         _gameService = gameService;
-        _httpClientFactory = httpClientFactory;
         _hub = hub;
         _mapper = mapper;
         _unityGameService = unityGameService;
@@ -65,10 +58,7 @@ public class UnityGameController : _Controller
     [Authorize]
     public async Task<IActionResult> GetGamespace([FromRoute] string gid, [FromRoute] string tid)
     {
-        AuthorizeAny(
-            () => _gameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result
-        );
-
+        AuthorizeAny(() => _gameService.UserIsTeamPlayer(Actor.Id, gid, tid).Result);
         var content = await _gamebrainService.GetGameState(gid, tid);
         return new JsonResult(content);
     }
