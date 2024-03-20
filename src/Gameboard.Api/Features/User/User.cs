@@ -87,12 +87,6 @@ public class UserSimple : IUserViewModel
     public string ApprovedName { get; set; }
 }
 
-public class Announcement
-{
-    public string TeamId { get; set; }
-    public string Message { get; set; }
-}
-
 public class UserOnly : IUserViewModel
 {
     public string Id { get; set; }
