@@ -17,7 +17,7 @@ internal class ScoreHubBus : IScoreHubBus, IGameboardHubBus
     public ScoreHubBus(IHubContext<ScoreHub, IScoreHubEvent> hubContext)
         => _hubContext = hubContext;
 
-    public GameboardHubGroupType GroupType => GameboardHubGroupType.Score;
+    public GameboardHubType GroupType => GameboardHubType.Score;
 
     public async Task SendScoreUpdated(GameScore score, ScoreUpdatedTeamChangeSummary teamChangeSummary)
     {

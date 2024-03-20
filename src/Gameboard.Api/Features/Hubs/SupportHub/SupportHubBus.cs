@@ -20,7 +20,7 @@ internal class SupportHubBus : ISupportHubBus, IGameboardHubBus
         _hubContext = hubContext;
     }
 
-    public GameboardHubGroupType GroupType => GameboardHubGroupType.Score;
+    public GameboardHubType GroupType => GameboardHubType.SupportGlobal;
 
     public async Task SendTicketClosed(Ticket ticket, User closedBy)
     {

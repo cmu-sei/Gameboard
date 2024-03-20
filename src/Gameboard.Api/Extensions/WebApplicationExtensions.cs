@@ -3,6 +3,7 @@ using System.Threading;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Hubs;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Builder;
@@ -54,6 +55,7 @@ internal static class WebApplicationExtensions
         app.MapHub<GameHub>("/hub/games").RequireAuthorization();
         app.MapHub<ScoreHub>("/hub/scores").RequireAuthorization();
         app.MapHub<SupportHub>("/hub/support").RequireAuthorization();
+        app.MapHub<UserHub>("/hub/users").RequireAuthorization();
         app.MapControllers().RequireAuthorization();
 
         return app;

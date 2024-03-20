@@ -25,7 +25,7 @@ public sealed class SupportHub : Hub<ISupportHubEvent>, IGameboardHub
         _logger = logger;
     }
 
-    public GameboardHubGroupType GroupType => GameboardHubGroupType.SupportGlobal;
+    public GameboardHubType GroupType => GameboardHubType.SupportGlobal;
 
     public override async Task OnConnectedAsync()
     {
