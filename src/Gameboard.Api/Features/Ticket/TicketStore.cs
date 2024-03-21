@@ -9,6 +9,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data;
 
+public interface ITicketStore : IStore<Ticket>
+{
+    Task<Data.Ticket> Load(string id);
+    Task<Data.Ticket> Load(int id);
+    Task<Data.Ticket> Load(Api.Ticket model);
+    Task<Data.Ticket> LoadDetails(string id);
+    Task<Data.Ticket> LoadDetails(int id);
+}
+
 public class TicketStore : Store<Ticket>, ITicketStore
 {
     public CoreOptions Options { get; }

@@ -1,4 +1,6 @@
+using System.Linq;
 using System.Threading.Tasks;
+using Gameboard.Api.Features.Support;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Gameboard.Api.Hubs;
@@ -14,10 +16,19 @@ public interface ISupportHubBus
 internal class SupportHubBus : ISupportHubBus, IGameboardHubBus
 {
     private readonly IHubContext<SupportHub, ISupportHubEvent> _hubContext;
+    private readonly IUserIdProvider _userIdProvider;
+    private readonly ITicketAttachedUsersProvider _ticketAttachedUsersProvider;
 
-    public SupportHubBus(IHubContext<SupportHub, ISupportHubEvent> hubContext)
+    public SupportHubBus
+    (
+        IHubContext<SupportHub, ISupportHubEvent> hubContext,
+        ITicketAttachedUsersProvider ticketAttachedUsersProvider,
+        IUserIdProvider userIdProvider
+    )
     {
         _hubContext = hubContext;
+        _ticketAttachedUsersProvider = ticketAttachedUsersProvider;
+        _userIdProvider = userIdProvider;
     }
 
     public GameboardHubType GroupType => GameboardHubType.Support;
@@ -30,9 +41,16 @@ internal class SupportHubBus : ISupportHubBus, IGameboardHubBus
             Ticket = ToHubModel(ticket)
         };
 
+        var attachedUsers = await _ticketAttachedUsersProvider.GetAttachedUsers(ticket.Id);
+        var attachedUserIds = attachedUsers
+            .Select(u => u.Id)
+            // ignore the person instigating the event
+            .Where(uId => uId != closedBy.Id)
+            .ToArray();
+
         await _hubContext
             .Clients
-            .GroupExcept(this.GetCanonicalGroupId(SupportHub.GROUP_STAFF), _userHubConnections.GetConnections(closedBy.Id))
+            .Users(attachedUserIds)
             .TicketClosed(new SupportHubEvent<TicketClosedEvent>
             {
                 EventType = SupportHubEventType.TicketClosed,
@@ -43,10 +61,11 @@ internal class SupportHubBus : ISupportHubBus, IGameboardHubBus
     public async Task SendTicketCreated(Ticket ticket)
     {
         var evData = new TicketCreatedEvent { Ticket = ToHubModel(ticket) };
+        var attachedUsers = await _ticketAttachedUsersProvider.GetAttachedUsers(ticket.Id);
 
         await _hubContext
             .Clients
-            .GroupExcept(this.GetCanonicalGroupId(SupportHub.GROUP_STAFF), _userHubConnections.GetConnections(ticket.CreatorId))
+            .Users(attachedUsers.Select(u => u.Id).Where(uId => uId != ticket.CreatorId))
             .TicketCreated(new SupportHubEvent<TicketCreatedEvent>
             {
                 EventType = SupportHubEventType.TicketCreated,
@@ -62,9 +81,11 @@ internal class SupportHubBus : ISupportHubBus, IGameboardHubBus
             Ticket = ToHubModel(ticket)
         };
 
+        var notifyUserIds = await _ticketAttachedUsersProvider.GetAttachedUsers(ticket.Id);
+
         await _hubContext
             .Clients
-            .GroupExcept(this.GetCanonicalGroupId(SupportHub.GROUP_STAFF), _userHubConnections.GetConnections(updatedBy.Id))
+            .Users(notifyUserIds.Where(u => u.Id != updatedBy.Id).Select(u => u.Id))
             .TicketUpdatedBySupport(new SupportHubEvent<TicketUpdatedEvent>
             {
                 EventType = SupportHubEventType.TicketUpdatedBySupport,
@@ -80,9 +101,11 @@ internal class SupportHubBus : ISupportHubBus, IGameboardHubBus
             Ticket = ToHubModel(ticket)
         };
 
+        var notifyUserIds = await _ticketAttachedUsersProvider.GetAttachedUsers(ticket.Id);
+
         await _hubContext
             .Clients
-            .GroupExcept(this.GetCanonicalGroupId(SupportHub.GROUP_STAFF), _userHubConnections.GetConnections(updatedBy.Id))
+            .Users(notifyUserIds.Where(u => u.Id != updatedBy.Id).Select(u => u.Id))
             .TicketUpdatedByUser(new SupportHubEvent<TicketUpdatedEvent>
             {
                 EventType = SupportHubEventType.TicketUpdatedByUser,

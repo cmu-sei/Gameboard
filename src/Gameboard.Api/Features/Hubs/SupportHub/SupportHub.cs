@@ -35,15 +35,7 @@ public sealed class SupportHub : Hub<ISupportHubEvent>, IGameboardHub
         var user = _actingUserService.Get();
 
         // join a personal channel for things like updates on specific tickets
-        await Groups.AddToGroupAsync(Context.ConnectionId, this.GetCanonicalGroupId(Context.UserIdentifier));
-
-        // if they're a support user, connect them to the staff support channel as well
-        if (user.IsSupport || user.IsAdmin)
-        {
-            _logger.LogInformation(LogEventId.SupportHub_Staff_JoinStart, message: $"""User "{Context.UserIdentifier}" is joining the support staff group...""");
-            await this.JoinGroup(this.GetCanonicalGroupId(GROUP_STAFF));
-            _logger.LogInformation(LogEventId.SupportHub_Staff_JoinEnd, message: $"""User "{Context.UserIdentifier}" joined the support staff group.""");
-        }
+        await Groups.AddToGroupAsync(Context.ConnectionId, Context.UserIdentifier);
     }
 
     public async override Task OnDisconnectedAsync(Exception exception)

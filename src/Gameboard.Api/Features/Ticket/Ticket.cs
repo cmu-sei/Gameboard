@@ -224,10 +224,14 @@ public sealed class TicketUser
     public required bool IsSupportPersonnel { get; set; }
 }
 
-public sealed class TicketAttachedUsers
+public sealed class TicketAttachedUser
 {
-    public required TicketUser AssignedTo { get; set; }
-    public required TicketUser CreatedBy { get; set; }
-    public required TicketUser RequestedBy { get; set; }
-    public required TicketUser RequestedByTeammates { get; set; }
+    public required string TicketId { get; set; }
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required bool IsSupportPersonnel { get; set; }
+    public required bool IsAssignedTo { get; set; }
+    public required bool IsCreatedBy { get; set; }
+    public required bool IsRequestedBy { get; set; }
+    public required bool IsTeammate { get; set; }
 }
