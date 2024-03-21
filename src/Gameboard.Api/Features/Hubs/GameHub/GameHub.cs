@@ -88,7 +88,6 @@ public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
         // cache a record of this user being in the game
         AddUserToGameCache(request.GameId, player);
 
-
         // notify this player and other game members
         await _hubBus.SendYouJoined(Context.UserIdentifier, new YouJoinedEvent { GameId = request.GameId });
         await _hubBus.SendPlayerJoined(Context.ConnectionId, new PlayerJoinedEvent

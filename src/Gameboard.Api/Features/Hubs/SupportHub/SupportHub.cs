@@ -13,7 +13,7 @@ public sealed class SupportHub : Hub<ISupportHubEvent>, IGameboardHub
 {
     private readonly IActingUserService _actingUserService;
     private readonly ILogger<SupportHub> _logger;
-    public readonly static string GROUP_STAFF = "staff";
+    internal readonly static string GROUP_STAFF = "staff";
 
     public SupportHub
     (
@@ -25,34 +25,22 @@ public sealed class SupportHub : Hub<ISupportHubEvent>, IGameboardHub
         _logger = logger;
     }
 
-    public GameboardHubType GroupType => GameboardHubType.SupportGlobal;
+    public GameboardHubType GroupType => GameboardHubType.Support;
 
     public override async Task OnConnectedAsync()
     {
-        this.LogOnConnected(_logger, Context);
-        await Groups.AddToGroupAsync(Context.ConnectionId, this.GetCanonicalGroupId(Context.ConnectionId));
         await base.OnConnectedAsync();
-    }
+        this.LogOnConnected(_logger, Context);
 
-    public override Task OnDisconnectedAsync(Exception exception)
-    {
-        this.LogOnDisconnected(_logger, Context, exception);
-        return base.OnDisconnectedAsync(exception);
-    }
-
-    public async Task JoinStaffGroup()
-    {
-        _logger.LogInformation(LogEventId.SupportHub_Staff_JoinStart, message: $"""User "{Context.UserIdentifier}" is joining the support staff group...""");
-
-        // validate
         var user = _actingUserService.Get();
 
-        if (!user.IsAdmin && !user.IsSupport)
-            throw new ActionForbidden();
+        // join a personal channel for things like updates on specific tickets
+        await Groups.AddToGroupAsync(Context.ConnectionId, Context.UserIdentifier);
+    }
 
-        // join
-        await this.JoinGroup(GROUP_STAFF);
-
-        _logger.LogInformation(LogEventId.SupportHub_Staff_JoinEnd, message: $"""User "{Context.UserIdentifier}" joined the support staff group.""");
+    public async override Task OnDisconnectedAsync(Exception exception)
+    {
+        this.LogOnDisconnected(_logger, Context, exception);
+        await base.OnDisconnectedAsync(exception);
     }
 }

@@ -4,7 +4,7 @@ public enum GameboardHubType
 {
     Game,
     Score,
-    SupportGlobal,
+    Support,
     Team,
     User
 }
