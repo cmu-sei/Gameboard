@@ -61,23 +61,27 @@ internal class ScoreDenormalizationService : IScoreDenormalizationService
 
     private async Task DenormalizeTeam(TeamScore team, CancellationToken cancellationToken)
     {
-        // load game/captain details (captain has the team name)
-        var gameId = await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => p.TeamId == team.Team.Id)
-            .Select(p => p.GameId)
-            .Distinct()
-            .SingleAsync(cancellationToken);
-
-        var captain = await _teamService.ResolveCaptain(team.Team.Id, cancellationToken);
-
         // delete the record associated with this team (if it exists)
         await _store
             .WithNoTracking<DenormalizedTeamScore>()
             .Where(s => s.TeamId == team.Team.Id)
             .ExecuteDeleteAsync(cancellationToken);
 
-        var timeRemaining = captain.SessionEnd - _nowService.Get();
+        // load game/captain details (captain has the team name)
+        var gameId = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.TeamId == team.Team.Id)
+            .Where(p => p.Mode == PlayerMode.Competition)
+            .Select(p => p.GameId)
+            .Distinct()
+            .SingleOrDefaultAsync(cancellationToken);
+
+        // if the team has somehow already been deleted, or if they played
+        // in a non-competitive mode, we don't want them in the denormalization 
+        if (gameId.IsEmpty())
+            return;
+
+        var captain = await _teamService.ResolveCaptain(team.Team.Id, cancellationToken);
 
         // add a new denormalized record for the team with a default rank
         await _store.Create(new DenormalizedTeamScore

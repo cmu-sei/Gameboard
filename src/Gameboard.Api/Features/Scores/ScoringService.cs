@@ -149,12 +149,14 @@ internal class ScoringService : IScoringService
 
     public async Task<GameScore> GetGameScore(string gameId, CancellationToken cancellationToken)
     {
-        var game = await _store.WithNoTracking<Data.Game>().SingleAsync(g => g.Id == gameId);
+        var game = await _store.WithNoTracking<Data.Game>().SingleAsync(g => g.Id == gameId, cancellationToken);
         var scoringConfig = await GetGameScoringConfig(gameId);
+
         var players = await _store
             .WithNoTracking<Data.Player>()
             .Include(p => p.Sponsor)
             .Where(p => p.GameId == gameId)
+            .Where(p => p.Mode == PlayerMode.Competition)
             .GroupBy(p => p.TeamId)
             .Select(g => new { TeamId = g.Key, Players = g.ToList() })
             .ToDictionaryAsync(g => g.TeamId, g => g.Players, cancellationToken);

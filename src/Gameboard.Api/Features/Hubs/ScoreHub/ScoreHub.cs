@@ -21,7 +21,7 @@ public sealed class ScoreHub : Hub<IScoreHubEvent>, IGameboardHub
         _scoreHubBus = scoreHubBus;
     }
 
-    public GameboardHubGroupType GroupType => GameboardHubGroupType.Score;
+    public GameboardHubType GroupType => GameboardHubType.Score;
 
     public override async Task OnConnectedAsync()
     {

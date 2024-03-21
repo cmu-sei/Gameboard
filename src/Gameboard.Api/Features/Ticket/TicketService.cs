@@ -286,7 +286,27 @@ namespace Gameboard.Api.Services
             if (model.Take > 0)
                 q = q.Take(model.Take);
 
-            return Transform(await Mapper.ProjectTo<TicketSummary>(q).ToArrayAsync());
+            var results = await Mapper.ProjectTo<TicketSummary>(q).ToArrayAsync();
+
+            // have to filter by label on the "client" (non-database) because they're just a space-delimited
+            // string in storage
+            if (model.WithAllLabels.IsNotEmpty())
+            {
+                var allRequiredLabels = model.WithAllLabels.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                results = results.Where(r =>
+                {
+                    // if the thing has no labels, it's not going to pass this check
+                    if (r.Label.IsEmpty())
+                        return false;
+
+                    var splits = r.Label.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    var thing = allRequiredLabels.All(l => splits.Any(s => s == l));
+                    return allRequiredLabels.All(l => splits.Any(s => s == l));
+                })
+                .ToArray();
+            }
+
+            return Transform(results);
         }
 
         public async Task<TicketActivity> AddComment(NewTicketComment model, string actorId)
