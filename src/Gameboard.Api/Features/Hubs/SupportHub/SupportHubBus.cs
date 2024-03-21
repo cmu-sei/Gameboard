@@ -20,7 +20,7 @@ internal class SupportHubBus : ISupportHubBus, IGameboardHubBus
         _hubContext = hubContext;
     }
 
-    public GameboardHubGroupType GroupType => GameboardHubGroupType.Score;
+    public GameboardHubType GroupType => GameboardHubType.Support;
 
     public async Task SendTicketClosed(Ticket ticket, User closedBy)
     {
@@ -32,7 +32,7 @@ internal class SupportHubBus : ISupportHubBus, IGameboardHubBus
 
         await _hubContext
             .Clients
-            .AllExcept(closedBy.Id)
+            .GroupExcept(this.GetCanonicalGroupId(SupportHub.GROUP_STAFF), _userHubConnections.GetConnections(closedBy.Id))
             .TicketClosed(new SupportHubEvent<TicketClosedEvent>
             {
                 EventType = SupportHubEventType.TicketClosed,
@@ -46,7 +46,7 @@ internal class SupportHubBus : ISupportHubBus, IGameboardHubBus
 
         await _hubContext
             .Clients
-            .AllExcept(ticket.CreatorId)
+            .GroupExcept(this.GetCanonicalGroupId(SupportHub.GROUP_STAFF), _userHubConnections.GetConnections(ticket.CreatorId))
             .TicketCreated(new SupportHubEvent<TicketCreatedEvent>
             {
                 EventType = SupportHubEventType.TicketCreated,
@@ -64,7 +64,7 @@ internal class SupportHubBus : ISupportHubBus, IGameboardHubBus
 
         await _hubContext
             .Clients
-            .AllExcept(updatedBy.Id)
+            .GroupExcept(this.GetCanonicalGroupId(SupportHub.GROUP_STAFF), _userHubConnections.GetConnections(updatedBy.Id))
             .TicketUpdatedBySupport(new SupportHubEvent<TicketUpdatedEvent>
             {
                 EventType = SupportHubEventType.TicketUpdatedBySupport,
@@ -82,7 +82,7 @@ internal class SupportHubBus : ISupportHubBus, IGameboardHubBus
 
         await _hubContext
             .Clients
-            .AllExcept(updatedBy.Id)
+            .GroupExcept(this.GetCanonicalGroupId(SupportHub.GROUP_STAFF), _userHubConnections.GetConnections(updatedBy.Id))
             .TicketUpdatedByUser(new SupportHubEvent<TicketUpdatedEvent>
             {
                 EventType = SupportHubEventType.TicketUpdatedByUser,

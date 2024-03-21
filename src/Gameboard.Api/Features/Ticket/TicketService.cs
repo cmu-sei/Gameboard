@@ -286,7 +286,33 @@ namespace Gameboard.Api.Services
             if (model.Take > 0)
                 q = q.Take(model.Take);
 
-            return Transform(await Mapper.ProjectTo<TicketSummary>(q).ToArrayAsync());
+            var results = await Mapper.ProjectTo<TicketSummary>(q).ToArrayAsync();
+
+            // create full ticket keys for results
+            results = results.Select(r =>
+            {
+                r.FullKey = GetFullKey(r.Key);
+                return r;
+            }).ToArray();
+
+            // have to filter by label on the "client" (non-database) because they're just a space-delimited
+            // string in storage
+            if (model.WithAllLabels.IsNotEmpty())
+            {
+                var allRequiredLabels = model.WithAllLabels.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                results = results.Where(r =>
+                {
+                    // if the thing has no labels, it's not going to pass this check
+                    if (r.Label.IsEmpty())
+                        return false;
+
+                    var splits = r.Label.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    return allRequiredLabels.All(l => splits.Any(s => s == l));
+                })
+                .ToArray();
+            }
+
+            return results;
         }
 
         public async Task<TicketActivity> AddComment(NewTicketComment model, string actorId)
@@ -498,15 +524,6 @@ namespace Gameboard.Api.Services
                 };
                 entity.Activity.Add(assigneeActivity);
             }
-        }
-
-        private IEnumerable<TicketSummary> Transform(IEnumerable<TicketSummary> tickets)
-        {
-            return tickets.Select(t =>
-            {
-                t.FullKey = GetFullKey(t.Key);
-                return t;
-            }).ToArray();
         }
 
         private Ticket TransformInPlace(Ticket ticket)

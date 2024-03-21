@@ -14,10 +14,6 @@ public class AdminController : ControllerBase
         _mediator = mediator;
     }
 
-    [HttpGet("stats")]
-    public Task<GetAppOverviewStatsResponse> GetAppOverviewStats()
-        => _mediator.Send(new GetAppOverviewStatsQuery());
-
     [HttpGet("active-challenges")]
     public Task<GetAppActiveChallengesResponse> GetActiveChallenges([FromQuery] string playerMode)
         => _mediator.Send(new GetAppActiveChallengesQuery(playerMode.ToLower() == "practice" ? PlayerMode.Practice : PlayerMode.Competition));
@@ -25,4 +21,12 @@ public class AdminController : ControllerBase
     [HttpGet("active-teams")]
     public Task<GetAppActiveTeamsResponse> GetActiveTeams()
         => _mediator.Send(new GetAppActiveTeamsQuery());
+
+    [HttpPost("announce")]
+    public Task CreateAnnouncement([FromBody] SendAnnouncementCommand request)
+        => _mediator.Send(request);
+
+    [HttpGet("stats")]
+    public Task<GetAppOverviewStatsResponse> GetAppOverviewStats()
+        => _mediator.Send(new GetAppOverviewStatsQuery());
 }

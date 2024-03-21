@@ -47,14 +47,15 @@ public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
         _validatorServiceFactory = validatorServiceFactory;
     }
 
-    public GameboardHubGroupType GroupType { get => GameboardHubGroupType.Game; }
+    public GameboardHubType GroupType { get => GameboardHubType.Game; }
 
     public override async Task OnConnectedAsync()
     {
+        await base.OnConnectedAsync();
         this.LogOnConnected(_logger, Context);
+
         // add user to a group of themselves for easy addressing
         await Groups.AddToGroupAsync(Context.ConnectionId, Context.User.Name());
-        await base.OnConnectedAsync();
     }
 
     public override Task OnDisconnectedAsync(Exception ex)
@@ -87,9 +88,8 @@ public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
         // cache a record of this user being in the game
         AddUserToGameCache(request.GameId, player);
 
+        // notify this player and other game members
         await _hubBus.SendYouJoined(Context.UserIdentifier, new YouJoinedEvent { GameId = request.GameId });
-
-        // notify other game members
         await _hubBus.SendPlayerJoined(Context.ConnectionId, new PlayerJoinedEvent
         {
             GameId = request.GameId,

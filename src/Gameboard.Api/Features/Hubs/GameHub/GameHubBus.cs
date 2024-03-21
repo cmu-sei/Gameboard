@@ -26,7 +26,7 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
 {
     private readonly IHubContext<GameHub, IGameHubEvent> _hubContext;
 
-    public GameboardHubGroupType GroupType { get => GameboardHubGroupType.Game; }
+    public GameboardHubType GroupType { get => GameboardHubType.Game; }
 
     public GameHubBus(IHubContext<GameHub, IGameHubEvent> hubContext) => _hubContext = hubContext;
 

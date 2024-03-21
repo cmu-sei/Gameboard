@@ -88,7 +88,7 @@ internal class AdminEnrollTeamValidator : IGameboardRequestValidator<AdminEnroll
                 .Select(u => new
                 {
                     u.Id,
-                    u.SponsorId
+                    u.HasDefaultSponsor
                 })
                 .ToArrayAsync();
 
@@ -118,7 +118,7 @@ internal class AdminEnrollTeamValidator : IGameboardRequestValidator<AdminEnroll
             var defaultSponsor = await _sponsorService.GetDefaultSponsor();
             foreach (var user in knownUsers)
             {
-                if (user.SponsorId == defaultSponsor.Id)
+                if (user.HasDefaultSponsor)
                     ctx.AddValidationException(new CantEnrollWithDefaultSponsor(user.Id, req.GameId));
             }
         });

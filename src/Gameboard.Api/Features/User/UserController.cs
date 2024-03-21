@@ -40,13 +40,11 @@ namespace Gameboard.Api.Controllers
             UserService userService,
             CoreOptions options,
             IHttpContextAccessor httpContextAccessor,
-            IMediator mediator,
-            IHubContext<AppHub, IAppHubEvent> hub
+            IMediator mediator
         ) : base(logger, cache, validator)
         {
             UserService = userService;
             Options = options;
-            Hub = hub;
 
             _actingUserId = httpContextAccessor.HttpContext.User.ToActor().Id;
             _mediator = mediator;
@@ -110,7 +108,6 @@ namespace Gameboard.Api.Controllers
             );
 
             await Validate(new Entity { Id = id });
-
             return await UserService.Retrieve(id);
         }
 
@@ -245,26 +242,6 @@ namespace Gameboard.Api.Controllers
                 .ToArray()
             ;
             return result;
-        }
-
-        [HttpPost("/api/announce")]
-        [Authorize]
-        public async Task Announce([FromBody] Announcement model)
-        {
-            AuthorizeAny(
-                () => Actor.IsDirector
-            );
-
-            var audience = string.IsNullOrEmpty(model.TeamId).Equals(false)
-                ? Hub.Clients.Group(model.TeamId)
-                : Hub.Clients.All;
-
-            await audience.Announcement(new HubEvent<Announcement>
-            {
-                Model = model,
-                Action = EventAction.Created,
-                ActingUser = Actor.ToSimpleEntity()
-            });
         }
 
         [HttpPut("/api/user/login")]

@@ -2,11 +2,11 @@ namespace Gameboard.Api.Hubs;
 
 public interface ICanonicalGroupIdProvider
 {
-    GameboardHubGroupType GroupType { get; }
+    GameboardHubType GroupType { get; }
 }
 
 internal class CanonicalGroupIdProvider
 {
-    public string GetCanonicalGroupId(GameboardHubGroupType groupType, string groupIdentifier)
+    public string GetCanonicalGroupId(GameboardHubType groupType, string groupIdentifier)
         => $"{groupType.ToString().ToLower()}-{groupIdentifier}";
 }

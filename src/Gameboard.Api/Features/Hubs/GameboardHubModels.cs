@@ -1,9 +1,10 @@
 namespace Gameboard.Api.Hubs;
 
-public enum GameboardHubGroupType
+public enum GameboardHubType
 {
     Game,
     Score,
+    Support,
     Team,
-    SupportGlobal
+    User
 }
