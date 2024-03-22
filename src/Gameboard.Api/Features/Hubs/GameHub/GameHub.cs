@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games.Validators;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
@@ -8,7 +10,7 @@ using Gameboard.Api.Structure;
 using Gameboard.Api.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Games;
@@ -22,40 +24,41 @@ public interface IGameHubApi
 [Authorize(AppConstants.HubPolicy)]
 public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
 {
-    private readonly IMemoryCache _cache;
     private readonly IGameHubBus _hubBus;
     private readonly ILogger<GameHub> _logger;
     private readonly PlayerService _playerService;
+    private readonly IStore _store;
     private readonly UserIsPlayingGameValidator _userIsPlayingGame;
     private readonly IValidatorServiceFactory _validatorServiceFactory;
 
     public GameHub
     (
-        IMemoryCache cache,
         IGameHubBus hubBus,
         ILogger<GameHub> logger,
         PlayerService playerService,
+        IStore store,
         UserIsPlayingGameValidator userIsPlayingGame,
         IValidatorServiceFactory validatorServiceFactory
     )
     {
-        _cache = cache;
         _hubBus = hubBus;
         _logger = logger;
         _playerService = playerService;
+        _store = store;
         _userIsPlayingGame = userIsPlayingGame;
         _validatorServiceFactory = validatorServiceFactory;
     }
 
-    public GameboardHubType GroupType { get => GameboardHubType.Game; }
+    public GameboardHubType GroupType => GameboardHubType.Game;
 
     public override async Task OnConnectedAsync()
     {
         await base.OnConnectedAsync();
         this.LogOnConnected(_logger, Context);
 
-        // add user to a group of themselves for easy addressing
-        await Groups.AddToGroupAsync(Context.ConnectionId, Context.User.Name());
+        var activeGameIds = await GetActiveGameIds(Context.UserIdentifier);
+        foreach (var gameId in activeGameIds)
+            await this.JoinGroup(gameId);
     }
 
     public override Task OnDisconnectedAsync(Exception ex)
@@ -85,9 +88,6 @@ public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
         var player = await _playerService.RetrieveByUserId(Context.UserIdentifier);
         Context.Items[BuildPlayerContextKey(request.GameId)] = player;
 
-        // cache a record of this user being in the game
-        AddUserToGameCache(request.GameId, player);
-
         // notify this player and other game members
         await _hubBus.SendYouJoined(Context.UserIdentifier, new YouJoinedEvent { GameId = request.GameId });
         await _hubBus.SendPlayerJoined(Context.ConnectionId, new PlayerJoinedEvent
@@ -115,29 +115,18 @@ public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
 
         // forget the player record if it exists
         Context.Items.Remove(BuildPlayerContextKey(request.GameId));
-        RemoveUserFromGameCache(request.GameId, Context.UserIdentifier);
     }
 
-    private IList<string> AddUserToGameCache(string gameId, Data.Player player)
+    private async Task<IEnumerable<string>> GetActiveGameIds(string userId)
     {
-        if (!_cache.TryGetValue(gameId, out IList<string> userIds))
-        {
-            var opts = new MemoryCacheEntryOptions();
-            opts.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(player.SessionMinutes);
-
-            _cache.Set(gameId, new List<string> { player.UserId }, opts);
-        }
-
-        return userIds;
-    }
-
-    private void RemoveUserFromGameCache(string gameId, string userId)
-    {
-        if (_cache.TryGetValue(gameId, out IList<string> userIdList))
-        {
-            userIdList.Remove(userId);
-            _cache.Set(gameId, userIdList);
-        }
+        return await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.Game.GameEnd != DateTimeOffset.MinValue || p.Game.GameEnd > DateTimeOffset.UtcNow)
+            .Where(p => p.UserId == userId)
+            .Where(p => p.Mode == p.Game.PlayerMode)
+            .Select(p => p.GameId)
+            .Distinct()
+            .ToArrayAsync();
     }
 
     private string BuildPlayerContextKey(string gameId)

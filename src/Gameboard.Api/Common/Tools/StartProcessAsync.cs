@@ -14,7 +14,7 @@ public static class StartProcessAsync
         if (args is not null)
             foreach (var arg in args) { startInfo.ArgumentList.Add(arg); }
 
-        var process = new Process
+        using var process = new Process
         {
             StartInfo = startInfo,
             EnableRaisingEvents = true
@@ -26,7 +26,6 @@ public static class StartProcessAsync
             process.Dispose();
         };
 
-        process.Start();
         return tcs.Task;
     }
 }
