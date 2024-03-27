@@ -8,3 +8,9 @@ public enum GameboardHubType
     Team,
     User
 }
+
+public class GameboardHubUserConnection
+{
+    public required string ConnectionId { get; set; }
+    public required string UserId { get; set; }
+}

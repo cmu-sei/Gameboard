@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Gameboard.Api.Features.Games;
@@ -20,14 +21,13 @@ public enum GameHubEventType
     ExternalGameLaunchStart,
     ExternalGameLaunchEnd,
     ExternalGameLaunchFailure,
-    PlayerJoined,
     SyncStartGameStarted,
     SyncStartGameStarting,
     SyncStartGameStateChanged,
     VerifyAllPlayersConnectedStart,
     VerifyAllPlayersConnectedProgressChange,
     VerifyAllPlayersConnectedEnd,
-    YouJoined
+    YourActiveGamesChanged
 }
 
 public interface IGameHubEvent
@@ -41,11 +41,10 @@ public interface IGameHubEvent
     Task ExternalGameGamespacesDeployStart(GameHubEvent<GameStartUpdate> ev);
     Task ExternalGameGamespacesDeployProgressChange(GameHubEvent<GameStartUpdate> ev);
     Task ExternalGameGamespacesDeployEnd(GameHubEvent<GameStartUpdate> ev);
-    Task PlayerJoined(GameHubEvent<PlayerJoinedEvent> ev);
     Task SyncStartGameStateChanged(GameHubEvent<SyncStartState> ev);
     Task SyncStartGameStarted(GameHubEvent<SyncStartGameStartedState> ev);
     Task SyncStartGameStarting(GameHubEvent<SyncStartState> ev);
-    Task YouJoined(GameHubEvent<YouJoinedEvent> ev);
+    Task YourActiveGamesChanged(GameHubEvent<YourActiveGamesChangedEvent> ev);
 }
 
 public class GameJoinRequest
@@ -58,13 +57,14 @@ public class GameLeaveRequest
     public required string GameId { get; set; }
 }
 
-public class PlayerJoinedEvent
+public sealed class GameHubActiveEnrollment
 {
-    public required string GameId { get; set; }
+    public required SimpleEntity Game { get; set; }
     public required SimpleEntity Player { get; set; }
 }
 
-public class YouJoinedEvent
+public sealed class YourActiveGamesChangedEvent
 {
-    public required string GameId { get; set; }
+    public required string UserId { get; set; }
+    public required IEnumerable<GameHubActiveEnrollment> ActiveEnrollments { get; set; }
 }

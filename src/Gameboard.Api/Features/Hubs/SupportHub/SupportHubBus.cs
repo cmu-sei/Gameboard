@@ -13,7 +13,7 @@ public interface ISupportHubBus
     Task SendTicketUpdatedByUser(Ticket ticket, User updatedBy);
 }
 
-internal class SupportHubBus : ISupportHubBus, IGameboardHubBus
+internal class SupportHubBus : ISupportHubBus, IGameboardHubService
 {
     private readonly IHubContext<SupportHub, ISupportHubEvent> _hubContext;
     private readonly IUserIdProvider _userIdProvider;

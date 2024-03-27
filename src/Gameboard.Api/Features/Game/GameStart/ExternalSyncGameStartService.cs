@@ -28,7 +28,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     private readonly IExternalGameService _externalGameService;
     private readonly IGamebrainService _gamebrainService;
     private readonly IGameEngineService _gameEngineService;
-    private readonly IGameHubBus _gameHubBus;
+    private readonly IGameHubService _gameHubBus;
     private readonly IChallengeGraderUrlService _graderUrlService;
     private readonly IJsonService _jsonService;
     private readonly ILogger<ExternalSyncGameStartService> _logger;
@@ -48,7 +48,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         IExternalGameService externalGameService,
         IGamebrainService gamebrainService,
         IGameEngineService gameEngineService,
-        IGameHubBus gameHubBus,
+        IGameHubService gameHubBus,
         IChallengeGraderUrlService graderUrlService,
         IJsonService jsonService,
         ILogger<ExternalSyncGameStartService> logger,

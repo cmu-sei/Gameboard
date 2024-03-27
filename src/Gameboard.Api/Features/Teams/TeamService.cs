@@ -9,6 +9,7 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Players;
 using Gameboard.Api.Features.Practice;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -77,13 +78,36 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
         var teamState = await GetTeamState(teamId, actingUser, cancellationToken);
 
         // delete player records
-        await _store
+        var players = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => p.TeamId == teamId)
+            .Select(p => new
+            {
+                p.Id,
+                Name = p.ApprovedName,
+                p.TeamId,
+                p.UserId
+            })
+            .ToArrayAsync(cancellationToken);
+        var playerIds = players.Select(p => p.Id).Distinct().ToArray();
+
+        await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => playerIds.Contains(p.Id))
             .ExecuteDeleteAsync(cancellationToken);
 
         // notify app listeners
         await _mediator.Publish(new TeamDeletedNotification(teamState.GameId, teamState.Id), cancellationToken);
+
+        foreach (var player in players)
+            await _mediator.Publish(new PlayerUnenrolledNotification(new PlayerEnrollNotificationContext
+            {
+                Id = player.Id,
+                Name = player.Name,
+                GameId = teamState.GameId,
+                TeamId = teamState.Id,
+                UserId = player.UserId
+            }), cancellationToken);
 
         // notify hub that the team is deleted /players left so the client can respond
         await _teamHubService.SendTeamDeleted(teamState, actingUser);

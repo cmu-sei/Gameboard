@@ -50,7 +50,7 @@ public static class ServiceStartupExtensions
             // these aren't picked up right now because they implement multiple interfaces,
             // but allowing multiple-interface classes causes things like IReportQuery implementers to get snagged
             .AddScoped<IExternalSyncGameStartService, ExternalSyncGameStartService>()
-            .AddScoped<IGameHubBus, GameHubBus>()
+            .AddScoped<IGameHubService, GameHubService>()
             .AddScoped<IScoreDenormalizationService, ScoreDenormalizationService>()
             .AddScoped<ISupportHubBus, SupportHubBus>()
             .AddScoped<ITeamService, TeamService>()

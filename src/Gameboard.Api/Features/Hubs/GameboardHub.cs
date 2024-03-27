@@ -8,4 +8,4 @@ public interface IGameboardHub : ICanonicalGroupIdProvider
     public IGroupManager Groups { get; }
 }
 
-public interface IGameboardHubBus : ICanonicalGroupIdProvider { }
+public interface IGameboardHubService : ICanonicalGroupIdProvider { }

@@ -115,12 +115,6 @@ public sealed class GameSearchQuery
     public string SearchTerm { get; set; }
 }
 
-public class GameSearchResult
-{
-    public required string Id { get; set; }
-    public required string Name { get; set; }
-}
-
 public class UploadedFile
 {
     public string Filename { get; set; }

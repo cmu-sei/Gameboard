@@ -1,13 +1,21 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
+using Gameboard.Api.Data;
 using Gameboard.Api.Hubs;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games;
 
-public interface IGameHubBus
+public interface IGameHubService
 {
-    Task SendPlayerJoined(string playerConnectionId, PlayerJoinedEvent ev);
-    Task SendYouJoined(string userId, YouJoinedEvent ev);
+    // logic shared by this service and GameHub itself
+    Task<IEnumerable<GameHubActiveEnrollment>> GetActiveEnrollments(string userId);
+
+    // invoke functions on clients
     Task SendExternalGameChallengesDeployStart(GameStartUpdate state);
     Task SendExternalGameChallengesDeployProgressChange(GameStartUpdate state);
     Task SendExternalGameChallengesDeployEnd(GameStartUpdate state);
@@ -20,21 +28,49 @@ public interface IGameHubBus
     Task SendSyncStartGameStateChanged(SyncStartState state);
     Task SendSyncStartGameStarted(SyncStartGameStartedState state);
     Task SendSyncStartGameStarting(SyncStartState state);
+    Task SendYourActiveGamesChanged(string userId);
 }
 
-internal class GameHubBus : IGameHubBus, IGameboardHubBus
+internal class GameHubService : IGameHubService, IGameboardHubService
 {
     private readonly IHubContext<GameHub, IGameHubEvent> _hubContext;
+    private readonly INowService _now;
+    private readonly IStore _store;
 
-    public GameboardHubType GroupType { get => GameboardHubType.Game; }
+    public GameboardHubType GroupType => GameboardHubType.Game;
 
-    public GameHubBus(IHubContext<GameHub, IGameHubEvent> hubContext) => _hubContext = hubContext;
+    public GameHubService
+    (
+        IHubContext<GameHub, IGameHubEvent> hubContext,
+        INowService now,
+        IStore store
+    )
+    {
+        _hubContext = hubContext;
+        _now = now;
+        _store = store;
+    }
+
+    public async Task<IEnumerable<GameHubActiveEnrollment>> GetActiveEnrollments(string userId)
+        => await
+            _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.Game.GameEnd != DateTimeOffset.MinValue || p.Game.GameEnd > _now.Get())
+            .Where(p => p.Game.PlayerMode == PlayerMode.Competition && p.Mode == PlayerMode.Competition)
+            .Where(p => p.UserId == userId)
+            .Select(p => new GameHubActiveEnrollment
+            {
+                Game = new SimpleEntity { Id = p.GameId, Name = p.Game.Name },
+                Player = new SimpleEntity { Id = p.Id, Name = p.ApprovedName }
+            })
+            .Distinct()
+            .ToArrayAsync();
 
     public async Task SendExternalGameChallengesDeployStart(GameStartUpdate state)
     {
         await _hubContext
             .Clients
-            .Group(this.GetCanonicalGroupId(state.Game.Id))
+            .Group(state.Game.Id)
             .ExternalGameChallengesDeployStart(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -45,7 +81,8 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
 
     public Task SendExternalGameChallengesDeployProgressChange(GameStartUpdate state)
         => _hubContext
-            .SendToGroup(this, state.Game.Id)
+            .Clients
+            .Group(state.Game.Id)
             .ExternalGameChallengesDeployProgressChange(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -55,7 +92,8 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
 
     public Task SendExternalGameChallengesDeployEnd(GameStartUpdate state)
         => _hubContext
-            .SendToGroup(this, state.Game.Id)
+            .Clients
+            .Group(state.Game.Id)
             .ExternalGameChallengesDeployEnd(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -67,7 +105,7 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
     {
         return _hubContext
             .Clients
-            .Group(this.GetCanonicalGroupId(state.Game.Id))
+            .Group(state.Game.Id)
             .ExternalGameLaunchStart(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -78,7 +116,8 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
 
     public Task SendExternalGameLaunchEnd(GameStartUpdate state)
         => _hubContext
-            .SendToGroup(this, state.Game.Id)
+            .Clients
+            .Group(state.Game.Id)
             .ExternalGameLaunchEnd(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -88,7 +127,8 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
 
     public Task SendExternalGameLaunchFailure(GameStartUpdate state)
         => _hubContext
-            .SendToGroup(this, state.Game.Id)
+            .Clients
+            .Group(state.Game.Id)
             .ExternalGameLaunchFailure(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -99,7 +139,8 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
     public async Task SendExternalGameGamespacesDeployStart(GameStartUpdate state)
     {
         await _hubContext
-            .SendToGroup(this, state.Game.Id)
+            .Clients
+            .Group(state.Game.Id)
             .ExternalGameGamespacesDeployStart(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -111,7 +152,8 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
     public async Task SendExternalGameGamespacesDeployProgressChange(GameStartUpdate state)
     {
         await _hubContext
-            .SendToGroup(this, state.Game.Id)
+            .Clients
+            .Group(state.Game.Id)
             .ExternalGameGamespacesDeployProgressChange(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -123,7 +165,8 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
     public async Task SendExternalGameGamespacesDeployEnd(GameStartUpdate state)
     {
         await _hubContext
-            .SendToGroup(this, state.Game.Id)
+            .Clients
+            .Group(state.Game.Id)
             .ExternalGameGamespacesDeployEnd(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -132,22 +175,11 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
             });
     }
 
-    public async Task SendPlayerJoined(string playerConnectionId, PlayerJoinedEvent ev)
-    {
-        await _hubContext
-            .SendToGroup(this, ev.GameId)
-            .PlayerJoined(new GameHubEvent<PlayerJoinedEvent>
-            {
-                GameId = ev.GameId,
-                EventType = GameHubEventType.PlayerJoined,
-                Data = ev
-            });
-    }
-
     public async Task SendSyncStartGameStarted(SyncStartGameStartedState state)
     {
         await _hubContext
-            .SendToGroup(this, state.Game.Id)
+            .Clients
+            .Group(state.Game.Id)
             .SyncStartGameStarted(new GameHubEvent<SyncStartGameStartedState>
             {
                 GameId = state.Game.Id,
@@ -159,7 +191,8 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
     public async Task SendSyncStartGameStarting(SyncStartState state)
     {
         await _hubContext
-            .SendToGroup(this, state.Game.Id)
+            .Clients
+            .Group(state.Game.Id)
             .SyncStartGameStarting(new GameHubEvent<SyncStartState>
             {
                 GameId = state.Game.Id,
@@ -171,7 +204,8 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
     public async Task SendSyncStartGameStateChanged(SyncStartState state)
     {
         await _hubContext
-            .SendToGroup(this, state.Game.Id)
+            .Clients
+            .Group(state.Game.Id)
             .SyncStartGameStateChanged(new GameHubEvent<SyncStartState>
             {
                 GameId = state.Game.Id,
@@ -180,14 +214,22 @@ internal class GameHubBus : IGameHubBus, IGameboardHubBus
             });
     }
 
-    public Task SendYouJoined(string userId, YouJoinedEvent model)
-        => _hubContext
+    public async Task SendYourActiveGamesChanged(string userId)
+    {
+        var enrollments = await GetActiveEnrollments(userId);
+
+        await _hubContext
             .Clients
             .User(userId)
-            .YouJoined(new GameHubEvent<YouJoinedEvent>
+            .YourActiveGamesChanged(new GameHubEvent<YourActiveGamesChangedEvent>
             {
-                GameId = model.GameId,
-                EventType = GameHubEventType.YouJoined,
-                Data = model
+                GameId = string.Empty,
+                EventType = GameHubEventType.YourActiveGamesChanged,
+                Data = new YourActiveGamesChangedEvent
+                {
+                    UserId = userId,
+                    ActiveEnrollments = enrollments
+                }
             });
+    }
 }

@@ -129,13 +129,6 @@ namespace Gameboard.Api.Controllers
             return await GameService.List(model, Actor.IsDesigner || Actor.IsTester);
         }
 
-        [HttpGet("api/games/search")]
-        [AllowAnonymous]
-        public async Task<IEnumerable<GameSearchResult>> Search([FromQuery] GameSearchQuery model)
-        {
-            return await GameService.Search(model);
-        }
-
         /// <summary>
         /// List games grouped by year and month
         /// </summary>
@@ -178,6 +171,13 @@ namespace Gameboard.Api.Controllers
         public Task<TeamGamespaceLimitState> GetTeamGamespaceLimitState([FromRoute] string gameId, [FromRoute] string teamId)
             => _mediator.Send(new GetTeamGamespaceLimitStateQuery(gameId, teamId, Actor));
 
+        [HttpPost("api/game/{id}/card")]
+        public async Task<ActionResult<UploadedFile>> UploadGameCard(string id, IFormFile file)
+        {
+            AuthorizeAny(() => Actor.IsDesigner);
+            return Ok(await GameService.SaveGameCardImage(id, file));
+        }
+
         [HttpPost("api/game/{id}/{type}")]
         [Authorize]
         public async Task<ActionResult<UploadedFile>> UploadMapImage(string id, string type, IFormFile file)
@@ -197,6 +197,14 @@ namespace Gameboard.Api.Controllers
             await GameService.UpdateImage(id, type, filename);
 
             return Ok(new UploadedFile { Filename = filename });
+        }
+
+        [HttpDelete("api/game/{id}/card")]
+        [Authorize]
+        public async Task DeleteGameCard([FromRoute] string id)
+        {
+            AuthorizeAny(() => Actor.IsDesigner);
+            await GameService.DeleteGameCardImage(id);
         }
 
         [HttpDelete("api/game/{id}/{type}")]
