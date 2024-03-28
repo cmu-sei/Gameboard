@@ -264,7 +264,8 @@ internal class GameHubService : IGameHubService, IGameboardHubService
 
         lock (_gameIdUserIdsMap)
         {
-            _gameIdUserIdsMap.Clear();
+            foreach (var entry in _gameIdUserIdsMap)
+                _gameIdUserIdsMap.TryRemove(entry);
 
             foreach (var key in gameUserData.Keys)
                 _gameIdUserIdsMap.TryAdd(key, gameUserData[key].ToArray());
