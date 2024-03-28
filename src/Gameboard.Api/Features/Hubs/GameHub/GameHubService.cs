@@ -247,39 +247,22 @@ internal class GameHubService : IGameHubService, IGameboardHubService
 
     private async Task UpdateGameIdUserIdsMap(GameEnrolledPlayersChangeNotification notification)
     {
-        var query = _store
+        var gameUsers = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => p.Game.GameEnd != DateTimeOffset.MinValue || p.Game.GameEnd > _now.Get())
             .Where(p => p.Game.PlayerMode == PlayerMode.Competition && p.Mode == PlayerMode.Competition)
             .Where(p => p.GameId == notification.Context.GameId)
-            .Select(p => new
-            {
-                p.GameId,
-                p.UserId
-            });
-
-        var theString = query.ToQueryString();
-
-        var gameUserData = await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => p.Game.GameEnd != DateTimeOffset.MinValue || p.Game.GameEnd > _now.Get())
-            .Where(p => p.Game.PlayerMode == PlayerMode.Competition && p.Mode == PlayerMode.Competition)
-            .Where(p => p.GameId == notification.Context.GameId)
-            .GroupBy(p => p.GameId)
-            .Select(p => new
-            {
-                GameId = p.Key,
-                UserIds = p.Select(x => x.UserId).Distinct()
-            })
-        .ToDictionaryAsync(gr => gr.GameId, gr => gr.UserIds);
+            .Select(p => p.UserId)
+            .Distinct()
+            .ToArrayAsync();
 
         lock (_gameIdUserIdsMap)
         {
-            foreach (var entry in _gameIdUserIdsMap)
-                _gameIdUserIdsMap.TryRemove(entry);
-
-            foreach (var key in gameUserData.Keys)
-                _gameIdUserIdsMap.TryAdd(key, gameUserData[key].ToArray());
+            _gameIdUserIdsMap.TryRemove(notification.Context.GameId, out var existingValue);
+            _gameIdUserIdsMap.TryAdd(notification.Context.GameId, gameUsers);
         }
+
+        // _gameIdUserIdsMap.TryGetValue(notification.Context.GameId, out var final);
+        // Console.WriteLine($"Done with sig stuff for game {notification.Context.GameId} {(final is not null ? string.Join(",", final) : "<empty>")}");
     }
 }
