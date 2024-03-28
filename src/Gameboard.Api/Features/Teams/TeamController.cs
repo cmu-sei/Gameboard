@@ -64,7 +64,7 @@ public class TeamController : ControllerBase
 
     [HttpPost("{teamId}/session")]
     public Task ResetSession([FromRoute] string teamId, [FromBody] ResetTeamSessionCommand request, CancellationToken cancellationToken)
-        => _mediator.Send(new ResetTeamSessionCommand(teamId, request.UnenrollTeam, _actingUserService.Get()), cancellationToken);
+        => _mediator.Send(new ResetTeamSessionCommand(teamId, request.ResetType, _actingUserService.Get()), cancellationToken);
 
     [HttpPut("{teamId}/ready")]
     [Authorize]

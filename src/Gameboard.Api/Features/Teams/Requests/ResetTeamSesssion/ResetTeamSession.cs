@@ -4,6 +4,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Games.External;
+using Gameboard.Api.Features.Scores;
+using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -11,13 +14,23 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Teams;
 
-public record ResetTeamSessionCommand(string TeamId, bool UnenrollTeam, User ActingUser) : IRequest;
+public enum TeamSessionResetType
+{
+    UnenrollAndArchiveChallenges,
+    ArchiveChallenges,
+    PreserveChallenges
+}
+
+public record ResetTeamSessionCommand(string TeamId, TeamSessionResetType ResetType, User ActingUser) : IRequest;
 
 internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand>
 {
+    private readonly ChallengeService _challengeService;
+    private readonly IExternalGameService _externalGameService;
     private readonly IInternalHubBus _hubBus;
     private readonly ILogger<ResetTeamSessionHandler> _logger;
     private readonly IMediator _mediator;
+    private readonly IScoreDenormalizationService _scoreDenormalizationService;
     private readonly IStore _store;
     private readonly ISyncStartGameService _syncStartGameService;
     private readonly ITeamService _teamService;
@@ -25,18 +38,24 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
 
     public ResetTeamSessionHandler
     (
+        ChallengeService challengeService,
+        IExternalGameService externalGameService,
         IInternalHubBus hubBus,
         ILogger<ResetTeamSessionHandler> logger,
         IMediator mediator,
+        IScoreDenormalizationService scoreDenormalizationService,
         IStore store,
         ISyncStartGameService syncStartGameService,
         ITeamService teamService,
         IGameboardRequestValidator<ResetTeamSessionCommand> validator
     )
     {
+        _challengeService = challengeService;
+        _externalGameService = externalGameService;
         _hubBus = hubBus;
         _logger = logger;
         _mediator = mediator;
+        _scoreDenormalizationService = scoreDenormalizationService;
         _store = store;
         _syncStartGameService = syncStartGameService;
         _teamService = teamService;
@@ -59,8 +78,12 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
             .Select(p => new { p.Game.Id, p.Game.RequireSynchronizedStart })
             .FirstAsync(cancellationToken);
 
+        // if we're not directed to preserve the challenges, don't
+        if (request.ResetType != TeamSessionResetType.PreserveChallenges)
+            await _challengeService.ArchiveTeamChallenges(request.TeamId);
+
         // delete players from the team iff. requested
-        if (request.UnenrollTeam)
+        if (request.ResetType == TeamSessionResetType.UnenrollAndArchiveChallenges)
         {
             _logger.LogInformation($"Deleting players/challenges/metadata for team {request.TeamId}");
             await _teamService.DeleteTeam(request.TeamId, new SimpleEntity { Id = request.ActingUser.Id, Name = request.ActingUser.ApprovedName }, cancellationToken);
@@ -91,8 +114,11 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
             await _store.SaveUpdateRange(players);
         }
 
-        // publish reset notification to listeners
-        await _mediator.Publish(new TeamSessionResetNotification(gameInfo.Id, request.TeamId), cancellationToken);
+        // ALWAYS do:
+        // delete data for any external games
+        await _externalGameService.DeleteTeamExternalData(cancellationToken, request.TeamId);
+        // also update scoreboards
+        await _scoreDenormalizationService.DenormalizeGame(gameInfo.Id, cancellationToken);
 
         // notify the SignalR hub (which only matters for external games right now - we clean some
         // local storage stuff up if there's a reset).

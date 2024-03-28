@@ -100,7 +100,6 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
             .ExecuteDeleteAsync(cancellationToken);
 
         // notify app listeners
-        await _mediator.Publish(new TeamDeletedNotification(teamState.GameId, teamState.Id), cancellationToken);
         await _mediator.Publish(new GameEnrolledPlayersChangeNotification(new GameEnrolledPlayersChangeContext(teamState.GameId, isSyncStartGame)));
 
         // notify hub that the team is deleted /players left so the client can respond

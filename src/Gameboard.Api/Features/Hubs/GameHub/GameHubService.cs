@@ -261,8 +261,5 @@ internal class GameHubService : IGameHubService, IGameboardHubService
             _gameIdUserIdsMap.TryRemove(notification.Context.GameId, out var existingValue);
             _gameIdUserIdsMap.TryAdd(notification.Context.GameId, gameUsers);
         }
-
-        // _gameIdUserIdsMap.TryGetValue(notification.Context.GameId, out var final);
-        // Console.WriteLine($"Done with sig stuff for game {notification.Context.GameId} {(final is not null ? string.Join(",", final) : "<empty>")}");
     }
 }

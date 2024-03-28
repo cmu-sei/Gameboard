@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Features.Teams;
 
 namespace Gameboard.Api.Features.Games.Start;
 
@@ -15,6 +16,12 @@ namespace Gameboard.Api.Features.Games.Start;
 // the logic that happens when a game starts (e.g. ExternalSyncGameStartService for #4)
 public interface IGameModeStartService
 {
+    /// <summary>
+    /// The app will automatically reset the sessions of all registered teams on failure during Start. Indicate whether
+    /// your mode wants a complete deletion of the team or another reset type.
+    /// </summary>
+    public TeamSessionResetType StartFailResetType { get; }
+
     /// <summary>
     /// Indicates the playability of the given game. For example, in standard unsync'd games,
     /// this should return NotStarted if the execution window isn't open and should return GameOver if
