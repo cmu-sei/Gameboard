@@ -203,6 +203,9 @@ internal class GameHubService : IGameHubService, IGameboardHubService
 
     public async Task SendSyncStartGameStateChanged(SyncStartState state)
     {
+        var json = new JsonService();
+        Console.WriteLine($"GAMEHUB sync start state change send: {json.Serialize(state)}");
+
         await _hubContext
             .Clients
             .Group(state.Game.Id)
