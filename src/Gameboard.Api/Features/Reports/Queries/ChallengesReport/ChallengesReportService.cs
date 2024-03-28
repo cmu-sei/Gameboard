@@ -142,7 +142,7 @@ internal class ChallengesReportService : IChallengesReportService
                 ChallengeSpec = new SimpleEntity { Id = cs.Id, Name = cs.Name },
                 Game = new ReportGameViewModel
                 {
-                    Id = cs.Id,
+                    Id = cs.GameId,
                     Name = cs.GameName,
                     Season = cs.Season,
                     Series = cs.Competition,
