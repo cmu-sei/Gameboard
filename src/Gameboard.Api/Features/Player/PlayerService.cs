@@ -12,7 +12,6 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
-using Gameboard.Api.Features.Players;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Sponsors;
 using Gameboard.Api.Features.Teams;
@@ -112,14 +111,7 @@ public class PlayerService
 
         await PlayerStore.Create(entity);
         await _hubBus.SendPlayerEnrolled(_mapper.Map<Player>(entity), actor);
-        await _mediator.Publish(new PlayerEnrolledNotification(new PlayerEnrollNotificationContext
-        {
-            Id = entity.Id,
-            Name = entity.ApprovedName,
-            GameId = entity.GameId,
-            TeamId = entity.TeamId,
-            UserId = entity.UserId
-        }), cancellationToken);
+        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(new GameEnrolledPlayersChangeContext(entity.GameId, game.RequireSynchronizedStart)), cancellationToken);
 
         if (game.RequireSynchronizedStart)
             await _syncStartGameService.HandleSyncStartStateChanged(entity.GameId, cancellationToken);
@@ -561,6 +553,12 @@ public class PlayerService
 
         var mappedPlayer = _mapper.Map<Player>(player);
         await _hubBus.SendPlayerEnrolled(mappedPlayer, actor);
+        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(new GameEnrolledPlayersChangeContext(player.GameId, game.RequireSynchronizedStart)), cancellationToken);
+
+        var isSyncStartGame = await _store.WithNoTracking<Data.Game>().Where(g => g.Id == mappedPlayer.GameId && g.RequireSynchronizedStart).AnyAsync();
+        if (isSyncStartGame)
+            await _syncStartGameService.HandleSyncStartStateChanged(mappedPlayer.GameId, cancellationToken);
+
         return mappedPlayer;
     }
 
@@ -587,14 +585,7 @@ public class PlayerService
         // notify listeners on SignalR (like the team)
         var playerModel = _mapper.Map<Player>(player);
         await _hubBus.SendPlayerLeft(playerModel, request.Actor);
-        await _mediator.Publish(new PlayerUnenrolledNotification(new PlayerEnrollNotificationContext
-        {
-            Id = player.Id,
-            Name = player.ApprovedName,
-            GameId = player.GameId,
-            TeamId = player.TeamId,
-            UserId = player.UserId
-        }), cancellationToken);
+        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(new GameEnrolledPlayersChangeContext(player.GameId, gameIsSyncStart)), cancellationToken);
 
         // update sync start if needed
         if (gameIsSyncStart)

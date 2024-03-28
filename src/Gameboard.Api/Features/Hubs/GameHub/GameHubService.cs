@@ -1,20 +1,20 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Hubs;
+using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games;
 
-public interface IGameHubService
+public interface IGameHubService : INotificationHandler<GameEnrolledPlayersChangeNotification>
 {
-    // logic shared by this service and GameHub itself
-    Task<IEnumerable<GameHubActiveEnrollment>> GetActiveEnrollments(string userId);
-
     // invoke functions on clients
     Task SendExternalGameChallengesDeployStart(GameStartUpdate state);
     Task SendExternalGameChallengesDeployProgressChange(GameStartUpdate state);
@@ -28,11 +28,13 @@ public interface IGameHubService
     Task SendSyncStartGameStateChanged(SyncStartState state);
     Task SendSyncStartGameStarted(SyncStartGameStartedState state);
     Task SendSyncStartGameStarting(SyncStartState state);
-    Task SendYourActiveGamesChanged(string userId);
+    // Task SendYourActiveGamesChanged(string userId);
 }
 
 internal class GameHubService : IGameHubService, IGameboardHubService
 {
+    private static readonly ConcurrentDictionary<string, string[]> _gameIdUserIdsMap = new();
+
     private readonly IHubContext<GameHub, IGameHubEvent> _hubContext;
     private readonly INowService _now;
     private readonly IStore _store;
@@ -51,26 +53,11 @@ internal class GameHubService : IGameHubService, IGameboardHubService
         _store = store;
     }
 
-    public async Task<IEnumerable<GameHubActiveEnrollment>> GetActiveEnrollments(string userId)
-        => await
-            _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => p.Game.GameEnd != DateTimeOffset.MinValue || p.Game.GameEnd > _now.Get())
-            .Where(p => p.Game.PlayerMode == PlayerMode.Competition && p.Mode == PlayerMode.Competition)
-            .Where(p => p.UserId == userId)
-            .Select(p => new GameHubActiveEnrollment
-            {
-                Game = new SimpleEntity { Id = p.GameId, Name = p.Game.Name },
-                Player = new SimpleEntity { Id = p.Id, Name = p.ApprovedName }
-            })
-            .Distinct()
-            .ToArrayAsync();
-
     public async Task SendExternalGameChallengesDeployStart(GameStartUpdate state)
     {
         await _hubContext
             .Clients
-            .Group(state.Game.Id)
+            .Users(GetGameUserIds(state.Game.Id))
             .ExternalGameChallengesDeployStart(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -82,7 +69,7 @@ internal class GameHubService : IGameHubService, IGameboardHubService
     public Task SendExternalGameChallengesDeployProgressChange(GameStartUpdate state)
         => _hubContext
             .Clients
-            .Group(state.Game.Id)
+            .Users(GetGameUserIds(state.Game.Id))
             .ExternalGameChallengesDeployProgressChange(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -93,7 +80,7 @@ internal class GameHubService : IGameHubService, IGameboardHubService
     public Task SendExternalGameChallengesDeployEnd(GameStartUpdate state)
         => _hubContext
             .Clients
-            .Group(state.Game.Id)
+            .Users(GetGameUserIds(state.Game.Id))
             .ExternalGameChallengesDeployEnd(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -105,7 +92,7 @@ internal class GameHubService : IGameHubService, IGameboardHubService
     {
         return _hubContext
             .Clients
-            .Group(state.Game.Id)
+            .Users(GetGameUserIds(state.Game.Id))
             .ExternalGameLaunchStart(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -117,7 +104,7 @@ internal class GameHubService : IGameHubService, IGameboardHubService
     public Task SendExternalGameLaunchEnd(GameStartUpdate state)
         => _hubContext
             .Clients
-            .Group(state.Game.Id)
+            .Users(GetGameUserIds(state.Game.Id))
             .ExternalGameLaunchEnd(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -128,7 +115,7 @@ internal class GameHubService : IGameHubService, IGameboardHubService
     public Task SendExternalGameLaunchFailure(GameStartUpdate state)
         => _hubContext
             .Clients
-            .Group(state.Game.Id)
+            .Users(GetGameUserIds(state.Game.Id))
             .ExternalGameLaunchFailure(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -140,7 +127,7 @@ internal class GameHubService : IGameHubService, IGameboardHubService
     {
         await _hubContext
             .Clients
-            .Group(state.Game.Id)
+            .Users(GetGameUserIds(state.Game.Id))
             .ExternalGameGamespacesDeployStart(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -153,7 +140,7 @@ internal class GameHubService : IGameHubService, IGameboardHubService
     {
         await _hubContext
             .Clients
-            .Group(state.Game.Id)
+            .Users(GetGameUserIds(state.Game.Id))
             .ExternalGameGamespacesDeployProgressChange(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -166,7 +153,7 @@ internal class GameHubService : IGameHubService, IGameboardHubService
     {
         await _hubContext
             .Clients
-            .Group(state.Game.Id)
+            .Users(GetGameUserIds(state.Game.Id))
             .ExternalGameGamespacesDeployEnd(new GameHubEvent<GameStartUpdate>
             {
                 GameId = state.Game.Id,
@@ -179,7 +166,7 @@ internal class GameHubService : IGameHubService, IGameboardHubService
     {
         await _hubContext
             .Clients
-            .Group(state.Game.Id)
+            .Users(GetGameUserIds(state.Game.Id))
             .SyncStartGameStarted(new GameHubEvent<SyncStartGameStartedState>
             {
                 GameId = state.Game.Id,
@@ -192,7 +179,7 @@ internal class GameHubService : IGameHubService, IGameboardHubService
     {
         await _hubContext
             .Clients
-            .Group(state.Game.Id)
+            .Users(GetGameUserIds(state.Game.Id))
             .SyncStartGameStarting(new GameHubEvent<SyncStartState>
             {
                 GameId = state.Game.Id,
@@ -203,9 +190,11 @@ internal class GameHubService : IGameHubService, IGameboardHubService
 
     public async Task SendSyncStartGameStateChanged(SyncStartState state)
     {
+
+
         await _hubContext
             .Clients
-            .Group(state.Game.Id)
+            .Users(GetGameUserIds(state.Game.Id))
             .SyncStartGameStateChanged(new GameHubEvent<SyncStartState>
             {
                 GameId = state.Game.Id,
@@ -214,22 +203,71 @@ internal class GameHubService : IGameHubService, IGameboardHubService
             });
     }
 
-    public async Task SendYourActiveGamesChanged(string userId)
-    {
-        var enrollments = await GetActiveEnrollments(userId);
+    // public async Task SendYourActiveGamesChanged(string userId)
+    // {
+    //     var enrollments = await GetActiveEnrollments(userId);
 
-        await _hubContext
-            .Clients
-            .User(userId)
-            .YourActiveGamesChanged(new GameHubEvent<YourActiveGamesChangedEvent>
+    //     await _hubContext
+    //         .Clients
+    //         .User(userId)
+    //         .YourActiveGamesChanged(new GameHubEvent<YourActiveGamesChangedEvent>
+    //         {
+    //             GameId = string.Empty,
+    //             EventType = GameHubEventType.YourActiveGamesChanged,
+    //             Data = new YourActiveGamesChangedEvent
+    //             {
+    //                 UserId = userId,
+    //                 ActiveEnrollments = enrollments
+    //             }
+    //         });
+    // }
+
+    public Task Handle(GameEnrolledPlayersChangeNotification notification, CancellationToken cancellationToken)
+        => UpdateGameIdUserIdsMap(notification);
+
+    private IEnumerable<string> GetGameUserIds(string gameId)
+    {
+        _gameIdUserIdsMap.TryGetValue(gameId, out var userIds);
+        if (userIds.IsEmpty())
+            return Array.Empty<string>();
+
+        return userIds;
+    }
+
+    private async Task UpdateGameIdUserIdsMap(GameEnrolledPlayersChangeNotification notification)
+    {
+        var query = _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.Game.GameEnd != DateTimeOffset.MinValue || p.Game.GameEnd > _now.Get())
+            .Where(p => p.Game.PlayerMode == PlayerMode.Competition && p.Mode == PlayerMode.Competition)
+            .Where(p => p.GameId == notification.Context.GameId)
+            .Select(p => new
             {
-                GameId = string.Empty,
-                EventType = GameHubEventType.YourActiveGamesChanged,
-                Data = new YourActiveGamesChangedEvent
-                {
-                    UserId = userId,
-                    ActiveEnrollments = enrollments
-                }
+                p.GameId,
+                p.UserId
             });
+
+        var theString = query.ToQueryString();
+
+        var gameUserData = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.Game.GameEnd != DateTimeOffset.MinValue || p.Game.GameEnd > _now.Get())
+            .Where(p => p.Game.PlayerMode == PlayerMode.Competition && p.Mode == PlayerMode.Competition)
+            .Where(p => p.GameId == notification.Context.GameId)
+            .GroupBy(p => p.GameId)
+            .Select(p => new
+            {
+                GameId = p.Key,
+                UserIds = p.Select(x => x.UserId).Distinct()
+            })
+        .ToDictionaryAsync(gr => gr.GameId, gr => gr.UserIds);
+
+        lock (_gameIdUserIdsMap)
+        {
+            _gameIdUserIdsMap.Clear();
+
+            foreach (var key in gameUserData.Keys)
+                _gameIdUserIdsMap.TryAdd(key, gameUserData[key].ToArray());
+        }
     }
 }

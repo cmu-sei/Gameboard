@@ -9,7 +9,6 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
-using Gameboard.Api.Features.Players;
 using Gameboard.Api.Features.Practice;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -76,6 +75,10 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
     public async Task DeleteTeam(string teamId, SimpleEntity actingUser, CancellationToken cancellationToken)
     {
         var teamState = await GetTeamState(teamId, actingUser, cancellationToken);
+        var isSyncStartGame = await _store
+            .WithNoTracking<Data.Game>()
+            .Where(g => g.Id == teamState.GameId && g.RequireSynchronizedStart)
+            .AnyAsync(cancellationToken);
 
         // delete player records
         var players = await _store
@@ -98,16 +101,7 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
 
         // notify app listeners
         await _mediator.Publish(new TeamDeletedNotification(teamState.GameId, teamState.Id), cancellationToken);
-
-        foreach (var player in players)
-            await _mediator.Publish(new PlayerUnenrolledNotification(new PlayerEnrollNotificationContext
-            {
-                Id = player.Id,
-                Name = player.Name,
-                GameId = teamState.GameId,
-                TeamId = teamState.Id,
-                UserId = player.UserId
-            }), cancellationToken);
+        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(new GameEnrolledPlayersChangeContext(teamState.GameId, isSyncStartGame)));
 
         // notify hub that the team is deleted /players left so the client can respond
         await _teamHubService.SendTeamDeleted(teamState, actingUser);
