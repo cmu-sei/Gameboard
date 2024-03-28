@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games;
 
-public interface IGameHubService : INotificationHandler<GameEnrolledPlayersChangeNotification>
+public interface IGameHubService : INotificationHandler<GameEnrolledPlayersChangeNotification>, INotificationHandler<AppStartupNotification>
 {
     // invoke functions on clients
     Task SendExternalGameChallengesDeployStart(GameStartUpdate state);
@@ -190,8 +190,6 @@ internal class GameHubService : IGameHubService, IGameboardHubService
 
     public async Task SendSyncStartGameStateChanged(SyncStartState state)
     {
-
-
         await _hubContext
             .Clients
             .Users(GetGameUserIds(state.Game.Id))
@@ -221,6 +219,19 @@ internal class GameHubService : IGameHubService, IGameboardHubService
     //             }
     //         });
     // }
+
+    public async Task Handle(AppStartupNotification appStartupNotification, CancellationToken cancellationToken)
+    {
+        // build the game/user association cache for all sync start or external games proactively
+        var games = await _store
+            .WithNoTracking<Data.Game>()
+            .Where(g => g.RequireSynchronizedStart || g.Mode == GameEngineMode.External)
+            .Select(g => new { g.Id, g.RequireSynchronizedStart })
+            .ToArrayAsync(cancellationToken);
+
+        foreach (var game in games)
+            await UpdateGameIdUserIdsMap(new GameEnrolledPlayersChangeNotification(new GameEnrolledPlayersChangeContext(game.Id, game.RequireSynchronizedStart)));
+    }
 
     public Task Handle(GameEnrolledPlayersChangeNotification notification, CancellationToken cancellationToken)
         => UpdateGameIdUserIdsMap(notification);
