@@ -23,6 +23,8 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
         string teamId,
         string challenge1Id,
         string challenge2Id,
+        string challengeSpec1Id,
+        string challengeSpec2Id,
         int baseScore1,
         int baseScore2,
         int bonus1Points,
@@ -56,6 +58,7 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
                             c.PlayerId = playerId;
                             c.GameId = gameId;
                             c.TeamId = teamId;
+                            c.SpecId = challengeSpec1Id;
                             c.AwardedManualBonuses = new List<ManualChallengeBonus>()
                             {
                                 new()
@@ -82,6 +85,7 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
                             c.PlayerId = playerId;
                             c.GameId = gameId;
                             c.TeamId = teamId;
+                            c.SpecId = challengeSpec2Id;
                             c.AwardedManualBonuses = new ManualChallengeBonus
                             {
                                 Id = fixture.Create<string>(),
@@ -90,6 +94,12 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
                                 EnteredByUserId = enteringAdmin.Id
                             }.ToCollection();
                         })
+                    };
+
+                    g.Specs = new List<Data.ChallengeSpec>
+                    {
+                        state.Build<Data.ChallengeSpec>(fixture, s => s.Id = challengeSpec1Id),
+                        state.Build<Data.ChallengeSpec>(fixture, s => s.Id = challengeSpec2Id)
                     };
                 }).ToCollection();
             });
