@@ -22,6 +22,7 @@ public class SpecDetail : ExternalSpec
     public string Tag { get; set; }
     public bool Disabled { get; set; }
     public int AverageDeploySeconds { get; set; }
+    public bool IsHidden { get; set; }
     public int Points { get; set; }
     public float X { get; set; }
     public float Y { get; set; }

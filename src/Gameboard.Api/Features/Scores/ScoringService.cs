@@ -196,11 +196,21 @@ internal class ScoringService : IScoringService
             .WithNoTracking<Data.Player>()
             .Include(p => p.Sponsor)
             .Where(p => p.TeamId == teamId)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
         var captain = _teamService.ResolveCaptain(players);
+
+        // hidden specs don't count toward score
+        var specs = await _store
+            .WithNoTracking<Data.ChallengeSpec>()
+            .Include(s => s.Bonuses)
+            .Where(spec => spec.GameId == captain.GameId)
+            .Where(spec => !spec.IsHidden)
+            .ToListAsync(cancellationToken);
+        var specIds = specs.Select(s => s.Id).ToArray();
+
         var game = await _store
             .WithNoTracking<Data.Game>()
-            .SingleAsync(g => g.Id == captain.GameId);
+            .SingleAsync(g => g.Id == captain.GameId, cancellationToken);
 
         var challenges = await _store
             .WithNoTracking<Data.Challenge>()
@@ -212,19 +222,14 @@ internal class ScoringService : IScoringService
                 .AsSplitQuery()
             .Where(c => c.GameId == captain.GameId)
             .Where(c => c.TeamId == teamId)
-            .ToListAsync();
-
-        var specs = await _store
-            .WithNoTracking<Data.ChallengeSpec>()
-            .Include(s => s.Bonuses)
-            .Where(spec => spec.GameId == captain.GameId)
-            .ToListAsync();
+            .Where(c => specIds.Contains(c.SpecId))
+            .ToListAsync(cancellationToken);
 
         var manualTeamBonuses = await _store
             .WithNoTracking<ManualTeamBonus>()
                 .Include(t => t.EnteredByUser)
             .Where(b => b.TeamId == captain.TeamId)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var unawardedBonuses = await ResolveUnawardedBonuses(specs.Select(s => s.Id).ToArray());
         var manualChallengeBonusPoints = challenges.SelectMany(c => c.AwardedManualBonuses.Select(b => b.PointValue)).ToArray();

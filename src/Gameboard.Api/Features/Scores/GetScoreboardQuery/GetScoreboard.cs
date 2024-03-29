@@ -92,7 +92,7 @@ internal class GetScoreboardHandler : IRequestHandler<GetScoreboardQuery, Scoreb
         var specCount = await _store
             .WithNoTracking<Data.ChallengeSpec>()
             .Where(s => s.GameId == game.Id)
-            .Where(s => !s.Disabled)
+            .Where(s => !s.Disabled && !s.IsHidden)
             .CountAsync(cancellationToken);
 
         var now = _now.Get();

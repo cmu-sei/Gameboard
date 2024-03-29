@@ -23,6 +23,7 @@ public class ChallengeSpec : IEntity
         public string SolutionGuideUrl { get; set; }
         public bool ShowSolutionGuideInCompetitiveMode { get; set; }
         public string Tags { get; set; }
+        public bool IsHidden { get; set; }
 
         // nav properties
         public string GameId { get; set; }
