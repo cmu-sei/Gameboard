@@ -184,7 +184,7 @@ internal class ExternalGameService : IExternalGameService
         {
             Game = new SimpleEntity { Id = gameData.Id, Name = gameData.Name },
             OverallDeployStatus = overallDeployState,
-            Specs = gameData.Specs.Select(s => new SimpleEntity { Id = s.Id, Name = s.Name }),
+            Specs = gameData.Specs.Select(s => new SimpleEntity { Id = s.Id, Name = s.Name }).OrderBy(s => s.Name),
             HasNonStandardSessionWindow = hasStandardSessionWindow,
             StartTime = overallStart,
             EndTime = overallEnd,
@@ -244,14 +244,16 @@ internal class ExternalGameService : IExternalGameService
                         ExternalGameStatePlayerStatus.Ready :
                         ExternalGameStatePlayerStatus.NotReady,
                     User = new SimpleEntity { Id = p.UserId, Name = p.User.ApprovedName }
-                }),
+                })
+                .OrderByDescending(p => p.IsCaptain)
+                .ThenBy(p => p.Name),
                 Sponsors = teams[key].Select(p => new SimpleSponsor
                 {
                     Id = p.SponsorId,
                     Name = p.Sponsor.Name,
                     Logo = p.Sponsor.Logo
                 }),
-            })
+            }).OrderBy(t => t.Name)
         };
     }
 

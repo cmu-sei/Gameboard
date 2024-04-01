@@ -26,6 +26,6 @@ public sealed class UserHub : Hub<IUserHubEvent>, IUserHubApi, IGameboardHub
     {
         await base.OnConnectedAsync();
         this.LogOnConnected(_logger, Context);
-        await Groups.AddToGroupAsync(Context.UserIdentifier, Context.User.Name());
+        await Groups.AddToGroupAsync(Context.ConnectionId, this.GetCanonicalGroupId(Context.UserIdentifier));
     }
 }

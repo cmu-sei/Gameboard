@@ -12,7 +12,7 @@ public interface IUserHubBus
     Task SendAnnouncement(UserHubAnnouncementEvent ev);
 }
 
-internal sealed class UserHubBus : IUserHubBus, IGameboardHubBus
+internal sealed class UserHubBus : IUserHubBus, IGameboardHubService
 {
     private readonly IHubContext<UserHub, IUserHubEvent> _hubContext;
     private readonly IStore _store;

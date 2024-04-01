@@ -10,7 +10,7 @@ public interface IScoreHubBus
     Task SendScoreUpdated(GameScore score, ScoreUpdatedTeamChangeSummary teamChangeSummary);
 }
 
-internal class ScoreHubBus : IScoreHubBus, IGameboardHubBus
+internal class ScoreHubBus : IScoreHubBus, IGameboardHubService
 {
     private readonly IHubContext<ScoreHub, IScoreHubEvent> _hubContext;
 

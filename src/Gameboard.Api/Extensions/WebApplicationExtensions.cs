@@ -6,6 +6,7 @@ using Gameboard.Api.Features.Hubs;
 using Gameboard.Api.Features.Users;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
+using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -78,16 +79,21 @@ internal static class WebApplicationExtensions
             using var serviceScope = app.Services.CreateScope();
             var taskQueue = serviceScope.ServiceProvider.GetRequiredService<IBackgroundAsyncTaskQueueService>();
 
-            taskQueue.QueueBackgroundWorkItemAsync(async cancellationToken =>
+            _ = taskQueue.QueueBackgroundWorkItemAsync(async cancellationToken =>
             {
                 using var queueScope = app.Services.CreateScope();
                 var challengeSpecService = queueScope.ServiceProvider.GetRequiredService<ChallengeSpecService>();
                 await challengeSpecService.SyncActiveSpecs(CancellationToken.None);
+                logger.LogInformation("Synchronized active challenge specs on startup.");
+
+                var mediator = queueScope.ServiceProvider.GetRequiredService<IMediator>();
+                await mediator.Publish(new AppStartupNotification(), cancellationToken);
+                logger.LogInformation("All startup tasks complete.");
             });
         }
         catch (Exception ex)
         {
-            logger.LogError(message: "Failed to synchronize active challenge specs on startup.", exception: ex);
+            logger.LogError(message: "Failed on startup tasks:", exception: ex);
         }
 
         return app;

@@ -6,6 +6,7 @@ using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
+using MediatR;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
@@ -23,6 +24,7 @@ internal static class PlayerServiceTestHelpers
         IInternalHubBus? hubBus = null,
         ILogger<PlayerService>? logger = null,
         IMapper? mapper = null,
+        IMediator? mediator = null,
         IMemoryCache? memCache = null,
         INowService? now = null,
         IPlayerStore? playerStore = null,
@@ -41,6 +43,7 @@ internal static class PlayerServiceTestHelpers
             hubBus ?? A.Fake<IInternalHubBus>(),
             logger ?? A.Fake<ILogger<PlayerService>>(),
             mapper ?? A.Fake<IMapper>(),
+            mediator ?? A.Fake<IMediator>(),
             memCache ?? A.Fake<IMemoryCache>(),
             now ?? A.Fake<INowService>(),
             playerStore ?? A.Fake<IPlayerStore>(),

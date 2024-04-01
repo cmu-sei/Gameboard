@@ -20,11 +20,14 @@ internal static class SignalRStartupExtensions
         else if (builder.Environment.IsTest())
             logLevel = LogLevel.Information;
 
-        builder.Logging.AddFilter(typeof(Microsoft.AspNetCore.SignalR.Hub).Namespace, logLevel);
+        builder.Logging.AddFilter(typeof(Hub).Namespace, logLevel);
 
         builder.Services
             .AddSingleton<IUserIdProvider, SubjectProvider>()
-            .AddSignalR(opt => opt.EnableDetailedErrors = builder.Environment.IsDevOrTest())
+            .AddSignalR(opt =>
+            {
+                opt.EnableDetailedErrors = builder.Environment.IsDevOrTest();
+            })
             .AddJsonProtocol(options =>
             {
                 options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;

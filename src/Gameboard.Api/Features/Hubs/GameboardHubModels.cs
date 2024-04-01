@@ -4,7 +4,13 @@ public enum GameboardHubType
 {
     Game,
     Score,
-    SupportGlobal,
+    Support,
     Team,
     User
+}
+
+public class GameboardHubUserConnection
+{
+    public required string ConnectionId { get; set; }
+    public required string UserId { get; set; }
 }

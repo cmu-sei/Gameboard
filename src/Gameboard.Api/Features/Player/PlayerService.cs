@@ -15,6 +15,7 @@ using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Sponsors;
 using Gameboard.Api.Features.Teams;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -28,6 +29,7 @@ public class PlayerService
     private readonly TimeSpan _idmapExpiration = new(0, 30, 0);
     private readonly ILogger<PlayerService> _logger;
     private readonly IMapper _mapper;
+    private readonly IMediator _mediator;
     private readonly INowService _now;
     private readonly IPracticeService _practiceService;
     private readonly IStore _store;
@@ -49,6 +51,7 @@ public class PlayerService
         IInternalHubBus hubBus,
         ILogger<PlayerService> logger,
         IMapper mapper,
+        IMediator mediator,
         IMemoryCache memCache,
         INowService now,
         IPlayerStore playerStore,
@@ -62,6 +65,7 @@ public class PlayerService
         CoreOptions = coreOptions;
         CoreOptions = coreOptions;
         GuidService = guidService;
+        _mediator = mediator;
         _practiceService = practiceService;
         _now = now;
         GameStore = gameStore;
@@ -107,6 +111,7 @@ public class PlayerService
 
         await PlayerStore.Create(entity);
         await _hubBus.SendPlayerEnrolled(_mapper.Map<Player>(entity), actor);
+        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(new GameEnrolledPlayersChangeContext(entity.GameId, game.RequireSynchronizedStart)), cancellationToken);
 
         if (game.RequireSynchronizedStart)
             await _syncStartGameService.HandleSyncStartStateChanged(entity.GameId, cancellationToken);
@@ -548,6 +553,12 @@ public class PlayerService
 
         var mappedPlayer = _mapper.Map<Player>(player);
         await _hubBus.SendPlayerEnrolled(mappedPlayer, actor);
+        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(new GameEnrolledPlayersChangeContext(player.GameId, game.RequireSynchronizedStart)), cancellationToken);
+
+        var isSyncStartGame = await _store.WithNoTracking<Data.Game>().Where(g => g.Id == mappedPlayer.GameId && g.RequireSynchronizedStart).AnyAsync();
+        if (isSyncStartGame)
+            await _syncStartGameService.HandleSyncStartStateChanged(mappedPlayer.GameId, cancellationToken);
+
         return mappedPlayer;
     }
 
@@ -574,6 +585,7 @@ public class PlayerService
         // notify listeners on SignalR (like the team)
         var playerModel = _mapper.Map<Player>(player);
         await _hubBus.SendPlayerLeft(playerModel, request.Actor);
+        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(new GameEnrolledPlayersChangeContext(player.GameId, gameIsSyncStart)), cancellationToken);
 
         // update sync start if needed
         if (gameIsSyncStart)

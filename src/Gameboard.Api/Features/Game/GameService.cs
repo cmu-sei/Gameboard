@@ -12,6 +12,11 @@ using AutoMapper;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Common.Services;
+using Microsoft.AspNetCore.Http;
+using Gameboard.Api.Data;
+using System.IO;
+using Microsoft.Extensions.ObjectPool;
 
 namespace Gameboard.Api.Services;
 
@@ -38,18 +43,27 @@ public interface IGameService
 public class GameService : _Service, IGameService
 {
     private readonly Defaults _defaults;
-    private readonly IGameStore _store;
+    private readonly IGuidService _guids;
+    private readonly IGameStore _gameStore;
+    private readonly INowService _now;
+    private readonly IStore _store;
 
     public GameService(
+        IGuidService guids,
         ILogger<GameService> logger,
         IMapper mapper,
         CoreOptions options,
         Defaults defaults,
-        IGameStore store
+        IGameStore gameStore,
+        INowService nowService,
+        IStore store
     ) : base(logger, mapper, options)
     {
-        _store = store;
+        _guids = guids;
+        _gameStore = gameStore;
         _defaults = defaults;
+        _now = nowService;
+        _store = store;
     }
 
     public async Task<Game> Create(NewGame model)
@@ -72,14 +86,14 @@ public class GameService : _Service, IGameService
 
         var entity = Mapper.Map<Data.Game>(model);
 
-        await _store.Create(entity);
+        await _gameStore.Create(entity);
 
         return Mapper.Map<Game>(entity);
     }
 
     public async Task<Game> Retrieve(string id, bool accessHidden = true)
     {
-        var game = await _store.Retrieve(id);
+        var game = await _gameStore.Retrieve(id);
         if (!accessHidden && !game.IsPublished)
             throw new ActionForbidden();
 
@@ -94,21 +108,20 @@ public class GameService : _Service, IGameService
             game.ExternalGameTeamExtendedEndpoint = null;
         }
 
-        var entity = await _store.Retrieve(game.Id);
+        var entity = await _gameStore.Retrieve(game.Id);
         Mapper.Map(game, entity);
-        await _store.Update(entity);
+        await _gameStore.Update(entity);
     }
 
     public async Task Delete(string id)
     {
-        await _store.Delete(id);
+        await _gameStore.Delete(id);
     }
 
     public IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool sudo = false)
     {
-        DateTimeOffset now = DateTimeOffset.UtcNow;
-
-        var q = _store.List(model?.Term);
+        var q = _gameStore.List(model?.Term);
+        var now = _now.Get();
 
         if (!sudo)
             q = q.Where(g => g.IsPublished);
@@ -147,11 +160,6 @@ public class GameService : _Service, IGameService
         return q;
     }
 
-    public Task<IEnumerable<GameSearchResult>> Search(GameSearchQuery query)
-    {
-        throw new NotImplementedException();
-    }
-
     public async Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false)
     {
         var games = await BuildQuery(model, sudo)
@@ -165,7 +173,7 @@ public class GameService : _Service, IGameService
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;
 
-        var q = _store.List(model.Term);
+        var q = _gameStore.List(model.Term);
 
         if (!sudo)
             q = q.Where(g => g.IsPublished);
@@ -207,7 +215,7 @@ public class GameService : _Service, IGameService
 
     public async Task<ChallengeSpec[]> RetrieveChallengeSpecs(string id)
     {
-        var entity = await _store.Load(id);
+        var entity = await _gameStore.Load(id);
 
         return Mapper.Map<ChallengeSpec[]>(entity.Specs)
             .OrderBy(s => s.Name)
@@ -216,12 +224,12 @@ public class GameService : _Service, IGameService
 
     public async Task<SessionForecast[]> SessionForecast(string id)
     {
-        Data.Game entity = await _store.Retrieve(id);
+        Data.Game entity = await _gameStore.Retrieve(id);
 
         var ts = DateTimeOffset.UtcNow;
         var step = ts;
 
-        var expirations = await _store.DbContext.Players
+        var expirations = await _gameStore.DbContext.Players
             .Where(p => p.GameId == id && p.Role == PlayerRole.Manager && p.SessionEnd.CompareTo(ts) > 0)
             .Select(p => p.SessionEnd)
             .ToArrayAsync();
@@ -250,28 +258,23 @@ public class GameService : _Service, IGameService
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
             .Build();
 
-        var entity = await _store.Retrieve(model.Id, q => q.Include(g => g.Specs));
+        var entity = await _gameStore.Retrieve(model.Id, q => q.Include(g => g.Specs));
 
         if (entity is not null)
             return yaml.Serialize(entity);
 
-        entity = new Data.Game
-        {
-            Id = Guid.NewGuid().ToString("n")
-        };
+        entity = new Data.Game { Id = _guids.GetGuid() };
 
         for (int i = 0; i < model.GenerateSpecCount; i++)
             entity.Specs.Add(new Data.ChallengeSpec
             {
-                Id = Guid.NewGuid().ToString("n"),
+                Id = _guids.GetGuid(),
                 GameId = entity.Id
             });
 
         return model.Format == ExportFormat.Yaml
             ? yaml.Serialize(entity)
-            : JsonSerializer.Serialize(entity, JsonOptions)
-        ;
-
+            : JsonSerializer.Serialize(entity, JsonOptions);
     }
 
     public async Task<Game> Import(GameSpecImport model)
@@ -283,7 +286,7 @@ public class GameService : _Service, IGameService
 
         var entity = yaml.Deserialize<Data.Game>(model.Data);
 
-        await _store.Create(entity);
+        await _gameStore.Create(entity);
 
         return Mapper.Map<Game>(entity);
     }
@@ -295,7 +298,7 @@ public class GameService : _Service, IGameService
 
     public async Task UpdateImage(string id, string type, string filename)
     {
-        var entity = await _store.Retrieve(id);
+        var entity = await _gameStore.Retrieve(id);
 
         switch (type)
         {
@@ -308,12 +311,12 @@ public class GameService : _Service, IGameService
                 break;
         }
 
-        await _store.Update(entity);
+        await _gameStore.Update(entity);
     }
 
     public async Task ReRank(string id)
     {
-        var players = await _store.DbContext.Players
+        var players = await _gameStore.DbContext.Players
             .Where(p => p.GameId == id && p.Mode == PlayerMode.Competition)
             .OrderByDescending(p => p.Score)
             .ThenBy(p => p.Time)
@@ -335,22 +338,54 @@ public class GameService : _Service, IGameService
             player.Rank = rank;
         }
 
-        await _store.DbContext.SaveChangesAsync();
+        await _gameStore.DbContext.SaveChangesAsync();
     }
 
     public Task<bool> IsUserPlaying(string gameId, string userId)
-        => _store
+        => _gameStore
             .DbContext
             .Players
             .AnyAsync(p => p.GameId == gameId && p.UserId == userId);
 
     public async Task<bool> UserIsTeamPlayer(string uid, string gid, string tid)
     {
-        bool authd = await _store.DbContext.Users.AnyAsync(u =>
+        bool authd = await _gameStore.DbContext.Users.AnyAsync(u =>
             u.Id == uid &&
             u.Enrollments.Any(e => e.TeamId == tid)
         );
 
         return authd;
     }
+
+    public async Task DeleteGameCardImage(string gameId)
+    {
+        if (!await _store.WithNoTracking<Data.Game>().AnyAsync(g => g.Id == gameId))
+            throw new ResourceNotFound<Data.Game>(gameId);
+
+        var fileSearchPattern = $"{GetGameCardFileNameBase(gameId)}.*";
+        var files = Directory.GetFiles(Options.ImageFolder, fileSearchPattern);
+
+        foreach (var cardImageFile in files)
+            File.Delete(cardImageFile);
+
+        await UpdateImage(gameId, "card", string.Empty);
+    }
+
+    public async Task<UploadedFile> SaveGameCardImage(string gameId, IFormFile file)
+    {
+        if (!await _store.WithNoTracking<Data.Game>().AnyAsync(g => g.Id == gameId))
+            throw new ResourceNotFound<Data.Game>(gameId);
+
+        var fileName = $"{GetGameCardFileNameBase(gameId)}{Path.GetExtension(file.FileName.ToLower())}";
+        var path = Path.Combine(Options.ImageFolder, fileName);
+
+        using var stream = new FileStream(path, FileMode.Create);
+        await file.CopyToAsync(stream);
+        await UpdateImage(gameId, "card", fileName);
+
+        return new UploadedFile { Filename = fileName };
+    }
+
+    private string GetGameCardFileNameBase(string gameId)
+        => $"{gameId.ToLower()}_card";
 }

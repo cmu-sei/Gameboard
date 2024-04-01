@@ -88,7 +88,7 @@ internal class GameStartService : IGameStartService
         }
         catch (Exception ex)
         {
-            _logger.LogError(LogEventId.GameStart_Failed, exception: ex, message: $"""Deploy for game "{game.Id}" failed.""");
+            _logger.LogError(LogEventId.GameStart_Failed, exception: ex, message: $"""Deploy for game {game.Id} failed.""");
 
             // allow the start service to do custom cleanup
             await gameModeService.TryCleanUpFailedDeploy(startRequest, ex, cancellationToken);
@@ -98,8 +98,8 @@ internal class GameStartService : IGameStartService
 
             foreach (var team in startRequest.Context.Teams)
             {
-                // only archive challenges if the game mode asks us too
-                await _mediator.Send(new ResetTeamSessionCommand(team.Team.Id, false, _actingUserService.Get()), cancellationToken);
+                // only archive challenges if the game mode asks us to
+                await _mediator.Send(new ResetTeamSessionCommand(team.Team.Id, gameModeService.StartFailResetType, _actingUserService.Get()), cancellationToken);
             }
 
             _logger.LogInformation($"All teams reset for game {startRequest.Game.Id}.");

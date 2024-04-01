@@ -28,7 +28,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     private readonly IExternalGameService _externalGameService;
     private readonly IGamebrainService _gamebrainService;
     private readonly IGameEngineService _gameEngineService;
-    private readonly IGameHubBus _gameHubBus;
+    private readonly IGameHubService _gameHubBus;
     private readonly IChallengeGraderUrlService _graderUrlService;
     private readonly IJsonService _jsonService;
     private readonly ILogger<ExternalSyncGameStartService> _logger;
@@ -48,7 +48,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         IExternalGameService externalGameService,
         IGamebrainService gamebrainService,
         IGameEngineService gameEngineService,
-        IGameHubBus gameHubBus,
+        IGameHubService gameHubBus,
         IChallengeGraderUrlService graderUrlService,
         IJsonService jsonService,
         ILogger<ExternalSyncGameStartService> logger,
@@ -80,6 +80,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         _validator = validator;
     }
 
+    public TeamSessionResetType StartFailResetType => TeamSessionResetType.PreserveChallenges;
+
     public async Task ValidateStart(GameModeStartRequest request, CancellationToken cancellationToken)
     {
         Log("Validating external / sync-start game request...", request.Game.Id);
@@ -87,7 +89,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         _validator.AddValidator(async (req, ctx) =>
         {
             // just do exists here since we need the game for other checks anyway
-            var game = await _store.FirstOrDefaultAsync<Data.Game>(g => g.Id == req.Game.Id, cancellationToken);
+            var game = await _store.SingleOrDefaultAsync<Data.Game>(g => g.Id == req.Game.Id, cancellationToken);
 
             if (game == null)
             {
@@ -161,7 +163,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
         // update external host and get configuration information for teams
         var externalHostTeamConfigs = await NotifyExternalGameHost(request, syncGameStartState, cancellationToken);
-
         // log what we got
         Log($"External host team configurations: {_jsonService.Serialize(externalHostTeamConfigs)}", request.Game.Id);
 
@@ -411,8 +412,8 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         if (notPredeployedChallenges.Any())
         {
             // Create one task for each gamespace in batches of the size specified in the app's
-            // helm chart config
-            var challengeBatches = BuildGamespaceBatches(notPredeployedChallenges, _coreOptions);
+            // helm chart config (min batch size 1)
+            var challengeBatches = _batchService.Batch(notPredeployedChallenges, Math.Max(_coreOptions.GameEngineDeployBatchSize, 1));
             var batchIndex = 0;
             var batchCount = challengeBatches.Count();
 
@@ -510,15 +511,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         Log($"Undeployed/unstarted gamespaces: {string.Join(", ", request.Context.GamespaceIdsStartFailed)}", request.Game.Id);
         await _gameHubBus.SendExternalGameGamespacesDeployEnd(request.Context.ToUpdate());
         return retVal;
-    }
-
-    private IEnumerable<IEnumerable<GameStartContextChallenge>> BuildGamespaceBatches(IEnumerable<GameStartContextChallenge> challenges, CoreOptions coreOptions)
-    {
-        var batchSize = coreOptions.GameEngineDeployBatchSize;
-        if (batchSize < 1)
-            batchSize = 1;
-
-        return _batchService.Batch(challenges, batchSize);
     }
 
     private ExternalGameStartMetaData BuildExternalGameMetaData(GameStartContext context, SyncStartGameStartedState syncGameStartState)

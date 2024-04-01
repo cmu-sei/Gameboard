@@ -75,15 +75,32 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
     public async Task DeleteTeam(string teamId, SimpleEntity actingUser, CancellationToken cancellationToken)
     {
         var teamState = await GetTeamState(teamId, actingUser, cancellationToken);
+        var isSyncStartGame = await _store
+            .WithNoTracking<Data.Game>()
+            .Where(g => g.Id == teamState.GameId && g.RequireSynchronizedStart)
+            .AnyAsync(cancellationToken);
 
         // delete player records
-        await _store
+        var players = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => p.TeamId == teamId)
+            .Select(p => new
+            {
+                p.Id,
+                Name = p.ApprovedName,
+                p.TeamId,
+                p.UserId
+            })
+            .ToArrayAsync(cancellationToken);
+        var playerIds = players.Select(p => p.Id).Distinct().ToArray();
+
+        await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => playerIds.Contains(p.Id))
             .ExecuteDeleteAsync(cancellationToken);
 
         // notify app listeners
-        await _mediator.Publish(new TeamDeletedNotification(teamState.GameId, teamState.Id), cancellationToken);
+        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(new GameEnrolledPlayersChangeContext(teamState.GameId, isSyncStartGame)));
 
         // notify hub that the team is deleted /players left so the client can respond
         await _teamHubService.SendTeamDeleted(teamState, actingUser);

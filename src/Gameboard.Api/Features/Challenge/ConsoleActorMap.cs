@@ -81,8 +81,6 @@ namespace Gameboard.Api.Services
 
             foreach (var item in team)
                 _cache.TryRemove(item.UserId, out _);
-
         }
-
     }
 }

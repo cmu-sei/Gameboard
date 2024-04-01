@@ -29,8 +29,7 @@ internal class SyncStartGameService : ISyncStartGameService
     private readonly IActingUserService _actingUserService;
     private readonly IAppUrlService _appUrlService;
     private readonly BackgroundAsyncTaskContext _backgroundTaskContext;
-    private readonly IGameHubBus _gameHubBus;
-    private readonly IJsonService _jsonService;
+    private readonly IGameHubService _gameHubBus;
     private readonly ILockService _lockService;
     private readonly ILogger<SyncStartGameService> _logger;
     private readonly INowService _nowService;
@@ -45,8 +44,7 @@ internal class SyncStartGameService : ISyncStartGameService
         IActingUserService actingUserService,
         IAppUrlService appUrlService,
         BackgroundAsyncTaskContext backgroundTaskContext,
-        IGameHubBus gameHubBus,
-        IJsonService jsonService,
+        IGameHubService gameHubBus,
         ILockService lockService,
         ILogger<SyncStartGameService> logger,
         INowService nowService,
@@ -61,7 +59,6 @@ internal class SyncStartGameService : ISyncStartGameService
         _appUrlService = appUrlService;
         _backgroundTaskContext = backgroundTaskContext;
         _gameHubBus = gameHubBus;
-        _jsonService = jsonService;
         _lockService = lockService;
         _logger = logger;
         _nowService = nowService;
@@ -295,6 +292,11 @@ internal class SyncStartGameService : ISyncStartGameService
                 Id = g.Id,
                 Name = g.Name,
                 IsSyncStart = g.RequireSynchronizedStart,
+                ExecutionWindow = new DateRange
+                {
+                    Start = g.GameStart,
+                    End = g.GameEnd
+                },
                 SessionMinutes = g.SessionMinutes
             })
             .SingleAsync(g => g.Id == gameId, cancellationToken);
@@ -323,12 +325,19 @@ internal class SyncStartGameService : ISyncStartGameService
             }).ToArrayAsync(cancellationToken);
 
         // just for clarity, the game can start when:
+        // - "now" is inside the game execution window
         // - there are a nonzero number of players
         // - all players have marked "ready" (or had it marked for them by an admin)
         // - the game doesn't contain any players with started sessions
         // - all the player sessions are aligned
         var allPlayersReady = players.All(p => p.IsReady);
         var hasStartedPlayers = players.Any(p => p.SessionBegin.IsNotEmpty() || p.SessionEnd.IsNotEmpty());
+        var nowish = _nowService.Get();
+        var isInExecutionWindow =
+        (
+            (game.ExecutionWindow.Start.IsEmpty() || game.ExecutionWindow.Start <= nowish) &&
+            (game.ExecutionWindow.End.IsEmpty() || game.ExecutionWindow.End >= nowish)
+        );
 
         // if the game is started, or if any players have sessions, don't start,
         return new ValidateSyncStartResult
@@ -337,6 +346,7 @@ internal class SyncStartGameService : ISyncStartGameService
             Game = game,
             AllPlayersReady = allPlayersReady,
             HasStartedPlayers = hasStartedPlayers,
+            IsInExecutionWindow = isInExecutionWindow,
             Players = players,
             SyncStartState = state
         };

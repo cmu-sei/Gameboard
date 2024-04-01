@@ -63,10 +63,11 @@ public sealed class UpdateIsReadyModel
 
 public sealed class ValidateSyncStartResult
 {
-    public required bool CanStart { get; set; }
     public required ValidateSyncStartGame Game { get; set; }
     public required bool AllPlayersReady { get; set; }
+    public required bool CanStart { get; set; }
     public required bool HasStartedPlayers { get; set; }
+    public required bool IsInExecutionWindow { get; set; }
     public required IEnumerable<ValidateSyncStartResultPlayer> Players { get; set; }
     public required SyncStartState SyncStartState { get; set; }
 }
@@ -77,6 +78,7 @@ public sealed class ValidateSyncStartGame
     public required string Name { get; set; }
     public required bool IsSyncStart { get; set; }
     public required int SessionMinutes { get; set; }
+    public required DateRange ExecutionWindow { get; set; }
 }
 
 public sealed class ValidateSyncStartResultPlayer

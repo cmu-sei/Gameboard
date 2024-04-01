@@ -108,7 +108,6 @@ namespace Gameboard.Api.Controllers
             );
 
             await Validate(new Entity { Id = id });
-
             return await UserService.Retrieve(id);
         }
 
