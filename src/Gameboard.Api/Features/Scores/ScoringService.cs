@@ -265,7 +265,7 @@ internal class ScoringService : IScoringService
                 EnteredBy = new SimpleEntity { Id = b.EnteredByUserId, Name = b.EnteredByUser.ApprovedName },
                 EnteredOn = b.EnteredOn,
                 TeamId = b.TeamId
-            }),
+            }).OrderByDescending(b => b.PointValue),
             IsAdvancedToNextRound = captain.Advanced,
             OverallScore = overallScore,
             CumulativeTimeMs = cumulativeTimeMs,
@@ -277,6 +277,7 @@ internal class ScoringService : IScoringService
                     // every challenge should have a spec, but because specId is not on actual
                     // foreign key (for some reason), this is a bailout in case the spec
                     // is removed from the game
+                    // (this also applies to challenges built from an "IsHidden" challenge spec)
                     var spec = specs.SingleOrDefault(s => s.Id == c.SpecId);
                     if (spec is null)
                         return null;
@@ -285,6 +286,7 @@ internal class ScoringService : IScoringService
                 }
             )
             .Where(c => c is not null)
+            .OrderBy(c => c.Name)
         };
     }
 

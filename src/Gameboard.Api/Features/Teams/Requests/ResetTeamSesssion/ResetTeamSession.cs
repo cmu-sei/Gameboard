@@ -29,7 +29,6 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
     private readonly IExternalGameService _externalGameService;
     private readonly IInternalHubBus _hubBus;
     private readonly ILogger<ResetTeamSessionHandler> _logger;
-    private readonly IMediator _mediator;
     private readonly IScoreDenormalizationService _scoreDenormalizationService;
     private readonly IStore _store;
     private readonly ISyncStartGameService _syncStartGameService;
@@ -42,7 +41,6 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
         IExternalGameService externalGameService,
         IInternalHubBus hubBus,
         ILogger<ResetTeamSessionHandler> logger,
-        IMediator mediator,
         IScoreDenormalizationService scoreDenormalizationService,
         IStore store,
         ISyncStartGameService syncStartGameService,
@@ -54,7 +52,6 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
         _externalGameService = externalGameService;
         _hubBus = hubBus;
         _logger = logger;
-        _mediator = mediator;
         _scoreDenormalizationService = scoreDenormalizationService;
         _store = store;
         _syncStartGameService = syncStartGameService;

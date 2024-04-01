@@ -88,7 +88,7 @@ internal class GameStartService : IGameStartService
         }
         catch (Exception ex)
         {
-            _logger.LogError(LogEventId.GameStart_Failed, exception: ex, message: $"""Deploy for game "{game.Id}" failed.""");
+            _logger.LogError(LogEventId.GameStart_Failed, exception: ex, message: $"""Deploy for game {game.Id} failed.""");
 
             // allow the start service to do custom cleanup
             await gameModeService.TryCleanUpFailedDeploy(startRequest, ex, cancellationToken);
