@@ -129,7 +129,6 @@ public class SessionForecast
 
 public class GameEngineMode
 {
-    public static readonly string Cubespace = "unity";
     public static readonly string External = "external";
     public static readonly string Standard = "vm";
 }

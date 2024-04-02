@@ -34,8 +34,6 @@ public class GameboardDbContext : DbContext
                 .HasDefaultValueSql("NULL")
                 .ValueGeneratedOnAdd();
 
-            // NOTE: Must be edited manually in the MSSQL migration to 
-            // compatible syntax
             k.Property(k => k.GeneratedOn)
                 .HasDefaultValueSql("NOW()")
                 .ValueGeneratedOnAdd();
@@ -44,74 +42,6 @@ public class GameboardDbContext : DbContext
                 .WithMany(u => u.ApiKeys)
                 .OnDelete(DeleteBehavior.Cascade);
         });
-
-        builder.Entity<ExternalGameTeam>(b =>
-        {
-            b.Property(s => s.Id).HasStandardGuidLength();
-            b.Property(s => s.TeamId)
-                .HasStandardGuidLength()
-                .IsRequired();
-
-            b.HasAlternateKey(s => new { s.TeamId, s.GameId });
-            b.HasOne(b => b.Game)
-                .WithMany(g => g.ExternalGameTeams)
-                .IsRequired();
-        });
-
-        builder.Entity<Player>(b =>
-        {
-            b.HasKey(p => p.Id);
-            b.HasIndex(p => p.TeamId);
-            b.Property(p => p.Id).HasMaxLength(40);
-            b.Property(p => p.TeamId).HasMaxLength(40);
-            b.Property(p => p.UserId).HasMaxLength(40);
-            b.Property(p => p.GameId).HasMaxLength(40);
-            b.Property(p => p.ApprovedName).HasMaxLength(64);
-            b.Property(p => p.Name).HasMaxLength(64);
-            b.Property(p => p.NameStatus).HasMaxLength(40);
-            b.Property(p => p.InviteCode).HasMaxLength(40);
-            b.Property(p => p.AdvancedFromTeamId).HasStandardGuidLength();
-
-            // nav properties
-            b.HasOne(p => p.User).WithMany(u => u.Enrollments).OnDelete(DeleteBehavior.Cascade);
-            b
-                .HasOne(p => p.Sponsor).WithMany(s => s.SponsoredPlayers)
-                .IsRequired();
-
-            b
-                .HasOne(p => p.AdvancedFromGame)
-                .WithMany(g => g.AdvancedPlayers)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            b
-                .HasOne(p => p.AdvancedFromPlayer)
-                .WithMany(p => p.AdvancedToPlayers)
-                .OnDelete(DeleteBehavior.SetNull);
-        });
-
-        builder.Entity<Game>(b =>
-        {
-            b.Property(u => u.Id).HasMaxLength(40);
-            b.Property(p => p.Sponsor).HasMaxLength(40);
-            b.Property(p => p.TestCode).HasMaxLength(40);
-            b.Property(p => p.Name).HasMaxLength(64);
-            b.Property(p => p.Competition).HasMaxLength(64);
-            b.Property(p => p.Season).HasMaxLength(64);
-            b.Property(p => p.Division).HasMaxLength(64);
-            b.Property(p => p.Track).HasMaxLength(64);
-            b.Property(p => p.Logo).HasMaxLength(64);
-            b.Property(p => p.Background).HasMaxLength(64);
-            b.Property(p => p.TestCode).HasMaxLength(64);
-            b.Property(p => p.Key).HasMaxLength(64);
-            b.Property(p => p.CardText1).HasMaxLength(64);
-            b.Property(p => p.CardText2).HasMaxLength(64);
-            b.Property(p => p.CardText3).HasMaxLength(64);
-            b.Property(p => p.Mode).HasMaxLength(40);
-            b.Property(p => p.ExternalGameClientUrl).HasStandardUrlLength();
-            b.Property(p => p.ExternalGameStartupEndpoint).HasStandardUrlLength();
-            b.Property(p => p.ExternalGameStartupEndpoint).HasStandardUrlLength();
-        });
-
 
         builder.Entity<Challenge>(b =>
         {
@@ -218,8 +148,7 @@ public class GameboardDbContext : DbContext
             b.Property(s => s.Answers).IsRequired();
             b.Property(s => s.Score).IsRequired().HasDefaultValue(0);
 
-            b
-                .HasOne(s => s.Challenge)
+            b.HasOne(s => s.Challenge)
                 .WithMany(c => c.Submissions)
                 .IsRequired();
         });
@@ -234,18 +163,39 @@ public class GameboardDbContext : DbContext
                 .HasStandardGuidLength()
                 .IsRequired();
 
-            b
-                .HasOne(d => d.Game)
+            b.HasOne(d => d.Game)
                 .WithMany(g => g.DenormalizedTeamScores)
                 .IsRequired();
         });
 
-        builder.Entity<Sponsor>(b =>
+        builder.Entity<ExternalGameHost>(b =>
         {
-            b.Property(u => u.Id).HasMaxLength(40);
-            b.Property(u => u.Name).HasMaxLength(128);
-            b.HasOne(s => s.ParentSponsor)
-                .WithMany(p => p.ChildSponsors);
+            b.Property(c => c.Id).HasStandardGuidLength();
+            b.Property(c => c.Name).HasStandardNameLength().IsRequired();
+            b.Property(c => c.ClientUrl).HasStandardUrlLength();
+            b.Property(c => c.HostApiKey).HasMaxLength(70);
+            b.Property(c => c.HostUrl).HasStandardUrlLength().IsRequired();
+            b.Property(c => c.PingEndpoint).HasStandardUrlLength();
+            b.Property(c => c.StartupEndpoint).HasStandardUrlLength().IsRequired();
+            b.Property(c => c.TeamExtendedEndpoint).HasStandardUrlLength();
+
+            b.HasOne(c => c.Game)
+                .WithOne(g => g.ExternalHost)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<ExternalGameTeam>(b =>
+        {
+            b.Property(s => s.Id).HasStandardGuidLength();
+            b.Property(s => s.TeamId)
+                .HasStandardGuidLength()
+                .IsRequired();
+
+            b.HasAlternateKey(s => new { s.TeamId, s.GameId });
+            b.HasOne(b => b.Game)
+                .WithMany(g => g.ExternalGameTeams)
+                .IsRequired();
         });
 
         builder.Entity<Feedback>(b =>
@@ -263,6 +213,26 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.GameId).HasMaxLength(40);
         });
 
+        builder.Entity<Game>(b =>
+        {
+            b.Property(u => u.Id).HasMaxLength(40);
+            b.Property(p => p.Sponsor).HasMaxLength(40);
+            b.Property(p => p.TestCode).HasMaxLength(40);
+            b.Property(p => p.Name).HasMaxLength(64);
+            b.Property(p => p.Competition).HasMaxLength(64);
+            b.Property(p => p.Season).HasMaxLength(64);
+            b.Property(p => p.Division).HasMaxLength(64);
+            b.Property(p => p.Track).HasMaxLength(64);
+            b.Property(p => p.Logo).HasMaxLength(64);
+            b.Property(p => p.Background).HasMaxLength(64);
+            b.Property(p => p.TestCode).HasMaxLength(64);
+            b.Property(p => p.Key).HasMaxLength(64);
+            b.Property(p => p.CardText1).HasMaxLength(64);
+            b.Property(p => p.CardText2).HasMaxLength(64);
+            b.Property(p => p.CardText3).HasMaxLength(64);
+            b.Property(p => p.Mode).HasMaxLength(40);
+        });
+
         builder.Entity<ArchivedChallenge>(b =>
         {
             // Archive is snapshot with no foreign keys; explicitly index Id fields for searching
@@ -277,6 +247,37 @@ public class GameboardDbContext : DbContext
             b.Property(u => u.PlayerId).HasMaxLength(40);
             b.Property(p => p.PlayerName).HasMaxLength(64);
             b.Property(u => u.UserId).HasMaxLength(40);
+        });
+
+        builder.Entity<Player>(b =>
+        {
+            b.HasKey(p => p.Id);
+            b.HasIndex(p => p.TeamId);
+            b.Property(p => p.Id).HasMaxLength(40);
+            b.Property(p => p.TeamId).HasMaxLength(40);
+            b.Property(p => p.UserId).HasMaxLength(40);
+            b.Property(p => p.GameId).HasMaxLength(40);
+            b.Property(p => p.ApprovedName).HasMaxLength(64);
+            b.Property(p => p.Name).HasMaxLength(64);
+            b.Property(p => p.NameStatus).HasMaxLength(40);
+            b.Property(p => p.InviteCode).HasMaxLength(40);
+            b.Property(p => p.AdvancedFromTeamId).HasStandardGuidLength();
+
+            // nav properties
+            b.HasOne(p => p.User).WithMany(u => u.Enrollments).OnDelete(DeleteBehavior.Cascade);
+            b
+                .HasOne(p => p.Sponsor).WithMany(s => s.SponsoredPlayers)
+                .IsRequired();
+
+            b
+                .HasOne(p => p.AdvancedFromGame)
+                .WithMany(g => g.AdvancedPlayers)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            b
+                .HasOne(p => p.AdvancedFromPlayer)
+                .WithMany(p => p.AdvancedToPlayers)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<PublishedCertificate>(b =>
@@ -318,30 +319,12 @@ public class GameboardDbContext : DbContext
                 .IsRequired(false);
         });
 
-        builder.Entity<Ticket>(b =>
+        builder.Entity<Sponsor>(b =>
         {
-            b.HasOne(p => p.Challenge).WithMany(u => u.Tickets).OnDelete(DeleteBehavior.SetNull);
-            b.HasOne(p => p.Player).WithMany(u => u.Tickets).OnDelete(DeleteBehavior.SetNull);
             b.Property(u => u.Id).HasMaxLength(40);
-            b.Property(u => u.CreatorId).HasMaxLength(40);
-            b.Property(u => u.RequesterId).HasMaxLength(40);
-            b.Property(u => u.AssigneeId).HasMaxLength(40);
-            b.Property(u => u.ChallengeId).HasMaxLength(40);
-            b.Property(u => u.PlayerId).HasMaxLength(40);
-            b.Property(u => u.TeamId).HasMaxLength(40);
-            b.Property(u => u.Status).HasMaxLength(64);
-            b.Property(u => u.Key).UseSerialColumn(); // Serial increment by 1
-            b.Property(u => u.Summary).HasMaxLength(128).IsRequired();
-            b.HasIndex(u => u.Key).IsUnique();
-        });
-
-        builder.Entity<TicketActivity>(b =>
-        {
-            b.HasOne(p => p.Ticket).WithMany(u => u.Activity).OnDelete(DeleteBehavior.Cascade);
-            b.Property(u => u.TicketId).HasMaxLength(40);
-            b.Property(u => u.UserId).HasMaxLength(40);
-            b.Property(u => u.AssigneeId).HasMaxLength(40);
-            b.Property(u => u.Status).HasMaxLength(64);
+            b.Property(u => u.Name).HasMaxLength(128);
+            b.HasOne(s => s.ParentSponsor)
+                .WithMany(p => p.ChildSponsors);
         });
 
         builder.Entity<SupportSettings>(b =>
@@ -392,6 +375,32 @@ public class GameboardDbContext : DbContext
                 .IsRequired();
         });
 
+        builder.Entity<Ticket>(b =>
+        {
+            b.HasOne(p => p.Challenge).WithMany(u => u.Tickets).OnDelete(DeleteBehavior.SetNull);
+            b.HasOne(p => p.Player).WithMany(u => u.Tickets).OnDelete(DeleteBehavior.SetNull);
+            b.Property(u => u.Id).HasMaxLength(40);
+            b.Property(u => u.CreatorId).HasMaxLength(40);
+            b.Property(u => u.RequesterId).HasMaxLength(40);
+            b.Property(u => u.AssigneeId).HasMaxLength(40);
+            b.Property(u => u.ChallengeId).HasMaxLength(40);
+            b.Property(u => u.PlayerId).HasMaxLength(40);
+            b.Property(u => u.TeamId).HasMaxLength(40);
+            b.Property(u => u.Status).HasMaxLength(64);
+            b.Property(u => u.Key).UseSerialColumn(); // Serial increment by 1
+            b.Property(u => u.Summary).HasMaxLength(128).IsRequired();
+            b.HasIndex(u => u.Key).IsUnique();
+        });
+
+        builder.Entity<TicketActivity>(b =>
+        {
+            b.HasOne(p => p.Ticket).WithMany(u => u.Activity).OnDelete(DeleteBehavior.Cascade);
+            b.Property(u => u.TicketId).HasMaxLength(40);
+            b.Property(u => u.UserId).HasMaxLength(40);
+            b.Property(u => u.AssigneeId).HasMaxLength(40);
+            b.Property(u => u.Status).HasMaxLength(64);
+        });
+
         builder.Entity<User>(b =>
         {
             b.Property(u => u.Id).HasMaxLength(40);
@@ -420,6 +429,7 @@ public class GameboardDbContext : DbContext
     public DbSet<ChallengeSpec> ChallengeSpecs { get; set; }
     public DbSet<ChallengeSubmission> ChallengeSubmissions { get; set; }
     public DbSet<DenormalizedTeamScore> DenormalizedTeamScores { get; set; }
+    public DbSet<ExternalGameHost> ExternalGameHosts { get; set; }
     public DbSet<ExternalGameTeam> ExternalGameTeams { get; set; }
     public DbSet<Feedback> Feedback { get; set; }
     public DbSet<Game> Games { get; set; }

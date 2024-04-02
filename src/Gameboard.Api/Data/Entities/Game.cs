@@ -47,9 +47,7 @@ public class Game : IEntity
     public string CardText3 { get; set; }
 
     // mode stuff
-    public string ExternalGameClientUrl { get; set; }
-    public string ExternalGameStartupEndpoint { get; set; }
-    public string ExternalGameTeamExtendedEndpoint { get; set; }
+    public ExternalGameHost ExternalHost { get; set; }
     public string Mode { get; set; }
     public PlayerMode PlayerMode { get; set; }
     public bool RequireSynchronizedStart { get; set; } = false;

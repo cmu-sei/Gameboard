@@ -20,6 +20,12 @@ public sealed class CantResolveGameDeployStatus : GameboardException
         : base($"Couldn't resolve deploy status for game {gameId}.") { }
 }
 
+internal class EmptyExternalHostUrl : GameboardException
+{
+    public EmptyExternalHostUrl(string gameId, string hostUrl)
+        : base($"""Game ${gameId} doesn't have a configured external host URL (current value: "{hostUrl}".)""") { }
+}
+
 internal class EmptyExternalStartupEndpoint : GameboardException
 {
     public EmptyExternalStartupEndpoint(string gameId, string startupUrl)

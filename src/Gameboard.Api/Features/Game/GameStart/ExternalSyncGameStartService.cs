@@ -26,7 +26,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     private readonly ChallengeService _challengeService;
     private readonly CoreOptions _coreOptions;
     private readonly IExternalGameService _externalGameService;
-    private readonly IGamebrainService _gamebrainService;
+    private readonly IExternalGameHostService _gamebrainService;
     private readonly IGameEngineService _gameEngineService;
     private readonly IGameHubService _gameHubBus;
     private readonly IChallengeGraderUrlService _graderUrlService;
@@ -46,7 +46,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         ChallengeService challengeService,
         CoreOptions coreOptions,
         IExternalGameService externalGameService,
-        IGamebrainService gamebrainService,
+        IExternalGameHostService gamebrainService,
         IGameEngineService gameEngineService,
         IGameHubService gameHubBus,
         IChallengeGraderUrlService graderUrlService,
@@ -566,10 +566,10 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     private async Task<IEnumerable<ExternalGameClientTeamConfig>> NotifyExternalGameHost(GameModeStartRequest request, SyncStartGameStartedState syncGameStartState, CancellationToken cancellationToken)
     {
         // NOTIFY EXTERNAL CLIENT
-        Log("Notifying external game host (Gamebrain)...", request.Game.Id);
+        Log("Notifying external game host...", request.Game.Id);
         // build metadata for external host
         var metaData = BuildExternalGameMetaData(request.Context, syncGameStartState);
-        var externalClientTeamConfigs = await _gamebrainService.StartGame(metaData);
+        var externalClientTeamConfigs = await _gamebrainService.StartGame(metaData, cancellationToken);
         Log("External game host notified!", request.Game.Id);
 
         return externalClientTeamConfigs;

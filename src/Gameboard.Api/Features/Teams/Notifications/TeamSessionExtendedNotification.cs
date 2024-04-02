@@ -13,13 +13,13 @@ public record TeamSessionExtendedNotification(string TeamId, DateTimeOffset NewS
 
 internal class TeamSessionExtendedHandler : INotificationHandler<TeamSessionExtendedNotification>
 {
-    private readonly IGamebrainService _gamebrainService;
+    private readonly IExternalGameHostService _gamebrainService;
     private readonly IStore _store;
     private readonly ITeamService _teamService;
 
     public TeamSessionExtendedHandler
     (
-        IGamebrainService gamebrainService,
+        IExternalGameHostService gamebrainService,
         IStore store,
         ITeamService teamService
     )

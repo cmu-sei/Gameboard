@@ -15,7 +15,6 @@ using Gameboard.Api.Features.Games.Validators;
 using Gameboard.Api.Features.Reports;
 using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Teams;
-using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Features.Users;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Structure;
@@ -40,7 +39,7 @@ public static class ServiceStartupExtensions
             .AddSingleton<IBackgroundAsyncTaskQueueService, BackgroundAsyncTaskQueueService>()
             .AddSingleton<IJsonService, JsonService>(f => jsonService)
             .AddSingleton(opts => JsonService.GetJsonSerializerOptions())
-            .AddSingleton(jsonService)
+            // .AddSingleton(jsonService)
             .AddConcretesFromNamespace("Gameboard.Api.Services")
             .AddConcretesFromNamespace("Gameboard.Api.Structure.Authorizers")
             .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators")
@@ -56,7 +55,6 @@ public static class ServiceStartupExtensions
             .AddScoped<ITeamService, TeamService>()
             .AddScoped<IUserHubBus, UserHubBus>()
             // so close to fixing this, but it's a very special snowflake of a binding
-            .AddScoped<IUnityStore, UnityStore>()
             .AddInterfacesWithSingleImplementations();
 
         foreach (var t in Assembly

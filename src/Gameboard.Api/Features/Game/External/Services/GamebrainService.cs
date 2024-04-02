@@ -2,30 +2,24 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
-using Gameboard.Api.Features.UnityGames;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Games.External;
 
-public interface IGamebrainService
+public interface IExternalGameHostService
 {
-    Task<string> DeployUnitySpace(string gameId, string teamId);
-    Task<string> GetGameState(string gameId, string teamId);
-    Task<string> UndeployUnitySpace(string gameId, string teamId);
-    Task UpdateConsoleUrls(string gameId, string teamId, IEnumerable<UnityGameVm> vms);
-    Task<IEnumerable<ExternalGameClientTeamConfig>> StartGame(ExternalGameStartMetaData metaData);
+    Task<IEnumerable<ExternalGameClientTeamConfig>> StartGame(ExternalGameStartMetaData metaData, CancellationToken cancellationToken);
     Task ExtendTeamSession(string teamId, DateTimeOffset newSessionEnd, CancellationToken cancellationTokena);
 }
 
-internal class GamebrainService : IGamebrainService
+internal class GamebrainService : IExternalGameHostService
 {
     private readonly IExternalGameHostAccessTokenProvider _accessTokenProvider;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -56,28 +50,24 @@ internal class GamebrainService : IGamebrainService
     {
         // resolve the team's game and the external host's "extend session" url
         var gameId = await _teamService.GetGameId(teamId, cancellationToken);
-        var rawExtendEndpoint = await _store
-            .WithNoTracking<Data.Game>()
-            .Where(g => g.Id == gameId)
-            .Select(g => g.ExternalGameTeamExtendedEndpoint)
-            .SingleOrDefaultAsync(cancellationToken);
+        var config = await LoadConfig(gameId, cancellationToken);
 
-        if (rawExtendEndpoint.IsEmpty())
+        if (config.TeamExtendedEndpoint.IsEmpty())
         {
-            _logger.LogInformation($"No team extension configured for the external game host. Skipping session extension to {newSessionEnd} for team {teamId}");
+            _logger.LogInformation($"No team extension configured for the external game host. Skipping session extension to {newSessionEnd} for team {teamId}.");
             return;
         }
 
-        var extendEndpoint = $"{rawExtendEndpoint.Trim()}/{teamId}";
+        var extendEndpoint = $"{config.TeamExtendedEndpoint}/{teamId}";
 
         // make the request to the external game host
         _logger.LogInformation($"Posting a team extension ({newSessionEnd}) to external game host at {extendEndpoint}.");
-        var client = await CreateGamebrain();
+        var client = await CreateHttpClient(config);
 
         try
         {
             var response = await client
-            .PutAsJsonAsync(extendEndpoint, new { NewSessionEnd = newSessionEnd }, cancellationToken);
+                .PutAsJsonAsync(extendEndpoint, new { NewSessionEnd = newSessionEnd }, cancellationToken);
 
             response.EnsureSuccessStatusCode();
             _logger.LogInformation($"Successfully extended the team.");
@@ -88,26 +78,14 @@ internal class GamebrainService : IGamebrainService
         }
     }
 
-    public async Task<IEnumerable<ExternalGameClientTeamConfig>> StartGame(ExternalGameStartMetaData metaData)
+    public async Task<IEnumerable<ExternalGameClientTeamConfig>> StartGame(ExternalGameStartMetaData metaData, CancellationToken cancellationToken)
     {
-        // resolve and format the endpoint to post the request to
-        var rawStartupUrl = await _store
-            .WithNoTracking<Data.Game>()
-            .Where(g => g.Id == metaData.Game.Id)
-            .Select(g => g.ExternalGameStartupEndpoint)
-            .SingleOrDefaultAsync();
+        var config = await LoadConfig(metaData.Game.Id, cancellationToken);
+        var client = await CreateHttpClient(config);
 
-        if (rawStartupUrl.IsEmpty())
-            throw new EmptyExternalStartupEndpoint(metaData.Game.Id, rawStartupUrl);
-
-        var startupUrl = rawStartupUrl.Trim();
-
-        // create a client and post the data
-        var client = await CreateGamebrain();
-
-        _logger.LogInformation($"Posting startup data to to the external game host at {client.BaseAddress}/{startupUrl}: {_jsonService.Serialize(metaData)}");
+        _logger.LogInformation($"Posting startup data to to the external game host at {client.BaseAddress}/{config.StartupEndpoint}: {_jsonService.Serialize(metaData)}");
         var teamConfigResponse = await client
-            .PostAsJsonAsync($"{startupUrl}", metaData)
+            .PostAsJsonAsync(config.StartupEndpoint, metaData)
             .WithContentDeserializedAs<IDictionary<string, string>>();
         _logger.LogInformation($"Posted startup data. External host's response: {teamConfigResponse} ");
 
@@ -118,56 +96,30 @@ internal class GamebrainService : IGamebrainService
         });
     }
 
-    private async Task<HttpClient> CreateGamebrain()
+    private async Task<ExternalGameHost> LoadConfig(string gameId, CancellationToken cancellationToken)
     {
-        var gb = _httpClientFactory.CreateClient("Gamebrain");
-        gb.DefaultRequestHeaders.Add("Authorization", $"Bearer {await _accessTokenProvider.GetToken()}");
-        return gb;
+        var externalConfig = await _store
+            .WithNoTracking<ExternalGameHost>()
+            .Where(c => c.GameId == gameId && c.Game.Mode == GameEngineMode.External)
+            .SingleOrDefaultAsync(cancellationToken) ?? throw new ResourceNotFound<ExternalGameHost>(gameId, $"Couldn't locate an ExternalGameConfig for game ID {gameId} - is it set to External mode?");
+
+        return externalConfig;
     }
 
-    [Obsolete("PC4")]
-    public async Task<string> DeployUnitySpace(string gameId, string teamId)
+    private async Task<HttpClient> CreateHttpClient(ExternalGameHost config)
     {
-        var client = await CreateGamebrain();
-        var m = await client.PostAsync($"admin/deploy/{gameId}/{teamId}", null);
-        return await m.Content.ReadAsStringAsync();
-    }
+        var client = _httpClientFactory.CreateClient();
+        client.Timeout = TimeSpan.FromMinutes(5);
 
-    [Obsolete("PC4")]
-    public async Task<string> GetGameState(string gameId, string teamId)
-    {
-        var client = await CreateGamebrain();
-        var gamebrainEndpoint = $"admin/deploy/{gameId}/{teamId}";
-        var m = await client.GetAsync(gamebrainEndpoint);
+        // todo: different header names? non-bearer?
+        if (config.HostApiKey.IsNotEmpty())
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {await _accessTokenProvider.GetToken()}");
 
-        if (m.IsSuccessStatusCode)
-        {
-            var stringContent = await m.Content.ReadAsStringAsync();
+        // startup endpoint, at minimum, is required
+        if (config.HostUrl.IsEmpty())
+            throw new EmptyExternalStartupEndpoint(config.GameId, config.StartupEndpoint);
 
-            if (!stringContent.IsEmpty())
-            {
-                return stringContent;
-            }
-
-            throw new GamebrainEmptyResponseException(HttpMethod.Get, gamebrainEndpoint);
-        }
-
-        throw new GamebrainException(HttpMethod.Get, gamebrainEndpoint, m.StatusCode, await m.Content.ReadAsStringAsync());
-    }
-
-    [Obsolete("PC4")]
-    public async Task UpdateConsoleUrls(string gameId, string teamId, IEnumerable<UnityGameVm> vms)
-    {
-        var client = await CreateGamebrain();
-        await client.PostAsync($"admin/update_console_urls/{teamId}", JsonContent.Create(vms.ToArray(), mediaType: MediaTypeHeaderValue.Parse("application/json")));
-    }
-
-    [Obsolete("PC4")]
-    public async Task<string> UndeployUnitySpace(string gameId, string teamId)
-    {
-        var client = await CreateGamebrain();
-
-        var m = await client.GetAsync($"admin/undeploy/{teamId}");
-        return await m.Content.ReadAsStringAsync();
+        client.BaseAddress = new Uri(config.HostUrl);
+        return client;
     }
 }

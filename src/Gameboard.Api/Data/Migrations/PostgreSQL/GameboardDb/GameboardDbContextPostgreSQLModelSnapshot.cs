@@ -504,6 +504,61 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.ToTable("DenormalizedTeamScores");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.ExternalGameHost", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ClientUrl")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("DestroyResourcesOnDeployFailure")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("GameId")
+                        .IsRequired()
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int?>("GamespaceDeployBatchSize")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("HostApiKey")
+                        .HasMaxLength(70)
+                        .HasColumnType("character varying(70)");
+
+                    b.Property<string>("HostUrl")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("PingEndpoint")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("StartupEndpoint")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("TeamExtendedEndpoint")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameId")
+                        .IsUnique();
+
+                    b.ToTable("ExternalGameHosts");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ExternalGameTeam", b =>
                 {
                     b.Property<string>("Id")
@@ -628,17 +683,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<string>("Division")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
-
-                    b.Property<string>("ExternalGameClientUrl")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ExternalGameStartupEndpoint")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ExternalGameTeamExtendedEndpoint")
-                        .HasColumnType("text");
 
                     b.Property<string>("FeedbackConfig")
                         .HasColumnType("text");
@@ -1417,6 +1461,17 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Game");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.ExternalGameHost", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Game", "Game")
+                        .WithOne("ExternalHost")
+                        .HasForeignKey("Gameboard.Api.Data.ExternalGameHost", "GameId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .IsRequired();
+
+                    b.Navigation("Game");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ExternalGameTeam", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
@@ -1722,6 +1777,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("DenormalizedTeamScores");
 
                     b.Navigation("ExternalGameTeams");
+
+                    b.Navigation("ExternalHost");
 
                     b.Navigation("Feedback");
 

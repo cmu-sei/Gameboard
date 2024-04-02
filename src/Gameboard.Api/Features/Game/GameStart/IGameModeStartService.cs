@@ -9,8 +9,8 @@ namespace Gameboard.Api.Features.Games.Start;
 //
 // 1. Standard (VM) games, no synchronized start
 // 2. Standard (VM) games, synchronized start
-// 3. External (Unity) games, no synchronized start (e.g. PC4)
-// 4. External (Unity) games, synchronized start
+// 3. External (e.g. Unity) games, no synchronized start
+// 4. External (e.g. Unity) games, synchronized start
 // 
 // Each possible mode will eventually have an implementation of this interface that orchestrates 
 // the logic that happens when a game starts (e.g. ExternalSyncGameStartService for #4)
