@@ -47,6 +47,7 @@ public class Game : IEntity
     public string CardText3 { get; set; }
 
     // mode stuff
+    public string ExternalHostId { get; set; }
     public ExternalGameHost ExternalHost { get; set; }
     public string Mode { get; set; }
     public PlayerMode PlayerMode { get; set; }

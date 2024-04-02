@@ -517,10 +517,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<bool>("DestroyResourcesOnDeployFailure")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("GameId")
-                        .IsRequired()
-                        .HasColumnType("character varying(40)");
-
                     b.Property<int?>("GamespaceDeployBatchSize")
                         .HasColumnType("integer");
 
@@ -552,9 +548,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasColumnType("character varying(200)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("GameId")
-                        .IsUnique();
 
                     b.ToTable("ExternalGameHosts");
                 });
@@ -684,6 +677,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<string>("ExternalHostId")
+                        .HasColumnType("character varying(40)");
+
                     b.Property<string>("FeedbackConfig")
                         .HasColumnType("text");
 
@@ -777,6 +773,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasColumnType("character varying(64)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ExternalHostId");
 
                     b.ToTable("Games");
                 });
@@ -1461,17 +1459,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Game");
                 });
 
-            modelBuilder.Entity("Gameboard.Api.Data.ExternalGameHost", b =>
-                {
-                    b.HasOne("Gameboard.Api.Data.Game", "Game")
-                        .WithOne("ExternalHost")
-                        .HasForeignKey("Gameboard.Api.Data.ExternalGameHost", "GameId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .IsRequired();
-
-                    b.Navigation("Game");
-                });
-
             modelBuilder.Entity("Gameboard.Api.Data.ExternalGameTeam", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
@@ -1519,6 +1506,16 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Player");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.Game", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.ExternalGameHost", "ExternalHost")
+                        .WithMany("UsedByGames")
+                        .HasForeignKey("ExternalHostId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ExternalHost");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.ManualBonus", b =>
@@ -1768,6 +1765,11 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("PublishedPracticeCertificates");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.ExternalGameHost", b =>
+                {
+                    b.Navigation("UsedByGames");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Game", b =>
                 {
                     b.Navigation("AdvancedPlayers");
@@ -1777,8 +1779,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("DenormalizedTeamScores");
 
                     b.Navigation("ExternalGameTeams");
-
-                    b.Navigation("ExternalHost");
 
                     b.Navigation("Feedback");
 

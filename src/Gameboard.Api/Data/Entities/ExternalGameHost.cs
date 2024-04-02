@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Gameboard.Api.Data;
 
 public sealed class ExternalGameHost : IEntity
@@ -14,6 +16,5 @@ public sealed class ExternalGameHost : IEntity
     public string TeamExtendedEndpoint { get; set; }
 
     // nav properties
-    public string GameId { get; set; }
-    public Data.Game Game { get; set; }
+    public ICollection<Data.Game> UsedByGames { get; set; } = new List<Data.Game>();
 }

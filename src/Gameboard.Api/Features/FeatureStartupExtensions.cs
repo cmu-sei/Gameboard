@@ -13,7 +13,6 @@ using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Games.Validators;
 using Gameboard.Api.Features.Reports;
-using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.Users;
 using Gameboard.Api.Hubs;
@@ -26,8 +25,6 @@ public static class ServiceStartupExtensions
 {
     public static IServiceCollection AddGameboardServices(this IServiceCollection services, AppSettings settings)
     {
-        var jsonService = JsonService.WithGameboardSerializerOptions();
-
         // add special case services
         services
             .AddHttpContextAccessor()
@@ -37,9 +34,8 @@ public static class ServiceStartupExtensions
             .AddSingleton(new BackgroundAsyncTaskContext())
             // explicitly singleton because it's a hosted service, so we want exactly one
             .AddSingleton<IBackgroundAsyncTaskQueueService, BackgroundAsyncTaskQueueService>()
-            .AddSingleton<IJsonService, JsonService>(f => jsonService)
+            .AddSingleton<IJsonService, JsonService>(f => JsonService.WithGameboardSerializerOptions())
             .AddSingleton(opts => JsonService.GetJsonSerializerOptions())
-            // .AddSingleton(jsonService)
             .AddConcretesFromNamespace("Gameboard.Api.Services")
             .AddConcretesFromNamespace("Gameboard.Api.Structure.Authorizers")
             .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators")
@@ -50,11 +46,9 @@ public static class ServiceStartupExtensions
             // but allowing multiple-interface classes causes things like IReportQuery implementers to get snagged
             .AddScoped<IExternalSyncGameStartService, ExternalSyncGameStartService>()
             .AddScoped<IGameHubService, GameHubService>()
-            .AddScoped<IScoreDenormalizationService, ScoreDenormalizationService>()
             .AddScoped<ISupportHubBus, SupportHubBus>()
             .AddScoped<ITeamService, TeamService>()
             .AddScoped<IUserHubBus, UserHubBus>()
-            // so close to fixing this, but it's a very special snowflake of a binding
             .AddInterfacesWithSingleImplementations();
 
         foreach (var t in Assembly

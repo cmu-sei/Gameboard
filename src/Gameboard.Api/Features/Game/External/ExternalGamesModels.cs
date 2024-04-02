@@ -3,6 +3,20 @@ using System.Collections.Generic;
 
 namespace Gameboard.Api.Features.Games.External;
 
+public sealed class GetExternalGameHostsResponseHost
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required string ClientUrl { get; set; }
+    public required bool DestroyResourcesOnDeployFailure { get; set; }
+    public required int? GamespaceDeployBatchSize { get; set; }
+    public required string HostApiKey { get; set; }
+    public required string HostUrl { get; set; }
+    public required string PingEndpoint { get; set; }
+    public required string StartupEndpoint { get; set; }
+    public required string TeamExtendedEndpoint { get; set; }
+    public required IEnumerable<SimpleEntity> UsedByGames { get; set; }
+}
 
 public sealed class ExternalGameState
 {

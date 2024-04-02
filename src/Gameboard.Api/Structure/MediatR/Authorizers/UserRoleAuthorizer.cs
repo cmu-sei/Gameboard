@@ -20,6 +20,22 @@ internal class UserRoleAuthorizer : IAuthorizer
         return this;
     }
 
+    public UserRoleAuthorizer AllowAllElevatedRoles()
+    {
+        _allowedRoles = new List<UserRole>
+        {
+            UserRole.Admin,
+            UserRole.Designer,
+            UserRole.Director,
+            UserRole.Observer,
+            UserRole.Registrar,
+            UserRole.Support,
+            UserRole.Tester
+        };
+
+        return this;
+    }
+
     public UserRoleAuthorizer AllowUserId(string userId)
     {
         _allowUserId = userId;

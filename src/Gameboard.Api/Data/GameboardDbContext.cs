@@ -179,9 +179,8 @@ public class GameboardDbContext : DbContext
             b.Property(c => c.StartupEndpoint).HasStandardUrlLength().IsRequired();
             b.Property(c => c.TeamExtendedEndpoint).HasStandardUrlLength();
 
-            b.HasOne(c => c.Game)
+            b.HasMany(c => c.UsedByGames)
                 .WithOne(g => g.ExternalHost)
-                .IsRequired()
                 .OnDelete(DeleteBehavior.SetNull);
         });
 

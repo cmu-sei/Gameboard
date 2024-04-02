@@ -62,7 +62,7 @@ internal class GamebrainService : IExternalGameHostService
 
         // make the request to the external game host
         _logger.LogInformation($"Posting a team extension ({newSessionEnd}) to external game host at {extendEndpoint}.");
-        var client = await CreateHttpClient(config);
+        var client = await CreateHttpClient(gameId, config);
 
         try
         {
@@ -81,7 +81,7 @@ internal class GamebrainService : IExternalGameHostService
     public async Task<IEnumerable<ExternalGameClientTeamConfig>> StartGame(ExternalGameStartMetaData metaData, CancellationToken cancellationToken)
     {
         var config = await LoadConfig(metaData.Game.Id, cancellationToken);
-        var client = await CreateHttpClient(config);
+        var client = await CreateHttpClient(metaData.Game.Id, config);
 
         _logger.LogInformation($"Posting startup data to to the external game host at {client.BaseAddress}/{config.StartupEndpoint}: {_jsonService.Serialize(metaData)}");
         var teamConfigResponse = await client
@@ -99,14 +99,15 @@ internal class GamebrainService : IExternalGameHostService
     private async Task<ExternalGameHost> LoadConfig(string gameId, CancellationToken cancellationToken)
     {
         var externalConfig = await _store
-            .WithNoTracking<ExternalGameHost>()
-            .Where(c => c.GameId == gameId && c.Game.Mode == GameEngineMode.External)
+            .WithNoTracking<Data.Game>()
+            .Where(g => g.Id == gameId && g.Mode == GameEngineMode.External)
+            .Select(g => g.ExternalHost)
             .SingleOrDefaultAsync(cancellationToken) ?? throw new ResourceNotFound<ExternalGameHost>(gameId, $"Couldn't locate an ExternalGameConfig for game ID {gameId} - is it set to External mode?");
 
         return externalConfig;
     }
 
-    private async Task<HttpClient> CreateHttpClient(ExternalGameHost config)
+    private async Task<HttpClient> CreateHttpClient(string gameId, ExternalGameHost config)
     {
         var client = _httpClientFactory.CreateClient();
         client.Timeout = TimeSpan.FromMinutes(5);
@@ -117,7 +118,7 @@ internal class GamebrainService : IExternalGameHostService
 
         // startup endpoint, at minimum, is required
         if (config.HostUrl.IsEmpty())
-            throw new EmptyExternalStartupEndpoint(config.GameId, config.StartupEndpoint);
+            throw new EmptyExternalStartupEndpoint(gameId, config.StartupEndpoint);
 
         client.BaseAddress = new Uri(config.HostUrl);
         return client;
