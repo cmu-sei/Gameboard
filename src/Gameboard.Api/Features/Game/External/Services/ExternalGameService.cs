@@ -192,9 +192,7 @@ internal class ExternalGameService : IExternalGameService
             {
                 Id = captains[key].TeamId,
                 Name = captains[key].ApprovedName,
-                DeployStatus = teamDeployStatuses.ContainsKey(key) ?
-                    teamDeployStatuses[key] :
-                    ExternalGameDeployStatus.NotStarted,
+                DeployStatus = teamDeployStatuses.TryGetValue(key, out ExternalGameDeployStatus value) ? value : ExternalGameDeployStatus.NotStarted,
                 IsReady = teams[key].All(p => p.IsReady),
                 Challenges = gameData.Specs.Select(s =>
                 {

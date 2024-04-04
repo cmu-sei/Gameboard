@@ -208,13 +208,19 @@ public class PlayerService
 
     public async Task<Player> StartSession(SessionStartRequest model, User actor, bool sudo)
     {
-        var team = await PlayerStore.ListTeamByPlayer(model.PlayerId);
-        var player = team.First();
+        var startingPlayer = await _store
+            .WithNoTracking<Data.Player>()
+            .SingleOrDefaultAsync(p => p.Id == model.PlayerId);
 
-        if (!sudo && player.UserId != actor.Id)
+        if (startingPlayer is null || (!sudo && startingPlayer.UserId != actor.Id))
             throw new CantStartSessionOfOtherPlayer(model.PlayerId, actor.Id);
 
-        var game = await PlayerStore.DbContext.Games.SingleOrDefaultAsync(g => g.Id == player.GameId);
+        var team = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.TeamId == startingPlayer.TeamId)
+            .ToListAsync();
+
+        var game = await _store.WithNoTracking<Data.Game>().SingleAsync(g => g.Id == startingPlayer.GameId);
 
         // rule: game's execution period has to be open
         if (!sudo && game.IsLive.Equals(false))
@@ -224,7 +230,7 @@ public class PlayerService
         if (
             !sudo &&
             game.RequireTeam &&
-            team.Length < game.MinTeamSize
+            team.Count < game.MinTeamSize
         )
             throw new InvalidTeamSize();
 
@@ -248,14 +254,14 @@ public class PlayerService
                 );
 
             if (sessionCount >= game.SessionLimit)
-                throw new SessionLimitReached(player.TeamId, game.Id, sessionCount, game.SessionLimit);
+                throw new SessionLimitReached(startingPlayer.TeamId, game.Id, sessionCount, game.SessionLimit);
         }
 
         var sessionWindow = CalculateSessionWindow(game, sudo, _now.Get());
 
         // rule: if the player/team is starting late, this must be allowed on the game level
         if (!sudo && sessionWindow.IsLateStart && !game.AllowLateStart)
-            throw new CantLateStart(player.Name, game.Name, game.GameEnd, game.SessionMinutes);
+            throw new CantLateStart(startingPlayer.Name, game.Name, game.GameEnd, game.SessionMinutes);
 
         foreach (var p in team)
         {
@@ -267,7 +273,7 @@ public class PlayerService
 
         await PlayerStore.Update(team);
 
-        var asViewModel = _mapper.Map<Player>(player);
+        var asViewModel = _mapper.Map<Player>(startingPlayer);
         await _hubBus.SendTeamSessionStarted(asViewModel, actor);
 
         return asViewModel;
