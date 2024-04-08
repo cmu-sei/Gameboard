@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games.External;
 
@@ -16,10 +17,12 @@ internal sealed class GetExternalGameHostHandler : IRequestHandler<GetExternalGa
 
     public GetExternalGameHostHandler
     (
+        IExternalGameHostService externalGameHostService,
         UserRoleAuthorizer userRoleAuthorizer,
         IValidatorService<GetExternalGameHostQuery> validator
     )
     {
+        _externalGameHostService = externalGameHostService;
         _userRoleAuthorizer = userRoleAuthorizer;
         _validator = validator;
     }
@@ -30,6 +33,9 @@ internal sealed class GetExternalGameHostHandler : IRequestHandler<GetExternalGa
             .AllowAllElevatedRoles()
             .Authorize();
 
-        // var hosts = await 
+        return await
+            _externalGameHostService
+            .GetHosts()
+            .SingleAsync(h => h.Id == request.Id, cancellationToken);
     }
 }

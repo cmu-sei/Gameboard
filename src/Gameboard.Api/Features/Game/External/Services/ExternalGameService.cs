@@ -15,7 +15,6 @@ public interface IExternalGameService
     Task CreateTeams(string gameId, IEnumerable<string> teamIds, CancellationToken cancellationToken);
     Task DeleteTeamExternalData(CancellationToken cancellationToken, params string[] teamIds);
     Task<ExternalGameState> GetExternalGameState(string gameId, CancellationToken cancellationToken);
-    IQueryable<GetExternalGameHostsResponseHost> GetHosts();
 
     /// <summary>
     /// Returns the metadata for a given team in an external game. Note that this function will return the
@@ -255,28 +254,6 @@ internal class ExternalGameService : IExternalGameService
             }).OrderBy(t => t.Name)
         };
     }
-
-    public IQueryable<GetExternalGameHostsResponseHost> GetHosts()
-        => _store
-            .WithNoTracking<ExternalGameHost>()
-            .Select(h => new GetExternalGameHostsResponseHost
-            {
-                Id = h.Id,
-                Name = h.Name,
-                ClientUrl = h.ClientUrl,
-                DestroyResourcesOnDeployFailure = h.DestroyResourcesOnDeployFailure,
-                GamespaceDeployBatchSize = h.GamespaceDeployBatchSize,
-                HostApiKey = h.HostApiKey,
-                HostUrl = h.HostUrl,
-                PingEndpoint = h.PingEndpoint,
-                StartupEndpoint = h.StartupEndpoint,
-                TeamExtendedEndpoint = h.TeamExtendedEndpoint,
-                UsedByGames = h.UsedByGames.Select(g => new SimpleEntity
-                {
-                    Id = g.Id,
-                    Name = g.Name
-                })
-            });
 
     public Task<ExternalGameTeam> GetTeam(string teamId, CancellationToken cancellationToken)
             => _store

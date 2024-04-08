@@ -18,16 +18,16 @@ public sealed record GetExternalGameHostsQuery() : IRequest<GetExternalGameHosts
 
 internal sealed class GetExternalGameHostsHandler : IRequestHandler<GetExternalGameHostsQuery, GetExternalGameHostsResponse>
 {
-    private readonly IExternalGameService _externalGameService;
+    private readonly IExternalGameHostService _externalGameHostService;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
 
     public GetExternalGameHostsHandler
     (
-        IExternalGameService externalGameService,
+        IExternalGameHostService externalGameHostService,
         UserRoleAuthorizer userRoleAuthorizer
     )
     {
-        _externalGameService = externalGameService;
+        _externalGameHostService = externalGameHostService;
         _userRoleAuthorizer = userRoleAuthorizer;
     }
 
@@ -39,7 +39,7 @@ internal sealed class GetExternalGameHostsHandler : IRequestHandler<GetExternalG
 
         return new GetExternalGameHostsResponse
         {
-            Hosts = await _externalGameService
+            Hosts = await _externalGameHostService
                 .GetHosts()
                 .ToArrayAsync(cancellationToken)
         };

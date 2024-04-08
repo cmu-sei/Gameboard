@@ -15,25 +15,26 @@ namespace Gameboard.Api.Features.Games.External;
 
 public interface IExternalGameHostService
 {
+    IQueryable<GetExternalGameHostsResponseHost> GetHosts();
     Task<IEnumerable<ExternalGameClientTeamConfig>> StartGame(ExternalGameStartMetaData metaData, CancellationToken cancellationToken);
     Task ExtendTeamSession(string teamId, DateTimeOffset newSessionEnd, CancellationToken cancellationTokena);
 }
 
-internal class GamebrainService : IExternalGameHostService
+internal class ExternalGameHostService : IExternalGameHostService
 {
     private readonly IExternalGameHostAccessTokenProvider _accessTokenProvider;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IJsonService _jsonService;
-    private readonly ILogger<GamebrainService> _logger;
+    private readonly ILogger<ExternalGameHostService> _logger;
     private readonly IStore _store;
     private readonly ITeamService _teamService;
 
-    public GamebrainService
+    public ExternalGameHostService
     (
         IExternalGameHostAccessTokenProvider accessTokenProvider,
         IHttpClientFactory httpClientFactory,
         IJsonService jsonService,
-        ILogger<GamebrainService> logger,
+        ILogger<ExternalGameHostService> logger,
         IStore store,
         ITeamService teamService
     ) =>
@@ -77,6 +78,28 @@ internal class GamebrainService : IExternalGameHostService
             _logger.LogWarning($"""The external gamehost for game {gameId} is configured with a "team extend" endpoint at {extendEndpoint}, but the request to it failed ({ex.GetType().Name} :: {ex.Message}).""");
         }
     }
+
+    public IQueryable<GetExternalGameHostsResponseHost> GetHosts()
+        => _store
+            .WithNoTracking<ExternalGameHost>()
+            .Select(h => new GetExternalGameHostsResponseHost
+            {
+                Id = h.Id,
+                Name = h.Name,
+                ClientUrl = h.ClientUrl,
+                DestroyResourcesOnDeployFailure = h.DestroyResourcesOnDeployFailure,
+                GamespaceDeployBatchSize = h.GamespaceDeployBatchSize,
+                HostApiKey = h.HostApiKey,
+                HostUrl = h.HostUrl,
+                PingEndpoint = h.PingEndpoint,
+                StartupEndpoint = h.StartupEndpoint,
+                TeamExtendedEndpoint = h.TeamExtendedEndpoint,
+                UsedByGames = h.UsedByGames.Select(g => new SimpleEntity
+                {
+                    Id = g.Id,
+                    Name = g.Name
+                })
+            });
 
     public async Task<IEnumerable<ExternalGameClientTeamConfig>> StartGame(ExternalGameStartMetaData metaData, CancellationToken cancellationToken)
     {
