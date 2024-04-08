@@ -691,7 +691,6 @@ public class PlayerService
             string newId = _guids.GetGuid();
             // compute complete score, including bonuses
             var teamScore = await _scores.GetTeamScore(team.Key, CancellationToken.None);
-            var overallScore = (int)Math.Floor(teamScore.OverallScore.TotalScore);
 
             foreach (var player in team)
             {
@@ -705,12 +704,12 @@ public class PlayerService
                     AdvancedFromGameId = player.GameId,
                     AdvancedFromPlayerId = player.Id,
                     AdvancedFromTeamId = player.TeamId,
-                    AdvancedWithScore = model.WithScores ? overallScore : null,
+                    AdvancedWithScore = model.WithScores ? teamScore.OverallScore.TotalScore : null,
                     ApprovedName = player.ApprovedName,
                     Name = player.Name,
                     SponsorId = player.SponsorId,
                     Role = player.Role,
-                    Score = model.WithScores ? overallScore : 0,
+                    Score = model.WithScores ? (int)Math.Floor(teamScore.OverallScore.TotalScore) : 0,
                     WhenCreated = _now.Get()
                 };
 
