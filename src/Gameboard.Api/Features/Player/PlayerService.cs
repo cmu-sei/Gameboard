@@ -698,7 +698,7 @@ public class PlayerService
                     AdvancedFromGameId = player.GameId,
                     AdvancedFromPlayerId = player.Id,
                     AdvancedFromTeamId = player.TeamId,
-                    AdvancedWithScore = model.WithScores ? player.Score : null,
+                    AdvancedWithScore = model.WithScores ? teamScore.OverallScore.TotalScore : null,
                     ApprovedName = player.ApprovedName,
                     Name = player.Name,
                     SponsorId = player.SponsorId,
