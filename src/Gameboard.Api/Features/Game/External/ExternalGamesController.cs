@@ -1,8 +1,5 @@
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
-using Gameboard.Api.Data;
-using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

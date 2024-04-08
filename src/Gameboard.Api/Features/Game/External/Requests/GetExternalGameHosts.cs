@@ -18,12 +18,16 @@ public sealed record GetExternalGameHostsQuery() : IRequest<GetExternalGameHosts
 
 internal sealed class GetExternalGameHostsHandler : IRequestHandler<GetExternalGameHostsQuery, GetExternalGameHostsResponse>
 {
-    private readonly IStore _store;
+    private readonly IExternalGameService _externalGameService;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
 
-    public GetExternalGameHostsHandler(IStore store, UserRoleAuthorizer userRoleAuthorizer)
+    public GetExternalGameHostsHandler
+    (
+        IExternalGameService externalGameService,
+        UserRoleAuthorizer userRoleAuthorizer
+    )
     {
-        _store = store;
+        _externalGameService = externalGameService;
         _userRoleAuthorizer = userRoleAuthorizer;
     }
 
@@ -33,24 +37,11 @@ internal sealed class GetExternalGameHostsHandler : IRequestHandler<GetExternalG
             .AllowAllElevatedRoles()
             .Authorize();
 
-        var hosts = await _store
-            .WithNoTracking<ExternalGameHost>()
-            .Select(h => new GetExternalGameHostsResponseHost
-            {
-                Id = h.Id,
-                Name = h.Name,
-                ClientUrl = h.ClientUrl,
-                DestroyResourcesOnDeployFailure = h.DestroyResourcesOnDeployFailure,
-                GamespaceDeployBatchSize = h.GamespaceDeployBatchSize,
-                HostApiKey = h.HostApiKey,
-                HostUrl = h.HostUrl,
-                PingEndpoint = h.PingEndpoint,
-                StartupEndpoint = h.StartupEndpoint,
-                TeamExtendedEndpoint = h.TeamExtendedEndpoint,
-                UsedByGames = h.UsedByGames.Select(g => new SimpleEntity { Id = g.Id, Name = g.Name })
-            })
-            .ToArrayAsync(cancellationToken);
-
-        return new GetExternalGameHostsResponse { Hosts = hosts };
+        return new GetExternalGameHostsResponse
+        {
+            Hosts = await _externalGameService
+                .GetHosts()
+                .ToArrayAsync(cancellationToken)
+        };
     }
 }
