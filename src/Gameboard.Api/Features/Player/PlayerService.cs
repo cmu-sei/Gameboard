@@ -13,6 +13,7 @@ using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Practice;
+using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Sponsors;
 using Gameboard.Api.Features.Teams;
 using MediatR;
@@ -32,6 +33,7 @@ public class PlayerService
     private readonly IMediator _mediator;
     private readonly INowService _now;
     private readonly IPracticeService _practiceService;
+    private readonly IScoringService _scores;
     private readonly IStore _store;
     private readonly ISyncStartGameService _syncStartGameService;
     private readonly ITeamService _teamService;
@@ -56,6 +58,7 @@ public class PlayerService
         INowService now,
         IPlayerStore playerStore,
         IPracticeService practiceService,
+        IScoringService scores,
         IStore store,
         ISyncStartGameService syncStartGameService,
         ITeamService teamService
@@ -75,6 +78,7 @@ public class PlayerService
         LocalCache = memCache;
         _mapper = mapper;
         PlayerStore = playerStore;
+        _scores = scores;
         _store = store;
         _syncStartGameService = syncStartGameService;
         _teamService = teamService;
@@ -685,10 +689,13 @@ public class PlayerService
         foreach (var team in teams)
         {
             string newId = _guids.GetGuid();
+            // compute complete score, including bonuses
+            var teamScore = await _scores.GetTeamScore(team.Key, CancellationToken.None);
 
             foreach (var player in team)
             {
                 player.Advanced = true;
+
                 var newPlayer = new Data.Player
                 {
                     TeamId = newId,
@@ -702,7 +709,7 @@ public class PlayerService
                     Name = player.Name,
                     SponsorId = player.SponsorId,
                     Role = player.Role,
-                    Score = model.WithScores ? player.Score : 0
+                    Score = model.WithScores ? (int)Math.Floor(teamScore.OverallScore.TotalScore) : 0
                 };
 
                 enrollments.Add(newPlayer);

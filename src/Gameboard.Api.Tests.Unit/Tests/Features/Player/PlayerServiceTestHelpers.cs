@@ -4,6 +4,7 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Practice;
+using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using MediatR;
@@ -29,6 +30,7 @@ internal static class PlayerServiceTestHelpers
         INowService? now = null,
         IPlayerStore? playerStore = null,
         IPracticeService? practiceService = null,
+        IScoringService? scoringService = null,
         IStore? store = null,
         ISyncStartGameService? syncStartGameService = null,
         ITeamService? teamService = null
@@ -48,6 +50,7 @@ internal static class PlayerServiceTestHelpers
             now ?? A.Fake<INowService>(),
             playerStore ?? A.Fake<IPlayerStore>(),
             practiceService ?? A.Fake<IPracticeService>(),
+            scoringService ?? A.Fake<IScoringService>(),
             store ?? A.Fake<IStore>(),
             syncStartGameService ?? A.Fake<ISyncStartGameService>(),
             teamService ?? A.Fake<ITeamService>()
