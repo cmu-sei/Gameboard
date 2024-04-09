@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games;
 
-public interface IGameHubService : INotificationHandler<GameEnrolledPlayersChangeNotification>, INotificationHandler<AppStartupNotification>
+public interface IGameHubService : INotificationHandler<GameEnrolledPlayersChangeNotification>, INotificationHandler<AppStartupNotification>, INotificationHandler<GameCacheInvalidateCommand>
 {
     // invoke functions on clients
     Task SendExternalGameChallengesDeployStart(GameStartUpdate state);
@@ -230,11 +230,16 @@ internal class GameHubService : IGameHubService, IGameboardHubService
             .ToArrayAsync(cancellationToken);
 
         foreach (var game in games)
-            await UpdateGameIdUserIdsMap(new GameEnrolledPlayersChangeNotification(new GameEnrolledPlayersChangeContext(game.Id, game.RequireSynchronizedStart)));
+            await UpdateGameIdUserIdsMap(game.Id);
+    }
+
+    public async Task Handle(GameCacheInvalidateCommand command, CancellationToken cancellationToken)
+    {
+        await UpdateGameIdUserIdsMap(command.GameId);
     }
 
     public Task Handle(GameEnrolledPlayersChangeNotification notification, CancellationToken cancellationToken)
-        => UpdateGameIdUserIdsMap(notification);
+        => UpdateGameIdUserIdsMap(notification.Context.GameId);
 
     private IEnumerable<string> GetGameUserIds(string gameId)
     {
@@ -245,21 +250,21 @@ internal class GameHubService : IGameHubService, IGameboardHubService
         return userIds;
     }
 
-    private async Task UpdateGameIdUserIdsMap(GameEnrolledPlayersChangeNotification notification)
+    private async Task UpdateGameIdUserIdsMap(string gameId)
     {
         var gameUsers = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => p.Game.GameEnd != DateTimeOffset.MinValue || p.Game.GameEnd > _now.Get())
             .Where(p => p.Game.PlayerMode == PlayerMode.Competition && p.Mode == PlayerMode.Competition)
-            .Where(p => p.GameId == notification.Context.GameId)
+            .Where(p => p.GameId == gameId)
             .Select(p => p.UserId)
             .Distinct()
             .ToArrayAsync();
 
         lock (_gameIdUserIdsMap)
         {
-            _gameIdUserIdsMap.TryRemove(notification.Context.GameId, out var existingValue);
-            _gameIdUserIdsMap.TryAdd(notification.Context.GameId, gameUsers);
+            _gameIdUserIdsMap.TryRemove(gameId, out var existingValue);
+            _gameIdUserIdsMap.TryAdd(gameId, gameUsers);
         }
     }
 }

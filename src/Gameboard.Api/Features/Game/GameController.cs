@@ -247,6 +247,7 @@ namespace Gameboard.Api.Controllers
             await Validate(new Entity { Id = id });
             await GameService.ReRank(id);
             await _scoreDenormalization.DenormalizeGame(id, cancellationToken);
+            await _mediator.Send(new GameCacheInvalidateCommand(id), cancellationToken);
         }
     }
 }

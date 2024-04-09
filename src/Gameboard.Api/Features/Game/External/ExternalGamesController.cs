@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Data;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,11 +22,13 @@ public class ExternalGamesController : ControllerBase
 
     [HttpGet("team/{teamId}")]
     public Task<GetExternalTeamDataResponse> GetExternalTeamData([FromRoute] string teamId)
-    {
-        return _mediator.Send(new GetExternalTeamDataQuery(teamId, _actingUserService.Get()));
-    }
+        => _mediator.Send(new GetExternalTeamDataQuery(teamId, _actingUserService.Get()));
 
     [HttpGet("hosts")]
     public Task<GetExternalGameHostsResponse> GetHosts()
         => _mediator.Send(new GetExternalGameHostsQuery());
+
+    [HttpPost("hosts")]
+    public Task<ExternalGameHost> UpsertHost(UpsertExternalGameHostCommand request)
+        => _mediator.Send(request);
 }
