@@ -240,14 +240,12 @@ namespace Gameboard.Api.Controllers
         [Authorize(AppConstants.AdminPolicy)]
         public async Task Rerank([FromRoute] string id, CancellationToken cancellationToken)
         {
-            AuthorizeAny(
-                () => Actor.IsDesigner
-            );
+            AuthorizeAny(() => Actor.IsDesigner);
 
             await Validate(new Entity { Id = id });
             await GameService.ReRank(id);
             await _scoreDenormalization.DenormalizeGame(id, cancellationToken);
-            await _mediator.Send(new GameCacheInvalidateCommand(id), cancellationToken);
+            await _mediator.Publish(new GameCacheInvalidateNotification(id));
         }
     }
 }

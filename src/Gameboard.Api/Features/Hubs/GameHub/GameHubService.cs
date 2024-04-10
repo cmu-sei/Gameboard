@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games;
 
-public interface IGameHubService : INotificationHandler<GameEnrolledPlayersChangeNotification>, INotificationHandler<AppStartupNotification>, INotificationHandler<GameCacheInvalidateCommand>
+public interface IGameHubService : INotificationHandler<GameEnrolledPlayersChangeNotification>, INotificationHandler<AppStartupNotification>, INotificationHandler<GameCacheInvalidateNotification>
 {
     // invoke functions on clients
     Task SendExternalGameChallengesDeployStart(GameStartUpdate state);
@@ -233,10 +233,8 @@ internal class GameHubService : IGameHubService, IGameboardHubService
             await UpdateGameIdUserIdsMap(game.Id);
     }
 
-    public async Task Handle(GameCacheInvalidateCommand command, CancellationToken cancellationToken)
-    {
-        await UpdateGameIdUserIdsMap(command.GameId);
-    }
+    public Task Handle(GameCacheInvalidateNotification notification, CancellationToken cancellationToken)
+        => UpdateGameIdUserIdsMap(notification.GameId);
 
     public Task Handle(GameEnrolledPlayersChangeNotification notification, CancellationToken cancellationToken)
         => UpdateGameIdUserIdsMap(notification.Context.GameId);
