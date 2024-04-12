@@ -103,10 +103,7 @@ public class GameService : _Service, IGameService
     public async Task Update(ChangedGame game)
     {
         if (game.Mode != GameEngineMode.External)
-        {
-            game.ExternalGameStartupEndpoint = null;
-            game.ExternalGameTeamExtendedEndpoint = null;
-        }
+            game.ExternalHostId = null;
 
         var entity = await _gameStore.Retrieve(game.Id);
         Mapper.Map(game, entity);

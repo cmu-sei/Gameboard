@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Data;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +40,8 @@ internal sealed class GetExternalGameHostsHandler : IRequestHandler<GetExternalG
         {
             Hosts = await _externalGameHostService
                 .GetHosts()
+                .OrderBy(h => h.Name)
+                    .ThenBy(h => h.HostUrl)
                 .ToArrayAsync(cancellationToken)
         };
     }

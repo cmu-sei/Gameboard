@@ -24,11 +24,15 @@ public class ExternalGamesController : ControllerBase
     public Task<GetExternalTeamDataResponse> GetExternalTeamData([FromRoute] string teamId)
         => _mediator.Send(new GetExternalTeamDataQuery(teamId, _actingUserService.Get()));
 
+    [HttpGet("hosts/{hostId}")]
+    public Task<GetExternalGameHostsResponseHost> GetHost([FromRoute] string hostId)
+        => _mediator.Send(new GetExternalGameHostQuery(hostId));
+
     [HttpGet("hosts")]
     public Task<GetExternalGameHostsResponse> GetHosts()
         => _mediator.Send(new GetExternalGameHostsQuery());
 
     [HttpPost("hosts")]
-    public Task<ExternalGameHost> UpsertHost(UpsertExternalGameHostCommand request)
-        => _mediator.Send(request);
+    public Task<ExternalGameHost> UpsertHost([FromBody] UpsertExternalGameHost host)
+        => _mediator.Send(new UpsertExternalGameHostCommand(host));
 }

@@ -35,9 +35,7 @@ public class GameDetail
     public int SessionMinutes { get; set; }
     public int SessionLimit { get; set; }
     public int GamespaceLimitPerSession { get; set; }
-    public string ExternalGameClientUrl { get; set; }
-    public string ExternalGameTeamExtendedEndpoint { get; set; }
-    public string ExternalGameStartupEndpoint { get; set; }
+    public string ExternalHostId { get; set; }
     public bool IsPublished { get; set; }
     public bool RequireSponsoredTeam { get; set; }
     public bool RequireSynchronizedStart { get; set; }

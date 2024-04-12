@@ -73,7 +73,7 @@ internal sealed class UpsertExternalGameHandler : IRequestHandler<UpsertExternal
             HostUrl = request.Host.HostUrl,
             PingEndpoint = request.Host.PingEndpoint.IsEmpty() ? null : request.Host.PingEndpoint,
             StartupEndpoint = request.Host.StartupEndpoint,
-            TeamExtendedEndpoint = request.Host.StartupEndpoint
+            TeamExtendedEndpoint = request.Host.TeamExtendedEndpoint.IsEmpty() ? null : request.Host.TeamExtendedEndpoint
         };
 
         if (request.Host.Id.IsEmpty())
