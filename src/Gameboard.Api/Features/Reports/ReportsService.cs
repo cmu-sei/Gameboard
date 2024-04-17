@@ -240,6 +240,7 @@ public class ReportsService : IReportsService
     public async Task<IEnumerable<SimpleEntity>> ListGames()
         => await _store.List<Data.Game>()
             .Select(g => new SimpleEntity { Id = g.Id, Name = g.Name })
+            .OrderBy(g => g.Name)
             .ToArrayAsync();
 
     public async Task<IEnumerable<ReportSponsorViewModel>> ListSponsors()
