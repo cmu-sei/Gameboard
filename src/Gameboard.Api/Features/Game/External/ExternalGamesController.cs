@@ -36,7 +36,7 @@ public class ExternalGamesController : ControllerBase
     public Task<ExternalGameHost> UpsertHost([FromBody] UpsertExternalGameHost host)
         => _mediator.Send(new UpsertExternalGameHostCommand(host));
 
-    // [HttpDelete("hosts/{hostId}")]
-    // public Task DeleteHost(string hostId)
-    //     => _mediator.Send(new DeleteExternalGameHostCommand(hostId));
+    [HttpDelete("hosts/{hostId}")]
+    public Task DeleteHost(string hostId, [FromBody] DeleteExternalGameHostRequest request)
+        => _mediator.Send(new DeleteExternalGameHostCommand(hostId, request.ReplaceHostId));
 }

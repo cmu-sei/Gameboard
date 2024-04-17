@@ -44,31 +44,38 @@ internal sealed class DeleteExternalGameHostHandler : IRequestHandler<DeleteExte
         {
             if (req.DeleteHostId.IsEmpty())
                 ctx.AddValidationException(new MissingRequiredInput<string>(nameof(req.DeleteHostId), req.DeleteHostId));
-
-            if (req.ReplaceHostId.IsEmpty())
-                ctx.AddValidationException(new MissingRequiredInput<string>(nameof(req.ReplaceHostId), req.ReplaceHostId));
         });
         _validator.AddValidator(async (req, ctx) =>
         {
             var hosts = await _store
                 .WithNoTracking<ExternalGameHost>()
                 .Where(h => h.Id == req.DeleteHostId || h.Id == req.ReplaceHostId)
-                .Select(h => h.Id)
+                .Select(h => new { h.Id, GameCount = h.UsedByGames.Count() })
                 .ToArrayAsync(cancellationToken);
 
-            if (!hosts.Any(hId => hId == req.DeleteHostId))
+            var deleteHost = hosts.SingleOrDefault(host => host.Id == req.DeleteHostId);
+            if (deleteHost is null)
                 ctx.AddValidationException(new ResourceNotFound<ExternalGameHost>(req.DeleteHostId));
 
-            if (!hosts.Any(hId => hId == req.ReplaceHostId))
+            // note that is also where we validate that replace host id is set
+            if (deleteHost.GameCount > 0)
+            {
+                if (req.ReplaceHostId.IsEmpty())
+                    ctx.AddValidationException(new MissingRequiredInput<string>(nameof(req.ReplaceHostId), req.ReplaceHostId));
+                else if (req.DeleteHostId == req.ReplaceHostId)
+                    ctx.AddValidationException(new DeleteAndReplaceHostIdsMustBeDifferent(req.DeleteHostId));
+            }
+            if (deleteHost.GameCount > 0 && !hosts.Any(host => host.Id == req.ReplaceHostId))
                 ctx.AddValidationException(new ResourceNotFound<ExternalGameHost>(req.ReplaceHostId));
         });
         await _validator.Validate(request, cancellationToken);
 
         // move all games using the host to delete to a different external host
-        await _store
-            .WithNoTracking<Data.Game>()
-            .Where(g => g.ExternalHostId == request.DeleteHostId)
-            .ExecuteUpdateAsync(up => up.SetProperty(g => g.ExternalHostId, request.ReplaceHostId), cancellationToken);
+        if (request.ReplaceHostId.IsNotEmpty())
+            await _store
+                .WithNoTracking<Data.Game>()
+                .Where(g => g.ExternalHostId == request.DeleteHostId)
+                .ExecuteUpdateAsync(up => up.SetProperty(g => g.ExternalHostId, request.ReplaceHostId), cancellationToken);
 
         // delete the host
         await _store
