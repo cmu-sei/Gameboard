@@ -41,6 +41,7 @@ internal static class ServiceRegistrationExtensions
         var singleInterfaceTypes = GetRootTypeQuery()
             .Where(t => t.GetInterfaces().Length == 1)
             .Where(t => t.GetConstructors().Where(c => c.IsPublic).Any())
+            .Where(t => t.GetTypeInfo().GetCustomAttribute<DontBindForDIAttribute>() is null)
             .GroupBy(t => t.GetInterfaces()[0])
             .ToDictionary(t => t.Key, t => t.ToList());
 
@@ -50,11 +51,13 @@ internal static class ServiceRegistrationExtensions
             var theInterfaceName = entry.Key.Name;
             var hasInterface = interfaceTypes.Contains(entry.Key);
             var isUnRegistered = serviceCollection.FirstOrDefault(s => s.ServiceType == entry.Key) == null;
-            // var isConventionNamed = entry.Value.Any(t => t.Name == theInterfaceName.TrimStart('I'));
 
             if (interfaceTypes.Contains(entry.Key) && serviceCollection.FirstOrDefault(s => s.ServiceType == entry.Key) == null)
             {
-                serviceCollection.AddScoped(entry.Key, entry.Value[0]);
+                var isDiHidden = entry.Value[0].GetTypeInfo().GetCustomAttribute<DontBindForDIAttribute>() is not null;
+
+                if (!isDiHidden)
+                    serviceCollection.AddScoped(entry.Key, entry.Value[0]);
             }
         }
 
@@ -103,7 +106,7 @@ internal static class ServiceRegistrationExtensions
 
             // if the interface type and the implementation type have the same number/type of generic PARAMETERS, make a generic version of each and associate them 
             // (e.g. IValidatorService<T> and ValidatorService<T> )
-            if (implementationGenericParams.Count() == interfaceGenericParameters.Count() && type.Interface.IsGenericTypeDefinition)
+            if (implementationGenericParams.Length == interfaceGenericParameters.Length && type.Interface.IsGenericTypeDefinition)
             {
                 var madeImplementationGeneric = type.Implementation.MakeGenericType(implementationGenericParams);
                 var madeInterfaceGeneric = type.Interface.MakeGenericType(interfaceGenericParameters);
@@ -128,7 +131,8 @@ internal static class ServiceRegistrationExtensions
             // }
 
             // otherwise, just punt and add a scoped version of the concrete type (e.g. UserIsPlayingGameValidator)
-            serviceCollection.AddScoped(type.Implementation);
+            if (type.Implementation.GetCustomAttribute<DontBindForDIAttribute>() is null)
+                serviceCollection.AddScoped(type.Implementation);
         }
 
         return serviceCollection;

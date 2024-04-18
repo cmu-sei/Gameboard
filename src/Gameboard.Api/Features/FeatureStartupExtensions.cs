@@ -56,10 +56,12 @@ public static class ServiceStartupExtensions
         foreach (var t in Assembly
             .GetExecutingAssembly()
             .ExportedTypes
-            .Where(t =>
-                t.GetInterface(nameof(IModelValidator)) != null
-                && t.IsClass
-                && !t.IsAbstract
+            .Where
+            (
+                t =>
+                    t.GetInterface(nameof(IModelValidator)) != null
+                    && t.IsClass
+                    && !t.IsAbstract
             )
         )
         {
