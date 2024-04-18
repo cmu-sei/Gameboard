@@ -50,6 +50,7 @@ internal static class ServiceRegistrationExtensions
             var theInterfaceName = entry.Key.Name;
             var hasInterface = interfaceTypes.Contains(entry.Key);
             var isUnRegistered = serviceCollection.FirstOrDefault(s => s.ServiceType == entry.Key) == null;
+            // var isConventionNamed = entry.Value.Any(t => t.Name == theInterfaceName.TrimStart('I'));
 
             if (interfaceTypes.Contains(entry.Key) && serviceCollection.FirstOrDefault(s => s.ServiceType == entry.Key) == null)
             {

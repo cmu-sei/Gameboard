@@ -9,6 +9,7 @@ using Gameboard.Api;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Extensions;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Games.Validators;
@@ -44,6 +45,7 @@ public static class ServiceStartupExtensions
             .AddImplementationsOf<IGameboardRequestValidator<IReportQuery>>()
             // these aren't picked up right now because they implement multiple interfaces,
             // but allowing multiple-interface classes causes things like IReportQuery implementers to get snagged
+            .AddScoped<IExtensionsService, ExtensionsService>()
             .AddScoped<IExternalSyncGameStartService, ExternalSyncGameStartService>()
             .AddScoped<IGameHubService, GameHubService>()
             .AddScoped<ISupportHubBus, SupportHubBus>()
