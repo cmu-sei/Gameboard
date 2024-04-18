@@ -9,6 +9,7 @@ public sealed class ExternalGameHost : IEntity
     public required string ClientUrl { get; set; }
     public required bool DestroyResourcesOnDeployFailure { get; set; }
     public int? GamespaceDeployBatchSize { get; set; }
+    public int? HttpTimeoutInSeconds { get; set; }
     public string HostApiKey { get; set; }
     public required string HostUrl { get; set; }
     public string PingEndpoint { get; set; }

@@ -1,4 +1,4 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using Gameboard.Api.Data;
 
@@ -31,5 +31,11 @@ public sealed class ExtensionsTeamScoredEventScore
 public sealed class ExtensionMessage
 {
     public required string Text { get; set; }
-    public IEnumerable<KeyValuePair<string, string>> TextAttachments { get; set; }
+    public IEnumerable<KeyValuePair<string, string>> TextAttachments { get; set; } = Array.Empty<KeyValuePair<string, string>>();
+}
+
+public sealed class ExtensionNotificationException : GameboardException
+{
+    public ExtensionNotificationException(string id, ExtensionType type, Exception innerEx)
+        : base($"{type.ToString()} extension {id} failed during a notification.", innerEx) { }
 }

@@ -6,4 +6,5 @@ namespace Gameboard.Api.Features.Extensions;
 public interface IExtensionService
 {
     Task NotifyScored(ExtensionMessage message);
+    Task NotifyTicketCreated(ExtensionMessage message);
 }

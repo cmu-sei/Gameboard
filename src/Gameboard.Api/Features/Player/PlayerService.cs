@@ -241,9 +241,7 @@ public class PlayerService
         // rule: for now, can't start a player's session in this code path.
         // TODO: refactor for SOLIDness
         if (!sudo && game.RequireSynchronizedStart)
-        {
             throw new InvalidOperationException("Can't start a player's session for a sync start game with PlayerService.StartSession (use GameService.StartSynchronizedSession).");
-        }
 
         // rule: teams can't have a session limit exceeding the game's settings
         if (!sudo && game.SessionLimit > 0)
@@ -267,15 +265,23 @@ public class PlayerService
         if (!sudo && sessionWindow.IsLateStart && !game.AllowLateStart)
             throw new CantLateStart(startingPlayer.Name, game.Name, game.GameEnd, game.SessionMinutes);
 
-        foreach (var p in team)
-        {
-            p.IsLateStart = sessionWindow.IsLateStart;
-            p.SessionMinutes = sessionWindow.LengthInMinutes;
-            p.SessionBegin = sessionWindow.Start;
-            p.SessionEnd = sessionWindow.End;
-        }
+        // update all player data
+        await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.TeamId == startingPlayer.TeamId)
+            .ExecuteUpdateAsync(up =>
+                up
+                    .SetProperty(p => p.IsLateStart, sessionWindow.IsLateStart)
+                    .SetProperty(p => p.SessionMinutes, sessionWindow.LengthInMinutes)
+                    .SetProperty(p => p.SessionBegin, sessionWindow.Start)
+                    .SetProperty(p => p.SessionEnd, sessionWindow.End)
+            );
 
-        await PlayerStore.Update(team);
+        // also set the starting player's properties because we'll use them as a return
+        startingPlayer.IsLateStart = sessionWindow.IsLateStart;
+        startingPlayer.SessionMinutes = sessionWindow.LengthInMinutes;
+        startingPlayer.SessionBegin = sessionWindow.Start;
+        startingPlayer.SessionEnd = sessionWindow.End;
 
         var asViewModel = _mapper.Map<Player>(startingPlayer);
         await _hubBus.SendTeamSessionStarted(asViewModel, actor);

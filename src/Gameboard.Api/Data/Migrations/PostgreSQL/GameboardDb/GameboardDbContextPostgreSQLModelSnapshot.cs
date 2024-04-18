@@ -529,6 +529,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
                     b.HasKey("Id");
 
+                    b.HasAlternateKey("Type");
+
                     b.ToTable("Extensions");
                 });
 

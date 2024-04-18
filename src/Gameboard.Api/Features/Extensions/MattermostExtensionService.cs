@@ -23,9 +23,22 @@ internal class MattermostExtensionService : IExtensionService
         _httpClientFactory = httpClientFactory;
     }
 
-    public async Task NotifyScored(ExtensionMessage message)
+    public Task NotifyScored(ExtensionMessage message)
+        => PostTo("posts", message);
+
+    public Task NotifyTicketCreated(ExtensionMessage message)
+        => PostTo("posts", message);
+
+    private HttpClient BuildClient()
     {
-        var client = BuildClient();
+        var client = _httpClientFactory.CreateClient();
+        client.SetBearerToken(_extension.Token);
+        client.BaseAddress = new Uri(_extension.HostUrl);
+        return client;
+    }
+
+    private async Task PostTo(string endpoint, ExtensionMessage message)
+    {
         var attachments = message.TextAttachments.Select(a => new { pretext = a.Key, text = a.Value }).ToArray();
         var body = new
         {
@@ -33,19 +46,21 @@ internal class MattermostExtensionService : IExtensionService
             message = message.Text,
             props = new { attachments }
         };
+        var client = BuildClient();
 
-        await client.PostAsync
+        var response = await client.PostAsync
         (
-            "/posts",
+            endpoint,
             JsonContent.Create(body)
         );
-    }
 
-    private HttpClient BuildClient()
-    {
-        var client = _httpClientFactory.CreateClient();
-        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_extension.Token}");
-        client.BaseAddress = new Uri(_extension.HostUrl);
-        return client;
+        try
+        {
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex)
+        {
+            throw new ExtensionNotificationException(_extension.Id, _extension.Type, ex);
+        }
     }
 }

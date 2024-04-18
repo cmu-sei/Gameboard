@@ -3,7 +3,6 @@
 
 using System;
 using System.Linq;
-using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 
 namespace Gameboard.Api;
@@ -25,7 +24,6 @@ public class AppSettings
 
 public class LoggingSettings
 {
-    public LogLevel EfCoreLogLevel { get; set; } = LogLevel.Warning;
     public bool EnableHttpLogging { get; set; } = false;
 
     /// <summary>
@@ -159,9 +157,10 @@ public class CorsPolicyOptions
 
 public class CoreOptions
 {
+    public string AppName { get; set; } = "Gameboard";
+    public string AppUrl { get; set; } = "http://localhost:4202";
     public int GameEngineDeployBatchSize { get; set; } = 2;
     public string GameEngineUrl { get; set; } = "http://localhost:5004";
-    public string GamebrainUrl { get; set; } = "https://launchpad.cisa.gov/test/gamebrain/";
     public string GameEngineClientName { get; set; }
     public string GameEngineClientSecret { get; set; }
     public int GameEngineMaxRetries { get; set; } = 2;
@@ -213,7 +212,7 @@ public class Defaults
     // Helper method to format shifts as DateTimeOffset objects
     public static DateTimeOffset[][] GetShifts(string[][] shiftStrings)
     {
-        DateTimeOffset[][] offsets = new DateTimeOffset[shiftStrings.Length][];
+        var offsets = new DateTimeOffset[shiftStrings.Length][];
         // Create a new DateTimeOffset representation for every string time given
         for (int i = 0; i < shiftStrings.Length; i++)
         {

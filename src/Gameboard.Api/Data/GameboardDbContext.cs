@@ -170,6 +170,7 @@ public class GameboardDbContext : DbContext
 
         builder.Entity<Extension>(b =>
         {
+            b.HasAlternateKey(e => e.Type);
             b.Property(e => e.Id).HasStandardGuidLength();
             b.Property(e => e.Name).HasStandardNameLength().IsRequired();
             b.Property(e => e.Token).HasMaxLength(256).IsRequired();

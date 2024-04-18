@@ -34,17 +34,6 @@ namespace Microsoft.Extensions.DependencyInjection
                         .WaitAndRetryAsync(config.GameEngineMaxRetries, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)))
                     )
                 ;
-            services
-                .AddHttpClient("Gamebrain", httpClient =>
-                {
-                    httpClient.BaseAddress = new Uri(config.GamebrainUrl);
-                })
-                .ConfigureHttpClient(client =>
-                {
-                    client.DefaultRequestHeaders.Add("x-api-key", config.GamebrainApiKey);
-                    client.Timeout = TimeSpan.FromSeconds(300);
-                });
-
             services.AddHttpClient("identity", client =>
             {
                 // Workaround to avoid TaskCanceledException after several retries. TODO: find a better way to handle this.
