@@ -26,7 +26,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     private readonly ChallengeService _challengeService;
     private readonly CoreOptions _coreOptions;
     private readonly IExternalGameService _externalGameService;
-    private readonly IExternalGameHostService _gamebrainService;
+    private readonly IExternalGameHostService _externalGameHostService;
     private readonly IGameEngineService _gameEngineService;
     private readonly IGameHubService _gameHubBus;
     private readonly IChallengeGraderUrlService _graderUrlService;
@@ -46,7 +46,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         ChallengeService challengeService,
         CoreOptions coreOptions,
         IExternalGameService externalGameService,
-        IExternalGameHostService gamebrainService,
+        IExternalGameHostService externalGameHostService,
         IGameEngineService gameEngineService,
         IGameHubService gameHubBus,
         IChallengeGraderUrlService graderUrlService,
@@ -65,7 +65,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         _challengeService = challengeService;
         _coreOptions = coreOptions;
         _externalGameService = externalGameService;
-        _gamebrainService = gamebrainService;
+        _externalGameHostService = externalGameHostService;
         _gameEngineService = gameEngineService;
         _gameHubBus = gameHubBus;
         _graderUrlService = graderUrlService;
@@ -208,9 +208,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
             .ToArray();
 
         if (challengeIdsWithNoGamespace.Any())
-        {
             Log($"WARNING: Some deployed challenges have no gamespaces: {string.Join(",", challengeIdsWithNoGamespace)}", request.Game.Id);
-        }
 
         // compose return value from deployed resources
         var retVal = new Dictionary<string, GameStartDeployedTeamResources>();
@@ -569,7 +567,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         Log("Notifying external game host...", request.Game.Id);
         // build metadata for external host
         var metaData = BuildExternalGameMetaData(request.Context, syncGameStartState);
-        var externalClientTeamConfigs = await _gamebrainService.StartGame(metaData, cancellationToken);
+        var externalClientTeamConfigs = await _externalGameHostService.StartGame(metaData, cancellationToken);
         Log("External game host notified!", request.Game.Id);
 
         return externalClientTeamConfigs;
