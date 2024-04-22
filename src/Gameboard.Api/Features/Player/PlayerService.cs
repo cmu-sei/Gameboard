@@ -725,6 +725,11 @@ public class PlayerService
 
         await PlayerStore.Create(enrollments);
         await PlayerStore.Update(allteams);
+
+        // for now, this is a little goofy, but raising any team's score change will rerank the game,
+        // and that's what we want, so...
+        if (teams.Any())
+            await _mediator.Publish(new ScoreChangedNotification(model.TeamIds.First()));
     }
 
     public async Task<PlayerCertificate> MakeCertificate(string id)

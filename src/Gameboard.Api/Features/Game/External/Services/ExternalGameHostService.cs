@@ -99,7 +99,8 @@ internal class ExternalGameHostService : IExternalGameHostService
                     Id = g.Id,
                     Name = g.Name
                 })
-            });
+            })
+            .OrderBy(h => h.Name);
 
     public async Task<IEnumerable<ExternalGameClientTeamConfig>> StartGame(ExternalGameStartMetaData metaData, CancellationToken cancellationToken)
     {
