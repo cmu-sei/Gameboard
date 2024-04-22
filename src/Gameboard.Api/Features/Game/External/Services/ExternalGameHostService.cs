@@ -135,10 +135,11 @@ internal class ExternalGameHostService : IExternalGameHostService
     {
         var client = _httpClientFactory.CreateClient();
         client.Timeout = TimeSpan.FromMinutes(5);
+        client.SetBearerToken(await _accessTokenProvider.GetToken());
 
         // todo: different header names? non-bearer?
         if (config.HostApiKey.IsNotEmpty())
-            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {await _accessTokenProvider.GetToken()}");
+            client.DefaultRequestHeaders.Add("x-api-key", config.HostApiKey);
 
         // startup endpoint, at minimum, is required
         if (config.HostUrl.IsEmpty())
