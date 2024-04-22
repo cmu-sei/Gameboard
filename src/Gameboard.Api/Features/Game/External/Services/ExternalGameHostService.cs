@@ -144,7 +144,11 @@ internal class ExternalGameHostService : IExternalGameHostService
         if (config.HostUrl.IsEmpty())
             throw new EmptyExternalStartupEndpoint(gameId, config.StartupEndpoint);
 
-        client.BaseAddress = new Uri(config.HostUrl);
+        var hostUrl = config.HostUrl;
+        if (!hostUrl.EndsWith("/"))
+            hostUrl += "/";
+
+        client.BaseAddress = new Uri(hostUrl);
         return client;
     }
 }
