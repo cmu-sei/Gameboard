@@ -38,7 +38,7 @@ internal class ChallengesReportService : IChallengesReportService
             .WithNoTracking<Data.ChallengeSpec>()
             .Include(cs => cs.Game)
             .OrderBy(cs => cs.Name)
-            .Where(cs => true);
+            .Where(cs => !cs.IsHidden);
 
         if (gamesCriteria.Any())
             query = query.Where(cs => gamesCriteria.Contains(cs.GameId));

@@ -92,10 +92,14 @@ internal class PracticeModeReportService : IPracticeModeReportService
 
         // we have to constrain the query results by eliminating challenges that have a specId
         // which points at a nonexistent spec. (This is possible due to the non-FK relationship
-        // between challenge and spec and the fact that specs are deletable)
+        // between challenge and spec, the fact that specs are deletable, and we hide some specs from reporting 
+        // like the special PC5 Ship Workspace)
         // 
         // so load all spec ids and add a clause which excludes challenges with orphaned specIds
-        var allSpecIds = await _store.List<Data.ChallengeSpec>().Select(s => s.Id).ToArrayAsync(cancellationToken);
+        var allSpecIds = await _store.List<Data.ChallengeSpec>()
+            .Where(s => !s.IsHidden)
+            .Select(s => s.Id)
+            .ToArrayAsync(cancellationToken);
         query = query.Where(c => allSpecIds.Contains(c.SpecId));
 
         // query for the raw results

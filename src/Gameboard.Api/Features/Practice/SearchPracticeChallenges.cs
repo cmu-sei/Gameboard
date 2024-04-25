@@ -88,7 +88,8 @@ internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeC
             .WithNoTracking<Data.ChallengeSpec>()
             .Include(s => s.Game)
             .Where(s => s.Game.PlayerMode == PlayerMode.Practice)
-            .Where(s => !s.Disabled);
+            .Where(s => !s.Disabled)
+            .Where(s => !s.IsHidden);
 
         if (filterTerm.IsNotEmpty())
         {
