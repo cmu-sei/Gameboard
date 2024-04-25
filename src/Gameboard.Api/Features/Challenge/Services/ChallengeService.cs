@@ -113,7 +113,7 @@ public partial class ChallengeService : _Service
         // if we're outside the execution window, we need to be sure the acting person is an admin
         if (game.IsCompetitionMode && now > game.GameEnd)
         {
-            var actingUser = await _store.WithNoTracking<Data.User>().SingleOrDefaultAsync(u => u.Id == actorId);
+            var actingUser = await _store.WithNoTracking<Data.User>().SingleOrDefaultAsync(u => u.Id == actorId, cancellationToken);
 
             if (!actingUser.Role.HasFlag(UserRole.Admin | UserRole.Designer | UserRole.Director | UserRole.Tester))
                 throw new CantStartBecauseGameExecutionPeriodIsOver(model.SpecId, model.PlayerId, game.GameEnd, now);

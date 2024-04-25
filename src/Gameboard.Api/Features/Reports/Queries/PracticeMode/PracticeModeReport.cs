@@ -5,7 +5,7 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record PracticeModeReportQuery(PracticeModeReportParameters Parameters, User ActingUser, PagingArgs PagingArgs) : IRequest<ReportResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>>, IReportQuery;
+public record PracticeModeReportQuery(PracticeModeReportParameters Parameters, PagingArgs PagingArgs) : IRequest<ReportResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>>, IReportQuery;
 
 internal class PracticeModeReportHandler : IRequestHandler<PracticeModeReportQuery, ReportResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>>
 {

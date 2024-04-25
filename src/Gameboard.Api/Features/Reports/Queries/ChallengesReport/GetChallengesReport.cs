@@ -6,7 +6,7 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record GetChallengesReportQuery(ChallengesReportParameters Parameters, PagingArgs PagingArgs, User ActingUser) : IRequest<ReportResults<ChallengesReportStatSummary, ChallengesReportRecord>>, IReportQuery;
+public record GetChallengesReportQuery(ChallengesReportParameters Parameters, PagingArgs PagingArgs) : IRequest<ReportResults<ChallengesReportStatSummary, ChallengesReportRecord>>, IReportQuery;
 
 internal class GetChallengesReportHandler : IRequestHandler<GetChallengesReportQuery, ReportResults<ChallengesReportStatSummary, ChallengesReportRecord>>
 {

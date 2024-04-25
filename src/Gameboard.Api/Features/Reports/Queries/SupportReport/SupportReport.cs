@@ -4,7 +4,7 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record SupportReportQuery(SupportReportParameters Parameters, PagingArgs PagingArgs, User ActingUser) : IRequest<ReportResults<SupportReportStatSummary, SupportReportRecord>>, IReportQuery;
+public record SupportReportQuery(SupportReportParameters Parameters, PagingArgs PagingArgs) : IRequest<ReportResults<SupportReportStatSummary, SupportReportRecord>>, IReportQuery;
 
 internal class SupportReportQueryHandler : IRequestHandler<SupportReportQuery, ReportResults<SupportReportStatSummary, SupportReportRecord>>
 {

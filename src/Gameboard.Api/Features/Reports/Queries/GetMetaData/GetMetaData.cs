@@ -6,7 +6,7 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record GetMetaDataQuery(string ReportKey, User ActingUser) : IRequest<ReportMetaData>, IReportQuery;
+public record GetMetaDataQuery(string ReportKey) : IRequest<ReportMetaData>, IReportQuery;
 
 internal class GetMetaDataHandler : IRequestHandler<GetMetaDataQuery, ReportMetaData>
 {

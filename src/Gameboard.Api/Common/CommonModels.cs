@@ -6,6 +6,14 @@ public sealed class DateRange
 {
     public DateTimeOffset Start { get; set; }
     public DateTimeOffset End { get; set; }
+
+    public DateRange() { }
+
+    public DateRange(DateTimeOffset start, DateTimeOffset end)
+    {
+        Start = start;
+        End = end;
+    }
 }
 
 public sealed class GameCardContext

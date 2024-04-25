@@ -169,8 +169,8 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
             .Select(c => new SimpleEntity { Id = c.Id, Name = c.Name })
             .ToArrayAsync(cancellationToken);
 
-    public async Task<bool> GetExists(string teamId)
-        => await _playerStore.ListTeam(teamId).AnyAsync();
+    public Task<bool> GetExists(string teamId)
+        => _store.WithNoTracking<Data.Player>().AnyAsync(p => p.TeamId == teamId);
 
     public Task<string> GetGameId(string teamId, CancellationToken cancellationToken)
         => _store
@@ -267,7 +267,8 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
 
     public async Task<bool> IsAtGamespaceLimit(string teamId, Data.Game game, CancellationToken cancellationToken)
     {
-        var activeGameChallenges = await GetChallengesWithActiveGamespace(teamId, game.Id, cancellationToken);
+        var gameId = await GetGameId(teamId, cancellationToken);
+        var activeGameChallenges = await GetChallengesWithActiveGamespace(teamId, gameId, cancellationToken);
         return activeGameChallenges.Count() >= game.GetGamespaceLimit();
     }
 

@@ -7,7 +7,7 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record EnrollmentReportExportQuery(EnrollmentReportParameters Parameters, User ActingUser) : IRequest<IEnumerable<EnrollmentReportCsvRecord>>, IReportQuery;
+public record EnrollmentReportExportQuery(EnrollmentReportParameters Parameters) : IRequest<IEnumerable<EnrollmentReportCsvRecord>>, IReportQuery;
 
 internal class EnrollmentReportExportHandler : IRequestHandler<EnrollmentReportExportQuery, IEnumerable<EnrollmentReportCsvRecord>>
 {

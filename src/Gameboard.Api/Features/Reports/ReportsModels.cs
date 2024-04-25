@@ -9,13 +9,11 @@ public static class ReportKey
     public static string Enrollment { get; } = "enrollment";
     public static string Players { get; } = "players";
     public static string PracticeArea { get; } = "practice-area";
+    public static string SiteUsage { get; } = "site-usage";
     public static string Support { get; } = "support";
 }
 
-public interface IReportQuery
-{
-    public User ActingUser { get; }
-}
+public interface IReportQuery { }
 
 public sealed class ReportViewModel
 {
@@ -51,15 +49,6 @@ public sealed class ReportRawResults<TOverallStats, TRecord>
     public required IEnumerable<TRecord> Records { get; set; }
     public required string ReportKey { get; set; }
     public required string Title { get; set; }
-}
-
-public sealed class ReportDateRange
-{
-    public DateTimeOffset? DateStart { get; set; } = null;
-    public bool HasDateStartValue { get => DateStart != null && ((DateTimeOffset)DateStart).HasValue(); }
-
-    public DateTimeOffset? DateEnd { get; set; } = null;
-    public bool HasDateEndValue { get => DateEnd != null && ((DateTimeOffset)DateStart).HasValue(); }
 }
 
 public sealed class ReportResults<TRecord>

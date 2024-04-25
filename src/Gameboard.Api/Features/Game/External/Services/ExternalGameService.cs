@@ -206,9 +206,9 @@ internal class ExternalGameService : IExternalGameService
                     DateTimeOffset? startTime = null;
                     DateTimeOffset? endTime = null;
 
-                    if (teamChallenges.ContainsKey(key))
+                    if (teamChallenges.TryGetValue(key, out Data.Challenge[] value))
                     {
-                        var challenge = teamChallenges[key].SingleOrDefault(c => c.SpecId == s.Id);
+                        var challenge = value.SingleOrDefault(c => c.SpecId == s.Id);
 
                         id = challenge?.Id;
                         challengeCreated = challenge is not null;
@@ -251,7 +251,9 @@ internal class ExternalGameService : IExternalGameService
                     Name = p.Sponsor.Name,
                     Logo = p.Sponsor.Logo
                 }),
-            }).OrderBy(t => t.Name)
+            })
+            .OrderBy(t => t.Name)
+                .ThenBy(t => t.Players.Count())
         };
     }
 

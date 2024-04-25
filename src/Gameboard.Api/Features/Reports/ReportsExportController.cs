@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Structure;
 using MediatR;
@@ -15,12 +14,10 @@ namespace Gameboard.Api.Features.Reports;
 [Route("/api/reports/export")]
 public class ReportsExportController : ControllerBase
 {
-    private readonly User _actingUser;
     private readonly IMediator _mediator;
 
-    public ReportsExportController(IActingUserService actingUserService, IMediator mediator)
+    public ReportsExportController(IMediator mediator)
     {
-        _actingUser = actingUserService.Get();
         _mediator = mediator;
     }
 
@@ -28,7 +25,7 @@ public class ReportsExportController : ControllerBase
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> GetChallengesReportExport(ChallengesReportParameters parameters)
     {
-        var results = await _mediator.Send(new GetChallengesReportExportQuery(parameters, _actingUser));
+        var results = await _mediator.Send(new GetChallengesReportExportQuery(parameters));
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
     }
 
@@ -36,7 +33,7 @@ public class ReportsExportController : ControllerBase
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> GetEnrollmentReportExport(EnrollmentReportParameters parameters)
     {
-        var results = await _mediator.Send(new EnrollmentReportExportQuery(parameters, _actingUser));
+        var results = await _mediator.Send(new EnrollmentReportExportQuery(parameters));
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
     }
 
@@ -44,7 +41,7 @@ public class ReportsExportController : ControllerBase
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> GetPlayersReportExport(PlayersReportParameters parameters)
     {
-        var results = await _mediator.Send(new GetPlayersReportExportQuery(parameters, _actingUser));
+        var results = await _mediator.Send(new GetPlayersReportExportQuery(parameters));
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
     }
 
@@ -52,7 +49,7 @@ public class ReportsExportController : ControllerBase
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> GetPracticeModeReportExport(PracticeModeReportParameters parameters, CancellationToken cancellationToken)
     {
-        var results = await _mediator.Send(new PracticeModeReportCsvExportQuery(parameters, _actingUser), cancellationToken);
+        var results = await _mediator.Send(new PracticeModeReportCsvExportQuery(parameters), cancellationToken);
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
     }
 

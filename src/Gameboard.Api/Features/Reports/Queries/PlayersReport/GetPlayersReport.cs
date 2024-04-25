@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record GetPlayersReportQuery(PlayersReportParameters Parameters, PagingArgs PagingArgs, User ActingUser) : IRequest<ReportResults<PlayersReportStatSummary, PlayersReportRecord>>, IReportQuery;
+public record GetPlayersReportQuery(PlayersReportParameters Parameters, PagingArgs PagingArgs) : IRequest<ReportResults<PlayersReportStatSummary, PlayersReportRecord>>, IReportQuery;
 
 internal class GetPlayersReportHandler : IRequestHandler<GetPlayersReportQuery, ReportResults<PlayersReportStatSummary, PlayersReportRecord>>
 {

@@ -1,4 +1,5 @@
 using System;
+using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Common;
 
@@ -12,6 +13,13 @@ internal class AppUrlResolutionException : GameboardException
 {
     public AppUrlResolutionException()
         : base($"Unable to resolve the root URL of the application") { }
+}
+
+internal class InvalidDateRange : GameboardValidationException
+{
+    public InvalidDateRange(DateRange range) :
+        base($"Date range is invalid: {range.Start.ToUniversalTime()} to {range.End.ToUniversalTime()}")
+    { }
 }
 
 internal class SemaphoreLockFailure : GameboardException

@@ -131,7 +131,7 @@ public class ReportsService : IReportsService
                     "Player Performance",
                     "Scoring",
                     "Trends",
-                    "Practice vs. Competitive"
+                    "Competitive vs. Practice"
                 },
                 ExampleParameters = new string[]
                 {
@@ -140,6 +140,24 @@ public class ReportsService : IReportsService
                     "Track",
                     "Season",
                     "Game",
+                    "Sponsor"
+                }
+            },
+            new()
+            {
+                Name = "Site Usage",
+                Key = ReportKey.SiteUsage,
+                Description = "View a high-level overview of how the app is being used, optionally filtered by date range and user sponsor.",
+                ExampleFields = new string[]
+                {
+                    "Avg. Completed Challenges Per Player",
+                    "Competitive vs. Practice",
+                    "Deployed Challenge Count",
+                    "Unique Sponsors"
+                },
+                ExampleParameters = new string[]
+                {
+                    "Activity Start / End Dates",
                     "Sponsor"
                 }
             },

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record GetPlayersReportExportQuery(PlayersReportParameters Parameters, User ActingUser) : IRequest<IEnumerable<PlayersReportCsvRecord>>, IReportQuery;
+public record GetPlayersReportExportQuery(PlayersReportParameters Parameters) : IRequest<IEnumerable<PlayersReportCsvRecord>>, IReportQuery;
 
 internal class GetPlayersReportExportHandler : IRequestHandler<GetPlayersReportExportQuery, IEnumerable<PlayersReportCsvRecord>>
 {
