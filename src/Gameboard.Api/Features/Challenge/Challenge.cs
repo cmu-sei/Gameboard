@@ -82,7 +82,7 @@ public class ActiveChallengeDeployment
 public class ActiveChallengeScoreAndAttemptsState
 {
     public required int Attempts { get; set; }
-    public required int MaxAttempts { get; set; }
+    public required int? MaxAttempts { get; set; }
     public required decimal Score { get; set; }
     public required decimal MaxPossibleScore { get; set; }
 }

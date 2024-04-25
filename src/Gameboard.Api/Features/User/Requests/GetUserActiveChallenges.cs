@@ -111,7 +111,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
                     Score = new decimal(c.Score),
                     MaxPossibleScore = c.Points,
                     Attempts = 0,
-                    MaxAttempts = 0
+                    MaxAttempts = null
                 },
                 c.State
             })
@@ -139,7 +139,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
 
             // set attempt info
             challenge.ScoreAndAttemptsState.Attempts = state.Challenge.Attempts;
-            challenge.ScoreAndAttemptsState.MaxAttempts = state.Challenge.MaxAttempts;
+            challenge.ScoreAndAttemptsState.MaxAttempts = state.Challenge.MaxAttempts > 0 ? state.Challenge.MaxAttempts : null;
 
             // currently, topomojo sends an empty VM list when the vms are turned off, so we use this to 
             // proxy whether the challenge is deployed. hopefully topo will eventually send VMs with
@@ -165,7 +165,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
         // now that we have info about points and attempts, we can reason about whether we should return
         // challenges that are maxed out on score or guesses
         .Where(c => c.ScoreAndAttemptsState.Score < c.ScoreAndAttemptsState.MaxPossibleScore)
-        .Where(c => c.ScoreAndAttemptsState.Attempts < c.ScoreAndAttemptsState.MaxAttempts);
+        .Where(c => c.ScoreAndAttemptsState.MaxAttempts is null || c.ScoreAndAttemptsState.Attempts < c.ScoreAndAttemptsState.MaxAttempts);
 
         return new UserActiveChallenges
         {
