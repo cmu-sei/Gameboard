@@ -12,7 +12,7 @@ internal class GameWithModeExistsValidator<TModel> : IGameboardValidator<TModel>
 
     private readonly IStore _store;
     private string _requiredEngineMode;
-    private bool _requiredSyncStartValue;
+    private bool? _requiredSyncStartValue;
 
     public GameWithModeExistsValidator(IStore store)
     {
@@ -43,8 +43,8 @@ internal class GameWithModeExistsValidator<TModel> : IGameboardValidator<TModel>
             if (entity.EngineMode != _requiredEngineMode)
                 context.AddValidationException(new GameHasUnexpectedEngineMode(id, _requiredEngineMode, entity.EngineMode));
 
-            if (entity.IsSyncStart != _requiredSyncStartValue)
-                context.AddValidationException(new GameHasUnexpectedSyncStart(id, _requiredSyncStartValue));
+            if (_requiredSyncStartValue is not null && entity.IsSyncStart != _requiredSyncStartValue.Value)
+                context.AddValidationException(new GameHasUnexpectedSyncStart(id, _requiredSyncStartValue.Value));
         };
     }
 
