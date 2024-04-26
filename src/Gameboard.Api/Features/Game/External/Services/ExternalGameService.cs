@@ -153,7 +153,7 @@ internal class ExternalGameService : IExternalGameService
                 continue;
             }
 
-            if (!teamChallenges.ContainsKey(teamId) || !teamChallenges[teamId].Any())
+            if (!teamChallenges.TryGetValue(teamId, out Data.Challenge[] value) || !value.Any())
             {
                 teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.NotStarted);
                 continue;

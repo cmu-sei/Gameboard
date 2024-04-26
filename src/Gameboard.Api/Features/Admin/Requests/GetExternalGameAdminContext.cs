@@ -41,7 +41,6 @@ internal class GetExternalGameAdminContextHandler : IRequestHandler<GetExternalG
             _gameExists
                 .UseIdProperty(r => r.GameId)
                 .WithEngineMode(GameEngineMode.External)
-                .WithSyncStartRequired(true)
         );
 
         await _validator.Validate(request, cancellationToken);
