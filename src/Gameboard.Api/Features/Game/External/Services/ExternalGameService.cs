@@ -172,10 +172,14 @@ internal class ExternalGameService : IExternalGameService
         }
 
         // and their readiness
-        var syncStartState = await _syncStartGameService.GetSyncStartState(gameId, cancellationToken);
-        var playerReadiness = syncStartState.Teams
-            .SelectMany(t => t.Players)
-            .ToDictionary(p => p.Id, p => p.IsReady);
+        var playerReadiness = new Dictionary<string, bool>();
+        if (gameData.RequireSynchronizedStart)
+        {
+            var syncStartState = await _syncStartGameService.GetSyncStartState(gameId, cancellationToken);
+            playerReadiness = syncStartState.Teams
+                .SelectMany(t => t.Players)
+                .ToDictionary(p => p.Id, p => p.IsReady);
+        }
 
         // the game's overall deploy status is the lowest value of all teams' deploy statuses
         var overallDeployState = ResolveOverallDeployStatus(teamDeployStatuses.Values);
