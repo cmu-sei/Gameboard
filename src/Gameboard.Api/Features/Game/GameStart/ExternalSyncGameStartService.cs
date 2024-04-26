@@ -29,6 +29,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     private readonly IExternalGameHostService _externalGameHostService;
     private readonly IGameEngineService _gameEngineService;
     private readonly IGameHubService _gameHubBus;
+    private readonly IGameResourcesDeploymentService _gameResourcesDeployment;
     private readonly IChallengeGraderUrlService _graderUrlService;
     private readonly IJsonService _jsonService;
     private readonly ILogger<ExternalSyncGameStartService> _logger;
@@ -49,6 +50,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         IExternalGameHostService externalGameHostService,
         IGameEngineService gameEngineService,
         IGameHubService gameHubBus,
+        IGameResourcesDeploymentService gameResourcesDeployment,
         IChallengeGraderUrlService graderUrlService,
         IJsonService jsonService,
         ILogger<ExternalSyncGameStartService> logger,
@@ -68,6 +70,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         _externalGameHostService = externalGameHostService;
         _gameEngineService = gameEngineService;
         _gameHubBus = gameHubBus;
+        _gameResourcesDeployment = gameResourcesDeployment;
         _graderUrlService = graderUrlService;
         _jsonService = jsonService;
         _logger = logger;
@@ -142,17 +145,16 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // we try to preserve as much of the deployment as we can when it fails. as a result,
         // it's possible for DeployResources above to finish without correctly spinning up
         // all gamespaces. check that we have them all before continuing
-        var nonStartedGamespaces = deployedResources
-            .DeployedResources
-            .Select(entry => entry.Value)
-            .SelectMany(r => r.Challenges)
-            .Where(c => !c.Gamespace.IsDeployed)
-            .ToArray();
+        // var nonStartedGamespaces = deployedResources
+        //     .TeamChallenges
+        //     .SelectMany(entry => entry.Value)
+        //     .Where(c => !c.is.IsDeployed)
+        //     .ToArray();
 
-        if (nonStartedGamespaces.Any())
+        if (deployedResources.DeployFailedGamespaceIds.Any())
         {
-            var ids = nonStartedGamespaces.Select(c => c.Challenge.Id).ToArray();
-            Log($"Can't start game {request.Game.Id} because after resource deploy, {nonStartedGamespaces.Length} gamespace(s) weren't on: {string.Join(',', ids)}", request.Game.Id);
+            var ids = deployedResources.DeployFailedGamespaceIds.ToArray();
+            Log($"Can't start game {request.Game.Id} because after resource deploy, {ids.Length} gamespace(s) weren't on: {string.Join(',', ids)}", request.Game.Id);
             throw new GameResourcesArentDeployedOnStart(request.Game.Id, ids);
         }
 
@@ -188,7 +190,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         return request.Context;
     }
 
-    public async Task<GameStartDeployedResources> DeployResources(GameModeStartRequest request, CancellationToken cancellationToken)
+    public async Task<GameResourcesDeployResults> DeployResources(GameModeStartRequest request, CancellationToken cancellationToken)
     {
         Log($"Deploying resources for {request.Context.Teams.Count} team(s)...", request.Game.Id);
         var teamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();
@@ -196,46 +198,45 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // update the external team metadata to reflect that we're deploying
         await _externalGameService.UpdateTeamDeployStatus(teamIds, ExternalGameDeployStatus.Deploying, cancellationToken);
 
-        // deploy challenges and gamespaces
-        var challengeDeployResults = await DeployChallenges(request, cancellationToken);
-        var gamespaces = await DeployGamespaces(request, cancellationToken);
+        // deploy the things!
+        var deployResult = await _gameResourcesDeployment.DeployResources(teamIds, cancellationToken);
 
-        // most of the time, a challenge needs an associated gamespace, but apparently in at least one case, it doesn't, so just warn about gamespaceless challenges
-        var challengeIdsWithNoGamespace = challengeDeployResults
-            .SelectMany(c => c.Value)
-            .Where(c => !gamespaces.ContainsKey(c.Id))
-            .Select(c => c.Id)
-            .ToArray();
+        // // deploy challenges and gamespaces
+        // var challengeDeployResults = await DeployChallenges(request, cancellationToken);
+        // var gamespaces = await DeployGamespaces(request, cancellationToken);
 
-        if (challengeIdsWithNoGamespace.Any())
-            Log($"WARNING: Some deployed challenges have no gamespaces: {string.Join(",", challengeIdsWithNoGamespace)}", request.Game.Id);
+        // // most of the time, a challenge needs an associated gamespace, but apparently in at least one case, it doesn't, so just warn about gamespaceless challenges
+        // var challengeIdsWithNoGamespace = challengeDeployResults
+        //     .SelectMany(c => c.Value)
+        //     .Where(c => !gamespaces.ContainsKey(c.Id))
+        //     .Select(c => c.Id)
+        //     .ToArray();
 
-        // compose return value from deployed resources
-        var retVal = new Dictionary<string, GameStartDeployedTeamResources>();
-        foreach (var teamId in teamIds)
-        {
-            var deployedResources = challengeDeployResults[teamId].Select(challenge =>
-            {
-                return new GameStartDeployedChallenge
-                {
-                    Challenge = new SimpleEntity { Id = challenge.Id, Name = challenge.Name },
-                    GameEngineType = challenge.GameEngineType,
-                    Gamespace = gamespaces[challenge.Id],
-                    TeamId = teamId
-                };
-            });
+        // if (challengeIdsWithNoGamespace.Any())
+        //     Log($"WARNING: Some deployed challenges have no gamespaces: {string.Join(",", challengeIdsWithNoGamespace)}", request.Game.Id);
 
-            retVal.Add(teamId, new GameStartDeployedTeamResources { Challenges = deployedResources });
-        }
+        // // compose return value from deployed resources
+        // var retVal = new Dictionary<string, GameStartDeployedTeamResources>();
+        // foreach (var teamId in teamIds)
+        // {
+        //     var deployedResources = challengeDeployResults[teamId].Select(challenge =>
+        //     {
+        //         return new GameStartDeployedChallenge
+        //         {
+        //             Challenge = new SimpleEntity { Id = challenge.Id, Name = challenge.Name },
+        //             GameEngineType = challenge.GameEngineType,
+        //             Gamespace = gamespaces[challenge.Id],
+        //             TeamId = teamId
+        //         };
+        //     });
+
+        //     retVal.Add(teamId, new GameStartDeployedTeamResources { Challenges = deployedResources });
+        // }
 
         // log that we're done deploying these teams
         await _externalGameService.UpdateTeamDeployStatus(teamIds, ExternalGameDeployStatus.Deployed, cancellationToken);
 
-        return new GameStartDeployedResources
-        {
-            Game = request.Game,
-            DeployedResources = retVal
-        };
+        return deployResult;
     }
 
     public async Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken)

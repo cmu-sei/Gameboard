@@ -16,7 +16,6 @@ namespace Gameboard.Api.Features.Games.Start;
 public interface IGameStartService
 {
     Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken);
-    Task<GameStartDeployedResources> PreDeployGameResources(PreDeployResourcesRequest request, CancellationToken cancellationToken);
     Task<GameStartContext> Start(GameStartRequest request, CancellationToken cancellationToken);
 }
 
@@ -51,22 +50,6 @@ internal class GameStartService : IGameStartService
         _now = now;
         _store = store;
         _teamService = teamService;
-    }
-
-    public async Task<GameStartDeployedResources> PreDeployGameResources(PreDeployResourcesRequest request, CancellationToken cancellationToken)
-    {
-        var game = await _store.Retrieve<Data.Game>(request.GameId);
-        var gameModeService = await _gameModeServiceFactory.Get(request.GameId);
-        var startRequest = await LoadGameModeStartRequest(game, request.TeamIds, cancellationToken);
-
-        // lock this down - only one start or predeploy per game Id
-        using var gameStartLock = await _lockService.GetExternalGameDeployLock(request.GameId).LockAsync(cancellationToken);
-
-        _logger.LogInformation($"Pre-deploying game resources for game {request.GameId}...");
-        var deployedResources = await gameModeService.DeployResources(startRequest, cancellationToken);
-        _logger.LogInformation($"Game resources predeployed for game {request.GameId}.");
-
-        return deployedResources;
     }
 
     public async Task<GameStartContext> Start(GameStartRequest request, CancellationToken cancellationToken)

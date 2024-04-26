@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
@@ -9,33 +10,35 @@ using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Gameboard.Api.Features.Games.External;
+namespace Gameboard.Api.Features.Games;
 
-public record PreDeployExternalGameResourcesCommand(string GameId, IEnumerable<string> TeamIds = null) : IRequest;
+public record DeployGameResourcesCommand(string GameId, IEnumerable<string> TeamIds = null) : IRequest;
 
-internal class PreDeployExternalGameResourcesHandler : IRequestHandler<PreDeployExternalGameResourcesCommand>
+internal class DeployGameResourcesHandler : IRequestHandler<DeployGameResourcesCommand>
 {
     private readonly IExternalGameHostAccessTokenProvider _accessTokenProvider;
     private readonly IActingUserService _actingUserService;
     private readonly IAppUrlService _appUrlService;
     private readonly IBackgroundAsyncTaskQueueService _backgroundTaskQueue;
     private readonly BackgroundAsyncTaskContext _backgroundTaskContext;
-    private readonly GameWithModeExistsValidator<PreDeployExternalGameResourcesCommand> _gameExists;
+    private readonly GameWithModeExistsValidator<DeployGameResourcesCommand> _gameExists;
+    private readonly IGameResourcesDeploymentService _gameResourcesDeployment;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
-    private readonly IValidatorService<PreDeployExternalGameResourcesCommand> _validator;
+    private readonly IValidatorService<DeployGameResourcesCommand> _validator;
 
-    public PreDeployExternalGameResourcesHandler
+    public DeployGameResourcesHandler
     (
         IExternalGameHostAccessTokenProvider accessTokenProvider,
         IActingUserService actingUserService,
         IAppUrlService appUrlService,
         IBackgroundAsyncTaskQueueService backgroundTaskQueue,
         BackgroundAsyncTaskContext backgroundTaskContext,
-        GameWithModeExistsValidator<PreDeployExternalGameResourcesCommand> gameExists,
+        GameWithModeExistsValidator<DeployGameResourcesCommand> gameExists,
+        IGameResourcesDeploymentService gameResourcesDeployment,
         IServiceScopeFactory serviceScopeFactory,
         UserRoleAuthorizer userRoleAuthorizer,
-        IValidatorService<PreDeployExternalGameResourcesCommand> validator
+        IValidatorService<DeployGameResourcesCommand> validator
     )
     {
         _accessTokenProvider = accessTokenProvider;
@@ -44,12 +47,13 @@ internal class PreDeployExternalGameResourcesHandler : IRequestHandler<PreDeploy
         _backgroundTaskQueue = backgroundTaskQueue;
         _backgroundTaskContext = backgroundTaskContext;
         _gameExists = gameExists;
+        _gameResourcesDeployment = gameResourcesDeployment;
         _serviceScopeFactory = serviceScopeFactory;
         _userRoleAuthorizer = userRoleAuthorizer;
         _validator = validator;
     }
 
-    public async Task Handle(PreDeployExternalGameResourcesCommand request, CancellationToken cancellationToken)
+    public async Task Handle(DeployGameResourcesCommand request, CancellationToken cancellationToken)
     {
         // auth and validate
         _userRoleAuthorizer.AllowRoles(UserRole.Admin).Authorize();
@@ -76,7 +80,7 @@ internal class PreDeployExternalGameResourcesHandler : IRequestHandler<PreDeploy
                 using var scope = _serviceScopeFactory.CreateScope();
                 var gameStartService = scope.ServiceProvider.GetRequiredService<IGameStartService>();
 
-                await gameStartService.PreDeployGameResources(new PreDeployResourcesRequest { GameId = request.GameId, TeamIds = request.TeamIds }, cancellationToken);
+                await _gameResourcesDeployment.DeployResources(request.TeamIds, cancellationToken);
             }
         );
     }

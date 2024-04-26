@@ -28,7 +28,6 @@ public interface IGameHubService : INotificationHandler<GameEnrolledPlayersChang
     Task SendSyncStartGameStateChanged(SyncStartState state);
     Task SendSyncStartGameStarted(SyncStartGameStartedState state);
     Task SendSyncStartGameStarting(SyncStartState state);
-    // Task SendYourActiveGamesChanged(string userId);
 }
 
 internal class GameHubService : IGameHubService, IGameboardHubService
@@ -200,25 +199,6 @@ internal class GameHubService : IGameHubService, IGameboardHubService
                 Data = state
             });
     }
-
-    // public async Task SendYourActiveGamesChanged(string userId)
-    // {
-    //     var enrollments = await GetActiveEnrollments(userId);
-
-    //     await _hubContext
-    //         .Clients
-    //         .User(userId)
-    //         .YourActiveGamesChanged(new GameHubEvent<YourActiveGamesChangedEvent>
-    //         {
-    //             GameId = string.Empty,
-    //             EventType = GameHubEventType.YourActiveGamesChanged,
-    //             Data = new YourActiveGamesChangedEvent
-    //             {
-    //                 UserId = userId,
-    //                 ActiveEnrollments = enrollments
-    //             }
-    //         });
-    // }
 
     public async Task Handle(AppStartupNotification appStartupNotification, CancellationToken cancellationToken)
     {

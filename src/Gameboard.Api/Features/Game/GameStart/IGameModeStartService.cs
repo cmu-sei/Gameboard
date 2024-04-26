@@ -40,7 +40,7 @@ public interface IGameModeStartService
     /// <param name="request"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<GameStartDeployedResources> DeployResources(GameModeStartRequest request, CancellationToken cancellationToken);
+    public Task<GameResourcesDeployResults> DeployResources(GameModeStartRequest request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Starts the game. At the end of this function, a call to GetGamePlayState for the game should return "Started".

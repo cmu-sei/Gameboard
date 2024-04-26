@@ -12,7 +12,7 @@ internal class ExternalGameStartService : IExternalGameStartService
 {
     public TeamSessionResetType StartFailResetType => TeamSessionResetType.PreserveChallenges;
 
-    public Task<GameStartDeployedResources> DeployResources(GameModeStartRequest request, CancellationToken cancellationToken)
+    public Task<GameResourcesDeployResults> DeployResources(GameModeStartRequest request, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }
