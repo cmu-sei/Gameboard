@@ -63,7 +63,6 @@ internal class DeployGameResourcesHandler : IRequestHandler<DeployGameResourcesC
             _gameExists
                 .UseIdProperty(r => r.GameId)
                 .WithEngineMode(GameEngineMode.External)
-                .WithSyncStartRequired(true)
         );
         await _validator.Validate(request, cancellationToken);
 
