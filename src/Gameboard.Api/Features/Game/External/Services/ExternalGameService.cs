@@ -242,9 +242,11 @@ internal class ExternalGameService : IExternalGameService
                         Name = p.Sponsor.Name,
                         Logo = p.Sponsor.Logo
                     },
-                    Status = playerReadiness[p.Id] ?
-                        ExternalGameStatePlayerStatus.Ready :
-                        ExternalGameStatePlayerStatus.NotReady,
+                    // TODO: hack because this is no longer just about external/sync games
+                    Status = !playerReadiness.Any() ? ExternalGameStatePlayerStatus.NotConnected :
+                        playerReadiness[p.Id] ?
+                            ExternalGameStatePlayerStatus.Ready :
+                            ExternalGameStatePlayerStatus.NotReady,
                     User = new SimpleEntity { Id = p.UserId, Name = p.User.ApprovedName }
                 })
                 .OrderByDescending(p => p.IsCaptain)
