@@ -80,7 +80,7 @@ internal class DeployGameResourcesHandler : IRequestHandler<DeployGameResourcesC
         _backgroundTaskContext.AppBaseUrl = _appUrlService.GetBaseUrl();
 
         var finalTeamIds = request.TeamIds.IsEmpty() ? Array.Empty<string>() : request.TeamIds;
-        if (request.TeamIds.IsEmpty() && request.GameId.IsNotEmpty())
+        if (finalTeamIds.IsEmpty() && request.GameId.IsNotEmpty())
             finalTeamIds = await _store
                 .WithNoTracking<Data.Player>()
                 .Where(p => p.GameId == request.GameId)
