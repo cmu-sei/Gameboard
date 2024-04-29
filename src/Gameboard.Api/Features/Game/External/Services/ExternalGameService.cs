@@ -73,8 +73,8 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
         await _store.SaveAddRange(teamGameIds.Select(teamIdGameId => new ExternalGameTeam
         {
             Id = _guids.GetGuid(),
-            GameId = teamIdGameId.Key,
-            TeamId = teamIdGameId.Value,
+            GameId = teamIdGameId.Value,
+            TeamId = teamIdGameId.Key,
             DeployStatus = ExternalGameDeployStatus.NotStarted
         }).ToArray());
     }
