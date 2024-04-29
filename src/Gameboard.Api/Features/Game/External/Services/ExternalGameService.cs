@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.Core;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
@@ -277,8 +278,11 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
                 .WithNoTracking<ExternalGameTeam>()
                 .SingleOrDefaultAsync(r => r.TeamId == teamId, cancellationToken);
 
-    public Task Handle(GameResourcesDeployStartNotification notification, CancellationToken cancellationToken)
-        => CreateTeams(notification.TeamIds, cancellationToken);
+    public async Task Handle(GameResourcesDeployStartNotification notification, CancellationToken cancellationToken)
+    {
+        await CreateTeams(notification.TeamIds, cancellationToken);
+        await UpdateTeamDeployStatus(teamIds, ExternalGameDeployStatus.Deploying, cancellationToken);
+    }
 
     public async Task UpdateGameDeployStatus(string gameId, ExternalGameDeployStatus status, CancellationToken cancellationToken)
     {
