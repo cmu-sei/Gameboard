@@ -281,7 +281,7 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
     public async Task Handle(GameResourcesDeployStartNotification notification, CancellationToken cancellationToken)
     {
         await CreateTeams(notification.TeamIds, cancellationToken);
-        await UpdateTeamDeployStatus(teamIds, ExternalGameDeployStatus.Deploying, cancellationToken);
+        await UpdateTeamDeployStatus(notification.TeamIds, ExternalGameDeployStatus.Deploying, cancellationToken);
     }
 
     public async Task UpdateGameDeployStatus(string gameId, ExternalGameDeployStatus status, CancellationToken cancellationToken)
