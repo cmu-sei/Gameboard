@@ -72,6 +72,8 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
 
     public async Task<GameResourcesDeployResults> DeployResources(IEnumerable<string> teamIds, CancellationToken cancellationToken)
     {
+        await _mediator.Publish(new GameResourcesDeployStartNotification(teamIds), cancellationToken);
+
         var game = await _store
             .WithNoTracking<Data.Player>()
                 .Include(p => p.Game)
@@ -109,7 +111,6 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
         // await _externalGameService.UpdateTeamDeployStatus(teamIds, ExternalGameDeployStatus.Deployed, cancellationToken);
 
         Log($"{request.SpecIds.Count()} challenges deployed for teams {string.Join(", ", request.TeamIds)}...", request.GameId);
-        await _mediator.Publish(new GameResourcesDeployStartNotification(teamIds), cancellationToken);
 
         return new GameResourcesDeployResults
         {
