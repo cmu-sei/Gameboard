@@ -10,6 +10,7 @@ using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -32,6 +33,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
     private readonly ILockService _lockService;
     private readonly ILogger<GameResourcesDeploymentService> _logger;
     private readonly IMapper _mapper;
+    private readonly IMediator _mediator;
     private readonly IStore _store;
     private readonly ITeamService _teamService;
 
@@ -44,6 +46,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
         IChallengeGraderUrlService graderUrlService,
         IJsonService jsonService,
         ILockService lockService,
+        IMediator mediator,
         ILogger<GameResourcesDeploymentService> logger,
         IMapper mapper,
         IStore store,
@@ -59,6 +62,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
         _lockService = lockService;
         _logger = logger;
         _mapper = mapper;
+        _mediator = mediator;
         _store = store;
         _teamService = teamService;
     }
@@ -105,6 +109,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
         // await _externalGameService.UpdateTeamDeployStatus(teamIds, ExternalGameDeployStatus.Deployed, cancellationToken);
 
         Log($"{request.SpecIds.Count()} challenges deployed for teams {string.Join(", ", request.TeamIds)}...", request.GameId);
+        await _mediator.Publish(new GameResourcesDeployedNotification(teamIds), cancellationToken);
 
         return new GameResourcesDeployResults
         {

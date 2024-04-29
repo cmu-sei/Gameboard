@@ -6,13 +6,15 @@ using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ServiceStack;
 
 namespace Gameboard.Api.Features.Games.External;
 
 public interface IExternalGameService
 {
-    Task CreateTeams(string gameId, IEnumerable<string> teamIds, CancellationToken cancellationToken);
+    Task CreateTeams(IEnumerable<string> teamIds, CancellationToken cancellationToken);
     Task DeleteTeamExternalData(CancellationToken cancellationToken, params string[] teamIds);
     Task<ExternalGameState> GetExternalGameState(string gameId, CancellationToken cancellationToken);
 
@@ -30,7 +32,7 @@ public interface IExternalGameService
     Task UpdateTeamExternalUrl(string teamId, string url, CancellationToken cancellationToken);
 }
 
-internal class ExternalGameService : IExternalGameService
+internal class ExternalGameService : IExternalGameService, INotificationHandler<GameResourcesDeployedNotification>
 {
     private readonly IGuidService _guids;
     private readonly IStore _store;
@@ -51,22 +53,28 @@ internal class ExternalGameService : IExternalGameService
         _teamService = teamService;
     }
 
-    public async Task CreateTeams(string gameId, IEnumerable<string> teamIds, CancellationToken cancellationToken)
+    public async Task CreateTeams(IEnumerable<string> teamIds, CancellationToken cancellationToken)
     {
+        var teamGameIds = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => teamIds.Contains(p.TeamId))
+            .GroupBy(p => p.TeamId)
+            .ToDictionaryAsync(kv => kv.Key, kv => kv.Select(p => p.GameId).Single(), cancellationToken);
+
         // first, delete any metadata associated with a previous attempt
         await _store
             .WithNoTracking<ExternalGameTeam>()
-            .Where(t => t.GameId == gameId)
+            .Where(t => teamGameIds.Any(kv => kv.Key == t.TeamId && kv.Value == t.GameId))
             .ExecuteDeleteAsync(cancellationToken);
 
         await DeleteTeamExternalData(cancellationToken, teamIds.ToArray());
 
         // then create an entry for each team in this game
-        await _store.SaveAddRange(teamIds.Select(teamId => new ExternalGameTeam
+        await _store.SaveAddRange(teamGameIds.Select(teamIdGameId => new ExternalGameTeam
         {
             Id = _guids.GetGuid(),
-            GameId = gameId,
-            TeamId = teamId,
+            GameId = teamIdGameId.Key,
+            TeamId = teamIdGameId.Value,
             DeployStatus = ExternalGameDeployStatus.NotStarted
         }).ToArray());
     }
@@ -139,6 +147,9 @@ internal class ExternalGameService : IExternalGameService
             .ToDictionary(key => key, key => _teamService.ResolveCaptain(teams[key]));
 
         var teamDeployStatuses = new Dictionary<string, ExternalGameDeployStatus>();
+        Console.WriteLine($"Resolving deploy statuses for teams{string.Join(',', teams.Keys)}");
+        Console.WriteLine($"Resolving deploy statuses for teams{string.Join(',', teams.Keys)}");
+
         foreach (var teamId in teams.Keys)
         {
             if (gameData.ExternalGameTeams.Any(t => t.ExternalGameUrl is null))
@@ -267,6 +278,9 @@ internal class ExternalGameService : IExternalGameService
             => _store
                 .WithNoTracking<ExternalGameTeam>()
                 .SingleOrDefaultAsync(r => r.TeamId == teamId, cancellationToken);
+
+    public Task Handle(GameResourcesDeployedNotification notification, CancellationToken cancellationToken)
+        => CreateTeams(notification.TeamIds, cancellationToken);
 
     public async Task UpdateGameDeployStatus(string gameId, ExternalGameDeployStatus status, CancellationToken cancellationToken)
     {

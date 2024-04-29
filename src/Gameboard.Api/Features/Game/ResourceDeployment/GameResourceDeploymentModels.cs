@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Gameboard.Api;
 using Gameboard.Api.Features.GameEngine;
+using MediatR;
 
 public sealed class GameResourcesDeployRequest
 {
@@ -41,3 +42,5 @@ public sealed class GameResourcesDeployResults
     public required IDictionary<string, IEnumerable<GameResourcesDeployChallenge>> TeamChallenges { get; set; }
     public required IEnumerable<string> DeployFailedGamespaceIds { get; set; }
 }
+
+public sealed record GameResourcesDeployedNotification(IEnumerable<string> TeamIds) : INotification;
