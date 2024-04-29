@@ -4,7 +4,7 @@ namespace Gameboard.Api.Features.Reports;
 
 public sealed class SiteUsageReportParameters
 {
-    public string SponsorId { get; set; }
+    public string Sponsors { get; set; }
     public DateTimeOffset? StartDate { get; set; }
     public DateTimeOffset? EndDate { get; set; }
 }
@@ -16,7 +16,7 @@ public sealed class SiteUsageReportRecord
     public required int DeployedChallengesCount { get; set; }
     public required int DeployedChallengesCompetitiveCount { get; set; }
     public required int DeployedChallengesPracticeCount { get; set; }
-    public required int DeployedChallengeSpecCount { get; set; }
+    public required int DeployedChallengesSpecCount { get; set; }
     public required int UsersWithCompetitiveChallengeCount { get; set; }
     public required int UsersWithPracticeChallengeCount { get; set; }
     public required int CompetitiveUsersWithNoPracticeCount { get; set; }

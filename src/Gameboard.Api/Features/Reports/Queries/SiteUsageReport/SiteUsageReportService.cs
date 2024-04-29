@@ -1,5 +1,4 @@
 using System.Linq;
-using System.Threading;
 using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Features.Reports;
@@ -11,10 +10,12 @@ public interface ISiteUsageReportService
 
 internal class SiteUsageReportService : ISiteUsageReportService
 {
+    private readonly IReportsService _reportsService;
     private readonly IStore _store;
 
-    public SiteUsageReportService(IStore store)
+    public SiteUsageReportService(IReportsService reportsService, IStore store)
     {
+        _reportsService = reportsService;
         _store = store;
     }
 
@@ -25,16 +26,15 @@ internal class SiteUsageReportService : ISiteUsageReportService
         var query = _store.WithNoTracking<Data.Challenge>();
 
         if (parameters.StartDate.IsNotEmpty())
-            query = query.Where(c => c.StartTime >= parameters.StartDate.Value);
+            query = query.Where(c => c.StartTime >= parameters.StartDate.Value.ToUniversalTime());
 
         if (parameters.EndDate.IsNotEmpty())
-            query = query.Where(c => c.EndTime <= parameters.EndDate.Value);
+            query = query.Where(c => c.EndTime <= parameters.EndDate.Value.ToEndDate().ToUniversalTime());
 
-        if (parameters.SponsorId.IsNotEmpty())
-            query = query.Where(c => c.Player.User.SponsorId == parameters.SponsorId);
+        var sponsorIds = _reportsService.ParseMultiSelectCriteria(parameters.Sponsors);
+        if (sponsorIds.IsNotEmpty())
+            query = query.Where(c => sponsorIds.Contains(c.Player.SponsorId));
 
         return query;
     }
-
-    
 }

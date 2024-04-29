@@ -40,7 +40,7 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
         _validatorService.AddValidator((req, ctx) =>
         {
             if (req.Parameters.StartDate.IsNotEmpty() && req.Parameters.EndDate.IsNotEmpty() && req.Parameters.StartDate > req.Parameters.EndDate)
-                ctx.AddValidationException(new InvalidDateRange(new DateRange(req.Parameters.StartDate.Value, req.Parameters.EndDate.Value)));
+                ctx.AddValidationException(new InvalidDateRange(new DateRange(req.Parameters.StartDate.Value.ToUniversalTime(), req.Parameters.EndDate.Value.ToUniversalTime())));
         });
 
         await _validatorService.Validate(request, cancellationToken);
@@ -84,10 +84,6 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
         var competitiveUserIds = competitiveTeamIds.SelectMany(tId => teamUsers[tId]).Distinct().ToArray();
         var practiceTeamIds = teamChallengeCounts.Where(t => t.Value.PracticeChallengeCount > 0).Select(kv => kv.Key).ToArray();
         var practiceUserIds = practiceTeamIds.SelectMany(tId => teamUsers[tId]).Distinct().ToArray();
-        // var competitiveStrictUserIds = teamChallengeCounts
-        //     .Where(kv => kv.Value.CompetitiveChallengeCount > 0 && kv.Value.PracticeChallengeCount == 0)
-        //     .Select(kv => kv.Key)
-        //     .SelectMany(tId => )
         var competitiveStrictTeamIds = teamChallengeCounts.Where(kv => kv.Value.CompetitiveChallengeCount > 0 && kv.Value.PracticeChallengeCount == 0);
 
         var userSponsorCount = await _store.WithNoTracking<Data.User>().Select(u => u.SponsorId).Distinct().CountAsync(cancellationToken);
@@ -100,7 +96,7 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
             DeployedChallengesCount = challenges.Length,
             DeployedChallengesCompetitiveCount = challenges.Where(c => c.IsCompetitive).Count(),
             DeployedChallengesPracticeCount = challenges.Where(c => !c.IsCompetitive).Count(),
-            DeployedChallengeSpecCount = challenges.Select(c => c.SpecId).Distinct().Count(),
+            DeployedChallengesSpecCount = challenges.Select(c => c.SpecId).Distinct().Count(),
             PracticeUsersWithNoCompetitiveCount = 0,
             SponsorCount = userSponsorCount,
             UserCount = userTeams.Keys.Count,
