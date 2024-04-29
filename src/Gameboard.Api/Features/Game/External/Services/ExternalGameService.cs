@@ -60,13 +60,12 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
             .WithNoTracking<Data.Player>()
             .Where(p => teamIds.Contains(p.TeamId))
             .GroupBy(p => p.TeamId)
-            .ToDictionaryAsync(kv => kv.Key, kv => kv.Select(p => p.GameId).Single(), cancellationToken);
+            .ToDictionaryAsync(kv => kv.Key, kv => kv.Select(p => p.GameId).ToArray(), cancellationToken);
+
+        if (teamGameIds.Keys.Any(gIds => gIds.Length > 1))
+            throw new InvalidOperationException("One of the teams to be created is tied to more than one game.");
 
         // first, delete any metadata associated with a previous attempt
-        await _store
-            .WithNoTracking<ExternalGameTeam>()
-            .Where(t => teamGameIds.Any(kv => kv.Key == t.TeamId && kv.Value == t.GameId))
-            .ExecuteDeleteAsync(cancellationToken);
 
         await DeleteTeamExternalData(cancellationToken, teamIds.ToArray());
 
@@ -74,7 +73,7 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
         await _store.SaveAddRange(teamGameIds.Select(teamIdGameId => new ExternalGameTeam
         {
             Id = _guids.GetGuid(),
-            GameId = teamIdGameId.Value,
+            GameId = teamIdGameId.Value.Single(),
             TeamId = teamIdGameId.Key,
             DeployStatus = ExternalGameDeployStatus.NotStarted
         }).ToArray());
