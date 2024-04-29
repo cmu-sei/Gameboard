@@ -1,13 +1,17 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Gameboard.Api.Features.Games;
@@ -24,6 +28,7 @@ internal class DeployGameResourcesHandler : IRequestHandler<DeployGameResourcesC
     private readonly GameWithModeExistsValidator<DeployGameResourcesCommand> _gameExists;
     private readonly IGameResourcesDeploymentService _gameResourcesDeployment;
     private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IStore _store;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
     private readonly IValidatorService<DeployGameResourcesCommand> _validator;
 
@@ -37,6 +42,7 @@ internal class DeployGameResourcesHandler : IRequestHandler<DeployGameResourcesC
         GameWithModeExistsValidator<DeployGameResourcesCommand> gameExists,
         IGameResourcesDeploymentService gameResourcesDeployment,
         IServiceScopeFactory serviceScopeFactory,
+        IStore store,
         UserRoleAuthorizer userRoleAuthorizer,
         IValidatorService<DeployGameResourcesCommand> validator
     )
@@ -49,6 +55,7 @@ internal class DeployGameResourcesHandler : IRequestHandler<DeployGameResourcesC
         _gameExists = gameExists;
         _gameResourcesDeployment = gameResourcesDeployment;
         _serviceScopeFactory = serviceScopeFactory;
+        _store = store;
         _userRoleAuthorizer = userRoleAuthorizer;
         _validator = validator;
     }
@@ -72,6 +79,14 @@ internal class DeployGameResourcesHandler : IRequestHandler<DeployGameResourcesC
         _backgroundTaskContext.ActingUser = _actingUserService.Get();
         _backgroundTaskContext.AppBaseUrl = _appUrlService.GetBaseUrl();
 
+        var finalTeamIds = request.TeamIds.IsEmpty() ? Array.Empty<string>() : request.TeamIds;
+        if (request.TeamIds.IsEmpty() && request.GameId.IsNotEmpty())
+            finalTeamIds = await _store
+                .WithNoTracking<Data.Player>()
+                .Where(p => p.GameId == request.GameId)
+                .Select(p => p.TeamId)
+                .ToArrayAsync(cancellationToken);
+
         await _backgroundTaskQueue.QueueBackgroundWorkItemAsync
         (
             async cancellationToken =>
@@ -79,7 +94,7 @@ internal class DeployGameResourcesHandler : IRequestHandler<DeployGameResourcesC
                 using var scope = _serviceScopeFactory.CreateScope();
                 var resourcesDeploymentService = scope.ServiceProvider.GetRequiredService<IGameResourcesDeploymentService>();
 
-                await resourcesDeploymentService.DeployResources(request.TeamIds, cancellationToken);
+                await resourcesDeploymentService.DeployResources(finalTeamIds, cancellationToken);
             }
         );
     }

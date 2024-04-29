@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Gameboard.Api;
 using Gameboard.Api.Structure;
 
 public sealed class CantPreDeployNonExternalGame : GameboardValidationException
