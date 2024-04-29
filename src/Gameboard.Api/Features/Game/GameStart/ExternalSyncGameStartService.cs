@@ -194,8 +194,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     {
         Log($"Deploying resources for {request.Context.Teams.Count} team(s)...", request.Game.Id);
         var teamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();
-        // update the external team metadata to reflect that we're deploying
-        await _externalGameService.UpdateTeamDeployStatus(teamIds, ExternalGameDeployStatus.Deploying, cancellationToken);
 
         // deploy the things!
         var deployResult = await _gameResourcesDeployment.DeployResources(teamIds, cancellationToken);
