@@ -32,7 +32,7 @@ public interface IExternalGameService
     Task UpdateTeamExternalUrl(string teamId, string url, CancellationToken cancellationToken);
 }
 
-internal class ExternalGameService : IExternalGameService, INotificationHandler<GameResourcesDeployedNotification>
+internal class ExternalGameService : IExternalGameService, INotificationHandler<GameResourcesDeployStartNotification>
 {
     private readonly IGuidService _guids;
     private readonly IStore _store;
@@ -147,8 +147,6 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
             .ToDictionary(key => key, key => _teamService.ResolveCaptain(teams[key]));
 
         var teamDeployStatuses = new Dictionary<string, ExternalGameDeployStatus>();
-        Console.WriteLine($"Resolving deploy statuses for teams{string.Join(',', teams.Keys)}");
-        Console.WriteLine($"Resolving deploy statuses for teams{string.Join(',', teams.Keys)}");
 
         foreach (var teamId in teams.Keys)
         {
@@ -279,7 +277,7 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
                 .WithNoTracking<ExternalGameTeam>()
                 .SingleOrDefaultAsync(r => r.TeamId == teamId, cancellationToken);
 
-    public Task Handle(GameResourcesDeployedNotification notification, CancellationToken cancellationToken)
+    public Task Handle(GameResourcesDeployStartNotification notification, CancellationToken cancellationToken)
         => CreateTeams(notification.TeamIds, cancellationToken);
 
     public async Task UpdateGameDeployStatus(string gameId, ExternalGameDeployStatus status, CancellationToken cancellationToken)

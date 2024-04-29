@@ -43,4 +43,4 @@ public sealed class GameResourcesDeployResults
     public required IEnumerable<string> DeployFailedGamespaceIds { get; set; }
 }
 
-public sealed record GameResourcesDeployedNotification(IEnumerable<string> TeamIds) : INotification;
+public sealed record GameResourcesDeployStartNotification(IEnumerable<string> TeamIds) : INotification;
