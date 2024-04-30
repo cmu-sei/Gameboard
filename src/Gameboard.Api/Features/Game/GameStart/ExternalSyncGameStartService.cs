@@ -6,11 +6,9 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Teams;
-using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -140,7 +138,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         Log("Synchronized session started!", request.Game.Id);
 
         // update external host and get configuration information for teams
-        var externalHostTeamConfigs = await NotifyExternalGameHost(request, syncGameStartState, cancellationToken);
+        var externalHostTeamConfigs = await NotifyExternalGameHost(deployedResources, syncGameStartState, cancellationToken);
         // log what we got
         Log($"External host team configurations: {_jsonService.Serialize(externalHostTeamConfigs)}", request.Game.Id);
 
@@ -246,64 +244,64 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // note that the GameStartService automatically resets player sessions without unenrolling them after this function is called
     }
 
-    private ExternalGameStartMetaData BuildExternalGameMetaData(GameStartContext context, SyncStartGameStartedState syncGameStartState)
-    {
-        // build team objects to return
-        var teamsToReturn = new List<ExternalGameStartMetaDataTeam>();
-        foreach (var team in context.Teams)
-        {
-            var teamChallenges = context.ChallengesCreated.Where(c => c.TeamId == team.Team.Id).Select(c => c.Challenge).ToArray();
-            var teamGameStates = context.GamespacesStarted.Where(g => teamChallenges.Select(c => c.Id).Contains(g.Id)).ToArray();
-            var teamPlayers = !syncGameStartState.Teams.ContainsKey(team.Team.Id) ?
-                 Array.Empty<ExternalGameStartMetaDataPlayer>() :
-                syncGameStartState.Teams[team.Team.Id]
-                    .Select(p => new ExternalGameStartMetaDataPlayer
-                    {
-                        PlayerId = p.Id,
-                        UserId = p.UserId
-                    }).ToArray();
+    // private ExternalGameStartMetaData BuildExternalGameMetaData(GameStartContext context, SyncStartGameStartedState syncGameStartState)
+    // {
+    //     // build team objects to return
+    //     var teamsToReturn = new List<ExternalGameStartMetaDataTeam>();
+    //     foreach (var team in context.Teams)
+    //     {
+    //         var teamChallenges = context.ChallengesCreated.Where(c => c.TeamId == team.Team.Id).Select(c => c.Challenge).ToArray();
+    //         var teamGameStates = context.GamespacesStarted.Where(g => teamChallenges.Select(c => c.Id).Contains(g.Id)).ToArray();
+    //         var teamPlayers = !syncGameStartState.Teams.ContainsKey(team.Team.Id) ?
+    //              Array.Empty<ExternalGameStartMetaDataPlayer>() :
+    //             syncGameStartState.Teams[team.Team.Id]
+    //                 .Select(p => new ExternalGameStartMetaDataPlayer
+    //                 {
+    //                     PlayerId = p.Id,
+    //                     UserId = p.UserId
+    //                 }).ToArray();
 
-            var teamToReturn = new ExternalGameStartMetaDataTeam
-            {
-                Id = team.Team.Id,
-                Name = team.Team.Name,
-                Gamespaces = teamGameStates.Select(gs => new ExternalGameStartTeamGamespace
-                {
-                    Id = gs.Id,
-                    VmUris = _gameEngineService.GetGamespaceVms(gs).Select(vm => vm.Url),
-                    IsDeployed = gs.HasDeployedGamespace
-                }),
-                Players = teamPlayers
-            };
+    //         var teamToReturn = new ExternalGameStartMetaDataTeam
+    //         {
+    //             Id = team.Team.Id,
+    //             Name = team.Team.Name,
+    //             Gamespaces = teamGameStates.Select(gs => new ExternalGameStartTeamGamespace
+    //             {
+    //                 Id = gs.Id,
+    //                 VmUris = _gameEngineService.GetGamespaceVms(gs).Select(vm => vm.Url),
+    //                 IsDeployed = gs.HasDeployedGamespace
+    //             }),
+    //             Players = teamPlayers
+    //         };
 
-            teamsToReturn.Add(teamToReturn);
-        }
+    //         teamsToReturn.Add(teamToReturn);
+    //     }
 
-        var retVal = new ExternalGameStartMetaData
-        {
-            Game = context.Game,
-            Session = new ExternalGameStartMetaDataSession
-            {
-                Now = _now.Get(),
-                SessionBegin = syncGameStartState.SessionBegin,
-                SessionEnd = syncGameStartState.SessionEnd
-            },
-            Teams = teamsToReturn
-        };
+    //     var retVal = new ExternalGameStartMetaData
+    //     {
+    //         Game = context.Game,
+    //         Session = new ExternalGameStartMetaDataSession
+    //         {
+    //             Now = _now.Get(),
+    //             SessionBegin = syncGameStartState.SessionBegin,
+    //             SessionEnd = syncGameStartState.SessionEnd
+    //         },
+    //         Teams = teamsToReturn
+    //     };
 
-        var metadataJson = _jsonService.Serialize(retVal);
-        Log($"""Final metadata payload for game "{retVal.Game.Id}" is here: {metadataJson}.""", retVal.Game.Id);
-        return retVal;
-    }
+    //     var metadataJson = _jsonService.Serialize(retVal);
+    //     Log($"""Final metadata payload for game "{retVal.Game.Id}" is here: {metadataJson}.""", retVal.Game.Id);
+    //     return retVal;
+    // }
 
-    private async Task<IEnumerable<ExternalGameClientTeamConfig>> NotifyExternalGameHost(GameModeStartRequest request, SyncStartGameStartedState syncGameStartState, CancellationToken cancellationToken)
+    private async Task<IEnumerable<ExternalGameClientTeamConfig>> NotifyExternalGameHost(GameResourcesDeployResults resources, SyncStartGameStartedState syncStartState, CancellationToken cancellationToken)
     {
         // NOTIFY EXTERNAL CLIENT
-        Log("Notifying external game host...", request.Game.Id);
+        Log("Notifying external game host...", resources.Game.Id);
         // build metadata for external host
-        var metaData = BuildExternalGameMetaData(request.Context, syncGameStartState);
+        var metaData = await _externalGameService.BuildExternalGameMetaData(resources, syncStartState.SessionBegin, syncStartState.SessionEnd);
         var externalClientTeamConfigs = await _externalGameHostService.StartGame(metaData, cancellationToken);
-        Log("External game host notified!", request.Game.Id);
+        Log("External game host notified!", resources.Game.Id);
 
         return externalClientTeamConfigs;
     }

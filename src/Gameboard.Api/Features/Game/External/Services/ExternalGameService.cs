@@ -5,15 +5,19 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Teams;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ServiceStack;
 
 namespace Gameboard.Api.Features.Games.External;
 
 public interface IExternalGameService
 {
+    // TODO: don't pass session stuff, centralize
+    Task<ExternalGameStartMetaData> BuildExternalGameMetaData(GameResourcesDeployResults resources, DateTimeOffset sessionStart, DateTimeOffset sessionEnd);
     Task CreateTeams(IEnumerable<string> teamIds, CancellationToken cancellationToken);
     Task DeleteTeamExternalData(CancellationToken cancellationToken, params string[] teamIds);
     Task<ExternalGameState> GetExternalGameState(string gameId, CancellationToken cancellationToken);
@@ -34,23 +38,85 @@ public interface IExternalGameService
 
 internal class ExternalGameService : IExternalGameService, INotificationHandler<GameResourcesDeployStartNotification>, INotificationHandler<GameResourcesDeployEndNotification>
 {
+    private readonly IGameEngineService _gameEngine;
     private readonly IGuidService _guids;
+    private readonly IJsonService _json;
+    private readonly ILogger<ExternalGameService> _logger;
+    private readonly INowService _now;
     private readonly IStore _store;
     private readonly ISyncStartGameService _syncStartGameService;
     private readonly ITeamService _teamService;
 
     public ExternalGameService
     (
+        IGameEngineService gameEngine,
         IGuidService guids,
+        IJsonService json,
+        ILogger<ExternalGameService> logger,
+        INowService now,
         IStore store,
         ISyncStartGameService syncStartGameService,
         ITeamService teamService
     )
     {
+        _gameEngine = gameEngine;
         _guids = guids;
+        _json = json;
+        _logger = logger;
+        _now = now;
         _store = store;
         _syncStartGameService = syncStartGameService;
         _teamService = teamService;
+    }
+
+    public async Task<ExternalGameStartMetaData> BuildExternalGameMetaData(GameResourcesDeployResults resources, DateTimeOffset sessionBegin, DateTimeOffset sessionEnd)
+    {
+        // build team objects to return
+        var teamsToReturn = new List<ExternalGameStartMetaDataTeam>();
+
+        // each key is a team
+        foreach (var teamId in resources.TeamChallenges.Keys)
+        {
+            var teamChallenges = resources.TeamChallenges[teamId];
+            var teamGamespaces = resources.TeamChallenges[teamId].Select(c => c.State).ToArray();
+            var team = await _teamService.GetTeam(teamId);
+            var teamPlayers = team.Members.Select(p => new ExternalGameStartMetaDataPlayer
+            {
+                PlayerId = p.Id,
+                UserId = p.UserId
+            }).ToArray();
+
+            var teamToReturn = new ExternalGameStartMetaDataTeam
+            {
+                Id = teamId,
+                Name = team.ApprovedName,
+                Gamespaces = teamGamespaces.Select(gs => new ExternalGameStartTeamGamespace
+                {
+                    Id = gs.Id,
+                    VmUris = _gameEngine.GetGamespaceVms(gs).Select(vm => vm.Url),
+                    IsDeployed = gs.HasDeployedGamespace
+                }),
+                Players = teamPlayers
+            };
+
+            teamsToReturn.Add(teamToReturn);
+        }
+
+        var retVal = new ExternalGameStartMetaData
+        {
+            Game = resources.Game,
+            Session = new ExternalGameStartMetaDataSession
+            {
+                Now = _now.Get(),
+                SessionBegin = sessionBegin,
+                SessionEnd = sessionEnd
+            },
+            Teams = teamsToReturn
+        };
+
+        var metadataJson = _json.Serialize(retVal);
+        Log($"""Final metadata payload for game "{retVal.Game.Id}" is here: {metadataJson}.""", retVal.Game.Id);
+        return retVal;
     }
 
     public async Task CreateTeams(IEnumerable<string> teamIds, CancellationToken cancellationToken)
@@ -321,5 +387,11 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
             return ExternalGameDeployStatus.Deploying;
 
         return ExternalGameDeployStatus.PartiallyDeployed;
+    }
+
+    private void Log(string message, string gameId)
+    {
+        var prefix = $"[EXTERNAL / SYNC-START GAME {gameId}] - ";
+        _logger.LogInformation(message: $"{prefix} {message}");
     }
 }
