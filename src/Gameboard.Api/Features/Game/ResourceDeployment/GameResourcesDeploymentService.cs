@@ -89,7 +89,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
         };
 
         // lock this down - only one start or predeploy per game Id
-        using var gameStartLock = await _lockService.GetExternalGameDeployLock(request.GameId).LockAsync(cancellationToken);
+        // using var gameStartLock = await _lockService.GetExternalGameDeployLock(request.GameId).LockAsync(cancellationToken);
 
         // deploy challenges and gamespaces
         Log($"Deploying {request.SpecIds.Count()} challenges for teams {string.Join(", ", request.TeamIds)}...", request.GameId);
