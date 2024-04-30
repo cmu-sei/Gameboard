@@ -269,8 +269,9 @@ public class PlayerService
         await _store
             .WithNoTracking<Data.Player>()
             .Where(p => p.TeamId == startingPlayer.TeamId)
-            .ExecuteUpdateAsync(up =>
-                up
+            .ExecuteUpdateAsync
+            (
+                up => up
                     .SetProperty(p => p.IsLateStart, sessionWindow.IsLateStart)
                     .SetProperty(p => p.SessionMinutes, sessionWindow.LengthInMinutes)
                     .SetProperty(p => p.SessionBegin, sessionWindow.Start)

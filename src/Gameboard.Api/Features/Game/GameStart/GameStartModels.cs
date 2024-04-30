@@ -35,7 +35,6 @@ public sealed class GameStartContext
     public List<GameEngineGameState> GamespacesStarted { get; } = new List<GameEngineGameState>();
     public List<string> GamespaceIdsStartFailed { get; } = new List<string>();
     public required int TotalGamespaceCount { get; set; }
-    public required double SessionLengthMinutes { get; set; }
     public required IEnumerable<string> SpecIds { get; set; }
     public DateTimeOffset StartTime { get; set; }
     public string Error { get; set; }

@@ -165,7 +165,6 @@ internal class GameStartService : IGameStartService
         {
             Game = new SimpleEntity { Id = game.Id, Name = game.Name },
             StartTime = now,
-            SessionLengthMinutes = game.SessionMinutes,
             SpecIds = specs.Select(s => s.Id).ToArray(),
             TotalChallengeCount = specs.Length * teamCaptains.Count,
             TotalGamespaceCount = specs.Length * teamCaptains.Count
