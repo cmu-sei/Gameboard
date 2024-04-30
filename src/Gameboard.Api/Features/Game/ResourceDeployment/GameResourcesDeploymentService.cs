@@ -111,6 +111,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
         // await _externalGameService.UpdateTeamDeployStatus(teamIds, ExternalGameDeployStatus.Deployed, cancellationToken);
 
         Log($"{request.SpecIds.Count()} challenges deployed for teams {string.Join(", ", request.TeamIds)}...", request.GameId);
+        await _mediator.Publish(new GameResourcesDeployEndNotification(teamIds), cancellationToken);
 
         return new GameResourcesDeployResults
         {

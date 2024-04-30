@@ -33,7 +33,7 @@ public interface IExternalGameService
     Task UpdateTeamExternalUrl(string teamId, string url, CancellationToken cancellationToken);
 }
 
-internal class ExternalGameService : IExternalGameService, INotificationHandler<GameResourcesDeployStartNotification>
+internal class ExternalGameService : IExternalGameService, INotificationHandler<GameResourcesDeployStartNotification>, INotificationHandler<GameResourcesDeployEndNotification>
 {
     private readonly IGuidService _guids;
     private readonly IStore _store;
@@ -280,6 +280,11 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
     {
         await CreateTeams(notification.TeamIds, cancellationToken);
         await UpdateTeamDeployStatus(notification.TeamIds, ExternalGameDeployStatus.Deploying, cancellationToken);
+    }
+
+    public async Task Handle(GameResourcesDeployEndNotification notification, CancellationToken cancellationToken)
+    {
+        await UpdateTeamDeployStatus(notification.TeamIds, ExternalGameDeployStatus.Deployed, cancellationToken);
     }
 
     public async Task UpdateGameDeployStatus(string gameId, ExternalGameDeployStatus status, CancellationToken cancellationToken)

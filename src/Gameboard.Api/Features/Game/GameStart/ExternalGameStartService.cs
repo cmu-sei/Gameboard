@@ -6,7 +6,6 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Teams;
 using Microsoft.Extensions.Logging;
-using ServiceStack;
 
 namespace Gameboard.Api.Features.Games.External;
 

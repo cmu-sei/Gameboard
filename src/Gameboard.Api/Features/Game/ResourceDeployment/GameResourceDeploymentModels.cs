@@ -44,3 +44,5 @@ public sealed class GameResourcesDeployResults
 }
 
 public sealed record GameResourcesDeployStartNotification(IEnumerable<string> TeamIds) : INotification;
+
+public sealed record GameResourcesDeployEndNotification(IEnumerable<string> TeamIds) : INotification;
