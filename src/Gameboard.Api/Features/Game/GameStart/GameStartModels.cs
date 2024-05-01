@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Gameboard.Api.Features.GameEngine;
-using Gameboard.Api.Features.Games.External;
 
 namespace Gameboard.Api.Features.Games;
 
@@ -23,6 +22,7 @@ public sealed class GameModeStartRequest
 {
     public required GameStartContext Context { get; set; }
     public required SimpleEntity Game { get; set; }
+    public required PlayerCalculatedSessionWindow SessionWindow { get; set; }
 }
 
 public sealed class GameStartContext
@@ -85,12 +85,6 @@ public class GameStartDeployedChallenge
     public required GameEngineType GameEngineType { get; set; }
     public required GameEngineGameState State { get; set; }
     public required string TeamId { get; set; }
-}
-
-public class PreDeployResourcesRequest
-{
-    public required string GameId { get; set; }
-    public IEnumerable<string> TeamIds { get; set; }
 }
 
 public sealed class GameStartUpdate

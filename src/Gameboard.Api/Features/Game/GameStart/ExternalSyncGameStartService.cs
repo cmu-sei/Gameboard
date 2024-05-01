@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -75,7 +74,16 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         _validator.AddValidator(async (req, ctx) =>
         {
             // just do exists here since we need the game for other checks anyway
-            var game = await _store.SingleOrDefaultAsync<Data.Game>(g => g.Id == req.Game.Id, cancellationToken);
+            var game = await _store
+                .WithNoTracking<Data.Game>()
+                .Where(g => g.Id == req.Game.Id)
+                .Select(g => new
+                {
+                    g.Id,
+                    g.RequireSynchronizedStart,
+                    g.Mode
+                })
+                .SingleOrDefaultAsync(cancellationToken);
 
             if (game == null)
             {
@@ -121,61 +129,31 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         cancellationToken.ThrowIfCancellationRequested();
 
         // deploy challenges and gamespaces
-        Log("Deploying game resources...", request.Game.Id);
-        var deployedResources = await DeployResources(request, cancellationToken);
+        var teamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();
+        Log($"Deploying resources for {teamIds.Length} team(s)...", request.Game.Id);
+        var deployResult = await _gameResourcesDeployment.DeployResources(teamIds, cancellationToken);
         Log("Game resources deployed.", request.Game.Id);
 
-        if (deployedResources.DeployFailedGamespaceIds.Any())
+        if (deployResult.DeployFailedGamespaceIds.Any())
         {
-            var ids = deployedResources.DeployFailedGamespaceIds.ToArray();
+            var ids = deployResult.DeployFailedGamespaceIds.ToArray();
             Log($"Can't start game {request.Game.Id} because after resource deploy, {ids.Length} gamespace(s) weren't on: {string.Join(',', ids)}", request.Game.Id);
             throw new GameResourcesArentDeployedOnStart(request.Game.Id, ids);
         }
 
         // establish all sessions
         Log("Starting a synchronized session for all teams...", request.Game.Id);
-        var syncGameStartState = await _syncStartGameService.StartSynchronizedSession(request.Game.Id, 15, cancellationToken);
+        var syncGameStartState = await _syncStartGameService.StartSynchronizedSession(request.Game.Id, request.SessionWindow, cancellationToken);
         Log("Synchronized session started!", request.Game.Id);
 
         // update external host and get configuration information for teams
-        var externalHostTeamConfigs = await NotifyExternalGameHost(deployedResources, syncGameStartState, cancellationToken);
-        // log what we got
-        Log($"External host team configurations: {_jsonService.Serialize(externalHostTeamConfigs)}", request.Game.Id);
-
-        // then assign a headless server to each team
-        foreach (var team in request.Context.Teams)
-        {
-            var config = externalHostTeamConfigs.SingleOrDefault(t => t.TeamID == team.Team.Id);
-            if (config is null)
-                Log($"Team {team.Team.Id} wasn't assigned a headless URL by the external host (Gamebrain).", request.Game.Id);
-            else
-            {
-                // update the request state thing with the team's headless url
-                team.HeadlessUrl = config.HeadlessServerUrl;
-                // but also record it in the DB in case someone cache clears or rejoins from a different machine/browser
-                await _externalGameService.UpdateTeamExternalUrl(team.Team.Id, config.HeadlessServerUrl, cancellationToken);
-            }
-        }
+        await _externalGameService.Start(teamIds, request.SessionWindow, cancellationToken);
 
         // on we go
         Log("External game launched.", request.Game.Id);
         await _gameHubBus.SendExternalGameLaunchEnd(request.Context.ToUpdate());
 
         return request.Context;
-    }
-
-    public async Task<GameResourcesDeployResults> DeployResources(GameModeStartRequest request, CancellationToken cancellationToken)
-    {
-        Log($"Deploying resources for {request.Context.Teams.Count} team(s)...", request.Game.Id);
-        var teamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();
-
-        // deploy the things!
-        var deployResult = await _gameResourcesDeployment.DeployResources(teamIds, cancellationToken);
-
-        // log that we're done deploying these teams
-        await _externalGameService.UpdateTeamDeployStatus(teamIds, ExternalGameDeployStatus.Deployed, cancellationToken);
-
-        return deployResult;
     }
 
     public async Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken)
@@ -293,26 +271,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     //     Log($"""Final metadata payload for game "{retVal.Game.Id}" is here: {metadataJson}.""", retVal.Game.Id);
     //     return retVal;
     // }
-
-    private async Task<IEnumerable<ExternalGameClientTeamConfig>> NotifyExternalGameHost(GameResourcesDeployResults resources, SyncStartGameStartedState syncStartState, CancellationToken cancellationToken)
-    {
-        // NOTIFY EXTERNAL CLIENT
-        Log("Notifying external game host...", resources.Game.Id);
-        // build metadata for external host
-        var metaData = await _externalGameService.BuildExternalGameMetaData(resources, syncStartState.SessionBegin, syncStartState.SessionEnd);
-        var externalClientTeamConfigs = await _externalGameHostService.StartGame(metaData, cancellationToken);
-        Log("External game host notified!", resources.Game.Id);
-
-        return externalClientTeamConfigs;
-    }
-
-    private ExternalGameStartTeamGamespace ChallengeStateToTeamGamespace(GameEngineGameState state)
-        => new()
-        {
-            Id = state.Id,
-            IsDeployed = state.IsActive,
-            VmUris = _gameEngineService.GetGamespaceVms(state).Select(vm => vm.Url)
-        };
 
     private void Log(string message, string gameId)
     {

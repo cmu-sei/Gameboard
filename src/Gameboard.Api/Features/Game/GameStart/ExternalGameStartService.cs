@@ -13,6 +13,7 @@ public interface IExternalGameStartService : IGameModeStartService { }
 
 internal class ExternalGameStartService : IExternalGameStartService
 {
+    private readonly IExternalGameService _externalGameService;
     private readonly IGameHubService _gameHubService;
     private readonly IGameResourcesDeploymentService _gameResourcesDeploy;
     private readonly ILogger<ExternalGameStartService> _logger;
@@ -20,12 +21,14 @@ internal class ExternalGameStartService : IExternalGameStartService
 
     public ExternalGameStartService
     (
+        IExternalGameService externalGameService,
         ILogger<ExternalGameStartService> logger,
         IGameHubService gameHubService,
         IGameResourcesDeploymentService gameResourcesDeploy,
         INowService nowService
     )
     {
+        _externalGameService = externalGameService;
         _logger = logger;
         _gameHubService = gameHubService;
         _gameResourcesDeploy = gameResourcesDeploy;

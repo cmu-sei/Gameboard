@@ -33,16 +33,6 @@ public interface IGameModeStartService
     public Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Deploy any resources (i.e. challenges, game engine gamespaces, etc.) for the game. Note that this happens
-    /// automatically if the game is started on the server side through IGameModeStartService.Start. We expose it
-    /// here to allow pre-deployment of games which need a lot of resources.
-    /// </summary>
-    /// <param name="request"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    public Task<GameResourcesDeployResults> DeployResources(GameModeStartRequest request, CancellationToken cancellationToken);
-
-    /// <summary>
     /// Starts the game. At the end of this function, a call to GetGamePlayState for the game should return "Started".
     /// </summary>
     /// <param name="request"></param>

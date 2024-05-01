@@ -16,7 +16,6 @@ using Gameboard.Api.Common.Services;
 using Microsoft.AspNetCore.Http;
 using Gameboard.Api.Data;
 using System.IO;
-using Microsoft.Extensions.ObjectPool;
 
 namespace Gameboard.Api.Services;
 

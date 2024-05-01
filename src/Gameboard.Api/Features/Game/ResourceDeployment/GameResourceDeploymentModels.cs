@@ -1,5 +1,6 @@
 
 using System.Collections.Generic;
+using System.Linq;
 using Gameboard.Api;
 using Gameboard.Api.Features.GameEngine;
 using MediatR;
@@ -41,6 +42,9 @@ public sealed class GameResourcesDeployResults
     public required SimpleEntity Game { get; set; }
     public required IDictionary<string, IEnumerable<GameResourcesDeployChallenge>> TeamChallenges { get; set; }
     public required IEnumerable<string> DeployFailedGamespaceIds { get; set; }
+
+    public IEnumerable<string> GetTeamIds()
+        => TeamChallenges.Keys.ToArray();
 }
 
 public sealed record GameResourcesDeployStartNotification(IEnumerable<string> TeamIds) : INotification;

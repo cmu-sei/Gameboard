@@ -168,6 +168,10 @@ internal class Store : IStore
     {
         _dbContext.AddRange(entities);
         await _dbContext.SaveChangesAsync();
+
+        // detach because of EF stuff
+        // TODO: investigate why our store is running afoul of EF attachment stuff
+        _dbContext.DetachUnchanged();
         return entities;
     }
 

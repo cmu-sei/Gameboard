@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Structure;
 using MediatR;
@@ -27,6 +28,7 @@ internal class GameStartService : IGameStartService
     private readonly ILogger<GameStartService> _logger;
     private readonly IMediator _mediator;
     private readonly INowService _now;
+    private readonly ISessionWindowCalculator _sessionWindowCalculator;
     private readonly IStore _store;
     private readonly ITeamService _teamService;
 
@@ -38,6 +40,7 @@ internal class GameStartService : IGameStartService
         ILogger<GameStartService> logger,
         IMediator mediator,
         INowService now,
+        ISessionWindowCalculator sessionWindowCalculator,
         IStore store,
         ITeamService teamService
     )
@@ -48,6 +51,7 @@ internal class GameStartService : IGameStartService
         _logger = logger;
         _mediator = mediator;
         _now = now;
+        _sessionWindowCalculator = sessionWindowCalculator;
         _store = store;
         _teamService = teamService;
     }
@@ -134,6 +138,8 @@ internal class GameStartService : IGameStartService
     {
         var now = _now.Get();
         var loadAllTeams = teamIds is null || !teamIds.Any();
+        var actingUser = _actingUserService.Get();
+        var actingUserIsElevated = actingUser is not null && (actingUser.IsAdmin || actingUser.IsRegistrar || actingUser.IsTester || actingUser.IsSupport);
 
         var players = await _store
             .WithNoTracking<Data.Player>()
@@ -198,7 +204,8 @@ internal class GameStartService : IGameStartService
         return new GameModeStartRequest
         {
             Game = new SimpleEntity { Id = game.Id, Name = game.Name },
-            Context = context
+            Context = context,
+            SessionWindow = _sessionWindowCalculator.CalculateSessionWindow(game, actingUserIsElevated, now)
         };
     }
 

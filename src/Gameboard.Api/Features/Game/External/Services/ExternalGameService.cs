@@ -10,7 +10,6 @@ using Gameboard.Api.Features.Teams;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using ServiceStack;
 
 namespace Gameboard.Api.Features.Games.External;
 
@@ -31,14 +30,15 @@ public interface IExternalGameService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<ExternalGameTeam> GetTeam(string teamId, CancellationToken cancellationToken);
-    Task UpdateGameDeployStatus(string gameId, ExternalGameDeployStatus status, CancellationToken cancellationToken);
+    Task Start(IEnumerable<string> teamIds, PlayerCalculatedSessionWindow sessionWindow, CancellationToken cancellationToken);
     Task UpdateTeamDeployStatus(IEnumerable<string> teamIds, ExternalGameDeployStatus status, CancellationToken cancellationToken);
-    Task UpdateTeamExternalUrl(string teamId, string url, CancellationToken cancellationToken);
 }
 
 internal class ExternalGameService : IExternalGameService, INotificationHandler<GameResourcesDeployStartNotification>, INotificationHandler<GameResourcesDeployEndNotification>
 {
     private readonly IGameEngineService _gameEngine;
+    private readonly IExternalGameHostService _gameHost;
+    private readonly IGameResourcesDeploymentService _gameResources;
     private readonly IGuidService _guids;
     private readonly IJsonService _json;
     private readonly ILogger<ExternalGameService> _logger;
@@ -50,6 +50,8 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
     public ExternalGameService
     (
         IGameEngineService gameEngine,
+        IExternalGameHostService gameHost,
+        IGameResourcesDeploymentService gameResources,
         IGuidService guids,
         IJsonService json,
         ILogger<ExternalGameService> logger,
@@ -60,6 +62,8 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
     )
     {
         _gameEngine = gameEngine;
+        _gameHost = gameHost;
+        _gameResources = gameResources;
         _guids = guids;
         _json = json;
         _logger = logger;
@@ -337,9 +341,9 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
     }
 
     public Task<ExternalGameTeam> GetTeam(string teamId, CancellationToken cancellationToken)
-            => _store
-                .WithNoTracking<ExternalGameTeam>()
-                .SingleOrDefaultAsync(r => r.TeamId == teamId, cancellationToken);
+        => _store
+            .WithNoTracking<ExternalGameTeam>()
+            .SingleOrDefaultAsync(r => r.TeamId == teamId, cancellationToken);
 
     public async Task Handle(GameResourcesDeployStartNotification notification, CancellationToken cancellationToken)
     {
@@ -347,17 +351,34 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
         await UpdateTeamDeployStatus(notification.TeamIds, ExternalGameDeployStatus.Deploying, cancellationToken);
     }
 
-    public async Task Handle(GameResourcesDeployEndNotification notification, CancellationToken cancellationToken)
-    {
-        await UpdateTeamDeployStatus(notification.TeamIds, ExternalGameDeployStatus.Deployed, cancellationToken);
-    }
+    public Task Handle(GameResourcesDeployEndNotification notification, CancellationToken cancellationToken)
+        => UpdateTeamDeployStatus(notification.TeamIds, ExternalGameDeployStatus.Deployed, cancellationToken);
 
-    public async Task UpdateGameDeployStatus(string gameId, ExternalGameDeployStatus status, CancellationToken cancellationToken)
+    public async Task Start(IEnumerable<string> teamIds, PlayerCalculatedSessionWindow sessionWindow, CancellationToken cancellationToken)
     {
-        await _store
-            .WithNoTracking<ExternalGameTeam>()
-            .Where(d => d.GameId == gameId)
-            .ExecuteUpdateAsync(up => up.SetProperty(d => d.DeployStatus, status));
+        var resources = await _gameResources.DeployResources(teamIds, cancellationToken);
+
+        // update external host and get configuration information for teams
+        Log("Notifying external game host...", resources.Game.Id);
+        // build metadata for external host
+        var metaData = await BuildExternalGameMetaData(resources, sessionWindow.Start, sessionWindow.End);
+        var externalHostTeamConfigs = await _gameHost.StartGame(metaData, cancellationToken);
+        Log($"External host team configurations: {_json.Serialize(externalHostTeamConfigs)}", resources.Game.Id);
+        Log("External game host notified!", resources.Game.Id);
+
+        // then assign a headless server to each team
+        foreach (var teamId in resources.TeamChallenges.Keys)
+        {
+            var config = externalHostTeamConfigs.SingleOrDefault(t => t.TeamID == teamId);
+            if (config is null)
+                Log($"Team {teamId} wasn't assigned a headless URL by the external host (Gamebrain).", resources.Game.Id);
+            else
+            {
+                // TODO: prolly need to see about sending signalR notification
+                // but also record it in the DB in case someone cache clears or rejoins from a different machine/browser
+                await UpdateTeamExternalUrl(teamId, config.HeadlessServerUrl, cancellationToken);
+            }
+        }
     }
 
     public Task UpdateTeamDeployStatus(IEnumerable<string> teamIds, ExternalGameDeployStatus status, CancellationToken cancellationToken)
@@ -366,13 +387,10 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
             .Where(t => teamIds.Contains(t.TeamId))
             .ExecuteUpdateAsync(up => up.SetProperty(t => t.DeployStatus, status), cancellationToken);
 
-
-    public async Task UpdateTeamExternalUrl(string teamId, string url, CancellationToken cancellationToken)
+    private void Log(string message, string gameId)
     {
-        await _store
-            .WithNoTracking<ExternalGameTeam>()
-            .Where(t => t.TeamId == teamId)
-            .ExecuteUpdateAsync(up => up.SetProperty(t => t.ExternalGameUrl, url), cancellationToken);
+        var prefix = $"[EXTERNAL GAME {gameId}] - ";
+        _logger.LogInformation(message: $"{prefix} {message}");
     }
 
     private ExternalGameDeployStatus ResolveOverallDeployStatus(IEnumerable<ExternalGameDeployStatus> teamStatuses)
@@ -389,9 +407,9 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
         return ExternalGameDeployStatus.PartiallyDeployed;
     }
 
-    private void Log(string message, string gameId)
-    {
-        var prefix = $"[EXTERNAL / SYNC-START GAME {gameId}] - ";
-        _logger.LogInformation(message: $"{prefix} {message}");
-    }
+    private Task UpdateTeamExternalUrl(string teamId, string url, CancellationToken cancellationToken)
+        => _store
+            .WithNoTracking<ExternalGameTeam>()
+            .Where(t => t.TeamId == teamId)
+            .ExecuteUpdateAsync(up => up.SetProperty(t => t.ExternalGameUrl, url), cancellationToken);
 }
