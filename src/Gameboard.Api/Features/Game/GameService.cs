@@ -174,9 +174,12 @@ public class GameService : _Service, IGameService
                     .Select(p => p.TeamId)
                     .Distinct()
             })
-            .SingleAsync(cancellationToken);
+            .SingleOrDefaultAsync(cancellationToken);
 
-        return gameSessionData.Teams;
+        if (gameSessionData is not null)
+            return gameSessionData.Teams;
+
+        return Array.Empty<string>();
     }
 
     public async Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false)

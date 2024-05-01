@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -9,7 +8,6 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Services;
-using Gameboard.Api.Structure;
 using Gameboard.Api.Structure.MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -46,7 +44,7 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
     {
         _validatorService.AddValidator((req, ctx) =>
         {
-            if (req.TeamIds.Count() < 1)
+            if (!req.TeamIds.Any())
                 ctx.AddValidationException(new MissingRequiredInput<IEnumerable<string>>(nameof(req.TeamIds), req.TeamIds));
         });
 
@@ -135,7 +133,9 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
             // can't start late if late start disabled
             var sessionWindow = _sessionWindow.Calculate(game.SessionMinutes, game.GameEnd, isGameStartSuperUser, now);
             if (sessionWindow.IsLateStart && !game.AllowLateStart)
-                throw new CantLateStart(request.TeamIds, game.Name, game.GameEnd, game.SessionMinutes);
+                ctx.AddValidationException(new CantLateStart(request.TeamIds, game.Name, game.GameEnd, game.SessionMinutes));
         });
+
+        await _validatorService.Validate(request, cancellationToken);
     }
 }

@@ -1,6 +1,7 @@
 using System.Net;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Tests.Integration;
 
@@ -19,6 +20,7 @@ public class PlayerControllerStartTests : IClassFixture<GameboardTestContext>
         IFixture fixture,
         string playerId,
         string sponsorId,
+        string teamId,
         string userId
     )
     {
@@ -36,8 +38,14 @@ public class PlayerControllerStartTests : IClassFixture<GameboardTestContext>
                     new()
                     {
                         Id = playerId,
+                        Role = PlayerRole.Manager,
                         SponsorId = sponsorId,
-                        User = new Data.User { Id = userId, SponsorId = sponsorId }
+                        TeamId = teamId,
+                        User = new Data.User
+                        {
+                            Id = userId,
+                            SponsorId = sponsorId,
+                        }
                     }
                 };
             });
@@ -49,7 +57,7 @@ public class PlayerControllerStartTests : IClassFixture<GameboardTestContext>
             .CreateHttpClientWithActingUser(u => u.Id = userId)
             .PutAsync($"/api/player/{playerId}/start", startRequest.ToJsonBody())
             // we expect a validation exception
-            .ShouldYieldGameboardValidationException<GameNotActive>();
+            .ShouldYieldGameboardValidationException<GameboardAggregatedValidationExceptions>();
     }
 
     [Theory, GbIntegrationAutoData]
@@ -90,7 +98,7 @@ public class PlayerControllerStartTests : IClassFixture<GameboardTestContext>
         await _testContext
             .CreateHttpClientWithActingUser(u => u.Id = userId)
             .PutAsync($"/api/player/{playerId}/start", startRequest.ToJsonBody())
-            .ShouldYieldGameboardValidationException<CantLateStart>();
+            .ShouldYieldGameboardValidationException<GameboardAggregatedValidationExceptions>();
     }
 
     [Theory, GbIntegrationAutoData]
@@ -99,6 +107,7 @@ public class PlayerControllerStartTests : IClassFixture<GameboardTestContext>
         IFixture fixture,
         string playerId,
         string sponsorId,
+        string teamId,
         string userId
     )
     {
@@ -118,8 +127,9 @@ public class PlayerControllerStartTests : IClassFixture<GameboardTestContext>
                     new()
                     {
                         Id = playerId,
+                        Role = PlayerRole.Manager,
                         SponsorId = sponsorId,
-                        TeamId = fixture.Create<string>(),
+                        TeamId = teamId,
                         User = new Data.User { Id = userId, SponsorId = sponsorId }
                     }
                 };
