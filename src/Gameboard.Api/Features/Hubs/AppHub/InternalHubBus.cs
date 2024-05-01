@@ -18,7 +18,8 @@ public interface IInternalHubBus
     Task SendTeamDeleted(TeamState teamState, SimpleEntity actor);
     Task SendPlayerRoleChanged(Api.Player p, User actor);
     Task SendTeamSessionReset(TeamHubSessionResetEvent resetEvent);
-    Task SendTeamSessionStarted(Api.Player p, User actor);
+    Task SendTeamSessionStarted(StartTeamSessionsResultTeam team, string gameId, User actor);
+    Task SendTeamSessionStarted(Api.Player player, User actor);
     Task SendTeamSessionExtended(TeamState teamState, User actor);
     Task SendTeamUpdated(Api.Player p, User actor);
 }
@@ -114,6 +115,30 @@ internal class InternalHubBus : IInternalHubBus
 
         await _hubContext.Clients
             .Group(p.TeamId)
+            .TeamEvent(new HubEvent<TeamState>
+            {
+                Model = teamState,
+                Action = EventAction.Started,
+                ActingUser = new SimpleEntity { Id = actor.Id, Name = actor.ApprovedName }
+            });
+    }
+
+    public async Task SendTeamSessionStarted(StartTeamSessionsResultTeam team, string gameId, User actor)
+    {
+        var teamState = new TeamState
+        {
+            Id = team.Id,
+            ApprovedName = team.Name,
+            Name = team.Name,
+            NameStatus = "approved",
+            GameId = gameId,
+            SessionBegin = team.SessionWindow.Start,
+            SessionEnd = team.SessionWindow.End,
+            Actor = actor.ToSimpleEntity(),
+        };
+
+        await _hubContext.Clients
+            .Group(team.Id)
             .TeamEvent(new HubEvent<TeamState>
             {
                 Model = teamState,

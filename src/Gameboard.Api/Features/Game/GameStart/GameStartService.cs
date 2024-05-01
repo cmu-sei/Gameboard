@@ -11,6 +11,7 @@ using Gameboard.Api.Structure;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 
 namespace Gameboard.Api.Features.Games.Start;
 
@@ -58,12 +59,18 @@ internal class GameStartService : IGameStartService
 
     public async Task<GameStartContext> Start(GameStartRequest request, CancellationToken cancellationToken)
     {
-        var game = await _store.Retrieve<Data.Game>(request.GameId);
-        var gameModeService = await _gameModeServiceFactory.Get(request.GameId);
+        var gameId = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => request.TeamIds.Contains(p.TeamId))
+            .Select(p => p.GameId)
+            .SingleAsync(cancellationToken);
+
+        var game = await _store.Retrieve<Data.Game>(gameId);
+        var gameModeService = await _gameModeServiceFactory.Get(game.Id);
 
         // lock this down - only one start or predeploy per game Id
         using var gameStartLock = await _lockService
-            .GetExternalGameDeployLock(request.GameId)
+            .GetExternalGameDeployLock(game.Id)
             .LockAsync(cancellationToken);
 
         var startRequest = await LoadGameModeStartRequest(game, null, cancellationToken);
@@ -109,9 +116,9 @@ internal class GameStartService : IGameStartService
         if (nowish < game.GameStart)
             return GamePlayState.NotStarted;
 
-        // right now, external + sync/start is the only mode that has a dedicated service, so handle
+        // right now, external (with or without sync start) is the only mode that has a dedicated service, so handle
         // that here and then just use some simplistic logic for other modes
-        if (game.RequireSynchronizedStart && game.Mode == GameEngineMode.External)
+        if (game.Mode == GameEngineMode.External)
         {
             var gameModeStartService = await _gameModeServiceFactory.Get(gameId);
             return await gameModeStartService.GetGamePlayState(gameId, cancellationToken);
@@ -205,7 +212,7 @@ internal class GameStartService : IGameStartService
         {
             Game = new SimpleEntity { Id = game.Id, Name = game.Name },
             Context = context,
-            SessionWindow = _sessionWindowCalculator.CalculateSessionWindow(game, actingUserIsElevated, now)
+            SessionWindow = _sessionWindowCalculator.Calculate(game, actingUserIsElevated, now)
         };
     }
 

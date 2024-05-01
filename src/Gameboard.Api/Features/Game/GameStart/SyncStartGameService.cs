@@ -157,7 +157,7 @@ internal class SyncStartGameService : ISyncStartGameService
         {
             using var scope = _serviceScopeFactory.CreateScope();
             var gameStartService = scope.ServiceProvider.GetRequiredService<IGameStartService>();
-            await gameStartService.Start(new GameStartRequest { GameId = gameId }, cancellationToken);
+            await gameStartService.Start(new GameStartRequest { TeamIds = validationResult.SyncStartState.Teams.Select(t => t.Id).Distinct() }, cancellationToken);
         });
     }
 
@@ -228,6 +228,7 @@ internal class SyncStartGameService : ISyncStartGameService
         var player = await _store
             .WithTracking<Data.Player>()
             .SingleAsync(p => p.Id == playerId, cancellationToken);
+
         player.IsReady = isReady;
         await _store.SaveUpdate(player, cancellationToken);
         await HandleSyncStartStateChanged(player.GameId, cancellationToken);
@@ -249,14 +250,20 @@ internal class SyncStartGameService : ISyncStartGameService
             .Where(p => p.TeamId == teamId)
             .ToArrayAsync(cancellationToken);
 
+        var gameIds = players.Select(p => p.GameId).ToArray();
+
         if (players.Any())
         {
             foreach (var player in players)
                 player.IsReady = isReady;
-
-            await _store.SaveUpdateRange(players);
-            await HandleSyncStartStateChanged(players.First().GameId, cancellationToken);
         }
+
+        // update all players
+        await _store.SaveUpdateRange(players);
+
+        // update all games for sync start readiness (likely only one game, but you know)
+        foreach (var gameId in gameIds)
+            await HandleSyncStartStateChanged(gameId, cancellationToken);
     }
 
     private async Task<ValidateSyncStartResult> ValidateSyncStart(string gameId, CancellationToken cancellationToken)

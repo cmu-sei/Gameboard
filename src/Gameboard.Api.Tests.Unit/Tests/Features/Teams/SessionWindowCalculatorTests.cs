@@ -1,6 +1,8 @@
+using Gameboard.Api.Features.Teams;
+
 namespace Gameboard.Api.Tests.Unit;
 
-public class PlayerServiceCalculateSessionWindowTests
+public class SessionWindowCalculatorTests
 {
     [Theory, GameboardAutoData]
     public void CalculateSessionWindow_WithLateStart_ShortensSession(DateTimeOffset sessionStart)
@@ -14,10 +16,10 @@ public class PlayerServiceCalculateSessionWindowTests
             GameEnd = gameEnd,
             SessionMinutes = 120
         };
-        var sut = PlayerServiceTestHelpers.GetTestableSut();
+        var sut = new SessionWindowCalculator();
 
         // when the session length properties are calculated
-        var result = sut.CalculateSessionWindow(game, false, sessionStart);
+        var result = sut.Calculate(game, false, sessionStart);
 
         // then session end should be equal to the game end
         result.End.ShouldBe(gameEnd);
@@ -36,10 +38,10 @@ public class PlayerServiceCalculateSessionWindowTests
             GameEnd = gameEnd,
             SessionMinutes = 60
         };
-        var sut = PlayerServiceTestHelpers.GetTestableSut();
+        var sut = new SessionWindowCalculator();
 
         // when the session length properties are calculated
-        var result = sut.CalculateSessionWindow(game, false, sessionStart);
+        var result = sut.Calculate(game, false, sessionStart);
 
         // then session end should be equal to the game end
         result.End.ShouldBe(sessionEnd);
@@ -57,10 +59,10 @@ public class PlayerServiceCalculateSessionWindowTests
             GameEnd = gameEnd,
             SessionMinutes = 120
         };
-        var sut = PlayerServiceTestHelpers.GetTestableSut();
+        var sut = new SessionWindowCalculator();
 
         // when the session length properties are calculated
-        var result = sut.CalculateSessionWindow(game, false, sessionStart);
+        var result = sut.Calculate(game, false, sessionStart);
 
         // the session end should be equal to the game end
         result.IsLateStart.ShouldBeTrue();
@@ -78,10 +80,10 @@ public class PlayerServiceCalculateSessionWindowTests
             GameEnd = gameEnd,
             SessionMinutes = 60
         };
-        var sut = PlayerServiceTestHelpers.GetTestableSut();
+        var sut = new SessionWindowCalculator();
 
         // when the session length properties are calculated
-        var result = sut.CalculateSessionWindow(game, false, sessionStart);
+        var result = sut.Calculate(game, false, sessionStart);
 
         // the session end should be equal to the game end
         result.IsLateStart.ShouldBeFalse();
@@ -99,10 +101,10 @@ public class PlayerServiceCalculateSessionWindowTests
             SessionMinutes = 180
         };
 
-        var sut = PlayerServiceTestHelpers.GetTestableSut();
+        var sut = new SessionWindowCalculator();
 
         // when an admin starts a session
-        var result = sut.CalculateSessionWindow(game, true, sessionStart);
+        var result = sut.Calculate(game, true, sessionStart);
 
         // this should not be a late start
         result.IsLateStart.ShouldBeFalse();
@@ -121,10 +123,10 @@ public class PlayerServiceCalculateSessionWindowTests
             SessionMinutes = 180
         };
 
-        var sut = PlayerServiceTestHelpers.GetTestableSut();
+        var sut = new SessionWindowCalculator();
 
         // when an admin starts a session
-        var result = sut.CalculateSessionWindow(game, true, sessionStart);
+        var result = sut.Calculate(game, true, sessionStart);
 
         // this should also not be a late start
         result.IsLateStart.ShouldBeFalse();

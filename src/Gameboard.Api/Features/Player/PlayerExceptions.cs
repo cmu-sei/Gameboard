@@ -10,6 +10,9 @@ internal class CantLateStart : GameboardValidationException
 {
     internal CantLateStart(string teamName, string gameName, DateTimeOffset gameEnd, int sessionLength)
         : base($"Can't start team {teamName} in game {gameName}. The game ends at {gameEnd}, which is within a session length of {sessionLength} minutes from now.") { }
+
+    internal CantLateStart(IEnumerable<string> teamIds, string gameName, DateTimeOffset gameEnd, int sessionLength)
+        : base($"Can't start {teamIds.Count()} team(s) in game {gameName}. The game ends at {gameEnd}, which is within a session length of {sessionLength} minutes from now.") { }
 }
 
 internal class CantResolveTeamFromCode : GameboardException
@@ -22,6 +25,12 @@ internal class CantStartSessionOfOtherPlayer : GameboardValidationException
 {
     internal CantStartSessionOfOtherPlayer(string playerId, string userId)
         : base($"Couldn't find a player with ID {playerId} owned by your user ({userId}).") { }
+}
+
+internal class CantStartSessionOfOtherTeam : GameboardValidationException
+{
+    internal CantStartSessionOfOtherTeam(string teamId, string userId)
+        : base($"You aren't a member of team {teamId}, so you're not able to start their session.") { }
 }
 
 internal class InvalidExtendSessionRequest : GameboardException

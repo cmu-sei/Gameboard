@@ -34,6 +34,7 @@ public class PlayerService
     private readonly INowService _now;
     private readonly IPracticeService _practiceService;
     private readonly IScoringService _scores;
+    private readonly ISessionWindowCalculator _sessionWindowCalculator;
     private readonly IStore _store;
     private readonly ISyncStartGameService _syncStartGameService;
     private readonly ITeamService _teamService;
@@ -45,7 +46,8 @@ public class PlayerService
     IGuidService GuidService { get; }
     IMemoryCache LocalCache { get; }
 
-    public PlayerService(
+    public PlayerService
+    (
         ChallengeService challengeService,
         CoreOptions coreOptions,
         IGameStore gameStore,
@@ -59,6 +61,7 @@ public class PlayerService
         IPlayerStore playerStore,
         IPracticeService practiceService,
         IScoringService scores,
+        ISessionWindowCalculator sessionWindowCalculator,
         IStore store,
         ISyncStartGameService syncStartGameService,
         ITeamService teamService
@@ -68,6 +71,7 @@ public class PlayerService
         CoreOptions = coreOptions;
         CoreOptions = coreOptions;
         GuidService = guidService;
+
         _mediator = mediator;
         _practiceService = practiceService;
         _now = now;
@@ -79,6 +83,7 @@ public class PlayerService
         _mapper = mapper;
         PlayerStore = playerStore;
         _scores = scores;
+        _sessionWindowCalculator = sessionWindowCalculator;
         _store = store;
         _syncStartGameService = syncStartGameService;
         _teamService = teamService;
@@ -224,7 +229,9 @@ public class PlayerService
             .Where(p => p.TeamId == startingPlayer.TeamId)
             .ToListAsync();
 
-        var game = await _store.WithNoTracking<Data.Game>().SingleAsync(g => g.Id == startingPlayer.GameId);
+        var game = await _store
+            .WithNoTracking<Data.Game>()
+            .SingleAsync(g => g.Id == startingPlayer.GameId);
 
         // rule: game's execution period has to be open
         if (!sudo && game.IsLive.Equals(false))
@@ -241,12 +248,12 @@ public class PlayerService
         // rule: for now, can't start a player's session in this code path.
         // TODO: refactor for SOLIDness
         if (!sudo && game.RequireSynchronizedStart)
-            throw new InvalidOperationException("Can't start a player's session for a sync start game with PlayerService.StartSession (use GameService.StartSynchronizedSession).");
+            throw new InvalidOperationException("Can't start a player's session for a sync start game with PlayerService.StartSession (use SyncStartService.StartSynchronizedSession).");
 
         // rule: teams can't have a session limit exceeding the game's settings
         if (!sudo && game.SessionLimit > 0)
         {
-            var ts = DateTimeOffset.UtcNow;
+            var ts = _now.Get();
 
             int sessionCount = await PlayerStore.DbSet
                 .CountAsync(p =>
@@ -259,7 +266,7 @@ public class PlayerService
                 throw new SessionLimitReached(startingPlayer.TeamId, game.Id, sessionCount, game.SessionLimit);
         }
 
-        var sessionWindow = CalculateSessionWindow(game, sudo, _now.Get());
+        var sessionWindow = _sessionWindowCalculator.Calculate(game, sudo, _now.Get());
 
         // rule: if the player/team is starting late, this must be allowed on the game level
         if (!sudo && sessionWindow.IsLateStart && !game.AllowLateStart)
@@ -288,23 +295,6 @@ public class PlayerService
         await _hubBus.SendTeamSessionStarted(asViewModel, actor);
 
         return asViewModel;
-    }
-
-    internal PlayerCalculatedSessionWindow CalculateSessionWindow(Data.Game game, bool isElevatedUser, DateTimeOffset sessionStart)
-    {
-        var normalSessionEnd = sessionStart.AddMinutes(game.SessionMinutes);
-        var finalSessionEnd = normalSessionEnd;
-
-        if (!isElevatedUser && game.GameEnd < normalSessionEnd)
-            finalSessionEnd = game.GameEnd;
-
-        return new()
-        {
-            Start = sessionStart,
-            End = finalSessionEnd,
-            LengthInMinutes = (finalSessionEnd - sessionStart).TotalMinutes,
-            IsLateStart = finalSessionEnd < normalSessionEnd
-        };
     }
 
     public async Task<Player[]> List(PlayerDataFilter model, bool sudo = false)

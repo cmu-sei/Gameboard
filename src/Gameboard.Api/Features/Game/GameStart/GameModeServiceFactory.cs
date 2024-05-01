@@ -37,9 +37,11 @@ internal class GameModeServiceFactory : IGameModeServiceFactory
             })
             .SingleAsync(g => g.Id == gameId);
 
-        if (game.Mode == GameEngineMode.External && game.RequireSynchronizedStart)
+        if (game.Mode == GameEngineMode.External)
         {
-            return _serviceProvider.GetRequiredService<IExternalSyncGameStartService>();
+            return game.RequireSynchronizedStart ?
+                _serviceProvider.GetRequiredService<IExternalSyncGameStartService>() :
+                _serviceProvider.GetRequiredService<IExternalGameStartService>();
         }
 
         throw new NotImplementedException();

@@ -107,9 +107,6 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
         if (challengeIdsWithNoGamespace.Any())
             Log($"WARNING: Some deployed challenges have no gamespaces: {string.Join(",", challengeIdsWithNoGamespace)}", request.GameId);
 
-        // log that we're done deploying these teams
-        // await _externalGameService.UpdateTeamDeployStatus(teamIds, ExternalGameDeployStatus.Deployed, cancellationToken);
-
         Log($"{request.SpecIds.Count()} challenges deployed for teams {string.Join(", ", request.TeamIds)}...", request.GameId);
         await _mediator.Publish(new GameResourcesDeployEndNotification(teamIds), cancellationToken);
 

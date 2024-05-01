@@ -15,7 +15,7 @@ public enum GamePlayState
 
 public class GameStartRequest
 {
-    public required string GameId { get; set; }
+    public required IEnumerable<string> TeamIds { get; set; }
 }
 
 public sealed class GameModeStartRequest

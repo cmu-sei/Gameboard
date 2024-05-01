@@ -31,6 +31,7 @@ internal static class PlayerServiceTestHelpers
         IPlayerStore? playerStore = null,
         IPracticeService? practiceService = null,
         IScoringService? scoringService = null,
+        ISessionWindowCalculator? sessionWindowCalculator = null,
         IStore? store = null,
         ISyncStartGameService? syncStartGameService = null,
         ITeamService? teamService = null
@@ -51,6 +52,7 @@ internal static class PlayerServiceTestHelpers
             playerStore ?? A.Fake<IPlayerStore>(),
             practiceService ?? A.Fake<IPracticeService>(),
             scoringService ?? A.Fake<IScoringService>(),
+            sessionWindowCalculator ?? A.Fake<ISessionWindowCalculator>(),
             store ?? A.Fake<IStore>(),
             syncStartGameService ?? A.Fake<ISyncStartGameService>(),
             teamService ?? A.Fake<ITeamService>()

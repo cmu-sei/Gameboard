@@ -107,11 +107,6 @@ namespace Gameboard.Api.Controllers
             await _mediator.Send(new UpdatePlayerReadyStateCommand(playerId, readyUpdate.IsReady, Actor));
         }
 
-        /// <summary>
-        /// Start player/team session
-        /// </summary>
-        /// <param name="playerId"></param>
-        /// <returns></returns>
         [HttpPut("api/player/{playerId}/start")]
         [Authorize]
         public async Task<Player> Start(string playerId)

@@ -21,6 +21,15 @@ internal class CaptainResolutionFailure : GameboardException
         : base($"Couldn't resolve a team captain for team {teamId}. {(message.IsEmpty() ? "" : message)}") { }
 }
 
+public class InvalidTeamSize : GameboardValidationException
+{
+    public InvalidTeamSize()
+        : base("Invalid team size") { }
+
+    public InvalidTeamSize(string teamId, int size, int min, int max)
+        : base($"Team {teamId} has an invalid size (min: {min}, max {max}, current: {size})") { }
+}
+
 internal class NotOnSameTeam : GameboardException
 {
     internal NotOnSameTeam(string firstPlayerId, string firstPlayerTeamId, string secondPlayerId, string secondPlayerTeamId, string whyItMatters) : base($"""
