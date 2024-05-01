@@ -22,7 +22,7 @@ public sealed class GameModeStartRequest
 {
     public required GameStartContext Context { get; set; }
     public required SimpleEntity Game { get; set; }
-    public required PlayerCalculatedSessionWindow SessionWindow { get; set; }
+    public required CalculatedSessionWindow SessionWindow { get; set; }
 }
 
 public sealed class GameStartContext

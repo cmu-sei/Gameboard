@@ -4,16 +4,16 @@ namespace Gameboard.Api.Features.Teams;
 
 public interface ISessionWindowCalculator
 {
-    PlayerCalculatedSessionWindow Calculate(int sessionMinutes, DateTimeOffset gameEnd, bool isElevatedUser, DateTimeOffset sessionStart);
-    PlayerCalculatedSessionWindow Calculate(Data.Game game, bool isElevatedUser, DateTimeOffset sessionStart);
+    CalculatedSessionWindow Calculate(int sessionMinutes, DateTimeOffset gameEnd, bool isElevatedUser, DateTimeOffset sessionStart);
+    CalculatedSessionWindow Calculate(Data.Game game, bool isElevatedUser, DateTimeOffset sessionStart);
 }
 
 internal class SessionWindowCalculator : ISessionWindowCalculator
 {
-    public PlayerCalculatedSessionWindow Calculate(Data.Game game, bool isElevatedUser, DateTimeOffset sessionStart)
+    public CalculatedSessionWindow Calculate(Data.Game game, bool isElevatedUser, DateTimeOffset sessionStart)
         => Calculate(game.SessionMinutes, game.GameEnd, isElevatedUser, sessionStart);
 
-    public PlayerCalculatedSessionWindow Calculate(int sessionMinutes, DateTimeOffset gameEnd, bool isElevatedUser, DateTimeOffset sessionStart)
+    public CalculatedSessionWindow Calculate(int sessionMinutes, DateTimeOffset gameEnd, bool isElevatedUser, DateTimeOffset sessionStart)
     {
         var normalSessionEnd = sessionStart.AddMinutes(sessionMinutes);
         var finalSessionEnd = normalSessionEnd;

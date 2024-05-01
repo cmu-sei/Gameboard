@@ -30,7 +30,7 @@ public interface IExternalGameService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<ExternalGameTeam> GetTeam(string teamId, CancellationToken cancellationToken);
-    Task Start(IEnumerable<string> teamIds, PlayerCalculatedSessionWindow sessionWindow, CancellationToken cancellationToken);
+    Task Start(IEnumerable<string> teamIds, CalculatedSessionWindow sessionWindow, CancellationToken cancellationToken);
     Task UpdateTeamDeployStatus(IEnumerable<string> teamIds, ExternalGameDeployStatus status, CancellationToken cancellationToken);
 }
 
@@ -354,7 +354,7 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
     public Task Handle(GameResourcesDeployEndNotification notification, CancellationToken cancellationToken)
         => UpdateTeamDeployStatus(notification.TeamIds, ExternalGameDeployStatus.Deployed, cancellationToken);
 
-    public async Task Start(IEnumerable<string> teamIds, PlayerCalculatedSessionWindow sessionWindow, CancellationToken cancellationToken)
+    public async Task Start(IEnumerable<string> teamIds, CalculatedSessionWindow sessionWindow, CancellationToken cancellationToken)
     {
         var resources = await _gameResources.DeployResources(teamIds, cancellationToken);
 

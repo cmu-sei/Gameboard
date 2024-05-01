@@ -221,75 +221,14 @@ public class PlayerService
             .WithNoTracking<Data.Player>()
             .SingleOrDefaultAsync(p => p.Id == model.PlayerId);
 
-        if (startingPlayer is null || (!sudo && startingPlayer.UserId != actor.Id))
-            throw new CantStartSessionOfOtherPlayer(model.PlayerId, actor.Id);
-
-        var team = await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => p.TeamId == startingPlayer.TeamId)
-            .ToListAsync();
-
-        var game = await _store
-            .WithNoTracking<Data.Game>()
-            .SingleAsync(g => g.Id == startingPlayer.GameId);
-
-        // rule: game's execution period has to be open
-        if (!sudo && game.IsLive.Equals(false))
-            throw new GameNotActive(game.Id, game.GameStart, game.GameEnd);
-
-        // rule: players per team has to be within the game's constraint
-        if (
-            !sudo &&
-            game.RequireTeam &&
-            team.Count < game.MinTeamSize
-        )
-            throw new InvalidTeamSize();
-
-        // rule: for now, can't start a player's session in this code path.
-        // TODO: refactor for SOLIDness
-        if (!sudo && game.RequireSynchronizedStart)
-            throw new InvalidOperationException("Can't start a player's session for a sync start game with PlayerService.StartSession (use SyncStartService.StartSynchronizedSession).");
-
-        // rule: teams can't have a session limit exceeding the game's settings
-        if (!sudo && game.SessionLimit > 0)
-        {
-            var ts = _now.Get();
-
-            int sessionCount = await PlayerStore.DbSet
-                .CountAsync(p =>
-                    p.GameId == game.Id &&
-                    p.Role == PlayerRole.Manager &&
-                    ts < p.SessionEnd
-                );
-
-            if (sessionCount >= game.SessionLimit)
-                throw new SessionLimitReached(startingPlayer.TeamId, game.Id, sessionCount, game.SessionLimit);
-        }
-
-        var sessionWindow = _sessionWindowCalculator.Calculate(game, sudo, _now.Get());
-
-        // rule: if the player/team is starting late, this must be allowed on the game level
-        if (!sudo && sessionWindow.IsLateStart && !game.AllowLateStart)
-            throw new CantLateStart(startingPlayer.Name, game.Name, game.GameEnd, game.SessionMinutes);
-
-        // update all player data
-        await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => p.TeamId == startingPlayer.TeamId)
-            .ExecuteUpdateAsync
-            (
-                up => up
-                    .SetProperty(p => p.IsLateStart, sessionWindow.IsLateStart)
-                    .SetProperty(p => p.SessionMinutes, sessionWindow.LengthInMinutes)
-                    .SetProperty(p => p.SessionBegin, sessionWindow.Start)
-                    .SetProperty(p => p.SessionEnd, sessionWindow.End)
-            );
+        var result = await _mediator.Send(new StartTeamSessionsCommand(new string[] { startingPlayer.TeamId }));
 
         // also set the starting player's properties because we'll use them as a return
-        startingPlayer.IsLateStart = sessionWindow.IsLateStart;
-        startingPlayer.SessionMinutes = sessionWindow.LengthInMinutes;
-        startingPlayer.SessionBegin = sessionWindow.Start;
-        startingPlayer.SessionEnd = sessionWindow.End;
+        var teamStartResult = result.Teams[startingPlayer.TeamId];
+        startingPlayer.IsLateStart = teamStartResult.SessionWindow.IsLateStart;
+        startingPlayer.SessionMinutes = teamStartResult.SessionWindow.LengthInMinutes;
+        startingPlayer.SessionBegin = teamStartResult.SessionWindow.Start;
+        startingPlayer.SessionEnd = teamStartResult.SessionWindow.End;
 
         var asViewModel = _mapper.Map<Player>(startingPlayer);
         await _hubBus.SendTeamSessionStarted(asViewModel, actor);

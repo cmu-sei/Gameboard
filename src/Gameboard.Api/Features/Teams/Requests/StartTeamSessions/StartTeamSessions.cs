@@ -6,7 +6,6 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.Start;
-using Gameboard.Api.Features.Player;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
@@ -114,11 +113,7 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
                 Id = p.Id,
                 Name = p.ApprovedName
             }),
-            SessionWindow = new DateRange
-            {
-                Start = sessionWindow.Start,
-                End = sessionWindow.End
-            }
+            SessionWindow = sessionWindow
         }).ToArray();
 
         foreach (var team in finalTeams)

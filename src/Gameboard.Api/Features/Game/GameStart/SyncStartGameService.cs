@@ -18,7 +18,7 @@ public interface ISyncStartGameService
 {
     Task<SyncStartState> GetSyncStartState(string gameId, CancellationToken cancellationToken);
     Task HandleSyncStartStateChanged(string gameId, CancellationToken cancellationToken);
-    Task<SyncStartGameStartedState> StartSynchronizedSession(string gameId, PlayerCalculatedSessionWindow sessionWindow, CancellationToken cancellationToken);
+    Task<SyncStartGameStartedState> StartSynchronizedSession(string gameId, CalculatedSessionWindow sessionWindow, CancellationToken cancellationToken);
     Task<SyncStartPlayerStatusUpdate> UpdatePlayerReadyState(string playerId, bool isReady, CancellationToken cancellationToken);
     Task UpdateTeamReadyState(string teamId, bool isReady, CancellationToken cancellationToken);
 }
@@ -169,7 +169,7 @@ internal class SyncStartGameService : ISyncStartGameService
     /// <param name="sessionWindow"></param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns></returns>
-    public async Task<SyncStartGameStartedState> StartSynchronizedSession(string gameId, PlayerCalculatedSessionWindow sessionWindow, CancellationToken cancellationToken)
+    public async Task<SyncStartGameStartedState> StartSynchronizedSession(string gameId, CalculatedSessionWindow sessionWindow, CancellationToken cancellationToken)
     {
         _logger.LogInformation($"Acquiring asynchronous lock for sync start game {gameId}...");
         using (await _lockService.GetSyncStartGameLock(gameId).LockAsync(cancellationToken))
