@@ -96,6 +96,10 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
             foreach (var teamId in unrepresentedTeamIds)
                 ctx.AddValidationException(new ResourceNotFound<Team>(teamId));
 
+            // the rest of this validation doesn't play if we're talking about more than one game, so bail if necessary
+            if (gameData.Length > 1)
+                return;
+
             var game = gameData.Single();
 
             if (game.RequireSynchronizedStart)
