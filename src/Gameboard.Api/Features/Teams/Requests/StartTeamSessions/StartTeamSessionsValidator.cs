@@ -42,6 +42,7 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
 
     public async Task Validate(StartTeamSessionsCommand request, CancellationToken cancellationToken)
     {
+<<<<<<< Updated upstream
         _validatorService.AddValidator((req, ctx) =>
         {
             if (!req.TeamIds.Any())
@@ -73,39 +74,84 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
                     p.UserId
                 })
             }).ToArrayAsync(cancellationToken);
+=======
+>>>>>>> Stashed changes
 
         _validatorService.AddValidator(async (req, ctx) =>
         {
+            if (!req.TeamIds.Any())
+                ctx.AddValidationException(new MissingRequiredInput<IEnumerable<string>>(nameof(req.TeamIds), req.TeamIds));
+
             var now = _now.Get();
+            var isGameStartSuperUser = _gameService.IsGameStartSuperUser(_actingUser);
+
+            var players = await _store
+                .WithNoTracking<Data.Player>()
+                .Where(p => request.TeamIds.Contains(p.TeamId))
+                .Select(p => new
+                {
+                    p.Id,
+                    p.GameId,
+                    p.SessionBegin,
+                    p.TeamId,
+                    p.UserId
+                })
+                .ToArrayAsync(cancellationToken);
+
+            var gameIds = players.Select(p => p.GameId).Distinct().ToArray();
 
             // must find team in exactly one game
-            if (gameData.Length == 0)
+            if (gameIds.Length == 0)
             {
                 foreach (var teamId in request.TeamIds)
                     ctx.AddValidationException(new ResourceNotFound<Team>(teamId));
             }
-            else if (gameData.Length > 1)
-                ctx.AddValidationException(new PlayersAreInMultipleGames(gameData.Select(g => g.Id)));
+            else if (gameIds.Length > 1)
+                ctx.AddValidationException(new PlayersAreInMultipleGames(gameIds));
+
+            // the rest of this validation doesn't play if we're talking about more than one game, so bail if necessary
+            if (gameIds.Length != 1)
+                return;
+
+            var game = await _store
+                .WithNoTracking<Data.Game>()
+                .Where(g => g.Id == gameIds[0])
+                .Select(g => new
+                {
+                    g.Id,
+                    g.Name,
+                    g.AllowLateStart,
+                    g.MinTeamSize,
+                    g.MaxTeamSize,
+                    g.GameStart,
+                    g.GameEnd,
+                    g.RequireSynchronizedStart,
+                    g.SessionLimit,
+                    g.SessionMinutes
+                }).SingleAsync(cancellationToken);
 
             // players must contain all passed team ids
             var unrepresentedTeamIds = request
                 .TeamIds
-                .Where(tId => !gameData.Any(g => g.Players.Any(p => p.TeamId == tId)))
+                .Where(tId => !players.Any(p => p.TeamId == tId))
                 .ToArray();
 
             foreach (var teamId in unrepresentedTeamIds)
                 ctx.AddValidationException(new ResourceNotFound<Team>(teamId));
 
+<<<<<<< Updated upstream
             // the rest of this validation doesn't play if we're talking about more than one game, so bail if necessary
             if (gameData.Length > 1)
                 return;
 
             var game = gameData.Single();
 
+=======
+>>>>>>> Stashed changes
             if (game.RequireSynchronizedStart)
                 throw new InvalidOperationException("Can't start a session for a sync start game with this command (use SyncStartService.StartSynchronizedSession).");
 
-            var alreadyStartedPlayers = game.Players.Where(p => p.SessionBegin.IsNotEmpty());
+            var alreadyStartedPlayers = players.Where(p => p.SessionBegin.IsNotEmpty());
             foreach (var alreadyStartedPlayer in alreadyStartedPlayers)
                 ctx.AddValidationException(new SessionAlreadyStarted(alreadyStartedPlayer.Id, "Can't start a session for already started players."));
 
@@ -114,7 +160,7 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
                 return;
 
             // can only start a session for a team of which the active user is a member
-            var teamPlayers = game.Players.GroupBy(p => p.TeamId).ToDictionary(gr => gr.Key, gr => gr.ToArray());
+            var teamPlayers = players.GroupBy(p => p.TeamId).ToDictionary(gr => gr.Key, gr => gr.ToArray());
             foreach (var team in teamPlayers)
                 if (team.Value.All(p => p.UserId != _actingUser.Id))
                     ctx.AddValidationException(new CantStartSessionOfOtherTeam(team.Key, _actingUser.Id));
