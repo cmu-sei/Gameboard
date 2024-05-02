@@ -59,10 +59,13 @@ internal class GameStartService : IGameStartService
 
     public async Task<GameStartContext> Start(GameStartRequest request, CancellationToken cancellationToken)
     {
+        Console.WriteLine($"Starting for team ids {string.Join(',', request.TeamIds)}");
+
         var gameId = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => request.TeamIds.Contains(p.TeamId))
             .Select(p => p.GameId)
+            .Distinct()
             .SingleAsync(cancellationToken);
 
         var game = await _store.Retrieve<Data.Game>(gameId);
