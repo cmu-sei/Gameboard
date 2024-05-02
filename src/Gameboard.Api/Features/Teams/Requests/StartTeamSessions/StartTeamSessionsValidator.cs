@@ -42,41 +42,6 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
 
     public async Task Validate(StartTeamSessionsCommand request, CancellationToken cancellationToken)
     {
-<<<<<<< Updated upstream
-        _validatorService.AddValidator((req, ctx) =>
-        {
-            if (!req.TeamIds.Any())
-                ctx.AddValidationException(new MissingRequiredInput<IEnumerable<string>>(nameof(req.TeamIds), req.TeamIds));
-        });
-
-        var isGameStartSuperUser = _gameService.IsGameStartSuperUser(_actingUser);
-        var gameData = await _store
-            .WithNoTracking<Data.Game>()
-                .Include(g => g.Players)
-            .Where(g => g.Players.All(p => request.TeamIds.Contains(p.TeamId)))
-            .Select(g => new
-            {
-                g.Id,
-                g.Name,
-                g.AllowLateStart,
-                g.MinTeamSize,
-                g.MaxTeamSize,
-                g.GameStart,
-                g.GameEnd,
-                g.RequireSynchronizedStart,
-                g.SessionLimit,
-                g.SessionMinutes,
-                Players = g.Players.Select(p => new
-                {
-                    p.Id,
-                    p.TeamId,
-                    p.SessionBegin,
-                    p.UserId
-                })
-            }).ToArrayAsync(cancellationToken);
-=======
->>>>>>> Stashed changes
-
         _validatorService.AddValidator(async (req, ctx) =>
         {
             if (!req.TeamIds.Any())
@@ -139,15 +104,6 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
             foreach (var teamId in unrepresentedTeamIds)
                 ctx.AddValidationException(new ResourceNotFound<Team>(teamId));
 
-<<<<<<< Updated upstream
-            // the rest of this validation doesn't play if we're talking about more than one game, so bail if necessary
-            if (gameData.Length > 1)
-                return;
-
-            var game = gameData.Single();
-
-=======
->>>>>>> Stashed changes
             if (game.RequireSynchronizedStart)
                 throw new InvalidOperationException("Can't start a session for a sync start game with this command (use SyncStartService.StartSynchronizedSession).");
 
