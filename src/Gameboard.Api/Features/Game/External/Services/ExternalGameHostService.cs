@@ -10,6 +10,7 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ServiceStack;
 
 namespace Gameboard.Api.Features.Games.External;
 
@@ -157,7 +158,8 @@ internal class ExternalGameHostService : IExternalGameHostService
         if (config.HostUrl.IsEmpty())
             throw new EmptyExternalStartupEndpoint(gameId, config.StartupEndpoint);
 
-        client.BaseAddress = new Uri(config.HostUrl.TrimEnd('/'));
+        var hostUrl = config.HostUrl.Trim().TrimEnd('/');
+        client.BaseAddress = new Uri(hostUrl);
         return client;
     }
 }
