@@ -5,13 +5,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Services;
 using Gameboard.Api.Structure;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 
 namespace Gameboard.Api.Features.Games.Start;
 
@@ -25,6 +24,7 @@ internal class GameStartService : IGameStartService
 {
     private readonly IActingUserService _actingUserService;
     private readonly IGameModeServiceFactory _gameModeServiceFactory;
+    private readonly IGameService _gameService;
     private readonly ILockService _lockService;
     private readonly ILogger<GameStartService> _logger;
     private readonly IMediator _mediator;
@@ -37,6 +37,7 @@ internal class GameStartService : IGameStartService
     (
         IActingUserService actingUserService,
         IGameModeServiceFactory gameModeServiceFactory,
+        IGameService gameService,
         ILockService lockService,
         ILogger<GameStartService> logger,
         IMediator mediator,
@@ -48,6 +49,7 @@ internal class GameStartService : IGameStartService
     {
         _actingUserService = actingUserService;
         _gameModeServiceFactory = gameModeServiceFactory;
+        _gameService = gameService;
         _lockService = lockService;
         _logger = logger;
         _mediator = mediator;
@@ -59,24 +61,20 @@ internal class GameStartService : IGameStartService
 
     public async Task<GameStartContext> Start(GameStartRequest request, CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Starting for team ids {string.Join(',', request.TeamIds)}");
-
         var gameId = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => request.TeamIds.Contains(p.TeamId))
             .Select(p => p.GameId)
             .Distinct()
             .SingleAsync(cancellationToken);
-
-        var game = await _store.Retrieve<Data.Game>(gameId);
-        var gameModeService = await _gameModeServiceFactory.Get(game.Id);
+        var gameModeService = await _gameModeServiceFactory.Get(gameId);
 
         // lock this down - only one start or predeploy per game Id
         using var gameStartLock = await _lockService
-            .GetExternalGameDeployLock(game.Id)
+            .GetExternalGameDeployLock(gameId)
             .LockAsync(cancellationToken);
 
-        var startRequest = await LoadGameModeStartRequest(game, null, cancellationToken);
+        var startRequest = await LoadGameModeStartRequest(gameId, request.TeamIds, cancellationToken);
         await gameModeService.ValidateStart(startRequest, cancellationToken);
 
         try
@@ -85,7 +83,7 @@ internal class GameStartService : IGameStartService
         }
         catch (Exception ex)
         {
-            _logger.LogError(LogEventId.GameStart_Failed, exception: ex, message: $"""Deploy for game {game.Id} failed.""");
+            _logger.LogError(LogEventId.GameStart_Failed, exception: ex, message: $"""Deploy for game {gameId} failed.""");
 
             // allow the start service to do custom cleanup
             await gameModeService.TryCleanUpFailedDeploy(startRequest, ex, cancellationToken);
@@ -138,18 +136,29 @@ internal class GameStartService : IGameStartService
     /// will be constrained to the teamIds passed. This exists to support predeployment - we wanted the ability to predeploy
     /// one team's resources without necessarily deploying the entire game.
     /// </summary>
-    /// <param name="game"></param>
+    /// <param name="gameId"></param>
     /// <param name="teamIds"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     /// <exception cref="CantStartGameWithNoPlayers"></exception>
     /// <exception cref="CaptainResolutionFailure"></exception>
-    private async Task<GameModeStartRequest> LoadGameModeStartRequest(Data.Game game, IEnumerable<string> teamIds, CancellationToken cancellationToken)
+    private async Task<GameModeStartRequest> LoadGameModeStartRequest(string gameId, IEnumerable<string> teamIds, CancellationToken cancellationToken)
     {
         var now = _now.Get();
         var loadAllTeams = teamIds is null || !teamIds.Any();
         var actingUser = _actingUserService.Get();
         var actingUserIsElevated = actingUser is not null && (actingUser.IsAdmin || actingUser.IsRegistrar || actingUser.IsTester || actingUser.IsSupport);
+
+        var game = await _store
+            .WithNoTracking<Data.Game>()
+            .Select(g => new
+            {
+                g.Id,
+                g.Name,
+                g.GameEnd,
+                g.SessionMinutes
+            })
+            .SingleAsync(g => g.Id == gameId, cancellationToken);
 
         var players = await _store
             .WithNoTracking<Data.Player>()
@@ -215,7 +224,7 @@ internal class GameStartService : IGameStartService
         {
             Game = new SimpleEntity { Id = game.Id, Name = game.Name },
             Context = context,
-            SessionWindow = _sessionWindowCalculator.Calculate(game, actingUserIsElevated, now)
+            SessionWindow = _sessionWindowCalculator.Calculate(game.SessionMinutes, game.GameEnd, actingUserIsElevated, now)
         };
     }
 

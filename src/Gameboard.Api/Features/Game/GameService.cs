@@ -315,7 +315,7 @@ public class GameService : _Service, IGameService
 
     public bool IsGameStartSuperUser(User user)
     {
-        return user.IsRegistrar;
+        return user.IsAdmin || user.IsDesigner || user.IsRegistrar || user.IsSupport || user.IsTester;
     }
 
     public async Task UpdateImage(string id, string type, string filename)
