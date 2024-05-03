@@ -17,7 +17,6 @@ public interface IExternalGameService
 {
     // TODO: don't pass session stuff, centralize
     Task<ExternalGameStartMetaData> BuildExternalGameMetaData(GameResourcesDeployResults resources, DateTimeOffset sessionStart, DateTimeOffset sessionEnd);
-    Task CreateTeams(IEnumerable<string> teamIds, CancellationToken cancellationToken);
     Task DeleteTeamExternalData(CancellationToken cancellationToken, params string[] teamIds);
     Task<ExternalGameState> GetExternalGameState(string gameId, CancellationToken cancellationToken);
 
@@ -121,30 +120,6 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
         var metadataJson = _json.Serialize(retVal);
         Log($"""Final metadata payload for game "{retVal.Game.Id}" is here: {metadataJson}.""", retVal.Game.Id);
         return retVal;
-    }
-
-    public async Task CreateTeams(IEnumerable<string> teamIds, CancellationToken cancellationToken)
-    {
-        var teamGameIds = await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => teamIds.Contains(p.TeamId))
-            .GroupBy(p => p.TeamId)
-            .ToDictionaryAsync(kv => kv.Key, kv => kv.Select(p => p.GameId), cancellationToken);
-
-        if (teamGameIds.Values.Any(gIds => gIds.Count() > 1))
-            throw new InvalidOperationException("One of the teams to be created is tied to more than one game.");
-
-        // first, delete any metadata associated with a previous attempt
-        await DeleteTeamExternalData(cancellationToken, teamIds.ToArray());
-
-        // then create an entry for each team in this game
-        await _store.SaveAddRange(teamGameIds.Select(teamIdGameId => new ExternalGameTeam
-        {
-            Id = _guids.GetGuid(),
-            GameId = teamIdGameId.Value.Single(),
-            TeamId = teamIdGameId.Key,
-            DeployStatus = ExternalGameDeployStatus.NotStarted
-        }).ToArray());
     }
 
     public Task DeleteTeamExternalData(CancellationToken cancellationToken, params string[] teamIds)
@@ -353,7 +328,7 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
 
     public async Task Handle(GameResourcesDeployStartNotification notification, CancellationToken cancellationToken)
     {
-        await CreateTeams(notification.TeamIds, cancellationToken);
+        await InitTeams(notification.TeamIds, cancellationToken);
         await UpdateTeamDeployStatus(notification.TeamIds, ExternalGameDeployStatus.Deploying, cancellationToken);
     }
 
@@ -392,6 +367,30 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
             .WithNoTracking<ExternalGameTeam>()
             .Where(t => teamIds.Contains(t.TeamId))
             .ExecuteUpdateAsync(up => up.SetProperty(t => t.DeployStatus, status), cancellationToken);
+
+    private async Task InitTeams(IEnumerable<string> teamIds, CancellationToken cancellationToken)
+    {
+        var teamGameIds = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => teamIds.Contains(p.TeamId))
+            .GroupBy(p => p.TeamId)
+            .ToDictionaryAsync(kv => kv.Key, kv => kv.Select(p => p.GameId), cancellationToken);
+
+        if (teamGameIds.Values.Any(gIds => gIds.Count() > 1))
+            throw new InvalidOperationException("One of the teams to be created is tied to more than one game.");
+
+        // first, delete any metadata associated with a previous attempt
+        await DeleteTeamExternalData(cancellationToken, teamIds.ToArray());
+
+        // then create an entry for each team in this game
+        await _store.SaveAddRange(teamGameIds.Select(teamIdGameId => new ExternalGameTeam
+        {
+            Id = _guids.GetGuid(),
+            GameId = teamIdGameId.Value.Single(),
+            TeamId = teamIdGameId.Key,
+            DeployStatus = ExternalGameDeployStatus.NotStarted
+        }).ToArray());
+    }
 
     private void Log(string message, string gameId)
     {

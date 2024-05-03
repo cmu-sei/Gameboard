@@ -56,9 +56,6 @@ internal class ExternalGameStartService : IExternalGameStartService
         var teamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();
         var resources = await _gameResourcesDeploy.DeployResources(teamIds, cancellationToken);
 
-        // update external host and get configuration information for teams
-        await _externalGameService.Start(teamIds, request.SessionWindow, cancellationToken);
-
         var retVal = new GameStartContext
         {
             Game = request.Game,
@@ -74,6 +71,9 @@ internal class ExternalGameStartService : IExternalGameStartService
         retVal.GamespaceIdsStartFailed.AddRange(resources.DeployFailedGamespaceIds);
         retVal.Players.AddRange(request.Context.Players);
         retVal.Teams.AddRange(request.Context.Teams);
+
+        // update external host and get configuration information for teams
+        await _externalGameService.Start(teamIds, request.SessionWindow, cancellationToken);
 
         // on we go
         Log("External (non-sync) game launched.", request.Game.Id);
