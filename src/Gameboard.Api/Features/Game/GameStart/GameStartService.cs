@@ -61,6 +61,9 @@ internal class GameStartService : IGameStartService
 
     public async Task<GameStartContext> Start(GameStartRequest request, CancellationToken cancellationToken)
     {
+        // throw on cancel request so we can clean up the debris
+        cancellationToken.ThrowIfCancellationRequested();
+
         var gameId = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => request.TeamIds.Contains(p.TeamId))

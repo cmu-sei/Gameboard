@@ -120,26 +120,14 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
     public async Task<GameStartContext> Start(GameModeStartRequest request, CancellationToken cancellationToken)
     {
-        // for each team, create metadata that ties them to this game, holds team-specific metadata,
-        // and knows about the deploy state
         Log($"Launching game {request.Game.Id} with {request.Context.Teams.Count} teams...", request.Game.Id);
         await _gameHubBus.SendExternalGameLaunchStart(request.Context.ToUpdate());
-
-        // throw on cancel request so we can clean up the debris
-        cancellationToken.ThrowIfCancellationRequested();
 
         // deploy challenges and gamespaces
         var teamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();
         Log($"Deploying resources for {teamIds.Length} team(s)...", request.Game.Id);
         var deployResult = await _gameResourcesDeployment.DeployResources(teamIds, cancellationToken);
         Log("Game resources deployed.", request.Game.Id);
-
-        if (deployResult.DeployFailedGamespaceIds.Any())
-        {
-            var ids = deployResult.DeployFailedGamespaceIds.ToArray();
-            Log($"Can't start game {request.Game.Id} because after resource deploy, {ids.Length} gamespace(s) weren't on: {string.Join(',', ids)}", request.Game.Id);
-            throw new GameResourcesArentDeployedOnStart(request.Game.Id, ids);
-        }
 
         // establish all sessions
         Log("Starting a synchronized session for all teams...", request.Game.Id);

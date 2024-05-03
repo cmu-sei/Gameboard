@@ -110,6 +110,13 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
         Log($"{request.SpecIds.Count()} challenges deployed for teams {string.Join(", ", request.TeamIds)}...", request.GameId);
         await _mediator.Publish(new GameResourcesDeployEndNotification(teamIds), cancellationToken);
 
+        if (gamespaceDeployResults.FailedGamespaceDeployIds.Any())
+        {
+            var ids = gamespaceDeployResults.FailedGamespaceDeployIds.ToArray();
+            Log($"Can't finalize deploy for game {request.GameId} because after resource deploy, {ids.Length} gamespace(s) weren't on: {string.Join(',', ids)}", request.GameId);
+            throw new GameResourcesArentDeployedOnStart(request.GameId, ids);
+        }
+
         return new GameResourcesDeployResults
         {
             Game = game,

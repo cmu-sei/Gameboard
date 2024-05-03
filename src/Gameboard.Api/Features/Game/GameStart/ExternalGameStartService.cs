@@ -50,8 +50,14 @@ internal class ExternalGameStartService : IExternalGameStartService
 
     public async Task<GameStartContext> Start(GameModeStartRequest request, CancellationToken cancellationToken)
     {
+        Log($"Launching game {request.Game.Id} with {request.Context.Teams.Count} teams...", request.Game.Id);
+        await _gameHubService.SendExternalGameLaunchStart(request.Context.ToUpdate());
+
         var teamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();
         var resources = await _gameResourcesDeploy.DeployResources(teamIds, cancellationToken);
+
+        // update external host and get configuration information for teams
+        await _externalGameService.Start(teamIds, request.SessionWindow, cancellationToken);
 
         var retVal = new GameStartContext
         {
@@ -68,6 +74,10 @@ internal class ExternalGameStartService : IExternalGameStartService
         retVal.GamespaceIdsStartFailed.AddRange(resources.DeployFailedGamespaceIds);
         retVal.Players.AddRange(request.Context.Players);
         retVal.Teams.AddRange(request.Context.Teams);
+
+        // on we go
+        Log("External (non-sync) game launched.", request.Game.Id);
+        await _gameHubService.SendExternalGameLaunchEnd(request.Context.ToUpdate());
 
         return retVal;
     }
