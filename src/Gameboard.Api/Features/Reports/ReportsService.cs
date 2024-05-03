@@ -9,6 +9,7 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
+using ServiceStack;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -148,6 +149,7 @@ public class ReportsService : IReportsService
                 Name = "Site Usage",
                 Key = ReportKey.SiteUsage,
                 Description = "View a high-level overview of how the app is being used, optionally filtered by date range and user sponsor.",
+                IsExportable = false,
                 ExampleFields = new string[]
                 {
                     "Avg. Completed Challenges Per Player",
@@ -244,16 +246,8 @@ public class ReportsService : IReportsService
     public Task<IEnumerable<string>> ListSeasons()
         => GetGameStringPropertyOptions(g => g.Season);
 
-    public async Task<IEnumerable<string>> ListSeries()
-        =>
-        (
-            await _store
-                .List<Data.Game>()
-                .Select(g => g.Competition)
-                .Distinct()
-                .Where(c => c != null && c != "")
-                .ToArrayAsync()
-        ).Where(s => s.NotEmpty());
+    public Task<IEnumerable<string>> ListSeries()
+        => GetGameStringPropertyOptions(g => g.Division);
 
     public async Task<IEnumerable<SimpleEntity>> ListGames()
         => await _store.List<Data.Game>()
@@ -280,6 +274,7 @@ public class ReportsService : IReportsService
         return await _store.List<Data.Ticket>()
             .Select(t => t.Status)
             .Distinct()
+            .OrderBy(t => t)
             .ToArrayAsync();
     }
 

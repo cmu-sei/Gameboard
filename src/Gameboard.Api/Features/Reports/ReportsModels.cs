@@ -20,6 +20,7 @@ public sealed class ReportViewModel
     public required string Key { get; set; }
     public required string Name { get; set; }
     public required string Description { get; set; }
+    public bool IsExportable { get; set; } = true;
     public required IEnumerable<string> ExampleFields { get; set; }
     public required IEnumerable<string> ExampleParameters { get; set; }
 }
@@ -28,6 +29,7 @@ public sealed class ReportMetaData
 {
     public required string Key { get; set; }
     public required string Title { get; set; }
+    public bool IsExportable { get; set; } = true;
     public string ParametersSummary { get; set; }
     public required DateTimeOffset RunAt { get; set; }
 }

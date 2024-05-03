@@ -11,6 +11,7 @@ using Gameboard.Api.Structure;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ServiceStack;
 
 namespace Gameboard.Api.Features.Games.Start;
 
@@ -106,9 +107,19 @@ internal class GameStartService : IGameStartService
         return null;
     }
 
-    public async Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken)
+    public async Task<GamePlayState> GetGamePlayState(string teamId, CancellationToken cancellationToken)
     {
-        var game = await _store.WithNoTracking<Data.Game>().SingleAsync(g => g.Id == gameId, cancellationToken);
+        var gameId = await _teamService.GetGameId(teamId, cancellationToken);
+        var game = await _store
+            .WithNoTracking<Data.Game>()
+            .Select(g => new
+            {
+                g.Id,
+                g.GameEnd,
+                g.GameStart,
+                g.Mode
+            })
+            .SingleAsync(g => g.Id == gameId, cancellationToken);
 
         // apply all these rules regardless of mode settings
         var nowish = _now.Get();
