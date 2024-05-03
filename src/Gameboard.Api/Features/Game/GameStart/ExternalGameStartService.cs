@@ -51,7 +51,8 @@ internal class ExternalGameStartService : IExternalGameStartService
         var gameId = await _teamService.GetGameId(teamId, cancellationToken);
         var teamExternalGameState = await _externalGameService.GetTeam(teamId, cancellationToken);
 
-        if (teamExternalGameState.DeployStatus == ExternalGameDeployStatus.NotStarted)
+        // this could be null if deployment hasn't started
+        if (teamExternalGameState is null || teamExternalGameState.DeployStatus == ExternalGameDeployStatus.NotStarted)
             return GamePlayState.NotStarted;
 
         if (teamExternalGameState.DeployStatus == ExternalGameDeployStatus.Deploying)
