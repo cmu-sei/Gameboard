@@ -168,6 +168,11 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
         var specIds = gameData.Specs.Select(s => s.Id).ToArray();
         var teamIds = gameData.Players.Select(p => p.TeamId).Distinct();
 
+        var externalGameTeamsData = await _store
+            .WithNoTracking<ExternalGameTeam>()
+            .Where(t => t.GameId == gameId)
+            .ToArrayAsync(cancellationToken);
+
         // get challenges separately because of SpecId nonsense
         // group by TeamId for quicker lookups
         var teamChallenges = await _store
@@ -274,6 +279,7 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
                 Id = captains[key].TeamId,
                 Name = captains[key].ApprovedName,
                 DeployStatus = teamDeployStatuses.TryGetValue(key, out ExternalGameDeployStatus value) ? value : ExternalGameDeployStatus.NotStarted,
+                ExternalGameHostUrl = externalGameTeamsData.SingleOrDefault(t => t.TeamId == key)?.ExternalGameUrl,
                 IsReady = teams[key].All(p => p.IsReady),
                 Challenges = gameData.Specs.Select(s =>
                 {

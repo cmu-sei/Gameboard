@@ -34,6 +34,7 @@ public sealed class ExternalGameStateTeam
     public required string Id { get; set; }
     public required string Name { get; set; }
     public required ExternalGameDeployStatus DeployStatus { get; set; }
+    public required string ExternalGameHostUrl { get; set; }
     public required bool IsReady { get; set; }
     public required IEnumerable<SimpleSponsor> Sponsors { get; set; }
     public required IEnumerable<ExternalGameStateChallenge> Challenges { get; set; }
