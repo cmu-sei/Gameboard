@@ -136,7 +136,7 @@ internal class GameStartService : IGameStartService
         if (game.Mode == GameEngineMode.External)
         {
             var gameModeStartService = await _gameModeServiceFactory.Get(gameId);
-            return await gameModeStartService.GetGamePlayState(gameId, cancellationToken);
+            return await gameModeStartService.GetGamePlayState(teamId, cancellationToken);
         }
 
         return GamePlayState.Started;
