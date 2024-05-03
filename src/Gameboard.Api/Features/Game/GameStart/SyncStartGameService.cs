@@ -25,7 +25,6 @@ public interface ISyncStartGameService
 
 internal class SyncStartGameService : ISyncStartGameService
 {
-    private readonly IExternalGameHostAccessTokenProvider _accessTokenProvider;
     private readonly IActingUserService _actingUserService;
     private readonly IAppUrlService _appUrlService;
     private readonly BackgroundAsyncTaskContext _backgroundTaskContext;
@@ -40,7 +39,6 @@ internal class SyncStartGameService : ISyncStartGameService
 
     public SyncStartGameService
     (
-        IExternalGameHostAccessTokenProvider accessTokenProvider,
         IActingUserService actingUserService,
         IAppUrlService appUrlService,
         BackgroundAsyncTaskContext backgroundTaskContext,
@@ -54,7 +52,6 @@ internal class SyncStartGameService : ISyncStartGameService
         ITeamService teamService
     )
     {
-        _accessTokenProvider = accessTokenProvider;
         _actingUserService = actingUserService;
         _appUrlService = appUrlService;
         _backgroundTaskContext = backgroundTaskContext;
@@ -149,7 +146,6 @@ internal class SyncStartGameService : ISyncStartGameService
         // for now, we're assuming the "happy path" of sync start games being external games, but we'll separate them later
         // NOTE: we also use a background service to kick this off, as it's a long-running task. Updates on the status
         // of the game launch are reported via the SignalR "Game Hub".
-        _backgroundTaskContext.AccessToken = await _accessTokenProvider.GetToken();
         _backgroundTaskContext.ActingUser = _actingUserService.Get();
         _backgroundTaskContext.AppBaseUrl = _appUrlService.GetBaseUrl();
 

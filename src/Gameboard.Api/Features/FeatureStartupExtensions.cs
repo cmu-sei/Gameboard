@@ -29,7 +29,6 @@ public static class ServiceStartupExtensions
         // add special case services
         services
             .AddHttpContextAccessor()
-            .AddScoped<IExternalGameHostAccessTokenProvider, HttpContextAccessTokenProvider>()
             .AddSingleton(_ => settings.Core)
             .AddSingleton(_ => settings.ApiKey)
             .AddSingleton(new BackgroundAsyncTaskContext())

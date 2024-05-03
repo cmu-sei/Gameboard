@@ -16,13 +16,13 @@ namespace Gameboard.Api.Features.Games.External;
 public interface IExternalGameHostService
 {
     IQueryable<GetExternalGameHostsResponseHost> GetHosts();
+    Task<HttpResponseMessage> PingHost(string hostId, CancellationToken cancellationToken);
     Task<IEnumerable<ExternalGameClientTeamConfig>> StartGame(ExternalGameStartMetaData metaData, CancellationToken cancellationToken);
     Task ExtendTeamSession(string teamId, DateTimeOffset newSessionEnd, CancellationToken cancellationTokena);
 }
 
 internal class ExternalGameHostService : IExternalGameHostService
 {
-    private readonly IExternalGameHostAccessTokenProvider _accessTokenProvider;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IJsonService _jsonService;
     private readonly ILogger<ExternalGameHostService> _logger;
@@ -31,7 +31,6 @@ internal class ExternalGameHostService : IExternalGameHostService
 
     public ExternalGameHostService
     (
-        IExternalGameHostAccessTokenProvider accessTokenProvider,
         IHttpClientFactory httpClientFactory,
         IJsonService jsonService,
         ILogger<ExternalGameHostService> logger,
@@ -39,13 +38,12 @@ internal class ExternalGameHostService : IExternalGameHostService
         ITeamService teamService
     ) =>
     (
-        _accessTokenProvider,
         _httpClientFactory,
         _jsonService,
         _logger,
         _store,
         _teamService
-    ) = (accessTokenProvider, httpClientFactory, jsonService, logger, store, teamService);
+    ) = (httpClientFactory, jsonService, logger, store, teamService);
 
     public async Task ExtendTeamSession(string teamId, DateTimeOffset newSessionEnd, CancellationToken cancellationToken)
     {
@@ -63,7 +61,7 @@ internal class ExternalGameHostService : IExternalGameHostService
 
         // make the request to the external game host
         _logger.LogInformation($"Posting a team extension ({newSessionEnd}) to external game host at {extendEndpoint}.");
-        var client = await CreateHttpClient(gameId, config);
+        var client = CreateHttpClient(gameId, config);
 
         try
         {
@@ -102,14 +100,29 @@ internal class ExternalGameHostService : IExternalGameHostService
             })
             .OrderBy(h => h.Name);
 
+    public async Task<HttpResponseMessage> PingHost(string hostId, CancellationToken cancellationToken)
+    {
+        var host = await _store
+            .WithNoTracking<ExternalGameHost>()
+            .Select(h => new
+            {
+                h.Id,
+                h.PingEndpoint
+            })
+            .SingleAsync(h => h.Id == hostId, cancellationToken);
+
+        var httpClient = _httpClientFactory.CreateClient();
+        return await httpClient.GetAsync(host.PingEndpoint, cancellationToken);
+    }
+
     public async Task<IEnumerable<ExternalGameClientTeamConfig>> StartGame(ExternalGameStartMetaData metaData, CancellationToken cancellationToken)
     {
         var config = await LoadConfig(metaData.Game.Id, cancellationToken);
-        var client = await CreateHttpClient(metaData.Game.Id, config);
+        var client = CreateHttpClient(metaData.Game.Id, config);
 
         _logger.LogInformation($"Posting startup data to to the external game host at {client.BaseAddress}/{config.StartupEndpoint}: {_jsonService.Serialize(metaData)}");
         var teamConfigResponse = await client
-            .PostAsJsonAsync(config.StartupEndpoint, metaData)
+            .PostAsJsonAsync(config.StartupEndpoint, metaData, cancellationToken)
             .WithContentDeserializedAs<IDictionary<string, string>>();
         _logger.LogInformation($"Posted startup data. External host's response: {teamConfigResponse} ");
 
@@ -131,11 +144,10 @@ internal class ExternalGameHostService : IExternalGameHostService
         return externalConfig;
     }
 
-    private async Task<HttpClient> CreateHttpClient(string gameId, ExternalGameHost config)
+    private HttpClient CreateHttpClient(string gameId, ExternalGameHost config)
     {
         var client = _httpClientFactory.CreateClient();
         client.Timeout = TimeSpan.FromMinutes(5);
-        client.SetBearerToken(await _accessTokenProvider.GetToken());
 
         // todo: different header names? non-bearer?
         if (config.HostApiKey.IsNotEmpty())
@@ -145,11 +157,7 @@ internal class ExternalGameHostService : IExternalGameHostService
         if (config.HostUrl.IsEmpty())
             throw new EmptyExternalStartupEndpoint(gameId, config.StartupEndpoint);
 
-        var hostUrl = config.HostUrl;
-        if (!hostUrl.EndsWith("/"))
-            hostUrl += "/";
-
-        client.BaseAddress = new Uri(hostUrl);
+        client.BaseAddress = new Uri(config.HostUrl.TrimEnd('/'));
         return client;
     }
 }
