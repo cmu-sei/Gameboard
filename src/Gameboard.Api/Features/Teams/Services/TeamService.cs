@@ -178,7 +178,7 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
             .Where(p => p.TeamId == teamId)
             .Select(p => p.GameId)
             .Distinct()
-            .SingleAsync(cancellationToken);
+            .SingleOrDefaultAsync(cancellationToken);
 
     public async Task<int> GetSessionCount(string teamId, string gameId, CancellationToken cancellationToken)
     {

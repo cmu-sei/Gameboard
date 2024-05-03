@@ -13,10 +13,10 @@ public sealed class CantResolveTeamDeployStatus : GameboardException
         : base($"Couldn't resolve deploy status for team {teamId} in game {gameId}.") { }
 }
 
-public sealed class CantResolveGameDeployStatus : GameboardException
+public sealed class CantResolveGamePlayState : GameboardException
 {
-    public CantResolveGameDeployStatus(string gameId)
-        : base($"Couldn't resolve deploy status for game {gameId}.") { }
+    public CantResolveGamePlayState(string teamId, string gameId)
+        : base($"Couldn't resolve play state for team {teamId} (game {gameId}).") { }
 }
 
 internal class EmptyExternalHostUrl : GameboardException

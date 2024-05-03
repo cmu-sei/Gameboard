@@ -31,6 +31,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
     private readonly INowService _now;
     private readonly IStore _store;
     private readonly ISyncStartGameService _syncStartGameService;
+    private readonly ITeamService _teamService;
     private readonly IValidatorService<GameModeStartRequest> _validator;
 
     public ExternalSyncGameStartService
@@ -47,6 +48,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         INowService now,
         IStore store,
         ISyncStartGameService syncStartGameService,
+        ITeamService teamService,
         IValidatorService<GameModeStartRequest> validator
     )
     {
@@ -62,6 +64,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         _now = now;
         _store = store;
         _syncStartGameService = syncStartGameService;
+        _teamService = teamService;
         _validator = validator;
     }
 
@@ -144,8 +147,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         return request.Context;
     }
 
-    public async Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken)
+    public async Task<GamePlayState> GetGamePlayState(string teamId, CancellationToken cancellationToken)
     {
+        var gameId = await _teamService.GetGameId(teamId, cancellationToken);
         var gameState = await _externalGameService.GetExternalGameState(gameId, cancellationToken);
 
         if (gameState.OverallDeployStatus == ExternalGameDeployStatus.NotStarted)
@@ -163,7 +167,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         if (gameState.HasNonStandardSessionWindow || gameState.OverallDeployStatus == ExternalGameDeployStatus.PartiallyDeployed)
             return GamePlayState.Starting;
 
-        throw new CantResolveGameDeployStatus(gameId);
+        throw new CantResolveGamePlayState(teamId, gameId);
     }
 
     public async Task TryCleanUpFailedDeploy(GameModeStartRequest request, Exception exception, CancellationToken cancellationToken)

@@ -23,14 +23,14 @@ public interface IGameModeStartService
     public TeamSessionResetType StartFailResetType { get; }
 
     /// <summary>
-    /// Indicates the playability of the given game. For example, in standard unsync'd games,
+    /// Indicates the "play state" of a team. For example, in standard unsync'd games,
     /// this should return NotStarted if the execution window isn't open and should return GameOver if
     /// the game's execution window is closed.
     /// </summary>
-    /// <param name="gameId"></param>
+    /// <param name="teamId"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken);
+    public Task<GamePlayState> GetGamePlayState(string teamId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Starts the game. At the end of this function, a call to GetGamePlayState for the game should return "Started".

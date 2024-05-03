@@ -18,6 +18,7 @@ internal class ExternalGameStartService : IExternalGameStartService
     private readonly IGameResourcesDeploymentService _gameResourcesDeploy;
     private readonly ILogger<ExternalGameStartService> _logger;
     private readonly INowService _nowService;
+    private readonly ITeamService _teamService;
 
     public ExternalGameStartService
     (
@@ -25,7 +26,8 @@ internal class ExternalGameStartService : IExternalGameStartService
         ILogger<ExternalGameStartService> logger,
         IGameHubService gameHubService,
         IGameResourcesDeploymentService gameResourcesDeploy,
-        INowService nowService
+        INowService nowService,
+        ITeamService teamService
     )
     {
         _externalGameService = externalGameService;
@@ -33,6 +35,7 @@ internal class ExternalGameStartService : IExternalGameStartService
         _gameHubService = gameHubService;
         _gameResourcesDeploy = gameResourcesDeploy;
         _nowService = nowService;
+        _teamService = teamService;
     }
 
     public TeamSessionResetType StartFailResetType => TeamSessionResetType.PreserveChallenges;
@@ -43,9 +46,24 @@ internal class ExternalGameStartService : IExternalGameStartService
         return await _gameResourcesDeploy.DeployResources(teamIds, cancellationToken);
     }
 
-    public Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken)
+    public async Task<GamePlayState> GetGamePlayState(string teamId, CancellationToken cancellationToken)
     {
-        return Task.FromResult(GamePlayState.Started);
+        var gameId = await _teamService.GetGameId(teamId, cancellationToken);
+        var teamExternalGameState = await _externalGameService.GetTeam(teamId, cancellationToken);
+
+        if (teamExternalGameState.DeployStatus == ExternalGameDeployStatus.NotStarted)
+            return GamePlayState.NotStarted;
+
+        if (teamExternalGameState.DeployStatus == ExternalGameDeployStatus.Deploying)
+            return GamePlayState.DeployingResources;
+
+        if (teamExternalGameState.DeployStatus == ExternalGameDeployStatus.Deployed)
+            return GamePlayState.Started;
+
+        if (teamExternalGameState.DeployStatus == ExternalGameDeployStatus.PartiallyDeployed)
+            return GamePlayState.Starting;
+
+        throw new CantResolveGamePlayState(teamId, gameId);
     }
 
     public async Task<GameStartContext> Start(GameModeStartRequest request, CancellationToken cancellationToken)

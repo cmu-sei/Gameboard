@@ -53,7 +53,7 @@ internal class PlayerIsntOnTeam : GameboardValidationException
         : base($"""{(message.NotEmpty() ? $"{message}: " : string.Empty)}Player {playerId} isn't on team {teamId} (they're on team {playerTeamId}).""") { }
 }
 
-internal class TeamHasNoPlayersException : GameboardException
+internal class TeamHasNoPlayersException : GameboardValidationException
 {
     public TeamHasNoPlayersException(string teamId) : base($"Team {teamId} has no players.") { }
 }

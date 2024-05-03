@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Games.Start;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -57,6 +58,10 @@ public class TeamController : ControllerBase
                 cancellationToken
             );
     }
+
+    [HttpGet("{teamId}/play-state")]
+    public Task<GamePlayState> GetTeamGamePlayState([FromRoute] string teamId)
+        => _mediator.Send(new GetGamePlayStateQuery(teamId, _actingUserService.Get()?.Id));
 
     [HttpGet("{teamId}/timeline")]
     public Task<EventHorizon> GetTeamEventHorizon([FromRoute] string teamId)
