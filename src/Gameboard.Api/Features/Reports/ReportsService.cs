@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Certificates;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 using ServiceStack;

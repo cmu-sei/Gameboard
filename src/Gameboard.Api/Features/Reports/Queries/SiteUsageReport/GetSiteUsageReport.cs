@@ -48,7 +48,7 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
         // let's party
         var challenges = await _siteUsageReportService
             .GetBaseQuery(request.Parameters)
-            .Select(c => new SiteUsageReportChallenge
+            .Select(c => new
             {
                 Id = c.Id,
                 DeployedDate = c.StartTime,

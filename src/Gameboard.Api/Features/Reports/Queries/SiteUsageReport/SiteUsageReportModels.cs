@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -28,10 +29,11 @@ public sealed class SiteUsageReportRecord
 public sealed class SiteUsageReportChallenge
 {
     public required string Id { get; set; }
-    public required DateTimeOffset DeployedDate { get; set; }
-    public required bool IsCompetitive { get; set; }
-    public required string SpecId { get; set; }
-    public required string TeamId { get; set; }
+    public required string Name { get; set; }
+    public required int DeployCount { get; set; }
+    public required int SolveCompleteCount { get; set; }
+    public required int SolvePartialCount { get; set; }
+    public required IEnumerable<SimpleEntity> UsedInGames { get; set; }
 }
 
 public sealed class SiteUsageReportPlayer
@@ -47,4 +49,13 @@ public sealed class SiteUsageReportPlayer
 public sealed class SiteUsageReportPlayersParameters
 {
     public required PlayerMode? ExclusiveToMode { get; set; }
+}
+
+public sealed class SiteUsageReportSponsor
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required string Logo { get; set; }
+    public required string ParentName { get; set; }
+    public required int PlayerCount { get; set; }
 }

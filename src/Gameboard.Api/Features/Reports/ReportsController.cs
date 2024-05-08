@@ -65,9 +65,17 @@ public class ReportsController : ControllerBase
     public Task<SiteUsageReportRecord> GetSiteUsageReport([FromQuery] SiteUsageReportParameters parameters)
         => _mediator.Send(new GetSiteUsageReportQuery(parameters));
 
+    [HttpGet("site-usage/challenges")]
+    public Task<PagedEnumerable<SiteUsageReportChallenge>> GetSiteUsageREportChallenges([FromQuery] SiteUsageReportParameters reportParameters, [FromQuery] PagingArgs pagingArgs)
+        => _mediator.Send(new GetSiteUsageReportChallengesQuery(reportParameters, pagingArgs));
+
     [HttpGet("site-usage/players")]
     public Task<PagedEnumerable<SiteUsageReportPlayer>> GetSiteUsageReportPlayers([FromQuery] SiteUsageReportParameters reportParameters, [FromQuery] SiteUsageReportPlayersParameters playersParameters, [FromQuery] PagingArgs pagingArgs)
         => _mediator.Send(new GetSiteUsageReportPlayersQuery(reportParameters, playersParameters, pagingArgs));
+
+    [HttpGet("site-usage/sponsors")]
+    public Task<IEnumerable<SiteUsageReportSponsor>> GetSiteUsageReportSponsors([FromQuery] SiteUsageReportParameters reportParameters)
+        => _mediator.Send(new GetSiteUsageReportSponsorsQuery(reportParameters));
 
     [HttpGet("support")]
     public Task<ReportResults<SupportReportStatSummary, SupportReportRecord>> GetSupportReport([FromQuery] SupportReportParameters reportParams, [FromQuery] PagingArgs pagingArgs)
