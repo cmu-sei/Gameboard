@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Certificates;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 using ServiceStack;
@@ -17,6 +18,7 @@ public interface IReportsService
 {
     ReportResults<TRecord> BuildResults<TRecord>(ReportRawResults<TRecord> rawResults);
     ReportResults<TOverallStats, TRecord> BuildResults<TOverallStats, TRecord>(ReportRawResults<TOverallStats, TRecord> rawResults);
+    Task<string> GetDescription(string key);
     Task<IDictionary<string, ReportTeamViewModel>> GetTeamsByPlayerIds(IEnumerable<string> playerIds, CancellationToken cancellationToken);
     Task<IEnumerable<ReportViewModel>> List();
     Task<IEnumerable<SimpleEntity>> ListChallengeSpecs(string gameId = null);
@@ -53,6 +55,12 @@ public class ReportsService : IReportsService
         _paging = paging;
         _store = store;
         _teamService = teamService;
+    }
+
+    public async Task<string> GetDescription(string key)
+    {
+        var reports = await List();
+        return reports.SingleOrDefault(r => r.Key == key)?.Description;
     }
 
     public Task<IEnumerable<ReportViewModel>> List()
@@ -297,7 +305,8 @@ public class ReportsService : IReportsService
             MetaData = new ReportMetaData
             {
                 Title = rawResults.Title,
-                Key = rawResults.ReportKey,
+                Key = rawResults.Key,
+                Description = rawResults.Description,
                 ParametersSummary = null,
                 RunAt = _now.Get()
             },
@@ -315,7 +324,8 @@ public class ReportsService : IReportsService
             MetaData = new ReportMetaData
             {
                 Title = rawResults.Title,
-                Key = rawResults.ReportKey,
+                Key = rawResults.Key,
+                Description = rawResults.Description,
                 ParametersSummary = null,
                 RunAt = _now.Get()
             },

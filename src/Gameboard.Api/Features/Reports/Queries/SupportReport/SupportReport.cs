@@ -36,9 +36,10 @@ internal class SupportReportQueryHandler : IRequestHandler<SupportReportQuery, R
         return _reportsService.BuildResults(new ReportRawResults<SupportReportStatSummary, SupportReportRecord>
         {
             PagingArgs = request.PagingArgs,
+            Description = await _reportsService.GetDescription(ReportKey.Support),
             ParameterSummary = null,
             Records = await _service.QueryRecords(request.Parameters),
-            ReportKey = ReportKey.Support,
+            Key = ReportKey.Support,
             Title = "Support Report",
             OverallStats = stats
         });

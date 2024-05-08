@@ -29,6 +29,7 @@ public sealed class ReportMetaData
 {
     public required string Key { get; set; }
     public required string Title { get; set; }
+    public required string Description { get; set; }
     public bool IsExportable { get; set; } = true;
     public string ParametersSummary { get; set; }
     public required DateTimeOffset RunAt { get; set; }
@@ -37,9 +38,10 @@ public sealed class ReportMetaData
 public sealed class ReportRawResults<TRecord>
 {
     public required PagingArgs PagingArgs { get; set; }
+    public required string Description { get; set; }
+    public required string Key { get; set; }
     public required string ParameterSummary { get; set; }
     public required IEnumerable<TRecord> Records { get; set; }
-    public required string ReportKey { get; set; }
     public required string Title { get; set; }
 }
 
@@ -47,9 +49,10 @@ public sealed class ReportRawResults<TOverallStats, TRecord>
 {
     public required TOverallStats OverallStats { get; set; }
     public required PagingArgs PagingArgs { get; set; }
+    public required string Description { get; set; }
     public required string ParameterSummary { get; set; }
+    public required string Key { get; set; }
     public required IEnumerable<TRecord> Records { get; set; }
-    public required string ReportKey { get; set; }
     public required string Title { get; set; }
 }
 

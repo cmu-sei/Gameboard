@@ -13,6 +13,7 @@ internal class GetChallengesReportHandler : IRequestHandler<GetChallengesReportQ
     private readonly IChallengesReportService _challengesReportService;
     private readonly IPagingService _pagingService;
     private readonly INowService _nowService;
+    private readonly IReportsService _reportsService;
     private readonly ReportsQueryValidator _validator;
 
     public GetChallengesReportHandler
@@ -20,12 +21,14 @@ internal class GetChallengesReportHandler : IRequestHandler<GetChallengesReportQ
         IChallengesReportService challengesReportService,
         IPagingService pagingService,
         INowService nowService,
+        IReportsService reportsService,
         ReportsQueryValidator validator
     )
     {
         _challengesReportService = challengesReportService;
         _pagingService = pagingService;
         _nowService = nowService;
+        _reportsService = reportsService;
         _validator = validator;
     }
 
@@ -35,6 +38,7 @@ internal class GetChallengesReportHandler : IRequestHandler<GetChallengesReportQ
         await _validator.Validate(request, cancellationToken);
 
         var rawResults = await _challengesReportService.GetRawResults(request.Parameters, cancellationToken);
+        var reportDesc = await _reportsService.GetDescription(ReportKey.Challenges);
         var statSummary = _challengesReportService.GetStatSummary(rawResults);
         var paged = _pagingService.Page(rawResults, request.PagingArgs);
 
@@ -42,6 +46,7 @@ internal class GetChallengesReportHandler : IRequestHandler<GetChallengesReportQ
         {
             MetaData = new ReportMetaData
             {
+                Description = reportDesc,
                 Key = ReportKey.Challenges,
                 Title = "Challenges Report",
                 ParametersSummary = null,

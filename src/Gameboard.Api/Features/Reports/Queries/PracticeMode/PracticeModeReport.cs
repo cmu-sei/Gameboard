@@ -25,6 +25,7 @@ internal class PracticeModeReportHandler : IRequestHandler<PracticeModeReportQue
     {
         // validate access for all reports
         await _reportsQueryValidator.Validate(request, cancellationToken);
+        var description = await _reportsService.GetDescription(ReportKey.PracticeArea);
 
         if (request.Parameters.Grouping == PracticeModeReportGrouping.Challenge)
         {
@@ -34,8 +35,9 @@ internal class PracticeModeReportHandler : IRequestHandler<PracticeModeReportQue
                 OverallStats = results.OverallStats,
                 PagingArgs = request.PagingArgs,
                 ParameterSummary = null,
+                Description = description,
                 Records = results.Records,
-                ReportKey = ReportKey.PracticeArea,
+                Key = ReportKey.PracticeArea,
                 Title = "Practice Area Report (Grouped By Challenge)"
             });
         }
@@ -47,8 +49,9 @@ internal class PracticeModeReportHandler : IRequestHandler<PracticeModeReportQue
                 OverallStats = results.OverallStats,
                 PagingArgs = request.PagingArgs,
                 ParameterSummary = null,
+                Description = description,
                 Records = results.Records,
-                ReportKey = ReportKey.PracticeArea,
+                Key = ReportKey.PracticeArea,
                 Title = "Practice Area Report (Grouped By Player)",
             });
         }
@@ -60,8 +63,9 @@ internal class PracticeModeReportHandler : IRequestHandler<PracticeModeReportQue
                 OverallStats = results.OverallStats,
                 PagingArgs = request.PagingArgs,
                 ParameterSummary = null,
+                Description = description,
                 Records = results.Records,
-                ReportKey = ReportKey.PracticeArea,
+                Key = ReportKey.PracticeArea,
                 Title = "Practice Area Report (Grouped By Player Mode Performance)"
             });
         }

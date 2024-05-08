@@ -33,3 +33,18 @@ public sealed class SiteUsageReportChallenge
     public required string SpecId { get; set; }
     public required string TeamId { get; set; }
 }
+
+public sealed class SiteUsageReportPlayer
+{
+    public required int ChallengeCountCompetitive { get; set; }
+    public required int ChallengeCountPractice { get; set; }
+    public required DateTimeOffset LastActive { get; set; }
+    public required string Name { get; set; }
+    public required SimpleSponsor Sponsor { get; set; }
+    public required string UserId { get; set; }
+}
+
+public sealed class SiteUsageReportPlayersParameters
+{
+    public required PlayerMode? ExclusiveToMode { get; set; }
+}

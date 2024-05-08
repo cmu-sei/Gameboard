@@ -34,7 +34,6 @@ public class PlayerService
     private readonly INowService _now;
     private readonly IPracticeService _practiceService;
     private readonly IScoringService _scores;
-    private readonly ISessionWindowCalculator _sessionWindowCalculator;
     private readonly IStore _store;
     private readonly ISyncStartGameService _syncStartGameService;
     private readonly ITeamService _teamService;
@@ -83,7 +82,6 @@ public class PlayerService
         _mapper = mapper;
         PlayerStore = playerStore;
         _scores = scores;
-        _sessionWindowCalculator = sessionWindowCalculator;
         _store = store;
         _syncStartGameService = syncStartGameService;
         _teamService = teamService;
@@ -339,7 +337,7 @@ public class PlayerService
             q = q.Where(p => p.SessionBegin < ts && p.SessionEnd > ts);
 
         if (model.WantsComplete)
-            q = q.Where(p => p.SessionEnd > DateTimeOffset.MinValue);
+            q = q.WhereDateIsNotEmpty(p => p.SessionEnd);
 
         if (model.WantsAdvanced)
             q = q.Where(p => p.Advanced);

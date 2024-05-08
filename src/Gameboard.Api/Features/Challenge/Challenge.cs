@@ -244,3 +244,9 @@ public class ChallengeSearchFilter : SearchFilter
 {
     public string uid { get; set; } // Used to search for all challenges of a user
 }
+
+public sealed class ChallengeIdUserIdMap
+{
+    public required IDictionary<string, IEnumerable<string>> ChallengeIdUserIds { get; set; }
+    public required IDictionary<string, IEnumerable<string>> UserIdChallengeIds { get; set; }
+}

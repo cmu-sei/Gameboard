@@ -133,8 +133,9 @@ internal class EnrollmentReportByGameHandler : IRequestHandler<EnrollmentReportB
         {
             ParameterSummary = string.Empty,
             PagingArgs = request.PagingArgs,
+            Key = ReportKey.Enrollment,
+            Description = await _reportsService.GetDescription(ReportKey.Enrollment),
             Records = groupedResults,
-            ReportKey = ReportKey.Enrollment,
             Title = "Enrollment Report (Grouped By Game)"
         });
     }

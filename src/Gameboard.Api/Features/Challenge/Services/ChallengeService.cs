@@ -18,6 +18,8 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using ServiceStack;
+using Npgsql.Internal.TypeHandlers.NetworkHandlers;
 
 namespace Gameboard.Api.Services;
 
@@ -644,6 +646,46 @@ public partial class ChallengeService : _Service
     public ConsoleActor GetConsoleActor(string userId)
     {
         return _actorMap.FindActor(userId);
+    }
+
+    public async Task<ChallengeIdUserIdMap> GetChallengeUserMaps(IQueryable<Data.Challenge> query, CancellationToken cancellationToken)
+    {
+        var teamChallengeIds = await query
+            .Select(c => new
+            {
+                c.Id,
+                c.TeamId
+            })
+            .GroupBy(c => c.TeamId)
+            .ToDictionaryAsync(gr => gr.Key, gr => gr.Select(c => c.Id).ToArray(), cancellationToken);
+
+        var teamIds = teamChallengeIds.Keys;
+        // var teamIds = teamChallengeIds.SelectMany(kv => kv.Value.Select(c => c.TeamId)).Distinct().ToArray();
+
+        var userTeamIds = await _store
+            .WithNoTracking<Data.User>()
+            .Include(u => u.Enrollments)
+            .Where(u => u.Enrollments.Any(p => teamIds.Contains(p.TeamId)))
+            .Select(u => new { UserId = u.Id, TeamIds = u.Enrollments.Select(p => p.TeamId).Distinct() })
+            .GroupBy(u => u.UserId)
+            .ToDictionaryAsync(gr => gr.Key, gr => gr.SelectMany(gr => gr.TeamIds), cancellationToken);
+
+        var userIdChallengeIds = userTeamIds
+            .ToDictionary(gr => gr.Key, gr => gr.Value.SelectMany(tId => teamChallengeIds[tId]));
+
+        var challengeIdUserIds = new Dictionary<string, IEnumerable<string>>();
+        foreach (var kv in userIdChallengeIds)
+            foreach (var cId in kv.Value)
+                if (challengeIdUserIds.TryGetValue(cId, out IEnumerable<string> userIds))
+                    _ = userIds.Append(kv.Key);
+                else
+                    challengeIdUserIds[cId] = new List<string> { kv.Key };
+
+        return new ChallengeIdUserIdMap
+        {
+            ChallengeIdUserIds = challengeIdUserIds,
+            UserIdChallengeIds = userIdChallengeIds
+        };
     }
 
     public GameEngineGameState TransformStateRelativeUrls(GameEngineGameState state)

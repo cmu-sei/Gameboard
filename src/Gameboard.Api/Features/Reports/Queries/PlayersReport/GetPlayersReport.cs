@@ -15,19 +15,22 @@ internal class GetPlayersReportHandler : IRequestHandler<GetPlayersReportQuery, 
     private readonly IPagingService _pagingService;
     private readonly ReportsQueryValidator _queryValidator;
     private readonly IPlayersReportService _reportService;
+    private readonly IReportsService _reportsService;
 
     public GetPlayersReportHandler
     (
         INowService nowService,
         IPagingService pagingService,
         ReportsQueryValidator queryValidator,
-        IPlayersReportService reportService
+        IPlayersReportService reportService,
+        IReportsService reportsService
     )
     {
         _nowService = nowService;
         _pagingService = pagingService;
         _queryValidator = queryValidator;
         _reportService = reportService;
+        _reportsService = reportsService;
     }
 
     public async Task<ReportResults<PlayersReportStatSummary, PlayersReportRecord>> Handle(GetPlayersReportQuery request, CancellationToken cancellationToken)
@@ -56,6 +59,7 @@ internal class GetPlayersReportHandler : IRequestHandler<GetPlayersReportQuery, 
             {
                 Key = ReportKey.Players,
                 Title = "Players Report",
+                Description = await _reportsService.GetDescription(ReportKey.Players),
                 ParametersSummary = null,
                 RunAt = _nowService.Get()
             },

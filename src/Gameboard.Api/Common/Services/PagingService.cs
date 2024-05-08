@@ -19,7 +19,6 @@ public sealed class PagingResults
 
 public sealed class PagingArgs
 {
-    public int? DefaultPageSize { get; set; } = null;
     public int? PageNumber { get; set; } = null;
     public int? PageSize { get; set; } = null;
 }

@@ -33,6 +33,8 @@ internal class GetMetaDataHandler : IRequestHandler<GetMetaDataQuery, ReportMeta
         {
             Key = request.ReportKey,
             Title = report.Name,
+            Description = report.Description,
+            IsExportable = report.IsExportable,
             ParametersSummary = null,
             RunAt = _now.Get()
         };
