@@ -660,15 +660,14 @@ public partial class ChallengeService : _Service
             .ToDictionaryAsync(gr => gr.Key, gr => gr.Select(c => c.Id).ToArray(), cancellationToken);
 
         var teamIds = teamChallengeIds.Keys;
-        // var teamIds = teamChallengeIds.SelectMany(kv => kv.Value.Select(c => c.TeamId)).Distinct().ToArray();
 
         var userTeamIds = await _store
-            .WithNoTracking<Data.User>()
-            .Include(u => u.Enrollments)
-            .Where(u => u.Enrollments.Any(p => teamIds.Contains(p.TeamId)))
-            .Select(u => new { UserId = u.Id, TeamIds = u.Enrollments.Select(p => p.TeamId).Distinct() })
-            .GroupBy(u => u.UserId)
-            .ToDictionaryAsync(gr => gr.Key, gr => gr.SelectMany(gr => gr.TeamIds), cancellationToken);
+            .WithNoTracking<Data.Challenge>()
+            .Include(c => c.Player)
+            .Where(c => teamIds.Contains(c.TeamId))
+            .Select(c => new { c.Player.UserId, c.TeamId })
+            .GroupBy(p => p.UserId)
+            .ToDictionaryAsync(gr => gr.Key, gr => gr.Select(thing => thing.TeamId).Distinct(), cancellationToken);
 
         var userIdChallengeIds = userTeamIds
             .ToDictionary(gr => gr.Key, gr => gr.Value.SelectMany(tId => teamChallengeIds[tId]));

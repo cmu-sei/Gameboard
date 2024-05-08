@@ -7,7 +7,6 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using ServiceStack;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -46,18 +45,9 @@ internal sealed class GetSiteUsageReportPlayersHandler : IRequestHandler<GetSite
         paging.PageNumber ??= 0;
         paging.PageSize ??= 20;
 
-        // var challenges = await _reportService
-        //     .GetBaseQuery(request.ReportParameters)
-        //     .Select(c => new
-        //     {
-        //         c.Id,
-        //         c.TeamId,
-        //         c.PlayerMode
-        //     })
-        //     .ToArrayAsync(cancellationToken);
 
         var challengeIdUserIdMaps = await _challengeService.GetChallengeUserMaps(_reportService.GetBaseQuery(request.ReportParameters), cancellationToken);
-        var challengeModes = await _store
+        var challengeData = await _store
             .WithNoTracking<Data.Challenge>()
             .Where(c => challengeIdUserIdMaps.ChallengeIdUserIds.Keys.Contains(c.Id))
             .Select(c => new
@@ -67,10 +57,10 @@ internal sealed class GetSiteUsageReportPlayersHandler : IRequestHandler<GetSite
                 c.StartTime
             })
             .Distinct()
-            .ToDictionaryAsync(i => i.Id, i => new { i.PlayerMode, i.StartTime }, cancellationToken);
+            .ToDictionaryAsync(i => i.Id, i => new { i.Id, i.PlayerMode, i.StartTime }, cancellationToken);
 
-        var competitiveChallengeIds = challengeModes.Where(kv => kv.Value.PlayerMode == PlayerMode.Competition).Select(kv => kv.Key).ToArray();
-        var practiceChallengeIds = challengeModes.Where(kv => kv.Value.PlayerMode == PlayerMode.Practice).Select(kv => kv.Key).ToArray();
+        var competitiveChallengeIds = challengeData.Where(kv => kv.Value.PlayerMode == PlayerMode.Competition).Select(kv => kv.Key).ToArray();
+        var practiceChallengeIds = challengeData.Where(kv => kv.Value.PlayerMode == PlayerMode.Practice).Select(kv => kv.Key).ToArray();
 
         var userInfo = await _store
             .WithNoTracking<Data.User>()
@@ -87,14 +77,18 @@ internal sealed class GetSiteUsageReportPlayersHandler : IRequestHandler<GetSite
             .Distinct()
             .ToDictionaryAsync(gr => gr.Id, gr => gr, cancellationToken);
 
-        var omg = userInfo.Keys.Select(uId => new SiteUsageReportPlayer
+        var finalUsers = userInfo.Keys.Select(uId => new SiteUsageReportPlayer
         {
             UserId = uId,
             Name = userInfo[uId].Name,
             ChallengeCountCompetitive = challengeIdUserIdMaps.UserIdChallengeIds[uId].Where(cId => competitiveChallengeIds.Contains(cId)).Count(),
             ChallengeCountPractice = challengeIdUserIdMaps.UserIdChallengeIds[uId].Where(cId => practiceChallengeIds.Contains(cId)).Count(),
-            // LastActive = challengeIdUserIdMaps.UserIdChallengeIds[uId].OrderBy(c => )
-            LastActive = DateTimeOffset.UtcNow,
+            LastActive = challengeIdUserIdMaps
+                .UserIdChallengeIds[uId]
+                .Select(cId => challengeData[cId])
+                .OrderByDescending(cData => cData.StartTime)
+                .Select(cData => cData.StartTime)
+                .First(),
             Sponsor = new SimpleSponsor
             {
                 Id = userInfo[uId].SponsorId,
@@ -103,45 +97,13 @@ internal sealed class GetSiteUsageReportPlayersHandler : IRequestHandler<GetSite
             }
         });
 
-        var query = _reportService
-            .GetBaseQuery(request.ReportParameters);
-        //     .Include(c => c.Player)
-        //         .ThenInclude(p => p.User)
-        //             .ThenInclude(u => u.Sponsor)
-        // .GroupBy(c => new
-        // {
-        //     c.Player.UserId,
-        //     Name = c.Player.User.ApprovedName,
-        //     c.Player.User.SponsorId,
-        //     SponsorName = c.Player.User.Sponsor.Name,
-        //     SponsorLogo = c.Player.User.Sponsor.Logo
-        // })
-        // .Select(c => new SiteUsageReportPlayer
-        // {
-        //     Name = userInfo[uI]
-        //     ChallengeCountCompetitive = gr.Count(c => c.PlayerMode == PlayerMode.Competition),
-        //     ChallengeCountPractice = gr.Count(c => c.PlayerMode == PlayerMode.Practice),
-        //     LastActive = gr.Max(gr => gr.StartTime),
-        //     Sponsor = new SimpleSponsor
-        //     {
-        //         Id = gr.Key.SponsorId,
-        //         Logo = gr.Key.SponsorLogo,
-        //         Name = gr.Key.SponsorName
-        //     },
-        //     UserId = gr.Key.UserId
-        // })
-        // .Distinct();
+        if (request.PlayersParameters.ExclusiveToMode == PlayerMode.Competition)
+            finalUsers = finalUsers.Where(u => u.ChallengeCountCompetitive > 0 && u.ChallengeCountPractice == 0);
 
-        // if (request.PlayersParameters.ExclusiveToMode == PlayerMode.Competition)
-        //     query = query.Where(p => p.ChallengeCountCompetitive > 0 && p.ChallengeCountPractice == 0);
+        if (request.PlayersParameters.ExclusiveToMode == PlayerMode.Practice)
+            finalUsers = finalUsers.Where(u => u.ChallengeCountCompetitive == 0 && u.ChallengeCountPractice > 0);
 
-        // if (request.PlayersParameters.ExclusiveToMode == PlayerMode.Practice)
-        //     query = query.Where(p => p.ChallengeCountCompetitive == 0 && p.ChallengeCountPractice > 0);
-
-        // query = query.OrderBy(p => p.Name);
-
-        // var results = await query.ToArrayAsync(cancellationToken);
-        // return _pagingService.Page(query, paging);
-        return null;
+        finalUsers = finalUsers.OrderBy(u => u.Name);
+        return _pagingService.Page(finalUsers, paging);
     }
 }

@@ -61,6 +61,7 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
         var teamIds = challenges.Select(r => r.TeamId).Distinct().ToArray();
         var teamIdsUserIds = await _store
             .WithNoTracking<Data.Player>()
+            .Where(p => teamIds.Contains(p.TeamId))
             .Select(p => new
             {
                 p.TeamId,
@@ -92,12 +93,12 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
         {
             AvgCompetitiveChallengesPerCompetitiveUser = competitiveUserIds.Length == 0 ? null : challenges.Where(c => c.IsCompetitive).Count() / competitiveUserIds.Length,
             AvgPracticeChallengesPerPracticeUser = practiceUserIds.Length == 0 ? null : challenges.Where(c => !c.IsCompetitive).Count() / practiceUserIds.Length,
-            CompetitiveUsersWithNoPracticeCount = 0,
+            CompetitiveUsersWithNoPracticeCount = competitiveUserIds.Where(uId => !practiceUserIds.Contains(uId)).Count(),
             DeployedChallengesCount = challenges.Length,
             DeployedChallengesCompetitiveCount = challenges.Where(c => c.IsCompetitive).Count(),
             DeployedChallengesPracticeCount = challenges.Where(c => !c.IsCompetitive).Count(),
             DeployedChallengesSpecCount = challenges.Select(c => c.SpecId).Distinct().Count(),
-            PracticeUsersWithNoCompetitiveCount = 0,
+            PracticeUsersWithNoCompetitiveCount = practiceUserIds.Where(uId => !competitiveUserIds.Contains(uId)).Count(),
             SponsorCount = userSponsorCount,
             UserCount = userTeams.Keys.Count,
             UsersWithCompetitiveChallengeCount = competitiveUserIds.Length,
