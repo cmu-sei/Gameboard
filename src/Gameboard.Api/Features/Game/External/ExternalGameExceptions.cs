@@ -16,7 +16,7 @@ public sealed class CantResolveTeamDeployStatus : GameboardException
 public sealed class CantResolveGamePlayState : GameboardException
 {
     public CantResolveGamePlayState(string teamId, string gameId)
-        : base($"Couldn't resolve play state for team {teamId} (game {gameId}).") { }
+        : base($"Couldn't resolve play state for team {teamId ?? "No team - checking pre-enrollment"} (game {gameId}).") { }
 }
 
 internal class EmptyExternalHostUrl : GameboardException

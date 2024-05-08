@@ -46,9 +46,16 @@ internal class ExternalGameStartService : IExternalGameStartService
         return await _gameResourcesDeploy.DeployResources(teamIds, cancellationToken);
     }
 
-    public async Task<GamePlayState> GetGamePlayState(string teamId, CancellationToken cancellationToken)
+    public Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken)
+        => GetGamePlayStateForGameAndTeam(gameId, null, cancellationToken);
+
+    public Task<GamePlayState> GetGamePlayStateForTeam(string teamId, CancellationToken cancellationToken)
+        => GetGamePlayStateForGameAndTeam(null, teamId, cancellationToken);
+
+    private async Task<GamePlayState> GetGamePlayStateForGameAndTeam(string gameId, string teamId, CancellationToken cancellationToken)
     {
-        var gameId = await _teamService.GetGameId(teamId, cancellationToken);
+        if (teamId.IsNotEmpty())
+            gameId = await _teamService.GetGameId(teamId, cancellationToken);
         var teamExternalGameState = await _externalGameService.GetTeam(teamId, cancellationToken);
 
         // this could be null if deployment hasn't started

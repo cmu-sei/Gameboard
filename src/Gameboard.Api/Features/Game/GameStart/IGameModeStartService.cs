@@ -23,6 +23,15 @@ public interface IGameModeStartService
     public TeamSessionResetType StartFailResetType { get; }
 
     /// <summary>
+    /// This overload is only to check on the state of the game before enrolling a player or team - any checks
+    /// on the game state for a specific team should use the GetGamePlayStateForTeam function.
+    /// </summary>
+    /// <param name="gameId"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Indicates the "play state" of a team. For example, in standard unsync'd games,
     /// this should return NotStarted if the execution window isn't open and should return GameOver if
     /// the game's execution window is closed.
@@ -30,7 +39,7 @@ public interface IGameModeStartService
     /// <param name="teamId"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<GamePlayState> GetGamePlayState(string teamId, CancellationToken cancellationToken);
+    public Task<GamePlayState> GetGamePlayStateForTeam(string teamId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Starts the game. At the end of this function, a call to GetGamePlayState for the game should return "Started".

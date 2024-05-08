@@ -111,7 +111,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
         _validator.AddValidator(async (req, ctx) =>
         {
-            var gamePlayState = await GetGamePlayState(req.Game.Id, cancellationToken);
+            var gamePlayState = await GetGamePlayStateForTeam(req.Game.Id, cancellationToken);
 
             if (gamePlayState == GamePlayState.GameOver)
                 ctx.AddValidationException(new CantStartGameInIneligiblePlayState(req.Game.Id, gamePlayState));
@@ -147,9 +147,17 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         return request.Context;
     }
 
-    public async Task<GamePlayState> GetGamePlayState(string teamId, CancellationToken cancellationToken)
+    public Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken)
+        => GetGamePlayStateForGameAndTeam(gameId, null, cancellationToken);
+
+    public Task<GamePlayState> GetGamePlayStateForTeam(string teamId, CancellationToken cancellationToken)
+        => GetGamePlayStateForGameAndTeam(null, teamId, cancellationToken);
+
+    private async Task<GamePlayState> GetGamePlayStateForGameAndTeam(string gameId, string teamId, CancellationToken cancellationToken)
     {
-        var gameId = await _teamService.GetGameId(teamId, cancellationToken);
+        if (teamId.IsNotEmpty())
+            gameId = await _teamService.GetGameId(teamId, cancellationToken);
+
         var gameState = await _externalGameService.GetExternalGameState(gameId, cancellationToken);
 
         if (gameState.OverallDeployStatus == ExternalGameDeployStatus.NotStarted)
@@ -167,7 +175,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         if (gameState.HasNonStandardSessionWindow || gameState.OverallDeployStatus == ExternalGameDeployStatus.PartiallyDeployed)
             return GamePlayState.Starting;
 
-        throw new CantResolveGamePlayState(teamId, gameId);
+        throw new CantResolveGamePlayState(null, gameId);
     }
 
     public async Task TryCleanUpFailedDeploy(GameModeStartRequest request, Exception exception, CancellationToken cancellationToken)

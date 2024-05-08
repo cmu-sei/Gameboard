@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -92,7 +93,8 @@ internal sealed class GetSiteUsageReportPlayersHandler : IRequestHandler<GetSite
             Name = userInfo[uId].Name,
             ChallengeCountCompetitive = challengeIdUserIdMaps.UserIdChallengeIds[uId].Where(cId => competitiveChallengeIds.Contains(cId)).Count(),
             ChallengeCountPractice = challengeIdUserIdMaps.UserIdChallengeIds[uId].Where(cId => practiceChallengeIds.Contains(cId)).Count(),
-            LastActive = challengeIdUserIdMaps.UserIdChallengeIds[uId].OrderBy(c => )
+            // LastActive = challengeIdUserIdMaps.UserIdChallengeIds[uId].OrderBy(c => )
+            LastActive = DateTimeOffset.UtcNow,
             Sponsor = new SimpleSponsor
             {
                 Id = userInfo[uId].SponsorId,
@@ -102,43 +104,44 @@ internal sealed class GetSiteUsageReportPlayersHandler : IRequestHandler<GetSite
         });
 
         var query = _reportService
-            .GetBaseQuery(request.ReportParameters)
-            //     .Include(c => c.Player)
-            //         .ThenInclude(p => p.User)
-            //             .ThenInclude(u => u.Sponsor)
-            // .GroupBy(c => new
-            // {
-            //     c.Player.UserId,
-            //     Name = c.Player.User.ApprovedName,
-            //     c.Player.User.SponsorId,
-            //     SponsorName = c.Player.User.Sponsor.Name,
-            //     SponsorLogo = c.Player.User.Sponsor.Logo
-            // })
-            .Select(c => new SiteUsageReportPlayer
-            {
-                Name = userInfo.n
-                ChallengeCountCompetitive = gr.Count(c => c.PlayerMode == PlayerMode.Competition),
-                ChallengeCountPractice = gr.Count(c => c.PlayerMode == PlayerMode.Practice),
-                LastActive = gr.Max(gr => gr.StartTime),
-                Sponsor = new SimpleSponsor
-                {
-                    Id = gr.Key.SponsorId,
-                    Logo = gr.Key.SponsorLogo,
-                    Name = gr.Key.SponsorName
-                },
-                UserId = gr.Key.UserId
-            })
-            .Distinct();
+            .GetBaseQuery(request.ReportParameters);
+        //     .Include(c => c.Player)
+        //         .ThenInclude(p => p.User)
+        //             .ThenInclude(u => u.Sponsor)
+        // .GroupBy(c => new
+        // {
+        //     c.Player.UserId,
+        //     Name = c.Player.User.ApprovedName,
+        //     c.Player.User.SponsorId,
+        //     SponsorName = c.Player.User.Sponsor.Name,
+        //     SponsorLogo = c.Player.User.Sponsor.Logo
+        // })
+        // .Select(c => new SiteUsageReportPlayer
+        // {
+        //     Name = userInfo[uI]
+        //     ChallengeCountCompetitive = gr.Count(c => c.PlayerMode == PlayerMode.Competition),
+        //     ChallengeCountPractice = gr.Count(c => c.PlayerMode == PlayerMode.Practice),
+        //     LastActive = gr.Max(gr => gr.StartTime),
+        //     Sponsor = new SimpleSponsor
+        //     {
+        //         Id = gr.Key.SponsorId,
+        //         Logo = gr.Key.SponsorLogo,
+        //         Name = gr.Key.SponsorName
+        //     },
+        //     UserId = gr.Key.UserId
+        // })
+        // .Distinct();
 
-        if (request.PlayersParameters.ExclusiveToMode == PlayerMode.Competition)
-            query = query.Where(p => p.ChallengeCountCompetitive > 0 && p.ChallengeCountPractice == 0);
+        // if (request.PlayersParameters.ExclusiveToMode == PlayerMode.Competition)
+        //     query = query.Where(p => p.ChallengeCountCompetitive > 0 && p.ChallengeCountPractice == 0);
 
-        if (request.PlayersParameters.ExclusiveToMode == PlayerMode.Practice)
-            query = query.Where(p => p.ChallengeCountCompetitive == 0 && p.ChallengeCountPractice > 0);
+        // if (request.PlayersParameters.ExclusiveToMode == PlayerMode.Practice)
+        //     query = query.Where(p => p.ChallengeCountCompetitive == 0 && p.ChallengeCountPractice > 0);
 
-        query = query.OrderBy(p => p.Name);
+        // query = query.OrderBy(p => p.Name);
 
-        var results = await query.ToArrayAsync(cancellationToken);
-        return _pagingService.Page(query, paging);
+        // var results = await query.ToArrayAsync(cancellationToken);
+        // return _pagingService.Page(query, paging);
+        return null;
     }
 }

@@ -11,7 +11,7 @@ internal class GameWithModeExistsValidator<TModel> : IGameboardValidator<TModel>
     private Func<TModel, string> _idProperty;
 
     private readonly IStore _store;
-    private string? _requiredEngineMode;
+    private string _requiredEngineMode;
     private bool? _requiredSyncStartValue;
 
     public GameWithModeExistsValidator(IStore store)
