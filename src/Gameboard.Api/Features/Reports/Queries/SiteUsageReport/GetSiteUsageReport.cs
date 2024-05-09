@@ -67,6 +67,7 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
         var teamIdsUserIds = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => teamIds.Contains(p.TeamId))
+            // incredibly, these are currently not required by the schema
             .Where(p => p.TeamId != null && p.TeamId != string.Empty)
             .Where(p => p.UserId != null && p.UserId != string.Empty)
             .Select(p => new
@@ -90,9 +91,9 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
             });
 
         var competitiveTeamIds = teamChallengeCounts.Where(t => t.Value.CompetitiveChallengeCount > 0).Select(kv => kv.Key).ToArray();
-        var competitiveUserIds = competitiveTeamIds.SelectMany(tId => teamUsers[tId]).Distinct().ToArray();
+        var competitiveUserIds = competitiveTeamIds.Where(tId => teamUsers.ContainsKey(tId)).SelectMany(tId => teamUsers[tId]).Distinct().ToArray();
         var practiceTeamIds = teamChallengeCounts.Where(t => t.Value.PracticeChallengeCount > 0).Select(kv => kv.Key).ToArray();
-        var practiceUserIds = practiceTeamIds.SelectMany(tId => teamUsers[tId]).Distinct().ToArray();
+        var practiceUserIds = practiceTeamIds.Where(tId => teamUsers.ContainsKey(tId)).SelectMany(tId => teamUsers[tId]).Distinct().ToArray();
         var competitiveStrictTeamIds = teamChallengeCounts.Where(kv => kv.Value.CompetitiveChallengeCount > 0 && kv.Value.PracticeChallengeCount == 0);
 
         var userSponsorCount = await _store.WithNoTracking<Data.User>().Select(u => u.SponsorId).Distinct().CountAsync(cancellationToken);
