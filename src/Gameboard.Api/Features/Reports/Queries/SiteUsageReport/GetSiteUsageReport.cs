@@ -58,7 +58,11 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
             })
             .ToArrayAsync(cancellationToken);
 
-        var teamIds = challenges.Select(r => r.TeamId).Distinct().ToArray();
+        var teamIds = challenges
+            .Select(r => r.TeamId)
+            .Where(tId => tId != null && tId != string.Empty)
+            .Distinct()
+            .ToArray();
         var teamIdsUserIds = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => teamIds.Contains(p.TeamId))
