@@ -19,7 +19,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using ServiceStack;
-using Npgsql.Internal.TypeHandlers.NetworkHandlers;
 
 namespace Gameboard.Api.Services;
 
@@ -664,6 +663,7 @@ public partial class ChallengeService : _Service
         var userTeamIds = await _store
             .WithNoTracking<Data.Challenge>()
             .Include(c => c.Player)
+            .Where(c => c.Player.UserId != null && c.Player.UserId != string.Empty)
             .Where(c => teamIds.Contains(c.TeamId))
             .Select(c => new { c.Player.UserId, c.TeamId })
             .GroupBy(p => p.UserId)
