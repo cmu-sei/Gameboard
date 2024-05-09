@@ -66,6 +66,7 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
         var teamIdsUserIds = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => teamIds.Contains(p.TeamId))
+            .Where(p => p.TeamId != null && p.TeamId != string.Empty)
             .Select(p => new
             {
                 p.TeamId,
