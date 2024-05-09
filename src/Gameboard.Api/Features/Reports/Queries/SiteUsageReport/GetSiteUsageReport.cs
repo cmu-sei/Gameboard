@@ -50,11 +50,11 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
             .GetBaseQuery(request.Parameters)
             .Select(c => new
             {
-                Id = c.Id,
+                c.Id,
                 DeployedDate = c.StartTime,
                 IsCompetitive = c.PlayerMode == PlayerMode.Competition,
-                SpecId = c.SpecId,
-                TeamId = c.TeamId
+                c.SpecId,
+                c.TeamId
             })
             .ToArrayAsync(cancellationToken);
 
