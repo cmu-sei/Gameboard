@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -83,7 +84,8 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
             {
                 CompetitiveChallengeCount = c.Where(thing => thing.IsCompetitive).Count(),
                 PracticeChallengeCount = c.Where(thing => !thing.IsCompetitive).Count(),
-                UserIds = teamUsers[c.Key]
+                // teamId may not be present because of crazy denormalization issues
+                UserIds = teamUsers.TryGetValue(c.Key, out string[] value) ? value : Array.Empty<string>()
             });
 
         var competitiveTeamIds = teamChallengeCounts.Where(t => t.Value.CompetitiveChallengeCount > 0).Select(kv => kv.Key).ToArray();

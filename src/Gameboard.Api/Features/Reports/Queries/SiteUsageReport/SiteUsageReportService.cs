@@ -25,6 +25,9 @@ internal class SiteUsageReportService : ISiteUsageReportService
         // centers on challenges
         var query = _store.WithNoTracking<Data.Challenge>();
 
+        // Defend against teamId denormalization
+        query = query.Where(c => c.TeamId != null && c.TeamId != string.Empty);
+
         if (parameters.StartDate.IsNotEmpty())
             query = query.Where(c => c.StartTime >= parameters.StartDate.Value.ToUniversalTime());
 
