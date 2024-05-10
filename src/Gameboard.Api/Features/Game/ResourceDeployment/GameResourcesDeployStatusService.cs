@@ -10,12 +10,12 @@ namespace Gameboard.Api.Features.Games;
 
 public interface IGameResourcesDeployStatusService
 {
-
+    Task<GameResourcesDeployStatus> GetStatus(string gameId);
 }
 
 internal class GameResourcesDeployStatusService : IGameResourcesDeployStatusService, INotificationHandler<ChallengeDeployedNotification>
 {
-    private readonly Dictionary<string, GameStartContext> _deployingGames = new();
+    private readonly Dictionary<string, GameResourcesDeployStatus> _deployingGames = new();
     private readonly IStore _store;
 
     public GameResourcesDeployStatusService(IStore store)

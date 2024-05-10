@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api.Features.Games;
 
@@ -21,7 +19,8 @@ public class GameStartRequest
 public sealed class GameModeStartRequest
 {
     public required SimpleEntity Game { get; set; }
-    public required CalculatedSessionWindow SessionWindow { get; set; }
+    public required IEnumerable<string> TeamIds { get; set; }
+    // public required CalculatedSessionWindow SessionWindow { get; set; }
 }
 
 // public sealed class GameStartContext

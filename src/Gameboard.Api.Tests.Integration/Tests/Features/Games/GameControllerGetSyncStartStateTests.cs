@@ -27,8 +27,8 @@ public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestC
                 g.RequireSynchronizedStart = true;
                 g.Players = new List<Data.Player>
                 {
-                    state.Build<Data.Player>(fixture, p => p.IsReady = true),
-                    state.Build<Data.Player>(fixture, p => p.IsReady = true),
+                    state.Build<Data.Player>(fixture, p => { p.IsReady = true; p.TeamId = fixture.Create<string>(); }),
+                    state.Build<Data.Player>(fixture, p => { p.IsReady = true; p.TeamId = fixture.Create<string>(); }),
                 };
             });
         });

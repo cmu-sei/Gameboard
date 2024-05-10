@@ -16,7 +16,7 @@ namespace Gameboard.Api.Features.Games.External;
 public interface IExternalGameService
 {
     // TODO: don't pass session stuff, centralize
-    Task<ExternalGameStartMetaData> BuildExternalGameMetaData(GameResourcesDeployResults resources, DateTimeOffset sessionStart, DateTimeOffset sessionEnd);
+    Task<ExternalGameStartMetaData> BuildExternalGameMetaData(GameResourcesDeployResults resources, CalculatedSessionWindow sessionWindow);
     Task DeleteTeamExternalData(CancellationToken cancellationToken, params string[] teamIds);
     Task<ExternalGameState> GetExternalGameState(string gameId, CancellationToken cancellationToken);
 
@@ -29,7 +29,7 @@ public interface IExternalGameService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<ExternalGameTeam> GetTeam(string teamId, CancellationToken cancellationToken);
-    Task Start(IEnumerable<string> teamIds, CalculatedSessionWindow sessionWindow, CancellationToken cancellationToken);
+    Task Start(IEnumerable<string> teamIds, CancellationToken cancellationToken);
     Task UpdateTeamDeployStatus(IEnumerable<string> teamIds, ExternalGameDeployStatus status, CancellationToken cancellationToken);
 }
 
@@ -40,6 +40,7 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
     private readonly IGameResourcesDeploymentService _gameResources;
     private readonly IGuidService _guids;
     private readonly IJsonService _json;
+    private readonly IMediator _mediator;
     private readonly ILogger<ExternalGameService> _logger;
     private readonly INowService _now;
     private readonly IStore _store;
@@ -54,6 +55,7 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
         IGuidService guids,
         IJsonService json,
         ILogger<ExternalGameService> logger,
+        IMediator mediator,
         INowService now,
         IStore store,
         ISyncStartGameService syncStartGameService,
@@ -66,13 +68,14 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
         _guids = guids;
         _json = json;
         _logger = logger;
+        _mediator = mediator;
         _now = now;
         _store = store;
         _syncStartGameService = syncStartGameService;
         _teamService = teamService;
     }
 
-    public async Task<ExternalGameStartMetaData> BuildExternalGameMetaData(GameResourcesDeployResults resources, DateTimeOffset sessionBegin, DateTimeOffset sessionEnd)
+    public async Task<ExternalGameStartMetaData> BuildExternalGameMetaData(GameResourcesDeployResults resources, CalculatedSessionWindow session)
     {
         // build team objects to return
         var teamsToReturn = new List<ExternalGameStartMetaDataTeam>();
@@ -111,8 +114,8 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
             Session = new ExternalGameStartMetaDataSession
             {
                 Now = _now.Get(),
-                SessionBegin = sessionBegin,
-                SessionEnd = sessionEnd
+                SessionBegin = session.Start,
+                SessionEnd = session.End
             },
             Teams = teamsToReturn
         };
@@ -232,7 +235,7 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
         var playerReadiness = new Dictionary<string, bool>();
         if (gameData.RequireSynchronizedStart)
         {
-            var syncStartState = await _syncStartGameService.GetSyncStartState(gameId, cancellationToken);
+            var syncStartState = await _syncStartGameService.GetSyncStartState(gameId, teams.Keys, cancellationToken);
             playerReadiness = syncStartState.Teams
                 .SelectMany(t => t.Players)
                 .ToDictionary(p => p.Id, p => p.IsReady);
@@ -335,14 +338,15 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
     public Task Handle(GameResourcesDeployEndNotification notification, CancellationToken cancellationToken)
         => UpdateTeamDeployStatus(notification.TeamIds, ExternalGameDeployStatus.Deployed, cancellationToken);
 
-    public async Task Start(IEnumerable<string> teamIds, CalculatedSessionWindow sessionWindow, CancellationToken cancellationToken)
+    public async Task Start(IEnumerable<string> teamIds, CancellationToken cancellationToken)
     {
         var resources = await _gameResources.DeployResources(teamIds, cancellationToken);
+        var sessionStartResult = await _mediator.Send(new StartTeamSessionsCommand(teamIds), cancellationToken);
 
         // update external host and get configuration information for teams
         Log("Notifying external game host...", resources.Game.Id);
         // build metadata for external host
-        var metaData = await BuildExternalGameMetaData(resources, sessionWindow.Start, sessionWindow.End);
+        var metaData = await BuildExternalGameMetaData(resources, sessionStartResult.SessionWindow);
         var externalHostTeamConfigs = await _gameHost.StartGame(metaData, cancellationToken);
         Log($"External host team configurations: {_json.Serialize(externalHostTeamConfigs)}", resources.Game.Id);
         Log("External game host notified!", resources.Game.Id);

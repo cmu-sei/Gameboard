@@ -4,6 +4,7 @@ namespace Gameboard.Api.Features.Teams;
 
 public sealed class StartTeamSessionsResult
 {
+    public required CalculatedSessionWindow SessionWindow { get; set; }
     public required IDictionary<string, StartTeamSessionsResultTeam> Teams { get; set; }
 }
 

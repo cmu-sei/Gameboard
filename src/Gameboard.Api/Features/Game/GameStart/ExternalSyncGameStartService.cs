@@ -103,7 +103,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
         _validator.AddValidator(async (req, ctx) =>
         {
-            var syncStartState = await _syncStartGameService.GetSyncStartState(req.Game.Id, cancellationToken);
+            var syncStartState = await _syncStartGameService.GetSyncStartState(req.Game.Id, req.TeamIds, cancellationToken);
 
             if (!syncStartState.IsReady)
                 ctx.AddValidationException(new CantStartNonReadySynchronizedGame(syncStartState));
@@ -121,30 +121,25 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         Log($"Validation complete.", request.Game.Id);
     }
 
-    public async Task<GameStartContext> Start(GameModeStartRequest request, CancellationToken cancellationToken)
+    public async Task Start(GameModeStartRequest request, CancellationToken cancellationToken)
     {
-        Log($"Launching game {request.Game.Id} with {request.Context.Teams.Count} teams...", request.Game.Id);
-        await _gameHubBus.SendExternalGameLaunchStart(request.Context.ToUpdate());
+        var hubEvent = new GameHubEvent { GameId = request.Game.Id, TeamIds = request.TeamIds };
+
+        Log($"Launching game {request.Game.Id} with {request.TeamIds} teams...", request.Game.Id);
+        await _gameHubBus.SendLaunchStart(hubEvent);
 
         // deploy challenges and gamespaces
-        var teamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();
-        Log($"Deploying resources for {teamIds.Length} team(s)...", request.Game.Id);
-        var deployResult = await _gameResourcesDeployment.DeployResources(teamIds, cancellationToken);
-        Log("Game resources deployed.", request.Game.Id);
+        await _gameResourcesDeployment.DeployResources(request.TeamIds, cancellationToken);
 
         // establish all sessions
-        Log("Starting a synchronized session for all teams...", request.Game.Id);
-        var syncGameStartState = await _syncStartGameService.StartSynchronizedSession(request.Game.Id, request.SessionWindow, cancellationToken);
-        Log("Synchronized session started!", request.Game.Id);
+        await _syncStartGameService.StartSynchronizedSession(request.TeamIds, cancellationToken);
 
         // update external host and get configuration information for teams
-        await _externalGameService.Start(teamIds, request.SessionWindow, cancellationToken);
+        await _externalGameService.Start(request.TeamIds, cancellationToken);
 
         // on we go
         Log("External game launched.", request.Game.Id);
-        await _gameHubBus.SendExternalGameLaunchEnd(request.Context.ToUpdate());
-
-        return request.Context;
+        await _gameHubBus.SendLaunchEnd(hubEvent);
     }
 
     public Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken)
@@ -183,10 +178,9 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         // log the error
         var exceptionMessage = $"""EXTERNAL GAME LAUNCH FAILURE (game "{request.Game.Id}"): {exception.GetType().Name} :: {exception.Message}""";
         Log(exceptionMessage, request.Game.Id);
-        request.Context.Error = exceptionMessage;
 
         // notify the teams that something is amiss
-        await _gameHubBus.SendExternalGameLaunchFailure(request.Context.ToUpdate());
+        await _gameHubBus.SendLaunchFailure(new GameHubEvent<string> { GameId = request.Game.Id, TeamIds = request.TeamIds, Data = exceptionMessage });
 
         // NOT CLEANING UP GAMESPACES FOR NOW - MAYBE WE CAN REUSE
         // clean up external team metadata (deploy statuses and external links like Unity headless URLs)

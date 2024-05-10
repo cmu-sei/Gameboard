@@ -18,12 +18,13 @@ namespace Gameboard.Api.Features.Games.Start;
 public interface IGameStartService
 {
     Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken);
-    Task<GameStartContext> Start(GameStartRequest request, CancellationToken cancellationToken);
+    Task Start(GameStartRequest request, CancellationToken cancellationToken);
 }
 
 internal class GameStartService : IGameStartService
 {
     private readonly IActingUserService _actingUserService;
+    private readonly IGameHubService _gameHubService;
     private readonly IGameModeServiceFactory _gameModeServiceFactory;
     private readonly IGameService _gameService;
     private readonly ILockService _lockService;
@@ -37,6 +38,7 @@ internal class GameStartService : IGameStartService
     public GameStartService
     (
         IActingUserService actingUserService,
+        IGameHubService gameHubService,
         IGameModeServiceFactory gameModeServiceFactory,
         IGameService gameService,
         ILockService lockService,
@@ -49,6 +51,7 @@ internal class GameStartService : IGameStartService
     )
     {
         _actingUserService = actingUserService;
+        _gameHubService = gameHubService;
         _gameModeServiceFactory = gameModeServiceFactory;
         _gameService = gameService;
         _lockService = lockService;
@@ -60,7 +63,7 @@ internal class GameStartService : IGameStartService
         _teamService = teamService;
     }
 
-    public async Task<GameStartContext> Start(GameStartRequest request, CancellationToken cancellationToken)
+    public async Task Start(GameStartRequest request, CancellationToken cancellationToken)
     {
         // throw on cancel request so we can clean up the debris
         cancellationToken.ThrowIfCancellationRequested();
@@ -80,31 +83,33 @@ internal class GameStartService : IGameStartService
 
         var startRequest = await LoadGameModeStartRequest(gameId, request.TeamIds, cancellationToken);
         await gameModeService.ValidateStart(startRequest, cancellationToken);
+        var hubEvent = new GameHubEvent { GameId = gameId, TeamIds = request.TeamIds };
 
         try
         {
-            return await gameModeService.Start(startRequest, cancellationToken);
+            await _gameHubService.SendLaunchStart(hubEvent);
+            await gameModeService.Start(startRequest, cancellationToken);
+            await _gameHubService.SendLaunchEnd(hubEvent);
         }
         catch (Exception ex)
         {
-            _logger.LogError(LogEventId.GameStart_Failed, exception: ex, message: $"""Deploy for game {gameId} failed.""");
+            _logger.LogError(LogEventId.GameStart_Failed, exception: ex, message: ex.Message);
+            await _gameHubService.SendLaunchFailure(new GameHubEvent<string> { GameId = gameId, TeamIds = request.TeamIds, Data = $"""Deploy for game {gameId} failed.""" });
 
             // allow the start service to do custom cleanup
             await gameModeService.TryCleanUpFailedDeploy(startRequest, ex, cancellationToken);
 
             // for convenience, reset (but don't unenroll) the teams
-            _logger.LogError(message: $"Deployment failed for game {startRequest.Game.Id}. Resetting sessions for {startRequest.Context.Teams.Count} teams.");
+            _logger.LogError(message: $"Deployment failed for game {startRequest.Game.Id}. Resetting sessions for {startRequest.TeamIds.Count()} teams.");
 
-            foreach (var team in startRequest.Context.Teams)
+            foreach (var teamId in request.TeamIds)
             {
                 // only archive challenges if the game mode asks us to
-                await _mediator.Send(new ResetTeamSessionCommand(team.Team.Id, gameModeService.StartFailResetType, _actingUserService.Get()), cancellationToken);
+                await _mediator.Send(new ResetTeamSessionCommand(teamId, gameModeService.StartFailResetType, _actingUserService.Get()), cancellationToken);
             }
 
             _logger.LogInformation($"All teams reset for game {startRequest.Game.Id}.");
         }
-
-        return null;
     }
 
     public async Task<GamePlayState> GetGamePlayState(string teamId, CancellationToken cancellationToken)
@@ -183,62 +188,68 @@ internal class GameStartService : IGameStartService
         if (!players.Any())
             throw new CantStartGameWithNoPlayers(game.Id);
 
-        var specs = await _store
-            .WithNoTracking<Data.ChallengeSpec>()
-            .Where(cs => cs.GameId == game.Id)
-            .Where(cs => !cs.Disabled)
-            .ToArrayAsync(cancellationToken);
-
-        var teamCaptains = players
-            .GroupBy(p => p.TeamId)
-            .ToDictionary
-            (
-                g => g.Key,
-                g => _teamService.ResolveCaptain(g.ToList())
-            );
-
-        // update context and log stuff
-        Log($"Data gathered: {players.Length} players on {teamCaptains.Keys.Count} teams.", game.Id);
-
-        var context = new GameStartContext
-        {
-            Game = new SimpleEntity { Id = game.Id, Name = game.Name },
-            StartTime = now,
-            SpecIds = specs.Select(s => s.Id).ToArray(),
-            TotalChallengeCount = specs.Length * teamCaptains.Count,
-        };
-
-        context.Players.AddRange(players.Select(p => new GameStartContextPlayer
-        {
-            Player = new SimpleEntity { Id = p.Id, Name = p.ApprovedName },
-            TeamId = p.TeamId
-        }));
-
-        // validate that we have a team captain for every team before we do anything
-        Log("Identifying team captains...", game.Id);
-        foreach (var teamId in teamCaptains.Keys)
-        {
-            if (teamCaptains[teamId] == null)
-                throw new CaptainResolutionFailure(teamId, "Couldn't resolve team captain during game start.");
-        }
-
-        context.Teams.AddRange(teamCaptains.Select(tc => new GameStartContextTeam
-        {
-            Team = new SimpleEntity { Id = tc.Key, Name = tc.Value.ApprovedName },
-            Captain = new GameStartContextTeamCaptain
-            {
-                Player = new SimpleEntity { Id = tc.Value.Id, Name = tc.Value.ApprovedName },
-                UserId = tc.Value.UserId
-            },
-            HeadlessUrl = null
-        }).ToArray());
-
         return new GameModeStartRequest
         {
             Game = new SimpleEntity { Id = game.Id, Name = game.Name },
-            Context = context,
-            SessionWindow = _sessionWindowCalculator.Calculate(game.SessionMinutes, game.GameEnd, actingUserIsElevated, now)
+            TeamIds = teamIds
         };
+
+        // var specs = await _store
+        //     .WithNoTracking<Data.ChallengeSpec>()
+        //     .Where(cs => cs.GameId == game.Id)
+        //     .Where(cs => !cs.Disabled)
+        //     .ToArrayAsync(cancellationToken);
+
+        // var teamCaptains = players
+        //     .GroupBy(p => p.TeamId)
+        //     .ToDictionary
+        //     (
+        //         g => g.Key,
+        //         g => _teamService.ResolveCaptain(g.ToList())
+        //     );
+
+        // // update context and log stuff
+        // Log($"Data gathered: {players.Length} players on {teamCaptains.Keys.Count} teams.", game.Id);
+
+        // var context = new GameStartContext
+        // {
+        //     Game = new SimpleEntity { Id = game.Id, Name = game.Name },
+        //     StartTime = now,
+        //     SpecIds = specs.Select(s => s.Id).ToArray(),
+        //     TotalChallengeCount = specs.Length * teamCaptains.Count,
+        // };
+
+        // context.Players.AddRange(players.Select(p => new GameStartContextPlayer
+        // {
+        //     Player = new SimpleEntity { Id = p.Id, Name = p.ApprovedName },
+        //     TeamId = p.TeamId
+        // }));
+
+        // // validate that we have a team captain for every team before we do anything
+        // Log("Identifying team captains...", game.Id);
+        // foreach (var teamId in teamCaptains.Keys)
+        // {
+        //     if (teamCaptains[teamId] == null)
+        //         throw new CaptainResolutionFailure(teamId, "Couldn't resolve team captain during game start.");
+        // }
+
+        // context.Teams.AddRange(teamCaptains.Select(tc => new GameStartContextTeam
+        // {
+        //     Team = new SimpleEntity { Id = tc.Key, Name = tc.Value.ApprovedName },
+        //     Captain = new GameStartContextTeamCaptain
+        //     {
+        //         Player = new SimpleEntity { Id = tc.Value.Id, Name = tc.Value.ApprovedName },
+        //         UserId = tc.Value.UserId
+        //     },
+        //     HeadlessUrl = null
+        // }).ToArray());
+
+        // return new GameModeStartRequest
+        // {
+        //     Game = new SimpleEntity { Id = game.Id, Name = game.Name },
+        //     Context = context,
+        //     SessionWindow = _sessionWindowCalculator.Calculate(game.SessionMinutes, game.GameEnd, actingUserIsElevated, now)
+        // };
     }
 
     private void Log(string message, string gameId)

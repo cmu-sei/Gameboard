@@ -28,6 +28,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
     private readonly ChallengeService _challengeService;
     private readonly CoreOptions _coreOptions;
     private readonly IGameEngineService _gameEngineService;
+    private readonly IGameHubService _gameHubService;
     private readonly IChallengeGraderUrlService _graderUrlService;
     private readonly IJsonService _jsonService;
     private readonly ILockService _lockService;
@@ -43,6 +44,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
         ChallengeService challengeService,
         CoreOptions coreOptions,
         IGameEngineService gameEngineService,
+        IGameHubService gameHubService,
         IChallengeGraderUrlService graderUrlService,
         IJsonService jsonService,
         ILockService lockService,
@@ -57,6 +59,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
         _challengeService = challengeService;
         _coreOptions = coreOptions;
         _gameEngineService = gameEngineService;
+        _gameHubService = gameHubService;
         _graderUrlService = graderUrlService;
         _jsonService = jsonService;
         _lockService = lockService;
@@ -72,6 +75,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
 
     public async Task<GameResourcesDeployResults> DeployResources(IEnumerable<string> teamIds, CancellationToken cancellationToken)
     {
+        Log($"Deploying resources for {teamIds.Count()} team(s): {string.Join(',', teamIds)}", string.Empty);
         await _mediator.Publish(new GameResourcesDeployStartNotification(teamIds), cancellationToken);
 
         var game = await _store
@@ -134,8 +138,8 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
     private async Task<IDictionary<string, IEnumerable<GameResourcesDeployChallenge>>> DeployChallenges(GameResourcesDeployRequest request, CancellationToken cancellationToken)
     {
         var teamDeployedChallenges = new Dictionary<string, List<GameResourcesDeployChallenge>>();
-        
-        // await _gameHubBus.SendExternalGameChallengesDeployStart(request.Context.ToUpdate());
+        var hubEvent = new GameHubEvent { GameId = request.GameId, TeamIds = request.TeamIds };
+        await _gameHubService.SendChallengesDeployStart(hubEvent);
 
         // determine which, if any, challenges have been predeployed for this game
         var predeployedChallenges = await _store
@@ -191,6 +195,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
                     Id = deployedChallenge.Id,
                     Name = deployedChallenge.Name,
                     Engine = deployedChallenge.GameEngineType,
+                    HasGamespace = false,
                     IsActive = deployedChallenge.State.IsActive,
                     IsFullySolved = deployedChallenge.Score >= deployedChallenge.Points,
                     SpecId = deployedChallenge.SpecId,
@@ -201,10 +206,12 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
                 teamDeployedChallenges[teamId].Add(challengeDeployedUpdate);
 
                 await _mediator.Publish(new ChallengeDeployedNotification(challengeDeployedUpdate), cancellationToken);
-                // await _gameHubBus.SendExternalGameChallengesDeployProgressChange(request.Context.ToUpdate());
+                await _gameHubService.SendChallengesDeployProgressChange(hubEvent);
             }
         }
+
         // notify and return
+        await _gameHubService.SendChallengesDeployEnd(hubEvent);
         return teamDeployedChallenges.ToDictionary(kv => kv.Key, kv => kv.Value.AsEnumerable());
     }
 
@@ -212,9 +219,11 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
     {
         // Startup for gamespace deploy
         Log("Deploying gamespaces...", gameId);
-        // await _gameHubBus.SendExternalGameGamespacesDeployStart(request.Context.ToUpdate());
         var deployedGamespaces = new Dictionary<string, GameResourcesDeployGamespace>();
         var failedDeployGamespaceIds = new List<string>();
+        var hubEvent = new GameHubEvent { GameId = gameId, TeamIds = challenges.Select(c => c.TeamId).Distinct().ToArray() };
+
+        await _gameHubService.SendChallengesDeployStart(hubEvent);
 
         // determine which challenges have been predeployed so we can skip them here
         // note that challenges which have been solved are also skipped (we don't want to redeploy gamespaces for solved challenges if a deploy request occurs
@@ -231,8 +240,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
         foreach (var predeployedState in predeployedChallenges.Select(c => c.State))
         {
             deployedGamespaces.Add(predeployedState.Id, ChallengeStateToTeamGamespace(predeployedState));
-            // request.Context.GamespacesStarted.Add(predeployedState);
-            // await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.Context.ToUpdate());
+            await _gameHubService.SendGamespacesDeployProgressChange(hubEvent);
         }
 
         // if we don't have any gamespaces that aren't predeployed, we can take a big fat shortcut
@@ -264,15 +272,13 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
                         });
                         Log($"Gamespace started for challenge {challenge.Id}.", gameId);
 
-                        // record the created challenge/state for reporting
-                        // request.Context.GamespacesStarted.Add(challengeState);
-
                         // transform info about the VMs so we can return them later, then report progress and move on
                         var gamespace = ChallengeStateToTeamGamespace(challengeState);
                         deployedGamespaces.Add(gamespace.Id, gamespace);
 
                         Log($"Challenge {gamespace.Id} has {gamespace.VmUris.Count()} VM(s): {string.Join(", ", challengeState.Vms.Select(vm => vm.Name))}", gameId);
-                        // await _gameHubBus.SendExternalGameGamespacesDeployProgressChange(request.Context.ToUpdate());
+                        await _mediator.Publish(new ChallengeGamespaceDeployedNotification(challenge.Id));
+                        await _gameHubService.SendGamespacesDeployProgressChange(hubEvent);
 
                         // return the engine state of the challenge
                         return challengeState;
@@ -336,7 +342,8 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
 
         Log($"Finished deploying gamespaces: {totalGamespaceCount} gamespaces ({deployedGamespaceCount} ready), {totalVmCount} visible VMs.", gameId);
         Log($"Undeployed/unstarted gamespaces: {string.Join(", ", failedDeployGamespaceIds)}", gameId);
-        // await _gameHubBus.SendExternalGameGamespacesDeployEnd(request.Context.ToUpdate());
+        await _gameHubService.SendGamespacesDeployEnd(hubEvent);
+
         return new GameResourcesDeployGamespacesResult
         {
             FailedGamespaceDeployIds = failedDeployGamespaceIds,

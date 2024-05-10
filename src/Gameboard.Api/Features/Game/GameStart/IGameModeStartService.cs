@@ -47,7 +47,7 @@ public interface IGameModeStartService
     /// <param name="request"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<GameStartContext> Start(GameModeStartRequest request, CancellationToken cancellationToken);
+    public Task Start(GameModeStartRequest request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Called when an exception is thrown during DeployResources or Start. Lets the game mode service clean up

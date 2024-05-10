@@ -23,6 +23,7 @@ public interface ITeamService
     Task<IEnumerable<SimpleEntity>> GetChallengesWithActiveGamespace(string teamId, string gameId, CancellationToken cancellationToken);
     Task<bool> GetExists(string teamId);
     Task<string> GetGameId(string teamId, CancellationToken cancellationToken);
+    Task<string> GetGameId(IEnumerable<string> teamIds, CancellationToken cancellationToken);
     Task<int> GetSessionCount(string teamId, string gameId, CancellationToken cancellationToken);
     Task<Team> GetTeam(string id);
     Task<IEnumerable<Team>> GetTeams(IEnumerable<string> ids);
@@ -173,12 +174,22 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
         => _store.WithNoTracking<Data.Player>().AnyAsync(p => p.TeamId == teamId);
 
     public Task<string> GetGameId(string teamId, CancellationToken cancellationToken)
-        => _store
+        => GetGameId(new string[] { teamId }, cancellationToken);
+
+    public async Task<string> GetGameId(IEnumerable<string> teamIds, CancellationToken cancellationToken)
+    {
+        var gameIds = await _store
             .WithNoTracking<Data.Player>()
-            .Where(p => p.TeamId == teamId)
+            .Where(p => teamIds.Contains(p.TeamId))
             .Select(p => p.GameId)
             .Distinct()
-            .SingleOrDefaultAsync(cancellationToken);
+            .ToArrayAsync(cancellationToken);
+
+        if (gameIds.Length != 1)
+            throw new TeamsAreFromMultipleGames(teamIds, gameIds);
+
+        return gameIds.Single();
+    }
 
     public async Task<int> GetSessionCount(string teamId, string gameId, CancellationToken cancellationToken)
     {
@@ -341,7 +352,7 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
         var captains = players.Where(p => p.IsManager);
 
         if (captains.Count() == 1)
-            return captains.First();
+            return captains.Single();
         else if (captains.Count() > 1)
             return captains.OrderBy(c => c.ApprovedName).First();
 

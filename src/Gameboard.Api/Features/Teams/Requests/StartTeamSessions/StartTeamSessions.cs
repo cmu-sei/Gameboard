@@ -10,11 +10,12 @@ using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ServiceStack;
 
 namespace Gameboard.Api.Features.Teams;
 
-public record StartTeamSessionsCommand(IEnumerable<string> TeamIds) : IRequest<StartTeamSessionsResult>;
+public record StartTeamSessionsCommand(IEnumerable<string> TeamIds, bool ForceSynchronization = false) : IRequest<StartTeamSessionsResult>;
 
 internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessionsCommand, StartTeamSessionsResult>
 {
@@ -22,9 +23,11 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
     private readonly IGameService _gameService;
     private readonly IGameStartService _gameStartService;
     private readonly IInternalHubBus _internalHubBus;
+    private readonly ILogger<StartTeamSessionsHandler> _logger;
     private readonly INowService _now;
     private readonly ISessionWindowCalculator _sessionWindow;
     private readonly IStore _store;
+    private readonly ITeamService _teamService;
     private readonly IGameboardRequestValidator<StartTeamSessionsCommand> _validator;
 
     public StartTeamSessionsHandler
@@ -33,9 +36,11 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
         IGameService gameService,
         IGameStartService gameStartService,
         IInternalHubBus internalHubBus,
+        ILogger<StartTeamSessionsHandler> logger,
         INowService now,
         ISessionWindowCalculator sessionWindowCalculator,
         IStore store,
+        ITeamService teamService,
         IGameboardRequestValidator<StartTeamSessionsCommand> validator
     )
     {
@@ -43,9 +48,11 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
         _now = now;
         _gameService = gameService;
         _gameStartService = gameStartService;
+        _logger = logger;
         _internalHubBus = internalHubBus;
         _sessionWindow = sessionWindowCalculator;
         _store = store;
+        _teamService = teamService;
         _validator = validator;
     }
 
@@ -122,6 +129,19 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
             await _internalHubBus.SendTeamSessionStarted(team, gameId, _actingUser);
         }
 
-        return new StartTeamSessionsResult { Teams = dict };
+        if (request.ForceSynchronization)
+        {
+            _logger.LogInformation($"Adjusting session window for {request.TeamIds.Count()} teams...");
+            foreach (var teamId in request.TeamIds)
+            {
+                await _teamService.UpdateSessionStartAndEnd(teamId, sessionWindow.Start, sessionWindow.End, cancellationToken);
+            }
+        }
+
+        return new StartTeamSessionsResult
+        {
+            SessionWindow = sessionWindow,
+            Teams = dict
+        };
     }
 }

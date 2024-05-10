@@ -58,6 +58,12 @@ internal class TeamHasNoPlayersException : GameboardValidationException
     public TeamHasNoPlayersException(string teamId) : base($"Team {teamId} has no players.") { }
 }
 
+internal class TeamsAreFromMultipleGames : GameboardException
+{
+    public TeamsAreFromMultipleGames(IEnumerable<string> teamIds, IEnumerable<string> gameIds)
+        : base($"TeamIds {string.Join(',', teamIds)} represent players from multiple games {string.Join(',', gameIds)}.") { }
+}
+
 internal class UserIsntOnTeam : GameboardValidationException
 {
     internal UserIsntOnTeam(string userId, string teamId, string message = null)

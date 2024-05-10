@@ -40,11 +40,8 @@ internal class ExternalGameStartService : IExternalGameStartService
 
     public TeamSessionResetType StartFailResetType => TeamSessionResetType.PreserveChallenges;
 
-    public async Task<GameResourcesDeployResults> DeployResources(GameModeStartRequest request, CancellationToken cancellationToken)
-    {
-        var teamIds = request.Context.Teams.Select(t => t.Team.Id);
-        return await _gameResourcesDeploy.DeployResources(teamIds, cancellationToken);
-    }
+    public Task<GameResourcesDeployResults> DeployResources(GameModeStartRequest request, CancellationToken cancellationToken)
+        => _gameResourcesDeploy.DeployResources(request.TeamIds, cancellationToken);
 
     public Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken)
         => GetGamePlayStateForGameAndTeam(gameId, null, cancellationToken);
@@ -74,48 +71,25 @@ internal class ExternalGameStartService : IExternalGameStartService
         throw new CantResolveGamePlayState(teamId, gameId);
     }
 
-    public async Task<GameStartContext> Start(GameModeStartRequest request, CancellationToken cancellationToken)
+    public async Task Start(GameModeStartRequest request, CancellationToken cancellationToken)
     {
-        Log($"Launching game {request.Game.Id} with {request.Context.Teams.Count} teams...", request.Game.Id);
-        await _gameHubService.SendExternalGameLaunchStart(request.Context.ToUpdate());
+        Log($"Launching game {request.Game.Id} with {request.TeamIds.Count()} teams...", request.Game.Id);
 
-        var teamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();
-        var resources = await _gameResourcesDeploy.DeployResources(teamIds, cancellationToken);
-
-        var retVal = new GameStartContext
-        {
-            Game = request.Game,
-            SpecIds = resources.TeamChallenges.SelectMany(kv => kv.Value).Select(c => c.SpecId).Distinct().ToArray(),
-            StartTime = _nowService.Get(),
-            TotalChallengeCount = resources.TeamChallenges.SelectMany(kv => kv.Value).Count(),
-        };
-
-        retVal.ChallengesCreated.AddRange(request.Context.ChallengesCreated);
-        retVal.Error = resources.DeployFailedGamespaceIds.Any() ? $"Gamespaces failed to deploy: {string.Join(',', resources.DeployFailedGamespaceIds)}" : null;
-        retVal.GamespacesStarted.AddRange(request.Context.GamespacesStarted);
-        retVal.GamespaceIdsStartFailed.AddRange(resources.DeployFailedGamespaceIds);
-        retVal.Players.AddRange(request.Context.Players);
-        retVal.Teams.AddRange(request.Context.Teams);
+        await _gameResourcesDeploy.DeployResources(request.TeamIds, cancellationToken);
 
         // update external host and get configuration information for teams
-        await _externalGameService.Start(teamIds, request.SessionWindow, cancellationToken);
+        await _externalGameService.Start(request.TeamIds, cancellationToken);
 
         // on we go
         Log("External (non-sync) game launched.", request.Game.Id);
-        await _gameHubService.SendExternalGameLaunchEnd(request.Context.ToUpdate());
-
-        return retVal;
     }
 
-    public async Task TryCleanUpFailedDeploy(GameModeStartRequest request, Exception exception, CancellationToken cancellationToken)
+    public Task TryCleanUpFailedDeploy(GameModeStartRequest request, Exception exception, CancellationToken cancellationToken)
     {
         // log the error
         var exceptionMessage = $"""EXTERNAL GAME LAUNCH FAILURE (game "{request.Game.Id}"): {exception.GetType().Name} :: {exception.Message}""";
         Log(exceptionMessage, request.Game.Id);
-        request.Context.Error = exceptionMessage;
-
-        // notify the teams that something is amiss
-        await _gameHubService.SendExternalGameLaunchFailure(request.Context.ToUpdate());
+        return Task.CompletedTask;
     }
 
     public Task ValidateStart(GameModeStartRequest request, CancellationToken cancellationToken)
