@@ -16,15 +16,15 @@ namespace Gameboard.Api.Features.Games;
 public interface IGameHubService : INotificationHandler<GameEnrolledPlayersChangeNotification>, INotificationHandler<AppStartupNotification>, INotificationHandler<GameCacheInvalidateNotification>
 {
     // invoke functions on clients
-    Task SendExternalGameChallengesDeployStart(GameStartUpdate state);
-    Task SendExternalGameChallengesDeployProgressChange(GameStartUpdate state);
-    Task SendExternalGameChallengesDeployEnd(GameStartUpdate state);
-    Task SendExternalGameLaunchStart(GameStartUpdate state);
-    Task SendExternalGameLaunchEnd(GameStartUpdate state);
-    Task SendExternalGameLaunchFailure(GameStartUpdate state);
-    Task SendExternalGameGamespacesDeployStart(GameStartUpdate state);
-    Task SendExternalGameGamespacesDeployProgressChange(GameStartUpdate state);
-    Task SendExternalGameGamespacesDeployEnd(GameStartUpdate state);
+    Task SendChallengesDeployStart(GameResourcesDeployStatus status);
+    Task SendExternalGameChallengesDeployProgressChange(GameResourcesDeployStatus status);
+    Task SendExternalGameChallengesDeployEnd(GameResourcesDeployStatus status);
+    Task SendExternalGameLaunchStart(GameResourcesDeployStatus status);
+    Task SendExternalGameLaunchEnd(GameResourcesDeployStatus status);
+    Task SendExternalGameLaunchFailure(GameResourcesDeployStatus status);
+    Task SendExternalGameGamespacesDeployStart(GameResourcesDeployStatus status);
+    Task SendExternalGameGamespacesDeployProgressChange(GameResourcesDeployStatus status);
+    Task SendExternalGameGamespacesDeployEnd(GameResourcesDeployStatus status);
     Task SendSyncStartGameStateChanged(SyncStartState state);
     Task SendSyncStartGameStarted(SyncStartGameStartedState state);
     Task SendSyncStartGameStarting(SyncStartState state);
@@ -52,24 +52,24 @@ internal class GameHubService : IGameHubService, IGameboardHubService
         _store = store;
     }
 
-    public async Task SendExternalGameChallengesDeployStart(GameStartUpdate state)
+    public async Task SendChallengesDeployStart(GameResourcesDeployStatus status)
     {
         await _hubContext
             .Clients
-            .Users(GetGameUserIds(state.Game.Id))
-            .ExternalGameChallengesDeployStart(new GameHubEvent<GameStartUpdate>
+            .Users(GetGameUserIds(status.Game.Id))
+            .ChallengesDeployStart(new GameHubEvent<GameResourcesDeployStatus>
             {
-                GameId = state.Game.Id,
-                EventType = GameHubEventType.ExternalGameChallengesDeployStart,
-                Data = state
+                GameId = status.Game.Id,
+                EventType = GameHubEventType.ChallengesDeployStart,
+                Data = status
             });
     }
 
-    public Task SendExternalGameChallengesDeployProgressChange(GameStartUpdate state)
+    public Task SendExternalGameChallengesDeployProgressChange(GameResourcesDeployStatus status)
         => _hubContext
             .Clients
             .Users(GetGameUserIds(state.Game.Id))
-            .ExternalGameChallengesDeployProgressChange(new GameHubEvent<GameStartUpdate>
+            .ExternalGameChallengesDeployProgressChange(new GameHubEvent<GameResourcesDeployStatus>
             {
                 GameId = state.Game.Id,
                 EventType = GameHubEventType.ExternalGameChallengesDeployProgressChange,

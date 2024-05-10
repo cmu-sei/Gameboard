@@ -88,7 +88,6 @@ internal class ExternalGameStartService : IExternalGameStartService
             SpecIds = resources.TeamChallenges.SelectMany(kv => kv.Value).Select(c => c.SpecId).Distinct().ToArray(),
             StartTime = _nowService.Get(),
             TotalChallengeCount = resources.TeamChallenges.SelectMany(kv => kv.Value).Count(),
-            TotalGamespaceCount = resources.TeamChallenges.SelectMany(kv => kv.Value).Count(),
         };
 
         retVal.ChallengesCreated.AddRange(request.Context.ChallengesCreated);

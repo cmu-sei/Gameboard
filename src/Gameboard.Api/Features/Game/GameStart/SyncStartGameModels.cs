@@ -56,7 +56,7 @@ public class SyncStartGameStartedStatePlayer
     public required string UserId { get; set; }
 }
 
-public sealed class UpdateIsReadyModel
+public sealed class UpdateIsReadyRequest
 {
     public required bool IsReady { get; set; }
 }

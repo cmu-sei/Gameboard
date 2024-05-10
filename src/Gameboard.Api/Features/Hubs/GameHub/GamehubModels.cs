@@ -12,7 +12,7 @@ public class GameHubEvent<TData> where TData : class
 
 public enum GameHubEventType
 {
-    ExternalGameChallengesDeployStart,
+    ChallengesDeployStart,
     ExternalGameChallengesDeployProgressChange,
     ExternalGameChallengesDeployEnd,
     ExternalGameGamespacesDeployStart,
@@ -32,7 +32,7 @@ public enum GameHubEventType
 
 public interface IGameHubEvent
 {
-    Task ExternalGameChallengesDeployStart(GameHubEvent<GameStartUpdate> ev);
+    Task ChallengesDeployStart(GameHubEvent<GameStartUpdate> ev);
     Task ExternalGameChallengesDeployProgressChange(GameHubEvent<GameStartUpdate> ev);
     Task ExternalGameChallengesDeployEnd(GameHubEvent<GameStartUpdate> ev);
     Task ExternalGameLaunchStart(GameHubEvent<GameStartUpdate> ev);

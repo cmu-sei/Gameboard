@@ -77,6 +77,6 @@ public class TeamController : ControllerBase
 
     [HttpPut("{teamId}/ready")]
     [Authorize]
-    public Task UpdateTeamReadyState([FromRoute] string teamId, [FromBody] UpdateIsReadyModel isReadyCommand)
+    public Task UpdateTeamReadyState([FromRoute] string teamId, [FromBody] UpdateIsReadyRequest isReadyCommand)
         => _mediator.Send(new UpdateTeamReadyStateCommand(teamId, isReadyCommand.IsReady));
 }

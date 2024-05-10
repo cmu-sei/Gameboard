@@ -115,3 +115,4 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
         };
     }
 }
+

@@ -134,6 +134,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
     private async Task<IDictionary<string, IEnumerable<GameResourcesDeployChallenge>>> DeployChallenges(GameResourcesDeployRequest request, CancellationToken cancellationToken)
     {
         var teamDeployedChallenges = new Dictionary<string, List<GameResourcesDeployChallenge>>();
+        
         // await _gameHubBus.SendExternalGameChallengesDeployStart(request.Context.ToUpdate());
 
         // determine which, if any, challenges have been predeployed for this game
@@ -154,8 +155,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
             teamDeployedChallenges.Add(teamId, new List<GameResourcesDeployChallenge>());
 
             // Load predeployed challenges in case we can skip any
-            var teamPreDeployedChallenges = predeployedChallenges.ContainsKey(teamId) ?
-                predeployedChallenges[teamId] : Array.Empty<Data.Challenge>();
+            var teamPreDeployedChallenges = predeployedChallenges.TryGetValue(teamId, out var value) ? value : Array.Empty<Data.Challenge>();
             Log($"Team has {teamPreDeployedChallenges.Length} predeployed challenge(s).", teamId);
 
             foreach (var specId in request.SpecIds)
@@ -184,16 +184,9 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
                     );
                 }
 
-                // request.Context.ChallengesCreated.Add(new GameStartContextChallenge
-                // {
-                //     Challenge = new SimpleEntity { Id = deployedChallenge.Id, Name = deployedChallenge.Name },
-                //     GameEngineType = deployedChallenge.GameEngineType,
-                //     IsFullySolved = deployedChallenge.Score >= deployedChallenge.Points,
-                //     State = deployedChallenge.State,
-                //     TeamId = teamId
-                // });
+                Log($"Spec {deployedChallenge.SpecId} instantiated for team {teamId}.", request.GameId);
 
-                teamDeployedChallenges[teamId].Add(new GameResourcesDeployChallenge
+                var challengeDeployedUpdate = new GameResourcesDeployChallenge
                 {
                     Id = deployedChallenge.Id,
                     Name = deployedChallenge.Name,
@@ -203,9 +196,11 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
                     SpecId = deployedChallenge.SpecId,
                     State = deployedChallenge.State,
                     TeamId = deployedChallenge.TeamId
-                });
+                };
 
-                Log($"Spec {deployedChallenge.SpecId} instantiated for team {teamId}.", request.GameId);
+                teamDeployedChallenges[teamId].Add(challengeDeployedUpdate);
+
+                await _mediator.Publish(new ChallengeDeployedNotification(challengeDeployedUpdate), cancellationToken);
                 // await _gameHubBus.SendExternalGameChallengesDeployProgressChange(request.Context.ToUpdate());
             }
         }

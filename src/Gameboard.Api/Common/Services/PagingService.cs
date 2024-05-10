@@ -51,7 +51,6 @@ internal class PagingService : IPagingService
             pagingArgs.PageNumber ??= 0;
         }
 
-
         finalItems = finalItems
             .Skip(pagingArgs.PageNumber.Value * pagingArgs.PageSize.Value)
             .Take(pagingArgs.PageSize.Value);

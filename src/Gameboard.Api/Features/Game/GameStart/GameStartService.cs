@@ -206,7 +206,6 @@ internal class GameStartService : IGameStartService
             StartTime = now,
             SpecIds = specs.Select(s => s.Id).ToArray(),
             TotalChallengeCount = specs.Length * teamCaptains.Count,
-            TotalGamespaceCount = specs.Length * teamCaptains.Count
         };
 
         context.Players.AddRange(players.Select(p => new GameStartContextPlayer
