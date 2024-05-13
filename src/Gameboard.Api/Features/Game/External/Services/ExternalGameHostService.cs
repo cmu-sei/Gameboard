@@ -133,14 +133,15 @@ internal class ExternalGameHostService : IExternalGameHostService
         var teamConfigResponse = await client
             .PostAsJsonAsync(config.StartupEndpoint, metaData, cancellationToken)
             .WithContentDeserializedAs<IDictionary<string, string>>();
-        _logger.LogInformation($"Posted startup data. External host's response: {teamConfigResponse} ");
+        _logger.LogInformation($"Posted startup data. External host's response: {_jsonService.Serialize(teamConfigResponse)} ");
 
-        _logger.LogInformation($"Updating external host URLs for teams...");
+        _logger.LogInformation($"Updating external host URLs for {teamConfigResponse.Keys} teams...");
         foreach (var teamId in teamConfigResponse.Keys)
             await _store
                 .WithNoTracking<ExternalGameTeam>()
                 .Where(t => t.Id == teamId)
                 .ExecuteUpdateAsync(up => up.SetProperty(t => t.ExternalGameUrl, teamConfigResponse[teamId]), cancellationToken);
+        _logger.LogInformation($"External team hosts updated.");
 
         return teamConfigResponse.Keys.Select(key => new ExternalGameClientTeamConfig
         {
