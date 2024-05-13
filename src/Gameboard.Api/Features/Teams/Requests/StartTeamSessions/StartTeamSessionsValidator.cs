@@ -16,6 +16,7 @@ namespace Gameboard.Api.Features.Teams;
 internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeamSessionsCommand>
 {
     private readonly User _actingUser;
+    private readonly IGameModeServiceFactory _gameModeServiceFactory;
     private readonly IGameService _gameService;
     private readonly INowService _now;
     private readonly ISessionWindowCalculator _sessionWindow;
@@ -26,6 +27,7 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
     (
         IActingUserService actingUserService,
         IGameService gameService,
+        IGameModeServiceFactory gameModeServiceFactory,
         INowService now,
         ISessionWindowCalculator sessionWindow,
         IStore store,
@@ -33,6 +35,7 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
     )
     {
         _actingUser = actingUserService.Get();
+        _gameModeServiceFactory = gameModeServiceFactory;
         _gameService = gameService;
         _now = now;
         _sessionWindow = sessionWindow;
@@ -137,6 +140,16 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
             var sessionWindow = _sessionWindow.Calculate(game.SessionMinutes, game.GameEnd, isGameStartSuperUser, now);
             if (sessionWindow.IsLateStart && !game.AllowLateStart)
                 ctx.AddValidationException(new CantLateStart(request.TeamIds, game.Name, game.GameEnd, game.SessionMinutes));
+
+            // enforce mode-specific validation
+            var modeService = await _gameModeServiceFactory.Get(game.Id);
+            var startRequest = new GameModeStartRequest
+            {
+                Game = new SimpleEntity { Id = game.Id, Name = game.Name },
+                TeamIds = request.TeamIds
+            };
+
+            await modeService.ValidateStart(startRequest, cancellationToken);
         });
 
         await _validatorService.Validate(request, cancellationToken);

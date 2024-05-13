@@ -8,8 +8,7 @@ using Nito.AsyncEx;
 
 namespace Gameboard.Api.Common.Services;
 
-internal class BackgroundAsyncTaskRunner
- : BackgroundService
+internal class BackgroundAsyncTaskRunner : BackgroundService
 {
     private readonly BackgroundAsyncTaskContext _backgroundTaskContext;
     private readonly ILogger<BackgroundAsyncTaskRunner> _logger;
@@ -61,7 +60,7 @@ internal class BackgroundAsyncTaskRunner
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error occurred executing a predeployment.");
+                _logger.LogError(ex, $"Error occurred executing a background task: {ex.Message}");
             }
         }
     }

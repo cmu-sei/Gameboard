@@ -32,6 +32,7 @@ public class PlayerControllerStartTests : IClassFixture<GameboardTestContext>
             {
                 g.GameStart = DateTime.UtcNow.AddDays(-2);
                 g.GameEnd = DateTime.UtcNow.AddDays(-1);
+                g.Mode = GameEngineMode.Standard;
 
                 g.Players = new Data.Player[]
                 {

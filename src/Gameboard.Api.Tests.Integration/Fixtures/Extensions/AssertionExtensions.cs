@@ -19,11 +19,6 @@ internal static class AssertionExtensions
             throw new WrongExceptionType(typeof(T), responseContent);
     }
 
-    private static bool IsGameboardValidationExceptionString<T>(string responseContent) where T : GameboardValidationException
-    {
-        return responseContent.Contains("GAMEBOARD VALIDATION EXCEPTION");
-    }
-
     private static bool IsExceptionString<T>(string responseContent) where T : GameboardValidationException
         => responseContent.Contains(typeof(T).ToExceptionCode());
 }

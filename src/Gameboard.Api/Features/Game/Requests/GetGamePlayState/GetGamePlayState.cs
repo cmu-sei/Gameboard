@@ -14,8 +14,8 @@ public record GetGamePlayStateQuery(string TeamId, string ActingUserId) : IReque
 internal class GetGamePlayStateHandler : IRequestHandler<GetGamePlayStateQuery, GamePlayState>
 {
     private readonly EntityExistsValidator<GetGamePlayStateQuery, Data.Game> _gameExists;
+    private readonly IGameModeServiceFactory _gameModeServiceFactory;
     private readonly IGameService _gameService;
-    private readonly IGameStartService _gameStartService;
     private readonly ITeamService _teamService;
     private readonly EntityExistsValidator<GetGamePlayStateQuery, Data.User> _userExists;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
@@ -24,8 +24,8 @@ internal class GetGamePlayStateHandler : IRequestHandler<GetGamePlayStateQuery, 
     public GetGamePlayStateHandler
     (
         EntityExistsValidator<GetGamePlayStateQuery, Data.Game> gameExists,
+        IGameModeServiceFactory gameModeServiceFactory,
         IGameService gameService,
-        IGameStartService gameStartService,
         ITeamService teamService,
         EntityExistsValidator<GetGamePlayStateQuery, Data.User> userExists,
         UserRoleAuthorizer userRoleAuthorizer,
@@ -33,8 +33,8 @@ internal class GetGamePlayStateHandler : IRequestHandler<GetGamePlayStateQuery, 
     )
     {
         _gameExists = gameExists;
+        _gameModeServiceFactory = gameModeServiceFactory;
         _gameService = gameService;
-        _gameStartService = gameStartService;
         _teamService = teamService;
         _userExists = userExists;
         _userRoleAuthorizer = userRoleAuthorizer;
@@ -61,6 +61,7 @@ internal class GetGamePlayStateHandler : IRequestHandler<GetGamePlayStateQuery, 
         .AddValidator(_userExists.UseProperty(r => r.ActingUserId));
         await _validatorService.Validate(request, cancellationToken);
 
-        return await _gameStartService.GetGamePlayState(request.TeamId, cancellationToken);
+        var modeService = await _gameModeServiceFactory.Get(gameId);
+        return await modeService.GetGamePlayStateForTeam(request.TeamId, cancellationToken);
     }
 }

@@ -1,47 +1,33 @@
 using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Common.Services;
-using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Teams;
 using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Games.External;
 
-public interface IExternalGameStartService : IGameModeStartService { }
+public interface IExternalGameModeService : IGameModeService { }
 
-internal class ExternalGameStartService : IExternalGameStartService
+internal class ExternalGameModeService : IExternalGameModeService
 {
     private readonly IExternalGameService _externalGameService;
-    private readonly IGameHubService _gameHubService;
-    private readonly IGameResourcesDeploymentService _gameResourcesDeploy;
-    private readonly ILogger<ExternalGameStartService> _logger;
-    private readonly INowService _nowService;
+    private readonly ILogger<ExternalGameModeService> _logger;
     private readonly ITeamService _teamService;
 
-    public ExternalGameStartService
+    public ExternalGameModeService
     (
         IExternalGameService externalGameService,
-        ILogger<ExternalGameStartService> logger,
-        IGameHubService gameHubService,
+        ILogger<ExternalGameModeService> logger,
         IGameResourcesDeploymentService gameResourcesDeploy,
-        INowService nowService,
         ITeamService teamService
     )
     {
         _externalGameService = externalGameService;
         _logger = logger;
-        _gameHubService = gameHubService;
-        _gameResourcesDeploy = gameResourcesDeploy;
-        _nowService = nowService;
         _teamService = teamService;
     }
 
-    public TeamSessionResetType StartFailResetType => TeamSessionResetType.PreserveChallenges;
-
-    public Task<GameResourcesDeployResults> DeployResources(GameModeStartRequest request, CancellationToken cancellationToken)
-        => _gameResourcesDeploy.DeployResources(request.TeamIds, cancellationToken);
+    public bool DeployResourcesOnSessionStart { get => true; }
 
     public Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken)
         => GetGamePlayStateForGameAndTeam(gameId, null, cancellationToken);
@@ -71,18 +57,9 @@ internal class ExternalGameStartService : IExternalGameStartService
         throw new CantResolveGamePlayState(teamId, gameId);
     }
 
-    public async Task Start(GameModeStartRequest request, CancellationToken cancellationToken)
-    {
-        Log($"Launching game {request.Game.Id} with {request.TeamIds.Count()} teams...", request.Game.Id);
+    public bool RequireSynchronizedSessions { get => false; }
 
-        await _gameResourcesDeploy.DeployResources(request.TeamIds, cancellationToken);
-
-        // update external host and get configuration information for teams
-        await _externalGameService.Start(request.TeamIds, cancellationToken);
-
-        // on we go
-        Log("External (non-sync) game launched.", request.Game.Id);
-    }
+    public TeamSessionResetType StartFailResetType => TeamSessionResetType.PreserveChallenges;
 
     public Task TryCleanUpFailedDeploy(GameModeStartRequest request, Exception exception, CancellationToken cancellationToken)
     {

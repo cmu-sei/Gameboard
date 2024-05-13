@@ -205,7 +205,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
 
                 teamDeployedChallenges[teamId].Add(challengeDeployedUpdate);
 
-                await _mediator.Publish(new ChallengeDeployedNotification(challengeDeployedUpdate), cancellationToken);
+                await _mediator.Publish(new ChallengeDeployedNotification(challengeDeployedUpdate, request.GameId), cancellationToken);
                 await _gameHubService.SendChallengesDeployProgressChange(hubEvent);
             }
         }

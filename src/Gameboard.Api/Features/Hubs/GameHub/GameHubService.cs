@@ -13,15 +13,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games;
 
-public interface IGameHubService : INotificationHandler<GameEnrolledPlayersChangeNotification>, INotificationHandler<AppStartupNotification>, INotificationHandler<GameCacheInvalidateNotification>
+public interface IGameHubService :
+    INotificationHandler<AppStartupNotification>,
+    INotificationHandler<GameCacheInvalidateNotification>,
+    INotificationHandler<GameEnrolledPlayersChangeNotification>,
+    INotificationHandler<GameLaunchEndedNotification>,
+    INotificationHandler<GameLaunchStartedNotification>,
+    INotificationHandler<GameResourcesDeployFailedNotification>
 {
     // invoke functions on clients
     Task SendChallengesDeployStart(GameHubEvent ev);
     Task SendChallengesDeployProgressChange(GameHubEvent ev);
     Task SendChallengesDeployEnd(GameHubEvent ev);
-    Task SendLaunchStart(GameHubEvent ev);
-    Task SendLaunchEnd(GameHubEvent ev);
-    Task SendLaunchFailure(GameHubEvent ev);
     Task SendGamespacesDeployStart(GameHubEvent ev);
     Task SendGamespacesDeployProgressChange(GameHubEvent ev);
     Task SendGamespacesDeployEnd(GameHubEvent ev);
@@ -56,6 +59,45 @@ internal class GameHubService : IGameHubService, IGameboardHubService
         _store = store;
     }
 
+    public async Task Handle(GameLaunchEndedNotification notification, CancellationToken cancellationToken)
+    {
+        await _hubContext
+            .Clients
+            .Users(GetTeamsUserIds(notification.TeamIds))
+            .LaunchEnd(new GameHubEvent<GameResourcesDeployStatus>
+            {
+                GameId = notification.GameId,
+                TeamIds = notification.TeamIds,
+                Data = await _resourcesDeployStatus.GetStatus(notification.GameId)
+            });
+    }
+
+    public async Task Handle(GameLaunchStartedNotification notification, CancellationToken cancellationToken)
+    {
+        await _hubContext
+            .Clients
+            .Users(GetTeamsUserIds(notification.TeamIds))
+            .LaunchStart(new GameHubEvent<GameResourcesDeployStatus>
+            {
+                GameId = notification.GameId,
+                TeamIds = notification.TeamIds,
+                Data = await _resourcesDeployStatus.GetStatus(notification.GameId)
+            });
+    }
+
+    public async Task Handle(GameResourcesDeployFailedNotification notification, CancellationToken cancellationToken)
+    {
+        await _hubContext
+            .Clients
+            .Users(GetTeamsUserIds(notification.TeamIds))
+            .LaunchFailure(new GameHubEvent<GameResourcesDeployStatus>
+            {
+                GameId = notification.GameId,
+                TeamIds = notification.TeamIds,
+                Data = await _resourcesDeployStatus.GetStatus(notification.GameId)
+            });
+    }
+
     public async Task SendChallengesDeployStart(GameHubEvent ev)
     {
         await _hubContext
@@ -85,39 +127,6 @@ internal class GameHubService : IGameHubService, IGameboardHubService
             .Clients
             .Users(GetTeamsUserIds(ev.TeamIds))
             .ChallengesDeployEnd(new GameHubEvent<GameResourcesDeployStatus>
-            {
-                GameId = ev.GameId,
-                TeamIds = ev.TeamIds,
-                Data = await _resourcesDeployStatus.GetStatus(ev.GameId)
-            });
-
-    public async Task SendLaunchStart(GameHubEvent ev)
-        => await _hubContext
-            .Clients
-            .Users(GetTeamsUserIds(ev.TeamIds))
-            .LaunchStart(new GameHubEvent<GameResourcesDeployStatus>
-            {
-                GameId = ev.GameId,
-                TeamIds = ev.TeamIds,
-                Data = await _resourcesDeployStatus.GetStatus(ev.GameId)
-            });
-
-    public async Task SendLaunchEnd(GameHubEvent ev)
-        => await _hubContext
-            .Clients
-            .Users(GetTeamsUserIds(ev.TeamIds))
-            .LaunchEnd(new GameHubEvent<GameResourcesDeployStatus>
-            {
-                GameId = ev.GameId,
-                TeamIds = ev.TeamIds,
-                Data = await _resourcesDeployStatus.GetStatus(ev.GameId)
-            });
-
-    public async Task SendLaunchFailure(GameHubEvent ev)
-        => await _hubContext
-            .Clients
-            .Users(GetTeamsUserIds(ev.TeamIds))
-            .LaunchFailure(new GameHubEvent<GameResourcesDeployStatus>
             {
                 GameId = ev.GameId,
                 TeamIds = ev.TeamIds,

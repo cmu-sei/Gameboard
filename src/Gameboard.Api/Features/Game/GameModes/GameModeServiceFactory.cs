@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games.External;
-using Gameboard.Api.Features.Games.Start;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,7 +10,7 @@ namespace Gameboard.Api.Features.Games;
 
 public interface IGameModeServiceFactory
 {
-    Task<IGameModeStartService> Get(string gameId);
+    Task<IGameModeService> Get(string gameId);
 }
 
 internal class GameModeServiceFactory : IGameModeServiceFactory
@@ -25,7 +24,7 @@ internal class GameModeServiceFactory : IGameModeServiceFactory
         _store = store;
     }
 
-    public async Task<IGameModeStartService> Get(string gameId)
+    public async Task<IGameModeService> Get(string gameId)
     {
         var game = await _store
             .WithNoTracking<Data.Game>()
@@ -40,10 +39,13 @@ internal class GameModeServiceFactory : IGameModeServiceFactory
         if (game.Mode == GameEngineMode.External)
         {
             return game.RequireSynchronizedStart ?
-                _serviceProvider.GetRequiredService<IExternalSyncGameStartService>() :
-                _serviceProvider.GetRequiredService<IExternalGameStartService>();
+                _serviceProvider.GetRequiredService<IExternalSyncGameModeService>() :
+                _serviceProvider.GetRequiredService<IExternalGameModeService>();
         }
 
-        throw new NotImplementedException();
+        if (!game.RequireSynchronizedStart)
+            return _serviceProvider.GetRequiredService<IStandardGameModeService>();
+
+        throw new NotImplementedException($"Game {gameId} has an unsupported mode ({game.RequireSynchronizedStart}/{game.Mode})");
     }
 }

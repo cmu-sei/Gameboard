@@ -15,8 +15,6 @@ namespace Gameboard.Api.Features.Games.External;
 
 public interface IExternalGameService
 {
-    // TODO: don't pass session stuff, centralize
-    Task<ExternalGameStartMetaData> BuildExternalGameMetaData(GameResourcesDeployResults resources, CalculatedSessionWindow sessionWindow);
     Task DeleteTeamExternalData(CancellationToken cancellationToken, params string[] teamIds);
     Task<ExternalGameState> GetExternalGameState(string gameId, CancellationToken cancellationToken);
 
@@ -29,7 +27,6 @@ public interface IExternalGameService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<ExternalGameTeam> GetTeam(string teamId, CancellationToken cancellationToken);
-    Task Start(IEnumerable<string> teamIds, CancellationToken cancellationToken);
     Task UpdateTeamDeployStatus(IEnumerable<string> teamIds, ExternalGameDeployStatus status, CancellationToken cancellationToken);
 }
 
@@ -338,34 +335,6 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
     public Task Handle(GameResourcesDeployEndNotification notification, CancellationToken cancellationToken)
         => UpdateTeamDeployStatus(notification.TeamIds, ExternalGameDeployStatus.Deployed, cancellationToken);
 
-    public async Task Start(IEnumerable<string> teamIds, CancellationToken cancellationToken)
-    {
-        var resources = await _gameResources.DeployResources(teamIds, cancellationToken);
-        var sessionStartResult = await _mediator.Send(new StartTeamSessionsCommand(teamIds), cancellationToken);
-
-        // update external host and get configuration information for teams
-        Log("Notifying external game host...", resources.Game.Id);
-        // build metadata for external host
-        var metaData = await BuildExternalGameMetaData(resources, sessionStartResult.SessionWindow);
-        var externalHostTeamConfigs = await _gameHost.StartGame(metaData, cancellationToken);
-        Log($"External host team configurations: {_json.Serialize(externalHostTeamConfigs)}", resources.Game.Id);
-        Log("External game host notified!", resources.Game.Id);
-
-        // then assign a headless server to each team
-        foreach (var teamId in resources.TeamChallenges.Keys)
-        {
-            var config = externalHostTeamConfigs.SingleOrDefault(t => t.TeamID == teamId);
-            if (config is null)
-                Log($"Team {teamId} wasn't assigned a headless URL by the external host (Gamebrain).", resources.Game.Id);
-            else
-            {
-                // TODO: prolly need to see about sending signalR notification
-                // but also record it in the DB in case someone cache clears or rejoins from a different machine/browser
-                await UpdateTeamExternalUrl(teamId, config.HeadlessServerUrl, cancellationToken);
-            }
-        }
-    }
-
     public Task UpdateTeamDeployStatus(IEnumerable<string> teamIds, ExternalGameDeployStatus status, CancellationToken cancellationToken)
         => _store
             .WithNoTracking<ExternalGameTeam>()
@@ -415,10 +384,4 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
 
         return ExternalGameDeployStatus.PartiallyDeployed;
     }
-
-    private Task UpdateTeamExternalUrl(string teamId, string url, CancellationToken cancellationToken)
-        => _store
-            .WithNoTracking<ExternalGameTeam>()
-            .Where(t => t.TeamId == teamId)
-            .ExecuteUpdateAsync(up => up.SetProperty(t => t.ExternalGameUrl, url), cancellationToken);
 }

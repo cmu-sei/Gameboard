@@ -25,7 +25,7 @@ internal class TestGamebrainService : IExternalGameHostService
         return await client.GetAsync("", cancellationToken);
     }
 
-    public Task<IEnumerable<ExternalGameClientTeamConfig>> StartGame(ExternalGameStartMetaData metaData, CancellationToken cancellationToken)
+    public Task<IEnumerable<ExternalGameClientTeamConfig>> StartGame(IEnumerable<string> teamIds, CalculatedSessionWindow sessionWindow, CancellationToken cancellationToken)
     {
         return Task.FromResult(Array.Empty<ExternalGameClientTeamConfig>().AsEnumerable());
     }

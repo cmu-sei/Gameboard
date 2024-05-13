@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Teams;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +17,6 @@ public interface ISyncStartGameService
 {
     Task<SyncStartState> GetSyncStartState(string gameId, IEnumerable<string> teamIds, CancellationToken cancellationToken);
     Task HandleSyncStartStateChanged(string gameId, CancellationToken cancellationToken);
-    Task<SyncStartGameStartedState> StartSynchronizedSession(IEnumerable<string> teamIds, CancellationToken cancellationToken);
     Task<SyncStartPlayerStatusUpdate> UpdatePlayerReadyState(string playerId, bool isReady, CancellationToken cancellationToken);
     Task UpdateTeamReadyState(string teamId, bool isReady, CancellationToken cancellationToken);
 }
@@ -29,7 +27,6 @@ internal class SyncStartGameService : ISyncStartGameService
     private readonly IAppUrlService _appUrlService;
     private readonly BackgroundAsyncTaskContext _backgroundTaskContext;
     private readonly IGameHubService _gameHubBus;
-    private readonly ILockService _lockService;
     private readonly ILogger<SyncStartGameService> _logger;
     private readonly IMediator _mediator;
     private readonly INowService _nowService;
@@ -44,7 +41,6 @@ internal class SyncStartGameService : ISyncStartGameService
         IAppUrlService appUrlService,
         BackgroundAsyncTaskContext backgroundTaskContext,
         IGameHubService gameHubBus,
-        ILockService lockService,
         ILogger<SyncStartGameService> logger,
         IMediator mediator,
         INowService nowService,
@@ -58,7 +54,6 @@ internal class SyncStartGameService : ISyncStartGameService
         _appUrlService = appUrlService;
         _backgroundTaskContext = backgroundTaskContext;
         _gameHubBus = gameHubBus;
-        _lockService = lockService;
         _logger = logger;
         _mediator = mediator;
         _nowService = nowService;
@@ -148,22 +143,22 @@ internal class SyncStartGameService : ISyncStartGameService
         // if we're not ready, 
         if (!validationResult.CanStart)
         {
-            _logger.LogInformation($"Can't start sync-start game {gameId}. {validationResult.Players.Count()} | {validationResult.AllPlayersReady} | {validationResult.HasStartedPlayers}");
+            _logger.LogInformation($"Can't start sync-start game {gameId}. {validationResult.Players.Count()} players | All ready?: {validationResult.AllPlayersReady} | Anyone started?: {validationResult.HasStartedPlayers}");
             return;
         }
 
-        // for now, we're assuming the "happy path" of sync start games being external games, but we'll separate them later
-        // NOTE: we also use a background service to kick this off, as it's a long-running task. Updates on the status
-        // of the game launch are reported via the SignalR "Game Hub".
+        // NOTE: we use a background service to kick this off, as it's a long-running task. Updates on the status
+        // of the game launch are reported via the "Game Hub" (SignalR websocket).
         await _gameHubBus.SendSyncStartGameStarting(validationResult.SyncStartState);
         _backgroundTaskContext.ActingUser = _actingUserService.Get();
         _backgroundTaskContext.AppBaseUrl = _appUrlService.GetBaseUrl();
 
         await _taskQueue.QueueBackgroundWorkItemAsync(async cancellationToken =>
         {
-            using var scope = _serviceScopeFactory.CreateScope();
-            var gameStartService = scope.ServiceProvider.GetRequiredService<IGameStartService>();
-            await gameStartService.Start(new GameStartRequest { TeamIds = validationResult.SyncStartState.Teams.Select(t => t.Id).Distinct() }, cancellationToken);
+            using var scope = _serviceScopeFactory.CreateAsyncScope();
+            var teamIds = validationResult.Players.Select(p => p.TeamId).ToArray();
+            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+            await mediator.Send(new StartTeamSessionsCommand(teamIds), cancellationToken);
         });
     }
 
@@ -171,58 +166,55 @@ internal class SyncStartGameService : ISyncStartGameService
     /// Initiates a synchronized game session for all players registered for the given game ID. Optionally offsets
     /// the session length by a countdown in order to give players a little warning that the session is beginning.
     /// </summary>
-    /// <param name="teamIds">The ids of the teams to sync and start. Will fail if not all from the same game.</param>
-    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns></returns>
-    public async Task<SyncStartGameStartedState> StartSynchronizedSession(IEnumerable<string> teamIds, CancellationToken cancellationToken)
-    {
+    // public async Task<SyncStartGameStartedState> StartSynchronizedSession(IEnumerable<string> teamIds, CancellationToken cancellationToken)
+    // {
+    //     _logger.LogInformation($"Starting a synchronized session for teams {string.Join(',', teamIds)}...");
+    //     var gameId = await _teamService.GetGameId(teamIds, cancellationToken);
+    //     _logger.LogInformation($"Teams are from game {gameId}.");
 
-        _logger.LogInformation($"Starting a synchronized session for teams {string.Join(',', teamIds)}...");
-        var gameId = await _teamService.GetGameId(teamIds, cancellationToken);
-        _logger.LogInformation($"Teams are from game {gameId}.");
+    //     using (await _lockService.GetSyncStartGameLock(gameId).LockAsync(cancellationToken))
+    //     {
+    //         _logger.LogInformation($"Acquired asynchronous lock for sync start game {gameId}.");
 
-        using (await _lockService.GetSyncStartGameLock(gameId).LockAsync(cancellationToken))
-        {
-            _logger.LogInformation($"Acquired asynchronous lock for sync start game {gameId}.");
+    //         // validate that the various conditions we need in order to sync start a game are available:
+    //         _logger.LogInformation($"Validating sync start for game {gameId}.");
+    //         var validateStartResult = await ValidateSyncStart(gameId, teamIds, cancellationToken);
 
-            // validate that the various conditions we need in order to sync start a game are available:
-            _logger.LogInformation($"Validating sync start for game {gameId}.");
-            var validateStartResult = await ValidateSyncStart(gameId, teamIds, cancellationToken);
+    //         if (!validateStartResult.CanStart)
+    //             throw new CantStartSynchronizedSession(gameId, validateStartResult);
 
-            if (!validateStartResult.CanStart)
-                throw new CantStartSynchronizedSession(gameId, validateStartResult);
+    //         // now that the quitters (and by quitters I mean attempts to start a sync game that is already started) 
+    //         // are gone, notify signalR that it's business time.
+    //         await _gameHubBus.SendSyncStartGameStarting(validateStartResult.SyncStartState);
 
-            // now that the quitters (and by quitters I mean attempts to start a sync game that is already started) 
-            // are gone, notify signalR that it's business time.
-            await _gameHubBus.SendSyncStartGameStarting(validateStartResult.SyncStartState);
+    //         // validation is all clear - compute new session times and update players, challenges, and gamespaces
+    //         _logger.LogInformation($"Starting synchronized session for game {gameId}...");
+    //         var startResult = await _mediator.Send(new StartTeamSessionsCommand(teamIds, true), cancellationToken);
+    //         var session = startResult.SessionWindow;
+    //         _logger.LogInformation($"Synchronized session started for game {gameId}.Start: {session.Start}. End: {startResult.SessionWindow.End}. Total duration: {(session.End - session.Start).TotalMinutes} minutes.");
 
-            // validation is all clear - compute new session times and update players, challenges, and gamespaces
-            _logger.LogInformation($"Starting synchronized session for game {gameId}...");
-            var startResult = await _mediator.Send(new StartTeamSessionsCommand(teamIds, true), cancellationToken);
-            var session = startResult.SessionWindow;
-            _logger.LogInformation($"Synchronized session started for game {gameId}.Start: {session.Start}. End: {startResult.SessionWindow.End}. Total duration: {(session.End - session.Start).TotalMinutes} minutes.");
+    //         // compose a return value summarizing the sync session
+    //         var startState = new SyncStartGameStartedState
+    //         {
+    //             Game = new SimpleEntity { Id = validateStartResult.Game.Id },
+    //             SessionBegin = startResult.SessionWindow.Start,
+    //             SessionEnd = startResult.SessionWindow.End,
+    //             Teams = validateStartResult.Players
+    //                 .GroupBy(p => p.TeamId)
+    //                 .ToDictionary(p => p.Key, p => p.Select(p => new SyncStartGameStartedStatePlayer
+    //                 {
+    //                     Id = p.Id,
+    //                     Name = p.Name,
+    //                     UserId = p.UserId
+    //                 }))
+    //         };
 
-            // compose a return value summarizing the sync session
-            var startState = new SyncStartGameStartedState
-            {
-                Game = new SimpleEntity { Id = validateStartResult.Game.Id },
-                SessionBegin = startResult.SessionWindow.Start,
-                SessionEnd = startResult.SessionWindow.End,
-                Teams = validateStartResult.Players
-                    .GroupBy(p => p.TeamId)
-                    .ToDictionary(p => p.Key, p => p.Select(p => new SyncStartGameStartedStatePlayer
-                    {
-                        Id = p.Id,
-                        Name = p.Name,
-                        UserId = p.UserId
-                    }))
-            };
-
-            await _gameHubBus.SendSyncStartGameStarted(startState);
-            _logger.LogInformation($"Synchronized session started for game {gameId}! ({teamIds.Count()} are playing.)");
-            return startState;
-        }
-    }
+    //         await _gameHubBus.SendSyncStartGameStarted(startState);
+    //         _logger.LogInformation($"Synchronized session started for game {gameId}! ({teamIds.Count()} are playing.)");
+    //         return startState;
+    //     }
+    // }
 
     public async Task<SyncStartPlayerStatusUpdate> UpdatePlayerReadyState(string playerId, bool isReady, CancellationToken cancellationToken)
     {
