@@ -131,11 +131,11 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
 
         if (request.ForceSynchronization)
         {
-            _logger.LogInformation($"Adjusting session window for {request.TeamIds.Count()} teams...");
+            _logger.LogInformation($"Synchronizing session window for {request.TeamIds.Count()} teams...");
             foreach (var teamId in request.TeamIds)
-            {
                 await _teamService.UpdateSessionStartAndEnd(teamId, sessionWindow.Start, sessionWindow.End, cancellationToken);
-            }
+
+            _logger.LogInformation($"Sessions synchronized.");
         }
 
         return new StartTeamSessionsResult

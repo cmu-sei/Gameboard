@@ -11,7 +11,6 @@ using Gameboard.Api.Structure;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using ServiceStack;
 
 namespace Gameboard.Api.Features.Games.Start;
 
@@ -68,6 +67,7 @@ internal class GameStartService : IGameStartService
         // throw on cancel request so we can clean up the debris
         cancellationToken.ThrowIfCancellationRequested();
 
+        Log($"Gathering data for game start (teams: {request.TeamIds.ToDelimited()})", "resolving game...");
         var gameId = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => request.TeamIds.Contains(p.TeamId))
@@ -77,6 +77,7 @@ internal class GameStartService : IGameStartService
         var gameModeService = await _gameModeServiceFactory.Get(gameId);
 
         // lock this down - only one start or predeploy per game Id
+        Log($"Acquiring start lock...", gameId);
         using var gameStartLock = await _lockService
             .GetExternalGameDeployLock(gameId)
             .LockAsync(cancellationToken);

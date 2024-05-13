@@ -13,4 +13,8 @@ public static class EnumerableExtensions
 
     public static IEnumerable<T> ToEnumerable<T>(this T thing)
         => new T[] { thing };
+
+    // for logging
+    public static string ToDelimited(this IEnumerable<string> enumerable, string delimiter = ", ")
+        => string.Join(delimiter, enumerable);
 }

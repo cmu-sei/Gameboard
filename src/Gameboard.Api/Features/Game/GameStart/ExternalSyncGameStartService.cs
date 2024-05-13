@@ -123,10 +123,7 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
     public async Task Start(GameModeStartRequest request, CancellationToken cancellationToken)
     {
-        var hubEvent = new GameHubEvent { GameId = request.Game.Id, TeamIds = request.TeamIds };
-
         Log($"Launching game {request.Game.Id} with {request.TeamIds} teams...", request.Game.Id);
-        await _gameHubBus.SendLaunchStart(hubEvent);
 
         // deploy challenges and gamespaces
         await _gameResourcesDeployment.DeployResources(request.TeamIds, cancellationToken);
@@ -139,7 +136,6 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
 
         // on we go
         Log("External game launched.", request.Game.Id);
-        await _gameHubBus.SendLaunchEnd(hubEvent);
     }
 
     public Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken)
@@ -173,15 +169,13 @@ internal class ExternalSyncGameStartService : IExternalSyncGameStartService
         throw new CantResolveGamePlayState(null, gameId);
     }
 
-    public async Task TryCleanUpFailedDeploy(GameModeStartRequest request, Exception exception, CancellationToken cancellationToken)
+    public Task TryCleanUpFailedDeploy(GameModeStartRequest request, Exception exception, CancellationToken cancellationToken)
     {
         // log the error
         var exceptionMessage = $"""EXTERNAL GAME LAUNCH FAILURE (game "{request.Game.Id}"): {exception.GetType().Name} :: {exception.Message}""";
         Log(exceptionMessage, request.Game.Id);
 
-        // notify the teams that something is amiss
-        await _gameHubBus.SendLaunchFailure(new GameHubEvent<string> { GameId = request.Game.Id, TeamIds = request.TeamIds, Data = exceptionMessage });
-
+        return Task.CompletedTask;
         // NOT CLEANING UP GAMESPACES FOR NOW - MAYBE WE CAN REUSE
         // clean up external team metadata (deploy statuses and external links like Unity headless URLs)
         // var cleanupTeamIds = request.Context.Teams.Select(t => t.Team.Id).ToArray();

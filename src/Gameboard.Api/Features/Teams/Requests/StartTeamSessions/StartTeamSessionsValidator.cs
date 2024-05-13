@@ -104,9 +104,6 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
             foreach (var teamId in unrepresentedTeamIds)
                 ctx.AddValidationException(new ResourceNotFound<Team>(teamId));
 
-            if (game.RequireSynchronizedStart)
-                throw new InvalidOperationException("Can't start a session for a sync start game with this command (use SyncStartService.StartSynchronizedSession).");
-
             var alreadyStartedPlayers = players.Where(p => p.SessionBegin.IsNotEmpty());
             foreach (var alreadyStartedPlayer in alreadyStartedPlayers)
                 ctx.AddValidationException(new SessionAlreadyStarted(alreadyStartedPlayer.Id, "Can't start a session for already started players."));
