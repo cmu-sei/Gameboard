@@ -1,74 +1,133 @@
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using MediatR;
+using Gameboard.Api.Features.GameEngine;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games;
 
 public interface IGameResourcesDeployStatusService
 {
-    Task<GameResourcesDeployStatus> GetStatus(string gameId);
+    Task<GameResourcesDeployStatus> GetStatus(string gameId, IEnumerable<string> teamIds, CancellationToken cancellationToken);
 }
 
-internal class GameResourcesDeployStatusService : IGameResourcesDeployStatusService,
-    INotificationHandler<ChallengeDeployedNotification>,
-    INotificationHandler<GameLaunchStartedNotification>,
-    INotificationHandler<GameResourcesDeployFailedNotification>
+internal class GameResourcesDeployStatusService : IGameResourcesDeployStatusService
 {
-    private static readonly ConcurrentDictionary<string, GameResourcesDeployStatus> _gameDeploys = new();
+    private readonly IJsonService _json;
     private readonly IStore _store;
 
-    public GameResourcesDeployStatusService(IStore store)
+    public GameResourcesDeployStatusService
+    (
+        IJsonService json,
+        IStore store
+    )
     {
+        _json = json;
         _store = store;
     }
 
-    public Task Handle(GameLaunchStartedNotification notification, CancellationToken cancellationToken)
-        => EnsureGameEntry(notification.GameId, cancellationToken);
-
-    public Task Handle(ChallengeDeployedNotification notification, CancellationToken cancellationToken)
+    public async Task<GameResourcesDeployStatus> GetStatus(string gameId, IEnumerable<string> teamIds, CancellationToken cancellationToken)
     {
+        var challenges = await _store
+            .WithNoTracking<Data.Challenge>()
+            .Where(c => c.GameId == gameId)
+            .Where(c => teamIds.Contains(c.TeamId))
+            .Select(c => new
+            {
+                c.Id,
+                c.Name,
+                c.GameEngineType,
+                c.HasDeployedGamespace,
+                c.Points,
+                c.Score,
+                c.SpecId,
+                c.State,
+                c.TeamId
+            })
+            .ToArrayAsync(cancellationToken);
 
-        var deploy = _gameDeploys[notification.GameId];
-        var challenges = deploy.Challenges.ToList();
-        var existingChallenge = challenges.SingleOrDefault(c => c.Id == notification.Challenge.Id);
-        if (existingChallenge is not null)
-            challenges.Add(notification.Challenge);
+        var players = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => teamIds.Contains(p.TeamId))
+            .Where(p => p.GameId == gameId)
+            .Select(p => new
+            {
+                p.Id,
+                p.ApprovedName,
+                p.GameId,
+                p.Role,
+                p.TeamId,
+                p.UserId
+            })
+            .ToArrayAsync(cancellationToken);
 
-        return Task.CompletedTask;
-    }
+        var game = await _store
+            .WithNoTracking<Data.Game>()
+            .Include(g => g.Specs)
+            .Select(g => new
+            {
+                g.Id,
+                g.Name,
+                g.Specs
+            })
+            .SingleAsync(g => g.Id == gameId, cancellationToken);
 
-    public Task Handle(GameResourcesDeployFailedNotification notification, CancellationToken cancellationToken)
-    {
-        var brokenDeployments = _gameDeploys.Values.Where(d => d.Teams.Any(t => notification.TeamIds.Contains(t.Id)));
-        foreach (var deployment in brokenDeployments)
-            deployment.Error = notification.Message;
-
-        return Task.CompletedTask;
-    }
-
-    public Task<GameResourcesDeployStatus> GetStatus(string gameId)
-    {
-        if (!_gameDeploys.TryGetValue(gameId, out var retVal))
-            return Task.FromResult<GameResourcesDeployStatus>(null);
-
-        return Task.FromResult(retVal);
-    }
-
-    private async Task EnsureGameEntry(string gameId, CancellationToken cancellationToken)
-    {
-        if (!_gameDeploys.TryGetValue(gameId, out var gameDeployStatus))
+        return new GameResourcesDeployStatus
         {
-            var game = await _store
-                    .WithNoTracking<Data.Game>()
-                    .Select(g => new SimpleEntity { Id = g.Id, Name = g.Name })
-                    .SingleAsync(g => g.Id == gameId, cancellationToken);
+            Game = new SimpleEntity { Id = game.Id, Name = game.Name },
+            ChallengeSpecs = game.Specs.Select(s => new SimpleEntity { Id = s.Id, Name = s.Name }),
+            Challenges = challenges.Select(c => new GameResourcesDeployChallenge
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Engine = c.GameEngineType,
+                HasGamespace = c.HasDeployedGamespace,
+                IsFullySolved = c.Score >= c.Points,
+                SpecId = c.SpecId,
+                State = _json.Deserialize<GameEngineGameState>(c.State),
+                TeamId = c.TeamId
+            }),
+            Teams = players
+                .GroupBy(p => p.TeamId)
+                .Select(gr =>
+                {
+                    var teamPlayers = gr.Select(p => new
+                    {
+                        p.Id,
+                        Name = p.ApprovedName,
+                        IsCaptain = p.Role == PlayerRole.Manager,
+                        p.UserId
+                    });
 
-            _gameDeploys.TryAdd(game.Id, new GameResourcesDeployStatus { Game = game });
-        }
+                    var captain = teamPlayers.Single(p => p.IsCaptain);
+
+                    return new GameResourcesDeployTeam
+                    {
+                        Id = gr.Key,
+                        Name = captain.Name,
+                        Captain = new GameResourcesDeployPlayer
+                        {
+                            Id = captain.Id,
+                            Name = captain.Name,
+                            UserId = captain.UserId
+                        },
+                        Players = teamPlayers.Select(p => new GameResourcesDeployPlayer
+                        {
+                            Id = p.Id,
+                            Name = p.Name,
+                            UserId = p.UserId
+                        })
+                    };
+                }),
+            FailedGamespaceDeployChallengeIds = challenges
+                .Where(c => !c.HasDeployedGamespace && c.Points < c.Score)
+                .Select(c => c.Id)
+                .ToArray()
+        };
     }
 }

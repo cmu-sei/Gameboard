@@ -35,7 +35,7 @@ public interface IGameHubEvent
     Task ChallengesDeployStart(GameHubEvent<GameResourcesDeployStatus> ev);
     Task ChallengesDeployProgressChange(GameHubEvent<GameResourcesDeployStatus> ev);
     Task ChallengesDeployEnd(GameHubEvent<GameResourcesDeployStatus> ev);
-    Task LaunchStart(GameHubEvent<GameResourcesDeployStatus> ev);
+    Task LaunchStart(GameHubEvent ev);
     Task LaunchEnd(GameHubEvent<GameResourcesDeployStatus> ev);
     Task LaunchFailure(GameHubEvent<GameResourcesDeployStatus> ev);
     Task GamespacesDeployStart(GameHubEvent<GameResourcesDeployStatus> ev);

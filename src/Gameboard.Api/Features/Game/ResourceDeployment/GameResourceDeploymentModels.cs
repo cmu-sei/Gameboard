@@ -19,7 +19,6 @@ public sealed class GameResourcesDeployChallenge
     public required string Name { get; set; }
     public required GameEngineType Engine { get; set; }
     public required bool HasGamespace { get; set; } = false;
-    public required bool IsActive { get; set; }
     public required bool IsFullySolved { get; set; }
     public required string SpecId { get; set; }
     public required GameEngineGameState State { get; set; }
@@ -52,10 +51,10 @@ public sealed class GameResourcesDeployResults
 public sealed class GameResourcesDeployStatus
 {
     public required SimpleEntity Game { get; set; }
-    public IEnumerable<SimpleEntity> ChallengeSpecs { get; set; } = new List<SimpleEntity>();
-    public IEnumerable<GameResourcesDeployChallenge> Challenges { get; set; } = new List<GameResourcesDeployChallenge>();
-    public IEnumerable<GameResourcesDeployTeam> Teams { get; set; } = new List<GameResourcesDeployTeam>();
-    public IEnumerable<string> FailedGamespaceDeployChallengeIds { get; set; } = new List<string>();
+    public required IEnumerable<SimpleEntity> ChallengeSpecs { get; set; } = new List<SimpleEntity>();
+    public required IEnumerable<GameResourcesDeployChallenge> Challenges { get; set; } = new List<GameResourcesDeployChallenge>();
+    public required IEnumerable<GameResourcesDeployTeam> Teams { get; set; } = new List<GameResourcesDeployTeam>();
+    public required IEnumerable<string> FailedGamespaceDeployChallengeIds { get; set; } = new List<string>();
     public string Error { get; set; }
 }
 
@@ -74,10 +73,13 @@ public sealed class GameResourcesDeployTeam
     public required IEnumerable<GameResourcesDeployPlayer> Players { get; set; } = new List<GameResourcesDeployPlayer>();
 }
 
-
 public sealed record GameResourcesDeployStartNotification(IEnumerable<string> TeamIds) : INotification;
 public sealed record GameResourcesDeployFailedNotification(string GameId, IEnumerable<string> TeamIds, string Message) : INotification;
-public sealed record GameResourcesDeployEndNotification(IEnumerable<string> TeamIds) : INotification;
+public sealed record GameResourcesDeployEndNotification(string GameId, IEnumerable<string> TeamIds) : INotification;
 
-public sealed record ChallengeDeployedNotification(GameResourcesDeployChallenge Challenge, string GameId) : INotification;
-public sealed record ChallengeGamespaceDeployedNotification(string ChallengeId) : INotification;
+public sealed record ChallengeDeployStarted(string GameId, IEnumerable<string> TeamIds) : INotification;
+public sealed record ChallengeDeployedNotification(string GameId, IEnumerable<string> TeamIds, GameResourcesDeployChallenge Challenge) : INotification;
+public sealed record ChallengeDeployEnded(string GameId, IEnumerable<string> TeamIds) : INotification;
+public sealed record GamespaceDeployEnded(string GameId, IEnumerable<string> TeamIds) : INotification;
+public sealed record GamespaceDeployProgressChange(string GameId, IEnumerable<string> TeamIds) : INotification;
+public sealed record GamespaceDeployStarted(string GameId, IEnumerable<string> TeamIds) : INotification;
