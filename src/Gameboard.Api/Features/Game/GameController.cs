@@ -89,6 +89,11 @@ namespace Gameboard.Api.Controllers
             return await GameService.SessionForecast(id);
         }
 
+        [HttpPost("api/game/{gameId}/resources")]
+        [Authorize]
+        public Task DeployResources([FromRoute] string gameId, [FromBody] IEnumerable<string> teamIds)
+            => _mediator.Send(new DeployGameResourcesCommand(gameId, teamIds));
+
         /// <summary>
         /// Change game
         /// </summary>
