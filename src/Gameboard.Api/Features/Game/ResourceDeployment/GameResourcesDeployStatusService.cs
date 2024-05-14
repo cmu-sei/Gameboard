@@ -6,6 +6,7 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Gameboard.Api.Features.Games;
 
@@ -17,15 +18,18 @@ public interface IGameResourcesDeployStatusService
 internal class GameResourcesDeployStatusService : IGameResourcesDeployStatusService
 {
     private readonly IJsonService _json;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IStore _store;
 
     public GameResourcesDeployStatusService
     (
         IJsonService json,
+        IServiceScopeFactory serviceScopeFactory,
         IStore store
     )
     {
         _json = json;
+        _serviceScopeFactory = serviceScopeFactory;
         _store = store;
     }
 
