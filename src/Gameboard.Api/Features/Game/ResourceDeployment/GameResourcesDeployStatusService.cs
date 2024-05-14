@@ -17,26 +17,30 @@ public interface IGameResourcesDeployStatusService
 
 internal class GameResourcesDeployStatusService : IGameResourcesDeployStatusService
 {
+    private readonly GameboardDbContext _dbContext;
     private readonly IJsonService _json;
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly IStore _store;
+    // private readonly IStore _store;
 
     public GameResourcesDeployStatusService
     (
         IJsonService json,
-        IServiceScopeFactory serviceScopeFactory,
-        IStore store
+        IServiceScopeFactory serviceScopeFactory
+    // IStore store
     )
     {
         _json = json;
         _serviceScopeFactory = serviceScopeFactory;
-        _store = store;
+
+        using var scope = _serviceScopeFactory.CreateAsyncScope();
+        _dbContext = scope.ServiceProvider.GetRequiredService<GameboardDbContext>();
     }
 
     public async Task<GameResourcesDeployStatus> GetStatus(string gameId, IEnumerable<string> teamIds, CancellationToken cancellationToken)
     {
-        var challenges = await _store
-            .WithNoTracking<Data.Challenge>()
+        var challenges = await _dbContext
+            .Challenges
+            .AsNoTracking()
             .Where(c => c.GameId == gameId)
             .Where(c => teamIds.Contains(c.TeamId))
             .Select(c => new
@@ -53,8 +57,9 @@ internal class GameResourcesDeployStatusService : IGameResourcesDeployStatusServ
             })
             .ToArrayAsync(cancellationToken);
 
-        var players = await _store
-            .WithNoTracking<Data.Player>()
+        var players = await _dbContext
+            .Players
+            .AsNoTracking()
             .Where(p => teamIds.Contains(p.TeamId))
             .Where(p => p.GameId == gameId)
             .Select(p => new
@@ -68,8 +73,9 @@ internal class GameResourcesDeployStatusService : IGameResourcesDeployStatusServ
             })
             .ToArrayAsync(cancellationToken);
 
-        var game = await _store
-            .WithNoTracking<Data.Game>()
+        var game = await _dbContext
+            .Games
+            .AsNoTracking()
             .Include(g => g.Specs)
             .Select(g => new
             {
