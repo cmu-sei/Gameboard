@@ -17,6 +17,8 @@ public interface IGameHubService :
     INotificationHandler<AppStartupNotification>,
     INotificationHandler<GameCacheInvalidateNotification>,
     INotificationHandler<GameEnrolledPlayersChangeNotification>,
+    INotificationHandler<GameLaunchEndedNotification>,
+    INotificationHandler<GameLaunchStartedNotification>,
     INotificationHandler<GameLaunchProgressChangedNotification>
 {
     // invoke functions on clients
@@ -205,8 +207,14 @@ internal class GameHubService : IGameHubService, IGameboardHubService
     public Task Handle(GameEnrolledPlayersChangeNotification notification, CancellationToken cancellationToken)
         => UpdateGameAndTeamUserIdsMaps(notification.Context.GameId);
 
+    public Task Handle(GameLaunchEndedNotification notification, CancellationToken cancellationToken)
+        => SendLaunchEnded(new GameHubEvent { GameId = notification.GameId, TeamIds = notification.TeamIds });
+
     public Task Handle(GameLaunchProgressChangedNotification notification, CancellationToken cancellationToken)
         => SendLaunchProgressChanged(new GameHubEvent { GameId = notification.GameId, TeamIds = notification.TeamIds });
+
+    public Task Handle(GameLaunchStartedNotification notification, CancellationToken cancellationToken)
+        => SendLaunchStarted(new GameHubEvent { GameId = notification.GameId, TeamIds = notification.TeamIds });
 
     private IEnumerable<string> GetGameUserIds(string gameId)
     {
