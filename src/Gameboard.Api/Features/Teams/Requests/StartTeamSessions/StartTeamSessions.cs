@@ -22,7 +22,6 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
 {
     private readonly User _actingUser;
     private readonly IExternalGameHostService _externalGameHostService;
-    private readonly IGameHubService _gameHubService;
     private readonly IGameModeServiceFactory _gameModeServiceFactory;
     private readonly IGameResourcesDeployService _gameResourcesDeployService;
     private readonly IGameService _gameService;
@@ -40,7 +39,6 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
     (
         IActingUserService actingUserService,
         IExternalGameHostService externalGameHostService,
-        IGameHubService gameHubService,
         IGameModeServiceFactory gameModeServiceFactory,
         IGameResourcesDeployService gameResourcesDeploymentService,
         IGameService gameService,
@@ -57,7 +55,6 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
     {
         _actingUser = actingUserService.Get();
         _externalGameHostService = externalGameHostService;
-        _gameHubService = gameHubService;
         _gameModeServiceFactory = gameModeServiceFactory;
         _gameResourcesDeployService = gameResourcesDeploymentService;
         _mediator = mediator;
@@ -210,8 +207,8 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
             }
 
             _logger.LogInformation($"All teams reset for game {startRequest.Game.Id}.");
-        }
 
-        return null;
+            throw;
+        }
     }
 }

@@ -215,6 +215,9 @@ public class PlayerService
 
     public async Task<Player> StartSession(SessionStartRequest model, User actor, bool sudo)
     {
+        if (model.PlayerId.IsEmpty())
+            throw new MissingRequiredInput<string>(nameof(model.PlayerId), model.PlayerId);
+
         var startingPlayer = await _store
             .WithNoTracking<Data.Player>()
             .SingleOrDefaultAsync(p => p.Id == model.PlayerId);

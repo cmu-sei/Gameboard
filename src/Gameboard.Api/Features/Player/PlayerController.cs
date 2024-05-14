@@ -91,7 +91,8 @@ namespace Gameboard.Api.Controllers
         {
             await Validate(model);
 
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsRegistrar,
                 () => IsSelf(model.Id).Result
             );
@@ -102,16 +103,15 @@ namespace Gameboard.Api.Controllers
 
         [HttpPut("api/player/{playerId}/ready")]
         [Authorize]
-        public async Task UpdatePlayerReady([FromRoute] string playerId, [FromBody] PlayerReadyUpdate readyUpdate)
-        {
-            await _mediator.Send(new UpdatePlayerReadyStateCommand(playerId, readyUpdate.IsReady, Actor));
-        }
+        public Task UpdatePlayerReady([FromRoute] string playerId, [FromBody] PlayerReadyUpdate readyUpdate)
+            => _mediator.Send(new UpdatePlayerReadyStateCommand(playerId, readyUpdate.IsReady, Actor));
 
         [HttpPut("api/player/{playerId}/start")]
         [Authorize]
         public async Task<Player> Start(string playerId)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsRegistrar,
                 () => IsSelf(playerId).Result
             );
