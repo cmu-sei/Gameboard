@@ -30,14 +30,13 @@ public interface IExternalGameService
     Task UpdateTeamDeployStatus(IEnumerable<string> teamIds, ExternalGameDeployStatus status, CancellationToken cancellationToken);
 }
 
-internal class ExternalGameService : IExternalGameService, INotificationHandler<GameResourcesDeployStartNotification>, INotificationHandler<GameResourcesDeployEndNotification>
+internal class ExternalGameService : IExternalGameService,
+    INotificationHandler<GameResourcesDeployStartNotification>,
+    INotificationHandler<GameResourcesDeployEndNotification>
 {
     private readonly IGameEngineService _gameEngine;
-    private readonly IExternalGameHostService _gameHost;
-    private readonly IGameResourcesDeploymentService _gameResources;
     private readonly IGuidService _guids;
     private readonly IJsonService _json;
-    private readonly IMediator _mediator;
     private readonly ILogger<ExternalGameService> _logger;
     private readonly INowService _now;
     private readonly IStore _store;
@@ -47,12 +46,9 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
     public ExternalGameService
     (
         IGameEngineService gameEngine,
-        IExternalGameHostService gameHost,
-        IGameResourcesDeploymentService gameResources,
         IGuidService guids,
         IJsonService json,
         ILogger<ExternalGameService> logger,
-        IMediator mediator,
         INowService now,
         IStore store,
         ISyncStartGameService syncStartGameService,
@@ -60,12 +56,9 @@ internal class ExternalGameService : IExternalGameService, INotificationHandler<
     )
     {
         _gameEngine = gameEngine;
-        _gameHost = gameHost;
-        _gameResources = gameResources;
         _guids = guids;
         _json = json;
         _logger = logger;
-        _mediator = mediator;
         _now = now;
         _store = store;
         _syncStartGameService = syncStartGameService;

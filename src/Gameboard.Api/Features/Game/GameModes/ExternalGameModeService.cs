@@ -18,7 +18,7 @@ internal class ExternalGameModeService : IExternalGameModeService
     (
         IExternalGameService externalGameService,
         ILogger<ExternalGameModeService> logger,
-        IGameResourcesDeploymentService gameResourcesDeploy,
+        IGameResourcesDeployService gameResourcesDeploy,
         ITeamService teamService
     )
     {

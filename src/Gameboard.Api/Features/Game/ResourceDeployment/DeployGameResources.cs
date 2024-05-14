@@ -77,7 +77,7 @@ internal class DeployGameResourcesHandler : IRequestHandler<DeployGameResourcesC
             async cancellationToken =>
             {
                 using var scope = _serviceScopeFactory.CreateScope();
-                var resourcesDeploymentService = scope.ServiceProvider.GetRequiredService<IGameResourcesDeploymentService>();
+                var resourcesDeploymentService = scope.ServiceProvider.GetRequiredService<IGameResourcesDeployService>();
 
                 await resourcesDeploymentService.DeployResources(finalTeamIds, cancellationToken);
             }

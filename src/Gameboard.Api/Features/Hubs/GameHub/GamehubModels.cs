@@ -14,22 +14,6 @@ public class GameHubEvent<TData> : GameHubEvent where TData : class
     public required TData Data { get; set; }
 }
 
-public enum GameHubEventType
-{
-    ChallengesDeployStart,
-    ChallengesDeployProgressChange,
-    ChallengesDeployEnd,
-    GamespacesDeployStart,
-    GamespacesDeployProgressChange,
-    GamespacesDeployEnd,
-    LaunchStart,
-    LaunchEnd,
-    LaunchFailure,
-    SyncStartGameStarted,
-    SyncStartGameStarting,
-    SyncStartGameStateChanged
-}
-
 public interface IGameHubEvent
 {
     Task ChallengesDeployStart(GameHubEvent<GameResourcesDeployStatus> ev);
@@ -38,6 +22,7 @@ public interface IGameHubEvent
     Task LaunchStart(GameHubEvent ev);
     Task LaunchEnd(GameHubEvent<GameResourcesDeployStatus> ev);
     Task LaunchFailure(GameHubEvent<GameResourcesDeployStatus> ev);
+    Task LaunchProgressChanged(GameHubEvent<GameResourcesDeployStatus> ev);
     Task GamespacesDeployStart(GameHubEvent<GameResourcesDeployStatus> ev);
     Task GamespacesDeployProgressChange(GameHubEvent<GameResourcesDeployStatus> ev);
     Task GamespacesDeployEnd(GameHubEvent<GameResourcesDeployStatus> ev);

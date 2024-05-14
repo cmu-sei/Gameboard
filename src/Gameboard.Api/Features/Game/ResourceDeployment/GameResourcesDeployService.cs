@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
-using Azure.Core;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
@@ -17,13 +16,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Games;
 
-public interface IGameResourcesDeploymentService
+public interface IGameResourcesDeployService
 {
     public Task<GameResourcesDeployResults> DeployResources(string teamId, CancellationToken cancellationToken);
     public Task<GameResourcesDeployResults> DeployResources(IEnumerable<string> teamIds, CancellationToken cancellationToken);
 }
 
-internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
+internal class GameResourcesDeployService : IGameResourcesDeployService
 {
     private readonly IBatchingService _batchingService;
     private readonly ChallengeService _challengeService;
@@ -32,13 +31,13 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
     private readonly IChallengeGraderUrlService _graderUrlService;
     private readonly IJsonService _jsonService;
     private readonly ILockService _lockService;
-    private readonly ILogger<GameResourcesDeploymentService> _logger;
+    private readonly ILogger<GameResourcesDeployService> _logger;
     private readonly IMapper _mapper;
     private readonly IMediator _mediator;
     private readonly IStore _store;
     private readonly ITeamService _teamService;
 
-    public GameResourcesDeploymentService
+    public GameResourcesDeployService
     (
         IBatchingService batchingService,
         ChallengeService challengeService,
@@ -48,7 +47,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
         IJsonService jsonService,
         ILockService lockService,
         IMediator mediator,
-        ILogger<GameResourcesDeploymentService> logger,
+        ILogger<GameResourcesDeployService> logger,
         IMapper mapper,
         IStore store,
         ITeamService teamService
@@ -107,7 +106,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
             .ToArray();
 
         if (challengeIdsWithNoGamespace.Any())
-            Log($"WARNING: Some deployed challenges have no gamespaces: {string.Join(",", challengeIdsWithNoGamespace)}", request.GameId);
+            Log($"WARNING: Some deployed challenges have no gamespaces: {challengeIdsWithNoGamespace.ToDelimited()}", request.GameId);
 
         if (gamespaceDeployResults.FailedGamespaceDeployIds.Any())
         {
@@ -202,6 +201,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
                 teamDeployedChallenges[teamId].Add(challengeDeployedUpdate);
 
                 await _mediator.Publish(new ChallengeDeployedNotification(request.GameId, request.TeamIds, challengeDeployedUpdate), cancellationToken);
+                await _mediator.Publish(new GameLaunchProgressChangedNotification(request.GameId, request.TeamIds), cancellationToken);
             }
         }
 
@@ -271,6 +271,7 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
 
                         Log($"Challenge {gamespace.Id} has {gamespace.VmUris.Count()} VM(s): {challengeState.Vms.Select(vm => vm.Name).ToDelimited()}", gameId);
                         await _mediator.Publish(new GamespaceDeployProgressChange(gameId, teamIds), cancellationToken);
+                        await _mediator.Publish(new GameLaunchProgressChangedNotification(gameId, teamIds), cancellationToken);
 
                         // return the engine state of the challenge
                         return challengeState;
@@ -334,7 +335,9 @@ internal class GameResourcesDeploymentService : IGameResourcesDeploymentService
 
         Log($"Finished deploying gamespaces: {totalGamespaceCount} gamespaces ({deployedGamespaceCount} ready), {totalVmCount} visible VMs.", gameId);
         Log($"Undeployed/unstarted gamespaces: {failedDeployGamespaceIds.ToDelimited()}", gameId);
+
         await _mediator.Publish(new GamespaceDeployEnded(gameId, teamIds), cancellationToken);
+        await _mediator.Publish(new GameLaunchProgressChangedNotification(gameId, teamIds), cancellationToken);
 
         return new GameResourcesDeployGamespacesResult
         {

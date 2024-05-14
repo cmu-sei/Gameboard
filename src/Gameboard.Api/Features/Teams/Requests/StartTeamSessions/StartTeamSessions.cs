@@ -24,7 +24,7 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
     private readonly IExternalGameHostService _externalGameHostService;
     private readonly IGameHubService _gameHubService;
     private readonly IGameModeServiceFactory _gameModeServiceFactory;
-    private readonly IGameResourcesDeploymentService _gameResourcesDeployService;
+    private readonly IGameResourcesDeployService _gameResourcesDeployService;
     private readonly IGameService _gameService;
     private readonly IInternalHubBus _internalHubBus;
     private readonly ILockService _lockService;
@@ -42,7 +42,7 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
         IExternalGameHostService externalGameHostService,
         IGameHubService gameHubService,
         IGameModeServiceFactory gameModeServiceFactory,
-        IGameResourcesDeploymentService gameResourcesDeploymentService,
+        IGameResourcesDeployService gameResourcesDeploymentService,
         IGameService gameService,
         IInternalHubBus internalHubBus,
         ILockService lockService,
@@ -184,7 +184,7 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
                 await _internalHubBus.SendTeamSessionStarted(team, gameId, _actingUser);
             }
 
-            await _mediator.Publish(new GameLaunchEndedNotification(gameId, request.TeamIds));
+            await _mediator.Publish(new GameLaunchEndedNotification(gameId, request.TeamIds), cancellationToken);
             return new StartTeamSessionsResult
             {
                 SessionWindow = sessionWindow,

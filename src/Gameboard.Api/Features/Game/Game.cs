@@ -139,6 +139,3 @@ public class GameGroup
     public int Month { get; set; }
     public Game[] Games { get; set; }
 }
-
-public sealed record GameLaunchEndedNotification(string GameId, IEnumerable<string> TeamIds) : INotification;
-public sealed record GameLaunchStartedNotification(string GameId, IEnumerable<string> TeamIds) : INotification;

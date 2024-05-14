@@ -23,7 +23,7 @@ internal class ExternalSyncGameModeService : IExternalSyncGameModeService
     private readonly IExternalGameHostService _externalGameHostService;
     private readonly IGameEngineService _gameEngineService;
     private readonly IGameHubService _gameHubBus;
-    private readonly IGameResourcesDeploymentService _gameResourcesDeployment;
+    private readonly IGameResourcesDeployService _gameResourcesDeployment;
     private readonly IJsonService _jsonService;
     private readonly ILogger<ExternalSyncGameModeService> _logger;
     private readonly IMapper _mapper;
@@ -40,7 +40,7 @@ internal class ExternalSyncGameModeService : IExternalSyncGameModeService
         IExternalGameHostService externalGameHostService,
         IGameEngineService gameEngineService,
         IGameHubService gameHubBus,
-        IGameResourcesDeploymentService gameResourcesDeployment,
+        IGameResourcesDeployService gameResourcesDeployment,
         IJsonService jsonService,
         ILogger<ExternalSyncGameModeService> logger,
         IMapper mapper,

@@ -16,7 +16,8 @@ namespace Gameboard.Api.Features.Games;
 public interface IGameHubService :
     INotificationHandler<AppStartupNotification>,
     INotificationHandler<GameCacheInvalidateNotification>,
-    INotificationHandler<GameEnrolledPlayersChangeNotification>
+    INotificationHandler<GameEnrolledPlayersChangeNotification>,
+    INotificationHandler<GameLaunchProgressChangedNotification>
 {
     // invoke functions on clients
     Task SendChallengesDeployStart(GameHubEvent ev);
@@ -27,6 +28,7 @@ public interface IGameHubService :
     Task SendGamespacesDeployEnd(GameHubEvent ev);
     Task SendLaunchEnded(GameHubEvent ev);
     Task SendLaunchStarted(GameHubEvent ev);
+    Task SendLaunchProgressChanged(GameHubEvent ev);
     Task SendSyncStartGameStateChanged(SyncStartState state);
     Task SendSyncStartGameStarted(SyncStartGameStartedState state);
     Task SendSyncStartGameStarting(SyncStartState state);
@@ -65,6 +67,19 @@ internal class GameHubService : IGameHubService, IGameboardHubService
             .Clients
             .Users(GetTeamsUserIds(ev.TeamIds))
             .LaunchEnd(new GameHubEvent<GameResourcesDeployStatus>
+            {
+                GameId = ev.GameId,
+                TeamIds = ev.TeamIds,
+                Data = await _resourcesDeployStatus.GetStatus(ev.GameId, ev.TeamIds, CancellationToken.None)
+            });
+    }
+
+    public async Task SendLaunchProgressChanged(GameHubEvent ev)
+    {
+        await _hubContext
+            .Clients
+            .Users(GetTeamsUserIds(ev.TeamIds))
+            .LaunchProgressChanged(new GameHubEvent<GameResourcesDeployStatus>
             {
                 GameId = ev.GameId,
                 TeamIds = ev.TeamIds,
@@ -189,6 +204,9 @@ internal class GameHubService : IGameHubService, IGameboardHubService
 
     public Task Handle(GameEnrolledPlayersChangeNotification notification, CancellationToken cancellationToken)
         => UpdateGameAndTeamUserIdsMaps(notification.Context.GameId);
+
+    public Task Handle(GameLaunchProgressChangedNotification notification, CancellationToken cancellationToken)
+        => SendLaunchProgressChanged(new GameHubEvent { GameId = notification.GameId, TeamIds = notification.TeamIds });
 
     private IEnumerable<string> GetGameUserIds(string gameId)
     {
