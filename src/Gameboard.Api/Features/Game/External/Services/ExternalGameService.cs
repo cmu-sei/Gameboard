@@ -267,7 +267,7 @@ internal class ExternalGameService : IExternalGameService,
 
                         id = challenge?.Id;
                         challengeCreated = challenge is not null;
-                        gamespaceDeployed = challenge is not null & challenge.HasDeployedGamespace;
+                        gamespaceDeployed = challenge?.HasDeployedGamespace is not null && challenge.HasDeployedGamespace;
                         startTime = challenge?.StartTime;
                         endTime = challenge?.EndTime;
                     }
