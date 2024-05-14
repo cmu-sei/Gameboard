@@ -95,7 +95,7 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
             .GroupBy(p => p.TeamId)
             .ToDictionaryAsync(gr => gr.Key, gr => gr.ToArray(), cancellationToken);
 
-        var gameId = teams.SelectMany(kv => kv.Value.Select(p => p.GameId)).Single();
+        var gameId = teams.SelectMany(kv => kv.Value.Select(p => p.GameId)).Distinct().Single();
         var gameData = await _store
             .WithNoTracking<Data.Game>()
             .Where(g => g.Id == gameId)
