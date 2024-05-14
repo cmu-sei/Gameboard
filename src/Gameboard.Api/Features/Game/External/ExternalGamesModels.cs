@@ -3,6 +3,13 @@ using System.Collections.Generic;
 
 namespace Gameboard.Api.Features.Games.External;
 
+public sealed class GetExternalGameHostClientInfo
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required string ClientUrl { get; set; }
+}
+
 public sealed class GetExternalGameHostsResponseHost
 {
     public required string Id { get; set; }

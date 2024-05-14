@@ -28,6 +28,10 @@ public class ExternalGamesController : ControllerBase
     public Task<GetExternalGameHostsResponseHost> GetHost([FromRoute] string hostId)
         => _mediator.Send(new GetExternalGameHostQuery(hostId));
 
+    [HttpGet("hosts/{hostId}/client")]
+    public Task<GetExternalGameHostClientInfo> GetHostClientInfo([FromRoute] string hostId)
+        => _mediator.Send(new GetExternalGameHostClientInfoQuery(hostId));
+
     [HttpGet("hosts")]
     public Task<GetExternalGameHostsResponse> GetHosts()
         => _mediator.Send(new GetExternalGameHostsQuery());
