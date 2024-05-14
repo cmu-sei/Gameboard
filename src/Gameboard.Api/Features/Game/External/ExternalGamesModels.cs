@@ -33,6 +33,7 @@ public sealed class ExternalGameState
     public required DateTimeOffset? StartTime { get; set; }
     public required DateTimeOffset? EndTime { get; set; }
     public required bool HasNonStandardSessionWindow { get; set; }
+    public required bool IsSyncStart { get; set; }
     public required IEnumerable<ExternalGameStateTeam> Teams { get; set; }
 }
 

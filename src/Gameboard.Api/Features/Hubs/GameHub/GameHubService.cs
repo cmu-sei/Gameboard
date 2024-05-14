@@ -18,6 +18,7 @@ public interface IGameHubService :
     INotificationHandler<GameCacheInvalidateNotification>,
     INotificationHandler<GameEnrolledPlayersChangeNotification>,
     INotificationHandler<GameLaunchEndedNotification>,
+    INotificationHandler<GameLaunchFailureNotification>,
     INotificationHandler<GameLaunchStartedNotification>,
     INotificationHandler<GameLaunchProgressChangedNotification>
 {
@@ -64,7 +65,6 @@ internal class GameHubService : IGameHubService, IGameboardHubService
 
     public async Task SendLaunchEnded(GameHubEvent ev)
     {
-
         await _hubContext
             .Clients
             .Users(GetTeamsUserIds(ev.TeamIds))
@@ -73,6 +73,19 @@ internal class GameHubService : IGameHubService, IGameboardHubService
                 GameId = ev.GameId,
                 TeamIds = ev.TeamIds,
                 Data = await _resourcesDeployStatus.GetStatus(ev.GameId, ev.TeamIds, CancellationToken.None)
+            });
+    }
+
+    public async Task SendLaunchFailure(GameHubEvent ev, string message)
+    {
+        await _hubContext
+            .Clients
+            .Users(GetTeamsUserIds(ev.TeamIds))
+            .LaunchFailure(new GameHubEvent<GameHubLaunchFailureEventData>
+            {
+                GameId = ev.GameId,
+                TeamIds = ev.TeamIds,
+                Data = new GameHubLaunchFailureEventData { Message = message }
             });
     }
 
@@ -209,6 +222,9 @@ internal class GameHubService : IGameHubService, IGameboardHubService
 
     public Task Handle(GameLaunchEndedNotification notification, CancellationToken cancellationToken)
         => SendLaunchEnded(new GameHubEvent { GameId = notification.GameId, TeamIds = notification.TeamIds });
+
+    public Task Handle(GameLaunchFailureNotification notification, CancellationToken cancellationToken)
+        => SendLaunchFailure(new GameHubEvent { GameId = notification.GameId, TeamIds = notification.TeamIds }, notification.Message);
 
     public Task Handle(GameLaunchProgressChangedNotification notification, CancellationToken cancellationToken)
         => SendLaunchProgressChanged(new GameHubEvent { GameId = notification.GameId, TeamIds = notification.TeamIds });

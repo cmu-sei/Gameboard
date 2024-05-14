@@ -18,7 +18,6 @@ internal class ExternalGameModeService : IExternalGameModeService
     (
         IExternalGameService externalGameService,
         ILogger<ExternalGameModeService> logger,
-        IGameResourcesDeployService gameResourcesDeploy,
         ITeamService teamService
     )
     {
@@ -76,7 +75,7 @@ internal class ExternalGameModeService : IExternalGameModeService
 
     private void Log(string message, string gameId)
     {
-        var prefix = $"[EXTERNAL / SYNC-START GAME {gameId}] - ";
+        var prefix = $"[EXTERNAL GAME {gameId}] - ";
         _logger.LogInformation(message: $"{prefix} {message}");
     }
 }

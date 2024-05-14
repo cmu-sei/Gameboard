@@ -192,13 +192,13 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
         {
             var startRequest = new GameModeStartRequest { Game = new SimpleEntity { Id = gameId, Name = gameData.Name }, TeamIds = request.TeamIds };
             _logger.LogError(LogEventId.GameStart_Failed, exception: ex, message: ex.Message);
-            await _mediator.Publish(new GameResourcesDeployFailedNotification(gameId, request.TeamIds, ex.Message), cancellationToken);
+            await _mediator.Publish(new GameLaunchFailureNotification(gameId, request.TeamIds, ex.Message), cancellationToken);
 
             // allow the start service to do custom cleanup
             await modeService.TryCleanUpFailedDeploy(startRequest, ex, cancellationToken);
 
             // for convenience, reset (but don't unenroll) the teams
-            _logger.LogError(message: $"Deployment failed for game {startRequest.Game.Id}. Resetting sessions for {startRequest.TeamIds.Count()} teams.");
+            _logger.LogError(message: $"Deployment failed for game {startRequest.Game.Id} ({ex.Message}). Resetting sessions for {startRequest.TeamIds.Count()} teams.");
 
             foreach (var teamId in request.TeamIds)
             {

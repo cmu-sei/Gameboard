@@ -14,6 +14,11 @@ public class GameHubEvent<TData> : GameHubEvent where TData : class
     public required TData Data { get; set; }
 }
 
+public class GameHubLaunchFailureEventData
+{
+    public required string Message { get; set; }
+}
+
 public interface IGameHubEvent
 {
     Task ChallengesDeployStart(GameHubEvent<GameResourcesDeployStatus> ev);
@@ -21,7 +26,7 @@ public interface IGameHubEvent
     Task ChallengesDeployEnd(GameHubEvent<GameResourcesDeployStatus> ev);
     Task LaunchStart(GameHubEvent ev);
     Task LaunchEnd(GameHubEvent<GameResourcesDeployStatus> ev);
-    Task LaunchFailure(GameHubEvent<GameResourcesDeployStatus> ev);
+    Task LaunchFailure(GameHubEvent<GameHubLaunchFailureEventData> ev);
     Task LaunchProgressChanged(GameHubEvent<GameResourcesDeployStatus> ev);
     Task GamespacesDeployStart(GameHubEvent<GameResourcesDeployStatus> ev);
     Task GamespacesDeployProgressChange(GameHubEvent<GameResourcesDeployStatus> ev);

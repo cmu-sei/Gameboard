@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Teams;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -34,9 +33,8 @@ internal class ExternalGameService : IExternalGameService,
     INotificationHandler<GameResourcesDeployStartNotification>,
     INotificationHandler<GameResourcesDeployEndNotification>
 {
-    private readonly IGameEngineService _gameEngine;
+    private readonly IGameModeServiceFactory _gameModeServiceFactory;
     private readonly IGuidService _guids;
-    private readonly IJsonService _json;
     private readonly ILogger<ExternalGameService> _logger;
     private readonly INowService _now;
     private readonly IStore _store;
@@ -45,9 +43,8 @@ internal class ExternalGameService : IExternalGameService,
 
     public ExternalGameService
     (
-        IGameEngineService gameEngine,
+        IGameModeServiceFactory gameModeServiceFactory,
         IGuidService guids,
-        IJsonService json,
         ILogger<ExternalGameService> logger,
         INowService now,
         IStore store,
@@ -55,64 +52,13 @@ internal class ExternalGameService : IExternalGameService,
         ITeamService teamService
     )
     {
-        _gameEngine = gameEngine;
+        _gameModeServiceFactory = gameModeServiceFactory;
         _guids = guids;
-        _json = json;
         _logger = logger;
         _now = now;
         _store = store;
         _syncStartGameService = syncStartGameService;
         _teamService = teamService;
-    }
-
-    public async Task<ExternalGameStartMetaData> BuildExternalGameMetaData(GameResourcesDeployResults resources, CalculatedSessionWindow session)
-    {
-        // build team objects to return
-        var teamsToReturn = new List<ExternalGameStartMetaDataTeam>();
-
-        // each key is a team
-        foreach (var teamId in resources.TeamChallenges.Keys)
-        {
-            var teamChallenges = resources.TeamChallenges[teamId];
-            var teamGamespaces = resources.TeamChallenges[teamId].Select(c => c.State).ToArray();
-            var team = await _teamService.GetTeam(teamId);
-            var teamPlayers = team.Members.Select(p => new ExternalGameStartMetaDataPlayer
-            {
-                PlayerId = p.Id,
-                UserId = p.UserId
-            }).ToArray();
-
-            var teamToReturn = new ExternalGameStartMetaDataTeam
-            {
-                Id = teamId,
-                Name = team.ApprovedName,
-                Gamespaces = teamGamespaces.Select(gs => new ExternalGameStartTeamGamespace
-                {
-                    Id = gs.Id,
-                    VmUris = _gameEngine.GetGamespaceVms(gs).Select(vm => vm.Url),
-                    IsDeployed = gs.HasDeployedGamespace
-                }),
-                Players = teamPlayers
-            };
-
-            teamsToReturn.Add(teamToReturn);
-        }
-
-        var retVal = new ExternalGameStartMetaData
-        {
-            Game = resources.Game,
-            Session = new ExternalGameStartMetaDataSession
-            {
-                Now = _now.Get(),
-                SessionBegin = session.Start,
-                SessionEnd = session.End
-            },
-            Teams = teamsToReturn
-        };
-
-        var metadataJson = _json.Serialize(retVal);
-        Log($"""Final metadata payload for game "{retVal.Game.Id}" is here: {metadataJson}.""", retVal.Game.Id);
-        return retVal;
     }
 
     public Task DeleteTeamExternalData(CancellationToken cancellationToken, params string[] teamIds)
@@ -123,11 +69,12 @@ internal class ExternalGameService : IExternalGameService,
 
     public async Task<ExternalGameState> GetExternalGameState(string gameId, CancellationToken cancellationToken)
     {
+        var nowish = _now.Get();
+
         var gameData = await _store
             .WithNoTracking<Data.Game>()
-            .Include(g => g.ExternalGameTeams)
             .Include(g => g.Specs)
-            .Include(g => g.Players)
+            .Include(g => g.Players.Where(p => p.SessionEnd == DateTimeOffset.MinValue || p.SessionEnd >= nowish))
                 .ThenInclude(p => p.Sponsor)
             .Include(g => g.Players)
                 .ThenInclude(p => p.User)
@@ -140,6 +87,9 @@ internal class ExternalGameService : IExternalGameService,
             .WithNoTracking<ExternalGameTeam>()
             .Where(t => t.GameId == gameId)
             .ToArrayAsync(cancellationToken);
+
+        var teamDeployStatuses = externalGameTeamsData
+            .ToDictionary(t => t.TeamId, t => t.DeployStatus);
 
         // get challenges separately because of SpecId nonsense
         // group by TeamId for quicker lookups
@@ -168,7 +118,7 @@ internal class ExternalGameService : IExternalGameService,
         // this expresses whether there are any player session dates or
         // challenge start/end times that are misaligned - only really matters
         // once the game has started
-        var hasStandardSessionWindow = startDates.Length > 1 && endDates.Length > 1;
+        var hasStandardSessionWindow = gameData.RequireSynchronizedStart && startDates.Length > 1 && endDates.Length > 1;
 
         // if we have a standardized session window, send it down with the data
         DateTimeOffset? overallStart = null;
@@ -186,40 +136,6 @@ internal class ExternalGameService : IExternalGameService,
 
         var captains = teams.Keys
             .ToDictionary(key => key, key => _teamService.ResolveCaptain(teams[key]));
-
-        var teamDeployStatuses = new Dictionary<string, ExternalGameDeployStatus>();
-
-        foreach (var teamId in teams.Keys)
-        {
-            if (gameData.ExternalGameTeams.Any(t => t.ExternalGameUrl is null))
-            {
-                teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.PartiallyDeployed);
-                continue;
-            }
-
-            if (gameData.ExternalGameTeams.Any(t => t.TeamId == teamId && t.DeployStatus == ExternalGameDeployStatus.Deploying))
-            {
-                teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.Deploying);
-                continue;
-            }
-
-            if (!teamChallenges.TryGetValue(teamId, out Data.Challenge[] value) || !value.Any())
-            {
-                teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.NotStarted);
-                continue;
-            }
-
-            var allChallengesCreated = specIds.All(specId => teamChallenges[teamId].Any(c => c.SpecId == specId));
-            var allGamespacesDeployedOrFinished = teamChallenges[teamId].All(c => c.HasDeployedGamespace || c.Score >= c.Points);
-
-            if (allChallengesCreated && allGamespacesDeployedOrFinished)
-            {
-                teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.Deployed);
-                continue;
-            }
-
-            throw new CantResolveTeamDeployStatus(gameId, teamId);
-        }
 
         // and their readiness
         var playerReadiness = new Dictionary<string, bool>();
@@ -240,6 +156,7 @@ internal class ExternalGameService : IExternalGameService,
             OverallDeployStatus = overallDeployState,
             Specs = gameData.Specs.Select(s => new SimpleEntity { Id = s.Id, Name = s.Name }).OrderBy(s => s.Name),
             HasNonStandardSessionWindow = hasStandardSessionWindow,
+            IsSyncStart = gameData.RequireSynchronizedStart,
             StartTime = overallStart,
             EndTime = overallEnd,
             Teams = teams.Keys.Select(key => new ExternalGameStateTeam

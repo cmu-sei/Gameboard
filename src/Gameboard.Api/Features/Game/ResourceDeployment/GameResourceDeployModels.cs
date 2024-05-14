@@ -77,6 +77,7 @@ public sealed record ChallengeDeployStarted(string GameId, IEnumerable<string> T
 public sealed record ChallengeDeployedNotification(string GameId, IEnumerable<string> TeamIds, GameResourcesDeployChallenge Challenge) : INotification;
 public sealed record ChallengeDeployEnded(string GameId, IEnumerable<string> TeamIds) : INotification;
 public sealed record GameLaunchEndedNotification(string GameId, IEnumerable<string> TeamIds) : INotification;
+public sealed record GameLaunchFailureNotification(string GameId, IEnumerable<string> TeamIds, string Message) : INotification;
 public sealed record GameLaunchProgressChangedNotification(string GameId, IEnumerable<string> TeamIds) : INotification;
 public sealed record GameLaunchStartedNotification(string GameId, IEnumerable<string> TeamIds) : INotification;
 public sealed record GameResourcesDeployStartNotification(IEnumerable<string> TeamIds) : INotification;
