@@ -17,7 +17,6 @@ public interface IGameResourcesDeployStatusService
 
 internal class GameResourcesDeployStatusService : IGameResourcesDeployStatusService
 {
-    private readonly GameboardDbContext _dbContext;
     private readonly IJsonService _json;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     // private readonly IStore _store;
@@ -31,14 +30,15 @@ internal class GameResourcesDeployStatusService : IGameResourcesDeployStatusServ
     {
         _json = json;
         _serviceScopeFactory = serviceScopeFactory;
-
-        using var scope = _serviceScopeFactory.CreateAsyncScope();
-        _dbContext = scope.ServiceProvider.GetRequiredService<GameboardDbContext>();
     }
 
     public async Task<GameResourcesDeployStatus> GetStatus(string gameId, IEnumerable<string> teamIds, CancellationToken cancellationToken)
     {
-        var challenges = await _dbContext
+
+        using var scope = _serviceScopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<GameboardDbContext>();
+
+        var challenges = await dbContext
             .Challenges
             .AsNoTracking()
             .Where(c => c.GameId == gameId)
@@ -57,7 +57,7 @@ internal class GameResourcesDeployStatusService : IGameResourcesDeployStatusServ
             })
             .ToArrayAsync(cancellationToken);
 
-        var players = await _dbContext
+        var players = await dbContext
             .Players
             .AsNoTracking()
             .Where(p => teamIds.Contains(p.TeamId))
@@ -73,7 +73,7 @@ internal class GameResourcesDeployStatusService : IGameResourcesDeployStatusServ
             })
             .ToArrayAsync(cancellationToken);
 
-        var game = await _dbContext
+        var game = await dbContext
             .Games
             .AsNoTracking()
             .Include(g => g.Specs)
