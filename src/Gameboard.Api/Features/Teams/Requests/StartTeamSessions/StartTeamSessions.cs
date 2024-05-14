@@ -114,7 +114,6 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
         try
         {
             // update hub listeners
-            var gameHubEvent = new GameHubEvent { GameId = gameId, TeamIds = request.TeamIds };
             await _mediator.Publish(new GameLaunchStartedNotification(gameId, request.TeamIds), cancellationToken);
 
             if (modeService.DeployResourcesOnSessionStart)
