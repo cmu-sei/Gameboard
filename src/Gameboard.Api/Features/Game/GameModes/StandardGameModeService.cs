@@ -23,49 +23,19 @@ internal class StandardGameModeService : IStandardGameModeService
     }
 
     public bool DeployResourcesOnSessionStart => false;
-
     public bool RequireSynchronizedSessions => false;
 
     public TeamSessionResetType StartFailResetType => TeamSessionResetType.ArchiveChallenges;
 
     public Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken)
-    {
-        return Task.FromResult(GamePlayState.NotStarted);
-    }
+        => Task.FromResult(GamePlayState.NotStarted);
 
-    public async Task<GamePlayState> GetGamePlayStateForTeam(string teamId, CancellationToken cancellationToken)
-    {
-        var teamSession = await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => p.TeamId == teamId)
-            .Select(p => new
-            {
-                p.SessionBegin,
-                p.SessionEnd,
-                p.Role
-            })
-            .ToArrayAsync(cancellationToken);
-
-        var begin = teamSession.Select(p => p.SessionBegin).Distinct().Single();
-        var end = teamSession.Select(p => p.SessionEnd).Distinct().Single();
-
-        if (begin.IsEmpty())
-            return GamePlayState.NotStarted;
-
-        var nowish = _now.Get();
-        if (begin <= nowish && (end.IsEmpty() || end >= nowish))
-            return GamePlayState.Started;
-
-        return GamePlayState.GameOver;
-    }
+    public Task<GamePlayState> GetGamePlayStateForTeam(string teamId, CancellationToken cancellationToken)
+        => Task.FromResult(GamePlayState.NotStarted);
 
     public Task TryCleanUpFailedDeploy(GameModeStartRequest request, Exception exception, CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
-    }
+        => Task.CompletedTask;
 
     public Task ValidateStart(GameModeStartRequest request, CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
-    }
+        => Task.CompletedTask;
 }
