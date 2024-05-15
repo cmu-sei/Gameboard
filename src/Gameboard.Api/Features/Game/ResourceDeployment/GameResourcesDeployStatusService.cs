@@ -34,7 +34,7 @@ internal class GameResourcesDeployStatusService : IGameResourcesDeployStatusServ
     {
         // we use a factory scope for this rather than relying on IStore because this can be requested from multiple threads at once
         // (even during the same request/background task)
-        using var scope = _serviceScopeFactory.CreateAsyncScope();
+        using var scope = _serviceScopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<GameboardDbContext>();
 
         var challenges = await dbContext

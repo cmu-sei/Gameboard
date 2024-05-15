@@ -236,9 +236,7 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
 
         // add all the predeployed gamespaces to our list so that it contains _all_ gamespaces at the end of this function
         foreach (var predeployedState in predeployedChallenges.Select(c => c.State))
-        {
             deployedGamespaces.Add(predeployedState.Id, ChallengeStateToTeamGamespace(predeployedState));
-        }
 
         // if we don't have any gamespaces that aren't predeployed, we can take a big fat shortcut
         if (notPredeployedChallenges.Any())
@@ -276,7 +274,7 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
                         // here, we can't use the store, because it has a single dbcontext across the scope of the request (or the task, if backgrounded)
                         // so just for this, and especially because multiple threads aren't updating the same challenge, we resolve a new scope
                         // so we don't get EF core threading issues
-                        using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
+                        using var serviceScope = _serviceScopeFactory.CreateScope();
                         var dbContext = serviceScope.ServiceProvider.GetRequiredService<GameboardDbContext>();
 
                         var isGamespaceOn = challengeState.IsActive && challengeState.Vms is not null && challengeState.Vms.Any();
