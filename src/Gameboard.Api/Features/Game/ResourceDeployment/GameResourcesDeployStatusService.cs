@@ -19,13 +19,11 @@ internal class GameResourcesDeployStatusService : IGameResourcesDeployStatusServ
 {
     private readonly IJsonService _json;
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    // private readonly IStore _store;
 
     public GameResourcesDeployStatusService
     (
         IJsonService json,
         IServiceScopeFactory serviceScopeFactory
-    // IStore store
     )
     {
         _json = json;
@@ -34,7 +32,8 @@ internal class GameResourcesDeployStatusService : IGameResourcesDeployStatusServ
 
     public async Task<GameResourcesDeployStatus> GetStatus(string gameId, IEnumerable<string> teamIds, CancellationToken cancellationToken)
     {
-
+        // we use a factory scope for this rather than relying on IStore because this can be requested from multiple threads at once
+        // (even during the same request/background task)
         using var scope = _serviceScopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<GameboardDbContext>();
 
