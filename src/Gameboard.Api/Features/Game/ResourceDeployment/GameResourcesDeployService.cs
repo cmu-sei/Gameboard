@@ -280,7 +280,10 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
                         var isGamespaceOn = challengeState.IsActive && challengeState.Vms is not null && challengeState.Vms.Any();
                         var serializedState = _jsonService.Serialize(challengeState);
 
-                        await _store
+                        // lock to prevent double writes
+                        using var resourceDeployLock = await _lockService.GetArbitraryLock($"{gameId}").LockAsync();
+                        {
+                            await _store
                             .WithNoTracking<Data.Challenge>()
                             .Where(c => c.Id == challengeState.Id)
                             .ExecuteUpdateAsync
@@ -290,6 +293,7 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
                                     .SetProperty(c => c.State, serializedState),
                                 cancellationToken
                             );
+                        }
 
                         Log($"Updated gamespace states for challenge {challenge.Id}. Gamespace on?: {isGamespaceOn}", gameId);
                         Log($"Challenge {challenge.Id} has {gamespace.VmUris.Count()} VM(s): {challengeState.Vms.Select(vm => vm.Name).ToDelimited()}", gameId);

@@ -8,6 +8,7 @@ namespace Gameboard.Api.Common.Services;
 
 public interface ILockService
 {
+    AsyncLock GetArbitraryLock(string key);
     AsyncLock GetChallengeLock(string challengeId);
     AsyncLock GetExternalGameDeployLock(string gameId);
     AsyncLock GetStartSessionLock(string gameId);
@@ -16,10 +17,14 @@ public interface ILockService
 
 public class LockService : ILockService
 {
+    private readonly ConcurrentDictionary<string, AsyncLock> _arbitraryLocks = new();
     private readonly ConcurrentDictionary<string, AsyncLock> _challengeLocks = new();
     private readonly ConcurrentDictionary<string, AsyncLock> _externalGameDeployLocks = new();
     private readonly ConcurrentDictionary<string, AsyncLock> _sessionStartLocks = new();
     private readonly ConcurrentDictionary<string, AsyncLock> _syncStartGameLocks = new();
+
+    public AsyncLock GetArbitraryLock(string key)
+        => _arbitraryLocks.GetOrAdd(key, x => new AsyncLock { });
 
     public AsyncLock GetChallengeLock(string challengeId)
         => _challengeLocks.GetOrAdd(challengeId, x => { return new AsyncLock(); });
