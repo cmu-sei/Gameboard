@@ -12,6 +12,7 @@ using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Games;
@@ -34,6 +35,7 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
     private readonly ILogger<GameResourcesDeployService> _logger;
     private readonly IMapper _mapper;
     private readonly IMediator _mediator;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IStore _store;
     private readonly ITeamService _teamService;
 
@@ -49,6 +51,7 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
         IMediator mediator,
         ILogger<GameResourcesDeployService> logger,
         IMapper mapper,
+        IServiceScopeFactory serviceScopeFactory,
         IStore store,
         ITeamService teamService
     )
@@ -63,6 +66,7 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
         _logger = logger;
         _mapper = mapper;
         _mediator = mediator;
+        _serviceScopeFactory = serviceScopeFactory;
         _store = store;
         _teamService = teamService;
     }
@@ -269,6 +273,27 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
                         var gamespace = ChallengeStateToTeamGamespace(challengeState);
                         deployedGamespaces.Add(gamespace.Id, gamespace);
 
+                        // here, we can't use the store, because it has a single dbcontext across the scope of the request (or the task, if backgrounded)
+                        // so just for this, and especially because multiple threads aren't updating the same challenge, we resolve a new scope
+                        // so we don't get EF core threading issues
+                        using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
+                        var dbContext = serviceScope.ServiceProvider.GetRequiredService<GameboardDbContext>();
+
+                        var isGamespaceOn = challengeState.IsActive && challengeState.Vms is not null && challengeState.Vms.Any();
+                        var serializedState = _jsonService.Serialize(challengeState);
+
+                        await _store
+                            .WithNoTracking<Data.Challenge>()
+                            .Where(c => c.Id == challengeState.Id)
+                            .ExecuteUpdateAsync
+                            (
+                                up => up
+                                    .SetProperty(c => c.HasDeployedGamespace, isGamespaceOn)
+                                    .SetProperty(c => c.State, serializedState),
+                                cancellationToken
+                            );
+
+                        Log($"Updated gamespace states for challenge {challenge.Id}. Gamespace on?: {isGamespaceOn}", gameId);
                         Log($"Challenge {gamespace.Id} has {gamespace.VmUris.Count()} VM(s): {challengeState.Vms.Select(vm => vm.Name).ToDelimited()}", gameId);
                         await _mediator.Publish(new GamespaceDeployProgressChange(gameId, teamIds), cancellationToken);
                         await _mediator.Publish(new GameLaunchProgressChangedNotification(gameId, teamIds), cancellationToken);
@@ -296,33 +321,6 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
                 // fire a thread for each task in the batch. The task returns null if an error is thrown,
                 // so check for that
                 var deployResults = await Task.WhenAll(batchTasks.ToArray());
-
-                // after the asynchronous part is over, we need to do database updates to ensure the DB has the correct 
-                // game-engine-supplied state for each challenge
-                foreach (var state in deployResults.Where(state => state is not null))
-                {
-                    string serializedState = null;
-                    var isGamespaceOn = false;
-
-                    if (state is not null)
-                    {
-                        serializedState = _jsonService.Serialize(state);
-                        isGamespaceOn = state.IsActive && state.Vms is not null && state.Vms.Any();
-                    }
-
-                    await _store
-                        .WithNoTracking<Data.Challenge>()
-                        .Where(c => c.Id == state.Id)
-                        .ExecuteUpdateAsync
-                        (
-                            up => up
-                                .SetProperty(c => c.HasDeployedGamespace, isGamespaceOn)
-                                .SetProperty(c => c.State, serializedState),
-                            cancellationToken
-                        );
-
-                    Log($"Updated gamespace states for challenge {state.Id}. Gamespace on?: {isGamespaceOn}", gameId);
-                }
 
                 Log($"Finished {deployResults.Length} deploy tasks for gamespace batch #{batchIndex}.", gameId);
             }
