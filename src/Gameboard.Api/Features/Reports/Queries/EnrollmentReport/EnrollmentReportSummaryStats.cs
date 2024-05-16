@@ -4,7 +4,7 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record EnrollmentReportSummaryStatsQuery(EnrollmentReportParameters Parameters, User ActingUser) : IRequest<EnrollmentReportStatSummary>, IReportQuery;
+public record EnrollmentReportSummaryStatsQuery(EnrollmentReportParameters Parameters) : IRequest<EnrollmentReportStatSummary>, IReportQuery;
 
 internal class EnrollmentReportSummaryStatsHandler : IRequestHandler<EnrollmentReportSummaryStatsQuery, EnrollmentReportStatSummary>
 {

@@ -6,13 +6,14 @@ using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Games.External;
 
 public interface IExternalGameService
 {
-    Task CreateTeams(string gameId, IEnumerable<string> teamIds, CancellationToken cancellationToken);
     Task DeleteTeamExternalData(CancellationToken cancellationToken, params string[] teamIds);
     Task<ExternalGameState> GetExternalGameState(string gameId, CancellationToken cancellationToken);
 
@@ -25,65 +26,55 @@ public interface IExternalGameService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<ExternalGameTeam> GetTeam(string teamId, CancellationToken cancellationToken);
-    Task UpdateGameDeployStatus(string gameId, ExternalGameDeployStatus status, CancellationToken cancellationToken);
     Task UpdateTeamDeployStatus(IEnumerable<string> teamIds, ExternalGameDeployStatus status, CancellationToken cancellationToken);
-    Task UpdateTeamExternalUrl(string teamId, string url, CancellationToken cancellationToken);
 }
 
-internal class ExternalGameService : IExternalGameService
+internal class ExternalGameService : IExternalGameService,
+    INotificationHandler<GameResourcesDeployStartNotification>,
+    INotificationHandler<GameResourcesDeployEndNotification>
 {
+    private readonly IGameModeServiceFactory _gameModeServiceFactory;
     private readonly IGuidService _guids;
+    private readonly ILogger<ExternalGameService> _logger;
+    private readonly INowService _now;
     private readonly IStore _store;
     private readonly ISyncStartGameService _syncStartGameService;
     private readonly ITeamService _teamService;
 
     public ExternalGameService
     (
+        IGameModeServiceFactory gameModeServiceFactory,
         IGuidService guids,
+        ILogger<ExternalGameService> logger,
+        INowService now,
         IStore store,
         ISyncStartGameService syncStartGameService,
         ITeamService teamService
     )
     {
+        _gameModeServiceFactory = gameModeServiceFactory;
         _guids = guids;
+        _logger = logger;
+        _now = now;
         _store = store;
         _syncStartGameService = syncStartGameService;
         _teamService = teamService;
     }
 
-    public async Task CreateTeams(string gameId, IEnumerable<string> teamIds, CancellationToken cancellationToken)
-    {
-        // first, delete any metadata associated with a previous attempt
-        await _store
-            .WithNoTracking<ExternalGameTeam>()
-            .Where(t => t.GameId == gameId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await DeleteTeamExternalData(cancellationToken, teamIds.ToArray());
-
-        // then create an entry for each team in this game
-        await _store.SaveAddRange(teamIds.Select(teamId => new ExternalGameTeam
-        {
-            Id = _guids.GetGuid(),
-            GameId = gameId,
-            TeamId = teamId,
-            DeployStatus = ExternalGameDeployStatus.NotStarted
-        }).ToArray());
-    }
-
-    public async Task DeleteTeamExternalData(CancellationToken cancellationToken, params string[] teamIds)
-        => await _store
+    public Task DeleteTeamExternalData(CancellationToken cancellationToken, params string[] teamIds)
+        => _store
             .WithNoTracking<ExternalGameTeam>()
             .Where(t => teamIds.Contains(t.TeamId))
             .ExecuteDeleteAsync(cancellationToken);
 
     public async Task<ExternalGameState> GetExternalGameState(string gameId, CancellationToken cancellationToken)
     {
+        var nowish = _now.Get();
+
         var gameData = await _store
             .WithNoTracking<Data.Game>()
-            .Include(g => g.ExternalGameTeams)
             .Include(g => g.Specs)
-            .Include(g => g.Players)
+            .Include(g => g.Players.Where(p => p.SessionEnd == DateTimeOffset.MinValue || p.SessionEnd >= nowish))
                 .ThenInclude(p => p.Sponsor)
             .Include(g => g.Players)
                 .ThenInclude(p => p.User)
@@ -91,6 +82,14 @@ internal class ExternalGameService : IExternalGameService
 
         var specIds = gameData.Specs.Select(s => s.Id).ToArray();
         var teamIds = gameData.Players.Select(p => p.TeamId).Distinct();
+
+        var externalGameTeamsData = await _store
+            .WithNoTracking<ExternalGameTeam>()
+            .Where(t => t.GameId == gameId)
+            .ToArrayAsync(cancellationToken);
+
+        var teamDeployStatuses = externalGameTeamsData
+            .ToDictionary(t => t.TeamId, t => t.DeployStatus);
 
         // get challenges separately because of SpecId nonsense
         // group by TeamId for quicker lookups
@@ -119,7 +118,7 @@ internal class ExternalGameService : IExternalGameService
         // this expresses whether there are any player session dates or
         // challenge start/end times that are misaligned - only really matters
         // once the game has started
-        var hasStandardSessionWindow = startDates.Length > 1 && endDates.Length > 1;
+        var hasStandardSessionWindow = gameData.RequireSynchronizedStart && startDates.Length > 1 && endDates.Length > 1;
 
         // if we have a standardized session window, send it down with the data
         DateTimeOffset? overallStart = null;
@@ -138,44 +137,15 @@ internal class ExternalGameService : IExternalGameService
         var captains = teams.Keys
             .ToDictionary(key => key, key => _teamService.ResolveCaptain(teams[key]));
 
-        var teamDeployStatuses = new Dictionary<string, ExternalGameDeployStatus>();
-        foreach (var teamId in teams.Keys)
-        {
-            if (gameData.ExternalGameTeams.Any(t => t.ExternalGameUrl is null))
-            {
-                teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.PartiallyDeployed);
-                continue;
-            }
-
-            if (gameData.ExternalGameTeams.Any(t => t.TeamId == teamId && t.DeployStatus == ExternalGameDeployStatus.Deploying))
-            {
-                teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.Deploying);
-                continue;
-            }
-
-            if (!teamChallenges.ContainsKey(teamId) || !teamChallenges[teamId].Any())
-            {
-                teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.NotStarted);
-                continue;
-            }
-
-            var allChallengesCreated = specIds.All(specId => teamChallenges[teamId].Any(c => c.SpecId == specId));
-            var allGamespacesDeployedOrFinished = teamChallenges[teamId].All(c => c.HasDeployedGamespace || c.Score >= c.Points);
-
-            if (allChallengesCreated && allGamespacesDeployedOrFinished)
-            {
-                teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.Deployed);
-                continue;
-            }
-
-            throw new CantResolveTeamDeployStatus(gameId, teamId);
-        }
-
         // and their readiness
-        var syncStartState = await _syncStartGameService.GetSyncStartState(gameId, cancellationToken);
-        var playerReadiness = syncStartState.Teams
-            .SelectMany(t => t.Players)
-            .ToDictionary(p => p.Id, p => p.IsReady);
+        var playerReadiness = new Dictionary<string, bool>();
+        if (gameData.RequireSynchronizedStart)
+        {
+            var syncStartState = await _syncStartGameService.GetSyncStartState(gameId, teams.Keys, cancellationToken);
+            playerReadiness = syncStartState.Teams
+                .SelectMany(t => t.Players)
+                .ToDictionary(p => p.Id, p => p.IsReady);
+        }
 
         // the game's overall deploy status is the lowest value of all teams' deploy statuses
         var overallDeployState = ResolveOverallDeployStatus(teamDeployStatuses.Values);
@@ -186,15 +156,15 @@ internal class ExternalGameService : IExternalGameService
             OverallDeployStatus = overallDeployState,
             Specs = gameData.Specs.Select(s => new SimpleEntity { Id = s.Id, Name = s.Name }).OrderBy(s => s.Name),
             HasNonStandardSessionWindow = hasStandardSessionWindow,
+            IsSyncStart = gameData.RequireSynchronizedStart,
             StartTime = overallStart,
             EndTime = overallEnd,
             Teams = teams.Keys.Select(key => new ExternalGameStateTeam
             {
                 Id = captains[key].TeamId,
                 Name = captains[key].ApprovedName,
-                DeployStatus = teamDeployStatuses.ContainsKey(key) ?
-                    teamDeployStatuses[key] :
-                    ExternalGameDeployStatus.NotStarted,
+                DeployStatus = teamDeployStatuses.TryGetValue(key, out ExternalGameDeployStatus value) ? value : ExternalGameDeployStatus.NotStarted,
+                ExternalGameHostUrl = externalGameTeamsData.SingleOrDefault(t => t.TeamId == key)?.ExternalGameUrl,
                 IsReady = teams[key].All(p => p.IsReady),
                 Challenges = gameData.Specs.Select(s =>
                 {
@@ -208,13 +178,13 @@ internal class ExternalGameService : IExternalGameService
                     DateTimeOffset? startTime = null;
                     DateTimeOffset? endTime = null;
 
-                    if (teamChallenges.ContainsKey(key))
+                    if (teamChallenges.TryGetValue(key, out Data.Challenge[] value))
                     {
-                        var challenge = teamChallenges[key].SingleOrDefault(c => c.SpecId == s.Id);
+                        var challenge = value.SingleOrDefault(c => c.SpecId == s.Id);
 
                         id = challenge?.Id;
                         challengeCreated = challenge is not null;
-                        gamespaceDeployed = challenge is not null & challenge.HasDeployedGamespace;
+                        gamespaceDeployed = challenge?.HasDeployedGamespace is not null && challenge.HasDeployedGamespace;
                         startTime = challenge?.StartTime;
                         endTime = challenge?.EndTime;
                     }
@@ -240,9 +210,11 @@ internal class ExternalGameService : IExternalGameService
                         Name = p.Sponsor.Name,
                         Logo = p.Sponsor.Logo
                     },
-                    Status = playerReadiness[p.Id] ?
-                        ExternalGameStatePlayerStatus.Ready :
-                        ExternalGameStatePlayerStatus.NotReady,
+                    // TODO: hack because this is no longer just about external/sync games
+                    Status = !playerReadiness.Any() ? ExternalGameStatePlayerStatus.NotConnected :
+                        playerReadiness[p.Id] ?
+                            ExternalGameStatePlayerStatus.Ready :
+                            ExternalGameStatePlayerStatus.NotReady,
                     User = new SimpleEntity { Id = p.UserId, Name = p.User.ApprovedName }
                 })
                 .OrderByDescending(p => p.IsCaptain)
@@ -253,7 +225,9 @@ internal class ExternalGameService : IExternalGameService
                     Name = p.Sponsor.Name,
                     Logo = p.Sponsor.Logo
                 }),
-            }).OrderBy(t => t.Name)
+            })
+            .OrderBy(t => t.Name)
+                .ThenBy(t => t.Players.Count())
         };
     }
 
@@ -262,13 +236,14 @@ internal class ExternalGameService : IExternalGameService
             .WithNoTracking<ExternalGameTeam>()
             .SingleOrDefaultAsync(r => r.TeamId == teamId, cancellationToken);
 
-    public async Task UpdateGameDeployStatus(string gameId, ExternalGameDeployStatus status, CancellationToken cancellationToken)
+    public async Task Handle(GameResourcesDeployStartNotification notification, CancellationToken cancellationToken)
     {
-        await _store
-            .WithNoTracking<ExternalGameTeam>()
-            .Where(d => d.GameId == gameId)
-            .ExecuteUpdateAsync(up => up.SetProperty(d => d.DeployStatus, status));
+        await InitTeams(notification.TeamIds, cancellationToken);
+        await UpdateTeamDeployStatus(notification.TeamIds, ExternalGameDeployStatus.Deploying, cancellationToken);
     }
+
+    public Task Handle(GameResourcesDeployEndNotification notification, CancellationToken cancellationToken)
+        => UpdateTeamDeployStatus(notification.TeamIds, ExternalGameDeployStatus.Deployed, cancellationToken);
 
     public Task UpdateTeamDeployStatus(IEnumerable<string> teamIds, ExternalGameDeployStatus status, CancellationToken cancellationToken)
         => _store
@@ -276,13 +251,34 @@ internal class ExternalGameService : IExternalGameService
             .Where(t => teamIds.Contains(t.TeamId))
             .ExecuteUpdateAsync(up => up.SetProperty(t => t.DeployStatus, status), cancellationToken);
 
-
-    public async Task UpdateTeamExternalUrl(string teamId, string url, CancellationToken cancellationToken)
+    private async Task InitTeams(IEnumerable<string> teamIds, CancellationToken cancellationToken)
     {
-        await _store
-            .WithNoTracking<ExternalGameTeam>()
-            .Where(t => t.TeamId == teamId)
-            .ExecuteUpdateAsync(up => up.SetProperty(t => t.ExternalGameUrl, url), cancellationToken);
+        var teamGameIds = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => teamIds.Contains(p.TeamId))
+            .GroupBy(p => p.TeamId)
+            .ToDictionaryAsync(kv => kv.Key, kv => kv.Select(p => p.GameId), cancellationToken);
+
+        if (teamGameIds.Values.Any(gIds => gIds.Count() > 1))
+            throw new InvalidOperationException("One of the teams to be created is tied to more than one game.");
+
+        // first, delete any metadata associated with a previous attempt
+        await DeleteTeamExternalData(cancellationToken, teamIds.ToArray());
+
+        // then create an entry for each team in this game
+        await _store.SaveAddRange(teamGameIds.Select(teamIdGameId => new ExternalGameTeam
+        {
+            Id = _guids.GetGuid(),
+            GameId = teamIdGameId.Value.Single(),
+            TeamId = teamIdGameId.Key,
+            DeployStatus = ExternalGameDeployStatus.NotStarted
+        }).ToArray());
+    }
+
+    private void Log(string message, string gameId)
+    {
+        var prefix = $"[EXTERNAL GAME {gameId}] - ";
+        _logger.LogInformation(message: $"{prefix} {message}");
     }
 
     private ExternalGameDeployStatus ResolveOverallDeployStatus(IEnumerable<ExternalGameDeployStatus> teamStatuses)

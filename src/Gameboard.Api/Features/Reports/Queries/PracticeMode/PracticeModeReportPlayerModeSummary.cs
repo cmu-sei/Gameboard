@@ -7,7 +7,7 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record PracticeModeReportPlayerModeSummaryQuery(string UserId, bool IsPractice, User ActingUser) : IRequest<PracticeModeReportPlayerModeSummary>;
+public record PracticeModeReportPlayerModeSummaryQuery(string UserId, bool IsPractice) : IRequest<PracticeModeReportPlayerModeSummary>;
 
 internal class PracticeModeReportPlayerModeSummaryHandler : IRequestHandler<PracticeModeReportPlayerModeSummaryQuery, PracticeModeReportPlayerModeSummary>
 {

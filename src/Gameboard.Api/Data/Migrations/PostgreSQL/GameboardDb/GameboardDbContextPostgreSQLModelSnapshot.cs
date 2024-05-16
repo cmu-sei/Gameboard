@@ -504,6 +504,87 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.ToTable("DenormalizedTeamScores");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.Extension", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("HostUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Type");
+
+                    b.ToTable("Extensions");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.ExternalGameHost", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ClientUrl")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("DestroyResourcesOnDeployFailure")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("GamespaceDeployBatchSize")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("HostApiKey")
+                        .HasMaxLength(70)
+                        .HasColumnType("character varying(70)");
+
+                    b.Property<string>("HostUrl")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("HttpTimeoutInSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("PingEndpoint")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("StartupEndpoint")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("TeamExtendedEndpoint")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ExternalGameHosts");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ExternalGameTeam", b =>
                 {
                     b.Property<string>("Id")
@@ -629,16 +710,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
-                    b.Property<string>("ExternalGameClientUrl")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ExternalGameStartupEndpoint")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ExternalGameTeamExtendedEndpoint")
-                        .HasColumnType("text");
+                    b.Property<string>("ExternalHostId")
+                        .HasColumnType("character varying(40)");
 
                     b.Property<string>("FeedbackConfig")
                         .HasColumnType("text");
@@ -733,6 +806,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasColumnType("character varying(64)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ExternalHostId");
 
                     b.ToTable("Games");
                 });
@@ -1466,6 +1541,16 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.Game", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.ExternalGameHost", "ExternalHost")
+                        .WithMany("UsedByGames")
+                        .HasForeignKey("ExternalHostId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ExternalHost");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ManualBonus", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.User", "EnteredByUser")
@@ -1711,6 +1796,11 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Feedback");
 
                     b.Navigation("PublishedPracticeCertificates");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.ExternalGameHost", b =>
+                {
+                    b.Navigation("UsedByGames");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Game", b =>

@@ -3,6 +3,27 @@ using System.Collections.Generic;
 
 namespace Gameboard.Api.Features.Games.External;
 
+public sealed class GetExternalGameHostClientInfo
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required string ClientUrl { get; set; }
+}
+
+public sealed class GetExternalGameHostsResponseHost
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required string ClientUrl { get; set; }
+    public required bool DestroyResourcesOnDeployFailure { get; set; }
+    public required int? GamespaceDeployBatchSize { get; set; }
+    public required string HostApiKey { get; set; }
+    public required string HostUrl { get; set; }
+    public required string PingEndpoint { get; set; }
+    public required string StartupEndpoint { get; set; }
+    public required string TeamExtendedEndpoint { get; set; }
+    public required IEnumerable<SimpleEntity> UsedByGames { get; set; }
+}
 
 public sealed class ExternalGameState
 {
@@ -12,6 +33,7 @@ public sealed class ExternalGameState
     public required DateTimeOffset? StartTime { get; set; }
     public required DateTimeOffset? EndTime { get; set; }
     public required bool HasNonStandardSessionWindow { get; set; }
+    public required bool IsSyncStart { get; set; }
     public required IEnumerable<ExternalGameStateTeam> Teams { get; set; }
 }
 
@@ -20,6 +42,7 @@ public sealed class ExternalGameStateTeam
     public required string Id { get; set; }
     public required string Name { get; set; }
     public required ExternalGameDeployStatus DeployStatus { get; set; }
+    public required string ExternalGameHostUrl { get; set; }
     public required bool IsReady { get; set; }
     public required IEnumerable<SimpleSponsor> Sponsors { get; set; }
     public required IEnumerable<ExternalGameStateChallenge> Challenges { get; set; }

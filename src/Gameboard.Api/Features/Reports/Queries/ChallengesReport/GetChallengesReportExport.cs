@@ -8,7 +8,7 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record GetChallengesReportExportQuery(ChallengesReportParameters Parameters, User ActingUser) : IRequest<IEnumerable<ChallengesReportExportRecord>>, IReportQuery;
+public record GetChallengesReportExportQuery(ChallengesReportParameters Parameters) : IRequest<IEnumerable<ChallengesReportExportRecord>>, IReportQuery;
 
 internal class GetChallengesReportExportHandler : IRequestHandler<GetChallengesReportExportQuery, IEnumerable<ChallengesReportExportRecord>>
 {

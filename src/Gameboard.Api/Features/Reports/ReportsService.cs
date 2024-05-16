@@ -9,6 +9,7 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
+using ServiceStack;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -16,6 +17,7 @@ public interface IReportsService
 {
     ReportResults<TRecord> BuildResults<TRecord>(ReportRawResults<TRecord> rawResults);
     ReportResults<TOverallStats, TRecord> BuildResults<TOverallStats, TRecord>(ReportRawResults<TOverallStats, TRecord> rawResults);
+    Task<string> GetDescription(string key);
     Task<IDictionary<string, ReportTeamViewModel>> GetTeamsByPlayerIds(IEnumerable<string> playerIds, CancellationToken cancellationToken);
     Task<IEnumerable<ReportViewModel>> List();
     Task<IEnumerable<SimpleEntity>> ListChallengeSpecs(string gameId = null);
@@ -52,6 +54,12 @@ public class ReportsService : IReportsService
         _paging = paging;
         _store = store;
         _teamService = teamService;
+    }
+
+    public async Task<string> GetDescription(string key)
+    {
+        var reports = await List();
+        return reports.SingleOrDefault(r => r.Key == key)?.Description;
     }
 
     public Task<IEnumerable<ReportViewModel>> List()
@@ -131,7 +139,7 @@ public class ReportsService : IReportsService
                     "Player Performance",
                     "Scoring",
                     "Trends",
-                    "Practice vs. Competitive"
+                    "Competitive vs. Practice"
                 },
                 ExampleParameters = new string[]
                 {
@@ -140,6 +148,25 @@ public class ReportsService : IReportsService
                     "Track",
                     "Season",
                     "Game",
+                    "Sponsor"
+                }
+            },
+            new()
+            {
+                Name = "Site Usage",
+                Key = ReportKey.SiteUsage,
+                Description = "View a high-level overview of how the app is being used, optionally filtered by date range and user sponsor.",
+                IsExportable = false,
+                ExampleFields = new string[]
+                {
+                    "Avg. Completed Challenges Per Player",
+                    "Competitive vs. Practice",
+                    "Deployed Challenge Count",
+                    "Unique Sponsors"
+                },
+                ExampleParameters = new string[]
+                {
+                    "Activity Start / End Dates",
                     "Sponsor"
                 }
             },
@@ -226,20 +253,13 @@ public class ReportsService : IReportsService
     public Task<IEnumerable<string>> ListSeasons()
         => GetGameStringPropertyOptions(g => g.Season);
 
-    public async Task<IEnumerable<string>> ListSeries()
-        =>
-        (
-            await _store
-                .List<Data.Game>()
-                .Select(g => g.Competition)
-                .Distinct()
-                .Where(c => c != null && c != "")
-                .ToArrayAsync()
-        ).Where(s => s.NotEmpty());
+    public Task<IEnumerable<string>> ListSeries()
+        => GetGameStringPropertyOptions(g => g.Division);
 
     public async Task<IEnumerable<SimpleEntity>> ListGames()
         => await _store.List<Data.Game>()
             .Select(g => new SimpleEntity { Id = g.Id, Name = g.Name })
+            .OrderBy(g => g.Name)
             .ToArrayAsync();
 
     public async Task<IEnumerable<ReportSponsorViewModel>> ListSponsors()
@@ -261,6 +281,7 @@ public class ReportsService : IReportsService
         return await _store.List<Data.Ticket>()
             .Select(t => t.Status)
             .Distinct()
+            .OrderBy(t => t)
             .ToArrayAsync();
     }
 
@@ -283,7 +304,8 @@ public class ReportsService : IReportsService
             MetaData = new ReportMetaData
             {
                 Title = rawResults.Title,
-                Key = rawResults.ReportKey,
+                Key = rawResults.Key,
+                Description = rawResults.Description,
                 ParametersSummary = null,
                 RunAt = _now.Get()
             },
@@ -301,7 +323,8 @@ public class ReportsService : IReportsService
             MetaData = new ReportMetaData
             {
                 Title = rawResults.Title,
-                Key = rawResults.ReportKey,
+                Key = rawResults.Key,
+                Description = rawResults.Description,
                 ParametersSummary = null,
                 RunAt = _now.Get()
             },

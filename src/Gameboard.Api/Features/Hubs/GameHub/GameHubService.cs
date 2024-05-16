@@ -13,30 +13,38 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games;
 
-public interface IGameHubService : INotificationHandler<GameEnrolledPlayersChangeNotification>, INotificationHandler<AppStartupNotification>, INotificationHandler<GameCacheInvalidateCommand>
+public interface IGameHubService :
+    INotificationHandler<AppStartupNotification>,
+    INotificationHandler<GameCacheInvalidateNotification>,
+    INotificationHandler<GameEnrolledPlayersChangeNotification>,
+    INotificationHandler<GameLaunchEndedNotification>,
+    INotificationHandler<GameLaunchFailureNotification>,
+    INotificationHandler<GameLaunchStartedNotification>,
+    INotificationHandler<GameLaunchProgressChangedNotification>
 {
     // invoke functions on clients
-    Task SendExternalGameChallengesDeployStart(GameStartUpdate state);
-    Task SendExternalGameChallengesDeployProgressChange(GameStartUpdate state);
-    Task SendExternalGameChallengesDeployEnd(GameStartUpdate state);
-    Task SendExternalGameLaunchStart(GameStartUpdate state);
-    Task SendExternalGameLaunchEnd(GameStartUpdate state);
-    Task SendExternalGameLaunchFailure(GameStartUpdate state);
-    Task SendExternalGameGamespacesDeployStart(GameStartUpdate state);
-    Task SendExternalGameGamespacesDeployProgressChange(GameStartUpdate state);
-    Task SendExternalGameGamespacesDeployEnd(GameStartUpdate state);
+    Task SendChallengesDeployStart(GameHubEvent ev);
+    Task SendChallengesDeployProgressChange(GameHubEvent ev);
+    Task SendChallengesDeployEnd(GameHubEvent ev);
+    Task SendGamespacesDeployStart(GameHubEvent ev);
+    Task SendGamespacesDeployProgressChange(GameHubEvent ev);
+    Task SendGamespacesDeployEnd(GameHubEvent ev);
+    Task SendLaunchEnded(GameHubEvent ev);
+    Task SendLaunchStarted(GameHubEvent ev);
+    Task SendLaunchProgressChanged(GameHubEvent ev);
     Task SendSyncStartGameStateChanged(SyncStartState state);
     Task SendSyncStartGameStarted(SyncStartGameStartedState state);
     Task SendSyncStartGameStarting(SyncStartState state);
-    // Task SendYourActiveGamesChanged(string userId);
 }
 
 internal class GameHubService : IGameHubService, IGameboardHubService
 {
     private static readonly ConcurrentDictionary<string, string[]> _gameIdUserIdsMap = new();
+    private static readonly ConcurrentDictionary<string, string[]> _teamIdUserIdsMap = new();
 
     private readonly IHubContext<GameHub, IGameHubEvent> _hubContext;
     private readonly INowService _now;
+    private readonly IGameResourcesDeployStatusService _resourcesDeployStatus;
     private readonly IStore _store;
 
     public GameboardHubType GroupType => GameboardHubType.Game;
@@ -45,121 +53,109 @@ internal class GameHubService : IGameHubService, IGameboardHubService
     (
         IHubContext<GameHub, IGameHubEvent> hubContext,
         INowService now,
+        IGameResourcesDeployStatusService resourcesDeployStatus,
         IStore store
     )
     {
         _hubContext = hubContext;
         _now = now;
+        _resourcesDeployStatus = resourcesDeployStatus;
         _store = store;
     }
 
-    public async Task SendExternalGameChallengesDeployStart(GameStartUpdate state)
+    public async Task SendLaunchEnded(GameHubEvent ev)
     {
         await _hubContext
             .Clients
-            .Users(GetGameUserIds(state.Game.Id))
-            .ExternalGameChallengesDeployStart(new GameHubEvent<GameStartUpdate>
+            .Users(GetTeamsUserIds(ev.TeamIds))
+            .LaunchEnd(new GameHubEvent<GameResourcesDeployStatus>
             {
-                GameId = state.Game.Id,
-                EventType = GameHubEventType.ExternalGameChallengesDeployStart,
-                Data = state
+                GameId = ev.GameId,
+                TeamIds = ev.TeamIds,
+                Data = await _resourcesDeployStatus.GetStatus(ev.GameId, ev.TeamIds, CancellationToken.None)
             });
     }
 
-    public Task SendExternalGameChallengesDeployProgressChange(GameStartUpdate state)
-        => _hubContext
-            .Clients
-            .Users(GetGameUserIds(state.Game.Id))
-            .ExternalGameChallengesDeployProgressChange(new GameHubEvent<GameStartUpdate>
-            {
-                GameId = state.Game.Id,
-                EventType = GameHubEventType.ExternalGameChallengesDeployProgressChange,
-                Data = state
-            });
-
-    public Task SendExternalGameChallengesDeployEnd(GameStartUpdate state)
-        => _hubContext
-            .Clients
-            .Users(GetGameUserIds(state.Game.Id))
-            .ExternalGameChallengesDeployEnd(new GameHubEvent<GameStartUpdate>
-            {
-                GameId = state.Game.Id,
-                EventType = GameHubEventType.ExternalGameChallengesDeployEnd,
-                Data = state
-            });
-
-    public Task SendExternalGameLaunchStart(GameStartUpdate state)
-    {
-        return _hubContext
-            .Clients
-            .Users(GetGameUserIds(state.Game.Id))
-            .ExternalGameLaunchStart(new GameHubEvent<GameStartUpdate>
-            {
-                GameId = state.Game.Id,
-                EventType = GameHubEventType.ExternalGameLaunchStart,
-                Data = state
-            });
-    }
-
-    public Task SendExternalGameLaunchEnd(GameStartUpdate state)
-        => _hubContext
-            .Clients
-            .Users(GetGameUserIds(state.Game.Id))
-            .ExternalGameLaunchEnd(new GameHubEvent<GameStartUpdate>
-            {
-                GameId = state.Game.Id,
-                EventType = GameHubEventType.ExternalGameLaunchStart,
-                Data = state
-            });
-
-    public Task SendExternalGameLaunchFailure(GameStartUpdate state)
-        => _hubContext
-            .Clients
-            .Users(GetGameUserIds(state.Game.Id))
-            .ExternalGameLaunchFailure(new GameHubEvent<GameStartUpdate>
-            {
-                GameId = state.Game.Id,
-                EventType = GameHubEventType.ExternalGameLaunchFailure,
-                Data = state
-            });
-
-    public async Task SendExternalGameGamespacesDeployStart(GameStartUpdate state)
+    public async Task SendLaunchFailure(GameHubEvent ev, string message)
     {
         await _hubContext
             .Clients
-            .Users(GetGameUserIds(state.Game.Id))
-            .ExternalGameGamespacesDeployStart(new GameHubEvent<GameStartUpdate>
+            .Users(GetTeamsUserIds(ev.TeamIds))
+            .LaunchFailure(new GameHubEvent<GameHubLaunchFailureEventData>
             {
-                GameId = state.Game.Id,
-                EventType = GameHubEventType.ExternalGameGamespacesDeployStart,
-                Data = state
+                GameId = ev.GameId,
+                TeamIds = ev.TeamIds,
+                Data = new GameHubLaunchFailureEventData { Message = message }
             });
     }
 
-    public async Task SendExternalGameGamespacesDeployProgressChange(GameStartUpdate state)
+    public async Task SendLaunchProgressChanged(GameHubEvent ev)
     {
         await _hubContext
             .Clients
-            .Users(GetGameUserIds(state.Game.Id))
-            .ExternalGameGamespacesDeployProgressChange(new GameHubEvent<GameStartUpdate>
+            .Users(GetTeamsUserIds(ev.TeamIds))
+            .LaunchProgressChanged(new GameHubEvent<GameResourcesDeployStatus>
             {
-                GameId = state.Game.Id,
-                EventType = GameHubEventType.ExternalGameGamespacesDeployProgressChange,
-                Data = state
+                GameId = ev.GameId,
+                TeamIds = ev.TeamIds,
+                Data = await _resourcesDeployStatus.GetStatus(ev.GameId, ev.TeamIds, CancellationToken.None)
             });
     }
 
-    public async Task SendExternalGameGamespacesDeployEnd(GameStartUpdate state)
+    public async Task SendLaunchStarted(GameHubEvent ev)
     {
         await _hubContext
             .Clients
-            .Users(GetGameUserIds(state.Game.Id))
-            .ExternalGameGamespacesDeployEnd(new GameHubEvent<GameStartUpdate>
-            {
-                GameId = state.Game.Id,
-                EventType = GameHubEventType.ExternalGameGamespacesDeployEnd,
-                Data = state
-            });
+            .Users(GetTeamsUserIds(ev.TeamIds))
+            .LaunchStart(ev);
+    }
+
+    public async Task SendChallengesDeployStart(GameHubEvent ev)
+    {
+        await _hubContext
+            .Clients
+            .Users(GetTeamsUserIds(ev.TeamIds))
+            .ChallengesDeployStart(await ToGameHubEvent(ev));
+    }
+
+    public async Task SendChallengesDeployProgressChange(GameHubEvent ev)
+    {
+        await _hubContext
+            .Clients
+            .Users(GetTeamsUserIds(ev.TeamIds))
+            .ChallengesDeployProgressChange(await ToGameHubEvent(ev));
+    }
+
+    public async Task SendChallengesDeployEnd(GameHubEvent ev)
+    {
+        await _hubContext
+            .Clients
+            .Users(GetTeamsUserIds(ev.TeamIds))
+            .ChallengesDeployProgressChange(await ToGameHubEvent(ev));
+    }
+
+    public async Task SendGamespacesDeployStart(GameHubEvent ev)
+    {
+        await _hubContext
+            .Clients
+            .Users(GetTeamsUserIds(ev.TeamIds))
+            .GamespacesDeployStart(await ToGameHubEvent(ev));
+    }
+
+    public async Task SendGamespacesDeployProgressChange(GameHubEvent ev)
+    {
+        await _hubContext
+            .Clients
+            .Users(GetTeamsUserIds(ev.TeamIds))
+            .GamespacesDeployProgressChange(await ToGameHubEvent(ev));
+    }
+
+    public async Task SendGamespacesDeployEnd(GameHubEvent ev)
+    {
+        await _hubContext
+            .Clients
+            .Users(GetTeamsUserIds(ev.TeamIds))
+            .GamespacesDeployEnd(await ToGameHubEvent(ev));
     }
 
     public async Task SendSyncStartGameStarted(SyncStartGameStartedState state)
@@ -170,55 +166,40 @@ internal class GameHubService : IGameHubService, IGameboardHubService
             .SyncStartGameStarted(new GameHubEvent<SyncStartGameStartedState>
             {
                 GameId = state.Game.Id,
-                EventType = GameHubEventType.SyncStartGameStarted,
+                TeamIds = state.Teams.Keys,
                 Data = state
             });
     }
 
     public async Task SendSyncStartGameStarting(SyncStartState state)
     {
+        var teamIds = state.Teams.Select(t => t.Id);
+
         await _hubContext
             .Clients
-            .Users(GetGameUserIds(state.Game.Id))
+            .Users(GetTeamsUserIds(teamIds))
             .SyncStartGameStarting(new GameHubEvent<SyncStartState>
             {
                 GameId = state.Game.Id,
-                EventType = GameHubEventType.SyncStartGameStarting,
+                TeamIds = teamIds,
                 Data = state
             });
     }
 
     public async Task SendSyncStartGameStateChanged(SyncStartState state)
     {
+        var teamIds = state.Teams.Select(t => t.Id);
+
         await _hubContext
             .Clients
-            .Users(GetGameUserIds(state.Game.Id))
+            .Users(GetTeamsUserIds(teamIds))
             .SyncStartGameStateChanged(new GameHubEvent<SyncStartState>
             {
                 GameId = state.Game.Id,
-                EventType = GameHubEventType.SyncStartGameStateChanged,
+                TeamIds = teamIds,
                 Data = state
             });
     }
-
-    // public async Task SendYourActiveGamesChanged(string userId)
-    // {
-    //     var enrollments = await GetActiveEnrollments(userId);
-
-    //     await _hubContext
-    //         .Clients
-    //         .User(userId)
-    //         .YourActiveGamesChanged(new GameHubEvent<YourActiveGamesChangedEvent>
-    //         {
-    //             GameId = string.Empty,
-    //             EventType = GameHubEventType.YourActiveGamesChanged,
-    //             Data = new YourActiveGamesChangedEvent
-    //             {
-    //                 UserId = userId,
-    //                 ActiveEnrollments = enrollments
-    //             }
-    //         });
-    // }
 
     public async Task Handle(AppStartupNotification appStartupNotification, CancellationToken cancellationToken)
     {
@@ -230,14 +211,26 @@ internal class GameHubService : IGameHubService, IGameboardHubService
             .ToArrayAsync(cancellationToken);
 
         foreach (var game in games)
-            await UpdateGameIdUserIdsMap(game.Id);
+            await UpdateGameAndTeamUserIdsMaps(game.Id);
     }
 
-    public Task Handle(GameCacheInvalidateCommand notification, CancellationToken cancellationToken)
-        => UpdateGameIdUserIdsMap(notification.GameId);
+    public Task Handle(GameCacheInvalidateNotification notification, CancellationToken cancellationToken)
+        => UpdateGameAndTeamUserIdsMaps(notification.GameId);
 
     public Task Handle(GameEnrolledPlayersChangeNotification notification, CancellationToken cancellationToken)
-        => UpdateGameIdUserIdsMap(notification.Context.GameId);
+        => UpdateGameAndTeamUserIdsMaps(notification.Context.GameId);
+
+    public Task Handle(GameLaunchEndedNotification notification, CancellationToken cancellationToken)
+        => SendLaunchEnded(new GameHubEvent { GameId = notification.GameId, TeamIds = notification.TeamIds });
+
+    public Task Handle(GameLaunchFailureNotification notification, CancellationToken cancellationToken)
+        => SendLaunchFailure(new GameHubEvent { GameId = notification.GameId, TeamIds = notification.TeamIds }, notification.Message);
+
+    public Task Handle(GameLaunchProgressChangedNotification notification, CancellationToken cancellationToken)
+        => SendLaunchProgressChanged(new GameHubEvent { GameId = notification.GameId, TeamIds = notification.TeamIds });
+
+    public Task Handle(GameLaunchStartedNotification notification, CancellationToken cancellationToken)
+        => SendLaunchStarted(new GameHubEvent { GameId = notification.GameId, TeamIds = notification.TeamIds });
 
     private IEnumerable<string> GetGameUserIds(string gameId)
     {
@@ -248,21 +241,54 @@ internal class GameHubService : IGameHubService, IGameboardHubService
         return userIds;
     }
 
-    private async Task UpdateGameIdUserIdsMap(string gameId)
+    private IEnumerable<string> GetTeamsUserIds(IEnumerable<string> teamIds)
     {
-        var gameUsers = await _store
+        var userIds = new List<string>();
+
+        foreach (var teamId in teamIds)
+        {
+            var teamUserIds = _teamIdUserIdsMap.TryGetValue(teamId, out var results) ? results : Array.Empty<string>();
+            userIds.AddRange(teamUserIds);
+        }
+
+        return userIds.Distinct().ToArray();
+    }
+
+    private async Task<GameHubEvent<GameResourcesDeployStatus>> ToGameHubEvent(GameHubEvent ev)
+    {
+        return new GameHubEvent<GameResourcesDeployStatus>
+        {
+            GameId = ev.GameId,
+            TeamIds = ev.TeamIds,
+            Data = await _resourcesDeployStatus.GetStatus(ev.GameId, ev.TeamIds, CancellationToken.None)
+        };
+    }
+
+    private async Task UpdateGameAndTeamUserIdsMaps(string gameId)
+    {
+        var gameAndTeamUsers = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => p.Game.GameEnd != DateTimeOffset.MinValue || p.Game.GameEnd > _now.Get())
             .Where(p => p.Game.PlayerMode == PlayerMode.Competition && p.Mode == PlayerMode.Competition)
             .Where(p => p.GameId == gameId)
-            .Select(p => p.UserId)
+            .Select(p => new { p.TeamId, p.UserId })
             .Distinct()
             .ToArrayAsync();
 
         lock (_gameIdUserIdsMap)
         {
             _gameIdUserIdsMap.TryRemove(gameId, out var existingValue);
-            _gameIdUserIdsMap.TryAdd(gameId, gameUsers);
+            _gameIdUserIdsMap.TryAdd(gameId, gameAndTeamUsers.Select(gu => gu.UserId).ToArray());
+        }
+
+        var teamUsers = gameAndTeamUsers.GroupBy(g => g.TeamId).ToDictionary(u => u.Key, u => u.Select(thing => thing.UserId).ToArray());
+        lock (_teamIdUserIdsMap)
+        {
+            foreach (var entry in teamUsers)
+            {
+                _teamIdUserIdsMap.TryRemove(entry.Key, out var existingValue);
+                _teamIdUserIdsMap.TryAdd(entry.Key, entry.Value);
+            }
         }
     }
 }

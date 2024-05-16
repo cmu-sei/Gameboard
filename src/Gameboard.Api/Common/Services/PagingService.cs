@@ -19,7 +19,6 @@ public sealed class PagingResults
 
 public sealed class PagingArgs
 {
-    public int? DefaultPageSize { get; set; } = null;
     public int? PageNumber { get; set; } = null;
     public int? PageSize { get; set; } = null;
 }
@@ -51,7 +50,6 @@ internal class PagingService : IPagingService
             pagingArgs.PageSize ??= DEFAULT_PAGE_SIZE;
             pagingArgs.PageNumber ??= 0;
         }
-
 
         finalItems = finalItems
             .Skip(pagingArgs.PageNumber.Value * pagingArgs.PageSize.Value)

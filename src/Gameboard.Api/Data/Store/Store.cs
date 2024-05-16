@@ -12,9 +12,6 @@ namespace Gameboard.Api.Data;
 
 public interface IStore
 {
-    Task<bool> AnyAsync<TEntity>() where TEntity : class, IEntity;
-    Task<bool> AnyAsync<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : class, IEntity;
-    Task<int> CountAsync<TEntity>(Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder) where TEntity : class, IEntity;
     Task<TEntity> Create<TEntity>(TEntity entity) where TEntity : class, IEntity;
     Task<TEntity> Create<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity;
     Task Delete<TEntity>(string id) where TEntity : class, IEntity;
@@ -53,19 +50,6 @@ internal class Store : IStore
     {
         _dbContext = dbContext;
         _guids = guids;
-    }
-
-    public Task<bool> AnyAsync<TEntity>() where TEntity : class, IEntity
-        => _dbContext.Set<TEntity>().AnyAsync();
-
-    public Task<bool> AnyAsync<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : class, IEntity
-        => _dbContext.Set<TEntity>().AnyAsync(predicate);
-
-    public async Task<int> CountAsync<TEntity>(Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder) where TEntity : class, IEntity
-    {
-        var query = _dbContext.Set<TEntity>().AsNoTracking();
-        query = queryBuilder?.Invoke(query);
-        return await query.CountAsync();
     }
 
     public Task<TEntity> Create<TEntity>(TEntity entity) where TEntity : class, IEntity
@@ -168,6 +152,10 @@ internal class Store : IStore
     {
         _dbContext.AddRange(entities);
         await _dbContext.SaveChangesAsync();
+
+        // detach because of EF stuff
+        // TODO: investigate why our store is running afoul of EF attachment stuff
+        _dbContext.DetachUnchanged();
         return entities;
     }
 

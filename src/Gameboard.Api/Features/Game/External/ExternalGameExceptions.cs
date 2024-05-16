@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Gameboard.Api;
 using Gameboard.Api.Structure;
 
 public sealed class CantPreDeployNonExternalGame : GameboardValidationException
@@ -14,10 +13,16 @@ public sealed class CantResolveTeamDeployStatus : GameboardException
         : base($"Couldn't resolve deploy status for team {teamId} in game {gameId}.") { }
 }
 
-public sealed class CantResolveGameDeployStatus : GameboardException
+public sealed class CantResolveGamePlayState : GameboardException
 {
-    public CantResolveGameDeployStatus(string gameId)
-        : base($"Couldn't resolve deploy status for game {gameId}.") { }
+    public CantResolveGamePlayState(string teamId, string gameId)
+        : base($"Couldn't resolve play state for team {teamId ?? "No team - checking pre-enrollment"} (game {gameId}).") { }
+}
+
+internal class EmptyExternalHostUrl : GameboardException
+{
+    public EmptyExternalHostUrl(string gameId, string hostUrl)
+        : base($"""Game ${gameId} doesn't have a configured external host URL (current value: "{hostUrl}".)""") { }
 }
 
 internal class EmptyExternalStartupEndpoint : GameboardException

@@ -5,7 +5,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 namespace Gameboard.Api.Features.Reports;
 
-public record EnrollmentReportByGameQuery(EnrollmentReportParameters Parameters, PagingArgs PagingArgs, User ActingUser) : IRequest<ReportResults<EnrollmentReportByGameRecord>>, IReportQuery;
+public record EnrollmentReportByGameQuery(EnrollmentReportParameters Parameters, PagingArgs PagingArgs) : IRequest<ReportResults<EnrollmentReportByGameRecord>>, IReportQuery;
 
 internal class EnrollmentReportByGameHandler : IRequestHandler<EnrollmentReportByGameQuery, ReportResults<EnrollmentReportByGameRecord>>
 {
@@ -133,8 +133,9 @@ internal class EnrollmentReportByGameHandler : IRequestHandler<EnrollmentReportB
         {
             ParameterSummary = string.Empty,
             PagingArgs = request.PagingArgs,
+            Key = ReportKey.Enrollment,
+            Description = await _reportsService.GetDescription(ReportKey.Enrollment),
             Records = groupedResults,
-            ReportKey = ReportKey.Enrollment,
             Title = "Enrollment Report (Grouped By Game)"
         });
     }

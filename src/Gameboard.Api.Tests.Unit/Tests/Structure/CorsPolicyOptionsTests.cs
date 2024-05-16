@@ -1,5 +1,3 @@
-using Gameboard.Api;
-
 namespace Gameboard.Api.Tests.Unit;
 
 public class CorsPolicyOptionsTests

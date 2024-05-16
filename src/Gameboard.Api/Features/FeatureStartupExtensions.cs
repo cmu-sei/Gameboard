@@ -9,13 +9,12 @@ using Gameboard.Api;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Extensions;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Games.Validators;
 using Gameboard.Api.Features.Reports;
-using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Teams;
-using Gameboard.Api.Features.UnityGames;
 using Gameboard.Api.Features.Users;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Structure;
@@ -27,20 +26,16 @@ public static class ServiceStartupExtensions
 {
     public static IServiceCollection AddGameboardServices(this IServiceCollection services, AppSettings settings)
     {
-        var jsonService = JsonService.WithGameboardSerializerOptions();
-
         // add special case services
         services
             .AddHttpContextAccessor()
-            .AddScoped<IExternalGameHostAccessTokenProvider, HttpContextAccessTokenProvider>()
             .AddSingleton(_ => settings.Core)
             .AddSingleton(_ => settings.ApiKey)
             .AddSingleton(new BackgroundAsyncTaskContext())
             // explicitly singleton because it's a hosted service, so we want exactly one
             .AddSingleton<IBackgroundAsyncTaskQueueService, BackgroundAsyncTaskQueueService>()
-            .AddSingleton<IJsonService, JsonService>(f => jsonService)
+            .AddSingleton<IJsonService, JsonService>(f => JsonService.WithGameboardSerializerOptions())
             .AddSingleton(opts => JsonService.GetJsonSerializerOptions())
-            .AddSingleton(jsonService)
             .AddConcretesFromNamespace("Gameboard.Api.Services")
             .AddConcretesFromNamespace("Gameboard.Api.Structure.Authorizers")
             .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators")
@@ -49,23 +44,27 @@ public static class ServiceStartupExtensions
             .AddImplementationsOf<IGameboardRequestValidator<IReportQuery>>()
             // these aren't picked up right now because they implement multiple interfaces,
             // but allowing multiple-interface classes causes things like IReportQuery implementers to get snagged
-            .AddScoped<IExternalSyncGameStartService, ExternalSyncGameStartService>()
+            .AddScoped<IExtensionsService, ExtensionsService>()
+            .AddScoped<IExternalGameService, ExternalGameService>()
+            .AddScoped<IExternalGameModeService, ExternalGameModeService>()
+            .AddScoped<IExternalSyncGameModeService, ExternalSyncGameModeService>()
             .AddScoped<IGameHubService, GameHubService>()
-            .AddScoped<IScoreDenormalizationService, ScoreDenormalizationService>()
+            .AddScoped<IStandardGameModeService, StandardGameModeService>()
+            .AddScoped<IGameResourcesDeployStatusService, GameResourcesDeployStatusService>()
             .AddScoped<ISupportHubBus, SupportHubBus>()
             .AddScoped<ITeamService, TeamService>()
             .AddScoped<IUserHubBus, UserHubBus>()
-            // so close to fixing this, but it's a very special snowflake of a binding
-            .AddScoped<IUnityStore, UnityStore>()
             .AddInterfacesWithSingleImplementations();
 
         foreach (var t in Assembly
             .GetExecutingAssembly()
             .ExportedTypes
-            .Where(t =>
-                t.GetInterface(nameof(IModelValidator)) != null
-                && t.IsClass
-                && !t.IsAbstract
+            .Where
+            (
+                t =>
+                    t.GetInterface(nameof(IModelValidator)) != null
+                    && t.IsClass
+                    && !t.IsAbstract
             )
         )
         {

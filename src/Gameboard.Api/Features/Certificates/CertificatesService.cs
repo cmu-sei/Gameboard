@@ -68,7 +68,7 @@ internal class CertificatesService : ICertificatesService
                     Season = attempt.Game.Season,
                     Track = attempt.Game.Track
                 },
-                PublishedOn = specs.ContainsKey(attempt.SpecId) ? specs[attempt.SpecId].PublishedPracticeCertificates.FirstOrDefault()?.PublishedOn : null
+                PublishedOn = specs.TryGetValue(attempt.SpecId, out Data.ChallengeSpec value) ? value.PublishedPracticeCertificates.FirstOrDefault()?.PublishedOn : null
             }).ToArray();
     }
 }

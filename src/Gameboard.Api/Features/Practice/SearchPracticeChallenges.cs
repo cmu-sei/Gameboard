@@ -52,8 +52,8 @@ internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeC
         foreach (var result in results)
         {
             // hide tags which aren't in the "suggested searches" configured in the practice area
-            // (this is because topo has lots of tags that aren't useful to players, so we only)
-            // want to show them values in the suggested search
+            // (this is because topo has lots of tags that aren't useful to players, so we only
+            // want to show them values in the suggested search) 
             result.Tags = result.Tags.Where(t => sluggedSuggestedSearches.Contains(_slugger.Get(t)));
 
             // fix up relative urls
@@ -70,10 +70,7 @@ internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeC
             PageSize = pageSize
         });
 
-        return new SearchPracticeChallengesResult
-        {
-            Results = pagedResults
-        };
+        return new SearchPracticeChallengesResult { Results = pagedResults };
     }
 
     /// <summary>
@@ -88,7 +85,8 @@ internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeC
             .WithNoTracking<Data.ChallengeSpec>()
             .Include(s => s.Game)
             .Where(s => s.Game.PlayerMode == PlayerMode.Practice)
-            .Where(s => !s.Disabled);
+            .Where(s => !s.Disabled)
+            .Where(s => !s.IsHidden);
 
         if (filterTerm.IsNotEmpty())
         {

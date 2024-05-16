@@ -52,11 +52,6 @@ internal class CantStartSynchronizedSession : GameboardException
         : base($"Can't start sync session for game {gameId}. Validation result: {validationResult.CanStart} | {validationResult.SyncStartState.IsReady}") { }
 }
 
-internal class ChallengeResolutionFailure : GameboardException
-{
-    public ChallengeResolutionFailure(string teamId, IEnumerable<string> challengeIds) : base($"Couldn't resolve a Unity challenge for team {teamId}. They have {challengeIds.Count()} challenges ({String.Join(" | ", challengeIds)})") { }
-}
-
 internal class ExternalGameIsNotSyncStart : GameboardValidationException
 {
     public ExternalGameIsNotSyncStart(string gameId, string whyItMatters) : base($"""Game "{gameId}" is not a sync-start game. {whyItMatters}""") { }

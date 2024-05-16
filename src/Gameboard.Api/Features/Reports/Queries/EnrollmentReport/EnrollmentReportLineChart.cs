@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record EnrollmentReportLineChartQuery(EnrollmentReportParameters Parameters, User ActingUser) : IRequest<IDictionary<DateTimeOffset, EnrollmentReportLineChartGroup>>, IReportQuery;
+public record EnrollmentReportLineChartQuery(EnrollmentReportParameters Parameters) : IRequest<IDictionary<DateTimeOffset, EnrollmentReportLineChartGroup>>, IReportQuery;
 
 internal class EnrollmentReportLineChartHandler : IRequestHandler<EnrollmentReportLineChartQuery, IDictionary<DateTimeOffset, EnrollmentReportLineChartGroup>>
 {

@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Games.Start;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -58,16 +59,24 @@ public class TeamController : ControllerBase
             );
     }
 
+    [HttpGet("{teamId}/play-state")]
+    public Task<GamePlayState> GetTeamGamePlayState([FromRoute] string teamId)
+        => _mediator.Send(new GetGamePlayStateQuery(teamId, _actingUserService.Get()?.Id));
+
+    [HttpPut("{teamId}/session")]
+    public Task ResetSession([FromRoute] string teamId, [FromBody] ResetTeamSessionCommand request, CancellationToken cancellationToken)
+        => _mediator.Send(new ResetTeamSessionCommand(teamId, request.ResetType, _actingUserService.Get()), cancellationToken);
+
     [HttpGet("{teamId}/timeline")]
     public Task<EventHorizon> GetTeamEventHorizon([FromRoute] string teamId)
         => _mediator.Send(new GetTeamEventHorizonQuery(teamId));
 
-    [HttpPost("{teamId}/session")]
-    public Task ResetSession([FromRoute] string teamId, [FromBody] ResetTeamSessionCommand request, CancellationToken cancellationToken)
-        => _mediator.Send(new ResetTeamSessionCommand(teamId, request.ResetType, _actingUserService.Get()), cancellationToken);
+    // [HttpPost("{teamId}/session")]
+    // public Task StartSessions([FromBody] StartTeamSessionsCommand request, CancellationToken cancellationToken)
+    //     => _mediator.Send(request, cancellationToken);
 
     [HttpPut("{teamId}/ready")]
     [Authorize]
-    public Task UpdateTeamReadyState([FromRoute] string teamId, [FromBody] UpdateIsReadyModel isReadyCommand)
+    public Task UpdateTeamReadyState([FromRoute] string teamId, [FromBody] UpdateIsReadyRequest isReadyCommand)
         => _mediator.Send(new UpdateTeamReadyStateCommand(teamId, isReadyCommand.IsReady));
 }

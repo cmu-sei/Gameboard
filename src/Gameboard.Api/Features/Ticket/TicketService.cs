@@ -9,8 +9,10 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Support;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Hubs;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -21,6 +23,7 @@ namespace Gameboard.Api.Services
         private readonly IActingUserService _actingUserService;
         private readonly IFileUploadService _fileUploadService;
         private readonly IGuidService _guids;
+        private readonly IMediator _mediator;
         private readonly INowService _now;
         private readonly IStore _store;
         private readonly ISupportHubBus _supportHubBus;
@@ -35,6 +38,7 @@ namespace Gameboard.Api.Services
             IGuidService guids,
             ILogger<TicketService> logger,
             IMapper mapper,
+            IMediator mediator,
             INowService now,
             CoreOptions options,
             IStore store,
@@ -47,6 +51,7 @@ namespace Gameboard.Api.Services
             _actingUserService = actingUserService;
             _fileUploadService = fileUploadService;
             _guids = guids;
+            _mediator = mediator;
             _now = now;
             _store = store;
             _supportHubBus = supportHubBus;
@@ -54,9 +59,7 @@ namespace Gameboard.Api.Services
         }
 
         public string GetFullKey(int key)
-        {
-            return Options.KeyPrefix + "-" + key.ToString();
-        }
+            => $"{(Options.KeyPrefix.IsEmpty() ? "GB" : Options.KeyPrefix)}-{key}";
 
         public async Task<Ticket> Retrieve(string id)
         {
@@ -123,9 +126,7 @@ namespace Gameboard.Api.Services
                 entity.Status = "Open";
 
             if (!entity.PlayerId.IsEmpty() || !entity.ChallengeId.IsEmpty())
-            {
                 await UpdatedSessionContext(entity);
-            }
 
             entity.CreatorId = actingUser.Id;
             entity.Created = timestamp;
@@ -153,6 +154,17 @@ namespace Gameboard.Api.Services
                 ApprovedName = actingUser.ApprovedName,
                 IsSupportPersonnel = actingUser.IsAdmin || actingUser.IsSupport
             };
+
+            // send app-level notification
+            await _mediator.Publish(new TicketCreatedNotification
+            {
+                Key = entity.Key,
+                FullKey = GetFullKey(entity.Key),
+                Title = entity.Summary,
+                Description = entity.Description,
+                Creator = new SimpleEntity { Id = actingUser.Id, Name = actingUser.ApprovedName },
+                Challenge = createdTicketModel.Challenge is null ? null : new SimpleEntity { Id = createdTicketModel.ChallengeId, Name = createdTicketModel.Challenge.Name }
+            });
 
             // notify the signalR hub (sends browser notifications to support staff)
             await _supportHubBus.SendTicketCreated(createdTicketModel);
@@ -451,11 +463,6 @@ namespace Gameboard.Api.Services
             return labels.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries);
         }
 
-        internal string TransformTicketKey(int key)
-        {
-            return Options.KeyPrefix + "-" + key.ToString();
-        }
-
         private async Task UpdatedSessionContext(Data.Ticket entity)
         {
             if (!entity.ChallengeId.IsEmpty())
@@ -503,7 +510,7 @@ namespace Gameboard.Api.Services
             {
                 var statusActivity = new Data.TicketActivity
                 {
-                    Id = Guid.NewGuid().ToString("n"),
+                    Id = _guids.GetGuid(),
                     UserId = actorId,
                     Status = entity.Status,
                     Type = ActivityType.StatusChange,
@@ -515,7 +522,7 @@ namespace Gameboard.Api.Services
             {
                 var assigneeActivity = new Data.TicketActivity
                 {
-                    Id = Guid.NewGuid().ToString("n"),
+                    Id = _guids.GetGuid(),
                     UserId = actorId,
                     AssigneeId = entity.AssigneeId,
                     Type = ActivityType.AssigneeChange,
@@ -527,7 +534,7 @@ namespace Gameboard.Api.Services
 
         private Ticket TransformInPlace(Ticket ticket)
         {
-            ticket.FullKey = TransformTicketKey(ticket.Key);
+            ticket.FullKey = GetFullKey(ticket.Key);
             return ticket;
         }
     }

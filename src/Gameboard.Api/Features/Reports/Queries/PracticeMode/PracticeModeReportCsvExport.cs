@@ -5,7 +5,7 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record PracticeModeReportCsvExportQuery(PracticeModeReportParameters Parameters, User ActingUser) : IReportQuery, IRequest<IEnumerable<PracticeModeReportCsvRecord>>;
+public record PracticeModeReportCsvExportQuery(PracticeModeReportParameters Parameters) : IReportQuery, IRequest<IEnumerable<PracticeModeReportCsvRecord>>;
 
 internal class PracticeModeReportCsvExportHandler : IRequestHandler<PracticeModeReportCsvExportQuery, IEnumerable<PracticeModeReportCsvRecord>>
 {

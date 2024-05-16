@@ -9,8 +9,8 @@ namespace Gameboard.Api.Features.Games.Start;
 //
 // 1. Standard (VM) games, no synchronized start
 // 2. Standard (VM) games, synchronized start
-// 3. External (Unity) games, no synchronized start (e.g. PC4)
-// 4. External (Unity) games, synchronized start
+// 3. External (e.g. Unity) games, no synchronized start
+// 4. External (e.g. Unity) games, synchronized start
 // 
 // Each possible mode will eventually have an implementation of this interface that orchestrates 
 // the logic that happens when a game starts (e.g. ExternalSyncGameStartService for #4)
@@ -23,9 +23,8 @@ public interface IGameModeStartService
     public TeamSessionResetType StartFailResetType { get; }
 
     /// <summary>
-    /// Indicates the playability of the given game. For example, in standard unsync'd games,
-    /// this should return NotStarted if the execution window isn't open and should return GameOver if
-    /// the game's execution window is closed.
+    /// This overload is only to check on the state of the game before enrolling a player or team - any checks
+    /// on the game state for a specific team should use the GetGamePlayStateForTeam function.
     /// </summary>
     /// <param name="gameId"></param>
     /// <param name="cancellationToken"></param>
@@ -33,14 +32,14 @@ public interface IGameModeStartService
     public Task<GamePlayState> GetGamePlayState(string gameId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Deploy any resources (i.e. challenges, game engine gamespaces, etc.) for the game. Note that this happens
-    /// automatically if the game is started on the server side through IGameModeStartService.Start. We expose it
-    /// here to allow pre-deployment of games which need a lot of resources.
+    /// Indicates the "play state" of a team. For example, in standard unsync'd games,
+    /// this should return NotStarted if the execution window isn't open and should return GameOver if
+    /// the game's execution window is closed.
     /// </summary>
-    /// <param name="request"></param>
+    /// <param name="teamId"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<GameStartDeployedResources> DeployResources(GameModeStartRequest request, CancellationToken cancellationToken);
+    public Task<GamePlayState> GetGamePlayStateForTeam(string teamId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Starts the game. At the end of this function, a call to GetGamePlayState for the game should return "Started".
@@ -48,7 +47,7 @@ public interface IGameModeStartService
     /// <param name="request"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<GameStartContext> Start(GameModeStartRequest request, CancellationToken cancellationToken);
+    public Task Start(GameModeStartRequest request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Called when an exception is thrown during DeployResources or Start. Lets the game mode service clean up

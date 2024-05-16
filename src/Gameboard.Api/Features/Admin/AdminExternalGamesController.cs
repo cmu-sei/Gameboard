@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.External;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -23,5 +24,5 @@ public class AdminExternalGamesController : ControllerBase
 
     [HttpPost("{gameId}/pre-deploy")]
     public Task PreDeployGame([FromRoute] string gameId, [FromBody] ExternalGameDeployTeamResourcesRequest request)
-        => _mediator.Send(new PreDeployExternalGameResourcesCommand(gameId, request.TeamIds));
+        => _mediator.Send(new DeployGameResourcesCommand(gameId, request.TeamIds));
 }

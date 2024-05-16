@@ -40,7 +40,7 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
             services.ReplaceService<IClaimsTransformation, TestClaimsTransformation>(allowMultipleReplace: true);
 
             // add a stand-in for external services
-            services.ReplaceService<IGamebrainService, TestGamebrainService>();
+            services.ReplaceService<IExternalGameHostService, TestGamebrainService>();
             services.ReplaceService<IGameEngineService, TestGameEngineService>();
 
             // dummy authorization service that lets everything through

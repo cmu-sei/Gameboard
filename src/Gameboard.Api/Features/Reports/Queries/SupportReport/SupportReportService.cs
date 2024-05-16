@@ -187,7 +187,7 @@ internal class SupportReportService : ISupportReportService
         IEnumerable<SupportReportRecord> records = results.Select(t => new SupportReportRecord
         {
             Key = t.Key,
-            PrefixedKey = _ticketService.TransformTicketKey(t.Key),
+            PrefixedKey = _ticketService.GetFullKey(t.Key),
             CreatedOn = t.Created,
             UpdatedOn = t.LastUpdated,
             Summary = t.Summary,

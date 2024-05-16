@@ -21,6 +21,15 @@ internal class CaptainResolutionFailure : GameboardException
         : base($"Couldn't resolve a team captain for team {teamId}. {(message.IsEmpty() ? "" : message)}") { }
 }
 
+public class InvalidTeamSize : GameboardValidationException
+{
+    public InvalidTeamSize()
+        : base("Invalid team size") { }
+
+    public InvalidTeamSize(string teamId, int size, int min, int max)
+        : base($"Team {teamId} has an invalid size (min: {min}, max {max}, current: {size})") { }
+}
+
 internal class NotOnSameTeam : GameboardException
 {
     internal NotOnSameTeam(string firstPlayerId, string firstPlayerTeamId, string secondPlayerId, string secondPlayerTeamId, string whyItMatters) : base($"""
@@ -44,9 +53,15 @@ internal class PlayerIsntOnTeam : GameboardValidationException
         : base($"""{(message.NotEmpty() ? $"{message}: " : string.Empty)}Player {playerId} isn't on team {teamId} (they're on team {playerTeamId}).""") { }
 }
 
-internal class TeamHasNoPlayersException : GameboardException
+internal class TeamHasNoPlayersException : GameboardValidationException
 {
     public TeamHasNoPlayersException(string teamId) : base($"Team {teamId} has no players.") { }
+}
+
+internal class TeamsAreFromMultipleGames : GameboardException
+{
+    public TeamsAreFromMultipleGames(IEnumerable<string> teamIds, IEnumerable<string> gameIds)
+        : base($"TeamIds {string.Join(',', teamIds)} represent players from multiple games {string.Join(',', gameIds)}.") { }
 }
 
 internal class UserIsntOnTeam : GameboardValidationException

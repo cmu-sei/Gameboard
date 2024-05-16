@@ -1,13 +1,14 @@
 using Gameboard.Api.Features.Games.External;
-using Gameboard.Api.Features.UnityGames;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
-internal class TestGamebrainService : IGamebrainService
+internal class TestGamebrainService : IExternalGameHostService
 {
-    public Task<string> DeployUnitySpace(string gameId, string teamId)
+    private readonly IHttpClientFactory _httpClientFactory;
+
+    public TestGamebrainService(IHttpClientFactory httpClientFactory)
     {
-        return Task.FromResult("{}");
+        _httpClientFactory = httpClientFactory;
     }
 
     public Task ExtendTeamSession(string teamId, DateTimeOffset newSessionEnd, CancellationToken cancellationToken)
@@ -15,23 +16,17 @@ internal class TestGamebrainService : IGamebrainService
         return Task.CompletedTask;
     }
 
-    public Task<string> GetGameState(string gameId, string teamId)
+    public IQueryable<GetExternalGameHostsResponseHost> GetHosts()
+        => Array.Empty<GetExternalGameHostsResponseHost>().AsQueryable();
+
+    public async Task<HttpResponseMessage> PingHost(string hostId, CancellationToken cancellationToken)
     {
-        return Task.FromResult("{}");
+        var client = _httpClientFactory.CreateClient();
+        return await client.GetAsync("", cancellationToken);
     }
 
-    public Task<IEnumerable<ExternalGameClientTeamConfig>> StartGame(ExternalGameStartMetaData metaData)
+    public Task<IEnumerable<ExternalGameClientTeamConfig>> StartGame(IEnumerable<string> teamIds, CalculatedSessionWindow sessionWindow, CancellationToken cancellationToken)
     {
         return Task.FromResult(Array.Empty<ExternalGameClientTeamConfig>().AsEnumerable());
-    }
-
-    public Task<string> UndeployUnitySpace(string gameId, string teamId)
-    {
-        return Task.FromResult(string.Empty);
-    }
-
-    public Task UpdateConsoleUrls(string gameId, string teamId, IEnumerable<UnityGameVm> vms)
-    {
-        return Task.CompletedTask;
     }
 }

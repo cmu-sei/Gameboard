@@ -5,7 +5,7 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record EnrollmentReportSummaryQuery(EnrollmentReportParameters Parameters, PagingArgs PagingArgs, User ActingUser) : IRequest<ReportResults<EnrollmentReportRecord>>, IReportQuery;
+public record EnrollmentReportSummaryQuery(EnrollmentReportParameters Parameters, PagingArgs PagingArgs) : IRequest<ReportResults<EnrollmentReportRecord>>, IReportQuery;
 
 internal class EnrollmentReportSummaryHandler : IRequestHandler<EnrollmentReportSummaryQuery, ReportResults<EnrollmentReportRecord>>
 {
@@ -13,19 +13,22 @@ internal class EnrollmentReportSummaryHandler : IRequestHandler<EnrollmentReport
     private readonly INowService _now;
     private readonly IPagingService _pagingService;
     private readonly ReportsQueryValidator _reportsQueryValidator;
+    private readonly IReportsService _reportsService;
 
     public EnrollmentReportSummaryHandler
     (
         IEnrollmentReportService enrollmentReportService,
         INowService now,
         IPagingService pagingService,
-        ReportsQueryValidator reportsQueryValidator
+        ReportsQueryValidator reportsQueryValidator,
+        IReportsService reportsService
     )
     {
         _enrollmentReportService = enrollmentReportService;
         _now = now;
         _pagingService = pagingService;
         _reportsQueryValidator = reportsQueryValidator;
+        _reportsService = reportsService;
     }
 
     public async Task<ReportResults<EnrollmentReportRecord>> Handle(EnrollmentReportSummaryQuery request, CancellationToken cancellationToken)
@@ -41,6 +44,7 @@ internal class EnrollmentReportSummaryHandler : IRequestHandler<EnrollmentReport
         {
             MetaData = new ReportMetaData
             {
+                Description = await _reportsService.GetDescription(ReportKey.Enrollment),
                 Title = "Enrollment Report",
                 RunAt = _now.Get(),
                 Key = ReportKey.Enrollment

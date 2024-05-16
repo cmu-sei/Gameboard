@@ -208,7 +208,7 @@ public class PlayerCertificate
     public string Html { get; set; }
 }
 
-public class PlayerCalculatedSessionWindow
+public class CalculatedSessionWindow
 {
     public required DateTimeOffset Start { get; set; }
     public required DateTimeOffset End { get; set; }

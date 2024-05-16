@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
@@ -17,20 +16,17 @@ public interface IScoreDenormalizationService
 
 internal class ScoreDenormalizationService : IScoreDenormalizationService
 {
-    private readonly INowService _nowService;
     private readonly IScoringService _scoringService;
     private readonly IStore _store;
     private readonly ITeamService _teamService;
 
     public ScoreDenormalizationService
     (
-        INowService nowService,
         IScoringService scoringService,
         IStore store,
         ITeamService teamService
     )
     {
-        _nowService = nowService;
         _scoringService = scoringService;
         _store = store;
         _teamService = teamService;

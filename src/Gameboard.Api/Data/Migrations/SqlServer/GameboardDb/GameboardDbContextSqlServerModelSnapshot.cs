@@ -505,6 +505,87 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("DenormalizedTeamScores");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.Extension", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("HostUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Type");
+
+                    b.ToTable("Extensions");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.ExternalGameHost", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("ClientUrl")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("DestroyResourcesOnDeployFailure")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("GamespaceDeployBatchSize")
+                        .HasColumnType("int");
+
+                    b.Property<string>("HostApiKey")
+                        .HasMaxLength(70)
+                        .HasColumnType("nvarchar(70)");
+
+                    b.Property<string>("HostUrl")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("HttpTimeoutInSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("PingEndpoint")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("StartupEndpoint")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("TeamExtendedEndpoint")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ExternalGameHosts");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ExternalGameTeam", b =>
                 {
                     b.Property<string>("Id")
@@ -630,16 +711,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
-                    b.Property<string>("ExternalGameClientUrl")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("ExternalGameStartupEndpoint")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("ExternalGameTeamExtendedEndpoint")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<string>("ExternalHostId")
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("FeedbackConfig")
                         .HasColumnType("nvarchar(max)");
@@ -734,6 +807,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasColumnType("nvarchar(64)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ExternalHostId");
 
                     b.ToTable("Games");
                 });
@@ -1466,6 +1541,16 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.Game", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.ExternalGameHost", "ExternalHost")
+                        .WithMany("UsedByGames")
+                        .HasForeignKey("ExternalHostId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ExternalHost");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ManualBonus", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.User", "EnteredByUser")
@@ -1711,6 +1796,11 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("Feedback");
 
                     b.Navigation("PublishedPracticeCertificates");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.ExternalGameHost", b =>
+                {
+                    b.Navigation("UsedByGames");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Game", b =>

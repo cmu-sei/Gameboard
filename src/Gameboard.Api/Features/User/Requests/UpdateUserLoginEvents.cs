@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
@@ -6,6 +7,7 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Users;
 
@@ -48,13 +50,15 @@ internal class UpdateUserLoginEventsHandler : IRequestHandler<UpdateUserLoginEve
         var lastLoginDate = user.LastLoginDate;
         var currentLoginDate = _now.Get();
 
-        await _store.ExecuteUpdateAsync<Data.User>
-        (
-            u => u.Id == user.Id,
-            u => u
-                .SetProperty(u => u.LoginCount, user.LoginCount + 1)
-                .SetProperty(u => u.LastLoginDate, currentLoginDate)
-        );
+        await _store
+            .WithNoTracking<Data.User>()
+            .Where(u => u.Id == user.Id)
+            .ExecuteUpdateAsync
+            (
+                u => u
+                    .SetProperty(u => u.LoginCount, user.LoginCount + 1)
+                    .SetProperty(u => u.LastLoginDate, currentLoginDate)
+            );
 
         return new UpdateUserLoginEventsResult
         {

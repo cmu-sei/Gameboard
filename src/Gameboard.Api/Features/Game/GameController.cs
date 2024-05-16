@@ -59,10 +59,8 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPost("api/game")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task<Game> Create([FromBody] NewGame model)
-        {
-            return await GameService.Create(model);
-        }
+        public Task<Game> Create([FromBody] NewGame model)
+            => GameService.Create(model);
 
         /// <summary>
         /// Retrieve game
@@ -71,11 +69,9 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("api/game/{id}")]
         [AllowAnonymous]
-        public async Task<Game> Retrieve([FromRoute] string id)
-        {
+        public Task<Game> Retrieve([FromRoute] string id)
             // only designers and testers can retrieve or list unpublished games
-            return await GameService.Retrieve(id, Actor.IsDesigner || Actor.IsTester);
-        }
+            => GameService.Retrieve(id, Actor.IsDesigner || Actor.IsTester);
 
         [HttpGet("api/game/{id}/specs")]
         [Authorize]
@@ -93,6 +89,11 @@ namespace Gameboard.Api.Controllers
             return await GameService.SessionForecast(id);
         }
 
+        [HttpPost("api/game/{gameId}/resources")]
+        [Authorize]
+        public Task DeployResources([FromRoute] string gameId, [FromBody] IEnumerable<string> teamIds)
+            => _mediator.Send(new DeployGameResourcesCommand(gameId, teamIds));
+
         /// <summary>
         /// Change game
         /// </summary>
@@ -103,7 +104,6 @@ namespace Gameboard.Api.Controllers
         public async Task Update([FromBody] ChangedGame model)
         {
             await Validate(new Entity { Id = model.Id });
-
             await GameService.Update(model);
         }
 
@@ -124,10 +124,8 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("/api/games")]
         [AllowAnonymous]
-        public async Task<IEnumerable<Game>> List([FromQuery] GameSearchFilter model)
-        {
-            return await GameService.List(model, Actor.IsDesigner || Actor.IsTester);
-        }
+        public Task<IEnumerable<Game>> List([FromQuery] GameSearchFilter model)
+            => GameService.List(model, Actor.IsDesigner || Actor.IsTester);
 
         /// <summary>
         /// List games grouped by year and month
@@ -136,36 +134,28 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("/api/games/grouped")]
         [AllowAnonymous]
-        public async Task<GameGroup[]> ListGrouped([FromQuery] GameSearchFilter model)
-        {
-            return await GameService.ListGrouped(model, Actor.IsDesigner || Actor.IsTester);
-        }
+        public Task<GameGroup[]> ListGrouped([FromQuery] GameSearchFilter model)
+            => GameService.ListGrouped(model, Actor.IsDesigner || Actor.IsTester);
 
         [HttpGet("/api/game/{gameId}/ready")]
         [Authorize]
-        public async Task<SyncStartState> GetSyncStartState(string gameId)
-            => await _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
+        public Task<SyncStartState> GetSyncStartState(string gameId)
+            => _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
 
         [HttpGet("/api/game/{gameId}/play-state")]
         [Authorize]
-        public async Task<GamePlayState> GetGamePlayState(string gameId)
-        {
-            return await _mediator.Send(new GetGamePlayStateQuery(gameId, Actor.Id));
-        }
+        public Task<GamePlayState> GetGamePlayState(string gameId)
+            => _mediator.Send(new GetGamePlayStateQuery(gameId, Actor.Id));
 
         [HttpPost("/api/game/import")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task<Game> ImportGameSpec([FromBody] GameSpecImport model)
-        {
-            return await GameService.Import(model);
-        }
+        public Task<Game> ImportGameSpec([FromBody] GameSpecImport model)
+            => GameService.Import(model);
 
         [HttpPost("/api/game/export")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task<string> ExportGameSpec([FromBody] GameSpecExport model)
-        {
-            return await GameService.Export(model);
-        }
+        public Task<string> ExportGameSpec([FromBody] GameSpecExport model)
+            => GameService.Export(model);
 
         [HttpGet("/api/game/{gameId}/team/{teamId}/gamespace-limit")]
         public Task<TeamGamespaceLimitState> GetTeamGamespaceLimitState([FromRoute] string gameId, [FromRoute] string teamId)
@@ -211,9 +201,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<UploadedFile>> DeleteImage([FromRoute] string id, [FromRoute] string type)
         {
-            AuthorizeAny(
-                () => Actor.IsDesigner
-            );
+            AuthorizeAny(() => Actor.IsDesigner);
 
             await Validate(new Entity { Id = id });
 
@@ -224,7 +212,6 @@ namespace Gameboard.Api.Controllers
             {
                 System.IO.File.Delete(file);
                 await GameService.UpdateImage(id, type, "");
-
             }
 
             return Ok(new UploadedFile { Filename = "" });
@@ -245,7 +232,7 @@ namespace Gameboard.Api.Controllers
             await Validate(new Entity { Id = id });
             await GameService.ReRank(id);
             await _scoreDenormalization.DenormalizeGame(id, cancellationToken);
-            await _mediator.Publish(new GameCacheInvalidateCommand(id));
+            await _mediator.Publish(new GameCacheInvalidateNotification(id), cancellationToken);
         }
     }
 }

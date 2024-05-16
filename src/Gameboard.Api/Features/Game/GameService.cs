@@ -16,7 +16,7 @@ using Gameboard.Api.Common.Services;
 using Microsoft.AspNetCore.Http;
 using Gameboard.Api.Data;
 using System.IO;
-using Microsoft.Extensions.ObjectPool;
+using System.Threading;
 
 namespace Gameboard.Api.Services;
 
@@ -26,6 +26,7 @@ public interface IGameService
     Task Delete(string id);
     Task<string> Export(GameSpecExport model);
     Task<Game> Import(GameSpecImport model);
+    Task<IEnumerable<string>> GetTeamsWithActiveSession(string GameId, CancellationToken cancellationToken);
     bool IsGameStartSuperUser(User user);
     IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool sudo = false);
     Task<bool> IsUserPlaying(string gameId, string userId);
@@ -103,10 +104,7 @@ public class GameService : _Service, IGameService
     public async Task Update(ChangedGame game)
     {
         if (game.Mode != GameEngineMode.External)
-        {
-            game.ExternalGameStartupEndpoint = null;
-            game.ExternalGameTeamExtendedEndpoint = null;
-        }
+            game.ExternalHostId = null;
 
         var entity = await _gameStore.Retrieve(game.Id);
         Mapper.Map(game, entity);
@@ -158,6 +156,30 @@ public class GameService : _Service, IGameService
             q = q.Take(model.Take);
 
         return q;
+    }
+
+    public async Task<IEnumerable<string>> GetTeamsWithActiveSession(string gameId, CancellationToken cancellationToken)
+    {
+        var gameSessionData = await _store
+            .WithNoTracking<Data.Game>()
+                .Include(g => g.Players)
+            .Where(g => g.Id == gameId)
+            .Where(g => g.Players.Any(p => _now.Get() < p.SessionEnd))
+            .Select(g => new
+            {
+                g.Id,
+                g.SessionLimit,
+                Teams = g
+                    .Players
+                    .Select(p => p.TeamId)
+                    .Distinct()
+            })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (gameSessionData is not null)
+            return gameSessionData.Teams;
+
+        return Array.Empty<string>();
     }
 
     public async Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false)
@@ -293,7 +315,7 @@ public class GameService : _Service, IGameService
 
     public bool IsGameStartSuperUser(User user)
     {
-        return user.IsRegistrar;
+        return user.IsAdmin || user.IsDesigner || user.IsRegistrar || user.IsSupport || user.IsTester;
     }
 
     public async Task UpdateImage(string id, string type, string filename)
