@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,15 +13,18 @@ public sealed record GetSiteUsageReportSponsorsQuery(SiteUsageReportParameters P
 internal class GetSiteUsageReportSponsorsHandler : IRequestHandler<GetSiteUsageReportSponsorsQuery, IEnumerable<SiteUsageReportSponsor>>
 {
     private readonly ISiteUsageReportService _reportService;
+    private readonly IStore _store;
     private readonly ReportsQueryValidator _validator;
 
     public GetSiteUsageReportSponsorsHandler
     (
         ISiteUsageReportService reportService,
+        IStore store,
         ReportsQueryValidator validator
     )
     {
         _reportService = reportService;
+        _store = store;
         _validator = validator;
     }
 
@@ -28,17 +32,24 @@ internal class GetSiteUsageReportSponsorsHandler : IRequestHandler<GetSiteUsageR
     {
         await _validator.Validate(request, cancellationToken);
 
-        return await _reportService
+        // this is all hinky because of the whole teamid thing, but we need the teamids playing, and then their players/sponsors
+        var teamIds = await _reportService
             .GetBaseQuery(request.Parameters)
-            .Include(c => c.Player)
-                .ThenInclude(p => p.Sponsor)
+            .Select(c => c.TeamId)
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
+
+        return await _store
+            .WithNoTracking<Data.Player>()
+                .Include(p => p.Sponsor)
                     .ThenInclude(s => s.ParentSponsor)
-            .GroupBy(c => new
+            .Where(p => teamIds.Contains(p.TeamId))
+            .GroupBy(p => new
             {
-                Id = c.Player.SponsorId,
-                c.Player.Sponsor.Name,
-                c.Player.Sponsor.Logo,
-                ParentName = c.Player.Sponsor.ParentSponsor != null ? c.Player.Sponsor.ParentSponsor.Name : null
+                Id = p.SponsorId,
+                p.Sponsor.Name,
+                p.Sponsor.Logo,
+                ParentName = p.Sponsor.ParentSponsor != null ? p.Sponsor.ParentSponsor.Name : null
             })
             .Select(gr => new SiteUsageReportSponsor
             {
@@ -46,7 +57,7 @@ internal class GetSiteUsageReportSponsorsHandler : IRequestHandler<GetSiteUsageR
                 Name = gr.Key.Name,
                 Logo = gr.Key.Logo,
                 ParentName = gr.Key.ParentName,
-                PlayerCount = gr.Select(thing => thing.Player.UserId).Distinct().Count()
+                PlayerCount = gr.Select(p => p.UserId).Distinct().Count()
             })
             .ToArrayAsync(cancellationToken);
     }

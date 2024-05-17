@@ -96,7 +96,14 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
         var practiceUserIds = practiceTeamIds.Where(tId => teamUsers.ContainsKey(tId)).SelectMany(tId => teamUsers[tId]).Distinct().ToArray();
         var competitiveStrictTeamIds = teamChallengeCounts.Where(kv => kv.Value.CompetitiveChallengeCount > 0 && kv.Value.PracticeChallengeCount == 0);
 
-        var userSponsorCount = await _store.WithNoTracking<Data.User>().Select(u => u.SponsorId).Distinct().CountAsync(cancellationToken);
+        var sponsorCount = await _store
+            .WithNoTracking<Data.Player>()
+                .Include(p => p.Sponsor)
+                    .ThenInclude(s => s.ParentSponsor)
+            .Where(p => teamIds.Contains(p.TeamId))
+            .Select(s => s.SponsorId)
+            .Distinct()
+            .CountAsync(cancellationToken);
 
         return new SiteUsageReportRecord
         {
@@ -108,7 +115,7 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
             DeployedChallengesPracticeCount = challenges.Where(c => !c.IsCompetitive).Count(),
             DeployedChallengesSpecCount = challenges.Select(c => c.SpecId).Distinct().Count(),
             PracticeUsersWithNoCompetitiveCount = practiceUserIds.Where(uId => !competitiveUserIds.Contains(uId)).Count(),
-            SponsorCount = userSponsorCount,
+            SponsorCount = sponsorCount,
             UserCount = userTeams.Keys.Count,
             UsersWithCompetitiveChallengeCount = competitiveUserIds.Length,
             UsersWithPracticeChallengeCount = practiceUserIds.Length
