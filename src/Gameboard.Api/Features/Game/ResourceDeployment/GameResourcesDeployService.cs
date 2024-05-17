@@ -85,6 +85,7 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
                 .Include(p => p.Game)
             .Where(p => teamIds.Contains(p.TeamId))
             .Select(p => new SimpleEntity { Id = p.GameId, Name = p.Game.Name })
+            .Distinct()
             .SingleAsync(cancellationToken);
 
         var request = new GameResourcesDeployRequest
