@@ -17,6 +17,7 @@ namespace Gameboard.Api.Services;
 public class ChallengeSpecService : _Service
 {
     private readonly INowService _now;
+    private readonly ISlugService _slug;
     private readonly IStore _store;
     IGameEngineService GameEngine { get; }
 
@@ -25,12 +26,14 @@ public class ChallengeSpecService : _Service
         ILogger<ChallengeSpecService> logger,
         IMapper mapper,
         INowService now,
+        ISlugService slug,
         CoreOptions options,
         IStore store,
         IGameEngineService gameEngine
     ) : base(logger, mapper, options)
     {
         _now = now;
+        _slug = slug;
         _store = store;
         GameEngine = gameEngine;
     }
@@ -54,6 +57,31 @@ public class ChallengeSpecService : _Service
         else
         {
             entity = Mapper.Map<Data.ChallengeSpec>(model);
+
+            if (entity.Tag.IsEmpty())
+            {
+                var gameTags = await _store
+                    .WithNoTracking<Data.ChallengeSpec>()
+                    .Where(s => s.GameId == model.GameId)
+                    .Select(s => s.Tag)
+                    .ToArrayAsync(CancellationToken.None);
+                var specSlug = _slug.Get(entity.Name);
+
+                // try to compose a random tag for the spec if one hasn't been supplied by the client
+                if (!await _store.WithNoTracking<Data.ChallengeSpec>().AnyAsync(s => s.GameId == model.GameId && s.Tag == specSlug))
+                    entity.Tag = specSlug;
+                else
+                {
+                    var nowish = _now.Get();
+                    specSlug = $"{specSlug}-{nowish.Year}{nowish.Month}{nowish.Day}{nowish.Millisecond}";
+
+                    if (!gameTags.Any(s => s == specSlug))
+                        entity.Tag = specSlug
+
+                    // look, you can't win them all.
+                }
+            }
+
             await _store.Create(entity);
         }
 
