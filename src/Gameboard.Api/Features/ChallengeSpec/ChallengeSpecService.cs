@@ -76,7 +76,7 @@ public class ChallengeSpecService : _Service
                     specSlug = $"{specSlug}-{nowish.Year}{nowish.Month}{nowish.Day}{nowish.Millisecond}";
 
                     if (!gameTags.Any(s => s == specSlug))
-                        entity.Tag = specSlug
+                        entity.Tag = specSlug;
 
                     // look, you can't win them all.
                 }
