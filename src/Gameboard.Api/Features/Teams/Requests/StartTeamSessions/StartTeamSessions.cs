@@ -131,33 +131,14 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
             );
 
             // start all sessions
-            await _store
-                .WithNoTracking<Data.Player>()
-                .Where(p => request.TeamIds.Contains(p.TeamId))
-                .ExecuteUpdateAsync
-                (
-                    up => up
-                        .SetProperty(p => p.IsLateStart, sessionWindow.IsLateStart)
-                        .SetProperty(p => p.SessionMinutes, sessionWindow.LengthInMinutes)
-                        .SetProperty(p => p.SessionBegin, sessionWindow.Start)
-                        .SetProperty(p => p.SessionEnd, sessionWindow.End),
-                    cancellationToken
-                );
-
-            if (modeService.RequireSynchronizedSessions)
-            {
-                _logger.LogInformation($"Synchronizing gamespaces for {request.TeamIds.Count()} teams...");
-                foreach (var teamId in request.TeamIds)
-                    await _teamService.UpdateSessionStartAndEnd(teamId, sessionWindow.Start, sessionWindow.End, cancellationToken);
-
-                _logger.LogInformation($"Sessions synchronized.");
-            }
+            // (note that this effective synchronizes all teams starting in this command)
+            _logger.LogInformation($"Starting sessions for {request.TeamIds.Count()} teams...");
+            await _teamService.SetSessionWindow(request.TeamIds, sessionWindow, cancellationToken);
+            _logger.LogInformation($"Sessions started.");
 
             // alert external host if needed
             if (gameData.Mode == GameEngineMode.External)
-            {
                 await _externalGameHostService.StartGame(request.TeamIds, sessionWindow, cancellationToken);
-            }
 
             var dict = new Dictionary<string, StartTeamSessionsResultTeam>();
             var finalTeams = teams.Select(kv => new StartTeamSessionsResultTeam
