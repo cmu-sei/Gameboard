@@ -11,7 +11,7 @@ namespace Gameboard.Api.Features.Reports;
 public interface IEnrollmentReportService
 {
     IQueryable<Data.Player> GetBaseQuery(EnrollmentReportParameters parameters);
-    Task<IEnumerable<EnrollmentReportRecord>> GetRawResults(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
+    Task<IOrderedEnumerable<EnrollmentReportRecord>> GetRawResults(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
     Task<EnrollmentReportStatSummary> GetSummaryStats(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
 }
 
@@ -83,7 +83,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
         return query;
     }
 
-    public async Task<IEnumerable<EnrollmentReportRecord>> GetRawResults(EnrollmentReportParameters parameters, CancellationToken cancellationToken)
+    public async Task<IOrderedEnumerable<EnrollmentReportRecord>> GetRawResults(EnrollmentReportParameters parameters, CancellationToken cancellationToken)
     {
         // finalize query - we have to do the rest "client" (application server) side
         var players = await GetBaseQuery(parameters).ToArrayAsync(cancellationToken);
@@ -176,13 +176,16 @@ internal class EnrollmentReportService : IEnrollmentReportService
                     End = (p.SessionBegin.HasValue() && p.Time > 0) ? p.SessionBegin.AddMilliseconds(p.Time) : null
                 },
                 Challenges = challenges,
+                ChallengeCount = challenges.Length,
                 ChallengesPartiallySolvedCount = challenges.Where(c => c.Result == ChallengeResult.Partial).Count(),
                 ChallengesCompletelySolvedCount = challenges.Where(c => c.Result == ChallengeResult.Success).Count(),
                 Score = p.Score
             };
         });
 
-        return records;
+        return records
+            .OrderBy(r => r.Player.Name)
+            .ThenBy(r => r.Game.Name);
     }
 
     public async Task<EnrollmentReportStatSummary> GetSummaryStats(EnrollmentReportParameters parameters, CancellationToken cancellationToken)

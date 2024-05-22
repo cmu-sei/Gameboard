@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
@@ -36,8 +37,43 @@ internal class EnrollmentReportSummaryHandler : IRequestHandler<EnrollmentReport
         // validate
         await _reportsQueryValidator.Validate(request, cancellationToken);
 
-        // pull and page results
+        // pull, sort, and page results
         var records = await _enrollmentReportService.GetRawResults(request.Parameters, cancellationToken);
+
+        if (request.Parameters.Sort.IsNotEmpty())
+        {
+            var sortDirection = request.Parameters.SortDirection;
+
+            switch (request.Parameters.Sort)
+            {
+                case "count-attempted":
+                    records = records.Sort(r => r.ChallengeCount, sortDirection);
+                    break;
+                case "count-complete":
+                    records = records.Sort(r => r.ChallengesCompletelySolvedCount, sortDirection);
+                    break;
+                case "count-solve-partial":
+                    records = records.Sort(r => r.ChallengesPartiallySolvedCount, sortDirection);
+                    break;
+                case "player":
+                    records = records.Sort(r => r.Player.Name, sortDirection);
+                    break;
+                case "enroll-date":
+                    records = records.Sort(r => r.Player.EnrollDate, sortDirection);
+                    break;
+                case "game":
+                    records = records.Sort(r => r.Game.Name, sortDirection);
+                    break;
+                case "time":
+                    records = records.Sort(r => r.PlayTime, sortDirection);
+                    break;
+            }
+
+            records = records
+                .ThenBy(r => r.Player.Name)
+                .ThenBy(r => r.Game.Name);
+        }
+
         var paged = _pagingService.Page(records, request.PagingArgs);
 
         return new ReportResults<EnrollmentReportRecord>

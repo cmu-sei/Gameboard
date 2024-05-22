@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Microsoft.EntityFrameworkCore;
+using ServiceStack;
+using ServiceStack.Text;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -142,7 +144,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
     private PracticeModeReportByChallengePerformance BuildChallengePerformance(IEnumerable<Data.Challenge> attempts, ReportSponsorViewModel sponsor = null)
     {
         // precompute totals so we don't have to do it more than once per spec
-        Func<Data.Challenge, bool> sponsorConstraint = (attempts => true);
+        Func<Data.Challenge, bool> sponsorConstraint = attempts => true;
         if (sponsor is not null)
             sponsorConstraint = (attempt) => attempt.Player.SponsorId == sponsor.Id;
 
@@ -224,7 +226,47 @@ internal class PracticeModeReportService : IPracticeModeReportService
                     OverallPerformance = performanceOverall,
                     PerformanceBySponsor = performanceBySponsor
                 };
-            });
+            })
+            .OrderBy(c => c.Name);
+
+        if (parameters.Sort.IsNotEmpty())
+        {
+            switch (parameters.Sort.ToLower())
+            {
+                case "attempts":
+                    records = records.Sort(r => r.OverallPerformance.TotalAttempts, parameters.SortDirection);
+                    break;
+                case "count-solve-complete":
+                    records = records.Sort(r => r.OverallPerformance.CompleteSolves, parameters.SortDirection);
+                    break;
+                case "count-solve-none":
+                    records = records.Sort(r => r.OverallPerformance.ZeroScoreSolves, parameters.SortDirection);
+                    break;
+                case "count-solve-partial":
+                    records = records.Sort(r => r.OverallPerformance.PartialSolves, parameters.SortDirection);
+                    break;
+                case "count-sponsors":
+                    records = records.Sort(r => r.SponsorsPlayed.Count(), parameters.SortDirection);
+                    break;
+                case "name":
+                    records = records.Sort(r => r.Name, parameters.SortDirection);
+                    break;
+                case "players":
+                    records = records.Sort(r => r.OverallPerformance.Players.Count(), parameters.SortDirection);
+                    break;
+                case "score-avg":
+                    records = records.Sort(r => r.OverallPerformance.ScoreAvg, parameters.SortDirection);
+                    break;
+                case "score-high":
+                    records = records.Sort(r => r.OverallPerformance.ScoreHigh, parameters.SortDirection);
+                    break;
+                case "score-max":
+                    records = records.Sort(r => r.MaxPossibleScore, parameters.SortDirection);
+                    break;
+            }
+        }
+
+        records = records.ThenBy(r => r.Name);
 
         return new()
         {
@@ -261,8 +303,8 @@ internal class PracticeModeReportService : IPracticeModeReportService
                 // (which they all should, but still)
                 Sponsor = ungroupedResults.Sponsors
                     .FirstOrDefault
-                    (s =>
-                        s.Id == c
+                    (
+                        s => s.Id == c
                             .OrderByDescending(c => c.StartTime)
                             .FirstOrDefault(c => c.Player.Sponsor is not null)?.Player?.Sponsor?.Id
                     ),
@@ -288,7 +330,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
                 .Select(attempt => new PracticeModeReportAttempt
                 {
                     Player = new SimpleEntity { Id = attempt.PlayerId, Name = attempt.Player.ApprovedName },
-                    Team = teams.ContainsKey(attempt.Player.TeamId) ? teams[attempt.Player.TeamId] : null,
+                    Team = teams.TryGetValue(attempt.Player.TeamId, out ReportTeamViewModel value) ? value : null,
                     Sponsor = ungroupedResults.Sponsors.FirstOrDefault(s => s.Id == attempt.Player.Sponsor.Id),
                     Start = attempt.StartTime,
                     End = attempt.EndTime,
@@ -303,6 +345,28 @@ internal class PracticeModeReportService : IPracticeModeReportService
         .OrderBy(r => r.User.Name)
         .ThenBy(r => r.Challenge.Name);
 
+        if (parameters.Sort.IsNotEmpty())
+        {
+            switch (parameters.Sort.ToLower())
+            {
+                case "attempts":
+                    records = records.Sort(r => r.Attempts.Count(), parameters.SortDirection);
+                    break;
+                case "best-date":
+                    records = records.Sort(r => r.Attempts.OrderByDescending(a => a.Score).FirstOrDefault()?.Start, parameters.SortDirection);
+                    break;
+                case "best-score":
+                    records = records.Sort(r => r.Attempts.OrderByDescending(a => a.Score).FirstOrDefault()?.Score, parameters.SortDirection);
+                    break;
+                case "best-time":
+                    records = records.Sort(r => r.Attempts.OrderByDescending(a => a.Score).FirstOrDefault()?.DurationMs, parameters.SortDirection);
+                    break;
+                case "most-recent":
+                    records = records.Sort(r => r.Attempts.OrderByDescending(a => a.Start).FirstOrDefault()?.Start, parameters.SortDirection);
+                    break;
+            }
+        }
+
         return new()
         {
             OverallStats = ungroupedResults.OverallStats,
@@ -315,24 +379,62 @@ internal class PracticeModeReportService : IPracticeModeReportService
         // the "true" argument here includes competitive records, because we're comparing practice vs competitive performance here
         var ungroupedResults = await BuildUngroupedResults(parameters, true, cancellationToken);
         var allSpecRawScores = await GetSpecRawScores(ungroupedResults.Challenges.Select(c => c.SpecId).ToArray());
+        var records = ungroupedResults
+            .Challenges
+            .GroupBy(r => r.Player.UserId)
+            .Select(g =>
+            {
+                return new PracticeModeReportByPlayerModePerformanceRecord
+                {
+                    // this is really more of a user entity than a player entity, but the report uses "player" to refer to users on purpose
+                    Player = new SimpleEntity { Id = g.Key, Name = g.First().Player?.User?.ApprovedName ?? g.First().Player?.ApprovedName },
+                    Sponsor = ungroupedResults.Sponsors.FirstOrDefault(s => s.Id == g.FirstOrDefault()?.Player?.User?.Sponsor?.Id),
+                    PracticeStats = CalculateByPlayerPerformanceModeSummary(true, g.ToList(), allSpecRawScores),
+                    CompetitiveStats = CalculateByPlayerPerformanceModeSummary(false, g.ToList(), allSpecRawScores)
+                };
+            })
+            .OrderBy(r => r.Player.Name);
+
+        if (parameters.Sort.IsNotEmpty())
+        {
+            switch (parameters.Sort.ToLower())
+            {
+                case "attempts-competitive":
+                    records = records.Sort(r => r.CompetitiveStats?.TotalChallengesPlayed, parameters.SortDirection);
+                    break;
+                case "attempts-practice":
+                    records = records.Sort(r => r.PracticeStats?.TotalChallengesPlayed, parameters.SortDirection);
+                    break;
+                case "avg-score-percentile-competitive":
+                    records = records.Sort(r => r.CompetitiveStats?.AvgScorePercentile, parameters.SortDirection);
+                    break;
+                case "avg-score-percentile-practice":
+                    records = records.Sort(r => r.PracticeStats?.AvgScorePercentile, parameters.SortDirection);
+                    break;
+                case "avg-score-pct-competitive":
+                    records = records.Sort(r => r.CompetitiveStats?.AvgPctAvailablePointsScored, parameters.SortDirection);
+                    break;
+                case "avg-score-pct-practice":
+                    records = records.Sort(r => r.PracticeStats?.AvgPctAvailablePointsScored, parameters.SortDirection);
+                    break;
+                case "last-played-competitive":
+                    records = records.Sort(r => r.CompetitiveStats?.LastAttemptDate, parameters.SortDirection);
+                    break;
+                case "last-played-practice":
+                    records = records.Sort(r => r.PracticeStats?.LastAttemptDate, parameters.SortDirection);
+                    break;
+                case "player":
+                    records = records.Sort(r => r.Player.Name, parameters.SortDirection);
+                    break;
+            }
+
+            records = records.ThenBy(r => r.Player.Name);
+        }
 
         return new()
         {
             OverallStats = ungroupedResults.OverallStats,
-            Records = ungroupedResults
-                .Challenges
-                .GroupBy(r => r.Player.UserId)
-                .Select(g =>
-                {
-                    return new PracticeModeReportByPlayerModePerformanceRecord
-                    {
-                        // this is really more of a user entity than a player entity, but the report uses "player" to refer to users on purpose
-                        Player = new SimpleEntity { Id = g.Key, Name = g.First().Player?.User?.ApprovedName ?? g.First().Player?.ApprovedName },
-                        Sponsor = ungroupedResults.Sponsors.FirstOrDefault(s => s.Id == g.FirstOrDefault()?.Player?.User?.Sponsor?.Id),
-                        PracticeStats = CalculateByPlayerPerformanceModeSummary(true, g.ToList(), allSpecRawScores),
-                        CompetitiveStats = CalculateByPlayerPerformanceModeSummary(false, g.ToList(), allSpecRawScores)
-                    };
-                })
+            Records = records
         };
     }
 

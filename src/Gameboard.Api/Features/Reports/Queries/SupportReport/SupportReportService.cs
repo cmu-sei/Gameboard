@@ -7,6 +7,7 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
+using ServiceStack;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -179,9 +180,37 @@ internal class SupportReportService : ISupportReportService
         if (statuses.IsNotEmpty())
             query = query.Where(t => statuses.Contains(t.Status.ToLower()));
 
-        var results = await query
-            .OrderBy(t => t.Created)
-            .ToListAsync();
+        var orderedQuery = query.OrderBy(t => t.Created);
+
+        if (parameters.Sort.IsNotEmpty())
+        {
+            switch (parameters.Sort.ToLower())
+            {
+                case "assigned-to":
+                    orderedQuery = orderedQuery.Sort(t => t.Assignee.Name, parameters.SortDirection);
+                    break;
+                case "count-activity":
+                    orderedQuery = orderedQuery.Sort(t => t.Activity.Count(), parameters.SortDirection);
+                    break;
+                case "created-by":
+                    orderedQuery = orderedQuery.Sort(t => t.Creator.Name, parameters.SortDirection);
+                    break;
+                case "status":
+                    orderedQuery = orderedQuery.Sort(t => t.Status, parameters.SortDirection);
+                    break;
+                case "summary":
+                    orderedQuery = orderedQuery.Sort(t => t.Summary, parameters.SortDirection);
+                    break;
+                case "ticket":
+                    orderedQuery = orderedQuery.Sort(t => t.Key, parameters.SortDirection);
+                    break;
+                case "updated":
+                    orderedQuery = orderedQuery.Sort(t => t.Activity.OrderBy(a => a.Timestamp).LastOrDefault(), parameters.SortDirection);
+                    break;
+            }
+        }
+
+        var results = await orderedQuery.ToListAsync();
 
         // client side processing
         IEnumerable<SupportReportRecord> records = results.Select(t => new SupportReportRecord

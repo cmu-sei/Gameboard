@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using ServiceStack;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -79,7 +80,7 @@ internal class PlayersReportService : IPlayersReportService
         if (tracksCriteria.Any())
             query = query.Where(u => u.Enrollments.Any(p => tracksCriteria.Contains(p.Game.Track.ToLower())));
 
-        return query.Select(u => new PlayersReportRecord
+        var composedQuery = query.Select(u => new PlayersReportRecord
         {
             User = new SimpleEntity { Id = u.Id, Name = u.Name },
             Sponsor = new ReportSponsorViewModel
@@ -142,5 +143,45 @@ internal class PlayersReportService : IPlayersReportService
                 .Where(t => t != null & t != string.Empty)
                 .Distinct(),
         });
+
+        var orderedQuery = composedQuery.OrderBy(r => r.User.Name);
+
+        if (parameters.Sort.IsNotEmpty())
+        {
+            switch (parameters.Sort)
+            {
+                case "account-created":
+                    orderedQuery = orderedQuery.Sort(r => r.CreatedOn, parameters.SortDirection);
+                    break;
+                case "count-competitive":
+                    orderedQuery = orderedQuery.Sort(r => r.DeployedCompetitiveChallengesCount, parameters.SortDirection);
+                    break;
+                case "count-practice":
+                    orderedQuery = orderedQuery.Sort(r => r.DeployedPracticeChallengesCount, parameters.SortDirection);
+                    break;
+                case "count-games":
+                    orderedQuery = orderedQuery.Sort(r => r.DistinctGamesPlayed.Count(), parameters.SortDirection);
+                    break;
+                case "count-seasons":
+                    orderedQuery = orderedQuery.Sort(r => r.DistinctSeasonsPlayed.Count(), parameters.SortDirection);
+                    break;
+                case "count-series":
+                    orderedQuery = orderedQuery.Sort(r => r.DistinctSeriesPlayed.Count(), parameters.SortDirection);
+                    break;
+                case "count-tracks":
+                    orderedQuery = orderedQuery.Sort(r => r.DistinctSeriesPlayed.Count(), parameters.SortDirection);
+                    break;
+                case "last-played":
+                    orderedQuery = orderedQuery.Sort(r => r.LastPlayedOn, parameters.SortDirection);
+                    break;
+                case "name":
+                    orderedQuery = orderedQuery.Sort(r => r.User.Name, parameters.SortDirection);
+                    break;
+            }
+
+            orderedQuery = orderedQuery.ThenBy(r => r.User.Name);
+        }
+
+        return orderedQuery;
     }
 }
