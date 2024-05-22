@@ -24,6 +24,7 @@ public interface ITeamService
     Task<bool> GetExists(string teamId);
     Task<string> GetGameId(string teamId, CancellationToken cancellationToken);
     Task<string> GetGameId(IEnumerable<string> teamIds, CancellationToken cancellationToken);
+    Task<CalculatedSessionWindow> GetSession(string teamId, CancellationToken cancellationToken);
     Task<int> GetSessionCount(string teamId, string gameId, CancellationToken cancellationToken);
     Task<Team> GetTeam(string id);
     Task<IEnumerable<Team>> GetTeams(IEnumerable<string> ids);
@@ -34,7 +35,8 @@ public interface ITeamService
     Task<Data.Player> ResolveCaptain(string teamId, CancellationToken cancellationToken);
     Data.Player ResolveCaptain(IEnumerable<Data.Player> players);
     Task<IDictionary<string, Data.Player>> ResolveCaptains(IEnumerable<string> teamIds, CancellationToken cancellationToken);
-    Task UpdateSessionStartAndEnd(string teamId, DateTimeOffset? sessionStart, DateTimeOffset? sessionEnd, CancellationToken cancellationToken);
+    Task SetSessionWindow(string teamId, CalculatedSessionWindow sessionWindow, CancellationToken cancellationToken);
+    Task SetSessionWindow(IEnumerable<string> teamIds, CalculatedSessionWindow sessionWindow, CancellationToken cancellationToken);
 }
 
 internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNotification>
@@ -73,6 +75,9 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
         _teamHubService = teamHubService;
     }
 
+    public Task Handle(UserJoinedTeamNotification notification, CancellationToken cancellationToken)
+        => Task.Run(() => _cacheService.Invalidate(GetUserTeamIdsCacheKey(notification.UserId)), cancellationToken);
+
     public async Task DeleteTeam(string teamId, SimpleEntity actingUser, CancellationToken cancellationToken)
     {
         var teamState = await GetTeamState(teamId, actingUser, cancellationToken);
@@ -107,8 +112,13 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
         await _teamHubService.SendTeamDeleted(teamState, actingUser);
     }
 
-    public Task EndSession(string teamId, User actor, CancellationToken cancellationToken)
-        => UpdateSessionEnd(teamId, _now.Get(), cancellationToken);
+    public async Task EndSession(string teamId, User actor, CancellationToken cancellationToken)
+    {
+        // for now "end the session" is just set its endtime to now
+        var session = await GetSession(teamId, cancellationToken);
+        session.End = _now.Get();
+        await SetSessionWindow(teamId, session, cancellationToken);
+    }
 
     public async Task<Api.Player> ExtendSession(ExtendTeamSessionRequest request, CancellationToken cancellationToken)
     {
@@ -116,14 +126,7 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
         var captain = await ResolveCaptain(request.TeamId, cancellationToken);
 
         // be sure they have an active session before we go extending things
-        var playersWithNoSession = await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => p.TeamId == request.TeamId)
-            .WhereDateIsEmpty(p => p.SessionBegin)
-            .AnyAsync(cancellationToken);
-
-        if (playersWithNoSession)
-            throw new CantExtendUnstartedSession(request.TeamId);
+        var currentSession = await GetSession(request.TeamId, cancellationToken) ?? throw new CantExtendUnstartedSession(request.TeamId);
 
         // in competitive mode, session end is what's requested in the API call
         var finalSessionEnd = request.NewSessionEnd;
@@ -133,7 +136,8 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
             finalSessionEnd = await _practiceService.GetExtendedSessionEnd(captain.SessionBegin, captain.SessionEnd, cancellationToken);
 
         // update the player entities and gamespaces
-        await UpdateSessionEnd(request.TeamId, finalSessionEnd, cancellationToken);
+        currentSession.End = finalSessionEnd;
+        await SetSessionWindow(request.TeamId, currentSession, cancellationToken);
 
         // return the updated session via the captain
         // manually set the new session end here, because this object is stale
@@ -189,6 +193,44 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
             throw new TeamsAreFromMultipleGames(teamIds, gameIds);
 
         return gameIds.Single();
+    }
+
+    public async Task<CalculatedSessionWindow> GetSession(string teamId, CancellationToken cancellationToken)
+    {
+        var players = await _store
+            .WithNoTracking<Data.Player>()
+            .Select(p => new
+            {
+                p.SessionBegin,
+                p.SessionEnd,
+                p.SessionMinutes,
+                p.IsLateStart,
+                p.TeamId
+            })
+            .Distinct()
+            .Where(p => p.TeamId == teamId)
+            .ToArrayAsync(cancellationToken);
+
+        if (!players.Any())
+            throw new ResourceNotFound<Team>(teamId);
+
+        if (players.Length > 1)
+            throw new PlayersAreFromMultipleTeams(players.Select(p => p.TeamId), $"Couldn't resolve a single session for team {teamId}.");
+
+        var player = players.Single();
+
+        // this is quasi-expected - if a player's end hasn't been set, they don't have a session, and 
+        // we communicate that by returning null when it's asked for
+        if (player.SessionEnd == DateTimeOffset.MinValue)
+            return null;
+
+        return new CalculatedSessionWindow
+        {
+            Start = player.SessionBegin,
+            End = player.SessionEnd,
+            IsLateStart = player.IsLateStart,
+            LengthInMinutes = player.SessionMinutes
+        };
     }
 
     public async Task<int> GetSessionCount(string teamId, string gameId, CancellationToken cancellationToken)
@@ -382,6 +424,55 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
         return retVal;
     }
 
+    public Task SetSessionWindow(string teamId, CalculatedSessionWindow sessionWindow, CancellationToken cancellationToken)
+        => SetSessionWindow(new string[] { teamId }, sessionWindow, cancellationToken);
+
+    public async Task SetSessionWindow(IEnumerable<string> teamIds, CalculatedSessionWindow sessionWindow, CancellationToken cancellationToken)
+    {
+        // update players
+        await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => teamIds.Contains(p.TeamId))
+            .ExecuteUpdateAsync
+            (
+                up => up
+                    .SetProperty(p => p.IsLateStart, sessionWindow.IsLateStart)
+                    .SetProperty(p => p.SessionBegin, sessionWindow.Start)
+                    .SetProperty(p => p.SessionEnd, sessionWindow.End)
+                    .SetProperty(p => p.SessionMinutes, sessionWindow.LengthInMinutes),
+                cancellationToken
+            );
+
+        // and their challenges
+        var challenges = await _store
+            .WithNoTracking<Data.Challenge>()
+            .Where(c => teamIds.Contains(c.TeamId))
+            .Select(c => new { c.Id, c.GameEngineType, c.EndTime })
+            .ToArrayAsync(cancellationToken);
+
+        var challengeIds = challenges.Select(c => c.Id).ToArray();
+
+        await _store
+            .WithNoTracking<Data.Challenge>()
+            .Where(c => challengeIds.Contains(c.Id))
+            .ExecuteUpdateAsync
+            (
+                up => up
+                    .SetProperty(c => c.StartTime, c => sessionWindow.Start)
+                    .SetProperty(c => c.EndTime, c => sessionWindow.End),
+                cancellationToken
+            );
+
+        // and then their gamespaces (if the end time is changing)
+        var pushGamespaceUpdateTasks = challenges
+            .Where(c => c.EndTime != sessionWindow.End)
+            .Select(c => _gameEngine.ExtendSession(c.Id, sessionWindow.End, c.GameEngineType))
+            .ToArray();
+
+        if (pushGamespaceUpdateTasks.Any())
+            await Task.WhenAll(pushGamespaceUpdateTasks);
+    }
+
     private async Task<TeamState> GetTeamState(string teamId, SimpleEntity actor, CancellationToken cancellationToken)
     {
         var captain = await ResolveCaptain(teamId, cancellationToken);
@@ -399,93 +490,13 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
         };
     }
 
-    private Task UpdateSessionEnd(string teamId, DateTimeOffset sessionEnd, CancellationToken cancellationToken)
-        => UpdateSessionStartAndEnd(teamId, null, sessionEnd, cancellationToken);
+    // private async Task UpdateSessionEnd(string teamId, DateTimeOffset sessionEnd, CancellationToken cancellationToken)
+    // {
+    //     var currentSession = await GetSession(teamId, cancellationToken);
+    //     currentSession.End = sessionEnd;
 
-    public async Task UpdateSessionStartAndEnd(string teamId, DateTimeOffset? sessionStart, DateTimeOffset? sessionEnd, CancellationToken cancellationToken)
-    {
-        if (sessionStart is null && sessionEnd is null)
-            throw new ArgumentException($"Either {nameof(sessionStart)} or {nameof(sessionEnd)} must be non-null.");
-
-        // update all players
-        await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => p.TeamId == teamId)
-            .ExecuteUpdateAsync
-            (
-                up => up
-                    .SetProperty(p => p.SessionBegin, p => sessionStart ?? p.SessionBegin)
-                    .SetProperty(p => p.SessionEnd, p => sessionEnd ?? p.SessionEnd),
-                cancellationToken
-            );
-
-        // and their challenges
-        var challenges = await _store
-            .WithNoTracking<Data.Challenge>()
-            .Where(c => c.TeamId == teamId)
-            .Select(c => new
-            {
-                c.Id,
-                c.GameEngineType
-            })
-            .ToArrayAsync(cancellationToken);
-
-        // NOTE ABOUT THE BELOW:
-        //
-        // This query structure looks preferable since it only involves a single
-        // read/write. The issue we had was that during deployment of external +
-        // sync-start games, bringing the challenges back with tracking
-        // included a stale State property. (Not sure why, since we update
-        // the State to the game engine's representation of the state during 
-        // deployment). Since we were doing a full Update here, we ended up updating
-        // the State property of the challenge even though we're not explicitly doing that
-        // here, thus persisting the stale value. This may suggest a problem
-        // in the Store or some weird EF stuff we're not taking into account.
-        //
-        // TL;DR - debugging external + sync start deploy is really challenging because of
-        // external dependencies like Gamebrain, so we had to target our updates
-        // to the desired properties here and move on.
-
-        // var challenges = await _store
-        //     .WithTracking<Data.Challenge>()
-        //     .Where(c => c.TeamId == teamId)
-        //     .ToArrayAsync(cancellationToken);
-
-        // foreach (var challenge in challenges)
-        // {
-        //     if (sessionStart is not null)
-        //         challenge.StartTime = sessionStart.Value;
-
-        //     if (sessionEnd is not null)
-        //         challenge.EndTime = sessionEnd.Value;
-        // }
-        //
-        // await _store.SaveUpdateRange(challenges);
-
-        // resolve these to IDs to allow query translation
-        var challengeIds = challenges.Select(c => c.Id).ToArray();
-
-        await _store
-            .WithNoTracking<Data.Challenge>()
-            .Where(c => challengeIds.Contains(c.Id))
-            .ExecuteUpdateAsync
-            (
-                up => up
-                    .SetProperty(c => c.StartTime, c => sessionStart ?? c.StartTime)
-                    .SetProperty(c => c.EndTime, c => sessionEnd ?? c.EndTime),
-                cancellationToken
-            );
-
-        // and then their gamespaces (if the end time is changing)
-        if (sessionEnd is not null)
-        {
-            var gamespaceUpdates = challenges.Select(c => _gameEngine.ExtendSession(c.Id, sessionEnd.Value, c.GameEngineType));
-            await Task.WhenAll(gamespaceUpdates);
-        }
-    }
-
-    public Task Handle(UserJoinedTeamNotification notification, CancellationToken cancellationToken)
-        => Task.Run(() => _cacheService.Invalidate(GetUserTeamIdsCacheKey(notification.UserId)), cancellationToken);
+    //     await UpdateSession(teamId, currentSession, cancellationToken);
+    // }
 
     private string GetUserTeamIdsCacheKey(string userId)
         => $"UserTeamIds:{userId}";

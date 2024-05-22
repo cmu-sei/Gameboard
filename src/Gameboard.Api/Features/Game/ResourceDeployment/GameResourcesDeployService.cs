@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using AutoMapper.Configuration.Annotations;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
@@ -84,6 +85,7 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
                 .Include(p => p.Game)
             .Where(p => teamIds.Contains(p.TeamId))
             .Select(p => new SimpleEntity { Id = p.GameId, Name = p.Game.Name })
+            .Distinct()
             .SingleAsync(cancellationToken);
 
         var request = new GameResourcesDeployRequest

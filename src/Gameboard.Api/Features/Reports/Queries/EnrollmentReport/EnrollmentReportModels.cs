@@ -12,6 +12,8 @@ public class EnrollmentReportParameters
     public string Series { get; set; }
     public string Sponsors { get; set; }
     public string Tracks { get; set; }
+    public string Sort { get; set; }
+    public SortDirection SortDirection { get; set; }
 }
 
 public class EnrollmentReportRecord
@@ -24,6 +26,7 @@ public class EnrollmentReportRecord
 
     // performance data
     public required IEnumerable<EnrollmentReportChallengeViewModel> Challenges { get; set; }
+    public required int ChallengeCount { get; set; }
     public required int ChallengesPartiallySolvedCount { get; set; }
     public required int ChallengesCompletelySolvedCount { get; set; }
     public required double Score { get; set; }
@@ -33,6 +36,7 @@ public class EnrollmentReportByGameRecord
 {
     public required EnrollmentReportByGameGame Game { get; set; }
     public required int PlayerCount { get; set; }
+    public required int SponsorCount { get; set; }
     public required IEnumerable<EnrollmentReportByGameSponsor> Sponsors { get; set; }
     public required EnrollmentReportByGameSponsor TopSponsor { get; set; }
 }

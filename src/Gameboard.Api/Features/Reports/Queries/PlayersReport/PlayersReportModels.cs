@@ -14,6 +14,8 @@ public sealed class PlayersReportParameters
     public string Series { get; set; }
     public string Sponsors { get; set; }
     public string Tracks { get; set; }
+    public string Sort { get; set; }
+    public SortDirection SortDirection { get; set; }
 }
 
 public sealed class PlayersReportRecord

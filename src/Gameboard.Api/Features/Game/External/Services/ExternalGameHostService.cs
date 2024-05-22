@@ -211,7 +211,7 @@ internal class ExternalGameHostService : IExternalGameHostService
             });
         }
 
-        var gameId = teamData.Values.SelectMany(p => p.Select(thing => thing.GameId)).Single();
+        var gameId = teamData.Values.SelectMany(p => p.Select(thing => thing.GameId)).Distinct().Single();
         var game = await _store
             .WithNoTracking<Data.Game>()
             .Where(g => g.Id == gameId)

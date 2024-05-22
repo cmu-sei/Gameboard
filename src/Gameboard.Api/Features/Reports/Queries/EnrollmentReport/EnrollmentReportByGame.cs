@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ServiceStack;
 namespace Gameboard.Api.Features.Reports;
 
 public record EnrollmentReportByGameQuery(EnrollmentReportParameters Parameters, PagingArgs PagingArgs) : IRequest<ReportResults<EnrollmentReportByGameRecord>>, IReportQuery;
@@ -110,6 +111,7 @@ internal class EnrollmentReportByGameHandler : IRequestHandler<EnrollmentReportB
                 {
                     Game = gameInfo.Game,
                     PlayerCount = gamePlayerCount[gr.Key],
+                    SponsorCount = thisGameSponsors.Count(),
                     Sponsors = thisGameSponsors.Select(s => new EnrollmentReportByGameSponsor
                     {
                         Id = s.SponsorId,
@@ -126,8 +128,43 @@ internal class EnrollmentReportByGameHandler : IRequestHandler<EnrollmentReportB
                     }
                 };
             })
-            .OrderByDescending(record => record.PlayerCount)
-            .ToArray();
+            .OrderByDescending(record => record.PlayerCount);
+
+        if (request.Parameters.Sort.IsNotEmpty())
+        {
+            var sortDirection = request.Parameters.SortDirection;
+
+            switch (request.Parameters.Sort)
+            {
+                case "count-players":
+                    groupedResults = groupedResults.Sort(r => r.PlayerCount, sortDirection);
+                    break;
+                case "count-sponsors":
+                    groupedResults = groupedResults.Sort(r => r.SponsorCount, sortDirection);
+                    break;
+                case "execution-end":
+                    groupedResults = groupedResults.Sort(r => r.Game.ExecutionClosed, sortDirection);
+                    break;
+                case "execution-start":
+                    groupedResults = groupedResults.Sort(r => r.Game.ExecutionOpen);
+                    break;
+                case "game":
+                    groupedResults = groupedResults.Sort(r => r.Game.Name, sortDirection);
+                    break;
+                case "registration-close":
+                    groupedResults = groupedResults.Sort(r => r.Game.RegistrationClosed);
+                    break;
+                case "registration-open":
+                    groupedResults = groupedResults.Sort(r => r.Game.RegistrationOpen);
+                    break;
+                case "top-sponsor":
+                    groupedResults = groupedResults.Sort(r => r.TopSponsor.Name, sortDirection);
+                    break;
+            }
+
+            groupedResults = groupedResults
+                .ThenBy(r => r.Game.Name);
+        }
 
         return _reportsService.BuildResults(new ReportRawResults<EnrollmentReportByGameRecord>
         {

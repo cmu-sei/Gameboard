@@ -41,6 +41,9 @@ public sealed class PracticeModeReportParameters
     public string Tracks { get; set; }
     public string Sponsors { get; set; }
     public string Grouping { get; set; }
+
+    public string Sort { get; set; }
+    public SortDirection SortDirection { get; set; }
 }
 
 public sealed class PracticeModeByUserReportRecord : IPracticeModeReportRecord

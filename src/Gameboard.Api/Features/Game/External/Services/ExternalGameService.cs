@@ -91,6 +91,9 @@ internal class ExternalGameService : IExternalGameService,
         var teamDeployStatuses = externalGameTeamsData
             .ToDictionary(t => t.TeamId, t => t.DeployStatus);
 
+        foreach (var teamId in teamIds.Where(tId => !teamDeployStatuses.ContainsKey(tId)))
+            teamDeployStatuses.Add(teamId, ExternalGameDeployStatus.NotStarted);
+
         // get challenges separately because of SpecId nonsense
         // group by TeamId for quicker lookups
         var teamChallenges = await _store
@@ -283,6 +286,9 @@ internal class ExternalGameService : IExternalGameService,
 
     private ExternalGameDeployStatus ResolveOverallDeployStatus(IEnumerable<ExternalGameDeployStatus> teamStatuses)
     {
+        if (!teamStatuses.Any())
+            return ExternalGameDeployStatus.NotStarted;
+
         if (teamStatuses.All(s => s == ExternalGameDeployStatus.Deployed))
             return ExternalGameDeployStatus.Deployed;
 

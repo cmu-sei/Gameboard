@@ -22,6 +22,8 @@ public class SupportReportParameters
     public DateTimeOffset? UpdatedDateStart { get; set; }
     public DateTimeOffset? UpdatedDateEnd { get; set; }
     public SupportReportTicketWindow? OpenedWindow { get; set; }
+    public string Sort { get; set; }
+    public SortDirection SortDirection { get; set; }
     public string Statuses { get; set; }
 }
 
