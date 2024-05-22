@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
 using Microsoft.EntityFrameworkCore;
+using ServiceStack;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -133,7 +134,7 @@ internal class ChallengesReportService : IChallengesReportService
                     .Count()
             });
 
-        return specs.Select(cs =>
+        var preSortResults = specs.Select(cs =>
         {
             var aggregations = specAggregations.ContainsKey(cs.Id) ? specAggregations[cs.Id] : null;
 
@@ -161,8 +162,43 @@ internal class ChallengesReportService : IChallengesReportService
                 SolvePartialCount = aggregations is not null ? aggregations.SolvePartialCount : 0,
                 SolveCompleteCount = aggregations is not null ? aggregations.SolveCompleteCount : 0
             };
-        })
-        .OrderBy(r => r.ChallengeSpec.Name)
+        });
+
+        var sortedResults = preSortResults.OrderBy(r => true);
+
+        if (parameters.Sort.IsNotEmpty())
+        {
+            switch (parameters.Sort.ToLower())
+            {
+                case "avg-score":
+                    sortedResults = sortedResults.Sort(r => r.AvgScore, parameters.SortDirection);
+                    break;
+                case "avg-solve-time":
+                    sortedResults = sortedResults.Sort(r => r.AvgCompleteSolveTimeMs, parameters.SortDirection);
+                    break;
+                case "deploy-count-competitive":
+                    sortedResults = sortedResults.Sort(r => r.DeployCompetitiveCount, parameters.SortDirection);
+                    break;
+                case "deploy-count-practice":
+                    sortedResults = sortedResults.Sort(r => r.DeployPracticeCount, parameters.SortDirection);
+                    break;
+                case "player-count":
+                    sortedResults = sortedResults.Sort(r => r.DistinctPlayerCount, parameters.SortDirection);
+                    break;
+                case "score-complete":
+                    sortedResults = sortedResults.Sort(r => r.SolveCompleteCount, parameters.SortDirection);
+                    break;
+                case "score-none":
+                    sortedResults = sortedResults.Sort(r => r.SolveZeroCount, parameters.SortDirection);
+                    break;
+                case "score-partial":
+                    sortedResults = sortedResults.Sort(r => r.SolvePartialCount, parameters.SortDirection);
+                    break;
+            }
+        }
+
+        return sortedResults
+            .ThenBy(r => r.ChallengeSpec.Name)
             .ThenBy(r => r.Game.Name);
     }
 

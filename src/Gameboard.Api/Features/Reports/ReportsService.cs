@@ -4,7 +4,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
@@ -34,7 +33,6 @@ public class ReportsService : IReportsService
 {
     private static readonly string MULTI_SELECT_DELIMITER = ",";
 
-    private readonly IMapper _mapper;
     private readonly INowService _now;
     private readonly IPagingService _paging;
     private readonly IStore _store;
@@ -42,14 +40,12 @@ public class ReportsService : IReportsService
 
     public ReportsService
     (
-        IMapper mapper,
         INowService now,
         IPagingService paging,
         IStore store,
         ITeamService teamService
     )
     {
-        _mapper = mapper;
         _now = now;
         _paging = paging;
         _store = store;

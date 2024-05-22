@@ -1,4 +1,5 @@
 using System;
+using System.Linq.Expressions;
 
 namespace Gameboard.Api.Common;
 
@@ -52,4 +53,10 @@ public sealed class SimpleEntity
 {
     public string Id { get; set; }
     public string Name { get; set; }
+}
+
+public enum SortDirection
+{
+    Asc,
+    Desc
 }

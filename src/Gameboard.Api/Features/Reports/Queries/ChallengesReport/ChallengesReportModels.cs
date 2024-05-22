@@ -11,6 +11,8 @@ public sealed class ChallengesReportParameters
     public required string Games { get; set; }
     public required string Seasons { get; set; }
     public required string Series { get; set; }
+    public string Sort { get; set; }
+    public SortDirection SortDirection { get; set; }
     public required string Tracks { get; set; }
 }
 
