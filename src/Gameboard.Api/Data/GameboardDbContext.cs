@@ -271,6 +271,9 @@ public class GameboardDbContext : DbContext
             b.Property(p => p.InviteCode).HasMaxLength(40);
             b.Property(p => p.AdvancedFromTeamId).HasStandardGuidLength();
 
+            // performance-oriented indices
+            b.HasIndex(p => new { p.UserId, p.TeamId });
+
             // nav properties
             b.HasOne(p => p.User).WithMany(u => u.Enrollments).OnDelete(DeleteBehavior.Cascade);
             b
