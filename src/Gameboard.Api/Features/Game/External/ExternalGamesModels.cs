@@ -17,7 +17,7 @@ public sealed class GetExternalGameHostsResponseHost
     public required string ClientUrl { get; set; }
     public required bool DestroyResourcesOnDeployFailure { get; set; }
     public required int? GamespaceDeployBatchSize { get; set; }
-    public required string HostApiKey { get; set; }
+    public required bool HasApiKey { get; set; }
     public required string HostUrl { get; set; }
     public required string PingEndpoint { get; set; }
     public required string StartupEndpoint { get; set; }

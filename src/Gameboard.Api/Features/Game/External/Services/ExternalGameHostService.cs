@@ -11,7 +11,6 @@ using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using ServiceStack;
 
 namespace Gameboard.Api.Features.Games.External;
 
@@ -95,7 +94,7 @@ internal class ExternalGameHostService : IExternalGameHostService
                 ClientUrl = h.ClientUrl,
                 DestroyResourcesOnDeployFailure = h.DestroyResourcesOnDeployFailure,
                 GamespaceDeployBatchSize = h.GamespaceDeployBatchSize,
-                HostApiKey = h.HostApiKey,
+                HasApiKey = h.HostApiKey != null && h.HostApiKey != string.Empty,
                 HostUrl = h.HostUrl,
                 PingEndpoint = h.PingEndpoint,
                 StartupEndpoint = h.StartupEndpoint,
