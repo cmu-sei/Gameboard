@@ -650,27 +650,23 @@ public partial class ChallengeService : _Service
     public async Task<ChallengeIdUserIdMap> GetChallengeUserMaps(IQueryable<Data.Challenge> query, CancellationToken cancellationToken)
     {
         var teamChallengeIds = await query
-            .Select(c => new
-            {
-                c.Id,
-                c.TeamId
-            })
+            .Select(c => new { c.Id, c.TeamId })
             .GroupBy(c => c.TeamId)
             .ToDictionaryAsync(gr => gr.Key, gr => gr.Select(c => c.Id).ToArray(), cancellationToken);
 
         var teamIds = teamChallengeIds.Keys;
 
         var userTeamIds = await _store
-            .WithNoTracking<Data.Challenge>()
-            .Include(c => c.Player)
-            .Where(c => c.Player.UserId != null && c.Player.UserId != string.Empty)
-            .Where(c => teamIds.Contains(c.TeamId))
-            .Select(c => new { c.Player.UserId, c.TeamId })
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.UserId != null && p.UserId != string.Empty)
+            .Where(p => teamIds.Contains(p.TeamId))
+            .Select(p => new { p.UserId, p.TeamId })
             .GroupBy(p => p.UserId)
             .ToDictionaryAsync(gr => gr.Key, gr => gr.Select(thing => thing.TeamId).Distinct(), cancellationToken);
 
         var userIdChallengeIds = userTeamIds
-            .ToDictionary(gr => gr.Key, gr => gr.Value.SelectMany(tId => teamChallengeIds[tId]));
+            .ToDictionary(gr => gr.Key, gr => gr.Value
+            .SelectMany(tId => teamChallengeIds[tId]));
 
         var challengeIdUserIds = new Dictionary<string, IEnumerable<string>>();
         foreach (var kv in userIdChallengeIds)

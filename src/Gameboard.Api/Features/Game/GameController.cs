@@ -103,7 +103,7 @@ namespace Gameboard.Api.Controllers
         [Authorize(AppConstants.DesignerPolicy)]
         public async Task Update([FromBody] ChangedGame model)
         {
-            await Validate(new Entity { Id = model.Id });
+            await Validate(model);
             await GameService.Update(model);
         }
 

@@ -78,17 +78,24 @@ public class GameService : _Service, IGameService
                 model.CertificateTemplate = _defaults.CertificateTemplate;
         }
 
-        // default to standard-mode challenges
+        // defaults: standard, 60 minutes, scoreboard access, etc.
         if (model.Mode.IsEmpty())
             model.Mode = GameEngineMode.Standard;
 
-        // by default, enable public scoreboard access (after the game has ended)
+        // default to a session length of 60 minutes
+        if (model.SessionMinutes == 0)
+            model.SessionMinutes = 60;
+
+        if (model.MinTeamSize == 0)
+            model.MinTeamSize = 1;
+
+        if (model.MaxTeamSize == 0)
+            model.MaxTeamSize = 1;
+
         model.AllowPublicScoreboardAccess = true;
 
         var entity = Mapper.Map<Data.Game>(model);
-
         await _gameStore.Create(entity);
-
         return Mapper.Map<Game>(entity);
     }
 
@@ -111,10 +118,9 @@ public class GameService : _Service, IGameService
         await _gameStore.Update(entity);
     }
 
-    public async Task Delete(string id)
-    {
-        await _gameStore.Delete(id);
-    }
+    public Task Delete(string id)
+        => _gameStore.Delete(id);
+
 
     public IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool sudo = false)
     {

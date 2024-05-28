@@ -1,9 +1,11 @@
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games.External;
 
@@ -79,7 +81,23 @@ internal sealed class UpsertExternalGameHandler : IRequestHandler<UpsertExternal
         if (request.Host.Id.IsEmpty())
             retVal = await _store.Create(retVal);
         else
+        {
+            // we only update the API key if the request explicitly asks us to. if it's empty, we make
+            // the assumption that the user isn't changing it (to avoid serving the actual API key in the response
+            // when they edit a host)
+            if (request.Host.HostApiKey.IsEmpty())
+            {
+                var currentApiKey = await _store
+                    .WithNoTracking<ExternalGameHost>()
+                    .Where(h => h.Id == request.Host.Id)
+                    .Select(h => h.HostApiKey)
+                    .SingleAsync(cancellationToken);
+
+                retVal.HostApiKey = currentApiKey;
+            }
+
             retVal = await _store.SaveUpdate(retVal, cancellationToken);
+        }
 
         return retVal;
     }

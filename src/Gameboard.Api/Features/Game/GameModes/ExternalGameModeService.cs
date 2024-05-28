@@ -34,7 +34,7 @@ internal class ExternalGameModeService : IExternalGameModeService
     public Task<GamePlayState> GetGamePlayStateForTeam(string teamId, CancellationToken cancellationToken)
         => GetGamePlayStateForGameAndTeam(null, teamId, cancellationToken);
 
-    private async Task<GamePlayState> GetGamePlayStateForGameAndTeam(string gameId, string teamId, CancellationToken cancellationToken)
+    internal async Task<GamePlayState> GetGamePlayStateForGameAndTeam(string gameId, string teamId, CancellationToken cancellationToken)
     {
         if (teamId.IsNotEmpty())
             gameId = await _teamService.GetGameId(teamId, cancellationToken);

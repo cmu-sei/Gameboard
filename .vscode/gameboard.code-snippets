@@ -1,0 +1,50 @@
+{
+	// see https://code.visualstudio.com/docs/editor/userdefinedsnippets
+	"Create Gameboard Unit Test Suite": {
+		"scope": "csharp",
+		"description": "Create a Gameboard unit test suite",
+		"prefix": "test-suite-unit",
+		"body": [
+			"namespace Gameboard.Api.Tests.Unit;",
+			"",
+			"public class ${TM_FILENAME/\\.cs//g}",
+			"{",
+			"\t$0",
+			"}"
+		]
+	},
+	"Create Gameboard Unit Test": {
+		"scope": "csharp",
+		"description": "Start a new Gameboard unit test",
+		"prefix": "test-unit",
+		"isFileTemplate": true,
+		"body": [
+			"[${0:Theory}, ${1:GameboardAutoData}]",
+			"public async Task ${TM_FILENAME/Tests\\.cs//g}_$2_$3(IFixture fixture)",
+			"{",
+			"\t\/\/ given",
+			"\t$4",
+			"\t\/\/ when",
+			"\t\/\/ var sut = new ${TM_FILENAME/Tests\\.cs//g}(...)",
+			"",
+			"\t\/\/ then",
+			"}"
+		]
+	// },
+	"Create Gameboard Integration Test Suite": {
+		"scope": "csharp",
+		"description": "Create a Gameboard integration test suite",
+		"prefix": "test-suite-int",
+		"body": [
+			"namespace Gameboard.Api.Tests.Integration;",
+			"",
+			"public class ${0:Some}ControllerTests : IClassFixture<GameboardTestContext>",
+			"{",
+			"\tprivate readonly GameboardTestContext _testContext;",
+			"",
+			"\tpublic ${0:Some}ControllerTests(GameboardTestContext testContext",
+			"\t\t=> _testContext = testContext;",
+			"}"
+		]
+	}
+}

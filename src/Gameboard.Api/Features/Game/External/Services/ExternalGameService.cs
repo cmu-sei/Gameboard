@@ -33,7 +33,6 @@ internal class ExternalGameService : IExternalGameService,
     INotificationHandler<GameResourcesDeployStartNotification>,
     INotificationHandler<GameResourcesDeployEndNotification>
 {
-    private readonly IGameModeServiceFactory _gameModeServiceFactory;
     private readonly IGuidService _guids;
     private readonly ILogger<ExternalGameService> _logger;
     private readonly INowService _now;
@@ -43,7 +42,6 @@ internal class ExternalGameService : IExternalGameService,
 
     public ExternalGameService
     (
-        IGameModeServiceFactory gameModeServiceFactory,
         IGuidService guids,
         ILogger<ExternalGameService> logger,
         INowService now,
@@ -52,7 +50,6 @@ internal class ExternalGameService : IExternalGameService,
         ITeamService teamService
     )
     {
-        _gameModeServiceFactory = gameModeServiceFactory;
         _guids = guids;
         _logger = logger;
         _now = now;

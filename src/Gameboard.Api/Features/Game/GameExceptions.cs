@@ -67,6 +67,12 @@ public class GameDoesntAllowReset : GameboardValidationException
     public GameDoesntAllowReset(string gameId) : base($"""Game {gameId} has "Allow Reset" set to disabled.""") { }
 }
 
+public class InvalidTeamSize : GameboardValidationException
+{
+    public InvalidTeamSize(string id, string name, int min, int max)
+        : base($"Couldn't set team size {min}-{max} for game {name}. The minimum team size must be less than the max.") { }
+}
+
 internal class UserIsntPlayingGame : GameboardValidationException
 {
     public UserIsntPlayingGame(string userId, string gameId, string whyItMatters = null) : base($"""User {userId} isn't playing game {gameId}.{(string.IsNullOrWhiteSpace(whyItMatters) ? string.Empty : ". " + whyItMatters)} """) { }

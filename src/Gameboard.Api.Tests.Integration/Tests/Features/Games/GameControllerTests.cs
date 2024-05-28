@@ -13,6 +13,7 @@ public class GameControllerTests : IClassFixture<GameboardTestContext>
     public async Task GameController_Create_ReturnsGame()
     {
         // arrange
+
         var game = new NewGame()
         {
             Name = "Test game",
@@ -31,7 +32,7 @@ public class GameControllerTests : IClassFixture<GameboardTestContext>
         var responseGame = await _testContext
             .CreateHttpClientWithAuthRole(UserRole.Designer)
             .PostAsync("/api/game", game.ToJsonBody())
-            .WithContentDeserializedAs<Api.Data.Game>();
+            .WithContentDeserializedAs<Data.Game>();
 
         // assert
         responseGame?.Name.ShouldBe(game.Name);

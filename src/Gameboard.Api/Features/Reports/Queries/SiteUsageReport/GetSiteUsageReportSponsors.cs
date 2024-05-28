@@ -59,6 +59,7 @@ internal class GetSiteUsageReportSponsorsHandler : IRequestHandler<GetSiteUsageR
                 ParentName = gr.Key.ParentName,
                 PlayerCount = gr.Select(p => p.UserId).Distinct().Count()
             })
+            .OrderByDescending(s => s.PlayerCount)
             .ToArrayAsync(cancellationToken);
     }
 }
