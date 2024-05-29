@@ -172,6 +172,14 @@ namespace Gameboard.Api.Services
             return createdTicketModel;
         }
 
+        public IQueryable<Data.Ticket> GetGameOpenTickets(string gameId)
+        {
+            return _store
+                .WithNoTracking<Data.Ticket>()
+                .Where(t => t.Challenge.GameId == gameId || t.Player.Challenges.Any(c => c.GameId == gameId))
+                .Where(t => t.Status != "Closed");
+        }
+
         public async Task<Ticket> Update(ChangedTicket model, string actorId, bool sudo)
         {
             // need the creator to send updates

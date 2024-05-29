@@ -26,6 +26,10 @@ public class AdminController : ControllerBase
     public Task CreateAnnouncement([FromBody] SendAnnouncementCommand request)
         => _mediator.Send(request);
 
+    [HttpGet("games/{gameId}/game-center")]
+    public Task<GameCenterContext> GetGameCenterContext([FromRoute] string gameId)
+        => _mediator.Send(new GetGameCenterContextQuery(gameId));
+
     [HttpGet("stats")]
     public Task<GetAppOverviewStatsResponse> GetAppOverviewStats()
         => _mediator.Send(new GetAppOverviewStatsQuery());
