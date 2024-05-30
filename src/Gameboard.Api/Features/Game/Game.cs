@@ -139,3 +139,5 @@ public class GameGroup
     public int Month { get; set; }
     public Game[] Games { get; set; }
 }
+
+public sealed record DeployGameResourcesBody(IEnumerable<string> TeamIds);

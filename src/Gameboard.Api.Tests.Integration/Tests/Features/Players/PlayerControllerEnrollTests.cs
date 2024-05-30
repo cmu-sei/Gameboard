@@ -40,8 +40,7 @@ public class PlayerControllerEnrollTests : IClassFixture<GameboardTestContext>
         var enrollRequest = new NewPlayer()
         {
             UserId = userId,
-            GameId = gameId,
-            Name = fixture.Create<string>()
+            GameId = gameId
         };
 
         var httpClient = _testContext.CreateHttpClientWithActingUser(u => u.Id = userId); ;

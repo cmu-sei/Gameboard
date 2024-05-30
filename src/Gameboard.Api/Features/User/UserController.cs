@@ -78,6 +78,11 @@ namespace Gameboard.Api.Controllers
             return result;
         }
 
+        [HttpPost("api/users")]
+        [Authorize]
+        public Task<TryCreateUsersResponse> TryCreateMany([FromBody] TryCreateUsersRequest request)
+            => _mediator.Send(new TryCreateUsersCommand(request));
+
         /// <summary>
         /// Get user-specific settings
         /// 

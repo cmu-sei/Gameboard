@@ -63,6 +63,11 @@ public class TeamController : ControllerBase
     public Task<GamePlayState> GetTeamGamePlayState([FromRoute] string teamId)
         => _mediator.Send(new GetGamePlayStateQuery(teamId, _actingUserService.Get()?.Id));
 
+    [HttpPut("{teamId}/ready")]
+    [Authorize]
+    public Task UpdateTeamReadyState([FromRoute] string teamId, [FromBody] UpdateIsReadyRequest isReadyCommand)
+        => _mediator.Send(new UpdateTeamReadyStateCommand(teamId, isReadyCommand.IsReady));
+
     [HttpPut("{teamId}/session")]
     public Task ResetSession([FromRoute] string teamId, [FromBody] ResetTeamSessionCommand request, CancellationToken cancellationToken)
         => _mediator.Send(new ResetTeamSessionCommand(teamId, request.ResetType, _actingUserService.Get()), cancellationToken);
@@ -74,9 +79,4 @@ public class TeamController : ControllerBase
     // [HttpPost("{teamId}/session")]
     // public Task StartSessions([FromBody] StartTeamSessionsCommand request, CancellationToken cancellationToken)
     //     => _mediator.Send(request, cancellationToken);
-
-    [HttpPut("{teamId}/ready")]
-    [Authorize]
-    public Task UpdateTeamReadyState([FromRoute] string teamId, [FromBody] UpdateIsReadyRequest isReadyCommand)
-        => _mediator.Send(new UpdateTeamReadyStateCommand(teamId, isReadyCommand.IsReady));
 }

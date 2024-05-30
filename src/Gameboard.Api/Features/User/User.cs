@@ -2,6 +2,8 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Gameboard.Api;
@@ -33,7 +35,9 @@ public class User : IUserViewModel
 
 public class NewUser
 {
-    public string Id { get; set; }
+    public required string Id { get; set; }
+    public string SponsorId { get; set; }
+    public bool UnsetDefaultSponsorFlag { get; set; }
 }
 
 public class ChangedUser
@@ -108,4 +112,27 @@ public class TryCreateUserResult
 {
     public required bool IsNewUser { get; set; }
     public User User { get; set; }
+}
+
+public class TryCreateUsersRequest
+{
+    public required bool AllowSubsetCreation { get; set; }
+    public string EnrollInGameId { get; set; }
+    public required string SponsorId { get; set; }
+    public required bool UnsetDefaultSponsorFlag { get; set; }
+    public required IEnumerable<string> UserIds { get; set; }
+}
+
+public sealed class TryCreateUsersResponse
+{
+    public required IEnumerable<TryCreateUsersResponseUser> Users { get; set; }
+}
+
+public sealed class TryCreateUsersResponseUser
+{
+    public required string Id { get; set; }
+    public required string EnrolledInGameId { get; set; }
+    public required string Name { get; set; }
+    public required SimpleEntity Sponsor { get; set; }
+    public required bool IsNewUser { get; set; }
 }
