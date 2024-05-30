@@ -82,9 +82,18 @@ public class UserService
             entity.LastLoginDate = entity.CreatedOn;
         }
 
-        // assign the user to the default sponsor 
-        entity.Sponsor = await _sponsorService.GetDefaultSponsor();
-        entity.HasDefaultSponsor = true;
+        // if a specific sponsor is requested, try to set it
+        if (model.SponsorId.IsNotEmpty())
+            entity.SponsorId = await _store
+                .WithNoTracking<Data.Sponsor>()
+                .Select(s => s.Id)
+                .SingleOrDefaultAsync(sId => sId == model.SponsorId);
+
+        // if no sponsor was specified or if the specified one doesn't exist, use the default
+        entity.SponsorId ??= (await _sponsorService.GetDefaultSponsor()).Id;
+
+        // unless specifically told otherwise, we flag this user as needing to confirm their sponsor
+        entity.HasDefaultSponsor = !model.UnsetDefaultSponsorFlag;
 
         bool found = false;
         int i = 0;

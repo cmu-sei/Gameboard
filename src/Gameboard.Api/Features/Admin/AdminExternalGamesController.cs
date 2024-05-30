@@ -23,6 +23,6 @@ public class AdminExternalGamesController : ControllerBase
         => _mediator.Send(new GetExternalGameAdminContextRequest(gameId));
 
     [HttpPost("{gameId}/pre-deploy")]
-    public Task PreDeployGame([FromRoute] string gameId, [FromBody] ExternalGameDeployTeamResourcesRequest request)
-        => _mediator.Send(new DeployGameResourcesCommand(gameId, request.TeamIds));
+    public Task PreDeployGame([FromRoute] string gameId, [FromBody] DeployGameResourcesBody body)
+        => _mediator.Send(new DeployGameResourcesCommand(gameId, body?.TeamIds));
 }

@@ -14,9 +14,7 @@ public class AdminTeamsController : ControllerBase
     private readonly IMediator _mediator;
 
     public AdminTeamsController(IMediator mediator)
-    {
-        _mediator = mediator;
-    }
+        => _mediator = mediator;
 
     [HttpPost]
     public Task<AdminEnrollTeamResponse> Create([FromBody] AdminEnrollTeamRequest request)

@@ -91,8 +91,8 @@ namespace Gameboard.Api.Controllers
 
         [HttpPost("api/game/{gameId}/resources")]
         [Authorize]
-        public Task DeployResources([FromRoute] string gameId, [FromBody] IEnumerable<string> teamIds)
-            => _mediator.Send(new DeployGameResourcesCommand(gameId, teamIds));
+        public Task DeployResources([FromRoute] string gameId, [FromBody] DeployGameResourcesBody body)
+            => _mediator.Send(new DeployGameResourcesCommand(gameId, body?.TeamIds));
 
         /// <summary>
         /// Change game

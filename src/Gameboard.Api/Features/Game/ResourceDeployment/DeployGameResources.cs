@@ -14,7 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Gameboard.Api.Features.Games;
 
-public record DeployGameResourcesCommand(string GameId, IEnumerable<string> TeamIds = null) : IRequest;
+public record DeployGameResourcesCommand(string GameId, IEnumerable<string> TeamIds) : IRequest;
 
 internal class DeployGameResourcesHandler : IRequestHandler<DeployGameResourcesCommand>
 {
@@ -64,12 +64,13 @@ internal class DeployGameResourcesHandler : IRequestHandler<DeployGameResourcesC
         _backgroundTaskContext.ActingUser = _actingUserService.Get();
         _backgroundTaskContext.AppBaseUrl = _appUrlService.GetBaseUrl();
 
-        var finalTeamIds = request.TeamIds.IsEmpty() ? Array.Empty<string>() : request.TeamIds;
+        var finalTeamIds = request is null || request.TeamIds.IsEmpty() ? Array.Empty<string>() : request.TeamIds;
         if (finalTeamIds.IsEmpty() && request.GameId.IsNotEmpty())
             finalTeamIds = await _store
                 .WithNoTracking<Data.Player>()
                 .Where(p => p.GameId == request.GameId)
                 .Select(p => p.TeamId)
+                .Distinct()
                 .ToArrayAsync(cancellationToken);
 
         await _backgroundTaskQueue.QueueBackgroundWorkItemAsync
