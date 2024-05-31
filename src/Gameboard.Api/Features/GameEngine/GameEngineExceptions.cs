@@ -5,7 +5,7 @@ namespace Gameboard.Api.Features.GameEngine;
 
 internal class GradingFailed : GameboardException
 {
-    public GradingFailed(string challengeId, Exception innerException) : base($"Grading failed for challenge {challengeId}.", innerException) { }
+    public GradingFailed(string challengeId, Exception innerException) : base($"Grading failed for challenge {challengeId}: {innerException?.Message}", innerException) { }
 }
 
 internal class GamespaceStartFailure : GameboardException
