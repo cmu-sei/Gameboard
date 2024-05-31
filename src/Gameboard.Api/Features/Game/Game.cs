@@ -81,12 +81,15 @@ public class GameSearchFilter : SearchFilter
     private const string PastFilter = "past";
     private const string PresentFilter = "present";
     private const string FutureFilter = "future";
+
     public bool WantsAdvanceable => Filter.Contains(AdvanceableFilter);
     public bool WantsCompetitive => Filter.Contains(CompetitiveFilter);
     public bool WantsPractice => Filter.Contains(PracticeFilter);
     public bool WantsPresent => Filter.Contains(PresentFilter);
     public bool WantsPast => Filter.Contains(PastFilter);
     public bool WantsFuture => Filter.Contains(FutureFilter);
+
+    public string OrderBy { get; set; }
 }
 
 public class BoardGame
