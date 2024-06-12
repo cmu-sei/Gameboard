@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Collections.Generic;
+using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api;
 
@@ -72,4 +73,23 @@ public sealed class ChallengeSpecSummary
     public required string SolutionGuideUrl { get; set; }
     public required bool ShowSolutionGuideInCompetitiveMode { get; set; }
     public required IEnumerable<string> Tags { get; set; }
+}
+
+public sealed class ChallengeSpecQuestionPerformance
+{
+    public required int QuestionRank { get; set; }
+    public required string Hint { get; set; }
+    public required string Prompt { get; set; }
+    public required double PointValue { get; set; }
+
+    public required int CountCorrect { get; set; }
+    public required int CountSubmitted { get; set; }
+}
+
+public sealed class ChallengeSpecQuestionPerformanceChallenge
+{
+    public required bool IsComplete { get; set; }
+    public required bool IsPartial { get; set; }
+    public required bool IsZero { get; set; }
+    public required GameEngineGameState State { get; set; }
 }

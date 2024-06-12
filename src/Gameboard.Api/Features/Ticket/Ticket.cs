@@ -145,6 +145,9 @@ public class TicketSearchFilter : SearchFilter
     public bool WantsNotClosed => Filter.Contains(NotClosedFilter);
     public bool WantsAssignedToMe => Filter.Contains(AssignedToMeFilter);
     public bool WantsUnassigned => Filter.Contains(UnassignedFilter);
+
+    // sane filters
+    public string GameId { get; set; }
     public string WithAllLabels { get; set; }
 
     // Ordering logic - set up string constants, then check if they're in the request

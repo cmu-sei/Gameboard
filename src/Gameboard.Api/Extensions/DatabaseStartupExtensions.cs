@@ -29,9 +29,7 @@ namespace Gameboard.Api.Extensions
             using (var db = services.GetService<GameboardDbContext>())
             {
                 if (!db.Database.IsInMemory())
-                {
                     db.Database.Migrate();
-                }
 
                 SeedDatabase(env, config, db, settings, logger);
             }
@@ -61,9 +59,7 @@ namespace Gameboard.Api.Extensions
                 logger.LogInformation($"Admin user '{settings.Database.AdminName}' found in configuration. Seeding now...");
 
                 if (db.Users.FirstOrDefault(u => u.Id == settings.Database.AdminId) != null)
-                {
                     logger.LogInformation("This user is already seeded in the database. Skipping it this time.");
-                }
                 else
                 {
                     db.Users.Add(new Data.User

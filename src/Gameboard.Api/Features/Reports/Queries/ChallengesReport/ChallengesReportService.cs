@@ -132,7 +132,7 @@ internal class ChallengesReportService : IChallengesReportService
                     .Where(c => c.Score >= c.Points)
                     .Where(c => c.PlayerMode == PlayerMode.Competition)
                     .Count()
-            });
+            }, cancellationToken);
 
         var preSortResults = specs.Select(cs =>
         {

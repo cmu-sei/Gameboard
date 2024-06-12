@@ -42,14 +42,12 @@ public class GameEngineService : _Service, IGameEngineService
     IAlloyApiClient Alloy { get; }
 
     private readonly ICrucibleService _crucible;
-    private readonly IGameEngineStore _store;
     private readonly IJsonService _jsonService;
     private readonly IVmUrlResolver _vmUrlResolver;
 
     public GameEngineService(
         IJsonService jsonService,
         ILogger<GameEngineService> logger,
-        IGameEngineStore store,
         IMapper mapper,
         CoreOptions options,
         ITopoMojoApiClient mojo,
@@ -61,7 +59,6 @@ public class GameEngineService : _Service, IGameEngineService
         _jsonService = jsonService;
         _crucible = crucible;
         Mojo = mojo;
-        _store = store;
         _vmUrlResolver = vmUrlResolver;
     }
 
@@ -352,6 +349,7 @@ public class GameEngineService : _Service, IGameEngineService
     }
 
     public Task ExtendSession(Data.Challenge entity, DateTimeOffset sessionEnd)
+
         => ExtendSession(entity.Id, sessionEnd, entity.GameEngineType);
 
     public Task ExtendSession(string challengeId, DateTimeOffset sessionEnd, GameEngineType gameEngineType)

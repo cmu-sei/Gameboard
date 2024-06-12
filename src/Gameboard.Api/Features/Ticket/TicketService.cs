@@ -180,6 +180,11 @@ namespace Gameboard.Api.Services
                 .Where(t => t.Status != "Closed");
         }
 
+        public IQueryable<Data.Ticket> GetTeamTickets(IEnumerable<string> teamIds)
+            => _store
+                .WithNoTracking<Data.Ticket>()
+                .Where(t => teamIds.Contains(t.TeamId));
+
         public async Task<Ticket> Update(ChangedTicket model, string actorId, bool sudo)
         {
             // need the creator to send updates
@@ -266,6 +271,9 @@ namespace Gameboard.Api.Services
                 q = q.Where(t => t.RequesterId == userId ||
                     userTeams.Any(i => i == t.TeamId));
             }
+
+            if (model.GameId.IsNotEmpty())
+                q = q.Where(t => t.Challenge.GameId == model.GameId || t.Player.GameId == model.GameId);
 
             // Ordering in descending order
             if (model.WantsOrderingDesc)

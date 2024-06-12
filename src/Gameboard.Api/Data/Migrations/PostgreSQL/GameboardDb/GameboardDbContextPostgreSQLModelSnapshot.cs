@@ -728,6 +728,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<int>("GamespaceLimitPerSession")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("IsFeatured")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsPublished")
                         .HasColumnType("boolean");
 
@@ -953,6 +956,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.HasIndex("TeamId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "TeamId");
 
                     b.ToTable("Players");
                 });

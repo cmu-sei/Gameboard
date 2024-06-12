@@ -45,6 +45,7 @@ public class Game : IEntity
     public string CardText1 { get; set; }
     public string CardText2 { get; set; }
     public string CardText3 { get; set; }
+    public bool IsFeatured { get; set; }
 
     // mode stuff
     public string ExternalHostId { get; set; }

@@ -133,6 +133,9 @@ public class GameService : _Service, IGameService
         if (model == null)
             return q;
 
+        if (model.IsFeatured.HasValue)
+            q = q.Where(g => g.IsFeatured == model.IsFeatured);
+
         if (model.WantsAdvanceable)
             q = q.Where(g => g.GameEnd > now);
 

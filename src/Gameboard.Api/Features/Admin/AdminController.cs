@@ -9,10 +9,7 @@ public class AdminController : ControllerBase
 {
     private readonly IMediator _mediator;
 
-    public AdminController(IMediator mediator)
-    {
-        _mediator = mediator;
-    }
+    public AdminController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet("active-challenges")]
     public Task<GetAppActiveChallengesResponse> GetActiveChallenges([FromQuery] string playerMode)
@@ -29,6 +26,10 @@ public class AdminController : ControllerBase
     [HttpGet("games/{gameId}/game-center")]
     public Task<GameCenterContext> GetGameCenterContext([FromRoute] string gameId)
         => _mediator.Send(new GetGameCenterContextQuery(gameId));
+
+    [HttpGet("games/{gameId}/game-center/teams")]
+    public Task<GameCenterTeamsResults> GetGameCenterTeams([FromRoute] string gameId, [FromQuery] GetGameCenterTeamsArgs queryArgs, [FromQuery] PagingArgs pagingArgs)
+        => _mediator.Send(new GetGameCenterTeamsQuery(gameId, queryArgs, pagingArgs));
 
     [HttpGet("stats")]
     public Task<GetAppOverviewStatsResponse> GetAppOverviewStats()

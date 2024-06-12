@@ -20,6 +20,7 @@ public interface ITeamService
     Task DeleteTeam(string teamId, SimpleEntity actingUser, CancellationToken cancellationToken);
     Task EndSession(string teamId, User actor, CancellationToken cancellationToken);
     Task<Api.Player> ExtendSession(ExtendTeamSessionRequest request, CancellationToken cancellationToken);
+    Task<IDictionary<string, TeamChallengeSolveCounts>> GetSolves(IEnumerable<string> teamIds, CancellationToken cancellationToken);
     Task<IEnumerable<SimpleEntity>> GetChallengesWithActiveGamespace(string teamId, string gameId, CancellationToken cancellationToken);
     Task<bool> GetExists(string teamId);
     Task<string> GetGameId(string teamId, CancellationToken cancellationToken);
@@ -163,6 +164,32 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
         }, request.Actor);
 
         return captainModel;
+    }
+
+    public async Task<IDictionary<string, TeamChallengeSolveCounts>> GetSolves(IEnumerable<string> teamIds, CancellationToken cancellationToken)
+    {
+        var solveData = await _store
+            .WithNoTracking<Data.Challenge>()
+            .Where(c => teamIds.Contains(c.TeamId))
+            .GroupBy(c => c.TeamId)
+            .ToDictionaryAsync(gr => gr.Key, gr => new TeamChallengeSolveCounts
+            {
+                Complete = gr.Count(c => c.Score >= c.Points),
+                Partial = gr.Count(c => c.Score < c.Points && c.Score > 0),
+                Unscored = gr.Count(c => c.Score == 0)
+            }, cancellationToken);
+
+        foreach (var missingTeamId in teamIds.Where(tId => !solveData.ContainsKey(tId)))
+        {
+            solveData.Add(missingTeamId, new TeamChallengeSolveCounts
+            {
+                Complete = 0,
+                Partial = 0,
+                Unscored = 0
+            });
+        }
+
+        return solveData;
     }
 
     public async Task<IEnumerable<SimpleEntity>> GetChallengesWithActiveGamespace(string teamId, string gameId, CancellationToken cancellationToken)
