@@ -171,7 +171,6 @@ public class TicketSearchFilter : SearchFilter
 
 public class TicketReportFilter : TicketSearchFilter
 {
-    public string GameId { get; set; }
     public bool WantsGame => !GameId.IsEmpty();
     public DateTimeOffset StartRange { get; set; }
     public DateTimeOffset EndRange { get; set; }
