@@ -136,6 +136,9 @@ public class GameService : _Service, IGameService
         if (model.IsFeatured.HasValue)
             q = q.Where(g => g.IsFeatured == model.IsFeatured);
 
+        if (model.IsOngoing.HasValue)
+            q = q.Where(g => (g.GameEnd == DateTimeOffset.MinValue) == model.IsOngoing);
+
         if (model.WantsAdvanceable)
             q = q.Where(g => g.GameEnd > now);
 

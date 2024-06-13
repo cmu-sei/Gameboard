@@ -61,7 +61,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
         await _validator.Validate(request, cancellationToken);
 
         _userRoleAuthorizer
-            .AllowRoles(UserRole.Admin)
+            .AllowRoles(UserRole.Registrar, UserRole.Admin)
             .AllowUserId(request.UserId)
             .Authorize();
 
