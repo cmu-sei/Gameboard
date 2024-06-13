@@ -82,6 +82,7 @@ public class GameSearchFilter : SearchFilter
     private const string FutureFilter = "future";
 
     public bool? IsFeatured { get; set; }
+    public bool? IsOngoing { get; set; }
 
     public bool WantsAdvanceable => Filter.Contains(AdvanceableFilter);
     public bool WantsCompetitive => Filter.Contains(CompetitiveFilter);
