@@ -90,6 +90,9 @@ namespace Gameboard.Api.Services
             if (entity.PlayerId.IsNotEmpty() && entity.TeamId.IsNotEmpty())
             {
                 var team = await _teamService.GetTeam(entity.TeamId);
+                var nowish = _now.Get();
+
+                ticket.TimeTilSessionEndMs = entity?.Player?.SessionEnd is null ? default(double?) : (entity.Player.SessionEnd - nowish).TotalMilliseconds;
                 ticket.TeamName = team.ApprovedName;
             }
 
@@ -266,6 +269,7 @@ namespace Gameboard.Api.Services
                 var userTeams = await TicketStore.DbContext.Players
                     .Where(p => p.UserId == userId && p.TeamId != null && p.TeamId != "")
                     .Select(p => p.TeamId)
+                    .Distinct()
                     .ToListAsync();
 
                 q = q.Where(t => t.RequesterId == userId ||

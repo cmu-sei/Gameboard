@@ -9,7 +9,7 @@ public enum GetGameCenterTeamsSort
     Rank,
     TeamName,
     TimeRemaining,
-    TimeStart
+    TimeSinceStart
 }
 
 public sealed class GetGameCenterTeamsArgs

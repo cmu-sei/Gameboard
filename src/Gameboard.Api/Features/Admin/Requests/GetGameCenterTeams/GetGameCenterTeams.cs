@@ -140,7 +140,7 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
 
                         break;
                     }
-                case GetGameCenterTeamsSort.TimeStart:
+                case GetGameCenterTeamsSort.TimeSinceStart:
                     {
                         sortedTeamIds = matchingTeams
                             .Sort(t => t.Value.TimeSinceStart, request.Args.SortDirection)
