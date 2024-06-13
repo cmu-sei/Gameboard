@@ -272,6 +272,7 @@ public class GameboardDbContext : DbContext
             b.Property(p => p.AdvancedFromTeamId).HasStandardGuidLength();
 
             // performance-oriented indices
+            b.HasIndex(p => p.UserId);
             b.HasIndex(p => new { p.UserId, p.TeamId });
 
             // nav properties

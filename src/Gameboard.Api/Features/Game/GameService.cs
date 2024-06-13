@@ -133,6 +133,9 @@ public class GameService : _Service, IGameService
         if (model == null)
             return q;
 
+        if (model.IsFeatured.HasValue)
+            q = q.Where(g => g.IsFeatured == model.IsFeatured);
+
         if (model.WantsAdvanceable)
             q = q.Where(g => g.GameEnd > now);
 
@@ -151,7 +154,9 @@ public class GameService : _Service, IGameService
         if (model.WantsPast)
             q = q.Where(g => g.GameEnd < now && g.GameEnd != AppConstants.NULL_DATE);
 
-        if (model.WantsFuture)
+        if (model.OrderBy.IsNotEmpty() && model.OrderBy.ToLower() == "name")
+            q = q.OrderBy(g => g.Name);
+        else if (model.WantsFuture)
             q = q.OrderBy(g => g.GameStart).ThenBy(g => g.Name);
         else
             q = q.OrderByDescending(g => g.GameStart).ThenBy(g => g.Name);

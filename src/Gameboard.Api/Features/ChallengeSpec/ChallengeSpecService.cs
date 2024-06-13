@@ -1,6 +1,7 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -16,13 +17,16 @@ namespace Gameboard.Api.Services;
 
 public class ChallengeSpecService : _Service
 {
+    private readonly IJsonService _jsonService;
     private readonly INowService _now;
     private readonly ISlugService _slug;
     private readonly IStore _store;
+
     IGameEngineService GameEngine { get; }
 
     public ChallengeSpecService
     (
+        IJsonService jsonService,
         ILogger<ChallengeSpecService> logger,
         IMapper mapper,
         INowService now,
@@ -32,6 +36,7 @@ public class ChallengeSpecService : _Service
         IGameEngineService gameEngine
     ) : base(logger, mapper, options)
     {
+        _jsonService = jsonService;
         _now = now;
         _slug = slug;
         _store = store;
@@ -86,6 +91,89 @@ public class ChallengeSpecService : _Service
         }
 
         return Mapper.Map<ChallengeSpec>(entity);
+    }
+
+    public async Task<IOrderedEnumerable<ChallengeSpecQuestionPerformance>> GetQuestionPerformance(string challengeSpecId, CancellationToken cancellationToken)
+    {
+        var results = await GetQuestionPerformance(new string[] { challengeSpecId }, cancellationToken);
+        if (!results.Any())
+            throw new ArgumentException($"Couldn't load performance for specId {challengeSpecId}", nameof(challengeSpecId));
+
+        return results[challengeSpecId];
+    }
+
+    public async Task<IDictionary<string, IOrderedEnumerable<ChallengeSpecQuestionPerformance>>> GetQuestionPerformance(IEnumerable<string> challengeSpecIds, CancellationToken cancellationToken)
+    {
+        // pull raw data
+        var data = await _store
+            .WithNoTracking<Data.Challenge>()
+            .Where(c => challengeSpecIds.Contains(c.SpecId))
+            .Select(c => new
+            {
+                c.Id,
+                c.SpecId,
+                c.Points,
+                c.Score,
+                c.StartTime,
+                c.State
+            })
+            .GroupBy(c => c.SpecId)
+            .ToDictionaryAsync(gr => gr.Key, gr => gr.Select(c => new
+            {
+                IsComplete = c.Points >= c.Score,
+                IsPartial = c.Points < c.Score && c.Points > 0,
+                IsZero = c.Score == 0,
+                c.StartTime,
+                c.State,
+            }), cancellationToken);
+
+        // because of topo architecture, we can't tell the caller anything about the challenge unless it's been attempted
+        // at least once
+        if (data is null || !data.Values.Any(v => v.Any()))
+            return null;
+
+        // deserialize states
+        var questionPerformance = new Dictionary<string, IOrderedEnumerable<ChallengeSpecQuestionPerformance>>();
+        foreach (var challengeSpecId in data.Keys)
+        {
+            var challenges = data[challengeSpecId]
+                .OrderByDescending(c => c.StartTime)
+                .Select(c => new ChallengeSpecQuestionPerformanceChallenge
+                {
+                    IsComplete = c.IsComplete,
+                    IsPartial = c.IsPartial,
+                    IsZero = c.IsZero,
+                    State = _jsonService.Deserialize<GameEngineGameState>(c.State)
+                });
+
+            var allQuestions = challenges
+                .Select(c => c.State)
+                .Select(s => s.Challenge)
+                .SelectMany(c => c.Questions)
+                .GroupBy(q => q.Text)
+                .ToDictionary(q => q.Key, q => q.ToArray());
+
+            if (!challenges.Any())
+                continue;
+
+            var exemplarState = challenges.First().State;
+            var maxWeight = exemplarState.Challenge.Questions.Select(q => q.Weight).Sum();
+            var questions = exemplarState.Challenge.Questions.Select((q, index) => new ChallengeSpecQuestionPerformance
+            {
+                QuestionRank = index + 1,
+                Hint = q.Hint,
+                Prompt = q.Text,
+                // it's apparently a topo rule that weight can be zero and that means that the challenge weight is equally divided
+                PointValue = maxWeight == 0 ? (exemplarState.Challenge.MaxPoints / exemplarState.Challenge.Questions.Count()) : exemplarState.Challenge.MaxPoints * (q.Weight / maxWeight),
+                CountCorrect = allQuestions[q.Text].Count(answeredQ => answeredQ.IsCorrect),
+                CountSubmitted = allQuestions[q.Text].Count(answeredQ => answeredQ.IsGraded)
+            }).OrderBy(q => q.QuestionRank);
+
+            // GB will need special topo access anyway if we want to show support people the answers
+            questionPerformance.Add(challengeSpecId, questions);
+        }
+
+        return questionPerformance;
     }
 
     public async Task<ChallengeSpec> Retrieve(string id)
@@ -152,8 +240,8 @@ public class ChallengeSpecService : _Service
 
         foreach (var spec in activeSpecs)
         {
-            if (externalSpecs.ContainsKey(spec.ExternalId))
-                SyncSpec(spec, externalSpecs[spec.ExternalId]);
+            if (externalSpecs.TryGetValue(spec.ExternalId, out ExternalSpec value))
+                SyncSpec(spec, value);
         }
 
         await _store.SaveUpdateRange(activeSpecs);

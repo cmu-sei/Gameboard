@@ -4,8 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Gameboard.Api.Features.GameEngine;
-using MediatR;
 
 namespace Gameboard.Api;
 
@@ -50,6 +48,7 @@ public class GameDetail
     public string CardText2 { get; set; }
     public string CardText3 { get; set; }
     public string Mode { get; set; }
+    public bool IsFeatured { get; set; }
     public PlayerMode PlayerMode { get; set; }
     public bool ShowOnHomePageInPracticeMode { get; set; }
 }
@@ -81,12 +80,17 @@ public class GameSearchFilter : SearchFilter
     private const string PastFilter = "past";
     private const string PresentFilter = "present";
     private const string FutureFilter = "future";
+
+    public bool? IsFeatured { get; set; }
+
     public bool WantsAdvanceable => Filter.Contains(AdvanceableFilter);
     public bool WantsCompetitive => Filter.Contains(CompetitiveFilter);
     public bool WantsPractice => Filter.Contains(PracticeFilter);
     public bool WantsPresent => Filter.Contains(PresentFilter);
     public bool WantsPast => Filter.Contains(PastFilter);
     public bool WantsFuture => Filter.Contains(FutureFilter);
+
+    public string OrderBy { get; set; }
 }
 
 public class BoardGame

@@ -2,8 +2,10 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Threading.Tasks;
+using Gameboard.Api.Features.ChallengeSpecs;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
@@ -14,16 +16,19 @@ namespace Gameboard.Api.Controllers
     [Authorize(AppConstants.DesignerPolicy)]
     public class ChallengeSpecController : _Controller
     {
+        IMediator _mediator;
         ChallengeSpecService ChallengeSpecService { get; }
 
         public ChallengeSpecController(
             ILogger<ChallengeSpecController> logger,
             IDistributedCache cache,
+            IMediator mediator,
             ChallengeSpecValidator validator,
             ChallengeSpecService challengespecService
         ) : base(logger, cache, validator)
         {
             ChallengeSpecService = challengespecService;
+            _mediator = mediator;
         }
 
         /// <summary>
@@ -79,6 +84,14 @@ namespace Gameboard.Api.Controllers
         [Authorize(AppConstants.DesignerPolicy)]
         public Task<ExternalSpec[]> List([FromQuery] SearchFilter model)
             => ChallengeSpecService.List(model);
+
+        /// <summary>
+        /// Load solve performance for the challenge spec
+        /// </summary>
+        [HttpGet("/api/challengespecs/{challengeSpecId}/question-performance")]
+        [Authorize(AppConstants.AdminPolicy)]
+        public Task<GetChallengeSpecQuestionPerformanceResult> GetQuestionPerformance([FromRoute] string challengeSpecId)
+            => _mediator.Send(new GetChallengeSpecQuestionPerformanceQuery(challengeSpecId));
 
         /// <summary>
         /// Sync challengespec name/description with external source

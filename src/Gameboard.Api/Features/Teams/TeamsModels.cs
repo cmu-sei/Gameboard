@@ -25,6 +25,13 @@ public class ResetTeamSessionRequest
     public required bool UnenrollTeam { get; set; }
 }
 
+public sealed class TeamChallengeSolveCounts
+{
+    public required int Complete { get; set; }
+    public required int Partial { get; set; }
+    public required int Unscored { get; set; }
+}
+
 public class TeamInvitation
 {
     public string Code { get; set; }

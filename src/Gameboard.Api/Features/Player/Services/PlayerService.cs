@@ -450,10 +450,7 @@ public class PlayerService
         var player = await _store
             .WithTracking<Data.Player>()
             .Include(p => p.Sponsor)
-            .SingleOrDefaultAsync(p => p.Id == model.PlayerId, cancellationToken);
-
-        if (player is null)
-            throw new ResourceNotFound<Data.Player>(model.PlayerId);
+            .SingleOrDefaultAsync(p => p.Id == model.PlayerId, cancellationToken) ?? throw new ResourceNotFound<Data.Player>(model.PlayerId);
 
         var playersWithThisCode = await _store
             .WithNoTracking<Data.Player>()
