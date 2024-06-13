@@ -67,7 +67,7 @@ internal class GetGameCenterContextHandler : IRequestHandler<GetGameCenterContex
                 IsLive = g.GameStart <= nowish && g.GameEnd >= nowish,
                 g.IsPracticeMode,
                 IsRegistrationActive = g.RegistrationType == GameRegistrationType.Open && g.RegistrationOpen <= nowish && g.RegistrationClose >= nowish,
-                IsTeamGame = g.MinTeamSize > 1
+                IsTeamGame = g.MaxTeamSize > 1
             })
             .SingleAsync(g => g.Id == request.GameId, cancellationToken);
 
