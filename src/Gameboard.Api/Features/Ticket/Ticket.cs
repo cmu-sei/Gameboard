@@ -26,6 +26,7 @@ public class Ticket
     public string Status { get; set; }
     public string Label { get; set; }
     public bool StaffCreated { get; set; }
+    public double? TimeTilSessionEndMs { get; set; }
 
     public DateTimeOffset Created { get; set; }
     public DateTimeOffset LastUpdated { get; set; }
