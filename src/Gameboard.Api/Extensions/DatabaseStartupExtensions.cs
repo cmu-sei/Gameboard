@@ -119,10 +119,7 @@ namespace Gameboard.Api.Extensions
             switch (extension)
             {
                 case ".json":
-                    return JsonSerializer.Deserialize<DbSeedModel>(text, new JsonSerializerOptions()
-                    {
-                        PropertyNameCaseInsensitive = true
-                    });
+                    return JsonSerializer.Deserialize<DbSeedModel>(text, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 case ".yaml":
                     var yamlDeserializer = new DeserializerBuilder()
                         .WithNamingConvention(CamelCaseNamingConvention.Instance)

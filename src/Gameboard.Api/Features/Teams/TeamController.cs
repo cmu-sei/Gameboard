@@ -75,8 +75,4 @@ public class TeamController : ControllerBase
     [HttpGet("{teamId}/timeline")]
     public Task<EventHorizon> GetTeamEventHorizon([FromRoute] string teamId)
         => _mediator.Send(new GetTeamEventHorizonQuery(teamId));
-
-    // [HttpPost("{teamId}/session")]
-    // public Task StartSessions([FromBody] StartTeamSessionsCommand request, CancellationToken cancellationToken)
-    //     => _mediator.Send(request, cancellationToken);
 }
