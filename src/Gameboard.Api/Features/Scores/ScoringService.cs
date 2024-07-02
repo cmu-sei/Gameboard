@@ -74,7 +74,7 @@ internal class ScoringService : IScoringService
 
     public ChallengeResult GetChallengeResult(double score, double maxScore)
     {
-        if (score == maxScore)
+        if (score >= maxScore)
             return ChallengeResult.Success;
 
         if (score == 0)
