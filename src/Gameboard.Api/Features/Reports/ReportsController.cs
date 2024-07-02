@@ -57,6 +57,10 @@ public class ReportsController : ControllerBase
     public async Task<ReportResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>> GetPracticeModeReport([FromQuery] PracticeModeReportParameters parameters, [FromQuery] PagingArgs paging)
         => await _mediator.Send(new PracticeModeReportQuery(parameters, paging));
 
+    [HttpGet("practice-area/challenge-spec/{challengeSpecId}")]
+    public Task<PracticeModeReportChallengeDetail> GetChallengeDetail([FromQuery] PracticeModeReportParameters parameters, [FromQuery] PagingArgs pagingArgs, [FromRoute] string challengeSpecId)
+        => _mediator.Send(new PracticeModeReportChallengeDetailQuery(challengeSpecId, parameters, pagingArgs));
+
     [HttpGet("practice-area/user/{id}/summary")]
     public async Task<PracticeModeReportPlayerModeSummary> GetPracticeModeReportPlayerModeSummary([FromRoute] string id, [FromQuery] bool isPractice)
         => await _mediator.Send(new PracticeModeReportPlayerModeSummaryQuery(id, isPractice));

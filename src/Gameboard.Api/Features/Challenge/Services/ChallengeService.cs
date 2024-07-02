@@ -94,11 +94,7 @@ public partial class ChallengeService : _Service
     public async Task<Challenge> Create(NewChallenge model, string actorId, string graderUrl, CancellationToken cancellationToken)
     {
         var now = _now.Get();
-        var player = await _store.WithNoTracking<Data.Player>().SingleAsync(p => p.Id == model.PlayerId);
-
-        // Would ideally do this using the acting user service, but background deployment (caused by sync start)
-        // may not play well with that as of now.
-        // var actingUser = _actingUserService.Get();
+        var player = await _store.WithNoTracking<Data.Player>().SingleAsync(p => p.Id == model.PlayerId, cancellationToken);
 
         var game = await _store
             .WithNoTracking<Data.Game>()
@@ -114,6 +110,9 @@ public partial class ChallengeService : _Service
         // if we're outside the execution window, we need to be sure the acting person is an admin
         if (game.IsCompetitionMode && now > game.GameEnd)
         {
+            // Would ideally do this using the acting user service, but background deployment (caused by sync start)
+            // may not play well with that as of now.
+            // var actingUser = _actingUserService.Get();
             var actingUser = await _store.WithNoTracking<Data.User>().SingleOrDefaultAsync(u => u.Id == actorId, cancellationToken);
 
             if (!actingUser.Role.HasFlag(UserRole.Admin | UserRole.Designer | UserRole.Director | UserRole.Tester))

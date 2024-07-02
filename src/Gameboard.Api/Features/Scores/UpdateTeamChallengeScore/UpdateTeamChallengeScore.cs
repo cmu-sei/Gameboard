@@ -58,7 +58,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
 
         // AWARD AUTOMATIC BONUSES (but only if the result is a success and we're in competitive mode)
         // also note: right now, there's only one type of automatic bonus (which is based on solve rank) 
-        if (updateChallenge.Result == ChallengeResult.Success && updateChallenge.PlayerMode == PlayerMode.Competition)
+        if (_scoringService.GetChallengeResult(updateChallenge.Score, updateChallenge.Points) == ChallengeResult.Success && updateChallenge.PlayerMode == PlayerMode.Competition)
         {
             var spec = await _store
                 .WithNoTracking<Data.ChallengeSpec>()

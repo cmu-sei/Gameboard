@@ -36,11 +36,11 @@ public sealed class PracticeModeReportParameters
     public DateTimeOffset? PracticeDateStart { get; set; }
     public DateTimeOffset? PracticeDateEnd { get; set; }
     public string Games { get; set; }
+    public string Grouping { get; set; }
     public string Seasons { get; set; }
     public string Series { get; set; }
-    public string Tracks { get; set; }
     public string Sponsors { get; set; }
-    public string Grouping { get; set; }
+    public string Tracks { get; set; }
 
     public string Sort { get; set; }
     public SortDirection SortDirection { get; set; }
@@ -192,4 +192,24 @@ public sealed class PracticeModeReportCsvRecord
     public required DateTimeOffset? SessionEnd { get; set; }
     public required ChallengeResult ChallengeResult { get; set; }
     public required long DurationMs { get; set; }
+}
+
+public sealed class PracticeModeReportChallengeDetail
+{
+    public required SimpleEntity Spec { get; set; }
+    public required SimpleEntity Game { get; set; }
+    public required IEnumerable<PracticeModeReportChallengeDetailUser> Users { get; set; }
+    public required PagingResults Paging { get; set; }
+}
+
+public sealed class PracticeModeReportChallengeDetailUser
+{
+    public required PlayerWithSponsor User { get; set; }
+    public required SimpleSponsor Sponsor { get; set; }
+    public required int AttemptCount { get; set; }
+    public required DateTimeOffset LastAttemptDate { get; set; }
+    public required DateTimeOffset BestAttemptDate { get; set; }
+    public required double BestAttemptDurationMs { get; set; }
+    public required ChallengeResult BestAttemptResult { get; set; }
+    public required double BestAttemptScore { get; set; }
 }
