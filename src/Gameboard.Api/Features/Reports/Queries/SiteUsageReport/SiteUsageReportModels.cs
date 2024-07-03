@@ -18,6 +18,8 @@ public sealed class SiteUsageReportRecord
     public required int DeployedChallengesCompetitiveCount { get; set; }
     public required int DeployedChallengesPracticeCount { get; set; }
     public required int DeployedChallengesSpecCount { get; set; }
+    public required double CompetitivePlayDurationHours { get; set; }
+    public required double PracticePlayDurationHours { get; set; }
     public required int UsersWithCompetitiveChallengeCount { get; set; }
     public required int UsersWithPracticeChallengeCount { get; set; }
     public required int CompetitiveUsersWithNoPracticeCount { get; set; }

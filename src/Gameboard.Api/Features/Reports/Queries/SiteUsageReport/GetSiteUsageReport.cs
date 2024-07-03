@@ -52,8 +52,9 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
             .Select(c => new
             {
                 c.Id,
-                DeployedDate = c.StartTime,
                 IsCompetitive = c.PlayerMode == PlayerMode.Competition,
+                c.StartTime,
+                c.EndTime,
                 c.SpecId,
                 c.TeamId
             })
@@ -91,10 +92,16 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
             });
 
         var competitiveTeamIds = teamChallengeCounts.Where(t => t.Value.CompetitiveChallengeCount > 0).Select(kv => kv.Key).ToArray();
-        var competitiveUserIds = competitiveTeamIds.Where(tId => teamUsers.ContainsKey(tId)).SelectMany(tId => teamUsers[tId]).Distinct().ToArray();
+        var competitiveUserIds = competitiveTeamIds.Where(teamUsers.ContainsKey).SelectMany(tId => teamUsers[tId]).Distinct().ToArray();
         var practiceTeamIds = teamChallengeCounts.Where(t => t.Value.PracticeChallengeCount > 0).Select(kv => kv.Key).ToArray();
         var practiceUserIds = practiceTeamIds.Where(tId => teamUsers.ContainsKey(tId)).SelectMany(tId => teamUsers[tId]).Distinct().ToArray();
         var competitiveStrictTeamIds = teamChallengeCounts.Where(kv => kv.Value.CompetitiveChallengeCount > 0 && kv.Value.PracticeChallengeCount == 0);
+        var hoursInCompetitive = challenges
+            .Where(c => c.IsCompetitive && c.StartTime.IsNotEmpty() && c.EndTime.IsNotEmpty())
+            .Sum(c => (c.EndTime - c.StartTime).TotalHours);
+        var hoursInPractice = challenges
+            .Where(c => !c.IsCompetitive && c.StartTime.IsNotEmpty() && c.EndTime.IsNotEmpty())
+            .Sum(c => (c.EndTime - c.StartTime).TotalHours);
 
         var sponsorCount = await _store
             .WithNoTracking<Data.Player>()
@@ -114,6 +121,8 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
             DeployedChallengesCompetitiveCount = challenges.Where(c => c.IsCompetitive).Count(),
             DeployedChallengesPracticeCount = challenges.Where(c => !c.IsCompetitive).Count(),
             DeployedChallengesSpecCount = challenges.Select(c => c.SpecId).Distinct().Count(),
+            CompetitivePlayDurationHours = hoursInCompetitive,
+            PracticePlayDurationHours = hoursInPractice,
             PracticeUsersWithNoCompetitiveCount = practiceUserIds.Where(uId => !competitiveUserIds.Contains(uId)).Count(),
             SponsorCount = sponsorCount,
             UserCount = userTeams.Keys.Count,
