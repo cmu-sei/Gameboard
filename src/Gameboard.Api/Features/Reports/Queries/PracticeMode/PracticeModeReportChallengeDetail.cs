@@ -11,7 +11,7 @@ using ServiceStack;
 
 namespace Gameboard.Api.Features.Reports;
 
-public sealed record PracticeModeReportChallengeDetailQuery(string ChallengeSpecId, PracticeModeReportParameters Parameters, PagingArgs PagingArgs) : IReportQuery, IRequest<PracticeModeReportChallengeDetail>;
+public sealed record PracticeModeReportChallengeDetailQuery(string ChallengeSpecId, PracticeModeReportParameters Parameters, PracticeModeReportChallengeDetailParameters ChallengeDetailParameters, PagingArgs PagingArgs) : IReportQuery, IRequest<PracticeModeReportChallengeDetail>;
 
 internal sealed class PracticeModeReportChallengeDetailHandler : IRequestHandler<PracticeModeReportChallengeDetailQuery, PracticeModeReportChallengeDetail>
 {
@@ -85,6 +85,29 @@ internal sealed class PracticeModeReportChallengeDetailHandler : IRequestHandler
                 SponsorLogo = c.Sponsor.Logo
             })
             .ToDictionaryAsync(gr => gr.Key, gr => gr.OrderByDescending(c => c.Score).ToArray(), cancellationToken);
+
+        // filter by solve type where requested
+        if (request.ChallengeDetailParameters?.PlayersWithSolveType is not null)
+        {
+            switch (request.ChallengeDetailParameters.PlayersWithSolveType)
+            {
+                case ChallengeResult.Success:
+                    results = results
+                        .Where(kv => kv.Value.Any(c => c.Score >= c.Points))
+                        .ToDictionary(kv => kv.Key, kv => kv.Value);
+                    break;
+                case ChallengeResult.Partial:
+                    results = results
+                        .Where(kv => kv.Value.All(c => c.Score < c.Points) && kv.Value.Any(c => c.Score > 0))
+                        .ToDictionary(kv => kv.Key, kv => kv.Value);
+                    break;
+                case ChallengeResult.None:
+                    results = results
+                        .Where(kv => kv.Value.All(c => c.Score == 0))
+                        .ToDictionary(kv => kv.Key, kv => kv.Value);
+                    break;
+            }
+        }
 
         var pagingResults = _pagingService.Page(results, request.PagingArgs);
 

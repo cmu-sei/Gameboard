@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using MediatR;
@@ -46,6 +48,7 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
         var query = _store
             .WithNoTracking<Data.Player>()
             .Where(p => p.Role == PlayerRole.Manager)
+            .Where(p => p.Mode == PlayerMode.Competition)
             .Where(p => p.GameId == request.GameId);
 
         if (request.Args.HasScored is not null)
@@ -100,8 +103,6 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
             {
                 Name = p.ApprovedName,
                 p.TeamId,
-                SessionBeginButts = p.SessionBegin,
-                SessionEndButts = p.SessionEnd,
                 SessionBegin = p.SessionBegin == DateTimeOffset.MinValue ? default(DateTimeOffset?) : p.SessionBegin,
                 SessionEnd = p.SessionEnd == DateTimeOffset.MinValue ? default(DateTimeOffset?) : p.SessionEnd,
                 TimeRemaining = nowish < p.SessionEnd ? (p.SessionEnd - nowish).TotalMilliseconds : default(double?),
@@ -109,26 +110,33 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
             })
             .Distinct()
             .ToDictionaryAsync(t => t.TeamId, t => t, cancellationToken);
+        var matchingTeamIds = matchingTeams.Keys.ToArray();
 
         // we'll need this data no matter what, and if we get it here, we can
         // use it to do sorting stuff
         var teamRanks = await _store
             .WithNoTracking<DenormalizedTeamScore>()
             .Where(t => t.GameId == request.GameId)
-            .Where(s => matchingTeams.Keys.Contains(s.TeamId))
+            .Where(s => matchingTeamIds.Contains(s.TeamId))
             .Select(t => new { t.TeamId, t.Rank, t.ScoreOverall })
             .GroupBy(t => t.TeamId)
             .ToDictionaryAsync(gr => gr.Key, gr => gr.Single(), cancellationToken);
 
         // default sort is pretty much nonsense (todo)
-        var sortedTeamIds = matchingTeams.Keys.ToArray();
+        var sortedTeamIds = matchingTeams
+            .OrderBy(kv => kv.Value.Name)
+            .Select(kv => kv.Key)
+            .ToArray();
+
         if (request.Args.Sort is not null)
         {
             switch (request.Args.Sort)
             {
                 case GetGameCenterTeamsSort.Rank:
                     {
-                        sortedTeamIds = teamRanks.Keys.Sort(k => teamRanks[k].Rank).ToArray();
+                        sortedTeamIds = sortedTeamIds
+                            .Sort(k => teamRanks.TryGetValue(k, out var rankData) ? rankData.Rank : double.MaxValue)
+                            .ToArray();
                         break;
                     }
                 case GetGameCenterTeamsSort.TimeRemaining:
@@ -137,7 +145,6 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                             .Sort(t => t.Value.TimeRemaining, request.Args.SortDirection)
                             .Select(t => t.Value.TeamId)
                             .ToArray();
-
                         break;
                     }
                 case GetGameCenterTeamsSort.TimeSinceStart:
@@ -162,9 +169,34 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
             }
         }
 
-        // these are the teamIds we need full info for, so pull all players on these teams
+        // these are the teamIds we need full info for, so pull more specific data for these teams
         var paged = _pagingService.Page(sortedTeamIds, request.PagingArgs);
         var pagedTeamIds = paged.Items;
+        var scores = await _store
+            .WithNoTracking<DenormalizedTeamScore>()
+            .Where(s => pagedTeamIds.Contains(s.TeamId))
+            .Select(s => new
+            {
+                s.TeamId,
+                AdvancedScore = s.ScoreAdvanced,
+                BonusScore = s.ScoreAutoBonus,
+                CompletionScore = s.ScoreChallenge,
+                ManualBonusScore = s.ScoreManualBonus,
+                TotalScore = s.ScoreOverall,
+            })
+            .ToDictionaryAsync
+            (
+                s => s.TeamId,
+                s => new Score
+                {
+                    AdvancedScore = s.AdvancedScore,
+                    BonusScore = s.BonusScore,
+                    CompletionScore = s.CompletionScore,
+                    ManualBonusScore = s.ManualBonusScore,
+                    TotalScore = s.TotalScore
+                },
+                cancellationToken
+            );
 
         var teamPlayers = await query
             .Select(p => new
@@ -215,6 +247,7 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                 {
                     var players = teamPlayers[tId].Where(p => p.Role != PlayerRole.Member);
                     var captain = teamPlayers[tId].Single(p => p.Role == PlayerRole.Manager);
+                    var isPractice = captain.Mode == PlayerMode.Practice;
                     var solves = teamSolves[tId];
 
                     return new GameCenterTeamsResultsTeam
@@ -250,8 +283,9 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                         ChallengesPartialCount = solves.Partial,
                         ChallengesRemainingCount = solves.Unscored,
                         IsReady = captain.IsReady && players.All(p => p.IsReady),
-                        Rank = teamRanks.TryGetValue(tId, out var teamRankData) ? teamRankData.Rank : null,
+                        Rank = isPractice ? null : teamRanks.TryGetValue(tId, out var teamRankData) ? teamRankData.Rank : null,
                         RegisteredOn = captain.WhenCreated,
+                        Score = scores.TryGetValue(tId, out var score) ? score : Score.Default,
                         Session = new GameCenterTeamsSession
                         {
                             Start = matchingTeams[tId].SessionBegin.HasValue ? matchingTeams[tId].SessionBegin.Value.ToUnixTimeMilliseconds() : default(long?),

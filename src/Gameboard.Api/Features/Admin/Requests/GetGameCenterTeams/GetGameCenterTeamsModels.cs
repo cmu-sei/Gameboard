@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Gameboard.Api.Features.Scores;
 using Microsoft.Identity.Client;
 
 namespace Gameboard.Api.Features.Admin;
@@ -44,6 +45,7 @@ public sealed class GameCenterTeamsResultsTeam
     public required IEnumerable<GameCenterTeamsPlayer> Players { get; set; }
     public required int? Rank { get; set; }
     public required DateTimeOffset RegisteredOn { get; set; }
+    public required Score Score { get; set; }
     public required GameCenterTeamsSession Session { get; set; }
     public required int TicketCount { get; set; }
 }

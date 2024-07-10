@@ -46,6 +46,11 @@ public sealed class PracticeModeReportParameters
     public SortDirection SortDirection { get; set; }
 }
 
+public sealed class PracticeModeReportChallengeDetailParameters
+{
+    public ChallengeResult? PlayersWithSolveType { get; set; }
+}
+
 public sealed class PracticeModeByUserReportRecord : IPracticeModeReportRecord
 {
     public required PracticeModeReportUser User { get; set; }
