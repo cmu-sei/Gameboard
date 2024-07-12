@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
@@ -47,70 +46,86 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
         // a little blarghy because we're counting on the Role, not the whole captain resolution thing
         var query = _store
             .WithNoTracking<Data.Player>()
-            .Where(p => p.Role == PlayerRole.Manager)
             .Where(p => p.Mode == PlayerMode.Competition)
             .Where(p => p.GameId == request.GameId);
 
         if (request.Args.HasScored is not null)
             query = query.Where(p => (p.Score > 0) == request.Args.HasScored.Value);
 
-        if (request.Args.PlayerMode is not null)
-            query = query.Where(p => p.Mode == request.Args.PlayerMode);
-
-        if (request.Args.Status is not null)
+        if (request.Args.Advancement is not null)
         {
-            switch (request.Args.Status)
-            {
-                case GameCenterTeamsStatus.Complete:
-                    query = query
-                        .WhereDateIsNotEmpty(p => p.SessionEnd)
-                        .Where(p => p.SessionEnd < nowish);
-                    break;
-                case GameCenterTeamsStatus.Playing:
-                    query = query
-                        .WhereDateIsNotEmpty(p => p.SessionBegin)
-                        .Where(p => p.SessionBegin <= nowish)
-                        .Where(p => p.SessionEnd > nowish);
-                    break;
-                case GameCenterTeamsStatus.NotStarted:
-                    query = query
-                        .WhereDateIsEmpty(p => p.SessionBegin);
-                    break;
-            }
+            if (request.Args.Advancement == GetGameCenterTeamsAdvancementFilter.AdvancedToNextGame)
+                query = query.Where(p => p.Advanced);
+            else if (request.Args.Advancement == GetGameCenterTeamsAdvancementFilter.AdvancedFromPreviousGame)
+                query = query.Where(p => p.AdvancedFromGameId != null);
         }
 
         if (request.Args.Search.IsNotEmpty() && request.Args.Search.Length > 2)
         {
+            var searchTerm = request.Args.Search.ToLower();
+
             query = query
                 .Where
                 (
                     p =>
                         // guid matches do startswith for speed
-                        p.TeamId.StartsWith(request.Args.Search) ||
-                        p.UserId.StartsWith(request.Args.Search) ||
-                        p.Id.StartsWith(request.Args.Search) ||
-                        p.Challenges.Any(c => c.Id.StartsWith(request.Args.Search)) ||
+                        p.TeamId.ToLower().StartsWith(request.Args.Search) ||
+                        p.UserId.ToLower().StartsWith(request.Args.Search) ||
+                        p.Id.ToLower().StartsWith(request.Args.Search) ||
+                        p.Challenges.Any(c => c.Id.ToLower().StartsWith(request.Args.Search)) ||
 
                         // name matches are looser but will take longer
-                        p.Sponsor.Name.Contains(request.Args.Search) ||
-                        p.ApprovedName.Contains(request.Args.Search) ||
-                        p.User.ApprovedName.Contains(request.Args.Search)
+                        p.Sponsor.Name.ToLower().Contains(request.Args.Search) ||
+                        p.ApprovedName.ToLower().Contains(request.Args.Search) ||
+                        p.User.ApprovedName.ToLower().Contains(request.Args.Search)
                 );
+        }
+
+        if (request.Args.SessionStatus is not null)
+        {
+            switch (request.Args.SessionStatus)
+            {
+                case GameCenterTeamsSessionStatus.NotStarted:
+                    query = query.WhereDateIsEmpty(p => p.SessionBegin);
+                    break;
+                case GameCenterTeamsSessionStatus.Complete:
+                    query = query.WhereDateIsNotEmpty(p => p.SessionEnd);
+                    break;
+                case GameCenterTeamsSessionStatus.Playing:
+                    query = query
+                        .WhereDateIsNotEmpty(p => p.SessionBegin)
+                        .WhereDateIsNotEmpty(p => p.SessionEnd)
+                        .Where(p => p.SessionBegin <= nowish)
+                        .Where(p => p.SessionEnd >= nowish);
+                    break;
+            }
         }
 
         var matchingTeams = await query
             .Select(p => new
             {
+                p.Id,
                 Name = p.ApprovedName,
+                p.IsReady,
+                p.Role,
                 p.TeamId,
+                IsActive = p.SessionBegin != DateTimeOffset.MinValue && p.SessionBegin < nowish && p.SessionEnd > nowish,
                 SessionBegin = p.SessionBegin == DateTimeOffset.MinValue ? default(DateTimeOffset?) : p.SessionBegin,
                 SessionEnd = p.SessionEnd == DateTimeOffset.MinValue ? default(DateTimeOffset?) : p.SessionEnd,
+                Sponsor = new SimpleSponsor
+                {
+                    Id = p.SponsorId,
+                    Name = p.Sponsor.Name,
+                    Logo = p.Sponsor.Logo
+                },
                 TimeRemaining = nowish < p.SessionEnd ? (p.SessionEnd - nowish).TotalMilliseconds : default(double?),
-                TimeSinceStart = nowish > p.SessionBegin && nowish < p.SessionEnd ? (nowish - p.SessionBegin).TotalMilliseconds : default(double?)
+                TimeSinceStart = nowish > p.SessionBegin && nowish < p.SessionEnd ? (nowish - p.SessionBegin).TotalMilliseconds : default(double?),
+                p.WhenCreated
             })
-            .Distinct()
-            .ToDictionaryAsync(t => t.TeamId, t => t, cancellationToken);
+            .GroupBy(p => p.TeamId)
+            .ToDictionaryAsync(gr => gr.Key, gr => gr.ToArray(), cancellationToken);
         var matchingTeamIds = matchingTeams.Keys.ToArray();
+        var captains = matchingTeams.ToDictionary(kv => kv.Key, kv => kv.Value.Single(p => p.Role == PlayerRole.Manager));
 
         // we'll need this data no matter what, and if we get it here, we can
         // use it to do sorting stuff
@@ -122,8 +137,7 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
             .GroupBy(t => t.TeamId)
             .ToDictionaryAsync(gr => gr.Key, gr => gr.Single(), cancellationToken);
 
-        // default sort is pretty much nonsense (todo)
-        var sortedTeamIds = matchingTeams
+        var sortedTeamIds = captains
             .OrderBy(kv => kv.Value.Name)
             .Select(kv => kv.Key)
             .ToArray();
@@ -141,33 +155,37 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                     }
                 case GetGameCenterTeamsSort.TimeRemaining:
                     {
-                        sortedTeamIds = matchingTeams
-                            .Sort(t => t.Value.TimeRemaining, request.Args.SortDirection)
+                        sortedTeamIds = captains
+                            .Sort(t => t.Value.SessionEnd - t.Value.SessionBegin, request.Args.SortDirection)
                             .Select(t => t.Value.TeamId)
                             .ToArray();
                         break;
                     }
                 case GetGameCenterTeamsSort.TimeSinceStart:
                     {
-                        sortedTeamIds = matchingTeams
-                            .Sort(t => t.Value.TimeSinceStart, request.Args.SortDirection)
+                        sortedTeamIds = captains
+                            .Sort(t => nowish - t.Value.SessionBegin, request.Args.SortDirection)
                             .Select(t => t.Value.TeamId)
-                            .ToArray();
-
-                        break;
-                    }
-                // default name sort
-                default:
-                    {
-                        sortedTeamIds = matchingTeams
-                            .Sort(t => t.Value.Name, request.Args.SortDirection)
-                            .Select(t => t.Key)
                             .ToArray();
 
                         break;
                     }
             }
         }
+
+        // compute global stats as efficiently as we can before we load data for the paged results
+        var activeTeams = captains.Values
+            .Where(t => t.IsActive)
+            .Select(t => t.TeamId)
+            .ToArray();
+
+        var allPlayerStatuses = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => matchingTeamIds.Contains(p.TeamId))
+            .Select(p => new { p.UserId, IsActive = activeTeams.Contains(p.TeamId) })
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
+        var activePlayerCount = allPlayerStatuses.Where(p => p.IsActive).Count();
 
         // these are the teamIds we need full info for, so pull more specific data for these teams
         var paged = _pagingService.Page(sortedTeamIds, request.PagingArgs);
@@ -198,29 +216,6 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                 cancellationToken
             );
 
-        var teamPlayers = await query
-            .Select(p => new
-            {
-                p.Id,
-                p.ApprovedName,
-                p.Mode,
-                p.IsReady,
-                p.Role,
-                p.SessionBegin,
-                p.SessionEnd,
-                p.WhenCreated,
-                p.TeamId,
-                Sponsor = new
-                {
-                    p.Sponsor.Id,
-                    p.Sponsor.Name,
-                    p.Sponsor.Logo
-                }
-            })
-            .Where(p => pagedTeamIds.Contains(p.TeamId))
-            .GroupBy(p => p.TeamId)
-            .ToDictionaryAsync(gr => gr.Key, gr => gr.ToArray(), cancellationToken);
-
         // pull other return data for the matching teams
         var ticketCounts = await _ticketService
             .GetTeamTickets(pagedTeamIds)
@@ -245,20 +240,19 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                 Paging = paged.Paging,
                 Items = pagedTeamIds.Select(tId =>
                 {
-                    var players = teamPlayers[tId].Where(p => p.Role != PlayerRole.Member);
-                    var captain = teamPlayers[tId].Single(p => p.Role == PlayerRole.Manager);
-                    var isPractice = captain.Mode == PlayerMode.Practice;
+                    var players = matchingTeams[tId];
+                    var captain = captains[tId];
                     var solves = teamSolves[tId];
 
                     return new GameCenterTeamsResultsTeam
                     {
                         Id = tId,
-                        Name = captain.ApprovedName,
-                        IsExtended = gameSessionMinutes < (captain.SessionEnd - captain.SessionBegin).TotalMinutes,
+                        Name = captain.Name,
+                        IsExtended = captain.SessionEnd is not null && captain.SessionBegin is not null && (captain.SessionEnd.Value - captain.SessionBegin.Value).TotalMinutes > gameSessionMinutes,
                         Captain = new GameCenterTeamsPlayer
                         {
                             Id = captain.Id,
-                            Name = captain.ApprovedName,
+                            Name = captain.Name,
                             IsReady = captain.IsReady,
                             Sponsor = new SimpleSponsor
                             {
@@ -270,7 +264,7 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                         Players = players.Select(p => new GameCenterTeamsPlayer
                         {
                             Id = p.Id,
-                            Name = p.ApprovedName,
+                            Name = p.Name,
                             IsReady = p.IsReady,
                             Sponsor = new SimpleSponsor
                             {
@@ -283,15 +277,15 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                         ChallengesPartialCount = solves.Partial,
                         ChallengesRemainingCount = solves.Unscored,
                         IsReady = captain.IsReady && players.All(p => p.IsReady),
-                        Rank = isPractice ? null : teamRanks.TryGetValue(tId, out var teamRankData) ? teamRankData.Rank : null,
-                        RegisteredOn = captain.WhenCreated,
+                        Rank = teamRanks.TryGetValue(tId, out var teamRankData) ? teamRankData.Rank : null,
+                        RegisteredOn = captain.WhenCreated.ToUnixTimeMilliseconds(),
                         Score = scores.TryGetValue(tId, out var score) ? score : Score.Default,
                         Session = new GameCenterTeamsSession
                         {
-                            Start = matchingTeams[tId].SessionBegin.HasValue ? matchingTeams[tId].SessionBegin.Value.ToUnixTimeMilliseconds() : default(long?),
-                            End = matchingTeams[tId].SessionEnd.HasValue ? matchingTeams[tId].SessionEnd.Value.ToUnixTimeMilliseconds() : default(long?),
-                            TimeRemainingMs = matchingTeams[tId].TimeRemaining,
-                            TimeSinceStartMs = matchingTeams[tId].TimeSinceStart
+                            Start = captains[tId].SessionBegin.HasValue ? captains[tId].SessionBegin.Value.ToUnixTimeMilliseconds() : default(long?),
+                            End = captains[tId].SessionEnd.HasValue ? captains[tId].SessionEnd.Value.ToUnixTimeMilliseconds() : default(long?),
+                            TimeRemainingMs = captains[tId].TimeRemaining,
+                            TimeSinceStartMs = captains[tId].TimeSinceStart
                         },
                         TicketCount = ticketCounts.TryGetValue(tId, out int value) ? value : 0
                     };
