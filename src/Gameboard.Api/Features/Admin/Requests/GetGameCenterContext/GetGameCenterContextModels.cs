@@ -26,11 +26,11 @@ public sealed class GameCenterContext
 
 public sealed class GameCenterContextStats
 {
-    public required int PlayerCountActive { get; set; }
-    public required int PlayerCountTotal { get; set; }
-    public required int TeamCountActive { get; set; }
-    public required int TeamCountNotStarted { get; set; }
-    public required int TeamCountTotal { get; set; }
-    public required double? TopScore { get; set; }
-    public required string TopScoreTeamName { get; set; }
+    public int PlayerCountActive { get; set; }
+    public int PlayerCountTotal { get; set; }
+    public int TeamCountActive { get; set; }
+    public int TeamCountNotStarted { get; set; }
+    public int TeamCountTotal { get; set; }
+    public double? TopScore { get; set; }
+    public string TopScoreTeamName { get; set; }
 }

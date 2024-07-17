@@ -142,7 +142,7 @@ internal class GetGameCenterContextHandler : IRequestHandler<GetGameCenterContex
                 TopScore = topScore == null ? null : topScore.ScoreOverall,
                 TopScoreTeamName = topScoringTeamName
             })
-            .SingleAsync(cancellationToken);
+            .SingleOrDefaultAsync(cancellationToken);
 
         return new GameCenterContext
         {
@@ -160,7 +160,7 @@ internal class GetGameCenterContextHandler : IRequestHandler<GetGameCenterContex
             IsPractice = gameData.IsPracticeMode,
             IsRegistrationActive = gameData.IsRegistrationActive,
             IsTeamGame = gameData.IsTeamGame,
-            Stats = playerActivity,
+            Stats = playerActivity ?? new(),
 
             // aggregates
             ChallengeCount = challengeData?.ChallengeCount ?? 0,
