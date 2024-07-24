@@ -15,7 +15,7 @@ using ServiceStack;
 
 namespace Gameboard.Api.Features.Admin;
 
-public record GetGameCenterPracticeContextQuery(string GameId, GameCenterPracticeSessionStatus? SessionStatus, GameCenterPracticeSort? Sort) : IRequest<GameCenterPracticeContext>;
+public record GetGameCenterPracticeContextQuery(string GameId, string SearchTerm, GameCenterPracticeSessionStatus? SessionStatus, GameCenterPracticeSort? Sort) : IRequest<GameCenterPracticeContext>;
 
 internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenterPracticeContextQuery, GameCenterPracticeContext>
 {
@@ -53,10 +53,21 @@ internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenter
 
         // pull
         var nowish = _now.Get();
+        var searchTerm = request.SearchTerm.IsEmpty() ? null : request.SearchTerm.ToLower();
 
         var users = await _store
             .WithNoTracking<Data.Challenge>()
             .Where(c => c.GameId == request.GameId)
+            .Where
+            (
+                c =>
+                    searchTerm == null ||
+                    c.Id.StartsWith(searchTerm) ||
+                    c.Player.UserId.ToLower().StartsWith(searchTerm) ||
+                    c.Player.Sponsor.Name.ToLower().StartsWith(searchTerm) ||
+                    c.Player.User.Sponsor.Name.ToLower().StartsWith(searchTerm) ||
+                    c.Player.User.Name.ToLower().Contains(searchTerm)
+            )
             .Select(c => new
             {
                 c.Id,
@@ -98,10 +109,7 @@ internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenter
             .Select(g => new SimpleEntity { Id = g.Id, Name = g.Name })
             .SingleOrDefaultAsync(g => g.Id == request.GameId, cancellationToken);
 
-        return new GameCenterPracticeContext
-        {
-            Game = game,
-            Users = users.Select(u =>
+        var responseUsers = users.Select(u =>
             {
                 var challengeSpecs = new List<GameCenterPracticeContextChallengeSpec>();
                 var totalAttempts = 0;
@@ -158,6 +166,18 @@ internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenter
                     ChallengeSpecs = challengeSpecs
                 };
             })
+            .Where(u => request.SessionStatus is null || (request.SessionStatus == GameCenterPracticeSessionStatus.Playing == u.ActiveChallenge is not null));
+
+        responseUsers = request.Sort switch
+        {
+            GameCenterPracticeSort.AttemptCount => responseUsers.OrderByDescending(u => u.TotalAttempts),
+            _ => responseUsers.OrderBy(u => u.Name),
+        };
+
+        return new GameCenterPracticeContext
+        {
+            Game = game,
+            Users = responseUsers
         };
     }
 }

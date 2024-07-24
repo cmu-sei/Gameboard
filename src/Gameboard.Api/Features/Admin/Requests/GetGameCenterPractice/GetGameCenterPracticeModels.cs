@@ -46,8 +46,7 @@ public enum GameCenterPracticeSessionStatus
 public enum GameCenterPracticeSort
 {
     AttemptCount,
-    Name,
-    Score
+    Name
 }
 
-public record GetGameCenterPracticeContextRequest(GameCenterPracticeSessionStatus? SessionStatus, GameCenterPracticeSort? Sort);
+public record GetGameCenterPracticeContextRequest(string SearchTerm, GameCenterPracticeSessionStatus? SessionStatus, GameCenterPracticeSort? Sort);
