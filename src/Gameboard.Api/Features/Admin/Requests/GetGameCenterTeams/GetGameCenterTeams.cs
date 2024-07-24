@@ -60,24 +60,24 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                 query = query.Where(p => p.AdvancedFromGameId != null);
         }
 
-        if (request.Args.Search.IsNotEmpty() && request.Args.Search.Length > 2)
+        if (request.Args.SearchTerm.IsNotEmpty() && request.Args.SearchTerm.Length > 2)
         {
-            var searchTerm = request.Args.Search.ToLower();
+            var searchTerm = request.Args.SearchTerm.ToLower();
 
             query = query
                 .Where
                 (
                     p =>
                         // guid matches do startswith for speed
-                        p.TeamId.ToLower().StartsWith(request.Args.Search) ||
-                        p.UserId.ToLower().StartsWith(request.Args.Search) ||
-                        p.Id.ToLower().StartsWith(request.Args.Search) ||
-                        p.Challenges.Any(c => c.Id.ToLower().StartsWith(request.Args.Search)) ||
+                        p.TeamId.ToLower().StartsWith(request.Args.SearchTerm) ||
+                        p.UserId.ToLower().StartsWith(request.Args.SearchTerm) ||
+                        p.Id.ToLower().StartsWith(request.Args.SearchTerm) ||
+                        p.Challenges.Any(c => c.Id.ToLower().StartsWith(request.Args.SearchTerm)) ||
 
                         // name matches are looser but will take longer
-                        p.Sponsor.Name.ToLower().Contains(request.Args.Search) ||
-                        p.ApprovedName.ToLower().Contains(request.Args.Search) ||
-                        p.User.ApprovedName.ToLower().Contains(request.Args.Search)
+                        p.Sponsor.Name.ToLower().Contains(request.Args.SearchTerm) ||
+                        p.ApprovedName.ToLower().Contains(request.Args.SearchTerm) ||
+                        p.User.ApprovedName.ToLower().Contains(request.Args.SearchTerm)
                 );
         }
 

@@ -75,6 +75,7 @@ internal class GetGameCenterContextHandler : IRequestHandler<GetGameCenterContex
                 IsExternal = g.Mode == "external",
                 IsLive = g.GameStart <= nowish && g.GameEnd >= nowish,
                 g.IsPracticeMode,
+                g.IsPublished,
                 IsRegistrationActive = g.RegistrationType == GameRegistrationType.Open && g.RegistrationOpen <= nowish && g.RegistrationClose >= nowish,
                 IsTeamGame = g.MaxTeamSize > 1
             })
@@ -115,18 +116,43 @@ internal class GetGameCenterContextHandler : IRequestHandler<GetGameCenterContex
                 p.GameId,
                 p.UserId,
                 p.TeamId,
+                p.Mode,
                 IsActive = p.SessionBegin <= nowish && p.SessionEnd >= nowish,
                 IsStarted = p.SessionBegin != DateTimeOffset.MinValue
             })
             .GroupBy(p => p.GameId)
             .Select(gr => new GameCenterContextStats
             {
+                AttemptCountPractice = gr.Where(p => p.Mode == PlayerMode.Practice).Count(),
                 PlayerCountActive = gr
                     .Where(p => p.IsActive)
                     .Count(),
-                PlayerCountTotal = gr.Count(),
+                PlayerCountCompetitive = gr
+                    .Where(p => p.Mode == PlayerMode.Competition)
+                    .Select(p => p.UserId)
+                    .Distinct()
+                    .Count(),
+                PlayerCountPractice = gr
+                    .Where(p => p.Mode == PlayerMode.Practice)
+                    .Select(p => p.UserId)
+                    .Distinct()
+                    .Count(),
+                PlayerCountTotal = gr
+                    .Select(p => p.UserId)
+                    .Distinct()
+                    .Count(),
                 TeamCountActive = gr
                     .Where(p => p.IsActive)
+                    .Select(p => p.TeamId)
+                    .Distinct()
+                    .Count(),
+                TeamCountCompetitive = gr
+                    .Where(p => p.Mode == PlayerMode.Competition)
+                    .Select(p => p.TeamId)
+                    .Distinct()
+                    .Count(),
+                TeamCountPractice = gr
+                    .Where(p => p.Mode == PlayerMode.Practice)
                     .Select(p => p.TeamId)
                     .Distinct()
                     .Count(),
@@ -158,6 +184,7 @@ internal class GetGameCenterContextHandler : IRequestHandler<GetGameCenterContex
             IsExternal = gameData.IsExternal,
             IsLive = gameData.IsLive,
             IsPractice = gameData.IsPracticeMode,
+            IsPublished = gameData.IsPublished,
             IsRegistrationActive = gameData.IsRegistrationActive,
             IsTeamGame = gameData.IsTeamGame,
             Stats = playerActivity ?? new(),

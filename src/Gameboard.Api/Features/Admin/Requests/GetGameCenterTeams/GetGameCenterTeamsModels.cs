@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Gameboard.Api.Features.Scores;
 
@@ -22,7 +21,7 @@ public sealed class GetGameCenterTeamsArgs
 {
     public GetGameCenterTeamsAdvancementFilter? Advancement { get; set; }
     public bool? HasScored { get; set; }
-    public string Search { get; set; }
+    public string SearchTerm { get; set; }
     public GameCenterTeamsSessionStatus? SessionStatus { get; set; }
 
     // page and sort

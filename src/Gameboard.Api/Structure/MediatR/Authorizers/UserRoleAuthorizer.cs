@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Gameboard.Api.Common.Services;
 
 namespace Gameboard.Api.Structure.MediatR.Authorizers;
@@ -7,7 +8,7 @@ internal class UserRoleAuthorizer : IAuthorizer
 {
     private readonly IActingUserService _actingUserService;
     private IEnumerable<UserRole> _allowedRoles = new List<UserRole> { UserRole.Admin };
-    private string _allowUserId;
+    private readonly List<string> _allowUserIds = new();
 
     public UserRoleAuthorizer(IActingUserService actingUserService)
     {
@@ -38,14 +39,20 @@ internal class UserRoleAuthorizer : IAuthorizer
 
     public UserRoleAuthorizer AllowUserId(string userId)
     {
-        _allowUserId = userId;
+        _allowUserIds.Add(userId);
+        return this;
+    }
+
+    public UserRoleAuthorizer AllowUserIds(params string[] userIds)
+    {
+        _allowUserIds.AddRange(userIds);
         return this;
     }
 
     public bool WouldAuthorize()
     {
         var actingUser = _actingUserService.Get();
-        if (_allowUserId.NotEmpty() && actingUser.Id == _allowUserId)
+        if (_allowUserIds.Any() && _allowUserIds.Contains(actingUser.Id))
             return true;
 
         foreach (var role in _allowedRoles)
