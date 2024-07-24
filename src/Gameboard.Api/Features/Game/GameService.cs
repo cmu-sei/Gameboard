@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Http;
 using Gameboard.Api.Data;
 using System.IO;
 using System.Threading;
+using Gameboard.Api.Features.Games;
 
 namespace Gameboard.Api.Services;
 
@@ -138,8 +139,11 @@ public class GameService : _Service, IGameService
         if (model.IsFeatured.HasValue)
             q = q.Where(g => g.IsFeatured == model.IsFeatured);
 
+        // "ongoing" games are competitive only, see https://github.com/cmu-sei/Gameboard/issues/477
         if (model.IsOngoing.HasValue)
-            q = q.Where(g => (g.GameEnd == DateTimeOffset.MinValue) == model.IsOngoing);
+            q = q
+                .Where(g => (g.GameEnd == DateTimeOffset.MinValue) == model.IsOngoing)
+                .Where(g => g.PlayerMode == PlayerMode.Competition);
 
         if (model.WantsAdvanceable)
             q = q.Where(g => g.GameEnd > now);

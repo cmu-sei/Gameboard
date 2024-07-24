@@ -34,8 +34,8 @@ public class AdminController : ControllerBase
         => _mediator.Send(new GetGameCenterContextQuery(gameId));
 
     [HttpGet("games/{gameId}/game-center/practice")]
-    public Task<GameCenterPracticeContext> GetGameCenterPracticeContext([FromRoute] string gameId)
-        => _mediator.Send(new GetGameCenterPracticeContextQuery(gameId));
+    public Task<GameCenterPracticeContext> GetGameCenterPracticeContext([FromRoute] string gameId, [FromQuery] GetGameCenterPracticeContextRequest query)
+        => _mediator.Send(new GetGameCenterPracticeContextQuery(gameId, query?.SessionStatus, query?.Sort));
 
     [HttpGet("games/{gameId}/game-center/teams")]
     public Task<GameCenterTeamsResults> GetGameCenterTeams([FromRoute] string gameId, [FromQuery] GetGameCenterTeamsArgs queryArgs, [FromQuery] PagingArgs pagingArgs)

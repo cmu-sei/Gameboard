@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Structure.MediatR;
@@ -9,14 +11,16 @@ using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ServiceStack;
 
 namespace Gameboard.Api.Features.Admin;
 
-public record GetGameCenterPracticeContextQuery(string GameId) : IRequest<GameCenterPracticeContext>;
+public record GetGameCenterPracticeContextQuery(string GameId, GameCenterPracticeSessionStatus? SessionStatus, GameCenterPracticeSort? Sort) : IRequest<GameCenterPracticeContext>;
 
 internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenterPracticeContextQuery, GameCenterPracticeContext>
 {
     private readonly EntityExistsValidator<GetGameCenterPracticeContextQuery, Data.Game> _gameExists;
+    private readonly INowService _now;
     private readonly IScoringService _scoringService;
     private readonly IStore _store;
     private readonly UserRoleAuthorizer _userRoleAuthorizer;
@@ -25,6 +29,7 @@ internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenter
     public GetGameCenterPracticeQueryHandler
     (
         EntityExistsValidator<GetGameCenterPracticeContextQuery, Data.Game> gameExists,
+        INowService now,
         IScoringService scoringService,
         IStore store,
         UserRoleAuthorizer userRoleAuthorizer,
@@ -32,6 +37,7 @@ internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenter
     )
     {
         _gameExists = gameExists;
+        _now = now;
         _scoringService = scoringService;
         _store = store;
         _userRoleAuthorizer = userRoleAuthorizer;
@@ -46,6 +52,8 @@ internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenter
         await _validatorService.Validate(request, cancellationToken);
 
         // pull
+        var nowish = _now.Get();
+
         var users = await _store
             .WithNoTracking<Data.Challenge>()
             .Where(c => c.GameId == request.GameId)
@@ -54,6 +62,7 @@ internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenter
                 c.Id,
                 c.Name,
                 c.StartTime,
+                c.EndTime,
                 c.SpecId,
                 c.Points,
                 c.Score,
@@ -72,30 +81,68 @@ internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenter
             .GroupBy(c => c.User)
             .ToDictionaryAsync(gr => gr.Key, gr => gr.GroupBy(c => c.SpecId).ToDictionary(c => c.Key, c => c), cancellationToken);
 
+        var specIds = users.Values.SelectMany(u => u.Keys).Distinct().ToArray();
+        var specs = await _store
+            .WithNoTracking<Data.ChallengeSpec>()
+            .Where(cs => specIds.Contains(cs.Id))
+            .Select(cs => new
+            {
+                cs.Id,
+                cs.Name,
+                cs.Tag
+            })
+            .ToDictionaryAsync(cs => cs.Id, cs => cs, cancellationToken);
+
+        var game = await _store
+            .WithNoTracking<Data.Game>()
+            .Select(g => new SimpleEntity { Id = g.Id, Name = g.Name })
+            .SingleOrDefaultAsync(g => g.Id == request.GameId, cancellationToken);
+
         return new GameCenterPracticeContext
         {
+            Game = game,
             Users = users.Select(u =>
             {
-                var challenges = new List<GameCenterPracticeContextChallenge>();
+                var challengeSpecs = new List<GameCenterPracticeContextChallengeSpec>();
+                var totalAttempts = 0;
+                var activeChallenge = default(SimpleEntity);
+                var activeChallengeEndTimestamp = default(long?);
 
-                foreach (var spec in u.Value)
+                foreach (var specId in u.Value.Keys)
                 {
-                    var lastAttempt = spec.Value.OrderByDescending(c => c.StartTime).FirstOrDefault();
-                    var bestAttempt = spec.Value.OrderByDescending(c => c.Score).FirstOrDefault();
+                    var attemptCount = u.Value[specId].Count();
+                    totalAttempts += attemptCount;
+                    var lastAttempt = u.Value[specId].OrderByDescending(c => c.StartTime).FirstOrDefault();
+                    var bestAttempt = u.Value[specId].OrderByDescending(c => c.Score).FirstOrDefault();
 
-                    challenges.Add(new()
+                    if (activeChallenge is null)
                     {
-                        Id = lastAttempt.Id,
-                        ChallengeSpec = new SimpleEntity { Id = spec.Key, Name = lastAttempt.Name },
-                        AttemptCount = spec.Value.Count(),
-                        LastAttemptDate = lastAttempt?.StartTime.ToUnixTimeMilliseconds(),
+                        var potentialActiveChallenge = u.Value[specId]
+                            .Where(c => c.StartTime > DateTimeOffset.MinValue && c.StartTime <= nowish)
+                            .Where(c => c.EndTime == DateTimeOffset.MinValue || c.EndTime > nowish)
+                            .FirstOrDefault();
+
+                        if (potentialActiveChallenge is not null)
+                        {
+                            activeChallenge = new SimpleEntity { Id = potentialActiveChallenge.Id, Name = potentialActiveChallenge.Name };
+                            activeChallengeEndTimestamp = potentialActiveChallenge.EndTime.IsEmpty() ? null : potentialActiveChallenge.EndTime.ToUnixTimeMilliseconds();
+                        }
+                    }
+                    specs.TryGetValue(specId, out var spec);
+
+                    challengeSpecs.Add(new()
+                    {
+                        Id = specId,
+                        Name = bestAttempt.Name,
+                        Tag = spec?.Tag,
+                        AttemptCount = attemptCount,
                         BestAttempt = bestAttempt is null ? null : new GameCenterPracticeContextChallengeAttempt
                         {
                             AttemptTimestamp = bestAttempt.StartTime.ToUnixTimeMilliseconds(),
                             Result = _scoringService.GetChallengeResult(bestAttempt.Score, bestAttempt.Points),
                             Score = bestAttempt.Score
-                        }
-
+                        },
+                        LastAttemptDate = lastAttempt.StartTime.IsEmpty() ? null : lastAttempt.StartTime.ToUnixTimeMilliseconds(),
                     });
                 }
 
@@ -104,7 +151,11 @@ internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenter
                     Id = u.Key.Id,
                     Name = u.Key.Name,
                     Sponsor = u.Key.Sponsor,
-                    Challenges = challenges
+                    ActiveChallenge = activeChallenge,
+                    ActiveChallengeEndTimestamp = activeChallengeEndTimestamp,
+                    TotalAttempts = totalAttempts,
+                    UniqueChallengeSpecs = u.Value.Keys.Count,
+                    ChallengeSpecs = challengeSpecs
                 };
             })
         };
