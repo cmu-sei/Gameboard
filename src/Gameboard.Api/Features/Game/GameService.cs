@@ -139,7 +139,6 @@ public class GameService : _Service, IGameService
         if (model.IsFeatured.HasValue)
             q = q.Where(g => g.IsFeatured == model.IsFeatured);
 
-        // "ongoing" games are competitive only, see https://github.com/cmu-sei/Gameboard/issues/477
         if (model.IsOngoing.HasValue)
             q = q
                 .Where(g => (g.GameEnd == DateTimeOffset.MinValue) == model.IsOngoing)
