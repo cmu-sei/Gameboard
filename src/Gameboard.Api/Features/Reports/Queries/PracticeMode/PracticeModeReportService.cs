@@ -6,13 +6,12 @@ using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Microsoft.EntityFrameworkCore;
-using ServiceStack;
-using ServiceStack.Text;
 
 namespace Gameboard.Api.Features.Reports;
 
 public interface IPracticeModeReportService
 {
+    Task<IQueryable<Data.Challenge>> GetBaseQuery(PracticeModeReportParameters parameters, bool includeCompetitive, CancellationToken cancellationToken);
     Task<PracticeModeReportResults> GetResultsByChallenge(PracticeModeReportParameters parameters, CancellationToken cancellationToken);
     Task<PracticeModeReportResults> GetResultsByUser(PracticeModeReportParameters parameters, CancellationToken cancellationToken);
     Task<PracticeModeReportResults> GetResultsByPlayerModePerformance(PracticeModeReportParameters parameters, CancellationToken cancellationToken);
@@ -44,65 +43,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
             .Select(s => s.ToReportViewModel())
             .ToArrayAsync(cancellationToken);
 
-        // process parameters
-        DateTimeOffset? startDate = parameters.PracticeDateStart.HasValue ? parameters.PracticeDateStart.Value.ToUniversalTime() : null;
-        DateTimeOffset? endDate = parameters.PracticeDateEnd.HasValue ? parameters.PracticeDateEnd.Value.ToEndDate().ToUniversalTime() : null;
-        var gameIds = _reportsService.ParseMultiSelectCriteria(parameters.Games);
-        var sponsorIds = _reportsService.ParseMultiSelectCriteria(parameters.Sponsors);
-        var seasons = _reportsService.ParseMultiSelectCriteria(parameters.Seasons);
-        var series = _reportsService.ParseMultiSelectCriteria(parameters.Series);
-        var tracks = _reportsService.ParseMultiSelectCriteria(parameters.Tracks);
-
-        var query = _store
-            .List<Data.Challenge>()
-                .AsSplitQuery()
-                .Include(c => c.Game)
-                .Include(c => c.Player)
-                    .ThenInclude(p => p.Sponsor)
-                .Include(c => c.Player)
-                    .ThenInclude(p => p.User)
-            .Where(c => includeCompetitive || c.PlayerMode == PlayerMode.Practice);
-
-        if (startDate is not null)
-        {
-            query = query
-                .WhereDateIsNotEmpty(c => c.StartTime)
-                .Where(c => c.StartTime >= startDate);
-        }
-
-        if (endDate is not null)
-        {
-            query = query
-                .WhereDateIsNotEmpty(c => c.EndTime)
-                .Where(c => c.EndTime <= endDate);
-        }
-
-        if (parameters.Seasons.IsNotEmpty())
-            query = query.Where(c => parameters.Seasons.Contains(c.Game.Season));
-
-        if (parameters.Series.IsNotEmpty())
-            query = query.Where(c => parameters.Series.Contains(c.Game.Competition));
-
-        if (parameters.Tracks.IsNotEmpty())
-            query = query.Where(c => parameters.Tracks.Contains(c.Game.Track));
-
-        if (parameters.Games is not null && parameters.Games.Any())
-            query = query.Where(c => parameters.Games.Contains(c.GameId));
-
-        if (parameters.Sponsors is not null && parameters.Sponsors.Any())
-            query = query.Where(c => sponsorIds.Contains(c.Player.Sponsor.Id));
-
-        // we have to constrain the query results by eliminating challenges that have a specId
-        // which points at a nonexistent spec. (This is possible due to the non-FK relationship
-        // between challenge and spec, the fact that specs are deletable, and we hide some specs from reporting 
-        // like the special PC5 Ship Workspace)
-        // 
-        // so load all spec ids and add a clause which excludes challenges with orphaned specIds
-        var allSpecIds = await _store.List<Data.ChallengeSpec>()
-            .Where(s => !s.IsHidden)
-            .Select(s => s.Id)
-            .ToArrayAsync(cancellationToken);
-        query = query.Where(c => allSpecIds.Contains(c.SpecId));
+        var query = await GetBaseQuery(parameters, includeCompetitive, cancellationToken);
 
         // query for the raw results
         var challenges = await query.ToListAsync(cancellationToken);
@@ -175,6 +116,71 @@ internal class PracticeModeReportService : IPracticeModeReportService
             ZeroScoreSolves = zeroScoreSolves,
             PercentageZeroScoreSolved = totalAttempts > 0 ? decimal.Divide(zeroScoreSolves, totalAttempts) : null
         };
+    }
+
+    public async Task<IQueryable<Data.Challenge>> GetBaseQuery(PracticeModeReportParameters parameters, bool includeCompetitive, CancellationToken cancellationToken)
+    {
+        // process parameters
+        DateTimeOffset? startDate = parameters.PracticeDateStart.HasValue ? parameters.PracticeDateStart.Value.ToUniversalTime() : null;
+        DateTimeOffset? endDate = parameters.PracticeDateEnd.HasValue ? parameters.PracticeDateEnd.Value.ToEndDate().ToUniversalTime() : null;
+        var gameIds = _reportsService.ParseMultiSelectCriteria(parameters.Games);
+        var sponsorIds = _reportsService.ParseMultiSelectCriteria(parameters.Sponsors);
+        var seasons = _reportsService.ParseMultiSelectCriteria(parameters.Seasons);
+        var series = _reportsService.ParseMultiSelectCriteria(parameters.Series);
+        var tracks = _reportsService.ParseMultiSelectCriteria(parameters.Tracks);
+
+        var query = _store
+            .List<Data.Challenge>()
+                .AsSplitQuery()
+                .Include(c => c.Game)
+                .Include(c => c.Player)
+                    .ThenInclude(p => p.Sponsor)
+                .Include(c => c.Player)
+                    .ThenInclude(p => p.User)
+            .Where(c => c.PlayerMode == PlayerMode.Practice || includeCompetitive);
+
+        if (startDate is not null)
+        {
+            query = query
+                .WhereDateIsNotEmpty(c => c.StartTime)
+                .Where(c => c.StartTime >= startDate);
+        }
+
+        if (endDate is not null)
+        {
+            query = query
+                .WhereDateIsNotEmpty(c => c.EndTime)
+                .Where(c => c.EndTime <= endDate);
+        }
+
+        if (parameters.Seasons.IsNotEmpty())
+            query = query.Where(c => parameters.Seasons.Contains(c.Game.Season));
+
+        if (parameters.Series.IsNotEmpty())
+            query = query.Where(c => parameters.Series.Contains(c.Game.Competition));
+
+        if (parameters.Tracks.IsNotEmpty())
+            query = query.Where(c => parameters.Tracks.Contains(c.Game.Track));
+
+        if (parameters.Games is not null && parameters.Games.Any())
+            query = query.Where(c => parameters.Games.Contains(c.GameId));
+
+        if (parameters.Sponsors is not null && parameters.Sponsors.Any())
+            query = query.Where(c => sponsorIds.Contains(c.Player.Sponsor.Id));
+
+        // we have to constrain the query results by eliminating challenges that have a specId
+        // which points at a nonexistent spec. (This is possible due to the non-FK relationship
+        // between challenge and spec, the fact that specs are deletable, and we hide some specs from reporting 
+        // like the special PC5 Ship Workspace)
+        // 
+        // so load all spec ids and add a clause which excludes challenges with orphaned specIds
+        var allSpecIds = await _store.List<Data.ChallengeSpec>()
+            .Where(s => !s.IsHidden)
+            .Select(s => s.Id)
+            .ToArrayAsync(cancellationToken);
+        query = query.Where(c => allSpecIds.Contains(c.SpecId));
+
+        return query;
     }
 
     public async Task<PracticeModeReportResults> GetResultsByChallenge(PracticeModeReportParameters parameters, CancellationToken cancellationToken)

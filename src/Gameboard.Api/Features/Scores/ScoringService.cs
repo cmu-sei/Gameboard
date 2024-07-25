@@ -16,6 +16,7 @@ namespace Gameboard.Api.Features.Scores;
 public interface IScoringService
 {
     Task<bool> CanAccessTeamScoreDetail(string teamId, CancellationToken cancellationToken);
+    ChallengeResult GetChallengeResult(double score, double maxScore);
     Task<GameScoringConfig> GetGameScoringConfig(string gameId);
     Task<GameScore> GetGameScore(string gameId, CancellationToken cancellationToken);
     Task<TeamScore> GetTeamScore(string teamId, CancellationToken cancellationToken);
@@ -69,6 +70,17 @@ internal class ScoringService : IScoringService
         }
 
         return false;
+    }
+
+    public ChallengeResult GetChallengeResult(double score, double maxScore)
+    {
+        if (score >= maxScore)
+            return ChallengeResult.Success;
+
+        if (score == 0)
+            return ChallengeResult.None;
+
+        return ChallengeResult.Partial;
     }
 
     public async Task<GameScoringConfig> GetGameScoringConfig(string gameId)
@@ -327,7 +339,7 @@ internal class ScoringService : IScoringService
             Id = challenge.Id,
             Name = spec.Name,
             SpecId = spec.Id,
-            Result = challenge.Result,
+            Result = GetChallengeResult(score.CompletionScore, challenge.Points),
             Score = score,
             TimeElapsed = CalculateTeamChallengeTimeElapsed(challenge),
             Bonuses = challenge.AwardedBonuses.Select(ab => new GameScoreAutoChallengeBonus

@@ -74,15 +74,19 @@ internal class GetScoreboardHandler : IRequestHandler<GetScoreboardQuery, Scoreb
             teams = await LoadDenormalizedTeams(request.GameId, cancellationToken);
         }
 
+        // we grab competitive players only becaause later we filter out teams that have no competitive-mode players
+        // (since the scoreboard isn't really for practice mode)
         var teamPlayers = await _store
             .WithNoTracking<Data.Player>()
             .Include(p => p.Sponsor)
             .Where(p => p.GameId == request.GameId)
+            .Where(p => p.Mode == PlayerMode.Competition)
             .GroupBy(p => p.TeamId)
             .ToDictionaryAsync(k => k.Key, k => k.Select(p => new
             {
                 p.Id,
                 p.ApprovedName,
+                p.Mode,
                 p.SessionEnd,
                 p.SponsorId,
                 SponsorName = p.Sponsor.Name,
@@ -105,36 +109,39 @@ internal class GetScoreboardHandler : IRequestHandler<GetScoreboardQuery, Scoreb
         // build tasks that load the data for each team.
         // this isn't quite as crazy as it looks, as TeamService caches relationships between users and teams for
         // fast lookups
-        var teamTasks = teams.Select(async t =>
-        {
-            var teamData = teamPlayers.ContainsKey(t.TeamId) ? teamPlayers[t.TeamId] : null;
-            var sessionEnd = teamData?.FirstOrDefault()?.SessionEnd;
-            var userIsOnTeam = currentUser is not null && await _teamService.IsOnTeam(t.TeamId, currentUser.Id);
-
-            if (sessionEnd is null || sessionEnd.Value.IsEmpty() || sessionEnd < now)
-                sessionEnd = null;
-
-            return new ScoreboardDataTeam
+        var teamTasks = teams
+            // .Where(t => !teamPlayers.ContainsKey(t.TeamId) || teamPlayers[t.TeamId].Any(p => p.Mode == PlayerMode.Competition))
+            .Where(t => teamPlayers.TryGetValue(t.TeamId, out var lolPlayers) && lolPlayers.Any())
+            .Select(async t =>
             {
-                Id = t.TeamId,
-                IsAdvancedToNextRound = false,
-                SessionEnds = sessionEnd,
-                Players = teamData is null ? Array.Empty<PlayerWithSponsor>() : teamData.Select(p => new PlayerWithSponsor
+                var teamData = teamPlayers.TryGetValue(t.TeamId, out var value) ? value : null;
+                var sessionEnd = teamData?.FirstOrDefault()?.SessionEnd;
+                var userIsOnTeam = currentUser is not null && await _teamService.IsOnTeam(t.TeamId, currentUser.Id);
+
+                if (sessionEnd is null || sessionEnd.Value.IsEmpty() || sessionEnd < now)
+                    sessionEnd = null;
+
+                return new ScoreboardDataTeam
                 {
-                    Id = p.Id,
-                    Name = p.ApprovedName,
-                    Sponsor = new SimpleSponsor
+                    Id = t.TeamId,
+                    IsAdvancedToNextRound = false,
+                    SessionEnds = sessionEnd,
+                    Players = teamData is null ? Array.Empty<PlayerWithSponsor>() : teamData.Select(p => new PlayerWithSponsor
                     {
-                        Id = p.SponsorId,
-                        Name = p.SponsorName,
-                        Logo = p.SponsorLogo
-                    }
-                }),
-                Score = t,
-                UserCanAccessScoreDetail = await _scoringService.CanAccessTeamScoreDetail(t.TeamId, cancellationToken),
-                UserIsOnTeam = userIsOnTeam
-            };
-        });
+                        Id = p.Id,
+                        Name = p.ApprovedName,
+                        Sponsor = new SimpleSponsor
+                        {
+                            Id = p.SponsorId,
+                            Name = p.SponsorName,
+                            Logo = p.SponsorLogo
+                        }
+                    }),
+                    Score = t,
+                    UserCanAccessScoreDetail = await _scoringService.CanAccessTeamScoreDetail(t.TeamId, cancellationToken),
+                    UserIsOnTeam = userIsOnTeam
+                };
+            });
 
         var scoreboardTeams = new List<ScoreboardDataTeam>();
         foreach (var task in teamTasks)

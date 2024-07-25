@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Http;
 using Gameboard.Api.Data;
 using System.IO;
 using System.Threading;
+using Gameboard.Api.Features.Games;
 
 namespace Gameboard.Api.Services;
 
@@ -36,7 +37,7 @@ public interface IGameService
     Task<Game> Retrieve(string id, bool accessHidden = true);
     Task<ChallengeSpec[]> RetrieveChallengeSpecs(string id);
     Task<SessionForecast[]> SessionForecast(string id);
-    Task Update(ChangedGame account);
+    Task<Data.Game> Update(ChangedGame account);
     Task UpdateImage(string id, string type, string filename);
     Task<bool> UserIsTeamPlayer(string uid, string gid, string tid);
 }
@@ -108,7 +109,7 @@ public class GameService : _Service, IGameService
         return Mapper.Map<Game>(game);
     }
 
-    public async Task Update(ChangedGame game)
+    public async Task<Data.Game> Update(ChangedGame game)
     {
         if (game.Mode != GameEngineMode.External)
             game.ExternalHostId = null;
@@ -116,6 +117,8 @@ public class GameService : _Service, IGameService
         var entity = await _gameStore.Retrieve(game.Id);
         Mapper.Map(game, entity);
         await _gameStore.Update(entity);
+
+        return entity;
     }
 
     public Task Delete(string id)
@@ -137,7 +140,9 @@ public class GameService : _Service, IGameService
             q = q.Where(g => g.IsFeatured == model.IsFeatured);
 
         if (model.IsOngoing.HasValue)
-            q = q.Where(g => (g.GameEnd == DateTimeOffset.MinValue) == model.IsOngoing);
+            q = q
+                .Where(g => (g.GameEnd == DateTimeOffset.MinValue) == model.IsOngoing)
+                .Where(g => g.PlayerMode == PlayerMode.Competition);
 
         if (model.WantsAdvanceable)
             q = q.Where(g => g.GameEnd > now);

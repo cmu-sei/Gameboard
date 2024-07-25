@@ -101,10 +101,10 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpPut("api/game")]
         [Authorize(AppConstants.DesignerPolicy)]
-        public async Task Update([FromBody] ChangedGame model)
+        public async Task<Data.Game> Update([FromBody] ChangedGame model)
         {
             await Validate(model);
-            await GameService.Update(model);
+            return await GameService.Update(model);
         }
 
         /// <summary>

@@ -20,6 +20,7 @@ using Gameboard.Api.Validators;
 using Gameboard.Api.Features.Users;
 using MediatR;
 using Microsoft.AspNetCore.Http;
+using Gameboard.Api.Common.Services;
 
 namespace Gameboard.Api.Controllers
 {
@@ -27,6 +28,7 @@ namespace Gameboard.Api.Controllers
     public class UserController : _Controller
     {
         private readonly string _actingUserId;
+        private readonly IGuidService _guids;
         private readonly IMediator _mediator;
 
         UserService UserService { get; }
@@ -34,6 +36,7 @@ namespace Gameboard.Api.Controllers
         IHubContext<AppHub, IAppHubEvent> Hub { get; }
 
         public UserController(
+            IGuidService guids,
             ILogger<UserController> logger,
             IDistributedCache cache,
             UserValidator validator,
@@ -47,6 +50,7 @@ namespace Gameboard.Api.Controllers
             Options = options;
 
             _actingUserId = httpContextAccessor.HttpContext.User.ToActor().Id;
+            _guids = guids;
             _mediator = mediator;
         }
 
@@ -107,7 +111,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<User> Retrieve([FromRoute] string id)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsRegistrar,
                 () => id == Actor.Id
             );
@@ -125,7 +130,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<User> Update([FromBody] ChangedUser model)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsRegistrar,
                 () => model.Id == Actor.Id
             );
@@ -184,7 +190,8 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<UserSimple[]> ListSupport([FromQuery] SearchFilter model)
         {
-            AuthorizeAny(
+            AuthorizeAny
+            (
                 () => Actor.IsObserver,
                 () => Actor.IsSupport
             );
@@ -201,16 +208,12 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<IActionResult> GetTicket()
         {
-            string ticket = Guid.NewGuid().ToString("n");
+            string ticket = _guids.GetGuid();
 
             await Cache.SetStringAsync(
                 $"{TicketAuthentication.TicketCachePrefix}{ticket}",
                 $"{Actor.Id}#{Actor.Name}",
-
-                new DistributedCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = new TimeSpan(0, 0, 20)
-                }
+                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = new TimeSpan(0, 0, 20) }
             );
 
             return Ok(new { Ticket = ticket });

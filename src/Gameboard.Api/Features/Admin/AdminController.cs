@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,9 +8,14 @@ namespace Gameboard.Api.Features.Admin;
 [Route("api/admin")]
 public class AdminController : ControllerBase
 {
+    private readonly User _actingUser;
     private readonly IMediator _mediator;
 
-    public AdminController(IMediator mediator) => _mediator = mediator;
+    public AdminController(IMediator mediator, IActingUserService actingUserService)
+    {
+        _actingUser = actingUserService.Get();
+        _mediator = mediator;
+    }
 
     [HttpGet("active-challenges")]
     public Task<GetAppActiveChallengesResponse> GetActiveChallenges([FromQuery] string playerMode)
@@ -27,11 +33,23 @@ public class AdminController : ControllerBase
     public Task<GameCenterContext> GetGameCenterContext([FromRoute] string gameId)
         => _mediator.Send(new GetGameCenterContextQuery(gameId));
 
+    [HttpGet("games/{gameId}/game-center/practice")]
+    public Task<GameCenterPracticeContext> GetGameCenterPracticeContext([FromRoute] string gameId, [FromQuery] GetGameCenterPracticeContextRequest query)
+        => _mediator.Send(new GetGameCenterPracticeContextQuery(gameId, query?.SearchTerm, query?.SessionStatus, query?.Sort));
+
     [HttpGet("games/{gameId}/game-center/teams")]
     public Task<GameCenterTeamsResults> GetGameCenterTeams([FromRoute] string gameId, [FromQuery] GetGameCenterTeamsArgs queryArgs, [FromQuery] PagingArgs pagingArgs)
         => _mediator.Send(new GetGameCenterTeamsQuery(gameId, queryArgs, pagingArgs));
 
+    [HttpGet("games/{gameId}/players/export")]
+    public Task<GetPlayersCsvExportResponse> GetPlayersCsvExport([FromRoute] string gameId, [FromQuery] string teamIds)
+        => _mediator.Send(new GetPlayersCsvExportQuery(gameId, teamIds.IsEmpty() ? null : teamIds.Split(',')));
+
     [HttpGet("stats")]
     public Task<GetAppOverviewStatsResponse> GetAppOverviewStats()
         => _mediator.Send(new GetAppOverviewStatsQuery());
+
+    [HttpGet("teams/{teamId}")]
+    public Task<TeamCenterContext> GetTeamCenterContext([FromRoute] string teamId)
+        => _mediator.Send(new GetTeamCenterContextQuery(teamId, _actingUser));
 }

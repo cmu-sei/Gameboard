@@ -298,7 +298,7 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
                         }
 
                         Log($"Updated gamespace states for challenge {challenge.Id}. Gamespace on?: {isGamespaceOn}", gameId);
-                        Log($"Challenge {challenge.Id} has {gamespace.VmUris.Count()} VM(s): {challengeState.Vms.Select(vm => vm.Name).ToDelimited()}", gameId);
+                        Log($"Challenge {challenge.Id} has {gamespace.VmUris.Count()} visible VM(s): {challengeState.Vms.Select(vm => vm.Name).ToDelimited()}", gameId);
                         await _mediator.Publish(new GamespaceDeployProgressChange(gameId, teamIds), cancellationToken);
                         await _mediator.Publish(new GameLaunchProgressChangedNotification(gameId, teamIds), cancellationToken);
                         Log($"Progress notifications sent for challenge {challenge.Id}.", gameId);

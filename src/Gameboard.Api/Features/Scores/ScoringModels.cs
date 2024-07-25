@@ -12,6 +12,11 @@ public sealed class Score
     public required double ManualBonusScore { get; set; }
     public required double BonusScore { get; set; }
     public required double TotalScore { get; set; }
+
+    public static Score Default
+    {
+        get => new() { AdvancedScore = 0, CompletionScore = 0, ManualBonusScore = 0, BonusScore = 0, TotalScore = 0 };
+    }
 }
 
 public sealed class GameScoringConfig

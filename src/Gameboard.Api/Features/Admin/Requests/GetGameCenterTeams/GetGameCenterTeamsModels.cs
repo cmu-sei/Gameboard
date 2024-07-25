@@ -1,8 +1,13 @@
-using System;
 using System.Collections.Generic;
-using Microsoft.Identity.Client;
+using Gameboard.Api.Features.Scores;
 
 namespace Gameboard.Api.Features.Admin;
+
+public enum GetGameCenterTeamsAdvancementFilter
+{
+    AdvancedFromPreviousGame,
+    AdvancedToNextGame
+}
 
 public enum GetGameCenterTeamsSort
 {
@@ -14,10 +19,10 @@ public enum GetGameCenterTeamsSort
 
 public sealed class GetGameCenterTeamsArgs
 {
+    public GetGameCenterTeamsAdvancementFilter? Advancement { get; set; }
     public bool? HasScored { get; set; }
-    public PlayerMode? PlayerMode { get; set; }
-    public string Search { get; set; }
-    public GameCenterTeamsStatus? Status { get; set; }
+    public string SearchTerm { get; set; }
+    public GameCenterTeamsSessionStatus? SessionStatus { get; set; }
 
     // page and sort
     public int? PageNumber { get; set; }
@@ -43,12 +48,13 @@ public sealed class GameCenterTeamsResultsTeam
     public required bool? IsReady { get; set; }
     public required IEnumerable<GameCenterTeamsPlayer> Players { get; set; }
     public required int? Rank { get; set; }
-    public required DateTimeOffset RegisteredOn { get; set; }
+    public required long RegisteredOn { get; set; }
+    public required Score Score { get; set; }
     public required GameCenterTeamsSession Session { get; set; }
     public required int TicketCount { get; set; }
 }
 
-public enum GameCenterTeamsStatus
+public enum GameCenterTeamsSessionStatus
 {
     Complete,
     NotStarted,
