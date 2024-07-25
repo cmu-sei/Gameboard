@@ -139,7 +139,7 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
             .WithNoTracking<DenormalizedTeamScore>()
             .Where(t => t.GameId == request.GameId)
             .Where(s => matchingTeamIds.Contains(s.TeamId))
-            .Select(t => new { t.TeamId, t.Rank, t.ScoreOverall })
+            .Select(t => new { t.TeamId, Rank = t.Rank == 0 ? default(int?) : t.Rank, t.ScoreOverall })
             .GroupBy(t => t.TeamId)
             .ToDictionaryAsync(gr => gr.Key, gr => gr.Single(), cancellationToken);
 
@@ -155,7 +155,13 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                 case GetGameCenterTeamsSort.Rank:
                     {
                         sortedTeamIds = sortedTeamIds
-                            .Sort(k => teamRanks.TryGetValue(k, out var rankData) ? rankData.Rank : double.MaxValue)
+                            .Sort(k =>
+                            {
+                                if (!teamRanks.TryGetValue(k, out var rankData) || rankData.Rank is null)
+                                    return int.MaxValue;
+
+                                return rankData.Rank;
+                            })
                             .ToArray();
                         break;
                     }

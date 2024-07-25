@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -108,15 +109,18 @@ internal class ScoreDenormalizationService : IScoreDenormalizationService
             .Where(t => t.GameId == gameId)
             .ToArrayAsync();
 
+        var captains = await _teamService.ResolveCaptains(teams.Select(t => t.TeamId).ToArray(), cancellationToken: CancellationToken.None);
+
         var rankedTeams = _scoringService.GetTeamRanks(teams.Select(t => new TeamForRanking
         {
             CumulativeTimeMs = t.CumulativeTimeMs,
             OverallScore = t.ScoreOverall,
+            SessionStart = !captains.TryGetValue(t.TeamId, out var captain) || captain.SessionBegin == DateTimeOffset.MinValue ? null : captain.SessionBegin,
             TeamId = t.TeamId
         }));
 
         foreach (var team in teams)
-            team.Rank = rankedTeams.ContainsKey(team.TeamId) ? rankedTeams[team.TeamId] : 0;
+            team.Rank = rankedTeams.TryGetValue(team.TeamId, out var teamRank) ? (teamRank ?? 0) : 0;
 
         await _store.SaveUpdateRange(teams);
     }
