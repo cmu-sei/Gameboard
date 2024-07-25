@@ -54,6 +54,13 @@ public sealed class GameCenterTeamsResultsTeam
     public required int TicketCount { get; set; }
 }
 
+public sealed class GameCenterTeamsAdvancement
+{
+    public required SimpleEntity FromGame { get; set; }
+    public required SimpleEntity FromTeam { get; set; }
+    public required double Score { get; set; }
+}
+
 public enum GameCenterTeamsSessionStatus
 {
     Complete,

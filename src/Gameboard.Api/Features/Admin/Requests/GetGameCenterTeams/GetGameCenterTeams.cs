@@ -109,6 +109,12 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                 p.IsReady,
                 p.Role,
                 p.TeamId,
+                Advancement = p.AdvancedFromGame == null ? null : new
+                {
+                    FromGame = new SimpleEntity { Id = p.AdvancedFromGameId, Name = p.AdvancedFromGame.Name },
+                    FromTeam = new SimpleEntity { Id = p.AdvancedFromTeamId, Name = p.AdvancedFromPlayer.Name },
+                    Score = p.AdvancedWithScore
+                },
                 IsActive = p.SessionBegin != DateTimeOffset.MinValue && p.SessionBegin < nowish && p.SessionEnd > nowish,
                 SessionBegin = p.SessionBegin == DateTimeOffset.MinValue ? default(DateTimeOffset?) : p.SessionBegin,
                 SessionEnd = p.SessionEnd == DateTimeOffset.MinValue ? default(DateTimeOffset?) : p.SessionEnd,
