@@ -124,6 +124,7 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                     Name = p.Sponsor.Name,
                     Logo = p.Sponsor.Logo
                 },
+                TimeCumulative = p.Time,
                 TimeRemaining = nowish < p.SessionEnd ? (p.SessionEnd - nowish).TotalMilliseconds : default(double?),
                 TimeSinceStart = nowish > p.SessionBegin && nowish < p.SessionEnd ? (nowish - p.SessionBegin).TotalMilliseconds : default(double?),
                 p.WhenCreated
@@ -296,6 +297,7 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                         {
                             Start = captains[tId].SessionBegin.HasValue ? captains[tId].SessionBegin.Value.ToUnixTimeMilliseconds() : default(long?),
                             End = captains[tId].SessionEnd.HasValue ? captains[tId].SessionEnd.Value.ToUnixTimeMilliseconds() : default(long?),
+                            TimeCumulativeMs = captains[tId].TimeCumulative > 0 ? captains[tId].TimeCumulative : default(long?),
                             TimeRemainingMs = captains[tId].TimeRemaining,
                             TimeSinceStartMs = captains[tId].TimeSinceStart
                         },

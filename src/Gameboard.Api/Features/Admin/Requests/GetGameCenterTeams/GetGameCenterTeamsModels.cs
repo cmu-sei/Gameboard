@@ -80,6 +80,7 @@ public sealed class GameCenterTeamsSession
 {
     public required long? Start { get; set; }
     public required long? End { get; set; }
+    public required long? TimeCumulativeMs { get; set; }
     public required double? TimeRemainingMs { get; set; }
     public required double? TimeSinceStartMs { get; set; }
 }
