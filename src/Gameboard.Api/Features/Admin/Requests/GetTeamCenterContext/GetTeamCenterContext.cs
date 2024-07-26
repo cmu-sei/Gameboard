@@ -20,7 +20,6 @@ internal class GetTeamCenterContextHandler : IRequestHandler<GetTeamCenterContex
     private readonly IScoringService _scoringService;
     private readonly IStore _store;
     private readonly TeamExistsValidator<GetTeamCenterContextQuery> _teamExists;
-    private readonly ITeamService _teamService;
     private readonly UserRoleAuthorizer _userRoleAuth;
     private readonly IValidatorService<GetTeamCenterContextQuery> _validatorService;
 
@@ -29,14 +28,12 @@ internal class GetTeamCenterContextHandler : IRequestHandler<GetTeamCenterContex
         IScoringService scoringService,
         IStore store,
         TeamExistsValidator<GetTeamCenterContextQuery> teamExists,
-        ITeamService teamService,
         UserRoleAuthorizer userRoleAuth,
         IValidatorService<GetTeamCenterContextQuery> validatorService)
     {
         _scoringService = scoringService;
         _store = store;
         _teamExists = teamExists;
-        _teamService = teamService;
         _userRoleAuth = userRoleAuth;
         _validatorService = validatorService;
     }

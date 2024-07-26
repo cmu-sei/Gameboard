@@ -101,6 +101,7 @@ internal class GetGameCenterContextHandler : IRequestHandler<GetGameCenterContex
         var topScore = await _store
             .WithNoTracking<DenormalizedTeamScore>()
             .Where(s => s.GameId == request.GameId)
+            .Where(s => s.Rank > 0)
             .OrderByDescending(s => s.ScoreOverall)
             .FirstOrDefaultAsync(cancellationToken);
         var topScoringTeamName = string.Empty;

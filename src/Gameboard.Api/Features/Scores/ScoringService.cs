@@ -21,7 +21,7 @@ public interface IScoringService
     Task<GameScore> GetGameScore(string gameId, CancellationToken cancellationToken);
     Task<TeamScore> GetTeamScore(string teamId, CancellationToken cancellationToken);
     Task<TeamChallengeScore> GetTeamChallengeScore(string challengeId);
-    IDictionary<string, int> GetTeamRanks(IEnumerable<TeamForRanking> teams);
+    IDictionary<string, int?> GetTeamRanks(IEnumerable<TeamForRanking> teams);
 }
 
 internal class ScoringService : IScoringService
@@ -302,15 +302,22 @@ internal class ScoringService : IScoringService
         };
     }
 
-    public IDictionary<string, int> GetTeamRanks(IEnumerable<TeamForRanking> teams)
+    public IDictionary<string, int?> GetTeamRanks(IEnumerable<TeamForRanking> teams)
     {
         var scoreRank = 0;
         TeamForRanking lastScore = null;
-        var retVal = new Dictionary<string, int>();
-        var ranked = teams.OrderByDescending(t => t.OverallScore).ThenBy(t => t.CumulativeTimeMs);
+        var retVal = new Dictionary<string, int?>();
+        var ranked = teams
+            .OrderByDescending(t => t.OverallScore).ThenBy(t => t.CumulativeTimeMs);
 
         foreach (var team in ranked)
         {
+            if (team.SessionStart is null)
+            {
+                retVal.Add(team.TeamId, null);
+                continue;
+            }
+
             if (lastScore is null || team.OverallScore != lastScore.OverallScore || team.CumulativeTimeMs != lastScore.CumulativeTimeMs)
                 scoreRank += 1;
 

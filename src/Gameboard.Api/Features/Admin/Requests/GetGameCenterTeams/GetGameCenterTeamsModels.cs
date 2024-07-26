@@ -20,6 +20,7 @@ public enum GetGameCenterTeamsSort
 public sealed class GetGameCenterTeamsArgs
 {
     public GetGameCenterTeamsAdvancementFilter? Advancement { get; set; }
+    public bool? HasPendingNames { get; set; }
     public bool? HasScored { get; set; }
     public string SearchTerm { get; set; }
     public GameCenterTeamsSessionStatus? SessionStatus { get; set; }
@@ -32,6 +33,7 @@ public sealed class GetGameCenterTeamsArgs
 
 public sealed class GameCenterTeamsResults
 {
+    public required int NamesPendingApproval { get; set; }
     public required PagedEnumerable<GameCenterTeamsResultsTeam> Teams { get; set; }
 }
 
@@ -54,6 +56,13 @@ public sealed class GameCenterTeamsResultsTeam
     public required int TicketCount { get; set; }
 }
 
+public sealed class GameCenterTeamsAdvancement
+{
+    public required SimpleEntity FromGame { get; set; }
+    public required SimpleEntity FromTeam { get; set; }
+    public required double Score { get; set; }
+}
+
 public enum GameCenterTeamsSessionStatus
 {
     Complete,
@@ -64,6 +73,7 @@ public enum GameCenterTeamsSessionStatus
 public sealed class GameCenterTeamsPlayer
 {
     public required string Id { get; set; }
+    public required string PendingName { get; set; }
     public required string Name { get; set; }
     public required bool IsReady { get; set; }
     public required SimpleSponsor Sponsor { get; set; }
@@ -73,6 +83,7 @@ public sealed class GameCenterTeamsSession
 {
     public required long? Start { get; set; }
     public required long? End { get; set; }
+    public required long? TimeCumulativeMs { get; set; }
     public required double? TimeRemainingMs { get; set; }
     public required double? TimeSinceStartMs { get; set; }
 }

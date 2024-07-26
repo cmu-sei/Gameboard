@@ -101,6 +101,7 @@ public sealed class TeamForRanking
     public required string TeamId { get; set; }
     public required double OverallScore { get; set; }
     public required double CumulativeTimeMs { get; set; }
+    public required DateTimeOffset? SessionStart { get; set; }
 }
 
 // model explicitly for the denormalized "/scoreboard" endpoint

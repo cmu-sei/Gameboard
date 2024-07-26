@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.Core;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Scores;
@@ -106,9 +107,16 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
             {
                 p.Id,
                 Name = p.ApprovedName,
+                PendingName = p.Name != p.ApprovedName ? p.Name : null,
                 p.IsReady,
                 p.Role,
                 p.TeamId,
+                Advancement = p.AdvancedFromGame == null ? null : new
+                {
+                    FromGame = new SimpleEntity { Id = p.AdvancedFromGameId, Name = p.AdvancedFromGame.Name },
+                    FromTeam = new SimpleEntity { Id = p.AdvancedFromTeamId, Name = p.AdvancedFromPlayer.Name },
+                    Score = p.AdvancedWithScore
+                },
                 IsActive = p.SessionBegin != DateTimeOffset.MinValue && p.SessionBegin < nowish && p.SessionEnd > nowish,
                 SessionBegin = p.SessionBegin == DateTimeOffset.MinValue ? default(DateTimeOffset?) : p.SessionBegin,
                 SessionEnd = p.SessionEnd == DateTimeOffset.MinValue ? default(DateTimeOffset?) : p.SessionEnd,
@@ -118,12 +126,22 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                     Name = p.Sponsor.Name,
                     Logo = p.Sponsor.Logo
                 },
+                TimeCumulative = p.Time,
                 TimeRemaining = nowish < p.SessionEnd ? (p.SessionEnd - nowish).TotalMilliseconds : default(double?),
                 TimeSinceStart = nowish > p.SessionBegin && nowish < p.SessionEnd ? (nowish - p.SessionBegin).TotalMilliseconds : default(double?),
                 p.WhenCreated
             })
             .GroupBy(p => p.TeamId)
+            // have to do pending names filter here because we need all players
             .ToDictionaryAsync(gr => gr.Key, gr => gr.ToArray(), cancellationToken);
+
+        if (request.Args.HasPendingNames is not null)
+        {
+            matchingTeams = matchingTeams
+                .Where(kv => request.Args.HasPendingNames.Value == kv.Value.Any(p => p.PendingName != null && p.PendingName != string.Empty && p.PendingName != p.Name))
+                .ToDictionary(kv => kv.Key, kv => kv.Value);
+        }
+
         var matchingTeamIds = matchingTeams.Keys.ToArray();
         var captains = matchingTeams.ToDictionary(kv => kv.Key, kv => kv.Value.Single(p => p.Role == PlayerRole.Manager));
 
@@ -133,7 +151,7 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
             .WithNoTracking<DenormalizedTeamScore>()
             .Where(t => t.GameId == request.GameId)
             .Where(s => matchingTeamIds.Contains(s.TeamId))
-            .Select(t => new { t.TeamId, t.Rank, t.ScoreOverall })
+            .Select(t => new { t.TeamId, Rank = t.Rank == 0 ? default(int?) : t.Rank, t.ScoreOverall })
             .GroupBy(t => t.TeamId)
             .ToDictionaryAsync(gr => gr.Key, gr => gr.Single(), cancellationToken);
 
@@ -149,7 +167,13 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                 case GetGameCenterTeamsSort.Rank:
                     {
                         sortedTeamIds = sortedTeamIds
-                            .Sort(k => teamRanks.TryGetValue(k, out var rankData) ? rankData.Rank : double.MaxValue)
+                            .Sort(k =>
+                            {
+                                if (!teamRanks.TryGetValue(k, out var rankData) || rankData.Rank is null)
+                                    return int.MaxValue;
+
+                                return rankData.Rank;
+                            })
                             .ToArray();
                         break;
                     }
@@ -233,8 +257,16 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
 
         var teamSolves = await _teamService.GetSolves(pagedTeamIds, cancellationToken);
 
+        // last, we check to see if the game has any pending approvals, as we need them for the screen
+        var pendingNameCount = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.GameId == request.GameId)
+            .Where(p => p.Name != null && p.Name != string.Empty && p.Name != p.ApprovedName)
+            .CountAsync(cancellationToken);
+
         return new GameCenterTeamsResults
         {
+            NamesPendingApproval = pendingNameCount,
             Teams = new PagedEnumerable<GameCenterTeamsResultsTeam>
             {
                 Paging = paged.Paging,
@@ -252,6 +284,7 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                         Captain = new GameCenterTeamsPlayer
                         {
                             Id = captain.Id,
+                            PendingName = captain.PendingName,
                             Name = captain.Name,
                             IsReady = captain.IsReady,
                             Sponsor = new SimpleSponsor
@@ -264,6 +297,7 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                         Players = players.Select(p => new GameCenterTeamsPlayer
                         {
                             Id = p.Id,
+                            PendingName = p.PendingName,
                             Name = p.Name,
                             IsReady = p.IsReady,
                             Sponsor = new SimpleSponsor
@@ -284,6 +318,7 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                         {
                             Start = captains[tId].SessionBegin.HasValue ? captains[tId].SessionBegin.Value.ToUnixTimeMilliseconds() : default(long?),
                             End = captains[tId].SessionEnd.HasValue ? captains[tId].SessionEnd.Value.ToUnixTimeMilliseconds() : default(long?),
+                            TimeCumulativeMs = captains[tId].TimeCumulative > 0 ? captains[tId].TimeCumulative : default(long?),
                             TimeRemainingMs = captains[tId].TimeRemaining,
                             TimeSinceStartMs = captains[tId].TimeSinceStart
                         },
