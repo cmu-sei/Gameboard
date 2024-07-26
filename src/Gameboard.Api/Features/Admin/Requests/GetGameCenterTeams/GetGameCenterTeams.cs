@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.Core;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Scores;
@@ -106,6 +107,7 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
             {
                 p.Id,
                 Name = p.ApprovedName,
+                PendingName = p.Name != p.ApprovedName ? p.Name : null,
                 p.IsReady,
                 p.Role,
                 p.TeamId,
@@ -130,7 +132,16 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                 p.WhenCreated
             })
             .GroupBy(p => p.TeamId)
+            // have to do pending names filter here because we need all players
             .ToDictionaryAsync(gr => gr.Key, gr => gr.ToArray(), cancellationToken);
+
+        if (request.Args.HasPendingNames is not null)
+        {
+            matchingTeams = matchingTeams
+                .Where(kv => request.Args.HasPendingNames.Value == kv.Value.Any(p => p.PendingName != null && p.PendingName != string.Empty && p.PendingName != p.Name))
+                .ToDictionary(kv => kv.Key, kv => kv.Value);
+        }
+
         var matchingTeamIds = matchingTeams.Keys.ToArray();
         var captains = matchingTeams.ToDictionary(kv => kv.Key, kv => kv.Value.Single(p => p.Role == PlayerRole.Manager));
 
@@ -246,8 +257,16 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
 
         var teamSolves = await _teamService.GetSolves(pagedTeamIds, cancellationToken);
 
+        // last, we check to see if the game has any pending approvals, as we need them for the screen
+        var pendingNameCount = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.GameId == request.GameId)
+            .Where(p => p.Name != null && p.Name != string.Empty && p.Name != p.ApprovedName)
+            .CountAsync(cancellationToken);
+
         return new GameCenterTeamsResults
         {
+            NamesPendingApproval = pendingNameCount,
             Teams = new PagedEnumerable<GameCenterTeamsResultsTeam>
             {
                 Paging = paged.Paging,
@@ -265,6 +284,7 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                         Captain = new GameCenterTeamsPlayer
                         {
                             Id = captain.Id,
+                            PendingName = captain.PendingName,
                             Name = captain.Name,
                             IsReady = captain.IsReady,
                             Sponsor = new SimpleSponsor
@@ -277,6 +297,7 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                         Players = players.Select(p => new GameCenterTeamsPlayer
                         {
                             Id = p.Id,
+                            PendingName = p.PendingName,
                             Name = p.Name,
                             IsReady = p.IsReady,
                             Sponsor = new SimpleSponsor

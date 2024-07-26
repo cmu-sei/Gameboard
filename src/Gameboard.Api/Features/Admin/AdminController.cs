@@ -45,6 +45,10 @@ public class AdminController : ControllerBase
     public Task<GetPlayersCsvExportResponse> GetPlayersCsvExport([FromRoute] string gameId, [FromQuery] string teamIds)
         => _mediator.Send(new GetPlayersCsvExportQuery(gameId, teamIds.IsEmpty() ? null : teamIds.Split(',')));
 
+    [HttpPut("players/{playerId}/name")]
+    public Task ApprovePlayerName([FromRoute] string playerId, [FromBody] ApprovePlayerNameRequest request)
+        => _mediator.Send(new ApprovePlayerNameCommand(playerId, request.Name, request.RevisionReason));
+
     [HttpGet("stats")]
     public Task<GetAppOverviewStatsResponse> GetAppOverviewStats()
         => _mediator.Send(new GetAppOverviewStatsQuery());

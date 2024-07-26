@@ -60,7 +60,6 @@ public class PlayerService
         IPlayerStore playerStore,
         IPracticeService practiceService,
         IScoringService scores,
-        ISessionWindowCalculator sessionWindowCalculator,
         IStore store,
         ISyncStartGameService syncStartGameService,
         ITeamService teamService
@@ -184,7 +183,7 @@ public class PlayerService
                 entity
             );
 
-            entity.NameStatus = entity.Name != entity.ApprovedName ? AppConstants.NameStatusPending : string.Empty;
+            // entity.NameStatus = entity.Name != entity.ApprovedName ? AppConstants.NameStatusPending : string.Empty;
         }
         else
         {
@@ -349,10 +348,10 @@ public class PlayerService
             q = q.Where(p => !p.Advanced);
 
         if (model.WantsPending)
-            q = q.Where(p => p.NameStatus.Equals(AppConstants.NameStatusPending) && p.Name != p.ApprovedName);
+            q = q.Where(p => p.Name != null && p.Name != string.Empty && p.Name != p.ApprovedName);
 
         if (model.WantsDisallowed)
-            q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus) && !u.NameStatus.Equals(AppConstants.NameStatusPending));
+            q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus));
 
         if (model.WantsScored)
             q = q.WhereIsScoringPlayer();
