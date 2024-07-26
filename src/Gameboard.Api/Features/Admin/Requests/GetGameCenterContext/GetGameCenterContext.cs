@@ -19,6 +19,7 @@ public record GetGameCenterContextQuery(string GameId) : IRequest<GameCenterCont
 internal class GetGameCenterContextHandler : IRequestHandler<GetGameCenterContextQuery, GameCenterContext>
 {
     private readonly EntityExistsValidator<GetGameCenterContextQuery, Data.Game> _gameExists;
+    private readonly IGameService _gameService;
     private readonly INowService _now;
     private readonly IStore _store;
     private readonly ITeamService _teamService;
@@ -29,6 +30,7 @@ internal class GetGameCenterContextHandler : IRequestHandler<GetGameCenterContex
     public GetGameCenterContextHandler
     (
         EntityExistsValidator<GetGameCenterContextQuery, Data.Game> gameExists,
+        IGameService gameService,
         INowService now,
         IStore store,
         ITeamService teamService,
@@ -38,6 +40,7 @@ internal class GetGameCenterContextHandler : IRequestHandler<GetGameCenterContex
     )
     {
         _gameExists = gameExists;
+        _gameService = gameService;
         _now = now;
         _store = store;
         _teamService = teamService;
