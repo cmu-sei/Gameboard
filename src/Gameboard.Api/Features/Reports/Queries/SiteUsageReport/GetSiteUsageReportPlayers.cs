@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,6 +8,7 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -15,6 +17,7 @@ public record GetSiteUsageReportPlayersQuery(SiteUsageReportParameters ReportPar
 internal sealed class GetSiteUsageReportPlayersHandler : IRequestHandler<GetSiteUsageReportPlayersQuery, PagedEnumerable<SiteUsageReportPlayer>>
 {
     private readonly ChallengeService _challengeService;
+    private readonly ILogger<GetSiteUsageReportPlayersHandler> _logger;
     private readonly IPagingService _pagingService;
     private readonly ISiteUsageReportService _reportService;
     private readonly IStore _store;
@@ -23,6 +26,7 @@ internal sealed class GetSiteUsageReportPlayersHandler : IRequestHandler<GetSite
     public GetSiteUsageReportPlayersHandler
     (
         ChallengeService challengeService,
+        ILogger<GetSiteUsageReportPlayersHandler> logger,
         IPagingService pagingService,
         ISiteUsageReportService reportService,
         IStore store,
@@ -30,6 +34,7 @@ internal sealed class GetSiteUsageReportPlayersHandler : IRequestHandler<GetSite
     )
     {
         _challengeService = challengeService;
+        _logger = logger;
         _pagingService = pagingService;
         _reportService = reportService;
         _store = store;
@@ -46,7 +51,7 @@ internal sealed class GetSiteUsageReportPlayersHandler : IRequestHandler<GetSite
         paging.PageSize ??= 20;
 
         var challengeIdUserIdMaps = await _challengeService.GetChallengeUserMaps(_reportService.GetBaseQuery(request.ReportParameters), cancellationToken);
-        var challengeData = await _store
+        var challengeQuery = _store
             .WithNoTracking<Data.Challenge>()
             .Where(c => challengeIdUserIdMaps.ChallengeIdUserIds.Keys.Contains(c.Id))
             .Select(c => new
@@ -55,13 +60,26 @@ internal sealed class GetSiteUsageReportPlayersHandler : IRequestHandler<GetSite
                 c.PlayerMode,
                 c.StartTime
             })
-            .Distinct()
+            .Distinct();
+
+        // timer for performance tracking (see https://github.com/cmu-sei/Gameboard/issues/480)
+        var challengeQueryStopwatch = new Stopwatch();
+        challengeQueryStopwatch.Start();
+
+        var challengeData = await challengeQuery
             .ToDictionaryAsync(i => i.Id, i => new { i.Id, i.PlayerMode, i.StartTime }, cancellationToken);
+
+        challengeQueryStopwatch.Stop();
+        if (challengeQueryStopwatch.Elapsed.Seconds >= 10)
+        {
+            _logger.LogWarning($"GetSiteUsageReportPlayers handler - challenge query - total runtime in MS: {challengeQueryStopwatch.ElapsedMilliseconds}");
+            _logger.LogWarning($"Query: {challengeQuery.ToQueryString()}");
+        }
 
         var competitiveChallengeIds = challengeData.Where(kv => kv.Value.PlayerMode == PlayerMode.Competition).Select(kv => kv.Key).ToArray();
         var practiceChallengeIds = challengeData.Where(kv => kv.Value.PlayerMode == PlayerMode.Practice).Select(kv => kv.Key).ToArray();
 
-        var userInfo = await _store
+        var userQuery = _store
             .WithNoTracking<Data.User>()
             .Include(u => u.Sponsor)
             .Where(u => challengeIdUserIdMaps.UserIdChallengeIds.Keys.Contains(u.Id))
@@ -72,9 +90,20 @@ internal sealed class GetSiteUsageReportPlayersHandler : IRequestHandler<GetSite
                 u.SponsorId,
                 SponsorName = u.Sponsor.Name,
                 SponsorLogo = u.Sponsor.Logo
-            })
-            .Distinct()
+            });
+
+        var userQueryStopwatch = new Stopwatch();
+        userQueryStopwatch.Start();
+
+        var userInfo = await userQuery
             .ToDictionaryAsync(gr => gr.Id, gr => gr, cancellationToken);
+
+        userQueryStopwatch.Stop();
+        if (userQueryStopwatch.Elapsed.Seconds >= 10)
+        {
+            _logger.LogWarning($"GetSiteUsageReportPlayers handler - user query - total runtime in MS: {userQueryStopwatch.ElapsedMilliseconds}");
+            _logger.LogWarning($"Query: {userQuery.ToQueryString()}");
+        }
 
         var finalUsers = userInfo.Keys.Select(uId => new SiteUsageReportPlayer
         {

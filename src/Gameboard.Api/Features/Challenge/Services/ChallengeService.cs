@@ -651,7 +651,7 @@ public partial class ChallengeService : _Service
         var teamChallengeIds = await query
             .Select(c => new { c.Id, c.TeamId })
             .GroupBy(c => c.TeamId)
-            .ToDictionaryAsync(gr => gr.Key, gr => gr.Select(c => c.Id).ToArray(), cancellationToken);
+            .ToDictionaryAsync(gr => gr.Key, gr => gr.Select(c => c.Id).Distinct().ToArray(), cancellationToken);
 
         var teamIds = teamChallengeIds.Keys;
 

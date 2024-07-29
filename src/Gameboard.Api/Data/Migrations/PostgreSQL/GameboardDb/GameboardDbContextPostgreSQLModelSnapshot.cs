@@ -957,6 +957,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex("Id", "TeamId");
+
                     b.HasIndex("UserId", "TeamId");
 
                     b.ToTable("Players");
