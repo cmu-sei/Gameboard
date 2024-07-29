@@ -274,6 +274,7 @@ public class GameboardDbContext : DbContext
             // performance-oriented indices
             b.HasIndex(p => p.UserId);
             b.HasIndex(p => new { p.UserId, p.TeamId });
+            b.HasIndex(p => new { p.Id, p.TeamId });
 
             // nav properties
             b.HasOne(p => p.User).WithMany(u => u.Enrollments).OnDelete(DeleteBehavior.Cascade);

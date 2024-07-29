@@ -1,7 +1,7 @@
 using System;
 using Gameboard.Api.Common.Services;
 
-namespace Gameboard.Api.Features.Player;
+namespace Gameboard.Api.Common;
 
 public class TimeWindow
 {
