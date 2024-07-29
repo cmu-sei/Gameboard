@@ -1,6 +1,7 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,15 +10,17 @@ namespace Gameboard.Api.Data;
 public class GameboardDbContext : DbContext
 {
     private readonly IWebHostEnvironment _env;
+    private readonly IServiceProvider _serviceProvider;
 
-    public GameboardDbContext(DbContextOptions options, IWebHostEnvironment env) : base(options)
+    public GameboardDbContext(IServiceProvider serviceProvider, DbContextOptions options, IWebHostEnvironment env) : base(options)
     {
         _env = env;
+        _serviceProvider = serviceProvider;
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.WithGameboardOptions(_env);
+        optionsBuilder.WithGameboardOptions(_env, _serviceProvider);
     }
 
     protected override void OnModelCreating(ModelBuilder builder)

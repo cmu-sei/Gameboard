@@ -25,6 +25,6 @@ public class GameboardDbContextSqlServerFactory : IDesignTimeDbContextFactory<Ga
         var optionsBuilder = new DbContextOptionsBuilder<GameboardDbContextSqlServer>();
         optionsBuilder.UseSqlServer();
 
-        return new GameboardDbContextSqlServer(optionsBuilder.Options, _env);
+        return new GameboardDbContextSqlServer(null, optionsBuilder.Options, _env);
     }
 }
