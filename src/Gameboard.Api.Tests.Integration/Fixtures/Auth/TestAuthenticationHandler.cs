@@ -18,8 +18,8 @@ internal class TestAuthenticationHandler : AuthenticationHandler<TestAuthenticat
         handlerType: typeof(TestAuthenticationHandler)
     );
 
-    public TestAuthenticationHandler(IOptionsMonitor<TestAuthenticationHandlerOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock) :
-        base(options, logger, encoder, clock)
+    public TestAuthenticationHandler(IOptionsMonitor<TestAuthenticationHandlerOptions> options, ILoggerFactory logger, UrlEncoder encoder) :
+        base(options, logger, encoder)
     {
         _actingUser = options.CurrentValue.Actor;
     }

@@ -20,9 +20,8 @@ internal static class GraderKeyAuthentication
 
 public class GraderKeyAuthenticationOptions : AuthenticationSchemeOptions { }
 
-internal class GraderKeyUnresolvedChallengeException : GameboardException
+internal class GraderKeyUnresolvedChallengeException(string graderKey) : GameboardException($"{nameof(GraderKeyAuthenticationHandler)} - failed authentication attempt - Couldn't resolve a challenge for grader key {graderKey}")
 {
-    public GraderKeyUnresolvedChallengeException(string graderKey) : base($"{nameof(GraderKeyAuthenticationHandler)} - failed authentication attempt - Couldn't resolve a challenge for grader key {graderKey}") { }
 }
 
 public static class GraderKeyAuthenticationExtensions
@@ -47,9 +46,8 @@ internal class GraderKeyAuthenticationHandler : AuthenticationHandler<GraderKeyA
         IOptionsMonitor<GraderKeyAuthenticationOptions> options,
         ILoggerFactory loggerFactory,
         UrlEncoder urlEncoder,
-        IStore store,
-        ISystemClock sysClock
-    ) : base(options, loggerFactory, urlEncoder, sysClock)
+        IStore store
+    ) : base(options, loggerFactory, urlEncoder)
     {
         _store = store;
     }
