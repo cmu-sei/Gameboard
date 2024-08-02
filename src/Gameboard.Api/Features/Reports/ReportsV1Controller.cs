@@ -497,7 +497,6 @@ namespace Gameboard.Api.Controllers
 
             var fullStats = new FeedbackStats
             {
-                GameId = game.Id,
                 ChallengeSpecId = model.ChallengeSpecId,
                 ConfiguredCount = questionTemplate.Length,
                 LikertCount = questionTemplate.Where(q => q.Type == "likert").Count(),

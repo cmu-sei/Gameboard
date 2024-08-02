@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -89,16 +88,13 @@ namespace Gameboard.Api.Services
             List<GameSponsorStat> gameSponsorStats = new List<GameSponsorStat>();
 
             if (string.IsNullOrWhiteSpace(gameId))
-            {
                 throw new ArgumentNullException("Invalid game id");
-            }
 
-            var game = Store.Games.Where(g => g.Id == gameId).Select(g => new { g.Id, g.Name, g.MaxTeamSize }).FirstOrDefault();
-
-            if (game is null)
-            {
-                throw new Exception("Invalid game");
-            }
+            var game = Store
+                .Games
+                .Where(g => g.Id == gameId)
+                .Select(g => new { g.Id, g.Name, g.MaxTeamSize })
+                .FirstOrDefault() ?? throw new Exception("Invalid game");
 
             var players = Store
                 .Players.Where(p => p.GameId == gameId)
@@ -238,18 +234,19 @@ namespace Gameboard.Api.Services
                 }
             }
 
-            ChallengeDetailReport challengeDetailReport = new ChallengeDetailReport();
-            challengeDetailReport.Timestamp = DateTime.UtcNow;
-            challengeDetailReport.Parts = parts.ToArray();
-            challengeDetailReport.AttemptCount = challenges != null ? challenges.Length : 0;
-            challengeDetailReport.ChallengeId = id;
+            var challengeDetailReport = new ChallengeDetailReport
+            {
+                Timestamp = DateTime.UtcNow,
+                Parts = parts.ToArray(),
+                AttemptCount = challenges != null ? challenges.Length : 0,
+                ChallengeId = id
+            };
 
             return challengeDetailReport;
         }
 
         internal Task<SeriesReport> GetSeriesStats()
         {
-
             // Create a temporary table of all series with the number of games in that series included
             var tempTable = Store.Games.Select(
                 g => new
@@ -472,7 +469,7 @@ namespace Gameboard.Api.Services
                 }
             ).OrderBy(stat => stat.Key).ToArray();
 
-            ModeReport modeReport = new ModeReport
+            var modeReport = new ModeReport
             {
                 Timestamp = DateTime.UtcNow,
                 Stats = stats
@@ -483,7 +480,6 @@ namespace Gameboard.Api.Services
 
         internal Task<CorrelationReport> GetCorrelationStats()
         {
-
             // Create a temporary table to first group by the user ID and count the number of games played
             var tempTable = Store.Players.GroupBy(g => g.UserId).Select(
                 s => new
@@ -509,48 +505,6 @@ namespace Gameboard.Api.Services
             };
 
             return Task.FromResult(correlationReport);
-        }
-
-        private static string GetCommonGroupString(string original)
-        {
-            return string.IsNullOrWhiteSpace(original) ? "N/A" : original;
-        }
-
-        // Compute aggregates for each feedback question in template based on all responses in feedback table
-        internal List<QuestionStats> GetFeedbackQuestionStats(QuestionTemplate[] questionTemplate, FeedbackReportHelper[] feedbackTable)
-        {
-            List<QuestionStats> questionStats = new List<QuestionStats>();
-            foreach (QuestionTemplate question in questionTemplate)
-            {
-                if (question.Type != "likert")
-                    continue;
-
-                List<int> answers = new List<int>();
-                foreach (var response in feedbackTable.Where(f => f.Submitted || true))
-                {
-                    var answer = response.IdToAnswer.GetValueOrDefault(question.Id, null);
-                    if (answer != null)
-                        answers.Add(Int32.Parse(answer));
-                }
-                var newStat = new QuestionStats
-                {
-                    Id = question.Id,
-                    Prompt = question.Prompt,
-                    ShortName = question.ShortName,
-                    Required = question.Required,
-                    ScaleMin = question.Min,
-                    ScaleMax = question.Max,
-                    Count = answers.Count(),
-                };
-                if (newStat.Count > 0)
-                {
-                    newStat.Average = answers.Average();
-                    newStat.Lowest = answers.Min();
-                    newStat.Highest = answers.Max();
-                }
-                questionStats.Add(newStat);
-            }
-            return questionStats;
         }
 
         #region Support Stats
@@ -766,6 +720,43 @@ namespace Gameboard.Api.Services
             else if (model.WantsChallenge) // count challenges with specific game id
                 total = await Store.Challenges.Where(p => p.GameId == model.GameId).CountAsync();
             return total;
+        }
+
+        // Compute aggregates for each feedback question in template based on all responses in feedback table
+        public IEnumerable<QuestionStats> GetFeedbackQuestionStats(QuestionTemplate[] questionTemplate, FeedbackReportHelper[] feedbackTable)
+        {
+            var questionStats = new List<QuestionStats>();
+            foreach (QuestionTemplate question in questionTemplate)
+            {
+                if (question.Type != "likert")
+                    continue;
+
+                var answers = new List<int>();
+                foreach (var response in feedbackTable.Where(f => f.Submitted || true))
+                {
+                    var answer = response.IdToAnswer.GetValueOrDefault(question.Id, null);
+                    if (answer != null)
+                        answers.Add(Int32.Parse(answer));
+                }
+                var newStat = new QuestionStats
+                {
+                    Id = question.Id,
+                    Prompt = question.Prompt,
+                    ShortName = question.ShortName,
+                    Required = question.Required,
+                    ScaleMin = question.Min,
+                    ScaleMax = question.Max,
+                    Count = answers.Count,
+                };
+                if (newStat.Count > 0)
+                {
+                    newStat.Average = answers.Average();
+                    newStat.Lowest = answers.Min();
+                    newStat.Highest = answers.Max();
+                }
+                questionStats.Add(newStat);
+            }
+            return questionStats;
         }
 
         internal byte[] ConvertToBytes<T>(IEnumerable<T> collection)

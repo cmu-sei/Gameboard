@@ -35,6 +35,66 @@ namespace Gameboard.Api.Services
             _store = store;
         }
 
+        public async Task<int> GetFeedbackMaxResponses(FeedbackSearchParams model)
+        {
+            var total = 0;
+
+            if (model.WantsGame) // count enrollments for a specific game id, that are started
+                total = await _store
+                    .WithNoTracking<Data.Player>()
+                    .Where(p => p.GameId == model.GameId && p.SessionBegin > DateTimeOffset.MinValue)
+                    .CountAsync();
+            else if (model.WantsSpecificChallenge) // count challenges with specific challenge spec id
+                total = await _store
+                    .WithNoTracking<Data.Challenge>()
+                    .Where(p => p.SpecId == model.ChallengeSpecId)
+                    .CountAsync();
+            else if (model.WantsChallenge) // count challenges with specific game id
+                total = await _store
+                    .WithNoTracking<Data.Challenge>()
+                    .Where(p => p.GameId == model.GameId)
+                    .CountAsync();
+
+            return total;
+        }
+
+        // Compute aggregates for each feedback question in template based on all responses in feedback table
+        public IEnumerable<QuestionStats> GetFeedbackQuestionStats(QuestionTemplate[] questionTemplate, FeedbackReportHelper[] feedbackTable)
+        {
+            var questionStats = new List<QuestionStats>();
+            foreach (QuestionTemplate question in questionTemplate)
+            {
+                if (question.Type != "likert")
+                    continue;
+
+                var answers = new List<int>();
+                foreach (var response in feedbackTable.Where(f => f.Submitted || true))
+                {
+                    var answer = response.IdToAnswer.GetValueOrDefault(question.Id, null);
+                    if (answer != null)
+                        answers.Add(Int32.Parse(answer));
+                }
+                var newStat = new QuestionStats
+                {
+                    Id = question.Id,
+                    Prompt = question.Prompt,
+                    ShortName = question.ShortName,
+                    Required = question.Required,
+                    ScaleMin = question.Min,
+                    ScaleMax = question.Max,
+                    Count = answers.Count,
+                };
+                if (newStat.Count > 0)
+                {
+                    newStat.Average = answers.Average();
+                    newStat.Lowest = answers.Min();
+                    newStat.Highest = answers.Max();
+                }
+                questionStats.Add(newStat);
+            }
+            return questionStats;
+        }
+
         public async Task<Feedback> Retrieve(FeedbackSearchParams model, string actorId)
         {
             // for normal challenge and game feedback, we can just do simple lookups on the provided IDs.
@@ -170,6 +230,38 @@ namespace Gameboard.Api.Services
                 ChallengeSpecId = challengeSpecId,
                 UserId = userId
             };
+        }
+
+        public IQueryable<Data.Feedback> BuildQuery(FeedbackSearchParams args)
+        {
+            var q = FeedbackStore.List(args.Term);
+
+            if (args.GameId.NotEmpty())
+                q = q.Where(u => u.GameId == args.GameId);
+
+            if (args.WantsGame)
+                q = q.Where(u => u.ChallengeSpecId == null);
+            else
+                q = q.Where(u => u.ChallengeSpecId != null);
+
+            if (args.WantsSpecificChallenge)
+                q = q.Where(u => u.ChallengeSpecId == args.ChallengeSpecId);
+
+            if (args.WantsSubmittedOnly)
+                q = q.Where(u => u.Submitted);
+
+            if (args.WantsSortByTimeNewest)
+                q = q.OrderByDescending(u => u.Timestamp);
+            else if (args.WantsSortByTimeOldest)
+                q = q.OrderBy(u => u.Timestamp);
+
+            q = q.Include(p => p.Player).Include(p => p.ChallengeSpec);
+
+            q = q.Skip(args.Skip);
+            if (args.Take > 0)
+                q = q.Take(args.Take);
+
+            return q;
         }
 
         // check that the actor/user is enrolled in this game they are trying to submit feedback for

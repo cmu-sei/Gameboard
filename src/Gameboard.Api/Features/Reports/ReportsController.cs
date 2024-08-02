@@ -49,6 +49,10 @@ public class ReportsController : ControllerBase
     public Task<ReportResults<EnrollmentReportByGameRecord>> GetEnrollmentReportByGame([FromQuery] EnrollmentReportParameters parameters, [FromQuery] PagingArgs pagingArgs)
         => _mediator.Send(new EnrollmentReportByGameQuery(parameters, pagingArgs));
 
+    [HttpGet("feedback-games")]
+    public Task<FeedbackGameReportResults> GetFeedbackGameReport([FromQuery] GetFeedbackGameReportQuery query, [FromQuery] PagingArgs pagingArgs)
+        => _mediator.Send(query);
+
     [HttpGet("players")]
     public Task<ReportResults<PlayersReportStatSummary, PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportParameters parameters, [FromQuery] PagingArgs pagingArgs)
         => _mediator.Send(new GetPlayersReportQuery(parameters, pagingArgs));

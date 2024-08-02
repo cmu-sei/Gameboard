@@ -113,7 +113,6 @@ namespace Gameboard.Api
 
     public class FeedbackStats
     {
-        public string GameId { get; set; }
         public string ChallengeSpecId { get; set; }
         public int ConfiguredCount { get; set; }
         public int LikertCount { get; set; }
@@ -125,7 +124,7 @@ namespace Gameboard.Api
         public int MaxResponseCount { get; set; }
         public int InProgressCount { get; set; }
         public int SubmittedCount { get; set; }
-        public List<QuestionStats> QuestionStats { get; set; }
+        public IEnumerable<QuestionStats> QuestionStats { get; set; }
     }
 
     // Order of properties below determines order of columns in CSV export
