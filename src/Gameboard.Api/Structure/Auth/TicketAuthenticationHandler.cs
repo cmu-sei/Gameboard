@@ -36,10 +36,9 @@ namespace Gameboard.Api.Auth
             IOptionsMonitor<TicketAuthenticationOptions> options,
             ILoggerFactory logger,
             UrlEncoder encoder,
-            ISystemClock clock,
             IDistributedCache cache
         )
-            : base(options, logger, encoder, clock)
+            : base(options, logger, encoder)
         {
             _cache = cache;
         }
