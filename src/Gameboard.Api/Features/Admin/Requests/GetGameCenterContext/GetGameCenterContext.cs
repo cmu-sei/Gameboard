@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +23,6 @@ internal class GetGameCenterContextHandler : IRequestHandler<GetGameCenterContex
     private readonly IStore _store;
     private readonly ITeamService _teamService;
     private readonly TicketService _ticketService;
-    private readonly UserRoleAuthorizer _userRole;
     private readonly IValidatorService<GetGameCenterContextQuery> _validator;
 
     public GetGameCenterContextHandler
@@ -33,7 +32,6 @@ internal class GetGameCenterContextHandler : IRequestHandler<GetGameCenterContex
         IStore store,
         ITeamService teamService,
         TicketService ticketService,
-        UserRoleAuthorizer userRole,
         IValidatorService<GetGameCenterContextQuery> validator
     )
     {
@@ -42,18 +40,15 @@ internal class GetGameCenterContextHandler : IRequestHandler<GetGameCenterContex
         _store = store;
         _teamService = teamService;
         _ticketService = ticketService;
-        _userRole = userRole;
         _validator = validator;
     }
 
     public async Task<GameCenterContext> Handle(GetGameCenterContextQuery request, CancellationToken cancellationToken)
     {
-        _userRole
-            .AllowAllElevatedRoles()
-            .Authorize();
-
-        _validator.AddValidator(_gameExists.UseProperty(r => r.GameId));
-        await _validator.Validate(request, cancellationToken);
+        await _validator
+            .ConfigureAuthorization(config => config.RequirePermissions(UserRolePermissionKey.Admin_View))
+            .AddValidator(_gameExists.UseProperty(r => r.GameId))
+            .Validate(request, cancellationToken);
 
         var nowish = _now.Get();
         var gameData = await _store

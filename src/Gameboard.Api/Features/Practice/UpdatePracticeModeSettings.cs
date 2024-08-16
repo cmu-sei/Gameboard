@@ -3,9 +3,9 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 
@@ -19,47 +19,38 @@ internal class PracticeModeSettingsInvalid : GameboardValidationException
 
 internal class UpdatePracticeModeSettingsValidator : IGameboardRequestValidator<UpdatePracticeModeSettingsCommand>
 {
-    private readonly UserRoleAuthorizer _roleAuthorizer;
     private readonly EntityExistsValidator<UpdatePracticeModeSettingsCommand, Data.User> _userExists;
     private readonly IValidatorService<UpdatePracticeModeSettingsCommand> _validatorService;
 
     public UpdatePracticeModeSettingsValidator
     (
-        UserRoleAuthorizer roleAuthorizer,
         EntityExistsValidator<UpdatePracticeModeSettingsCommand, Data.User> userExists,
         IValidatorService<UpdatePracticeModeSettingsCommand> validatorService
     )
     {
-        _roleAuthorizer = roleAuthorizer;
         _userExists = userExists;
         _validatorService = validatorService;
     }
 
-    public async Task Validate(UpdatePracticeModeSettingsCommand request, CancellationToken cancellationToken)
+    public Task Validate(UpdatePracticeModeSettingsCommand request, CancellationToken cancellationToken)
     {
-        _roleAuthorizer
-            .AllowRoles(UserRole.Admin)
-            .Authorize();
+        return _validatorService
+            .ConfigureAuthorization(a => a.RequirePermissions(UserRolePermissionKey.Practice_EditSettings))
+            .AddValidator((request, context) =>
+            {
+                if (request.Settings.MaxConcurrentPracticeSessions.HasValue && request.Settings.MaxConcurrentPracticeSessions < 0)
+                    context.AddValidationException(new PracticeModeSettingsInvalid(nameof(PracticeModeSettings.MaxConcurrentPracticeSessions), request.Settings.MaxConcurrentPracticeSessions.Value.ToString(), "Max concurrent practice sessions must be either null or non-negative."));
 
-        _validatorService.AddValidator((request, context) =>
-        {
-            if (request.Settings.MaxConcurrentPracticeSessions.HasValue && request.Settings.MaxConcurrentPracticeSessions < 0)
-                context.AddValidationException(new PracticeModeSettingsInvalid(nameof(PracticeModeSettings.MaxConcurrentPracticeSessions), request.Settings.MaxConcurrentPracticeSessions.Value.ToString(), "Max concurrent practice sessions must be either null or non-negative."));
+                return Task.CompletedTask;
+            }).AddValidator((request, context) =>
+            {
+                if (request.Settings.MaxPracticeSessionLengthMinutes.HasValue && request.Settings.MaxPracticeSessionLengthMinutes <= 0)
+                    context.AddValidationException(new PracticeModeSettingsInvalid(nameof(PracticeModeSettings.MaxPracticeSessionLengthMinutes), request.Settings.MaxPracticeSessionLengthMinutes.Value.ToString(), "Max practice session length must be either null or positive."));
 
-            return Task.CompletedTask;
-        });
-
-        _validatorService.AddValidator((request, context) =>
-        {
-            if (request.Settings.MaxPracticeSessionLengthMinutes.HasValue && request.Settings.MaxPracticeSessionLengthMinutes <= 0)
-                context.AddValidationException(new PracticeModeSettingsInvalid(nameof(PracticeModeSettings.MaxPracticeSessionLengthMinutes), request.Settings.MaxPracticeSessionLengthMinutes.Value.ToString(), "Max practice session length must be either null or positive."));
-
-            return Task.CompletedTask;
-        });
-
-        _validatorService.AddValidator(_userExists.UseProperty(r => r.ActingUser.Id));
-
-        await _validatorService.Validate(request, cancellationToken);
+                return Task.CompletedTask;
+            })
+            .AddValidator(_userExists.UseProperty(r => r.ActingUser.Id))
+            .Validate(request, cancellationToken);
     }
 }
 

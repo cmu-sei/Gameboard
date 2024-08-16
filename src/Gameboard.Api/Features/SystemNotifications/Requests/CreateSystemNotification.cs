@@ -1,10 +1,8 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Azure.Core;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
 
 namespace Gameboard.Api.Features.SystemNotifications;
@@ -16,7 +14,6 @@ internal class CreateSystemNotificationHandler : IRequestHandler<CreateSystemNot
     private readonly IActingUserService _actingUserService;
     private readonly IStore _store;
     private readonly ISystemNotificationsService _systemNotificationsService;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
     private readonly IValidatorService<CreateSystemNotificationCommand> _validatorService;
 
     public CreateSystemNotificationHandler
@@ -24,36 +21,32 @@ internal class CreateSystemNotificationHandler : IRequestHandler<CreateSystemNot
         IActingUserService actingUserService,
         IStore store,
         ISystemNotificationsService systemNotificationsService,
-        UserRoleAuthorizer userRoleAuthorizer,
         IValidatorService<CreateSystemNotificationCommand> validatorService
     )
     {
         _actingUserService = actingUserService;
         _store = store;
         _systemNotificationsService = systemNotificationsService;
-        _userRoleAuthorizer = userRoleAuthorizer;
         _validatorService = validatorService;
     }
 
     public async Task<ViewSystemNotification> Handle(CreateSystemNotificationCommand request, CancellationToken cancellationToken)
     {
-        _userRoleAuthorizer
-            .AllowRoles(UserRole.Admin)
-            .Authorize();
+        // validate
+        await _validatorService
+            .ConfigureAuthorization(c => c.RequirePermissions(Users.UserRolePermissionKey.SystemNotifications_CreateEdit))
+            .AddValidator
+            (
+                (req, ctx) =>
+                {
+                    if (request.Create.Title.IsEmpty())
+                        ctx.AddValidationException(new MissingRequiredInput<CreateSystemNotificationCommand>(nameof(request.Create.Title), request));
 
-        _validatorService.AddValidator
-        (
-            (req, ctx) =>
-            {
-                if (request.Create.Title.IsEmpty())
-                    ctx.AddValidationException(new MissingRequiredInput<CreateSystemNotificationCommand>(nameof(request.Create.Title), request));
-
-                if (request.Create.MarkdownContent.IsEmpty())
-                    ctx.AddValidationException(new MissingRequiredInput<CreateSystemNotificationCommand>(nameof(request.Create.MarkdownContent), request));
-            }
-        );
-
-        await _validatorService.Validate(request, cancellationToken);
+                    if (request.Create.MarkdownContent.IsEmpty())
+                        ctx.AddValidationException(new MissingRequiredInput<CreateSystemNotificationCommand>(nameof(request.Create.MarkdownContent), request));
+                }
+            )
+            .Validate(request, cancellationToken);
 
         var created = await _store
             .Create(new SystemNotification
@@ -66,7 +59,8 @@ internal class CreateSystemNotificationHandler : IRequestHandler<CreateSystemNot
                     request.Create.NotificationType.Value :
                     SystemNotificationType.GeneralInfo,
                 CreatedByUserId = _actingUserService.Get().Id,
-                IsDeleted = false
+                IsDeleted = false,
+                IsDismissible = request.Create.IsDismissible ?? true
             });
 
         return await _systemNotificationsService.Get(created.Id);

@@ -2,8 +2,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -12,37 +12,22 @@ namespace Gameboard.Api.Features.SystemNotifications;
 
 public record UpdateSystemNotificationCommand(UpdateSystemNotificationRequest Update) : IRequest<ViewSystemNotification>;
 
-internal class UpdateSystemNotificationHandler : IRequestHandler<UpdateSystemNotificationCommand, ViewSystemNotification>
+internal class UpdateSystemNotificationHandler(
+    EntityExistsValidator<UpdateSystemNotificationCommand, SystemNotification> notificationExists,
+    IStore store,
+    ISystemNotificationsService systemNotificationsService,
+    IValidatorService<UpdateSystemNotificationCommand> validatorService
+    ) : IRequestHandler<UpdateSystemNotificationCommand, ViewSystemNotification>
 {
-    private readonly EntityExistsValidator<UpdateSystemNotificationCommand, SystemNotification> _notificationExists;
-    private readonly IStore _store;
-    private readonly ISystemNotificationsService _systemNotificationsService;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
-    private readonly IValidatorService<UpdateSystemNotificationCommand> _validatorService;
-
-    public UpdateSystemNotificationHandler
-    (
-        EntityExistsValidator<UpdateSystemNotificationCommand, SystemNotification> notificationExists,
-        IStore store,
-        ISystemNotificationsService systemNotificationsService,
-        UserRoleAuthorizer userRoleAuthorizer,
-        IValidatorService<UpdateSystemNotificationCommand> validatorService
-    )
-    {
-        _notificationExists = notificationExists;
-        _store = store;
-        _systemNotificationsService = systemNotificationsService;
-        _userRoleAuthorizer = userRoleAuthorizer;
-        _validatorService = validatorService;
-    }
+    private readonly EntityExistsValidator<UpdateSystemNotificationCommand, SystemNotification> _notificationExists = notificationExists;
+    private readonly IStore _store = store;
+    private readonly ISystemNotificationsService _systemNotificationsService = systemNotificationsService;
+    private readonly IValidatorService<UpdateSystemNotificationCommand> _validatorService = validatorService;
 
     public async Task<ViewSystemNotification> Handle(UpdateSystemNotificationCommand request, CancellationToken cancellationToken)
     {
-        _userRoleAuthorizer
-            .AllowRoles(UserRole.Admin)
-            .Authorize();
-
         await _validatorService
+            .ConfigureAuthorization(a => a.RequirePermissions(UserRolePermissionKey.SystemNotifications_CreateEdit))
             .AddValidator(_notificationExists.UseProperty(r => r.Update.Id))
             .AddValidator
             (
@@ -65,6 +50,7 @@ internal class UpdateSystemNotificationHandler : IRequestHandler<UpdateSystemNot
                 up => up
                     .SetProperty(n => n.Title, request.Update.Title)
                     .SetProperty(n => n.MarkdownContent, request.Update.MarkdownContent)
+                    .SetProperty(n => n.IsDismissible, request.Update.IsDismissible)
                     .SetProperty(n => n.StartsOn, request.Update.StartsOn)
                     .SetProperty(n => n.EndsOn, request.Update.EndsOn)
                     .SetProperty(n => n.NotificationType, request.Update.NotificationType)

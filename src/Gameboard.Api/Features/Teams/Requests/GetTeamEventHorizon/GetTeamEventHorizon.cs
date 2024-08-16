@@ -5,8 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +23,6 @@ internal class GetTeamEventHorizonHandler : IRequestHandler<GetTeamEventHorizonQ
     private readonly IStore _store;
     private readonly TeamExistsValidator<GetTeamEventHorizonQuery> _teamExists;
     private readonly ITeamService _teamService;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
     private readonly IValidatorService<GetTeamEventHorizonQuery> _validator;
 
     public GetTeamEventHorizonHandler
@@ -34,7 +33,6 @@ internal class GetTeamEventHorizonHandler : IRequestHandler<GetTeamEventHorizonQ
         IStore store,
         TeamExistsValidator<GetTeamEventHorizonQuery> teamExists,
         ITeamService teamService,
-        UserRoleAuthorizer userRoleAuthorizer,
         IValidatorService<GetTeamEventHorizonQuery> validator
     )
     {
@@ -44,7 +42,6 @@ internal class GetTeamEventHorizonHandler : IRequestHandler<GetTeamEventHorizonQ
         _store = store;
         _teamExists = teamExists;
         _teamService = teamService;
-        _userRoleAuthorizer = userRoleAuthorizer;
         _validator = validator;
     }
 
@@ -54,23 +51,18 @@ internal class GetTeamEventHorizonHandler : IRequestHandler<GetTeamEventHorizonQ
         var actingUserId = _actingUserService.Get().Id;
 
         await _validator
-            .AddValidator(_teamExists.UseProperty(r => r.TeamId))
-            .AddValidator(async (req, ctx) =>
-            {
-                // people with elevated roles can always see this, but regular players can't
-                // unless they're on the team
-                _userRoleAuthorizer.AllowRoles(UserRole.Admin, UserRole.Support, UserRole.Designer);
-                if (!_userRoleAuthorizer.WouldAuthorize())
-                {
-                    var isUserOnTeam = await _store
+            .ConfigureAuthorization(config => config
+                .RequirePermissions(UserRolePermissionKey.EventHorizon_View)
+                .Unless
+                (
+                    () => _store
                         .WithNoTracking<Data.Player>()
-                        .Where(p => p.TeamId == req.TeamId && p.UserId == actingUserId)
-                        .AnyAsync();
-
-                    if (!isUserOnTeam)
-                        ctx.AddValidationException(new UserIsntOnTeam(actingUserId, req.TeamId));
-                }
-            })
+                        .Where(p => p.TeamId == request.TeamId && p.UserId == actingUserId)
+                        .AnyAsync(),
+                    new UserIsntOnTeam(actingUserId, request.TeamId)
+                )
+            )
+            .AddValidator(_teamExists.UseProperty(r => r.TeamId))
             .Validate(request, cancellationToken);
 
         // and awaaaaay we go

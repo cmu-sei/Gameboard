@@ -3,47 +3,33 @@ using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
 
 namespace Gameboard.Api.Features.Admin;
 
 public record SendAnnouncementCommand(string Title, string ContentMarkdown, string TeamId = null) : IRequest;
 
-internal class SendAnnouncementHandler : IRequestHandler<SendAnnouncementCommand>
+internal class SendAnnouncementHandler(
+    IActingUserService actingUserService,
+    IUserHubBus userHubBus,
+    IValidatorService<SendAnnouncementCommand> validator
+    ) : IRequestHandler<SendAnnouncementCommand>
 {
-    private readonly User _actingUser;
-    private readonly IUserHubBus _userHubBus;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
-    private readonly IValidatorService<SendAnnouncementCommand> _validator;
-
-    public SendAnnouncementHandler
-    (
-        IActingUserService actingUserService,
-        IUserHubBus userHubBus,
-        UserRoleAuthorizer userRoleAuthorizer,
-        IValidatorService<SendAnnouncementCommand> validator
-    )
-    {
-        _actingUser = actingUserService.Get();
-        _userHubBus = userHubBus;
-        _userRoleAuthorizer = userRoleAuthorizer;
-        _validator = validator;
-    }
+    private readonly User _actingUser = actingUserService.Get();
+    private readonly IUserHubBus _userHubBus = userHubBus;
+    private readonly IValidatorService<SendAnnouncementCommand> _validator = validator;
 
     public async Task Handle(SendAnnouncementCommand request, CancellationToken cancellationToken)
     {
         // auth/validate
-        _userRoleAuthorizer
-            .AllowRoles(UserRole.Admin, UserRole.Director)
-            .Authorize();
-
-        _validator.AddValidator((req, ctx) =>
-        {
-            if (req.ContentMarkdown.IsEmpty())
-                ctx.AddValidationException(new MissingRequiredInput<SendAnnouncementCommand>(nameof(req.ContentMarkdown), req));
-        });
-
+        await _validator
+            .ConfigureAuthorization(config => config.RequirePermissions(UserRolePermissionKey.Admin_SendAnnouncements))
+            .AddValidator((req, ctx) =>
+            {
+                if (req.ContentMarkdown.IsEmpty())
+                    ctx.AddValidationException(new MissingRequiredInput<SendAnnouncementCommand>(nameof(req.ContentMarkdown), req));
+            })
+            .Validate(request, cancellationToken);
 
         await _userHubBus.SendAnnouncement(new UserHubAnnouncementEvent
         {

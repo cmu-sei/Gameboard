@@ -36,7 +36,7 @@ public class ChallengeBonusControllerManualTests : IClassFixture<GameboardTestCo
             .CreateHttpClientWithActingUser(u =>
             {
                 u.Id = userId;
-                u.Role = UserRole.Support;
+                u.Role = UserRole.Admin;
             })
             .PostAsync($"api/challenge/{challengeId}/bonus/manual", bonus.ToJsonBody());
 

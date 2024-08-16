@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using Microsoft.EntityFrameworkCore;
@@ -28,24 +29,24 @@ internal class DeleteGameAutoBonusesConfigValidator : IGameboardRequestValidator
 
     public async Task Validate(DeleteGameAutoBonusesConfigCommand request, CancellationToken cancellationToken)
     {
-        _validatorService.AddValidator(_gameExists.UseProperty(r => r.GameId));
-        _validatorService.AddValidator
-        (
-            async (req, context) =>
-            {
-                var awardedBonusIds = await _store
-                    .WithNoTracking<AwardedChallengeBonus>()
-                    .Include(ab => ab.ChallengeBonus)
-                        .ThenInclude(b => b.ChallengeSpec)
-                    .Where(b => b.ChallengeBonus.ChallengeSpec.GameId == request.GameId)
-                    .Select(ab => ab.ChallengeBonusId)
-                    .ToArrayAsync(cancellationToken);
+        await _validatorService
+            .ConfigureAuthorization(a => a.RequirePermissions(UserRolePermissionKey.Games_ConfigureChallenges))
+            .AddValidator(_gameExists.UseProperty(r => r.GameId))
+            .AddValidator
+            (
+                async (req, context) =>
+                {
+                    var awardedBonusIds = await _store
+                        .WithNoTracking<AwardedChallengeBonus>()
+                        .Include(ab => ab.ChallengeBonus)
+                            .ThenInclude(b => b.ChallengeSpec)
+                        .Where(b => b.ChallengeBonus.ChallengeSpec.GameId == request.GameId)
+                        .Select(ab => ab.ChallengeBonusId)
+                        .ToArrayAsync(cancellationToken);
 
-                if (awardedBonusIds.Length > 0)
-                    context.AddValidationException(new CantDeleteAutoBonusIfAwarded(request.GameId, awardedBonusIds));
-            }
-        );
-
-        await _validatorService.Validate(request, cancellationToken);
+                    if (awardedBonusIds.Length > 0)
+                        context.AddValidationException(new CantDeleteAutoBonusIfAwarded(request.GameId, awardedBonusIds));
+                }
+            ).Validate(request, cancellationToken);
     }
 }

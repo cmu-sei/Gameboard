@@ -10,24 +10,17 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Controllers
 {
-    public class _Controller : ControllerBase, IActionFilter
+    public class _Controller(
+        ILogger logger,
+        IDistributedCache cache,
+        params IModelValidator[] validators
+        ) : ControllerBase, IActionFilter
     {
-        public _Controller(
-            ILogger logger,
-            IDistributedCache cache,
-            params IModelValidator[] validators
-        )
-        {
-            Logger = logger;
-            Cache = cache;
-            _validators = validators;
-        }
-
         protected User Actor { get; set; }
         protected string AuthenticatedGraderForChallengeId { get; set; }
-        protected ILogger Logger { get; private set; }
-        protected IDistributedCache Cache { get; private set; }
-        private readonly IModelValidator[] _validators;
+        protected ILogger Logger { get; private set; } = logger;
+        protected IDistributedCache Cache { get; private set; } = cache;
+        private readonly IModelValidator[] _validators = validators;
 
         public virtual void OnActionExecuting(ActionExecutingContext context)
         {

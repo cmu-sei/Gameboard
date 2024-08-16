@@ -40,7 +40,7 @@ namespace Gameboard.Api
         {
             // subject will be null if the user is authenticating with the GraderKey scheme
             // in this case, just pass the claims we already have
-            string subject = principal.Subject();
+            var subject = principal.Subject();
             if (subject is null)
                 return principal;
 

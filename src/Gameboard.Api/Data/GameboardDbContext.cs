@@ -366,6 +366,7 @@ public class GameboardDbContext : DbContext
             b.Property(n => n.Title)
                 .HasStandardNameLength()
                 .IsRequired();
+            b.Property(n => n.IsDismissible).HasDefaultValue(true);
             b.Property(n => n.MarkdownContent).IsRequired();
 
             // nav properties

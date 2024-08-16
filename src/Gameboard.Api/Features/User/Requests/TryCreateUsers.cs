@@ -7,7 +7,6 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +22,6 @@ internal sealed class TryCreateUsersHandler : IRequestHandler<TryCreateUsersComm
     private readonly PlayerService _playerService;
     private readonly EntityExistsValidator<TryCreateUsersCommand, Data.Sponsor> _sponsorExists;
     private readonly IStore _store;
-    private readonly UserRoleAuthorizer _userRole;
     private readonly UserService _userService;
     private readonly IValidatorService<TryCreateUsersCommand> _validator;
 
@@ -34,7 +32,6 @@ internal sealed class TryCreateUsersHandler : IRequestHandler<TryCreateUsersComm
         PlayerService playerService,
         EntityExistsValidator<TryCreateUsersCommand, Data.Sponsor> sponsorExists,
         IStore store,
-        UserRoleAuthorizer userRole,
         UserService userService,
         IValidatorService<TryCreateUsersCommand> validator
     )
@@ -44,7 +41,6 @@ internal sealed class TryCreateUsersHandler : IRequestHandler<TryCreateUsersComm
         _playerService = playerService;
         _sponsorExists = sponsorExists;
         _store = store;
-        _userRole = userRole;
         _userService = userService;
         _validator = validator;
     }
@@ -52,7 +48,7 @@ internal sealed class TryCreateUsersHandler : IRequestHandler<TryCreateUsersComm
     public async Task<TryCreateUsersResponse> Handle(TryCreateUsersCommand request, CancellationToken cancellationToken)
     {
         // validate/authorize
-        _userRole.AllowRoles(UserRole.Admin).Authorize();
+        _validator.ConfigureAuthorization(config => config.RequirePermissions(UserRolePermissionKey.Users_Create));
 
         // optionally throw if the caller doesn't want to ignore the fact that some users exist already
         if (!request.Request.AllowSubsetCreation)
@@ -66,7 +62,7 @@ internal sealed class TryCreateUsersHandler : IRequestHandler<TryCreateUsersComm
                 .Select(u => u.Id)
                 .ToArrayAsync(cancellationToken);
 
-            if (existingUserIds.Any())
+            if (existingUserIds.Length != 0)
                 ctx.AddValidationException(new CantCreateExistingUsers(existingUserIds));
         });
         }

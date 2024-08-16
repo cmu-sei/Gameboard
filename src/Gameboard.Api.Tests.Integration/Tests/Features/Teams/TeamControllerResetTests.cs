@@ -84,23 +84,23 @@ public class TeamsControllerResetTests : IClassFixture<GameboardTestContext>
             state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
-                g.Players = new List<Data.Player>
-                {
+                g.Players =
+                [
                     state.Build<Data.Player>(fixture, p =>
                     {
                         p.SessionBegin = DateTimeOffset.UtcNow.AddHours(-1);
                         p.SessionEnd = DateTimeOffset.UtcNow.AddHours(1);
                         p.TeamId = teamId;
-                        p.Challenges = new List<Data.Challenge>
-                        {
+                        p.Challenges =
+                        [
                             state.Build<Data.Challenge>(fixture, c =>
                             {
                                 c.GameId = gameId;
                                 c.TeamId = teamId;
                             })
-                        };
+                        ];
                     })
-                };
+                ];
             });
         });
 

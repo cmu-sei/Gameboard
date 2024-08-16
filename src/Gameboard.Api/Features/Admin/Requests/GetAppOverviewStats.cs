@@ -4,7 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Structure.MediatR.Authorizers;
+using Gameboard.Api.Features.Users;
+using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,33 +21,24 @@ public sealed class GetAppOverviewStatsResponse
 
 public record GetAppOverviewStatsQuery() : IRequest<GetAppOverviewStatsResponse>;
 
-internal class GetAppOverviewStatsHandler : IRequestHandler<GetAppOverviewStatsQuery, GetAppOverviewStatsResponse>
+internal class GetAppOverviewStatsHandler(
+    IAppService appOverviewService,
+    INowService nowService,
+    IStore store,
+    IValidatorService validatorService
+    ) : IRequestHandler<GetAppOverviewStatsQuery, GetAppOverviewStatsResponse>
 {
-    private readonly IAppService _appOverviewService;
-    private readonly INowService _nowService;
-    private readonly IStore _store;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
-
-    public GetAppOverviewStatsHandler
-    (
-        IAppService appOverviewService,
-        INowService nowService,
-        IStore store,
-        UserRoleAuthorizer userRoleAuthorizer
-    )
-    {
-        _appOverviewService = appOverviewService;
-        _nowService = nowService;
-        _store = store;
-        _userRoleAuthorizer = userRoleAuthorizer;
-    }
+    private readonly IAppService _appOverviewService = appOverviewService;
+    private readonly INowService _nowService = nowService;
+    private readonly IStore _store = store;
+    private readonly IValidatorService _validatorService = validatorService;
 
     public async Task<GetAppOverviewStatsResponse> Handle(GetAppOverviewStatsQuery request, CancellationToken cancellationToken)
     {
         // authorize
-        _userRoleAuthorizer
-            .AllowRoles(UserRole.Admin, UserRole.Director, UserRole.Observer, UserRole.Support, UserRole.Designer)
-            .Authorize();
+        await _validatorService
+            .ConfigureAuthorization(config => config.RequirePermissions(UserRolePermissionKey.Admin_View))
+            .Validate(cancellationToken);
 
         // pull data
         var now = _nowService.Get();

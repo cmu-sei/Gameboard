@@ -4,33 +4,21 @@ using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.GameEngine;
 
-internal class GetGameStateValidator : IGameboardRequestValidator<GetGameStateQuery>
+internal class GetGameStateValidator(
+    IHttpContextAccessor httpContextAccessor,
+    IPlayerStore playerStore,
+    IValidatorService<GetGameStateQuery> validatorService
+    ) : IGameboardRequestValidator<GetGameStateQuery>
 {
-    private readonly User _actingUser;
+    private readonly User _actingUser = httpContextAccessor.HttpContext.User.ToActor();
     // TODO: replace playerstore with ITeamService
-    private readonly IPlayerStore _playerStore;
-    private readonly UserRoleAuthorizer _roleAuthorizer;
-    private readonly IValidatorService<GetGameStateQuery> _validatorService;
-
-    public GetGameStateValidator
-    (
-        IHttpContextAccessor httpContextAccessor,
-        IPlayerStore playerStore,
-        UserRoleAuthorizer roleAuthorizer,
-        IValidatorService<GetGameStateQuery> validatorService
-    )
-    {
-        _actingUser = httpContextAccessor.HttpContext.User.ToActor();
-        _playerStore = playerStore;
-        _roleAuthorizer = roleAuthorizer;
-        _validatorService = validatorService;
-    }
+    private readonly IPlayerStore _playerStore = playerStore;
+    private readonly IValidatorService<GetGameStateQuery> _validatorService = validatorService;
 
     public async Task Validate(GetGameStateQuery request, CancellationToken cancellationToken)
     {
@@ -39,20 +27,25 @@ internal class GetGameStateValidator : IGameboardRequestValidator<GetGameStateQu
             .AsNoTracking()
             .ToArrayAsync(cancellationToken);
 
-        _validatorService.AddValidator((request, context) =>
-        {
-            if (!players.Any(p => p.UserId == _actingUser.Id) && !_roleAuthorizer.WouldAuthorize())
+        await _validatorService
+            .ConfigureAuthorization
+            (
+                a => a
+                    .RequirePermissions(Users.UserRolePermissionKey.Admin_View)
+                    .Unless
+                    (
+                        () => _playerStore
+                            .ListTeam(request.TeamId)
+                            .AsNoTracking()
+                            .AnyAsync(p => p.UserId == _actingUser.Id, cancellationToken),
+                        new PlayerIsntOnTeam(_actingUser.Id, request.TeamId, "[unknown]")
+                    )
+            )
+            .AddValidator((request, context) =>
             {
-                context.AddValidationException(new PlayerIsntOnTeam(_actingUser.Id, request.TeamId, "[unknown]"));
-            }
-        });
-
-        _validatorService.AddValidator((request, context) =>
-        {
-            if (!players.Any())
-                context.AddValidationException(new ResourceNotFound<Team>(request.TeamId));
-        });
-
-        await _validatorService.Validate(request, cancellationToken);
+                if (players.Length == 0)
+                    context.AddValidationException(new ResourceNotFound<Team>(request.TeamId));
+            })
+            .Validate(request, cancellationToken);
     }
 }

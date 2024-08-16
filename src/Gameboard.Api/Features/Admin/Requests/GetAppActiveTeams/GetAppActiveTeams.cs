@@ -6,7 +6,8 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Teams;
-using Gameboard.Api.Structure.MediatR.Authorizers;
+using Gameboard.Api.Features.Users;
+using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,39 +15,28 @@ namespace Gameboard.Api.Features.Admin;
 
 public record GetAppActiveTeamsQuery() : IRequest<GetAppActiveTeamsResponse>;
 
-internal class GetAppActiveTeamsHandler : IRequestHandler<GetAppActiveTeamsQuery, GetAppActiveTeamsResponse>
+internal class GetAppActiveTeamsHandler(
+    IAppService appService,
+    INowService now,
+    IScoringService scoringService,
+    IStore store,
+    ITeamService teamService,
+    IValidatorService validatorService
+    ) : IRequestHandler<GetAppActiveTeamsQuery, GetAppActiveTeamsResponse>
 {
-    private readonly IAppService _appService;
-    private readonly INowService _now;
-    private readonly IScoringService _scoringService;
-    private readonly IStore _store;
-    private readonly ITeamService _teamService;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
-
-    public GetAppActiveTeamsHandler
-    (
-        IAppService appService,
-        INowService now,
-        IScoringService scoringService,
-        IStore store,
-        ITeamService teamService,
-        UserRoleAuthorizer userRoleAuthorizer
-    )
-    {
-        _appService = appService;
-        _now = now;
-        _scoringService = scoringService;
-        _store = store;
-        _teamService = teamService;
-        _userRoleAuthorizer = userRoleAuthorizer;
-    }
+    private readonly IAppService _appService = appService;
+    private readonly INowService _now = now;
+    private readonly IScoringService _scoringService = scoringService;
+    private readonly IStore _store = store;
+    private readonly ITeamService _teamService = teamService;
+    private readonly IValidatorService _validatorService = validatorService;
 
     public async Task<GetAppActiveTeamsResponse> Handle(GetAppActiveTeamsQuery request, CancellationToken cancellationToken)
     {
         // authorize
-        _userRoleAuthorizer
-            .AllowRoles(UserRole.Admin, UserRole.Director, UserRole.Observer, UserRole.Support, UserRole.Designer)
-            .Authorize();
+        await _validatorService
+            .ConfigureAuthorization(config => config.RequirePermissions(UserRolePermissionKey.Admin_View))
+            .Validate(cancellationToken);
 
         // pull active teams/games
         var nowish = _now.Get();
@@ -63,7 +53,7 @@ internal class GetAppActiveTeamsHandler : IRequestHandler<GetAppActiveTeamsQuery
             .WithNoTracking<Data.Challenge>()
             .Where(c => activeTeamIds.Contains(c.TeamId))
             .GroupBy(c => c.TeamId)
-            .ToDictionaryAsync(gr => gr.Key, gr => gr.Count());
+            .ToDictionaryAsync(gr => gr.Key, gr => gr.Count(), cancellationToken);
 
         var teamIdsWithTickets = await _store
             .WithNoTracking<Data.Ticket>()

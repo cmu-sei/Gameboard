@@ -23,25 +23,19 @@ namespace Gameboard.Api.Auth
 
         public static class ClaimNames
         {
-            public const string Subject = "sub";
-            public const string Name = "name";
+            public const string Subject = AppConstants.SubjectClaimName;
+            public const string Name = AppConstants.NameClaimName;
         }
     }
 
-    public class TicketAuthenticationHandler : AuthenticationHandler<TicketAuthenticationOptions>
+    public class TicketAuthenticationHandler(
+        IOptionsMonitor<TicketAuthenticationOptions> options,
+        ILoggerFactory logger,
+        UrlEncoder encoder,
+        IDistributedCache cache
+        ) : AuthenticationHandler<TicketAuthenticationOptions>(options, logger, encoder)
     {
-        private readonly IDistributedCache _cache;
-
-        public TicketAuthenticationHandler(
-            IOptionsMonitor<TicketAuthenticationOptions> options,
-            ILoggerFactory logger,
-            UrlEncoder encoder,
-            IDistributedCache cache
-        )
-            : base(options, logger, encoder)
-        {
-            _cache = cache;
-        }
+        private readonly IDistributedCache _cache = cache;
 
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {

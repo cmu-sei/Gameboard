@@ -1,33 +1,27 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Structure.MediatR.Authorizers;
+using Gameboard.Api.Features.Users;
+using Gameboard.Api.Structure.MediatR;
 using MediatR;
 
 namespace Gameboard.Api.Features.Teams;
 
 public record GetTeamsQuery(IEnumerable<string> TeamIds) : IRequest<IEnumerable<Team>>;
 
-internal class GetTeamsRequest : IRequestHandler<GetTeamsQuery, IEnumerable<Team>>
+internal class GetTeamsRequest(
+    ITeamService teamService,
+    IValidatorService validatorService
+    ) : IRequestHandler<GetTeamsQuery, IEnumerable<Team>>
 {
-    private readonly ITeamService _teamService;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
-
-    public GetTeamsRequest
-    (
-        ITeamService teamService,
-        UserRoleAuthorizer userRoleAuthorizer
-    )
-    {
-        _teamService = teamService;
-        _userRoleAuthorizer = userRoleAuthorizer;
-    }
+    private readonly ITeamService _teamService = teamService;
+    private readonly IValidatorService _validatorService = validatorService;
 
     public async Task<IEnumerable<Team>> Handle(GetTeamsQuery request, CancellationToken cancellationToken)
     {
-        _userRoleAuthorizer
-            .AllowRoles(UserRole.Admin, UserRole.Director, UserRole.Observer, UserRole.Support, UserRole.Tester)
-            .Authorize();
+        await _validatorService
+            .ConfigureAuthorization(a => a.RequirePermissions(UserRolePermissionKey.Admin_View))
+            .Validate(cancellationToken);
 
         return await _teamService.GetTeams(request.TeamIds);
     }

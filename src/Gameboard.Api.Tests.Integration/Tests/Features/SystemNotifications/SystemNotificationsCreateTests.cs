@@ -29,6 +29,7 @@ public class SystemNotificationsCreateTests : IClassFixture<GameboardTestContext
             Title = title,
             MarkdownContent = fixture.Create<string>(),
             StartsOn = fixture.Create<DateTimeOffset>(),
+            IsDismissible = true
         };
 
         // when we create it 
@@ -43,6 +44,7 @@ public class SystemNotificationsCreateTests : IClassFixture<GameboardTestContext
 
         // then we should get a sensible result
         result.Title.ShouldBe(title);
+        result.IsDismissible.ShouldBeTrue();
         result.EndsOn.ShouldBeNull();
     }
 }

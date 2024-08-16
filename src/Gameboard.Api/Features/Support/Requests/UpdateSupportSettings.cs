@@ -2,7 +2,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Structure.MediatR.Authorizers;
+using Gameboard.Api.Features.Users;
+using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,32 +11,23 @@ namespace Gameboard.Api.Features.Support;
 
 public record UpdateSupportSettingsCommand(SupportSettingsViewModel Settings) : IRequest<SupportSettingsViewModel>;
 
-internal class UpdateSupportSettingsHandler : IRequestHandler<UpdateSupportSettingsCommand, SupportSettingsViewModel>
+internal class UpdateSupportSettingsHandler(
+    IActingUserService actingUserService,
+    INowService nowService,
+    IStore store,
+    IValidatorService validatorService
+    ) : IRequestHandler<UpdateSupportSettingsCommand, SupportSettingsViewModel>
 {
-    private readonly IActingUserService _actingUserService;
-    private readonly INowService _nowService;
-    private readonly IStore _store;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
-
-    public UpdateSupportSettingsHandler
-    (
-        IActingUserService actingUserService,
-        INowService nowService,
-        IStore store,
-        UserRoleAuthorizer userRoleAuthorizer
-    )
-    {
-        _actingUserService = actingUserService;
-        _nowService = nowService;
-        _store = store;
-        _userRoleAuthorizer = userRoleAuthorizer;
-    }
+    private readonly IActingUserService _actingUserService = actingUserService;
+    private readonly INowService _nowService = nowService;
+    private readonly IStore _store = store;
+    private readonly IValidatorService _validatorService = validatorService;
 
     public async Task<SupportSettingsViewModel> Handle(UpdateSupportSettingsCommand request, CancellationToken cancellationToken)
     {
-        _userRoleAuthorizer
-            .AllowRoles(UserRole.Admin)
-            .Authorize();
+        await _validatorService
+            .ConfigureAuthorization(a => a.RequirePermissions(UserRolePermissionKey.Support_EditSettings))
+            .Validate(cancellationToken);
 
         var existingSettings = await _store
             .WithTracking<SupportSettings>()

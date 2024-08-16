@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Scores;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +23,6 @@ internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenter
     private readonly INowService _now;
     private readonly IScoringService _scoringService;
     private readonly IStore _store;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
     private readonly IValidatorService<GetGameCenterPracticeContextQuery> _validatorService;
 
     public GetGameCenterPracticeQueryHandler
@@ -32,7 +31,6 @@ internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenter
         INowService now,
         IScoringService scoringService,
         IStore store,
-        UserRoleAuthorizer userRoleAuthorizer,
         IValidatorService<GetGameCenterPracticeContextQuery> validatorService
     )
     {
@@ -40,15 +38,15 @@ internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenter
         _now = now;
         _scoringService = scoringService;
         _store = store;
-        _userRoleAuthorizer = userRoleAuthorizer;
         _validatorService = validatorService;
     }
 
     public async Task<GameCenterPracticeContext> Handle(GetGameCenterPracticeContextQuery request, CancellationToken cancellationToken)
     {
         // auth/validate
-        _userRoleAuthorizer.AllowAllElevatedRoles();
-        _validatorService.AddValidator(_gameExists.UseProperty(r => r.GameId));
+        _validatorService
+            .ConfigureAuthorization(c => c.RequirePermissions(UserRolePermissionKey.Admin_View))
+            .AddValidator(_gameExists.UseProperty(r => r.GameId));
         await _validatorService.Validate(request, cancellationToken);
 
         // pull
@@ -63,10 +61,10 @@ internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenter
                 c =>
                     searchTerm == null ||
                     c.Id.StartsWith(searchTerm) ||
-                    c.Player.UserId.ToLower().StartsWith(searchTerm) ||
-                    c.Player.Sponsor.Name.ToLower().StartsWith(searchTerm) ||
-                    c.Player.User.Sponsor.Name.ToLower().StartsWith(searchTerm) ||
-                    c.Player.User.Name.ToLower().Contains(searchTerm)
+                    c.Player.UserId.StartsWith(searchTerm, StringComparison.CurrentCultureIgnoreCase) ||
+                    c.Player.Sponsor.Name.StartsWith(searchTerm, StringComparison.CurrentCultureIgnoreCase) ||
+                    c.Player.User.Sponsor.Name.StartsWith(searchTerm, StringComparison.CurrentCultureIgnoreCase) ||
+                    c.Player.User.Name.Contains(searchTerm, StringComparison.CurrentCultureIgnoreCase)
             )
             .Select(c => new
             {

@@ -5,34 +5,28 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.ChallengeSpecs;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.ChallengeBonuses;
 
-internal class ConfigureGameAutoBonusesValidator : IGameboardRequestValidator<ConfigureGameAutoBonusesCommand>
+internal class ConfigureGameAutoBonusesValidator(
+    EntityExistsValidator<ConfigureGameAutoBonusesCommand, Data.Game> gameExists,
+    IStore store,
+    IValidatorService<ConfigureGameAutoBonusesCommand> validatorService
+    ) : IGameboardRequestValidator<ConfigureGameAutoBonusesCommand>
 {
-    private readonly EntityExistsValidator<ConfigureGameAutoBonusesCommand, Data.Game> _gameExists;
-    private readonly IStore _store;
-    private readonly IValidatorService<ConfigureGameAutoBonusesCommand> _validatorService;
-
-    public ConfigureGameAutoBonusesValidator
-    (
-        EntityExistsValidator<ConfigureGameAutoBonusesCommand, Data.Game> gameExists,
-        IStore store,
-        IValidatorService<ConfigureGameAutoBonusesCommand> validatorService
-    )
-    {
-        _gameExists = gameExists;
-        _store = store;
-        _validatorService = validatorService;
-    }
+    private readonly EntityExistsValidator<ConfigureGameAutoBonusesCommand, Data.Game> _gameExists = gameExists;
+    private readonly IStore _store = store;
+    private readonly IValidatorService<ConfigureGameAutoBonusesCommand> _validatorService = validatorService;
 
     public async Task Validate(ConfigureGameAutoBonusesCommand request, CancellationToken cancellationToken)
     {
-        _validatorService.AddValidator(_gameExists.UseProperty(r => r.Parameters.GameId));
+        _validatorService
+            .ConfigureAuthorization(a => a.RequirePermissions(UserRolePermissionKey.Games_ConfigureChallenges))
+            .AddValidator(_gameExists.UseProperty(r => r.Parameters.GameId));
 
         // we're going to bulldoze all existing configuration for now to make this simpler, so we need to
         // ensure that there aren't any existing bonuses which have been awarded to a team for this game

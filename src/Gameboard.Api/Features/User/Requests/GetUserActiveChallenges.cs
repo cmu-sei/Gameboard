@@ -6,9 +6,7 @@ using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
-using Gameboard.Api.Features.Player;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -24,46 +22,34 @@ public sealed class UserActiveChallenges
     public required IEnumerable<ActiveChallenge> Competition { get; set; }
 }
 
-internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveChallengesQuery, UserActiveChallenges>
+internal class GetUserActiveChallengesHandler(
+    IGameEngineService gameEngine,
+    INowService now,
+    IStore store,
+    ITimeWindowService timeWindowService,
+    EntityExistsValidator<GetUserActiveChallengesQuery, Data.User> userExists,
+    IValidatorService<GetUserActiveChallengesQuery> validator
+    ) : IRequestHandler<GetUserActiveChallengesQuery, UserActiveChallenges>
 {
-    private readonly IGameEngineService _gameEngine;
-    private readonly INowService _now;
-    private readonly IStore _store;
-    private readonly ITimeWindowService _timeWindowService;
-    private readonly EntityExistsValidator<GetUserActiveChallengesQuery, Data.User> _userExists;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
-    private readonly IValidatorService<GetUserActiveChallengesQuery> _validator;
-
-    public GetUserActiveChallengesHandler
-    (
-        IGameEngineService gameEngine,
-        INowService now,
-        IStore store,
-        ITimeWindowService timeWindowService,
-        EntityExistsValidator<GetUserActiveChallengesQuery, Data.User> userExists,
-        UserRoleAuthorizer userRoleAuthorizer,
-        IValidatorService<GetUserActiveChallengesQuery> validator
-    )
-    {
-        _gameEngine = gameEngine;
-        _now = now;
-        _store = store;
-        _timeWindowService = timeWindowService;
-        _userExists = userExists;
-        _userRoleAuthorizer = userRoleAuthorizer;
-        _validator = validator;
-    }
+    private readonly IGameEngineService _gameEngine = gameEngine;
+    private readonly INowService _now = now;
+    private readonly IStore _store = store;
+    private readonly ITimeWindowService _timeWindowService = timeWindowService;
+    private readonly EntityExistsValidator<GetUserActiveChallengesQuery, Data.User> _userExists = userExists;
+    private readonly IValidatorService<GetUserActiveChallengesQuery> _validator = validator;
 
     public async Task<UserActiveChallenges> Handle(GetUserActiveChallengesQuery request, CancellationToken cancellationToken)
     {
         // validate
-        _validator.AddValidator(_userExists.UseProperty(m => m.UserId));
-        await _validator.Validate(request, cancellationToken);
-
-        _userRoleAuthorizer
-            .AllowRoles(UserRole.Registrar, UserRole.Admin)
-            .AllowUserId(request.UserId)
-            .Authorize();
+        await _validator
+            .ConfigureAuthorization
+            (
+                a => a
+                    .RequirePermissions(UserRolePermissionKey.Players_ViewActiveChallenges)
+                    .UnlessUserIdIn(request.UserId)
+            )
+            .AddValidator(_userExists.UseProperty(m => m.UserId))
+            .Validate(request, cancellationToken);
 
         // retrieve stuff (initial pull from DB side eval)
         var user = await _store
