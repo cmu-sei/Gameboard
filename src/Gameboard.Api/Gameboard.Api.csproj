@@ -16,7 +16,6 @@
     <PackageReference Include="Alloy.Api.Client" Version="1.1.1" />
     <PackageReference Include="mediatr" Version="12.0.1" />
     <PackageReference Include="Nito.AsyncEx.Coordination" Version="5.1.2" />
-    <PackageReference Include="NReco.PdfGenerator" Version="1.2.1" />
     <PackageReference Include="IdentityModel" Version="3.10.10" />
     <PackageReference Include="ServiceStack.Text" Version="6.9.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
