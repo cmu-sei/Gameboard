@@ -40,7 +40,7 @@ internal class AdminEnrollTeamValidator : IGameboardRequestValidator<AdminEnroll
             throw new NotImplementedException($"This feature only allows registration for competitive games.");
 
         await _validator
-            .ConfigureAuthorization(c => c.RequirePermissions(UserRolePermissionKey.Games_EnrollPlayers))
+            .ConfigureAuthorization(c => c.RequirePermissions(PermissionKey.Teams_Enroll))
             .AddValidator(async (req, ctx) =>
             {
                 var gameInfo = await _store

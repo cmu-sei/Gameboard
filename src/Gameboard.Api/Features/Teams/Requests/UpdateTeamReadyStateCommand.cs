@@ -22,7 +22,7 @@ internal class UpdateTeamReadyStateHandler(
     public async Task Handle(UpdateTeamReadyStateCommand request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .ConfigureAuthorization(a => a.RequirePermissions(Users.UserRolePermissionKey.Games_AdminExternal))
+            .ConfigureAuthorization(a => a.RequirePermissions(Users.PermissionKey.Games_AdminExternal))
             .AddValidator(_teamExists.UseProperty(r => r.TeamId))
             .Validate(request, cancellationToken);
 

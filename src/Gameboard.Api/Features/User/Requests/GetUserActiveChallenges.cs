@@ -45,7 +45,7 @@ internal class GetUserActiveChallengesHandler(
             .ConfigureAuthorization
             (
                 a => a
-                    .RequirePermissions(UserRolePermissionKey.Players_ViewActiveChallenges)
+                    .RequirePermissions(PermissionKey.Teams_Observe)
                     .UnlessUserIdIn(request.UserId)
             )
             .AddValidator(_userExists.UseProperty(m => m.UserId))

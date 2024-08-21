@@ -35,7 +35,7 @@ internal class UpdatePracticeModeSettingsValidator : IGameboardRequestValidator<
     public Task Validate(UpdatePracticeModeSettingsCommand request, CancellationToken cancellationToken)
     {
         return _validatorService
-            .ConfigureAuthorization(a => a.RequirePermissions(UserRolePermissionKey.Practice_EditSettings))
+            .ConfigureAuthorization(a => a.RequirePermissions(PermissionKey.Practice_EditSettings))
             .AddValidator((request, context) =>
             {
                 if (request.Settings.MaxConcurrentPracticeSessions.HasValue && request.Settings.MaxConcurrentPracticeSessions < 0)

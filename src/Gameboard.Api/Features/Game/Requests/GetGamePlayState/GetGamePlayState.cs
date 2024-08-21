@@ -41,7 +41,7 @@ internal class GetGamePlayStateHandler(
             .ConfigureAuthorization
             (
                 config => config
-                    .RequirePermissions(Users.UserRolePermissionKey.Admin_View)
+                    .RequirePermissions(Users.PermissionKey.Admin_View)
                     .Unless(() => _gameService.IsUserPlaying(gameId, request.ActingUserId))
             )
             .AddValidator(_userExists.UseProperty(r => r.ActingUserId))

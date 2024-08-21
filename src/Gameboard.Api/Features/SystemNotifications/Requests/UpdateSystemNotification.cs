@@ -27,7 +27,7 @@ internal class UpdateSystemNotificationHandler(
     public async Task<ViewSystemNotification> Handle(UpdateSystemNotificationCommand request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .ConfigureAuthorization(a => a.RequirePermissions(UserRolePermissionKey.SystemNotifications_CreateEdit))
+            .ConfigureAuthorization(a => a.RequirePermissions(PermissionKey.SystemNotifications_CreateEdit))
             .AddValidator(_notificationExists.UseProperty(r => r.Update.Id))
             .AddValidator
             (

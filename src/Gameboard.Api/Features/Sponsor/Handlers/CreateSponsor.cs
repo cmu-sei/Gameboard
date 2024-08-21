@@ -25,7 +25,7 @@ internal class CreateSponsorHandler(
     {
         // authorize/validate
         await _validatorService
-            .ConfigureAuthorization(a => a.RequirePermissions(UserRolePermissionKey.Sponsors_CreateEdit))
+            .ConfigureAuthorization(a => a.RequirePermissions(PermissionKey.Admin_CreateEditSponsors))
             .AddValidator((request, context) =>
             {
                 if (request.Model.Name.IsEmpty())

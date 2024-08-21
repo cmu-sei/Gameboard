@@ -129,6 +129,7 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                 TimeCumulative = p.Time,
                 TimeRemaining = nowish < p.SessionEnd ? (p.SessionEnd - nowish).TotalMilliseconds : default(double?),
                 TimeSinceStart = nowish > p.SessionBegin && nowish < p.SessionEnd ? (nowish - p.SessionBegin).TotalMilliseconds : default(double?),
+                p.UserId,
                 p.WhenCreated
             })
             .GroupBy(p => p.TeamId)
@@ -143,7 +144,12 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
         }
 
         var matchingTeamIds = matchingTeams.Keys.ToArray();
-        var captains = matchingTeams.ToDictionary(kv => kv.Key, kv => kv.Value.Single(p => p.Role == PlayerRole.Manager));
+        var captains = matchingTeams.ToDictionary(kv => kv.Key, kv =>
+        {
+            var captain = kv.Value.SingleOrDefault(p => p.Role == PlayerRole.Manager);
+
+            return captain ?? kv.Value.FirstOrDefault();
+        });
 
         // we'll need this data no matter what, and if we get it here, we can
         // use it to do sorting stuff
@@ -292,7 +298,8 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                                 Id = captain.Sponsor.Id,
                                 Name = captain.Sponsor.Name,
                                 Logo = captain.Sponsor.Logo
-                            }
+                            },
+                            UserId = captain.UserId
                         },
                         Players = players.Select(p => new GameCenterTeamsPlayer
                         {
@@ -305,7 +312,8 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
                                 Id = p.Sponsor.Id,
                                 Name = p.Sponsor.Name,
                                 Logo = p.Sponsor.Logo
-                            }
+                            },
+                            UserId = p.UserId
                         }),
                         ChallengesCompleteCount = solves.Complete,
                         ChallengesPartialCount = solves.Partial,

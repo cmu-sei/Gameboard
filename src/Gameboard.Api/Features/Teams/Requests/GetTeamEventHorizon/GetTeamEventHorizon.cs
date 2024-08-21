@@ -52,7 +52,7 @@ internal class GetTeamEventHorizonHandler : IRequestHandler<GetTeamEventHorizonQ
 
         await _validator
             .ConfigureAuthorization(config => config
-                .RequirePermissions(UserRolePermissionKey.EventHorizon_View)
+                .RequirePermissions(PermissionKey.Teams_Observe)
                 .Unless
                 (
                     () => _store

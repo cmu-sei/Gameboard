@@ -33,7 +33,7 @@ internal class ApprovePlayerNameHandler : IRequestHandler<ApprovePlayerNameComma
     public async Task Handle(ApprovePlayerNameCommand request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .ConfigureAuthorization(config => config.RequirePermissions(UserRolePermissionKey.Players_ApproveNameChanges))
+            .ConfigureAuthorization(config => config.RequirePermissions(PermissionKey.Teams_ApproveNameChanges))
             .AddValidator(_playerExists.UseProperty(r => r.PlayerId))
             .AddValidator((req, ctx) => Task.FromResult(req.Name.IsNotEmpty() && req.Name.Length > 2))
             .Validate(request, cancellationToken);

@@ -18,7 +18,7 @@ internal class PracticeModeReportPlayerModeSummaryHandler(IPracticeModeReportSer
     public async Task<PracticeModeReportPlayerModeSummary> Handle(PracticeModeReportPlayerModeSummaryQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .ConfigureAuthorization(c => c.RequirePermissions(UserRolePermissionKey.Reports_View))
+            .ConfigureAuthorization(c => c.RequirePermissions(PermissionKey.Reports_View))
             .AddValidator(_userExists.UseProperty(r => r.UserId))
             .Validate(request, cancellationToken);
 

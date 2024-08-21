@@ -35,7 +35,7 @@ internal class ResetSessionCommandValidator : IGameboardRequestValidator<ResetTe
             .ConfigureAuthorization(config =>
             {
                 config
-                    .RequirePermissions(UserRolePermissionKey.Play_IgnoreSessionResetSettings)
+                    .RequirePermissions(PermissionKey.Play_IgnoreSessionResetSettings)
                     .Unless
                     (
                         () => _store
@@ -44,7 +44,7 @@ internal class ResetSessionCommandValidator : IGameboardRequestValidator<ResetTe
                             .Where(p => p.UserId == request.ActingUser.Id)
                             .Where(p => p.Game.AllowReset)
                             .AnyAsync(),
-                        new UserIsntOnTeam(request.ActingUser.Id, request.TeamId, $"""Users without the {nameof(UserRolePermissionKey.Play_IgnoreSessionResetSettings)} can't reset a team session unless they're on the team.""")
+                        new UserIsntOnTeam(request.ActingUser.Id, request.TeamId, $"""Users without the {nameof(PermissionKey.Play_IgnoreSessionResetSettings)} can't reset a team session unless they're on the team.""")
                     );
             })
             .AddValidator(_teamExistsValidator.UseProperty(r => r.TeamId))

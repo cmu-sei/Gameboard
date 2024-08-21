@@ -34,7 +34,7 @@ internal class GetPracticeModeCertificatesHandler : IRequestHandler<GetPracticeM
             .ConfigureAuthorization
             (
                 a => a
-                    .RequirePermissions(Users.UserRolePermissionKey.Admin_View)
+                    .RequirePermissions(Users.PermissionKey.Admin_View)
                     .UnlessUserIdIn(request.CertificateOwnerUserId)
             )
             .AddValidator(_userExists.UseProperty(r => r.CertificateOwnerUserId))

@@ -31,7 +31,7 @@ internal class GetGameStateValidator(
             .ConfigureAuthorization
             (
                 a => a
-                    .RequirePermissions(Users.UserRolePermissionKey.Admin_View)
+                    .RequirePermissions(Users.PermissionKey.Admin_View)
                     .Unless
                     (
                         () => _playerStore

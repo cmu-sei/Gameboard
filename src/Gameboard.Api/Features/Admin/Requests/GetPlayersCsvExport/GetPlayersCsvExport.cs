@@ -29,7 +29,7 @@ internal sealed class GetPlayersCsvExportHandler(
     {
         // authorize/validate
         _validatorService
-            .ConfigureAuthorization(c => c.RequirePermissions(Users.UserRolePermissionKey.Admin_View))
+            .ConfigureAuthorization(c => c.RequirePermissions(Users.PermissionKey.Admin_View))
             .AddValidator(_gameExists.UseProperty(r => r.GameId));
 
         var teamIds = request.TeamIds?.Where(t => t.IsNotEmpty()).Distinct().ToArray();

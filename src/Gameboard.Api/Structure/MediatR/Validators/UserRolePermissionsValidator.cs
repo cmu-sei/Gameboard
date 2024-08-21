@@ -9,7 +9,7 @@ namespace Gameboard.Api.Structure.MediatR.Validators;
 public interface IUserRolePermissionsValidator
 {
     public IUserRolePermissionsValidator RequireAuthentication();
-    public IUserRolePermissionsValidator RequirePermissions(params UserRolePermissionKey[] requiredPermissions);
+    public IUserRolePermissionsValidator RequirePermissions(params PermissionKey[] requiredPermissions);
     public IUserRolePermissionsValidator Unless(Func<Task<bool>> condition);
     public IUserRolePermissionsValidator Unless(Func<Task<bool>> condition, GameboardValidationException validationException);
     public IUserRolePermissionsValidator UnlessUserIdIn(params string[] userIds);
@@ -19,7 +19,7 @@ internal class UserRolePermissionsValidator(IUserRolePermissionsService userRole
 {
     private bool _requireAuthentication = false;
     private readonly IUserRolePermissionsService _userRolePermissionsService = userRolePermissionsService;
-    private IEnumerable<UserRolePermissionKey> _requiredPermissions { get; set; } = [];
+    private IEnumerable<PermissionKey> _requiredPermissions { get; set; } = [];
     private Func<Task<bool>> _unless { get; set; }
     private GameboardValidationException _unlessException;
     private IEnumerable<string> _unlessUserIdIn { get; set; } = [];
@@ -75,7 +75,7 @@ internal class UserRolePermissionsValidator(IUserRolePermissionsService userRole
         return this;
     }
 
-    public IUserRolePermissionsValidator RequirePermissions(params UserRolePermissionKey[] requiredPermissions)
+    public IUserRolePermissionsValidator RequirePermissions(params PermissionKey[] requiredPermissions)
     {
         _requiredPermissions = requiredPermissions;
         return this;

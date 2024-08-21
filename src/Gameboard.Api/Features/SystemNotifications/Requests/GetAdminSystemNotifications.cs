@@ -20,7 +20,7 @@ internal class GetAdminSystemNotificationsHandler(IStore store, IValidatorServic
     public async Task<IEnumerable<AdminViewSystemNotification>> Handle(GetAdminSystemNotificationsQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .ConfigureAuthorization(a => a.RequirePermissions(UserRolePermissionKey.SystemNotifications_CreateEdit))
+            .ConfigureAuthorization(a => a.RequirePermissions(PermissionKey.SystemNotifications_CreateEdit))
             .Validate(cancellationToken);
 
         return await _store

@@ -77,6 +77,7 @@ public sealed class GameCenterTeamsPlayer
     public required string Name { get; set; }
     public required bool IsReady { get; set; }
     public required SimpleSponsor Sponsor { get; set; }
+    public required string UserId { get; set; }
 }
 
 public sealed class GameCenterTeamsSession

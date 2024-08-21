@@ -34,7 +34,7 @@ internal class CreateSystemNotificationHandler : IRequestHandler<CreateSystemNot
     {
         // validate
         await _validatorService
-            .ConfigureAuthorization(c => c.RequirePermissions(Users.UserRolePermissionKey.SystemNotifications_CreateEdit))
+            .ConfigureAuthorization(c => c.RequirePermissions(Users.PermissionKey.SystemNotifications_CreateEdit))
             .AddValidator
             (
                 (req, ctx) =>

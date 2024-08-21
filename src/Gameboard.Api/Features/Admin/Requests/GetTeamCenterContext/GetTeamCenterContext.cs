@@ -32,7 +32,7 @@ internal class GetTeamCenterContextHandler(
             .ConfigureAuthorization(config =>
             {
                 config
-                    .RequirePermissions(UserRolePermissionKey.Admin_View)
+                    .RequirePermissions(PermissionKey.Admin_View)
                     .Unless
                     (
                         () => _store

@@ -256,5 +256,10 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public Task<UpdateUserLoginEventsResult> UpdateUserLoginEvents()
             => _mediator.Send(new UpdateUserLoginEventsCommand(_actingUserId));
+
+        [HttpGet("/api/users/roles/permissions")]
+        [Authorize]
+        public Task<UserRolePermissionsOverviewResponse> GetUserRolePermissionsOverview()
+            => _mediator.Send(new UserRolePermissionsOverviewQuery());
     }
 }

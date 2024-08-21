@@ -12,7 +12,7 @@ internal class ReportsQueryValidator(IValidatorService<IReportQuery> validatorSe
     public async Task Validate(IReportQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .ConfigureAuthorization(config => config.RequirePermissions(UserRolePermissionKey.Reports_View))
+            .ConfigureAuthorization(config => config.RequirePermissions(PermissionKey.Reports_View))
             .Validate(request, cancellationToken);
     }
 }

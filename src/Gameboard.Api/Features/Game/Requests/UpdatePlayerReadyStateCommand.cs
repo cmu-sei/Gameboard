@@ -37,7 +37,7 @@ internal class UpdatePlayerReadyStateCommandHandler(
             .ConfigureAuthorization
             (
                 config => config
-                    .RequirePermissions(UserRolePermissionKey.Games_AdminExternal)
+                    .RequirePermissions(PermissionKey.Games_AdminExternal)
                     .UnlessUserIdIn(player?.UserId)
 
             ).AddValidator(ctx =>

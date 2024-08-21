@@ -23,7 +23,7 @@ internal class GetExternalGameAdminContextHandler(
     {
         // authorize/validate
         await _validator
-            .ConfigureAuthorization(config => config.RequirePermissions(Users.UserRolePermissionKey.Games_AdminExternal))
+            .ConfigureAuthorization(config => config.RequirePermissions(Users.PermissionKey.Games_AdminExternal))
             .AddValidator
             (
                 _gameExists

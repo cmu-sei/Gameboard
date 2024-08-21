@@ -37,7 +37,7 @@ internal class GetAppOverviewStatsHandler(
     {
         // authorize
         await _validatorService
-            .ConfigureAuthorization(config => config.RequirePermissions(UserRolePermissionKey.Admin_View))
+            .ConfigureAuthorization(config => config.RequirePermissions(PermissionKey.Admin_View))
             .Validate(cancellationToken);
 
         // pull data

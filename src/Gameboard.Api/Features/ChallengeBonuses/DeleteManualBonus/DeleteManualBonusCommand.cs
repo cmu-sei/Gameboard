@@ -30,7 +30,7 @@ internal class DeleteManualBonusCommandHandler(
     {
         // authorize and validate
         await _validatorService
-            .ConfigureAuthorization(a => a.RequirePermissions(UserRolePermissionKey.Scores_AwardManualBonuses))
+            .ConfigureAuthorization(a => a.RequirePermissions(PermissionKey.Scores_AwardManualBonuses))
             .AddValidator(_bonusExists.UseProperty(r => r.ManualBonusId))
             .Validate(request, cancellationToken);
 

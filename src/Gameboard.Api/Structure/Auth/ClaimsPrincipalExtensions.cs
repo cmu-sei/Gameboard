@@ -13,7 +13,7 @@ public static class ClaimsPrincipalExtension
     {
         return new User
         {
-            Id = principal.FindFirstValue(AppConstants.SubjectClaimName),
+            Id = principal.Subject(),
             Name = principal.FindFirstValue(AppConstants.NameClaimName),
             ApprovedName = principal.FindFirstValue(AppConstants.ApprovedNameClaimName),
             Role = Enum.Parse<UserRole>(principal.FindFirstValue(AppConstants.RoleListClaimName) ?? UserRole.Member.ToString()),
@@ -31,7 +31,8 @@ public static class ClaimsPrincipalExtension
 
     public static string Subject(this ClaimsPrincipal principal)
     {
-        return principal.FindFirstValue(AppConstants.SubjectClaimName);
+        var appSubjectClaim = principal.FindFirstValue(AppConstants.SubjectClaimName);
+        return string.IsNullOrWhiteSpace(appSubjectClaim) ? principal.FindFirstValue(ClaimTypes.NameIdentifier) : appSubjectClaim;
     }
 
     public static string Name(this ClaimsPrincipal principal)

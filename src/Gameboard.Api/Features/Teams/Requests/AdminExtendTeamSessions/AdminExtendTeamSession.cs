@@ -26,7 +26,7 @@ internal class AdminExtendTeamSessionHandler(
     public async Task<AdminExtendTeamSessionResponse> Handle(AdminExtendTeamSessionRequest request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .ConfigureAuthorization(c => c.RequirePermissions(Users.UserRolePermissionKey.Players_EditSession))
+            .ConfigureAuthorization(c => c.RequirePermissions(Users.PermissionKey.Teams_EditSession))
             .Validate(cancellationToken);
 
         var teams = await _teamService.GetTeams(request.TeamIds);

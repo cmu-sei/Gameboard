@@ -34,7 +34,7 @@ internal sealed class GameScoreQueryHandler(
             .ConfigureAuthorization(config =>
             {
                 config
-                    .RequirePermissions(UserRolePermissionKey.Scores_ViewLive)
+                    .RequirePermissions(PermissionKey.Scores_ViewLive)
                     .Unless(async () =>
                     {
                         var now = _nowService.Get();
