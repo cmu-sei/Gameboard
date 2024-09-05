@@ -1,3 +1,5 @@
+using Gameboard.Api.Data;
+
 namespace Gameboard.Api.Tests.Integration;
 
 public class PlayerControllerGetTests : IClassFixture<GameboardTestContext>
@@ -42,7 +44,7 @@ public class PlayerControllerGetTests : IClassFixture<GameboardTestContext>
         var results = await _testContext
             .CreateHttpClientWithAuthRole(UserRole.Admin)
             .GetAsync($"/api/players?filter=collapse&gid={gameId}")
-            .WithContentDeserializedAs<Player[]>();
+            .DeserializeResponseAs<Player[]>();
 
         // assert
         results.Length.ShouldBe(1);

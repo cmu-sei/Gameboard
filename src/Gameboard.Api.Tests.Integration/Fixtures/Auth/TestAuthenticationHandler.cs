@@ -6,9 +6,9 @@ using Microsoft.Extensions.Options;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
-internal class TestAuthenticationHandler : AuthenticationHandler<TestAuthenticationHandlerOptions>
+internal class TestAuthenticationHandler(IOptionsMonitor<TestAuthenticationHandlerOptions> options, ILoggerFactory logger, UrlEncoder encoder) : AuthenticationHandler<TestAuthenticationHandlerOptions>(options, logger, encoder)
 {
-    private readonly TestAuthenticationUser _actingUser;
+    private readonly TestAuthenticationUser _actingUser = options.CurrentValue.Actor;
 
     public const string AuthenticationSchemeName = "Test";
     public AuthenticationScheme AuthScheme { get; } = new AuthenticationScheme
@@ -18,12 +18,6 @@ internal class TestAuthenticationHandler : AuthenticationHandler<TestAuthenticat
         handlerType: typeof(TestAuthenticationHandler)
     );
 
-    public TestAuthenticationHandler(IOptionsMonitor<TestAuthenticationHandlerOptions> options, ILoggerFactory logger, UrlEncoder encoder) :
-        base(options, logger, encoder)
-    {
-        _actingUser = options.CurrentValue.Actor;
-    }
-
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var claims = new List<Claim>
@@ -32,7 +26,7 @@ internal class TestAuthenticationHandler : AuthenticationHandler<TestAuthenticat
             new(ClaimTypes.NameIdentifier, _actingUser.Id),
             new(AppConstants.SubjectClaimName, _actingUser.Id),
             new(AppConstants.ApprovedNameClaimName, _actingUser.Name),
-            new(AppConstants.RoleListClaimName, _actingUser.Role.ToString()),
+            new(AppConstants.RoleClaimName, _actingUser.Role.ToString()),
             new(AppConstants.SponsorClaimName, _actingUser.SponsorId)
         };
 

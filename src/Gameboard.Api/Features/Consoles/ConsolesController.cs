@@ -9,20 +9,13 @@ namespace Gameboard.Api.Features.Consoles;
 
 [Authorize(AppConstants.ConsolePolicy)]
 [Route("/api/consoles")]
-public class ConsolesController : ControllerBase
+public class ConsolesController(
+    IActingUserService actingUserService,
+    IMediator mediator
+    ) : ControllerBase
 {
-    private readonly IActingUserService _actingUserService;
-    private readonly IMediator _mediator;
-
-    public ConsolesController
-    (
-        IActingUserService actingUserService,
-        IMediator mediator
-    )
-    {
-        _actingUserService = actingUserService;
-        _mediator = mediator;
-    }
+    private readonly IActingUserService _actingUserService = actingUserService;
+    private readonly IMediator _mediator = mediator;
 
     [HttpPost("active")]
     public Task<ConsoleActionResponse> RecordUserActive(CancellationToken cancellationToken)

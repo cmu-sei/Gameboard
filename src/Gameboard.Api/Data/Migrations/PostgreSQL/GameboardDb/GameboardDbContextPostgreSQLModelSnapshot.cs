@@ -514,6 +514,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(64)

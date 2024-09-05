@@ -7,27 +7,29 @@ internal static class ConfToEnv
 {
     public static void Load(string confFileName)
     {
-        if (!File.Exists(confFileName))
+        var finalPath = Path.Combine(Directory.GetCurrentDirectory(), confFileName);
+
+        if (!File.Exists(finalPath))
             return;
 
         try
         {
-            foreach (string line in File.ReadAllLines(confFileName))
+            foreach (string line in File.ReadAllLines(finalPath))
             {
                 if (
                     line.Equals(string.Empty)
                     || line.Trim().StartsWith("#")
-                    || !line.Contains("=")
+                    || !line.Contains('=')
                 )
                 {
                     continue;
                 }
 
-                int x = line.IndexOf("=");
+                int x = line.IndexOf('=');
 
                 Environment.SetEnvironmentVariable(
-                    line.Substring(0, x).Trim(),
-                    line.Substring(x + 1).Trim()
+                    line[..x].Trim(),
+                    line[(x + 1)..].Trim()
                 );
             }
         }

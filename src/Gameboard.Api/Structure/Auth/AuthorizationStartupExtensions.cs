@@ -25,30 +25,7 @@ namespace Microsoft.Extensions.DependencyInjection
                         JwtBearerDefaults.AuthenticationScheme,
                         ApiKeyAuthentication.AuthenticationScheme
                     ).Build())
-                .AddPolicy(AppConstants.RegistrarPolicy, new AuthorizationPolicyBuilder()
-                    .RequireAuthenticatedUser()
-                    .AddAuthenticationSchemes(
-                        JwtBearerDefaults.AuthenticationScheme
-                    )
-                    .RequireClaim(AppConstants.RoleClaimName, UserRole.Registrar.ToString())
-                    .Build()
-)
-                .AddPolicy(AppConstants.DesignerPolicy, new AuthorizationPolicyBuilder()
-                    .RequireAuthenticatedUser()
-                    .AddAuthenticationSchemes(
-                        JwtBearerDefaults.AuthenticationScheme
-                    )
-                    .RequireClaim(AppConstants.RoleClaimName, UserRole.Designer.ToString())
-                    .Build()
-)
-                .AddPolicy(AppConstants.AdminPolicy, new AuthorizationPolicyBuilder()
-                    .RequireAuthenticatedUser()
-                    .AddAuthenticationSchemes(
-                        JwtBearerDefaults.AuthenticationScheme
-                    )
-                    .RequireClaim(AppConstants.RoleClaimName, UserRole.Admin.ToString())
-                    .Build()
-)
+
                 .AddPolicy(AppConstants.TicketOnlyPolicy, new AuthorizationPolicyBuilder()
                     .RequireAuthenticatedUser()
                     .AddAuthenticationSchemes(

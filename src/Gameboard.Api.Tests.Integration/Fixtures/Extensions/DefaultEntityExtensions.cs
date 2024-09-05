@@ -1,5 +1,4 @@
 using Gameboard.Api.Data;
-using ICSharpCode.SharpZipLib.Core;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 

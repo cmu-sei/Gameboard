@@ -29,7 +29,7 @@ internal class GetTeamCenterContextHandler(
     public async Task<TeamCenterContext> Handle(GetTeamCenterContextQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .ConfigureAuthorization(config =>
+            .Auth(config =>
             {
                 config
                     .RequirePermissions(PermissionKey.Admin_View)

@@ -89,7 +89,7 @@ internal class SyncStartGameService : ISyncStartGameService
             return new SyncStartState
             {
                 Game = new SimpleEntity { Id = game.Id, Name = game.Name },
-                Teams = Array.Empty<SyncStartTeam>(),
+                Teams = [],
                 AllSessionsStarted = false,
                 IsReady = true
             };

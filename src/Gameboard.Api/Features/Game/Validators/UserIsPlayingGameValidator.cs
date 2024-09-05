@@ -8,16 +8,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games.Validators;
 
-public class UserIsPlayingGameValidator : IGameboardValidator
+public class UserIsPlayingGameValidator(IStore store) : IGameboardValidator
 {
     private string _gameId;
     private string _userId;
-    private readonly IStore _store;
 
-    public UserIsPlayingGameValidator(IStore store)
-    {
-        _store = store;
-    }
+    private readonly IStore _store = store;
 
     public UserIsPlayingGameValidator UseGameId(string gameId)
     {
@@ -39,9 +35,6 @@ public class UserIsPlayingGameValidator : IGameboardValidator
                 .WithNoTracking<Data.User>()
                 .FirstOrDefaultAsync(u => u.Id == _userId);
 
-            if (user.Role.HasFlag(UserRole.Admin) || user.Role.HasFlag(UserRole.Tester))
-                return;
-
             var hasPlayer = await _store
                 .WithNoTracking<Data.Player>()
                 .AnyAsync(p => p.UserId == _userId && p.GameId == _gameId);
@@ -53,13 +46,11 @@ public class UserIsPlayingGameValidator : IGameboardValidator
 }
 
 
-public class UserIsPlayingGameValidator<T> : IGameboardValidator<T> where T : class
+public class UserIsPlayingGameValidator<T>(IStore store) : IGameboardValidator<T> where T : class
 {
     private Func<T, string> _gameIdExpression;
     private Func<T, User> _userExpression;
-    private readonly IStore _store;
-
-    public UserIsPlayingGameValidator(IStore store) => _store = store;
+    private readonly IStore _store = store;
 
     public UserIsPlayingGameValidator<T> UseGameIdProperty(Func<T, string> gameIdPropertyExpression)
     {
@@ -67,7 +58,7 @@ public class UserIsPlayingGameValidator<T> : IGameboardValidator<T> where T : cl
         return this;
     }
 
-    public UserIsPlayingGameValidator<T> UseUserIdProperty(Func<T, User> userPropertyExpression)
+    public UserIsPlayingGameValidator<T> UseUserProperty(Func<T, User> userPropertyExpression)
     {
         _userExpression = userPropertyExpression;
         return this;
@@ -79,9 +70,6 @@ public class UserIsPlayingGameValidator<T> : IGameboardValidator<T> where T : cl
         {
             var user = _userExpression(model);
             var gameId = _gameIdExpression(model);
-
-            if (user.Role.HasFlag(UserRole.Admin) || user.Role.HasFlag(UserRole.Tester))
-                return;
 
             var hasPlayer = await _store
                 .WithNoTracking<Data.Player>()

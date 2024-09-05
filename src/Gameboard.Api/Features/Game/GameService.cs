@@ -17,7 +17,7 @@ using Microsoft.AspNetCore.Http;
 using Gameboard.Api.Data;
 using System.IO;
 using System.Threading;
-using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Users;
 
 namespace Gameboard.Api.Services;
 
@@ -28,7 +28,6 @@ public interface IGameService
     Task<string> Export(GameSpecExport model);
     Task<Game> Import(GameSpecImport model);
     Task<IEnumerable<string>> GetTeamsWithActiveSession(string GameId, CancellationToken cancellationToken);
-    bool IsGameStartSuperUser(User user);
     IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool sudo = false);
     Task<bool> IsUserPlaying(string gameId, string userId);
     Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false);
@@ -48,6 +47,7 @@ public class GameService : _Service, IGameService
     private readonly IGuidService _guids;
     private readonly IGameStore _gameStore;
     private readonly INowService _now;
+    private readonly IUserRolePermissionsService _permissionsService;
     private readonly IStore _store;
 
     public GameService(
@@ -58,6 +58,7 @@ public class GameService : _Service, IGameService
         Defaults defaults,
         IGameStore gameStore,
         INowService nowService,
+        IUserRolePermissionsService permissionsService,
         IStore store
     ) : base(logger, mapper, options)
     {
@@ -65,6 +66,7 @@ public class GameService : _Service, IGameService
         _gameStore = gameStore;
         _defaults = defaults;
         _now = nowService;
+        _permissionsService = permissionsService;
         _store = store;
     }
 
@@ -125,12 +127,12 @@ public class GameService : _Service, IGameService
         => _gameStore.Delete(id);
 
 
-    public IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool sudo = false)
+    public IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool canViewUnpublished = false)
     {
         var q = _gameStore.List(model?.Term);
         var now = _now.Get();
 
-        if (!sudo)
+        if (!canViewUnpublished)
             q = q.Where(g => g.IsPublished);
 
         if (model == null)
@@ -212,8 +214,7 @@ public class GameService : _Service, IGameService
 
     public async Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo)
     {
-        DateTimeOffset now = DateTimeOffset.UtcNow;
-
+        var now = _now.Get();
         var q = _gameStore.List(model.Term);
 
         if (!sudo)
@@ -270,13 +271,14 @@ public class GameService : _Service, IGameService
         var ts = DateTimeOffset.UtcNow;
         var step = ts;
 
-        var expirations = await _gameStore.DbContext.Players
+        var expirations = await _store
+            .WithNoTracking<Data.Player>()
             .Where(p => p.GameId == id && p.Role == PlayerRole.Manager && p.SessionEnd.CompareTo(ts) > 0)
             .Select(p => p.SessionEnd)
             .ToArrayAsync();
 
         // foreach half hour, get count of available seats
-        List<SessionForecast> result = new();
+        List<SessionForecast> result = [];
 
         for (int i = 0; i < 480; i += 30)
         {
@@ -320,21 +322,17 @@ public class GameService : _Service, IGameService
 
     public async Task<Game> Import(GameSpecImport model)
     {
+        if (!await _permissionsService.Can(PermissionKey.Games_CreateEditDelete))
+            throw new ActionForbidden();
+
         var yaml = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
             .IgnoreUnmatchedProperties()
             .Build();
 
         var entity = yaml.Deserialize<Data.Game>(model.Data);
-
         await _gameStore.Create(entity);
-
         return Mapper.Map<Game>(entity);
-    }
-
-    public bool IsGameStartSuperUser(User user)
-    {
-        return user.IsAdmin || user.IsDesigner || user.IsRegistrar || user.IsSupport || user.IsTester;
     }
 
     public async Task UpdateImage(string id, string type, string filename)
@@ -357,7 +355,8 @@ public class GameService : _Service, IGameService
 
     public async Task ReRank(string id)
     {
-        var players = await _gameStore.DbContext.Players
+        var players = await _store
+            .WithTracking<Data.Player>()
             .Where(p => p.GameId == id && p.Mode == PlayerMode.Competition)
             .OrderByDescending(p => p.Score)
             .ThenBy(p => p.Time)
@@ -379,21 +378,18 @@ public class GameService : _Service, IGameService
             player.Rank = rank;
         }
 
-        await _gameStore.DbContext.SaveChangesAsync();
+        await _store.SaveUpdateRange(players);
     }
 
     public Task<bool> IsUserPlaying(string gameId, string userId)
-        => _gameStore
-            .DbContext
-            .Players
-            .AnyAsync(p => p.GameId == gameId && p.UserId == userId);
+        => _store.AnyAsync<Data.Player>(p => p.GameId == gameId && p.UserId == userId, CancellationToken.None);
 
     public async Task<bool> UserIsTeamPlayer(string uid, string gid, string tid)
     {
-        bool authd = await _gameStore.DbContext.Users.AnyAsync(u =>
+        bool authd = await _store.AnyAsync<Data.User>(u =>
             u.Id == uid &&
             u.Enrollments.Any(e => e.TeamId == tid)
-        );
+        , CancellationToken.None);
 
         return authd;
     }

@@ -13,14 +13,10 @@ namespace Gameboard.Api.Features.Games;
 public record UpdatePlayerReadyStateCommand(string PlayerId, bool IsReady, User Actor) : IRequest;
 
 internal class UpdatePlayerReadyStateCommandHandler(
-    IMediator mediator,
-    EntityExistsValidator<UpdatePlayerReadyStateCommand, Data.Player> playerExists,
     IStore store,
     ISyncStartGameService syncStartGameService,
     IValidatorService validatorService) : IRequestHandler<UpdatePlayerReadyStateCommand>
 {
-    private readonly IMediator _mediator = mediator;
-    private readonly EntityExistsValidator<UpdatePlayerReadyStateCommand, Data.Player> _playerExists = playerExists;
     private readonly IStore _store = store;
     private readonly ISyncStartGameService _syncStartGameService = syncStartGameService;
     private readonly IValidatorService _validatorService = validatorService;
@@ -31,7 +27,7 @@ internal class UpdatePlayerReadyStateCommandHandler(
         // grab the player, we need it later anyway
         var player = await _store
             .WithNoTracking<Data.Player>()
-            .SingleOrDefaultAsync(p => p.Id == request.PlayerId);
+            .SingleOrDefaultAsync(p => p.Id == request.PlayerId, cancellationToken);
 
         await _validatorService
             .ConfigureAuthorization

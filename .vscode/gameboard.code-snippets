@@ -30,7 +30,7 @@
 			"\t\/\/ then",
 			"}"
 		]
-	// },
+	},
 	"Create Gameboard Integration Test Suite": {
 		"scope": "csharp",
 		"description": "Create a Gameboard integration test suite",

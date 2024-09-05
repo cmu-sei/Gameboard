@@ -31,7 +31,7 @@ internal sealed class GameScoreQueryHandler(
     {
         // validate
         _validator
-            .ConfigureAuthorization(config =>
+            .Auth(config =>
             {
                 config
                     .RequirePermissions(PermissionKey.Scores_ViewLive)

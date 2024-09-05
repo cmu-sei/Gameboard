@@ -4,21 +4,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class SearchPracticeChallengesTests : IClassFixture<GameboardTestContext>
+public class SearchPracticeChallengesTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>
 {
-    private readonly GameboardTestContext _testContext;
-
-    public SearchPracticeChallengesTests(GameboardTestContext testContext)
-        => _testContext = testContext;
+    private readonly GameboardTestContext _testContext = testContext;
 
     [Theory, GbIntegrationAutoData]
     public async Task SearchChallenges_WithTagMatchAndSuggestedSearch_Matches(string tag, IFixture fixture)
     {
         // given a challenge spec with a tag slug-equal to one of the suggested searches in 
         // the practice area...
-        var existingSettings = _testContext.GetDbContext().Set<Data.PracticeModeSettings>();
-        _testContext.GetDbContext().Set<Data.PracticeModeSettings>().RemoveRange(existingSettings);
-        await _testContext.GetDbContext().SaveChangesAsync();
+        var dbContext = await _testContext.GetDbContext();
+        var existingSettings = dbContext.Set<Data.PracticeModeSettings>();
+        dbContext.Set<Data.PracticeModeSettings>().RemoveRange(existingSettings);
+        await dbContext.SaveChangesAsync();
 
         await _testContext.WithDataState
         (
@@ -42,12 +40,12 @@ public class SearchPracticeChallengesTests : IClassFixture<GameboardTestContext>
             }
         );
 
-        var settings1 = await _testContext.GetDbContext().Set<Data.PracticeModeSettings>().ToListAsync();
+        var settings1 = await dbContext.Set<Data.PracticeModeSettings>().ToListAsync();
         // when we search for the tag 
         var result = await _testContext
             .CreateClient()
             .GetAsync($"/api/practice?term={tag}")
-            .WithContentDeserializedAs<SearchPracticeChallengesResult>();
+            .DeserializeResponseAs<SearchPracticeChallengesResult>();
 
         // we should find it
         result.Results.Items.Count().ShouldBe(1);
@@ -78,7 +76,7 @@ public class SearchPracticeChallengesTests : IClassFixture<GameboardTestContext>
         var result = await _testContext
             .CreateClient()
             .GetAsync($"/api/practice?term={tag}")
-            .WithContentDeserializedAs<SearchPracticeChallengesResult>();
+            .DeserializeResponseAs<SearchPracticeChallengesResult>();
 
         // we should find it
         result.Results.Items.Count().ShouldBe(0);

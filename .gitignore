@@ -1,5 +1,6 @@
 zzz/
 appsettings.Development.*
+appsettings.Test.*
 .vs/
 *.csproj.user
 

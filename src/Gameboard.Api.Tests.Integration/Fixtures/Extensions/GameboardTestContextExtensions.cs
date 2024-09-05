@@ -1,8 +1,10 @@
 using Gameboard.Api.Common;
+using Gameboard.Api.Data;
 using Gameboard.Api.Structure.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
@@ -75,8 +77,8 @@ internal static class GameboardTestContextExtensions
 
     public static async Task WithDataState(this GameboardTestContext context, Action<IDataStateBuilder> builderAction)
     {
-        var dbContext = context.GetDbContext();
-
+        using var dbContext = await context.GetDbContext();
+        await dbContext.Database.MigrateAsync();
         var builderInstance = new DataStateBuilder(dbContext);
         builderAction.Invoke(builderInstance);
 

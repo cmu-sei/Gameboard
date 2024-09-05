@@ -29,7 +29,7 @@ internal class DeleteGameHandler(
     {
         // auth/validate
         await _validatorService
-            .ConfigureAuthorization(config => config.RequirePermissions(PermissionKey.Games_CreateEditDelete))
+            .Auth(config => config.RequirePermissions(PermissionKey.Games_CreateEditDelete))
             .AddValidator(_gameExists.UseProperty(r => r.GameId))
             .AddValidator
             (

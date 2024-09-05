@@ -37,8 +37,8 @@ internal sealed class UserRolePermissionsOverviewHandler(
                 Name = kv.Key.ToString(),
                 Permissions = kv.Value
             }),
-            RolePermissions = await _permissionsService.GetAllRolePermissions(),
-            YourRole = _permissionsService.ResolveSingle(_actingUserService.Get().Role)
+            RolePermissions = await _permissionsService.GetRolePermissionAssignments(),
+            YourRole = _actingUserService.Get().Role
         };
     }
 }

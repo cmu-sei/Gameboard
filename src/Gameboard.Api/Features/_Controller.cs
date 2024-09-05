@@ -3,34 +3,37 @@
 
 using System;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
+using Gameboard.Api.Data;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Controllers
 {
     public class _Controller(
+        IActingUserService actingUserService,
         ILogger logger,
         IDistributedCache cache,
         params IModelValidator[] validators
-        ) : ControllerBase, IActionFilter
+        ) : ControllerBase
     {
-        protected User Actor { get; set; }
-        protected string AuthenticatedGraderForChallengeId { get; set; }
+
+        private readonly IActingUserService _actingUserService = actingUserService;
+
+        protected internal User Actor
+        {
+            get => _actingUserService.Get();
+        }
+
+        protected string AuthenticatedGraderForChallengeId
+        {
+            get => this.User.ToAuthenticatedGraderForChallengeId();
+        }
+
         protected ILogger Logger { get; private set; } = logger;
         protected IDistributedCache Cache { get; private set; } = cache;
         private readonly IModelValidator[] _validators = validators;
-
-        public virtual void OnActionExecuting(ActionExecutingContext context)
-        {
-            Actor = User.ToActor();
-            AuthenticatedGraderForChallengeId = User.ToAuthenticatedGraderForChallengeId();
-        }
-
-        public void OnActionExecuted(ActionExecutedContext context)
-        {
-        }
 
         /// <summary>
         /// Validate a model against all validators registered
@@ -47,7 +50,7 @@ namespace Gameboard.Api.Controllers
         /// Authorize if all requirements are met
         /// </summary>
         /// <param name="requirements"></param>
-        protected void AuthorizeAll(params Func<Boolean>[] requirements)
+        protected void AuthorizeAll(params Func<bool>[] requirements)
         {
             bool valid = true;
 
@@ -62,9 +65,9 @@ namespace Gameboard.Api.Controllers
         /// Authorized if any requirement is met
         /// </summary>
         /// <param name="requirements"></param>
-        protected void AuthorizeAny(params Func<Boolean>[] requirements)
+        protected void AuthorizeAny(params Func<bool>[] requirements)
         {
-            if (Actor.IsAdmin)
+            if (Actor?.Role == UserRole.Admin)
                 return;
 
             bool valid = false;
@@ -79,5 +82,18 @@ namespace Gameboard.Api.Controllers
                 throw new ActionForbidden();
         }
 
+        protected async Task AuthorizeAny(params Task<bool>[] requirements)
+        {
+            if (Actor?.Role == UserRole.Admin)
+                return;
+
+            foreach (var requirement in requirements)
+            {
+                if (await requirement)
+                    return;
+            }
+
+            throw new ActionForbidden();
+        }
     }
 }

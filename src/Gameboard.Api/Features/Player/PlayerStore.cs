@@ -11,18 +11,15 @@ namespace Gameboard.Api.Data;
 
 public interface IPlayerStore : IStore<Player>
 {
-    Task DeleteTeam(string teamId);
-    Task<User> GetUserEnrollments(string id);
     IQueryable<Player> ListTeam(string id);
     Task<Player[]> ListTeamByPlayer(string id);
-    Task<Challenge[]> ListTeamChallenges(string id);
     Task<Player> LoadBoard(string id);
 }
 
-public class PlayerStore : Store<Data.Player>, IPlayerStore
+public class PlayerStore(IGuidService guids, IDbContextFactory<GameboardDbContext> dbContextFactory, IStore store)
+    : Store<Data.Player>(dbContextFactory, guids), IPlayerStore
 {
-    public PlayerStore(IGuidService guids, GameboardDbContext dbContext)
-        : base(dbContext, guids) { }
+    private readonly IStore _store = store;
 
     public IQueryable<Player> ListTeam(string id) =>
         base.List()
@@ -30,11 +27,6 @@ public class PlayerStore : Store<Data.Player>, IPlayerStore
             .Include(player => player.User)
             .Include(player => player.Game)
             .Where(p => p.TeamId == id);
-
-    public async Task DeleteTeam(string teamId) => await DbContext
-        .Players
-        .Where(p => p.TeamId == teamId)
-        .ExecuteDeleteAsync();
 
     public async Task<Player[]> ListTeamByPlayer(string id)
     {
@@ -44,18 +36,6 @@ public class PlayerStore : Store<Data.Player>, IPlayerStore
             .Where(p => p.TeamId == player.TeamId)
             .ToArrayAsync();
     }
-
-    public async Task<Challenge[]> ListTeamChallenges(string id)
-        => await DbContext.Challenges
-            .AsNoTracking()
-            .Include(c => c.Events)
-            .Where(c => c.TeamId == id)
-            .ToArrayAsync();
-
-    public async Task<User> GetUserEnrollments(string id)
-        => await DbContext.Users
-            .Include(u => u.Enrollments)
-            .FirstOrDefaultAsync(u => u.Id == id);
 
     public async Task<Player> LoadBoard(string id)
     {
@@ -69,12 +49,13 @@ public class PlayerStore : Store<Data.Player>, IPlayerStore
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (result.Game.AllowTeam)
-            result.Challenges = await DbContext
-                .Challenges
-                .AsNoTracking()
+        {
+            result.Challenges = await _store
+                .WithNoTracking<Data.Challenge>()
                 .Include(c => c.Events)
                 .Where(c => c.TeamId == result.TeamId)
                 .ToArrayAsync();
+        }
 
         return result;
     }

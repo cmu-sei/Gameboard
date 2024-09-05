@@ -9,40 +9,31 @@ using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Api.Services;
 
-public class UserService
-{
-    private readonly IMapper _mapper;
-    private readonly INowService _now;
-    private readonly SponsorService _sponsorService;
-    private readonly IStore _store;
-    private readonly IStore<Data.User> _userStore;
-    private readonly IMemoryCache _localcache;
-    private readonly INameService _namesvc;
-
-    public UserService
-    (
-        INowService now,
-        SponsorService sponsorService,
-        IStore store,
-        IStore<Data.User> userStore,
-        IMapper mapper,
-        IMemoryCache cache,
-        INameService namesvc
+public class UserService(
+    INowService now,
+    SponsorService sponsorService,
+    IStore store,
+    IStore<Data.User> userStore,
+    IMapper mapper,
+    IMemoryCache cache,
+    INameService namesvc,
+    IUserRolePermissionsService permissionsService
     )
-    {
-        _localcache = cache;
-        _mapper = mapper;
-        _namesvc = namesvc;
-        _now = now;
-        _sponsorService = sponsorService;
-        _store = store;
-        _userStore = userStore;
-    }
+{
+    private readonly IMapper _mapper = mapper;
+    private readonly INowService _now = now;
+    private readonly SponsorService _sponsorService = sponsorService;
+    private readonly IStore _store = store;
+    private readonly IStore<Data.User> _userStore = userStore;
+    private readonly IMemoryCache _localcache = cache;
+    private readonly INameService _namesvc = namesvc;
+    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
 
     /// <summary>
     /// If user exists update fields
@@ -51,8 +42,7 @@ public class UserService
     /// <returns></returns>
     public async Task<TryCreateUserResult> TryCreate(NewUser model)
     {
-        if (model.Id.IsEmpty())
-            throw new ArgumentException(nameof(model.Id));
+        ArgumentException.ThrowIfNullOrWhiteSpace(model.Id);
 
         var entity = await _userStore
             .ListWithNoTracking()
@@ -71,9 +61,8 @@ public class UserService
         entity = _mapper.Map<Data.User>(model);
 
         // first user gets admin
-        var allUsers = await _userStore.DbContext.Users.ToArrayAsync();
         if (!await _userStore.AnyAsync(u => u.Id != model.Id))
-            entity.Role = AppConstants.AllRoles;
+            entity.Role = UserRole.Admin;
 
         // record creation date and first login
         if (entity.CreatedOn.DoesntHaveValue())
@@ -121,7 +110,7 @@ public class UserService
         return _mapper.Map<User>(await _userStore.Retrieve(id));
     }
 
-    public async Task<User> Update(ChangedUser model, bool sudo, bool admin = false)
+    public async Task<User> Update(ChangedUser model, bool canAdminUsers)
     {
         var entity = await _userStore.Retrieve(model.Id, q => q.Include(u => u.Sponsor));
         var sponsorUpdated = false;
@@ -130,7 +119,7 @@ public class UserService
         // only admins can alter the roles of users
         if (model.Role.HasValue && model.Role != entity.Role)
         {
-            if (!admin)
+            if (!await _permissionsService.Can(PermissionKey.Users_EditRoles))
                 throw new ActionForbidden();
             else
                 entity.Role = model.Role.Value;
@@ -162,9 +151,9 @@ public class UserService
             entity.Name = model.Name.Trim();
 
             // sudoers change names without the "pending" step
-            entity.NameStatus = sudo ? entity.NameStatus : AppConstants.NameStatusPending;
+            entity.NameStatus = canAdminUsers ? entity.NameStatus : AppConstants.NameStatusPending;
             // and they automatically copy the requested name to the approved name
-            entity.ApprovedName = sudo ? entity.Name : entity.ApprovedName;
+            entity.ApprovedName = canAdminUsers ? entity.Name : entity.ApprovedName;
 
             // after shuffling the name, approved name, and status, check to ensure
             // that the name and approved name are different. if they're the same,
@@ -184,7 +173,7 @@ public class UserService
         }
 
         // only sudoers can approve names
-        if (sudo && model.ApprovedName.NotEmpty())
+        if (canAdminUsers && model.ApprovedName.NotEmpty())
         {
             entity.ApprovedName = model.ApprovedName;
             entity.NameStatus = null;
@@ -213,7 +202,7 @@ public class UserService
         _localcache.Remove(id);
     }
 
-    public async Task<IEnumerable<TProject>> List<TProject>(UserSearch model) where TProject : class, IUserViewModel
+    public async Task<IEnumerable<UserOnly>> List<TProject>(UserSearch model) where TProject : class
     {
         var q = _userStore
             .List(model.Term)
@@ -225,8 +214,8 @@ public class UserService
             model.Term = model.Term.ToLower();
             q = q.Where(u =>
                 u.Id.StartsWith(model.Term) ||
-                u.Name.ToLower().Contains(model.Term) ||
-                u.ApprovedName.ToLower().Contains(model.Term)
+                u.Name.Contains(model.Term, StringComparison.CurrentCultureIgnoreCase) ||
+                u.ApprovedName.Contains(model.Term, StringComparison.CurrentCultureIgnoreCase)
             );
         }
 
@@ -245,7 +234,7 @@ public class UserService
         if (model.ExcludeIds.IsNotEmpty())
         {
             var splitIds = model.ExcludeIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (splitIds.Any())
+            if (splitIds.Length != 0)
                 q = q.Where(u => !splitIds.Contains(u.Id));
         }
 
@@ -255,17 +244,15 @@ public class UserService
         if (model.Take > 0)
             q = q.Take(model.Take);
 
-        return await _mapper
-            .ProjectTo<TProject>(q)
-            .ToArrayAsync();
+        return await _mapper.ProjectTo<UserOnly>(q).ToArrayAsync();
     }
 
     public async Task<UserSimple[]> ListSupport(SearchFilter model)
     {
         var q = _userStore.List(model.Term);
 
-        // Might want to also include observers if they can be assigned. Or just make possible assignees "Support" roles
-        q = q.Where(u => u.Role.HasFlag(UserRole.Support));
+        var roles = await _permissionsService.GetRolesWithPermission(PermissionKey.Support_ManageTickets);
+        q = q.Where(u => roles.Contains(u.Role));
 
         if (model.Term.NotEmpty())
         {
@@ -274,16 +261,11 @@ public class UserService
             (
                 u =>
                     u.Id.StartsWith(model.Term) ||
-                    u.Name.ToLower().Contains(model.Term) ||
-                    u.ApprovedName.ToLower().Contains(model.Term)
+                    u.Name.Contains(model.Term, StringComparison.CurrentCultureIgnoreCase) ||
+                    u.ApprovedName.Contains(model.Term, StringComparison.CurrentCultureIgnoreCase)
             );
         }
 
         return await _mapper.ProjectTo<UserSimple>(q).ToArrayAsync();
-    }
-
-    internal bool HasRole(User user, UserRole role)
-    {
-        return user.Role.HasFlag(role);
     }
 }

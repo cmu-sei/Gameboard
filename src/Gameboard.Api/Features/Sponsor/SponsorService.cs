@@ -12,7 +12,6 @@ using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Sponsors;
 using Gameboard.Api.Data;
 using Gameboard.Api.Structure;
-using Gameboard.Api.Common;
 
 namespace Gameboard.Api.Services;
 

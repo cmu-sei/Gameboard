@@ -7,67 +7,50 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.External;
-using Gameboard.Api.Services;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Npgsql.Replication;
+using ServiceStack;
 
 namespace Gameboard.Api.Features.Teams;
 
 public record StartTeamSessionsCommand(IEnumerable<string> TeamIds) : IRequest<StartTeamSessionsResult>;
 
-internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessionsCommand, StartTeamSessionsResult>
+internal sealed class StartTeamSessionsHandler(
+    IActingUserService actingUserService,
+    IExternalGameHostService externalGameHostService,
+    IGameModeServiceFactory gameModeServiceFactory,
+    IGameResourcesDeployService gameResourcesDeploymentService,
+    IInternalHubBus internalHubBus,
+    ILockService lockService,
+    ILogger<StartTeamSessionsHandler> logger,
+    IMediator mediator,
+    INowService now,
+    ISessionWindowCalculator sessionWindowCalculator,
+    IStore store,
+    ITeamService teamService,
+    IUserRolePermissionsService permissionsService,
+    IGameboardRequestValidator<StartTeamSessionsCommand> validator
+    ) : IRequestHandler<StartTeamSessionsCommand, StartTeamSessionsResult>
 {
-    private readonly User _actingUser;
-    private readonly IExternalGameHostService _externalGameHostService;
-    private readonly IGameModeServiceFactory _gameModeServiceFactory;
-    private readonly IGameResourcesDeployService _gameResourcesDeployService;
-    private readonly IGameService _gameService;
-    private readonly IInternalHubBus _internalHubBus;
-    private readonly ILockService _lockService;
-    private readonly ILogger<StartTeamSessionsHandler> _logger;
-    private readonly IMediator _mediator;
-    private readonly INowService _now;
-    private readonly ISessionWindowCalculator _sessionWindow;
-    private readonly IStore _store;
-    private readonly ITeamService _teamService;
-    private readonly IGameboardRequestValidator<StartTeamSessionsCommand> _validator;
-
-    public StartTeamSessionsHandler
-    (
-        IActingUserService actingUserService,
-        IExternalGameHostService externalGameHostService,
-        IGameModeServiceFactory gameModeServiceFactory,
-        IGameResourcesDeployService gameResourcesDeploymentService,
-        IGameService gameService,
-        IInternalHubBus internalHubBus,
-        ILockService lockService,
-        ILogger<StartTeamSessionsHandler> logger,
-        IMediator mediator,
-        INowService now,
-        ISessionWindowCalculator sessionWindowCalculator,
-        IStore store,
-        ITeamService teamService,
-        IGameboardRequestValidator<StartTeamSessionsCommand> validator
-    )
-    {
-        _actingUser = actingUserService.Get();
-        _externalGameHostService = externalGameHostService;
-        _gameModeServiceFactory = gameModeServiceFactory;
-        _gameResourcesDeployService = gameResourcesDeploymentService;
-        _mediator = mediator;
-        _now = now;
-        _gameService = gameService;
-        _lockService = lockService;
-        _logger = logger;
-        _internalHubBus = internalHubBus;
-        _sessionWindow = sessionWindowCalculator;
-        _store = store;
-        _teamService = teamService;
-        _validator = validator;
-    }
+    private readonly User _actingUser = actingUserService.Get();
+    private readonly IExternalGameHostService _externalGameHostService = externalGameHostService;
+    private readonly IGameModeServiceFactory _gameModeServiceFactory = gameModeServiceFactory;
+    private readonly IGameResourcesDeployService _gameResourcesDeployService = gameResourcesDeploymentService;
+    private readonly IInternalHubBus _internalHubBus = internalHubBus;
+    private readonly ILockService _lockService = lockService;
+    private readonly ILogger<StartTeamSessionsHandler> _logger = logger;
+    private readonly IMediator _mediator = mediator;
+    private readonly INowService _now = now;
+    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
+    private readonly ISessionWindowCalculator _sessionWindow = sessionWindowCalculator;
+    private readonly IStore _store = store;
+    private readonly ITeamService _teamService = teamService;
+    private readonly IGameboardRequestValidator<StartTeamSessionsCommand> _validator = validator;
 
     public async Task<StartTeamSessionsResult> Handle(StartTeamSessionsCommand request, CancellationToken cancellationToken)
     {
@@ -89,8 +72,7 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
                 p.TeamId,
                 p.GameId
             })
-            .GroupBy(p => p.TeamId)
-            .ToDictionaryAsync(gr => gr.Key, gr => gr.ToArray(), cancellationToken);
+            .ToLookupAsync(p => p.TeamId, cancellationToken);
 
         var gameId = teams.SelectMany(kv => kv.Value.Select(p => p.GameId)).Distinct().Single();
         var gameData = await _store
@@ -126,7 +108,7 @@ internal sealed class StartTeamSessionsHandler : IRequestHandler<StartTeamSessio
             (
                 gameData.SessionMinutes,
                 gameData.GameEnd,
-                _gameService.IsGameStartSuperUser(_actingUser),
+                await _permissionsService.Can(PermissionKey.Play_IgnoreExecutionWindow),
                 _now.Get()
             );
 

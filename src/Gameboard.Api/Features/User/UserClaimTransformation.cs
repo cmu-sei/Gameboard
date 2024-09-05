@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
@@ -15,26 +16,18 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Api
 {
-    public class UserClaimTransformation : IClaimsTransformation
+    public class UserClaimTransformation(
+        IMemoryCache cache,
+        IMapper mapper,
+        ISponsorService sponsorService,
+        IStore store,
+        IUserRolePermissionsService userRolePermissionsService
+        ) : IClaimsTransformation
     {
-        private readonly IMapper _mapper;
-        private readonly IMemoryCache _cache;
-        private readonly ISponsorService _sponsorService;
-        private readonly IStore _store;
-
-        public UserClaimTransformation
-        (
-            IMemoryCache cache,
-            IMapper mapper,
-            ISponsorService sponsorService,
-            IStore store
-        )
-        {
-            _cache = cache;
-            _mapper = mapper;
-            _sponsorService = sponsorService;
-            _store = store;
-        }
+        private readonly IMapper _mapper = mapper;
+        private readonly IMemoryCache _cache = cache;
+        private readonly ISponsorService _sponsorService = sponsorService;
+        private readonly IStore _store = store;
 
         public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
         {
@@ -53,11 +46,19 @@ namespace Gameboard.Api
                         .SingleOrDefaultAsync(u => u.Id == subject, CancellationToken.None)
                 );
 
-                user ??= new User
+                if (user is not null)
                 {
-                    Id = subject,
-                    Role = UserRole.Member,
-                };
+                    user.RolePermissions = await userRolePermissionsService.GetPermissions(user.Role);
+                }
+                else
+                {
+                    user = new User
+                    {
+                        Id = subject,
+                        Role = UserRole.Member,
+                        RolePermissions = await userRolePermissionsService.GetPermissions(UserRole.Member)
+                    };
+                }
 
                 if (user.SponsorId is null || user.SponsorId.IsEmpty())
                 {
@@ -74,12 +75,9 @@ namespace Gameboard.Api
                 new(AppConstants.SubjectClaimName, user.Id),
                 new(AppConstants.NameClaimName, user.Name ?? ""),
                 new(AppConstants.ApprovedNameClaimName, user.ApprovedName ?? ""),
-                new(AppConstants.RoleListClaimName, user.Role.ToString()),
+                new(AppConstants.RoleClaimName, user.Role.ToString()),
                 new(AppConstants.SponsorClaimName, user.SponsorId)
             };
-
-            foreach (string role in user.Role.ToString().Replace(" ", "").Split(','))
-                claims.Add(new Claim(AppConstants.RoleClaimName, role));
 
             return new ClaimsPrincipal(
                 new ClaimsIdentity(

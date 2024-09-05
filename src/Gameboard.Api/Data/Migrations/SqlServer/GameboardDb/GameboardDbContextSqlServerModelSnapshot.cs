@@ -515,6 +515,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(64)

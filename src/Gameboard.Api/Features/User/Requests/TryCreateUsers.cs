@@ -48,7 +48,7 @@ internal sealed class TryCreateUsersHandler : IRequestHandler<TryCreateUsersComm
     public async Task<TryCreateUsersResponse> Handle(TryCreateUsersCommand request, CancellationToken cancellationToken)
     {
         // validate/authorize
-        _validator.ConfigureAuthorization(config => config.RequirePermissions(PermissionKey.Users_Create));
+        _validator.Auth(config => config.RequirePermissions(PermissionKey.Users_CreateEditDelete));
 
         // optionally throw if the caller doesn't want to ignore the fact that some users exist already
         if (!request.Request.AllowSubsetCreation)

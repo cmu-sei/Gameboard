@@ -182,8 +182,8 @@ public class GameboardCustomization : ICustomization
                 SectionScore = 50,
                 SectionText = "The best one",
                 LastScoreTime = DateTimeOffset.UtcNow.AddMinutes(5),
-                Questions = new List<TopoMojo.Api.Client.QuestionView>
-                {
+                Questions =
+                [
                     new()
                     {
                         Text = "What is your quest?",
@@ -195,7 +195,7 @@ public class GameboardCustomization : ICustomization
                         IsCorrect = false,
                         IsGraded = true
                     }
-                }
+                ]
             }
         });
 
@@ -213,10 +213,10 @@ public class GameboardCustomization : ICustomization
             Id = fixture.Create<string>(),
             Timestamp = DateTimeOffset.UtcNow.AddMinutes(1),
             SectionIndex = 0,
-            Questions = new GameEngineAnswerSubmission[]
-            {
+            Questions =
+            [
                 new() { Answer = fixture.Create<string>() }
-            }
+            ]
         });
     }
 

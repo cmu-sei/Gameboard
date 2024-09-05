@@ -51,7 +51,7 @@ internal class GetTeamEventHorizonHandler : IRequestHandler<GetTeamEventHorizonQ
         var actingUserId = _actingUserService.Get().Id;
 
         await _validator
-            .ConfigureAuthorization(config => config
+            .Auth(config => config
                 .RequirePermissions(PermissionKey.Teams_Observe)
                 .Unless
                 (

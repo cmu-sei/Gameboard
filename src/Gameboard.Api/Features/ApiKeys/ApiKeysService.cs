@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.ApiKeys;
@@ -19,43 +18,26 @@ public interface IApiKeysService
     Task<IEnumerable<ApiKeyViewModel>> ListKeys(string userId);
 }
 
-internal class ApiKeysService : IApiKeysService
+internal class ApiKeysService(
+    ApiKeyOptions options,
+    IGuidService guids,
+    IMapper mapper,
+    INowService now,
+    IRandomService rng,
+    IStore store) : IApiKeysService
 {
-    private readonly IGuidService _guids;
-    private readonly IMapper _mapper;
-    private readonly INowService _now;
-    private readonly IRandomService _rng;
-    private readonly IApiKeysStore _store;
-    private readonly ApiKeyOptions _options;
-    private readonly IStore<Data.User> _userStore;
-
-    public ApiKeysService(
-        ApiKeyOptions options,
-        IGuidService guids,
-        IMapper mapper,
-        INowService now,
-        IRandomService rng,
-        IApiKeysStore store,
-        IStore<Data.User> userStore)
-    {
-        _guids = guids;
-        _mapper = mapper;
-        _now = now;
-        _rng = rng;
-        _options = options;
-        _store = store;
-        _userStore = userStore;
-    }
+    private readonly IGuidService _guids = guids;
+    private readonly IMapper _mapper = mapper;
+    private readonly INowService _now = now;
+    private readonly IRandomService _rng = rng;
+    private readonly IStore _store = store;
+    private readonly ApiKeyOptions _options = options;
 
     public async Task<Data.User> Authenticate(string headerValue)
         => await GetUserFromApiKey(headerValue.Trim());
 
     public async Task<CreateApiKeyResult> Create(NewApiKey newApiKey)
     {
-        var user = await _userStore.Retrieve(newApiKey.UserId);
-        if (user is null)
-            throw new ResourceNotFound<User>(newApiKey.UserId);
-
         var generatedKey = GenerateKey();
 
         var entity = new ApiKey
@@ -76,15 +58,15 @@ internal class ApiKeysService : IApiKeysService
         return result;
     }
 
-    public async Task Delete(string apiKeyId)
-        => await _store.Delete(apiKeyId);
+    public Task Delete(string apiKeyId)
+        => _store.Delete<ApiKey>(apiKeyId);
 
     public async Task<Data.User> GetUserFromApiKey(string apiKey)
     {
         var hashedKey = apiKey.ToSha256();
 
-        return await _userStore
-            .ListWithNoTracking()
+        return await _store
+            .WithNoTracking<Data.User>()
             .Include(u => u.ApiKeys)
             // we use SingleOrDefaultAsync to ensure that we only get one result -
             // if we get more than one, some weird stuff is happening and we need to know.
@@ -93,8 +75,12 @@ internal class ApiKeysService : IApiKeysService
 
     public async Task<IEnumerable<ApiKeyViewModel>> ListKeys(string userId)
     {
+        var query = _store
+            .WithNoTracking<ApiKey>()
+            .Where(k => k.OwnerId == userId);
+
         return await _mapper
-            .ProjectTo<ApiKeyViewModel>(_store.List(userId))
+            .ProjectTo<ApiKeyViewModel>(query)
             .ToArrayAsync();
     }
 

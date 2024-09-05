@@ -112,7 +112,7 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
         // when
         var result = await httpClient
             .GetAsync($"api/team/{teamId}/score")
-            .WithContentDeserializedAs<TeamScoreQueryResponse>();
+            .DeserializeResponseAs<TeamScoreQueryResponse>();
 
         // then
         result.ShouldNotBeNull();
@@ -225,7 +225,7 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
         // when
         var result = await httpClient
             .GetAsync($"api/team/{teamId}/score")
-            .WithContentDeserializedAs<TeamScoreQueryResponse>();
+            .DeserializeResponseAs<TeamScoreQueryResponse>();
 
         // then
         result.ShouldNotBeNull();

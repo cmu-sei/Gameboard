@@ -67,6 +67,6 @@ internal class AddManualBonusHandler(
 
         // adding a manual bonus will change the team's score, so we need to 
         // manually refresh the denormalization of the scoreboard
-        await _mediator.Publish(new ScoreChangedNotification(resolvedTeamId));
+        await _mediator.Publish(new ScoreChangedNotification(resolvedTeamId), cancellationToken);
     }
 }

@@ -8,28 +8,26 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
+using Gameboard.Api.Common.Services;
 
 namespace Gameboard.Api.Controllers
 {
     [Authorize]
     public class FeedbackController : _Controller
     {
-        ChallengeService ChallengeService { get; }
         FeedbackService FeedbackService { get; }
-        PlayerService PlayerService { get; }
 
         public FeedbackController(
+            IActingUserService actingUserService,
             ILogger<ChallengeController> logger,
             IDistributedCache cache,
             FeedbackValidator validator,
             ChallengeService challengeService,
             FeedbackService feedbackService,
             PlayerService playerService
-        ) : base(logger, cache, validator)
+        ) : base(actingUserService, logger, cache, validator)
         {
-            ChallengeService = challengeService;
             FeedbackService = feedbackService;
-            PlayerService = playerService;
         }
 
         /// <summary>
@@ -65,22 +63,5 @@ namespace Gameboard.Api.Controllers
 
             return result;
         }
-
-        /// <summary>
-        /// Lists feedback based on search params
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpGet("/api/feedback/list")]
-        [Authorize]
-        public async Task<FeedbackReportDetails[]> List([FromQuery] FeedbackSearchParams model)
-        {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-            FeedbackReportDetails[] result = await FeedbackService.List(model);
-            return result;
-        }
-
     }
 }

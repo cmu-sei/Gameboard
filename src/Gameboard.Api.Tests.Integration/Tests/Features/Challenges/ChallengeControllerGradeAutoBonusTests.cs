@@ -74,12 +74,12 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
         await _testContext
             .CreateHttpClientWithGraderConfig(100, graderKey)
             .PutAsync("/api/challenge/grade", submission.ToJsonBody())
-            .WithContentDeserializedAs<Api.Challenge>();
+            .DeserializeResponseAs<Api.Challenge>();
 
         // tricky to validate this - the endpoint is pinned to returning a challenge state, which doesn't include bonuses yet.
         // have to go to the DB to minimize false positives
-        var awardedBonus = await _testContext
-            .GetDbContext()
+        var dbContext = await _testContext.GetDbContext();
+        var awardedBonus = await dbContext
             .AwardedChallengeBonuses
             .Include(b => b.ChallengeBonus)
             .Include(b => b.Challenge)
@@ -155,12 +155,12 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
         await _testContext
             .CreateHttpClientWithGraderConfig(partialSolveScore, graderKey)
             .PutAsync("/api/challenge/grade", submission.ToJsonBody())
-            .WithContentDeserializedAs<Challenge>();
+            .DeserializeResponseAs<Challenge>();
 
         // tricky to validate this - the endpoint is pinned to returning a challenge state, which doesn't include bonuses yet.
         // have to go to the DB to minimize false positives
-        var awardedBonus = await _testContext
-            .GetDbContext()
+        var dbContext = await _testContext.GetDbContext();
+        var awardedBonus = await dbContext
             .AwardedChallengeBonuses
             .Include(b => b.ChallengeBonus)
             .AsNoTracking()
@@ -256,17 +256,6 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
                 });
             });
 
-        var debug = await _testContext.GetDbContext()
-            .Games
-            .AsNoTracking()
-            .Where(g => g.Id == gameId)
-            .Include(g => g.Players)
-            .Include(g => g.Specs)
-                .ThenInclude(s => s.Bonuses)
-            .Include(g => g.Challenges)
-                .ThenInclude(c => c.AwardedBonuses)
-            .ToArrayAsync();
-
         var submission = fixture.Create<GameEngineSectionSubmission>();
         submission.Id = unawardedChallengeId;
 
@@ -274,12 +263,12 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
         await _testContext
             .CreateHttpClientWithGraderConfig(baseScore, graderKey)
             .PutAsync("/api/challenge/grade", submission.ToJsonBody())
-            .WithContentDeserializedAs<Api.Challenge>();
+            .DeserializeResponseAs<Api.Challenge>();
 
         // tricky to validate this - the endpoint is pinned to returning a challenge state, which doesn't include bonuses yet.
         // have to go to the DB to minimize false positives
-        var awardedBonus = await _testContext
-            .GetDbContext()
+        var dbContext = await _testContext.GetDbContext();
+        var awardedBonus = await dbContext
             .AwardedChallengeBonuses
             .Include(b => b.ChallengeBonus)
             .AsNoTracking()

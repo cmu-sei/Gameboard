@@ -6,6 +6,7 @@ using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.Extensions.Caching.Memory;
@@ -28,6 +29,7 @@ internal static class PlayerServiceTestHelpers
         IMediator? mediator = null,
         IMemoryCache? memCache = null,
         INowService? now = null,
+        IUserRolePermissionsService? permissionsService = null,
         IPlayerStore? playerStore = null,
         IPracticeService? practiceService = null,
         IScoringService? scoringService = null,
@@ -48,6 +50,7 @@ internal static class PlayerServiceTestHelpers
             mediator ?? A.Fake<IMediator>(),
             memCache ?? A.Fake<IMemoryCache>(),
             now ?? A.Fake<INowService>(),
+            permissionsService ?? A.Fake<IUserRolePermissionsService>(),
             playerStore ?? A.Fake<IPlayerStore>(),
             practiceService ?? A.Fake<IPracticeService>(),
             scoringService ?? A.Fake<IScoringService>(),

@@ -1,4 +1,5 @@
 using System.Net;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,8 +34,8 @@ public class PlayerControllerUpdatePlayerReadyTests : IClassFixture<GameboardTes
                 g.Id = gameId;
                 g.Name = fixture.Create<string>();
                 g.RequireSynchronizedStart = true;
-                g.Players = new List<Data.Player>
-                {
+                g.Players =
+                [
                     state.Build<Data.Player>(fixture, p =>
                     {
                         p.Id = notReadyPlayer1Id;
@@ -48,7 +49,7 @@ public class PlayerControllerUpdatePlayerReadyTests : IClassFixture<GameboardTes
                         p.Name = "not ready";
                         p.IsReady = false;
                     })
-                };
+                ];
             });
         });
 
@@ -60,8 +61,8 @@ public class PlayerControllerUpdatePlayerReadyTests : IClassFixture<GameboardTes
 
         // then
         // only way to validate is to check for an upcoming session for the game
-        var finalPlayer1 = await _testContext
-            .GetDbContext()
+        var dbContext = await _testContext.GetDbContext();
+        var finalPlayer1 = await dbContext
             .Players
             .SingleOrDefaultAsync(p => p.Id == notReadyPlayer1Id);
 
@@ -114,7 +115,7 @@ public class PlayerControllerUpdatePlayerReadyTests : IClassFixture<GameboardTes
         var gameSyncStartState = await _testContext
             .CreateHttpClientWithAuthRole(UserRole.Admin)
             .GetAsync($"/api/game/{gameId}/ready")
-            .WithContentDeserializedAs<SyncStartState>();
+            .DeserializeResponseAs<SyncStartState>();
 
         gameSyncStartState.ShouldNotBeNull();
         gameSyncStartState.IsReady.ShouldBeTrue();

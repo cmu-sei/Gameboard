@@ -13,26 +13,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Teams;
 
-internal class AdminEnrollTeamValidator : IGameboardRequestValidator<AdminEnrollTeamRequest>
+internal class AdminEnrollTeamValidator(
+    EntityExistsValidator<AdminEnrollTeamRequest, Data.Game> gameExists,
+    ISponsorService sponsorService,
+    IStore store,
+    IValidatorService<AdminEnrollTeamRequest> validator
+    ) : IGameboardRequestValidator<AdminEnrollTeamRequest>
 {
-    private readonly EntityExistsValidator<AdminEnrollTeamRequest, Data.Game> _gameExists;
-    private readonly ISponsorService _sponsorService;
-    private readonly IStore _store;
-    private readonly IValidatorService<AdminEnrollTeamRequest> _validator;
-
-    public AdminEnrollTeamValidator
-    (
-        EntityExistsValidator<AdminEnrollTeamRequest, Data.Game> gameExists,
-        ISponsorService sponsorService,
-        IStore store,
-        IValidatorService<AdminEnrollTeamRequest> validator
-    )
-    {
-        _gameExists = gameExists;
-        _sponsorService = sponsorService;
-        _store = store;
-        _validator = validator;
-    }
+    private readonly EntityExistsValidator<AdminEnrollTeamRequest, Data.Game> _gameExists = gameExists;
+    private readonly ISponsorService _sponsorService = sponsorService;
+    private readonly IStore _store = store;
+    private readonly IValidatorService<AdminEnrollTeamRequest> _validator = validator;
 
     public async Task Validate(AdminEnrollTeamRequest request, CancellationToken cancellationToken)
     {
@@ -40,7 +31,8 @@ internal class AdminEnrollTeamValidator : IGameboardRequestValidator<AdminEnroll
             throw new NotImplementedException($"This feature only allows registration for competitive games.");
 
         await _validator
-            .ConfigureAuthorization(c => c.RequirePermissions(PermissionKey.Teams_Enroll))
+            .Auth(c => c.RequirePermissions(PermissionKey.Teams_Enroll))
+            .AddValidator(_gameExists.UseProperty(r => r.GameId))
             .AddValidator(async (req, ctx) =>
             {
                 var gameInfo = await _store

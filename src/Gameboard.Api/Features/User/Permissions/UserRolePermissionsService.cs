@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,23 +11,27 @@ namespace Gameboard.Api.Features.Users;
 
 public interface IUserRolePermissionsService
 {
-    Task<IDictionary<UserRole, IEnumerable<PermissionKey>>> GetAllRolePermissions();
-    Task<IDictionary<PermissionKey, bool>> GetPermissions(UserRole role);
-    Task<IDictionary<PermissionKey, bool>> GetPermissions(string userId, CancellationToken cancellationToken);
+    Task<bool> Can(PermissionKey key);
+    bool IsActingUser(string userId);
+    Task<bool> IsActingUserAsync(string userId);
+    Task<IEnumerable<PermissionKey>> GetAllPermissions();
+    Task<IDictionary<UserRole, IEnumerable<PermissionKey>>> GetRolePermissionAssignments();
+    Task<IEnumerable<PermissionKey>> GetPermissions(UserRole? role);
+    Task<IEnumerable<PermissionKey>> GetPermissions(string userId, CancellationToken cancellationToken);
+    Task<IEnumerable<UserRole>> GetRolesWithPermission(PermissionKey key);
     Task<IEnumerable<UserRolePermission>> List();
-    UserRole ResolveSingle(UserRole role);
 }
 
-internal class UserRolePermissionsService(IStore _store) : IUserRolePermissionsService
+internal class UserRolePermissionsService(IActingUserService actingUserService, IUserRolePermissionsConfigurationService configurationService, IStore store) : IUserRolePermissionsService
 {
     private static readonly IEnumerable<UserRolePermission> _permissions =
     [
         new()
         {
             Group = PermissionKeyGroup.Admin,
-            Key = PermissionKey.Admin_View,
-            Name = "Admin Area",
-            Description = "Access the Admin area"
+            Key = PermissionKey.Admin_CreateApiKeys,
+            Name = "Manage API Keys",
+            Description = "Can generate API keys for any user and revoke their access"
         },
         new()
         {
@@ -34,6 +39,13 @@ internal class UserRolePermissionsService(IStore _store) : IUserRolePermissionsS
             Key = PermissionKey.Admin_CreateEditSponsors,
             Name = "Create/edit sponsors",
             Description = "Create and edit sponsor organizations"
+        },
+        new()
+        {
+            Group = PermissionKeyGroup.Admin,
+            Key = PermissionKey.Admin_View,
+            Name = "Admin Area",
+            Description = "Access the Admin area and various data about teams (even those you're not on)"
         },
         new()
         {
@@ -45,16 +57,23 @@ internal class UserRolePermissionsService(IStore _store) : IUserRolePermissionsS
         new()
         {
             Group = PermissionKeyGroup.Games,
-            Key = PermissionKey.Games_ConfigureChallenges,
-            Name = "Configure challenges",
-            Description = "Add and remove challenges from games and set their scoring properties"
+            Key = PermissionKey.Games_CreateEditDelete,
+            Name = "Create/edit/delete games",
+            Description = "Create, edit, and delete games. Add and remove challenges, set their scoring properties, and add manual bonuses."
         },
         new()
         {
             Group = PermissionKeyGroup.Games,
-            Key = PermissionKey.Games_CreateEditDelete,
-            Name = "Create/edit/delete games",
-            Description = "Create, edit, and delete games"
+            Key = PermissionKey.Games_ViewUnpublished,
+            Name = "View hidden games",
+            Description = "View games which have been hidden from players by their creator"
+        },
+        new()
+        {
+            Group = PermissionKeyGroup.Play,
+            Key = PermissionKey.Play_ChooseChallengeVariant,
+            Name = "Select challenge variants",
+            Description = "Choose any variant of a challenge when deploying (rather than random assignment)"
         },
         new()
         {
@@ -94,6 +113,13 @@ internal class UserRolePermissionsService(IStore _store) : IUserRolePermissionsS
         new()
         {
             Group = PermissionKeyGroup.Scoring,
+            Key = PermissionKey.Scores_RegradeAndRerank,
+            Name = "Regrade challenges",
+            Description = "Manually initiate regrading of challenges"
+        },
+        new()
+        {
+            Group = PermissionKeyGroup.Scoring,
             Key = PermissionKey.Scores_ViewLive,
             Name = "View scores live",
             Description = "View scores for all players and teams (even before the game has ended)"
@@ -111,6 +137,13 @@ internal class UserRolePermissionsService(IStore _store) : IUserRolePermissionsS
             Key = PermissionKey.Support_ManageTickets,
             Name = "Manage tickets",
             Description = "Manage, edit, assign, and respond to tickets"
+        },
+        new()
+        {
+            Group = PermissionKeyGroup.Support,
+            Key = PermissionKey.Support_ViewTickets,
+            Name = "View tickets",
+            Description = "View all tickets in the app"
         },
         new()
         {
@@ -157,107 +190,46 @@ internal class UserRolePermissionsService(IStore _store) : IUserRolePermissionsS
         new()
         {
             Group = PermissionKeyGroup.Users,
-            Key = PermissionKey.Users_Create,
+            Key = PermissionKey.Users_CreateEditDelete,
             Name = "Create users manually",
-            Description = "Create users manually (currently available only as an API call)"
+            Description = "Create and edit users manually (currently available only as an API call)"
         },
+        new()
+        {
+            Group = PermissionKeyGroup.Users,
+            Key = PermissionKey.Users_EditRoles,
+            Name = "Assign roles",
+            Description = "Assign roles to other users"
+        }
     ];
 
-    private static readonly IDictionary<UserRole, PermissionKey[]> _rolePermissions = new Dictionary<UserRole, PermissionKey[]>()
-    {
-        {
-            UserRole.Admin,
-            Enum.GetValues<PermissionKey>()
-        },
-        {
-            UserRole.Designer,
-            [
-                PermissionKey.Admin_View,
-                PermissionKey.Games_ConfigureChallenges,
-                PermissionKey.Games_CreateEditDelete,
-                PermissionKey.Play_IgnoreExecutionWindow,
-                PermissionKey.Play_IgnoreSessionResetSettings,
-                PermissionKey.Reports_View,
-                PermissionKey.Scores_ViewLive,
-                PermissionKey.Teams_Observe,
-            ]
-        },
-        {
-            UserRole.Director,
-            [
-                PermissionKey.Admin_View,
-                PermissionKey.Play_IgnoreExecutionWindow,
-                PermissionKey.Play_IgnoreSessionResetSettings,
-                PermissionKey.Reports_View,
-                PermissionKey.Scores_ViewLive,
-                PermissionKey.Teams_Observe
-            ]
-        },
-        {
-            UserRole.Observer,
-            [
-                PermissionKey.Admin_View,
-                PermissionKey.Scores_ViewLive,
-                PermissionKey.Teams_Observe,
-            ]
-        },
-        {
-            UserRole.Registrar,
-            [
-                PermissionKey.Admin_View,
-                PermissionKey.Games_AdminExternal,
-                PermissionKey.Play_IgnoreExecutionWindow,
-                PermissionKey.Play_IgnoreSessionResetSettings,
-                PermissionKey.Teams_ApproveNameChanges,
-                PermissionKey.Teams_EditSession,
-                PermissionKey.Teams_Enroll,
-                PermissionKey.Users_Create
-            ]
-        },
-        {
-            UserRole.Support,
-            [
-                PermissionKey.Admin_View,
-                PermissionKey.Games_AdminExternal,
-                PermissionKey.Reports_View,
-                PermissionKey.Scores_ViewLive,
-                PermissionKey.Support_EditSettings,
-                PermissionKey.Support_ManageTickets,
-                PermissionKey.SystemNotifications_CreateEdit,
-                PermissionKey.Teams_ApproveNameChanges,
-                PermissionKey.Teams_Enroll,
-            ]
-        },
-        {
-            UserRole.Tester,
-            [
-                PermissionKey.Admin_View,
-                PermissionKey.Games_AdminExternal,
-                PermissionKey.Play_IgnoreExecutionWindow,
-                PermissionKey.Play_IgnoreSessionResetSettings,
-                PermissionKey.Scores_ViewLive,
-                PermissionKey.Teams_ApproveNameChanges,
-                PermissionKey.Teams_Enroll,
-            ]
-        },
-        { UserRole.Member, Array.Empty<PermissionKey>() }
-    };
+    private readonly IUserRolePermissionsConfigurationService _configurationService = configurationService;
+    private readonly IStore _store = store;
 
-    public Task<IDictionary<PermissionKey, bool>> GetPermissions(UserRole role)
+    public async Task<bool> Can(PermissionKey key)
     {
-        var permissions = _rolePermissions[ResolveSingle(role)];
+        var actingUser = actingUserService.Get();
 
-        return Task.FromResult
-        (
-            Enum
-                .GetValues<PermissionKey>()
-                .Distinct()
-                .ToDictionary(p => p, p => permissions.Contains(p))
-                as IDictionary<PermissionKey, bool>
-        );
+        if (actingUser is null)
+            return false;
+
+        var rolePermissions = await GetPermissions(actingUserService.Get().Role);
+        return rolePermissions.Contains(key);
     }
 
-    public async Task<IDictionary<PermissionKey, bool>> GetPermissions(string userId, CancellationToken cancellationToken)
+    public Task<IEnumerable<PermissionKey>> GetAllPermissions()
+        => Task.FromResult<IEnumerable<PermissionKey>>(Enum.GetValues<PermissionKey>());
+
+    public Task<IEnumerable<PermissionKey>> GetPermissions(UserRole? role)
+    {
+        var permissions = Array.Empty<PermissionKey>() as IEnumerable<PermissionKey>;
+        if (role is not null)
+            permissions = _configurationService.GetConfiguration()[role.Value];
+
+        return Task.FromResult(permissions);
+    }
+
+    public async Task<IEnumerable<PermissionKey>> GetPermissions(string userId, CancellationToken cancellationToken)
     {
         var role = await _store
             .WithNoTracking<Data.User>()
@@ -267,47 +239,40 @@ internal class UserRolePermissionsService(IStore _store) : IUserRolePermissionsS
         return await GetPermissions(role);
     }
 
+    public bool IsActingUser(string userId)
+    {
+        var actingUser = actingUserService.Get();
+        return actingUser?.Id == userId;
+    }
+
+    public Task<bool> IsActingUserAsync(string userId)
+        => Task.FromResult(IsActingUser(userId));
+
     public Task<IEnumerable<UserRolePermission>> List()
         => Task.FromResult(_permissions);
 
-    public async Task<IDictionary<UserRole, IEnumerable<PermissionKey>>> GetAllRolePermissions()
+    public async Task<IDictionary<UserRole, IEnumerable<PermissionKey>>> GetRolePermissionAssignments()
     {
         var retVal = new Dictionary<UserRole, IEnumerable<PermissionKey>>();
 
         foreach (var role in Enum.GetValues<UserRole>())
         {
-            var rolePermissions = await GetPermissions(ResolveSingle(role));
-            retVal.Add(role, rolePermissions.Where(r => r.Value).Select(r => r.Key));
+            retVal.Add(role, await GetPermissions(role));
         }
 
         return retVal;
     }
 
-    /// <summary>
-    /// Hack until we decide the real hierarchy of roles
-    /// </summary>
-    /// <param name="role"></param>
-    /// <returns></returns>
-    public UserRole ResolveSingle(UserRole role)
+    public Task<IEnumerable<UserRole>> GetRolesWithPermission(PermissionKey key)
     {
-        if (role.HasFlag(UserRole.Admin))
-            return UserRole.Admin;
+        var config = _configurationService.GetConfiguration();
 
-        if (role.HasFlag(UserRole.Support))
-            return UserRole.Support;
-
-        if (role.HasFlag(UserRole.Tester))
-            return UserRole.Tester;
-
-        if (role.HasFlag(UserRole.Registrar))
-            return UserRole.Registrar;
-
-        if (role.HasFlag(UserRole.Designer))
-            return UserRole.Designer;
-
-        if (role.HasFlag(UserRole.Director))
-            return UserRole.Director;
-
-        return UserRole.Member;
+        return Task.FromResult
+        (
+            config
+                .Keys
+                .Where(k => config[k].Contains(key))
+                .ToArray() as IEnumerable<UserRole>
+        );
     }
 }

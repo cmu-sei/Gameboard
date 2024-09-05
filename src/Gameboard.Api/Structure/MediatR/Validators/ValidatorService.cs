@@ -76,7 +76,7 @@ public interface IValidatorService<TModel>
     IValidatorService<TModel> AddValidator(Action<TModel, RequestValidationContext> validationAction);
     IValidatorService<TModel> AddValidator(Func<TModel, RequestValidationContext, Task> validationTask);
     IValidatorService<TModel> AddValidator(IGameboardValidator<TModel> validator);
-    IValidatorService<TModel> ConfigureAuthorization(Action<IUserRolePermissionsValidator> configBuilder);
+    IValidatorService<TModel> Auth(Action<IUserRolePermissionsValidator> configBuilder);
     Task Validate(TModel model, CancellationToken cancellationToken);
 }
 
@@ -111,7 +111,7 @@ internal class ValidatorService<TModel>(IActingUserService actingUserService, Us
         return this;
     }
 
-    public IValidatorService<TModel> ConfigureAuthorization(Action<IUserRolePermissionsValidator> configBuilder)
+    public IValidatorService<TModel> Auth(Action<IUserRolePermissionsValidator> configBuilder)
     {
         ArgumentNullException.ThrowIfNull(configBuilder);
         configBuilder(_userRolePermissionsValidator);

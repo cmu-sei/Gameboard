@@ -16,7 +16,7 @@ internal class GetSubmissionsRequestValidator(
     public async Task Validate(GetSubmissionsQuery query, CancellationToken cancellationToken)
     {
         await _validatorService
-            .ConfigureAuthorization(a => a.RequirePermissions(Users.PermissionKey.Teams_Observe))
+            .Auth(a => a.RequirePermissions(Users.PermissionKey.Teams_Observe))
             .AddValidator(_challengeExists)
             .Validate(query, cancellationToken);
     }

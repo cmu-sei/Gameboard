@@ -29,7 +29,7 @@ internal class GetChallengeSpecQuestionPerformanceHandler(
     {
         // auth/validate
         await _validatorService
-            .ConfigureAuthorization(a => a.RequirePermissions(PermissionKey.Reports_View))
+            .Auth(a => a.RequirePermissions(PermissionKey.Reports_View))
             .AddValidator(_specExists.UseProperty(r => r.ChallengeSpecId))
             .Validate(request, cancellationToken);
 

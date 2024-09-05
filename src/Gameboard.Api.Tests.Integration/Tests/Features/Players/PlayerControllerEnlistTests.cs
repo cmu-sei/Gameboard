@@ -56,7 +56,7 @@ public class PlayerControllerEnlistTests : IClassFixture<GameboardTestContext>
                 PlayerId = joiningPlayerId,
                 UserId = joiningUserId
             }.ToJsonBody())
-            .WithContentDeserializedAs<Player>();
+            .DeserializeResponseAs<Player>();
 
         // the returned player should have the same teamId was the one held by the captain
         result.TeamId.ShouldBe(teamId);

@@ -38,7 +38,7 @@ internal class GetGamePlayStateHandler(
         var gameId = await _teamService.GetGameId(request.TeamId, cancellationToken);
 
         await _validatorService
-            .ConfigureAuthorization
+            .Auth
             (
                 config => config
                     .RequirePermissions(Users.PermissionKey.Admin_View)

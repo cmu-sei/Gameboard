@@ -63,7 +63,7 @@ internal class AdminEnrollTeamHandler : IRequestHandler<AdminEnrollTeamRequest, 
         var actingUser = _actingUserService.Get();
 
         // enlist all and retain the ids
-        string teamUpCode = null;
+        var teamUpCode = _guids.GetGuid();
         var createdPlayers = new List<Api.Player>();
         Api.Player captainPlayer = null;
 
@@ -76,11 +76,11 @@ internal class AdminEnrollTeamHandler : IRequestHandler<AdminEnrollTeamRequest, 
             if ((request.CaptainUserId.IsNotEmpty() && userId == request.CaptainUserId) || request.CaptainUserId.IsEmpty())
             {
                 captainPlayer = newPlayer;
-                teamUpCode = _guids.GetGuid();
+
                 await _store
                     .WithNoTracking<Data.Player>()
                     .Where(p => p.Id == captainPlayer.Id)
-                    .ExecuteUpdateAsync(up => up.SetProperty(p => p.InviteCode, teamUpCode));
+                    .ExecuteUpdateAsync(up => up.SetProperty(p => p.InviteCode, teamUpCode), cancellationToken);
             }
         }
 

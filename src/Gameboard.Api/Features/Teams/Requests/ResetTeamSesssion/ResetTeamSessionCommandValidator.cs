@@ -32,7 +32,7 @@ internal class ResetSessionCommandValidator : IGameboardRequestValidator<ResetTe
     public async Task Validate(ResetTeamSessionCommand request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .ConfigureAuthorization(config =>
+            .Auth(config =>
             {
                 config
                     .RequirePermissions(PermissionKey.Play_IgnoreSessionResetSettings)

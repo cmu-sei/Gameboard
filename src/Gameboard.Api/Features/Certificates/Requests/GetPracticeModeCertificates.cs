@@ -31,7 +31,7 @@ internal class GetPracticeModeCertificatesHandler : IRequestHandler<GetPracticeM
     public async Task<IEnumerable<PracticeModeCertificate>> Handle(GetPracticeModeCertificatesQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .ConfigureAuthorization
+            .Auth
             (
                 a => a
                     .RequirePermissions(Users.PermissionKey.Admin_View)

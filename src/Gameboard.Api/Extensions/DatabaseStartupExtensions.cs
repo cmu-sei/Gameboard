@@ -25,8 +25,9 @@ namespace Gameboard.Api.Extensions
             var services = scope.ServiceProvider;
             var config = services.GetRequiredService<IConfiguration>();
             var env = services.GetService<IWebHostEnvironment>();
+            var dbContextFactory = services.GetService<IDbContextFactory<GameboardDbContext>>();
 
-            using (var db = services.GetService<GameboardDbContext>())
+            using (var db = dbContextFactory.CreateDbContext())
             {
                 if (!db.Database.IsInMemory())
                     db.Database.Migrate();

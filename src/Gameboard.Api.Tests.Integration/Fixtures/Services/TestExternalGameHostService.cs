@@ -2,11 +2,11 @@ using Gameboard.Api.Features.Games.External;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
-internal class TestGamebrainService : IExternalGameHostService
+internal class TestExternalGameHostService : IExternalGameHostService
 {
     private readonly IHttpClientFactory _httpClientFactory;
 
-    public TestGamebrainService(IHttpClientFactory httpClientFactory)
+    public TestExternalGameHostService(IHttpClientFactory httpClientFactory)
     {
         _httpClientFactory = httpClientFactory;
     }

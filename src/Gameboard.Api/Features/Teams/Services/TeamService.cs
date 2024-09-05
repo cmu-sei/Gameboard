@@ -205,7 +205,7 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
         => _store.WithNoTracking<Data.Player>().AnyAsync(p => p.TeamId == teamId);
 
     public Task<string> GetGameId(string teamId, CancellationToken cancellationToken)
-        => GetGameId(new string[] { teamId }, cancellationToken);
+        => GetGameId([teamId], cancellationToken);
 
     public async Task<string> GetGameId(IEnumerable<string> teamIds, CancellationToken cancellationToken)
     {
@@ -368,7 +368,7 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
         var oldCaptain = teamPlayers.SingleOrDefault(p => p.Role == PlayerRole.Manager);
         var newCaptain = teamPlayers.Single(p => p.Id == newCaptainPlayerId);
 
-        using (var transaction = await _playerStore.DbContext.Database.BeginTransactionAsync())
+        await _store.DoTransaction(async dbContext =>
         {
             await _store
                 .WithNoTracking<Data.Player>()
@@ -386,9 +386,7 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
             // this automatically rolls back the transaction
             if (affectedPlayers != 1)
                 throw new PromotionFailed(teamId, newCaptainPlayerId, affectedPlayers);
-
-            await transaction.CommitAsync(cancellationToken);
-        }
+        }, cancellationToken);
 
         await _teamHubService.SendPlayerRoleChanged(_mapper.Map<Api.Player>(newCaptain), actingUser);
     }
@@ -452,7 +450,7 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
     }
 
     public Task SetSessionWindow(string teamId, CalculatedSessionWindow sessionWindow, CancellationToken cancellationToken)
-        => SetSessionWindow(new string[] { teamId }, sessionWindow, cancellationToken);
+        => SetSessionWindow([teamId], sessionWindow, cancellationToken);
 
     public async Task SetSessionWindow(IEnumerable<string> teamIds, CalculatedSessionWindow sessionWindow, CancellationToken cancellationToken)
     {
@@ -516,14 +514,6 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
             Actor = actor
         };
     }
-
-    // private async Task UpdateSessionEnd(string teamId, DateTimeOffset sessionEnd, CancellationToken cancellationToken)
-    // {
-    //     var currentSession = await GetSession(teamId, cancellationToken);
-    //     currentSession.End = sessionEnd;
-
-    //     await UpdateSession(teamId, currentSession, cancellationToken);
-    // }
 
     private string GetUserTeamIdsCacheKey(string userId)
         => $"UserTeamIds:{userId}";

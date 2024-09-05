@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Features.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -16,25 +17,19 @@ using Microsoft.Extensions.Logging;
 namespace Gameboard.Api.Hubs
 {
     [Authorize(AppConstants.HubPolicy)]
-    public class AppHub : Hub<IAppHubEvent>, IAppHubApi
+    public class AppHub(
+        ILogger<AppHub> logger,
+        IMapper mapper,
+        IUserRolePermissionsService permissionsService,
+        IPlayerStore playerStore
+        ) : Hub<IAppHubEvent>, IAppHubApi
     {
-        ILogger Logger { get; }
-        IPlayerStore PlayerStore { get; }
+        ILogger Logger { get; } = logger;
+        IPlayerStore PlayerStore { get; } = playerStore;
         internal static string ContextPlayerKey = "player";
 
-        private readonly IMapper _mapper;
-
-        public AppHub
-        (
-            ILogger<AppHub> logger,
-            IMapper mapper,
-            IPlayerStore playerStore
-        )
-        {
-            Logger = logger;
-            PlayerStore = playerStore;
-            _mapper = mapper;
-        }
+        private readonly IMapper _mapper = mapper;
+        private readonly IUserRolePermissionsService _permissionsService = permissionsService;
 
         public override Task OnConnectedAsync()
         {
@@ -55,7 +50,7 @@ namespace Gameboard.Api.Hubs
             if (string.IsNullOrEmpty(teamId))
                 return;
 
-            if (Context.User.IsInRole(UserRole.Support.ToString()))
+            if (await _permissionsService.Can(PermissionKey.Support_ManageTickets))
                 await Groups.AddToGroupAsync(Context.ConnectionId, AppConstants.InternalSupportChannel);
 
             // ensure the player is on the right team
@@ -63,11 +58,8 @@ namespace Gameboard.Api.Hubs
                 .AsNoTracking()
                 .ToArrayAsync();
 
-            var player = teamPlayers.FirstOrDefault(p => p.UserId == Context.UserIdentifier);
-
-            if (player is null)
-                throw new UserIsntOnTeam(Context.UserIdentifier, teamId);
-
+            var player = teamPlayers.FirstOrDefault(p => p.UserId == Context.UserIdentifier) ?? throw new UserIsntOnTeam(Context.UserIdentifier, teamId);
+            
             if (Context.Items[ContextPlayerKey] != null)
                 Context.Items.Remove(ContextPlayerKey);
 

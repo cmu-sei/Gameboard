@@ -42,7 +42,7 @@ internal class GetUserActiveChallengesHandler(
     {
         // validate
         await _validator
-            .ConfigureAuthorization
+            .Auth
             (
                 a => a
                     .RequirePermissions(PermissionKey.Teams_Observe)

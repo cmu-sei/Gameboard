@@ -16,6 +16,7 @@ using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Sponsors;
 using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Features.Users;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -32,6 +33,7 @@ public class PlayerService
     private readonly IMapper _mapper;
     private readonly IMediator _mediator;
     private readonly INowService _now;
+    private readonly IUserRolePermissionsService _permissionsService;
     private readonly IPracticeService _practiceService;
     private readonly IScoringService _scores;
     private readonly IStore _store;
@@ -57,6 +59,7 @@ public class PlayerService
         IMediator mediator,
         IMemoryCache memCache,
         INowService now,
+        IUserRolePermissionsService permissionsService,
         IPlayerStore playerStore,
         IPracticeService practiceService,
         IScoringService scores,
@@ -79,6 +82,7 @@ public class PlayerService
         _logger = logger;
         LocalCache = memCache;
         _mapper = mapper;
+        _permissionsService = permissionsService;
         PlayerStore = playerStore;
         _scores = scores;
         _store = store;
@@ -88,6 +92,7 @@ public class PlayerService
 
     public async Task<Player> Enroll(NewPlayer model, User actor, CancellationToken cancellationToken)
     {
+        var canIgnoreRegistrationRequirements = await _permissionsService.Can(PermissionKey.Play_IgnoreExecutionWindow);
         var game = await GameStore.Retrieve(model.GameId);
         var user = await _store
             .WithNoTracking<Data.User>()
@@ -105,7 +110,7 @@ public class PlayerService
         if (game.IsPracticeMode)
             return await RegisterPracticeSession(model, user, cancellationToken);
 
-        if (!game.RegistrationActive && !(actor.IsRegistrar || actor.IsTester || actor.IsAdmin))
+        if (!game.RegistrationActive && !canIgnoreRegistrationRequirements)
             throw new RegistrationIsClosed(model.GameId);
 
         // while this collection will always only contain the correct player records (because of the filtered include above),
@@ -159,13 +164,6 @@ public class PlayerService
         return playerIdWithUserId?.UserId;
     }
 
-    public async Task<Data.Player> RetrieveByUserId(string userId)
-    // TODO: possibly cache the opposite direction too
-        => await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => p.UserId == userId)
-            .FirstOrDefaultAsync();
-
     public async Task<Player> Retrieve(string id)
     {
         return _mapper.Map<Player>(await PlayerStore.Retrieve(id));
@@ -173,43 +171,47 @@ public class PlayerService
 
     public async Task<Player> Update(ChangedPlayer model, User actor, bool sudo = false)
     {
-        var entity = await PlayerStore.Retrieve(model.Id);
-        var prev = _mapper.Map<Player>(entity);
+        var player = await _store
+            .WithNoTracking<Data.Player>()
+            .SingleAsync(p => p.Id == model.Id);
+        var prev = _mapper.Map<Player>(player);
 
         if (!sudo)
         {
             _mapper.Map(
                 _mapper.Map<SelfChangedPlayer>(model),
-                entity
+                player
             );
-
-            // entity.NameStatus = entity.Name != entity.ApprovedName ? AppConstants.NameStatusPending : string.Empty;
         }
         else
         {
-            _mapper.Map(model, entity);
+            _mapper.Map(model, player);
         }
 
         // if manipulation of the names has caused Name to equal ApprovedName, clear any pending status
-        if (entity.Name == entity.ApprovedName && entity.NameStatus == AppConstants.NameStatusPending)
-            entity.NameStatus = string.Empty;
+        if (player.Name == player.ApprovedName && player.NameStatus == AppConstants.NameStatusPending)
+            player.NameStatus = string.Empty;
 
-        if (prev.Name != entity.Name)
+        if (prev.Name != player.Name)
         {
             // check uniqueness
             bool found = await PlayerStore.DbSet.AnyAsync(p =>
-                p.GameId == entity.GameId &&
-                p.TeamId != entity.TeamId &&
-                p.Name == entity.Name
+                p.GameId == player.GameId &&
+                p.TeamId != player.TeamId &&
+                p.Name == player.Name
             );
 
             if (found)
-                entity.NameStatus = AppConstants.NameStatusNotUnique;
+                player.NameStatus = AppConstants.NameStatusNotUnique;
         }
 
-        await PlayerStore.Update(entity);
-        await _hubBus.SendTeamUpdated(_mapper.Map<Player>(entity), actor);
-        return _mapper.Map<Player>(entity);
+        // save
+        await _store.SaveUpdate(player, CancellationToken.None);
+
+        // notify and return
+        var mappedDto = _mapper.Map<Player>(player);
+        await _hubBus.SendTeamUpdated(mappedDto, actor);
+        return mappedDto;
     }
 
     public async Task<Player> StartSession(SessionStartRequest model, User actor, bool sudo)
@@ -239,18 +241,12 @@ public class PlayerService
     public async Task<Player[]> List(PlayerDataFilter model, bool sudo = false)
     {
         if (!sudo && !model.WantsGame && !model.WantsTeam)
-            return Array.Empty<Player>();
+            return [];
 
         var q = BuildListQuery(model);
         var players = await _mapper.ProjectTo<Player>(q).ToArrayAsync();
         var queriedTeamIds = players.Select(p => p.TeamId).ToArray();
 
-        // We used to store the team's sponsors (technically, the logo files of their sponsors)
-        // in the players table as a delimited string column. This had the advantage of making it easy to pull back
-        // a team's logos alongside a player record (useful in some views), but resulted in the
-        // need to manually maintain the column and got complicated if the logo file changed or something.
-        // As part of our change to the Sponsor schema, we now just query player sponsors by team Id and 
-        // append logos here.
         var teamSponsors = await _store
             .WithNoTracking<Data.Player>()
                 .Include(p => p.Sponsor)
@@ -275,12 +271,9 @@ public class PlayerService
     public async Task<Standing[]> Standings(PlayerDataFilter model)
     {
         if (model.gid.IsEmpty())
-            return Array.Empty<Standing>();
+            return [];
 
-        model.Filter = model.Filter
-            .Append(PlayerDataFilter.FilterScoredOnly)
-            .ToArray();
-
+        model.Filter = [.. model.Filter, PlayerDataFilter.FilterScoredOnly];
         model.mode = PlayerMode.Competition.ToString();
         var q = BuildListQuery(model);
         var standings = await _mapper.ProjectTo<Standing>(q).ToArrayAsync();
@@ -444,7 +437,7 @@ public class PlayerService
 
     public async Task<Player> Enlist(PlayerEnlistment model, User actor, CancellationToken cancellationToken)
     {
-        var sudo = actor.IsRegistrar;
+        var canIgnoreRegistrationWindow = await _permissionsService.Can(PermissionKey.Play_IgnoreExecutionWindow);
 
         var player = await _store
             .WithTracking<Data.Player>()
@@ -474,18 +467,21 @@ public class PlayerService
 
         var game = await _store.SingleAsync<Data.Game>(manager.GameId, cancellationToken);
 
-        if (!sudo && !game.RegistrationActive)
+        if (!canIgnoreRegistrationWindow && !game.RegistrationActive)
             throw new RegistrationIsClosed(manager.GameId);
 
-        if (!sudo && manager.SessionBegin.Year > 1)
+        if (!canIgnoreRegistrationWindow && manager.SessionBegin.Year > 1)
             throw new RegistrationIsClosed(manager.GameId, "Registration begins in more than a year.");
 
-        if (!sudo && manager.Game.RequireSponsoredTeam && manager.SponsorId != player.SponsorId)
+        if (!canIgnoreRegistrationWindow && manager.Game.RequireSponsoredTeam && manager.SponsorId != player.SponsorId)
             throw new RequiresSameSponsor(manager.GameId, manager.Id, manager.Sponsor.Name, player.Id, player.Sponsor.Name);
 
-        int count = await PlayerStore.List().CountAsync(p => p.TeamId == manager.TeamId);
+        var count = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.TeamId == manager.TeamId)
+            .CountAsync(cancellationToken);
 
-        if (!sudo && manager.Game.AllowTeam && count >= manager.Game.MaxTeamSize)
+        if (manager.Game.AllowTeam && count >= manager.Game.MaxTeamSize)
             throw new TeamIsFull(manager.Id, count, manager.Game.MaxTeamSize);
 
         player.TeamId = manager.TeamId;
@@ -537,14 +533,14 @@ public class PlayerService
 
     public async Task<TeamChallenge[]> LoadChallengesForTeam(string teamId)
     {
-        return _mapper.Map<TeamChallenge[]>(await PlayerStore.ListTeamChallenges(teamId));
+        return await _mapper.ProjectTo<TeamChallenge>(_store.WithNoTracking<Data.Challenge>().Where(c => c.TeamId == teamId)).ToArrayAsync();
     }
 
-    public async Task<TeamSummary[]> LoadTeams(string id, bool sudo)
+    public async Task<TeamSummary[]> LoadGameTeamsMailMetadata(string gameId)
     {
         var players = await PlayerStore.List()
             .Include(p => p.Sponsor)
-            .Where(p => p.GameId == id)
+            .Where(p => p.GameId == gameId)
             .ToArrayAsync();
 
         var teams = players

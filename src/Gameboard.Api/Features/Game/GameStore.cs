@@ -11,8 +11,8 @@ namespace Gameboard.Api.Data;
 
 internal class GameStore : Store<Game>, IGameStore
 {
-    public GameStore(GameboardDbContext dbContext, IGuidService guids)
-        : base(dbContext, guids) { }
+    public GameStore(IDbContextFactory<GameboardDbContext> dbContextFactory, IGuidService guids)
+        : base(dbContextFactory, guids) { }
 
     public async Task<Game> Load(string id)
     {

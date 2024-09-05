@@ -8,22 +8,14 @@ namespace Gameboard.Api.Features.Teams;
 
 public record GetTeamQuery(string TeamId, User User) : IRequest<Team>;
 
-internal class GetTeamQueryHandler : IRequestHandler<GetTeamQuery, Team>
+internal class GetTeamQueryHandler(
+    TeamExistsValidator<GetTeamQuery> teamExists,
+    ITeamService teamService,
+    IValidatorService<GetTeamQuery> validatorService) : IRequestHandler<GetTeamQuery, Team>
 {
-    private readonly TeamExistsValidator<GetTeamQuery> _teamExists;
-    private readonly ITeamService _teamService;
-    private readonly IValidatorService<GetTeamQuery> _validatorService;
-
-    public GetTeamQueryHandler
-    (
-        TeamExistsValidator<GetTeamQuery> teamExists,
-        ITeamService teamService,
-        IValidatorService<GetTeamQuery> validatorService)
-    {
-        _teamExists = teamExists;
-        _teamService = teamService;
-        _validatorService = validatorService;
-    }
+    private readonly TeamExistsValidator<GetTeamQuery> _teamExists = teamExists;
+    private readonly ITeamService _teamService = teamService;
+    private readonly IValidatorService<GetTeamQuery> _validatorService = validatorService;
 
     public async Task<Team> Handle(GetTeamQuery request, CancellationToken cancellationToken)
     {

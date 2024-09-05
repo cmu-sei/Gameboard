@@ -65,7 +65,7 @@ public class ScoringControllerTeamChallengeSummaryTests : IClassFixture<Gameboar
         var result = await _testContext
             .CreateHttpClientWithActingUser(u => u.Id = enteringAdminId)
             .GetAsync($"api/challenge/{challengeId}/score")
-            .WithContentDeserializedAs<TeamChallengeScore>();
+            .DeserializeResponseAs<TeamChallengeScore>();
 
         // then
         result.ShouldNotBeNull();

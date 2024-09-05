@@ -27,7 +27,7 @@ internal class AddManualBonusValidator : IGameboardRequestValidator<AddManualBon
     public async Task Validate(AddManualBonusCommand request, CancellationToken cancellationToken)
     {
         _validatorService
-            .ConfigureAuthorization(c => c.RequirePermissions(PermissionKey.Scores_AwardManualBonuses))
+            .Auth(c => c.RequirePermissions(PermissionKey.Scores_AwardManualBonuses))
             .AddValidator((req, context) =>
             {
                 if ((req.ChallengeId.IsEmpty() && req.TeamId.IsEmpty()) || (req.ChallengeId.IsNotEmpty() && req.TeamId.IsNotEmpty()))

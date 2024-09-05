@@ -31,7 +31,7 @@ internal class GetChallengeSolutionGuideHandler : IRequestHandler<GetChallengeSo
     public async Task<ChallengeSolutionGuide> Handle(GetChallengeSolutionGuideQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .ConfigureAuthorization(config => config.RequireAuthentication())
+            .Auth(config => config.RequireAuthentication())
             .AddValidator(_challengeExists.UseProperty(r => r.ChallengeId))
             .Validate(request, cancellationToken);
 

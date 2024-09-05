@@ -1,3 +1,5 @@
+using Gameboard.Api.Data;
+
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
 public class TestAuthenticationUser

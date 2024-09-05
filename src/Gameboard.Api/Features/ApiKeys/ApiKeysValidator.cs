@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
@@ -10,10 +11,10 @@ namespace Gameboard.Api.Features.ApiKeys;
 public class ApiKeysValidator : IModelValidator
 {
     private readonly INowService _now;
-    private readonly IApiKeysStore _store;
+    private readonly IStore _store;
     private readonly UserValidator _userValidator;
 
-    public ApiKeysValidator(IApiKeysStore store, INowService now, UserValidator userValidator)
+    public ApiKeysValidator(IStore store, INowService now, UserValidator userValidator)
     {
         _now = now;
         _store = store;
@@ -45,7 +46,7 @@ public class ApiKeysValidator : IModelValidator
 
     private async Task _validate(DeleteApiKeyRequest request)
     {
-        if ((await _store.Exists(request.ApiKeyId)).Equals(false))
+        if (!await _store.AnyAsync<ApiKey>(k => k.Id == request.ApiKeyId, CancellationToken.None))
             throw new ResourceNotFound<ApiKey>(request.ApiKeyId);
     }
 

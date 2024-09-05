@@ -1,21 +1,20 @@
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Structure.MediatR;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.GameEngine;
 
 internal class GetGameStateValidator(
-    IHttpContextAccessor httpContextAccessor,
+    IActingUserService actingUserService,
     IPlayerStore playerStore,
     IValidatorService<GetGameStateQuery> validatorService
     ) : IGameboardRequestValidator<GetGameStateQuery>
 {
-    private readonly User _actingUser = httpContextAccessor.HttpContext.User.ToActor();
+    private readonly User _actingUser = actingUserService.Get();
     // TODO: replace playerstore with ITeamService
     private readonly IPlayerStore _playerStore = playerStore;
     private readonly IValidatorService<GetGameStateQuery> _validatorService = validatorService;
@@ -28,7 +27,7 @@ internal class GetGameStateValidator(
             .ToArrayAsync(cancellationToken);
 
         await _validatorService
-            .ConfigureAuthorization
+            .Auth
             (
                 a => a
                     .RequirePermissions(Users.PermissionKey.Admin_View)

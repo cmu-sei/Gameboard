@@ -44,7 +44,7 @@ internal class GetTeamScoreHandler : IRequestHandler<GetTeamScoreQuery, TeamScor
     public async Task<TeamScoreQueryResponse> Handle(GetTeamScoreQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .ConfigureAuthorization(config =>
+            .Auth(config =>
             {
                 config
                     .RequirePermissions(PermissionKey.Scores_ViewLive)

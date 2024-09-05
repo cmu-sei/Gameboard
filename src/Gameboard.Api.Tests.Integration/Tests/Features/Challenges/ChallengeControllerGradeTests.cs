@@ -65,11 +65,11 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
                 SectionIndex = 0,
                 Questions = new GameEngineAnswerSubmission { Answer = "test" }.ToEnumerable()
             }.ToJsonBody())
-            .WithContentDeserializedAs<Challenge>();
+            .DeserializeResponseAs<Challenge>();
 
         // then the players table should have the expected properties set
-        var player = await _testContext
-            .GetDbContext()
+        var dbContext = await _testContext.GetDbContext();
+        var player = await dbContext
             .Players
             .AsNoTracking()
             .Where(p => p.TeamId == teamId)
@@ -79,8 +79,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
         player.Score.ShouldBe(100);
 
         // and also the challenge should have a grading event
-        var events = await _testContext
-            .GetDbContext()
+        var events = await dbContext
             .ChallengeEvents
             .AsNoTracking()
             .Where(e => e.ChallengeId == challengeId && e.Type == ChallengeEventType.Submission)
@@ -153,7 +152,8 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
 
         await http.PutAsync("/api/challenge/grade", submission.ToJsonBody());
 
-        var challengeEvents = await _testContext.GetDbContext()
+        var dbContext = await _testContext.GetDbContext();
+        var challengeEvents = await dbContext
             .ChallengeEvents
             .AsNoTracking()
             .Where(ev => ev.ChallengeId == challengeId)
@@ -197,8 +197,8 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
                     new()
                     {
                         Id = fixture.Create<string>(),
-                        Challenges = new List<Data.Challenge>
-                        {
+                        Challenges =
+                        [
                             new()
                             {
                                 Id = challengeId,
@@ -208,7 +208,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
                                 SpecId = challengeSpecId,
                                 GameId = gameId
                             }
-                        },
+                        ],
                         SponsorId = sponsorId,
                         User = state.Build<Data.User>(fixture, u => u.Id = userId)
                     }
@@ -232,7 +232,8 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
         var result = await http.PutAsync("/api/challenge/grade", submission.ToJsonBody());
         result.IsSuccessStatusCode.ShouldBeFalse();
 
-        var challengeEvents = await _testContext.GetDbContext()
+        var dbContext = await _testContext.GetDbContext();
+        var challengeEvents = await dbContext
             .ChallengeEvents
             .AsNoTracking()
             .Where(ev => ev.ChallengeId == challengeId)

@@ -12,11 +12,6 @@ namespace Gameboard.Api
         internal MissingRequiredInput(string inputName, T input) : base($"""Your input for "{inputName}" was either missing or incorrectly formed (found \"{input}\").""") { }
     }
 
-    internal class AdminImpersonationFail : GameboardException
-    {
-        internal AdminImpersonationFail(string userId, UserRole roles) : base($"Acting user {userId} attempted to execute this request as an admin but is not one (roles: {roles})") { }
-    }
-
     internal class AlreadyRegistered : GameboardValidationException
     {
         internal AlreadyRegistered(string userId, string gameId) : base($"Player {userId} is already registered for game {gameId}.") { }
@@ -32,10 +27,7 @@ namespace Gameboard.Api
         internal InvalidParameterValue(string parameterName, string ruleDescription, T value) : base($"""Parameter "{parameterName}" requires a value which complies with: "{ruleDescription}". Its value was "{value}". """) { }
     }
 
-    internal class MissingRequiredDate : GameboardValidationException
-    {
-        public MissingRequiredDate(string propertyName) : base($"The date property {propertyName} is required.") { }
-    }
+    internal class MissingRequiredDate(string propertyName) : GameboardValidationException($"The date property {propertyName} is required.") { }
 
     internal class NotYetRegistered : GameboardException
     {

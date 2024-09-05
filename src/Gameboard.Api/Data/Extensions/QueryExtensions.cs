@@ -32,8 +32,8 @@ public static class QueryExtensions
 
     private static IQueryable<T> WhereDate<T>(IQueryable<T> query, Expression<Func<T, DateTimeOffset>> dateExpression, bool isEmpty) where T : class
     {
-        if (dateExpression == null)
-            throw new ArgumentNullException(nameof(dateExpression));
+        ArgumentNullException.ThrowIfNull(dateExpression);
+
         if (dateExpression.Body is not MemberExpression)
             throw new ArgumentException($"Can't use this extension with a {nameof(dateExpression)} argument which has a {nameof(dateExpression.Body)} property of a type not equal to {nameof(MemberExpression)}.");
 

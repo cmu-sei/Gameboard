@@ -8,20 +8,13 @@ using Gameboard.Api.Data;
 namespace Gameboard.Api.Features.Extensions;
 
 [DontBindForDI]
-internal class MattermostExtensionService : IExtensionService
+internal class MattermostExtensionService(
+    Extension extension,
+    IHttpClientFactory httpClientFactory
+    ) : IExtensionService
 {
-    private readonly Extension _extension;
-    private readonly IHttpClientFactory _httpClientFactory;
-
-    public MattermostExtensionService
-    (
-        Extension extension,
-        IHttpClientFactory httpClientFactory
-    )
-    {
-        _extension = extension;
-        _httpClientFactory = httpClientFactory;
-    }
+    private readonly Extension _extension = extension;
+    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
 
     public Task NotifyScored(ExtensionMessage message)
         => PostTo("posts", message);

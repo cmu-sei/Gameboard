@@ -4,7 +4,9 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using Gameboard.Api;
 using Gameboard.Api.Data;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -14,20 +16,22 @@ public static class DataStartupExtensions
     public static IServiceCollection AddGameboardData
     (
         this IServiceCollection services,
-        string provider,
-        string connstr
+        IWebHostEnvironment environment,
+        DatabaseOptions dbOptions
     )
     {
-        switch (provider.ToLower())
+        if (!environment.IsTest() && dbOptions.Provider.IsEmpty())
+        {
+            throw new Exception($"Can't start Gameboard without a storage provider.");
+        }
+
+        switch (dbOptions.Provider.ToLower())
         {
             case "sqlserver":
-                services.AddDbContext<GameboardDbContext, GameboardDbContextSqlServer>(builder => builder.UseSqlServer(connstr));
+                services.AddDbContextFactory<GameboardDbContext>(builder => builder.UseSqlServer(dbOptions.ConnectionString));
                 break;
             case "postgresql":
-                services.AddDbContext<GameboardDbContext, GameboardDbContextPostgreSQL>(builder => builder.UseNpgsql(connstr));
-                break;
-            default:
-                services.AddDbContext<GameboardDbContext, GameboardDbContextInMemory>(builder => builder.UseInMemoryDatabase("Gameboard_Db"));
+                services.AddDbContextFactory<GameboardDbContext>(builder => builder.UseNpgsql(dbOptions.ConnectionString));
                 break;
         }
 

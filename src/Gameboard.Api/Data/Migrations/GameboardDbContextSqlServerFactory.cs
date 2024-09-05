@@ -22,7 +22,7 @@ public class GameboardDbContextSqlServerFactory : IDesignTimeDbContextFactory<Ga
 
     public GameboardDbContextSqlServer CreateDbContext(string[] args)
     {
-        var optionsBuilder = new DbContextOptionsBuilder<GameboardDbContextSqlServer>();
+        var optionsBuilder = new DbContextOptionsBuilder<GameboardDbContext>();
         optionsBuilder.UseSqlServer();
 
         return new GameboardDbContextSqlServer(null, optionsBuilder.Options, _env);

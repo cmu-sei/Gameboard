@@ -46,7 +46,7 @@ internal class GetGameCenterContextHandler : IRequestHandler<GetGameCenterContex
     public async Task<GameCenterContext> Handle(GetGameCenterContextQuery request, CancellationToken cancellationToken)
     {
         await _validator
-            .ConfigureAuthorization(config => config.RequirePermissions(PermissionKey.Admin_View))
+            .Auth(config => config.RequirePermissions(PermissionKey.Admin_View))
             .AddValidator(_gameExists.UseProperty(r => r.GameId))
             .Validate(request, cancellationToken);
 

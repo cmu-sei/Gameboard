@@ -3,20 +3,31 @@
 
 using System;
 using System.Security.Claims;
+using System.Threading.Tasks;
+using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.Auth;
 
 namespace Gameboard.Api;
 
-public static class ClaimsPrincipalExtension
+public static class ClaimsPrincipalExtensions
 {
-    public static User ToActor(this ClaimsPrincipal principal)
+    public static async Task<User> ToActor(this ClaimsPrincipal principal, IUserRolePermissionsService userRolePermissionsService)
     {
+        // the user could be anon and therefore have no role claim (we distinguish "member" from "unauthed")
+        var finalRole = default(UserRole?);
+        var roleString = principal.FindFirstValue(AppConstants.RoleClaimName);
+
+        if (Enum.TryParse<UserRole>(roleString, out var role))
+            finalRole = role;
+
         return new User
         {
             Id = principal.Subject(),
             Name = principal.FindFirstValue(AppConstants.NameClaimName),
             ApprovedName = principal.FindFirstValue(AppConstants.ApprovedNameClaimName),
-            Role = Enum.Parse<UserRole>(principal.FindFirstValue(AppConstants.RoleListClaimName) ?? UserRole.Member.ToString()),
+            Role = finalRole,
+            RolePermissions = await userRolePermissionsService.GetPermissions(role),
             SponsorId = principal.FindFirstValue(AppConstants.SponsorClaimName)
         };
     }

@@ -131,7 +131,7 @@ internal class ExternalGameHostService : IExternalGameHostService
         _logger.LogInformation($"Posting startup data to to the external game host at {client.BaseAddress}/{config.StartupEndpoint}: {_jsonService.Serialize(metaData)}");
         var teamConfigResponse = await client
             .PostAsJsonAsync(config.StartupEndpoint, metaData, cancellationToken)
-            .WithContentDeserializedAs<IDictionary<string, string>>();
+            .DeserializeResponseAs<IDictionary<string, string>>();
         _logger.LogInformation($"Posted startup data. External host's response: {_jsonService.Serialize(teamConfigResponse)} ");
 
         _logger.LogInformation($"Updating external host URLs for {teamConfigResponse.Keys.Count} teams...");

@@ -49,10 +49,11 @@ public class PlayerServiceEnrollTests
             UserId = userId,
         };
 
-        var actor = new Api.User
+        var actor = new User
         {
             Id = userId,
             Role = UserRole.Member,
+            RolePermissions = [],
         };
 
         // when/then
@@ -105,10 +106,11 @@ public class PlayerServiceEnrollTests
             UserId = userId,
         };
 
-        var actor = new Api.User
+        var actor = new User
         {
             Id = userId,
             Role = UserRole.Member,
+            RolePermissions = []
         };
 
         // when/then

@@ -1,23 +1,28 @@
 using System.Collections.Generic;
+using Gameboard.Api.Data;
 using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.Users;
 
 public enum PermissionKey
 {
+    Admin_CreateApiKeys,
     Admin_CreateEditSponsors,
     Admin_View,
     Games_AdminExternal,
-    Games_ConfigureChallenges,
     Games_CreateEditDelete,
+    Games_ViewUnpublished,
+    Play_ChooseChallengeVariant,
     Play_IgnoreSessionResetSettings,
     Play_IgnoreExecutionWindow,
     Practice_EditSettings,
     Reports_View,
     Scores_AwardManualBonuses,
+    Scores_RegradeAndRerank,
     Scores_ViewLive,
     Support_EditSettings,
     Support_ManageTickets,
+    Support_ViewTickets,
     SystemNotifications_CreateEdit,
     Teams_ApproveNameChanges,
     Teams_DeployGameResources,
@@ -25,7 +30,8 @@ public enum PermissionKey
     Teams_Enroll,
     Teams_Observe,
     Teams_SendAnnouncements,
-    Users_Create
+    Users_CreateEditDelete,
+    Users_EditRoles
 }
 
 public enum PermissionKeyGroup

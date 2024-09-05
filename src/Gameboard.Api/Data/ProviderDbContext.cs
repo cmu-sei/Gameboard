@@ -7,20 +7,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data;
 
-public class GameboardDbContextInMemory : GameboardDbContext
-{
-    public GameboardDbContextInMemory(IServiceProvider serviceProvider, DbContextOptions<GameboardDbContextInMemory> options, IWebHostEnvironment env)
-        : base(serviceProvider, options, env) { }
-}
+public class GameboardDbContextInMemory(IServiceProvider serviceProvider, DbContextOptions<GameboardDbContext> options, IWebHostEnvironment env)
+    : GameboardDbContext(serviceProvider, options, env)
+{ }
 
-public class GameboardDbContextSqlServer : GameboardDbContext
-{
-    public GameboardDbContextSqlServer(IServiceProvider serviceProvider, DbContextOptions<GameboardDbContextSqlServer> options, IWebHostEnvironment env)
-        : base(serviceProvider, options, env) { }
-}
+public class GameboardDbContextSqlServer(IServiceProvider serviceProvider, DbContextOptions<GameboardDbContext> options, IWebHostEnvironment env)
+    : GameboardDbContext(serviceProvider, options, env)
+{ }
 
-public class GameboardDbContextPostgreSQL : GameboardDbContext
-{
-    public GameboardDbContextPostgreSQL(IServiceProvider serviceProvider, DbContextOptions<GameboardDbContextPostgreSQL> options, IWebHostEnvironment env)
-        : base(serviceProvider, options, env) { }
-}
+public class GameboardDbContextPostgreSQL(IServiceProvider serviceProvider, DbContextOptions<GameboardDbContext> options, IWebHostEnvironment env)
+    : GameboardDbContext(serviceProvider, options, env)
+{ }

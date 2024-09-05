@@ -26,12 +26,16 @@ internal class UserRolePermissionsValidator(IUserRolePermissionsService userRole
 
     internal async Task<IEnumerable<GameboardValidationException>> GetAuthValidationExceptions(User user)
     {
-        if (_requireAuthentication && (user is null || !user.Role.HasFlag(UserRole.Member)))
+        if (_requireAuthentication && user is null)
             throw new UnauthorizedAccessException($"This operation requires authentication.");
 
         // if there are no required permissions, validation always passes
         if (_requiredPermissions is not null && _requiredPermissions.Any())
         {
+            // if the user doesn't have a role, this won't work
+            if (user.Role is null)
+                throw new UnauthorizedAccessException("This operation requires a role.");
+
             // if the user is on the whitelist, let em through
             if (_unlessUserIdIn is not null && _unlessUserIdIn.Any(uId => uId == user.Id))
                 return [];
@@ -49,13 +53,13 @@ internal class UserRolePermissionsValidator(IUserRolePermissionsService userRole
 
             // otherwise, check their role to see if it has the permissions needed
             var permissions = await _userRolePermissionsService.GetPermissions(user.Role);
-            var missingPermissions = _requiredPermissions.Where(p => !permissions[p]);
+            var missingPermissions = _requiredPermissions.Where(p => !permissions.Contains(p));
 
             var retVal = new List<GameboardValidationException>();
 
             if (missingPermissions.Any())
             {
-                retVal.Add(new UserRolePermissionException(user.Role, missingPermissions));
+                retVal.Add(new UserRolePermissionException(user.Role.Value, missingPermissions));
 
                 if (_unless is not null && _unlessException is not null)
                 {

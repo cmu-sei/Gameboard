@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
@@ -25,7 +26,7 @@ internal class DeleteSystemNotificationHandler(
     {
         // validate/authorize
         await _validatorService
-            .ConfigureAuthorization(a => a.RequirePermissions(Users.PermissionKey.SystemNotifications_CreateEdit))
+            .Auth(a => a.RequirePermissions(PermissionKey.SystemNotifications_CreateEdit))
             .AddValidator(_notificationExists.UseProperty(r => r.SystemNotificationId))
             .Validate(request, cancellationToken);
 

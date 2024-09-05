@@ -4,6 +4,8 @@ using System.Dynamic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,25 +18,6 @@ namespace Gameboard.Api.Controllers
     [Authorize]
     public class ReportsV1Controller : _Controller
     {
-        public ReportsV1Controller(
-            ILogger<ReportsV1Controller> logger,
-            IDistributedCache cache,
-            ReportServiceLegacy service,
-            GameService gameService,
-            ChallengeSpecService challengeSpecService,
-            FeedbackService feedbackService,
-            TicketService ticketService,
-            Defaults defaults
-        ) : base(logger, cache)
-        {
-            Service = service;
-            GameService = gameService;
-            FeedbackService = feedbackService;
-            ChallengeSpecService = challengeSpecService;
-            TicketService = ticketService;
-            Defaults = defaults;
-        }
-
         ReportServiceLegacy Service { get; }
         GameService GameService { get; }
         FeedbackService FeedbackService { get; }
@@ -42,14 +25,36 @@ namespace Gameboard.Api.Controllers
         TicketService TicketService { get; }
         Defaults Defaults { get; }
 
+        private readonly IUserRolePermissionsService _permissionsService;
+
+        public ReportsV1Controller(
+            IActingUserService actingUserService,
+            ILogger<ReportsV1Controller> logger,
+            IDistributedCache cache,
+            ReportServiceLegacy service,
+            GameService gameService,
+            ChallengeSpecService challengeSpecService,
+            FeedbackService feedbackService,
+            IUserRolePermissionsService permissionsService,
+            TicketService ticketService,
+            Defaults defaults
+        ) : base(actingUserService, logger, cache)
+        {
+            Service = service;
+            GameService = gameService;
+            FeedbackService = feedbackService;
+            ChallengeSpecService = challengeSpecService;
+            TicketService = ticketService;
+            Defaults = defaults;
+
+            _permissionsService = permissionsService;
+        }
+
         [HttpGet("/api/report/userstats")]
         [Authorize]
         public async Task<ActionResult<UserReport>> GetUserStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             return Ok(await Service.GetUserStats());
         }
 
@@ -62,17 +67,17 @@ namespace Gameboard.Api.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportUserStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
 
             var result = await Service.GetUserStats();
 
-            List<Tuple<string, string>> userStats = new List<Tuple<string, string>>();
-            userStats.Add(new Tuple<string, string>("Category", "Total"));
-            userStats.Add(new Tuple<string, string>("Users Enrolled", result.EnrolledUserCount.ToString()));
-            userStats.Add(new Tuple<string, string>("Users Not Enrolled", result.UnenrolledUserCount.ToString()));
-            userStats.Add(new Tuple<string, string>("Total User Count", (result.EnrolledUserCount + result.UnenrolledUserCount).ToString()));
+            var userStats = new List<Tuple<string, string>>
+            {
+                new("Category", "Total"),
+                new("Users Enrolled", result.EnrolledUserCount.ToString()),
+                new("Users Not Enrolled", result.UnenrolledUserCount.ToString()),
+                new("Total User Count", (result.EnrolledUserCount + result.UnenrolledUserCount).ToString())
+            };
 
             return File(
                 Service.ConvertToBytes(userStats),
@@ -84,10 +89,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<PlayerReport>> GetPlayerStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             return Ok(await Service.GetPlayerStats());
         }
 
@@ -100,13 +102,10 @@ namespace Gameboard.Api.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportPlayerStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             var result = await Service.GetPlayerStats();
 
-            List<Tuple<string, string, string>> playerStats = new List<Tuple<string, string, string>>();
+            List<Tuple<string, string, string>> playerStats = new();
             playerStats.Add(new Tuple<string, string, string>("Game", "Player Count", "Players with Sessions Count"));
 
             foreach (PlayerStat playerStat in result.Stats)
@@ -124,10 +123,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<SponsorReport>> GetSponsorStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             return Ok(await Service.GetSponsorStats());
         }
 
@@ -135,14 +131,13 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<SponsorReport>> ExportSponsorStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             var result = await Service.GetSponsorStats();
 
-            List<Tuple<string, string>> sponsorStats = new List<Tuple<string, string>>();
-            sponsorStats.Add(new Tuple<string, string>("Name", "User Count"));
+            var sponsorStats = new List<Tuple<string, string>>
+            {
+                new("Name", "User Count")
+            };
 
             foreach (SponsorStat sponsorStat in result.Stats)
             {
@@ -159,10 +154,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<GameSponsorReport>> GetGameSponsorsStats([FromRoute] string id)
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             return Ok(await Service.GetGameSponsorsStats(id));
         }
 
@@ -170,9 +162,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<GameSponsorReport>> ExportGameSponsorsStats([FromRoute] string id)
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
 
             var result = await Service.GetGameSponsorsStats(id);
             var game = await GameService.Retrieve(id);
@@ -184,7 +174,7 @@ namespace Gameboard.Api.Controllers
 
             if (game.MaxTeamSize > 1)
             {
-                List<Tuple<string, string, string>> gameSponsorStats = new List<Tuple<string, string, string>>();
+                List<Tuple<string, string, string>> gameSponsorStats = new();
                 gameSponsorStats.Add(new Tuple<string, string, string>("Board:", game.Name, ""));
                 gameSponsorStats.Add(new Tuple<string, string, string>("", "", ""));
                 gameSponsorStats.Add(new Tuple<string, string, string>("Name", "Player Count", "Team Count"));
@@ -205,10 +195,12 @@ namespace Gameboard.Api.Controllers
             }
             else
             {
-                List<Tuple<string, string>> gameSponsorStats = new List<Tuple<string, string>>();
-                gameSponsorStats.Add(new Tuple<string, string>("Board:", game.Name));
-                gameSponsorStats.Add(new Tuple<string, string>("", ""));
-                gameSponsorStats.Add(new Tuple<string, string>("Name", "Player Count"));
+                var gameSponsorStats = new List<Tuple<string, string>>
+                {
+                    new("Board:", game.Name),
+                    new(string.Empty, string.Empty),
+                    new("Name", "Player Count")
+                };
 
                 foreach (GameSponsorStat gameSponsorStat in result.Stats)
                 {
@@ -229,10 +221,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<ChallengeReport>> GetChallengeStats([FromRoute] string id)
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             return Ok(await Service.GetChallengeStats(id));
         }
 
@@ -245,10 +234,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ChallengeDetailReport> GetChallengeDetails([FromRoute] string id)
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             return await Service.GetChallengeDetails(id);
         }
 
@@ -262,10 +248,7 @@ namespace Gameboard.Api.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportChallengeStats([FromRoute] string id)
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             var result = await Service.GetChallengeStats(id);
             var game = await GameService.Retrieve(id);
 
@@ -274,7 +257,7 @@ namespace Gameboard.Api.Controllers
                 return NotFound();
             }
 
-            List<ChallengeStatsExport> challengeStats = new List<ChallengeStatsExport>();
+            List<ChallengeStatsExport> challengeStats = new();
             challengeStats.Add(new ChallengeStatsExport
             {
                 GameName = "Game",
@@ -320,9 +303,7 @@ namespace Gameboard.Api.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportChallengeDetails([FromRoute] string id)
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
 
             var result = await Service.GetChallengeStats(id);
             var game = await GameService.Retrieve(id);
@@ -332,7 +313,7 @@ namespace Gameboard.Api.Controllers
                 return NotFound();
             }
 
-            List<ChallengeDetailsExport> challengeDetails = new List<ChallengeDetailsExport>();
+            List<ChallengeDetailsExport> challengeDetails = new();
             challengeDetails.Add(new ChallengeDetailsExport
             {
                 GameName = "Game",
@@ -378,9 +359,7 @@ namespace Gameboard.Api.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportFeedbackDetails([FromQuery] FeedbackSearchParams model)
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
 
             // gameId must be specified, even for challenge feedback, since template is stored in Game
             var game = await GameService.Retrieve(model.GameId);
@@ -414,11 +393,11 @@ namespace Gameboard.Api.Controllers
                 results.Add(feedbackRow);
             }
 
-            string challengeTag = "";
+            var challengeTag = string.Empty;
             if (model.WantsSpecificChallenge)
                 challengeTag = (await ChallengeSpecService.Retrieve(model.ChallengeSpecId))?.Tag ?? "";
 
-            string filename = Service.GetFeedbackFilename(game.Name, model.WantsGame, model.WantsSpecificChallenge, challengeTag, false);
+            var filename = Service.GetFeedbackFilename(game.Name, model.WantsGame, model.WantsSpecificChallenge, challengeTag, false);
 
             return File(
                 Service.ConvertToBytes(results),
@@ -436,9 +415,7 @@ namespace Gameboard.Api.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportFeedbackStats([FromQuery] FeedbackSearchParams model)
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
 
             // gameId must be specified, even for challenge feedback, since template is stored in Game
             var game = await GameService.Retrieve(model.GameId);
@@ -473,9 +450,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<FeedbackStats>> GetFeedbackStats([FromQuery] FeedbackSearchParams model)
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
 
             // gameId must be specified, even for challenge feedback, since template is stored in Game
             var game = await GameService.Retrieve(model.GameId);
@@ -519,36 +494,23 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<TicketDayReport>> GetTicketVolumeStats([FromQuery] TicketReportFilter model)
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
-            var tickets = await Service.GetTicketVolume(model);
-
-            return Ok(tickets);
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
+            return Ok(await Service.GetTicketVolume(model));
         }
 
         [HttpGet("/api/report/supportlabelstats")]
         [Authorize]
         public async Task<ActionResult<TicketLabelGroup[]>> GetTicketLabelStats([FromQuery] TicketReportFilter model)
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
-            var tickets = await Service.GetTicketLabels(model);
-
-            return Ok(tickets);
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
+            return Ok(await Service.GetTicketLabels(model));
         }
 
         [HttpGet("/api/report/supportchallengestats")]
         [Authorize]
         public async Task<ActionResult<TicketChallengeGroup[]>> GetTicketChallengeStats([FromQuery] TicketReportFilter model)
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             var tickets = await Service.GetTicketChallenges(model);
 
             return Ok(tickets);
@@ -565,29 +527,28 @@ namespace Gameboard.Api.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportTicketDetails([FromQuery] TicketReportFilter model)
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             var result = await Service.GetTicketDetails(model, Actor.Id);
 
-            List<TicketDetailsExport> ticketDetails = new List<TicketDetailsExport>();
-            ticketDetails.Add(new TicketDetailsExport
-            {
-                Key = "Key",
-                Summary = "Summary",
-                Description = "Description",
-                Challenge = "Challenge",
-                GameSession = "Game Session",
-                Team = "Team",
-                Assignee = "Assignee",
-                Requester = "Requester",
-                Creator = "Creator",
-                Created = "Created",
-                LastUpdated = "Last Updated",
-                Label = "Label",
-                Status = "Status"
-            });
+            List<TicketDetailsExport> ticketDetails =
+            [
+                new TicketDetailsExport
+                {
+                    Key = "Key",
+                    Summary = "Summary",
+                    Description = "Description",
+                    Challenge = "Challenge",
+                    GameSession = "Game Session",
+                    Team = "Team",
+                    Assignee = "Assignee",
+                    Requester = "Requester",
+                    Creator = "Creator",
+                    Created = "Created",
+                    LastUpdated = "Last Updated",
+                    Label = "Label",
+                    Status = "Status"
+                },
+            ];
 
             foreach (TicketDetail detail in result)
             {
@@ -636,9 +597,7 @@ namespace Gameboard.Api.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportTicketDayStats([FromQuery] TicketReportFilter model)
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
 
             var result = await Service.GetTicketVolume(model);
 
@@ -715,13 +674,10 @@ namespace Gameboard.Api.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportTicketLabelStats([FromQuery] TicketReportFilter model)
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             var result = await Service.GetTicketLabels(model);
 
-            List<Tuple<string, string>> labelStats = new List<Tuple<string, string>>();
+            List<Tuple<string, string>> labelStats = new();
             labelStats.Add(new Tuple<string, string>("Label", "Count"));
 
             foreach (TicketLabelGroup group in result)
@@ -744,13 +700,10 @@ namespace Gameboard.Api.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportTicketChallengeStats([FromQuery] TicketReportFilter model)
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             var result = await Service.GetTicketChallenges(model);
 
-            List<Tuple<string, string, string>> challengeStats = new List<Tuple<string, string, string>>();
+            List<Tuple<string, string, string>> challengeStats = new();
             challengeStats.Add(new Tuple<string, string, string>("Challenge", "Tag", "Count"));
 
             foreach (TicketChallengeGroup group in result)
@@ -769,10 +722,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<SeriesReport>> GetSeriesStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             return Ok(await Service.GetSeriesStats());
         }
 
@@ -780,10 +730,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<TrackReport>> GetTrackStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             return Ok(await Service.GetTrackStats());
         }
 
@@ -791,10 +738,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<SeasonReport>> GetSeasonStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             return Ok(await Service.GetSeasonStats());
         }
 
@@ -802,10 +746,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<DivisionReport>> GetDivisionStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             return Ok(await Service.GetDivisionStats());
         }
 
@@ -813,10 +754,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<ModeReport>> GetModeStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             return Ok(await Service.GetModeStats());
         }
 
@@ -824,10 +762,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<ModeReport>> GetCorrelationStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             return Ok(await Service.GetCorrelationStats());
         }
 
@@ -840,10 +775,7 @@ namespace Gameboard.Api.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportSeriesStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             var result = await Service.GetSeriesStats();
 
             return ConstructParticipationReport(result);
@@ -858,10 +790,7 @@ namespace Gameboard.Api.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportTrackStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             var result = await Service.GetTrackStats();
 
             return ConstructParticipationReport(result);
@@ -876,10 +805,7 @@ namespace Gameboard.Api.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportSeasonStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             var result = await Service.GetSeasonStats();
 
             return ConstructParticipationReport(result);
@@ -894,10 +820,7 @@ namespace Gameboard.Api.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportDivisionStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             var result = await Service.GetDivisionStats();
 
             return ConstructParticipationReport(result);
@@ -912,9 +835,7 @@ namespace Gameboard.Api.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportModeStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
 
             var result = await Service.GetModeStats();
 
@@ -930,13 +851,10 @@ namespace Gameboard.Api.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<IActionResult> ExportCorrelationStats()
         {
-            AuthorizeAny(
-                () => Actor.IsObserver
-            );
-
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
             var result = await Service.GetCorrelationStats();
 
-            List<Tuple<string, string>> correlationStats = new List<Tuple<string, string>>();
+            List<Tuple<string, string>> correlationStats = new();
             correlationStats.Add(new Tuple<string, string>("Game Count", "Player Count"));
 
             foreach (CorrelationStat stat in result.Stats)
@@ -953,7 +871,7 @@ namespace Gameboard.Api.Controllers
         // Helper method to create participation reports
         public FileContentResult ConstructParticipationReport(ParticipationReportV1 report)
         {
-            List<Tuple<string, string, string, string, string, string, string>> participationStats = new List<Tuple<string, string, string, string, string, string, string>>();
+            List<Tuple<string, string, string, string, string, string, string>> participationStats = new();
             participationStats.Add(new Tuple<string, string, string, string, string, string, string>(report.Key, "Game Count", "Player Count", "Players with Sessions Count", "Team Count", "Teams with Session Count", "Challenges Deployed Count"));
 
             foreach (ParticipationStat stat in report.Stats)
