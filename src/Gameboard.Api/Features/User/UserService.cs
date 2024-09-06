@@ -54,7 +54,7 @@ public class UserService(
             return new TryCreateUserResult
             {
                 IsNewUser = false,
-                User = _mapper.Map<User>(entity)
+                User = await BuildUserDto(entity)
             };
         }
 
@@ -85,7 +85,7 @@ public class UserService(
         entity.HasDefaultSponsor = !model.UnsetDefaultSponsorFlag;
 
         bool found = false;
-        int i = 0;
+        var i = 0;
         do
         {
             entity.ApprovedName = _namesvc.GetRandomName();
@@ -96,18 +96,18 @@ public class UserService(
         } while (found && i++ < 20);
 
         await _userStore.Create(entity);
-
         _localcache.Remove(entity.Id);
+
         return new TryCreateUserResult
         {
             IsNewUser = true,
-            User = _mapper.Map<User>(entity)
+            User = await BuildUserDto(entity)
         };
     }
 
     public async Task<User> Retrieve(string id)
     {
-        return _mapper.Map<User>(await _userStore.Retrieve(id));
+        return await BuildUserDto(await _userStore.Retrieve(id));
     }
 
     public async Task<User> Update(ChangedUser model, bool canAdminUsers)
@@ -267,5 +267,12 @@ public class UserService(
         }
 
         return await _mapper.ProjectTo<UserSimple>(q).ToArrayAsync();
+    }
+
+    private async Task<User> BuildUserDto(Data.User user)
+    {
+        var mapped = _mapper.Map<User>(user);
+        mapped.RolePermissions = await _permissionsService.GetPermissions(user.Role);
+        return mapped;
     }
 }

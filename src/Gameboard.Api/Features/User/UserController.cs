@@ -53,8 +53,6 @@ public class UserController(
     [HttpPost("api/user")]
     public async Task<TryCreateUserResult> TryCreate([FromBody] NewUser model)
     {
-        var things = _actingUserService.Get();
-
         await AuthorizeAny
         (
             Task.FromResult(model.Id == Actor?.Id),
