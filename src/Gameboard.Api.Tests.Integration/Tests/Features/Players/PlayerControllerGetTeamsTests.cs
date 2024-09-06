@@ -4,14 +4,9 @@ using Gameboard.Api.Features.Teams;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class PlayerControllerGetTeamsTests : IClassFixture<GameboardTestContext>
+public class PlayerControllerGetTeamsTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>
 {
-    private readonly GameboardTestContext _testContext;
-
-    public PlayerControllerGetTeamsTests(GameboardTestContext testContext)
-    {
-        _testContext = testContext;
-    }
+    private readonly GameboardTestContext _testContext = testContext;
 
     [Theory, GbIntegrationAutoData]
     public async Task GetTeams_OnNormalRequest_DoesntThrow(string gameId, IFixture fixture)

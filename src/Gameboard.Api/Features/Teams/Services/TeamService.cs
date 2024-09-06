@@ -347,8 +347,7 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
 
     public async Task<bool> IsAtGamespaceLimit(string teamId, Data.Game game, CancellationToken cancellationToken)
     {
-        var gameId = await GetGameId(teamId, cancellationToken);
-        var activeGameChallenges = await GetChallengesWithActiveGamespace(teamId, gameId, cancellationToken);
+        var activeGameChallenges = await GetChallengesWithActiveGamespace(teamId, game.Id, cancellationToken);
         return activeGameChallenges.Count() >= game.GetGamespaceLimit();
     }
 

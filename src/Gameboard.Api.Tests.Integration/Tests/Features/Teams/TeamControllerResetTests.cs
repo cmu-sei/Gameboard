@@ -56,8 +56,8 @@ public class TeamsControllerResetTests(GameboardTestContext testContext) : IClas
         // we expect a successful request and no challenges in the DB
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var dbContext = await _testContext.GetDbContext();
-        var teamChallengeCount = await dbContext
+        var teamChallengeCount = await _testContext
+            .GetDbContext()
             .Challenges
             .AsNoTracking()
             .Where(c => c.TeamId == teamId)
@@ -110,8 +110,8 @@ public class TeamsControllerResetTests(GameboardTestContext testContext) : IClas
         // we expect a successful request and no challenges in the DB
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var dbContext = await _testContext.GetDbContext();
-        var teamChallengeCount = await dbContext
+        var teamChallengeCount = await _testContext
+            .GetDbContext()
             .Challenges
             .AsNoTracking()
             .Where(c => c.TeamId == teamId)

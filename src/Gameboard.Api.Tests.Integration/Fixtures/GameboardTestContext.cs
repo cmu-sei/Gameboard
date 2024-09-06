@@ -26,13 +26,12 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
 
             // Add DB context with connection to the container
             services
-                .RemoveService<IDbContextFactory<GameboardDbContext>>()
-                .AddDbContextFactory<GameboardDbContext>(builder =>
+                .AddDbContext<GameboardDbContext, GameboardDbContextPostgreSQL>(builder =>
                 {
                     builder.EnableDetailedErrors();
                     builder.EnableSensitiveDataLogging();
-                    builder.UseNpgsql(_container.GetConnectionString(), opts => opts.MigrationsAssembly("Gameboard.Api"));
-                });
+                    builder.UseNpgsql(_container.GetConnectionString());
+                }, ServiceLifetime.Transient);
 
             services
                 // add user claims transformation that lets them all through
@@ -51,16 +50,8 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
         });
     }
 
-    public IDbContextFactory<GameboardDbContext> GetDbContextFactory()
-        => Services.GetRequiredService<IDbContextFactory<GameboardDbContext>>();
-
-    public async Task<GameboardDbContext> GetDbContext()
-    {
-        var factory = Services.GetRequiredService<IDbContextFactory<GameboardDbContext>>();
-        var dbContext = await factory.CreateDbContextAsync();
-        await dbContext.Database.MigrateAsync();
-        return dbContext;
-    }
+    public GameboardDbContext GetDbContext()
+        => Services.GetRequiredService<GameboardDbContext>();
 
     public async Task InitializeAsync()
     {

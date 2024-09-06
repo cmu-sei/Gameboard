@@ -49,6 +49,7 @@ internal class UserRolePermissionsConfigurationService : IUserRolePermissionsCon
                     PermissionKey.Support_ViewTickets,
                     PermissionKey.SystemNotifications_CreateEdit,
                     PermissionKey.Teams_ApproveNameChanges,
+                    PermissionKey.Teams_Observe,
                     PermissionKey.Teams_Enroll,
                 ]
             },

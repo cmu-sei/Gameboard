@@ -1,5 +1,4 @@
 using System;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -9,7 +8,7 @@ namespace Gameboard.Api.Data;
 
 public static class DbContextOptionsBuilderExtensions
 {
-    public static DbContextOptionsBuilder WithGameboardOptions(this DbContextOptionsBuilder builder, IWebHostEnvironment env, IServiceProvider serviceProvider)
+    public static DbContextOptionsBuilder WithGameboardOptions(this DbContextOptionsBuilder builder, IHostEnvironment env, IServiceProvider serviceProvider)
     {
         // we accommodate for the case that the environment is null (as it is during the creation of migrations)
         // by assuming that we don't need any detailed/sensitive logging - the environment must explicitly be set

@@ -69,8 +69,8 @@ public class UserControllerUpdateTests : IClassFixture<GameboardTestContext>
 
         // then the sponsor for the played player record should remain the same, but the 
         // sponsor for the unplayed one should change
-        var dbContext = await _testContext.GetDbContext();
-        var playerRecords = await dbContext
+        var playerRecords = await _testContext
+            .GetDbContext()
             .Players
             .AsNoTracking()
             .Where(p => p.UserId == userId)

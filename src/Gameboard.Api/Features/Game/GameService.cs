@@ -11,7 +11,6 @@ using Microsoft.Extensions.Logging;
 using AutoMapper;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Common.Services;
 using Microsoft.AspNetCore.Http;
 using Gameboard.Api.Data;
@@ -24,11 +23,9 @@ namespace Gameboard.Api.Services;
 public interface IGameService
 {
     Task<Game> Create(NewGame model);
-    Task Delete(string id);
     Task<string> Export(GameSpecExport model);
     Task<Game> Import(GameSpecImport model);
     Task<IEnumerable<string>> GetTeamsWithActiveSession(string GameId, CancellationToken cancellationToken);
-    IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool sudo = false);
     Task<bool> IsUserPlaying(string gameId, string userId);
     Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false);
     Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo);
@@ -45,7 +42,6 @@ public class GameService : _Service, IGameService
 {
     private readonly Defaults _defaults;
     private readonly IGuidService _guids;
-    private readonly IGameStore _gameStore;
     private readonly INowService _now;
     private readonly IUserRolePermissionsService _permissionsService;
     private readonly IStore _store;
@@ -56,14 +52,12 @@ public class GameService : _Service, IGameService
         IMapper mapper,
         CoreOptions options,
         Defaults defaults,
-        IGameStore gameStore,
         INowService nowService,
         IUserRolePermissionsService permissionsService,
         IStore store
     ) : base(logger, mapper, options)
     {
         _guids = guids;
-        _gameStore = gameStore;
         _defaults = defaults;
         _now = nowService;
         _permissionsService = permissionsService;
@@ -98,13 +92,13 @@ public class GameService : _Service, IGameService
         model.AllowPublicScoreboardAccess = true;
 
         var entity = Mapper.Map<Data.Game>(model);
-        await _gameStore.Create(entity);
-        return Mapper.Map<Game>(entity);
+        var created = await _store.Create(entity);
+        return Mapper.Map<Game>(created);
     }
 
     public async Task<Game> Retrieve(string id, bool accessHidden = true)
     {
-        var game = await _gameStore.Retrieve(id);
+        var game = await _store.SingleAsync<Data.Game>(id, default);
         if (!accessHidden && !game.IsPublished)
             throw new ActionForbidden();
 
@@ -116,67 +110,11 @@ public class GameService : _Service, IGameService
         if (game.Mode != GameEngineMode.External)
             game.ExternalHostId = null;
 
-        var entity = await _gameStore.Retrieve(game.Id);
+        var entity = await _store.WithTracking<Data.Game>().SingleAsync(g => g.Id == game.Id);
         Mapper.Map(game, entity);
-        await _gameStore.Update(entity);
+        await _store.SaveUpdate(entity, default);
 
         return entity;
-    }
-
-    public Task Delete(string id)
-        => _gameStore.Delete(id);
-
-
-    public IQueryable<Data.Game> BuildQuery(GameSearchFilter model = null, bool canViewUnpublished = false)
-    {
-        var q = _gameStore.List(model?.Term);
-        var now = _now.Get();
-
-        if (!canViewUnpublished)
-            q = q.Where(g => g.IsPublished);
-
-        if (model == null)
-            return q;
-
-        if (model.IsFeatured.HasValue)
-            q = q.Where(g => g.IsFeatured == model.IsFeatured);
-
-        if (model.IsOngoing.HasValue)
-            q = q
-                .Where(g => (g.GameEnd == DateTimeOffset.MinValue) == model.IsOngoing)
-                .Where(g => g.PlayerMode == PlayerMode.Competition);
-
-        if (model.WantsAdvanceable)
-            q = q.Where(g => g.GameEnd > now);
-
-        if (model.WantsCompetitive)
-            q = q.Where(g => g.PlayerMode == PlayerMode.Competition || g.ShowOnHomePageInPracticeMode);
-
-        if (model.WantsPractice)
-            q = q.Where(g => g.PlayerMode == PlayerMode.Practice);
-
-        if (model.WantsPresent)
-            q = q.Where(g => (g.GameEnd > now || g.GameEnd == AppConstants.NULL_DATE) && g.GameStart < now);
-
-        if (model.WantsFuture)
-            q = q.Where(g => g.GameStart > now);
-
-        if (model.WantsPast)
-            q = q.Where(g => g.GameEnd < now && g.GameEnd != AppConstants.NULL_DATE);
-
-        if (model.OrderBy.IsNotEmpty() && model.OrderBy.ToLower() == "name")
-            q = q.OrderBy(g => g.Name);
-        else if (model.WantsFuture)
-            q = q.OrderBy(g => g.GameStart).ThenBy(g => g.Name);
-        else
-            q = q.OrderByDescending(g => g.GameStart).ThenBy(g => g.Name);
-
-        q = q.Skip(model.Skip);
-
-        if (model.Take > 0)
-            q = q.Take(model.Take);
-
-        return q;
     }
 
     public async Task<IEnumerable<string>> GetTeamsWithActiveSession(string gameId, CancellationToken cancellationToken)
@@ -200,12 +138,12 @@ public class GameService : _Service, IGameService
         if (gameSessionData is not null)
             return gameSessionData.Teams;
 
-        return Array.Empty<string>();
+        return [];
     }
 
     public async Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false)
     {
-        var games = await BuildQuery(model, sudo)
+        var games = await BuildSearchQuery(model, sudo)
             .ToArrayAsync();
 
         // Use Map instead of 'Mapper.ProjectTo<Game>' to support YAML parsing in automapper
@@ -214,22 +152,8 @@ public class GameService : _Service, IGameService
 
     public async Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo)
     {
-        var now = _now.Get();
-        var q = _gameStore.List(model.Term);
-
-        if (!sudo)
-            q = q.Where(g => g.IsPublished);
-
-        if (model.WantsCompetitive)
-            q = q.Where(g => g.PlayerMode == PlayerMode.Competition || g.ShowOnHomePageInPracticeMode);
-        if (model.WantsPresent)
-            q = q.Where(g => g.GameEnd > now && g.GameStart < now);
-        if (model.WantsFuture)
-            q = q.Where(g => g.GameStart > now);
-        if (model.WantsPast)
-            q = q.Where(g => g.GameEnd < now);
-
-        var games = await q.ToArrayAsync();
+        var query = BuildSearchQuery(model, sudo);
+        var games = await query.ToArrayAsync();
 
         var b = games
             .GroupBy(g => new
@@ -257,16 +181,22 @@ public class GameService : _Service, IGameService
 
     public async Task<ChallengeSpec[]> RetrieveChallengeSpecs(string id)
     {
-        var entity = await _gameStore.Load(id);
-
-        return Mapper.Map<ChallengeSpec[]>(entity.Specs)
-            .OrderBy(s => s.Name)
-            .ToArray();
+        return await Mapper.ProjectTo<ChallengeSpec>
+        (
+            _store
+                .WithNoTracking<Data.ChallengeSpec>()
+                .Where(s => s.GameId == id)
+                .OrderBy(s => s.Name)
+        ).ToArrayAsync();
     }
 
     public async Task<SessionForecast[]> SessionForecast(string id)
     {
-        Data.Game entity = await _gameStore.Retrieve(id);
+        var gameInfo = await _store
+            .WithNoTracking<Data.Game>()
+            .Where(g => g.Id == id)
+            .Select(g => new { g.Id, g.SessionLimit })
+            .SingleAsync();
 
         var ts = DateTimeOffset.UtcNow;
         var step = ts;
@@ -288,11 +218,11 @@ public class GameService : _Service, IGameService
             {
                 Time = step,
                 Reserved = reserved,
-                Available = entity.SessionLimit - reserved
+                Available = gameInfo.SessionLimit - reserved
             });
         }
 
-        return result.ToArray();
+        return [.. result];
     }
 
     public async Task<string> Export(GameSpecExport model)
@@ -301,7 +231,10 @@ public class GameService : _Service, IGameService
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
             .Build();
 
-        var entity = await _gameStore.Retrieve(model.Id, q => q.Include(g => g.Specs));
+        var entity = await _store
+            .WithNoTracking<Data.Game>()
+            .Include(g => g.Specs)
+            .SingleOrDefaultAsync(g => g.Id == model.Id);
 
         if (entity is not null)
             return yaml.Serialize(entity);
@@ -331,13 +264,15 @@ public class GameService : _Service, IGameService
             .Build();
 
         var entity = yaml.Deserialize<Data.Game>(model.Data);
-        await _gameStore.Create(entity);
+        await _store.Create(entity);
         return Mapper.Map<Game>(entity);
     }
 
     public async Task UpdateImage(string id, string type, string filename)
     {
-        var entity = await _gameStore.Retrieve(id);
+        var entity = await _store
+            .WithTracking<Data.Game>()
+            .SingleAsync(g => g.Id == id);
 
         switch (type)
         {
@@ -350,7 +285,7 @@ public class GameService : _Service, IGameService
                 break;
         }
 
-        await _gameStore.Update(entity);
+        await _store.SaveUpdate(entity, default);
     }
 
     public async Task ReRank(string id)
@@ -425,4 +360,76 @@ public class GameService : _Service, IGameService
 
     private string GetGameCardFileNameBase(string gameId)
         => $"{gameId.ToLower()}_card";
+
+    private IQueryable<Data.Game> BuildSearchQuery(GameSearchFilter model, bool canViewUnpublished = false)
+    {
+        var q = _store.WithNoTracking<Data.Game>();
+        var now = _now.Get();
+
+        if (!string.IsNullOrEmpty(model.Term))
+        {
+            var term = model.Term.ToLower();
+
+            q = q.Where(t =>
+                t.Name.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                t.Season.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                t.Track.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                t.Division.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                t.Competition.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                t.Sponsor.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                t.Key.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                t.Mode.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                t.Id.StartsWith(term, StringComparison.CurrentCultureIgnoreCase) ||
+                t.CardText1.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                t.CardText2.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                t.CardText3.Contains(term, StringComparison.CurrentCultureIgnoreCase)
+            );
+        }
+
+        if (!canViewUnpublished)
+            q = q.Where(g => g.IsPublished);
+
+        if (model == null)
+            return q;
+
+        if (model.IsFeatured.HasValue)
+            q = q.Where(g => g.IsFeatured == model.IsFeatured);
+
+        if (model.IsOngoing.HasValue)
+            q = q
+                .Where(g => (g.GameEnd == DateTimeOffset.MinValue) == model.IsOngoing)
+                .Where(g => g.PlayerMode == PlayerMode.Competition);
+
+        if (model.WantsAdvanceable)
+            q = q.Where(g => g.GameEnd > now);
+
+        if (model.WantsCompetitive)
+            q = q.Where(g => g.PlayerMode == PlayerMode.Competition || g.ShowOnHomePageInPracticeMode);
+
+        if (model.WantsPractice)
+            q = q.Where(g => g.PlayerMode == PlayerMode.Practice);
+
+        if (model.WantsPresent)
+            q = q.Where(g => (g.GameEnd > now || g.GameEnd == AppConstants.NULL_DATE) && g.GameStart < now);
+
+        if (model.WantsFuture)
+            q = q.Where(g => g.GameStart > now);
+
+        if (model.WantsPast)
+            q = q.Where(g => g.GameEnd < now && g.GameEnd != AppConstants.NULL_DATE);
+
+        if (model.OrderBy.IsNotEmpty() && model.OrderBy.ToLower() == "name")
+            q = q.OrderBy(g => g.Name);
+        else if (model.WantsFuture)
+            q = q.OrderBy(g => g.GameStart).ThenBy(g => g.Name);
+        else
+            q = q.OrderByDescending(g => g.GameStart).ThenBy(g => g.Name);
+
+        q = q.Skip(model.Skip);
+
+        if (model.Take > 0)
+            q = q.Take(model.Take);
+
+        return q;
+    }
 }

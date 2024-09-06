@@ -41,25 +41,18 @@ public interface IStore
     IQueryable<TEntity> WithTracking<TEntity>() where TEntity : class, IEntity;
 }
 
-internal class Store(IGuidService guids, IDbContextFactory<GameboardDbContext> dbContextFactory) : IStore, IAsyncDisposable
+internal class Store(IGuidService guids, GameboardDbContext dbContext) : IStore
 {
-    private readonly IDbContextFactory<GameboardDbContext> _dbContextFactory = dbContextFactory;
     private readonly IGuidService _guids = guids;
-    private readonly List<GameboardDbContext> _issuedContexts = [];
 
-    public async Task<bool> AnyAsync<TEntity>(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) where TEntity : class, IEntity
-    {
-        using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        return await dbContext.Set<TEntity>().AnyAsync(predicate, cancellationToken);
-    }
+    public Task<bool> AnyAsync<TEntity>(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) where TEntity : class, IEntity
+        => dbContext.Set<TEntity>().AnyAsync(predicate, cancellationToken);
 
     public Task<TEntity> Create<TEntity>(TEntity entity) where TEntity : class, IEntity
         => Create(entity, CancellationToken.None);
 
     public async Task<TEntity> Create<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity
     {
-        using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-
         if (entity.Id.IsEmpty())
             entity.Id = _guids.GetGuid();
 
@@ -71,8 +64,6 @@ internal class Store(IGuidService guids, IDbContextFactory<GameboardDbContext> d
 
     public async Task Delete<TEntity>(string id) where TEntity : class, IEntity
     {
-        var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
         var rowsAffected = await dbContext
             .Set<TEntity>()
             .Where(e => e.Id == id)
@@ -84,41 +75,31 @@ internal class Store(IGuidService guids, IDbContextFactory<GameboardDbContext> d
 
     public async Task Delete<TEntity>(params TEntity[] entity) where TEntity : class, IEntity
     {
-        using var dbContext = await _dbContextFactory.CreateDbContextAsync();
         dbContext.RemoveRange(entity);
         await dbContext.SaveChangesAsync();
     }
 
     public async Task DoTransaction(Func<GameboardDbContext, Task> operation, CancellationToken cancellationToken)
     {
-        using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         using var transaction = dbContext.Database.BeginTransaction();
         await operation(dbContext);
         await transaction.CommitAsync(cancellationToken);
     }
 
-    public async Task<int> ExecuteUpdateAsync<TEntity>
+    public Task<int> ExecuteUpdateAsync<TEntity>
     (
         Expression<Func<TEntity, bool>> predicate,
         Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls
     ) where TEntity : class, IEntity
-    {
-        using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-        return await dbContext
+        => dbContext
             .Set<TEntity>()
             .Where(predicate)
             .ExecuteUpdateAsync(setPropertyCalls);
-    }
 
-    public async Task<bool> Exists<TEntity>(string id) where TEntity : class, IEntity
-    {
-        var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-        return await dbContext
+    public Task<bool> Exists<TEntity>(string id) where TEntity : class, IEntity
+        => dbContext
             .Set<TEntity>()
             .AnyAsync(e => e.Id == id);
-    }
 
     public Task<TEntity> FirstOrDefaultAsync<TEntity>(CancellationToken cancellationToken) where TEntity : class, IEntity
         => FirstOrDefaultAsync(null as Expression<Func<TEntity, bool>>, false, cancellationToken);
@@ -163,20 +144,18 @@ internal class Store(IGuidService guids, IDbContextFactory<GameboardDbContext> d
 
     public async Task<IEnumerable<TEntity>> SaveAddRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity
     {
-        using var dbContext = await _dbContextFactory.CreateDbContextAsync();
         dbContext.AddRange(entities);
         await dbContext.SaveChangesAsync();
 
         // detach because of EF stuff
         // TODO: investigate why our store is running afoul of EF attachment stuff
-        // may be fixed because we undumbed and started using IDbContextFactory
+        // may be fixed because we undumbed and made dbcontext transient
         dbContext.DetachUnchanged();
         return entities;
     }
 
     public async Task SaveRemoveRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity
     {
-        using var dbContext = await _dbContextFactory.CreateDbContextAsync();
         dbContext.RemoveRange(entities);
         await dbContext.SaveChangesAsync();
     }
@@ -189,8 +168,6 @@ internal class Store(IGuidService guids, IDbContextFactory<GameboardDbContext> d
 
     public async Task SaveUpdateRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity
     {
-        using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
         foreach (var entity in entities)
         {
             if (dbContext.Entry(entity).State == EntityState.Detached)
@@ -208,38 +185,5 @@ internal class Store(IGuidService guids, IDbContextFactory<GameboardDbContext> d
         => GetQueryBase<TEntity>(enableTracking: true);
 
     private IQueryable<TEntity> GetQueryBase<TEntity>(bool enableTracking = false) where TEntity : class, IEntity
-    {
-        var dbContext = _dbContextFactory.CreateDbContext();
-        var query = dbContext.Set<TEntity>().AsQueryable();
-
-        // we need to keep tabs on the db context, because it's our job to dispose of it when it's done,
-        // but we need it to be alive so the caller can use it
-        _issuedContexts.Add(dbContext);
-
-        if (!enableTracking)
-            query = query.AsNoTracking();
-
-        return query;
-    }
-
-    public void Dispose()
-    {
-        foreach (var context in _issuedContexts)
-        {
-            context?.Dispose();
-        }
-
-        _issuedContexts.Clear();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        foreach (var context in _issuedContexts)
-        {
-            if (context is not null)
-                await context.DisposeAsync();
-        }
-
-        _issuedContexts.Clear();
-    }
+        => dbContext.Set<TEntity>().AsQueryable();
 }

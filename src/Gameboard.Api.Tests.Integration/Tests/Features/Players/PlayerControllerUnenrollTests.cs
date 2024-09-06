@@ -67,7 +67,7 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext>
         // then
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var dbContext = await _testContext.GetDbContext();
+        var dbContext = _testContext.GetDbContext();
         var hasPlayer = await dbContext.Players.AnyAsync(p => p.Id == memberPlayerId);
         var hasChallenge = await dbContext.Challenges.AnyAsync(c => c.Id == challengeId);
 

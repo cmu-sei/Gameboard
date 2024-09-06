@@ -68,8 +68,8 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
             .DeserializeResponseAs<Challenge>();
 
         // then the players table should have the expected properties set
-        var dbContext = await _testContext.GetDbContext();
-        var player = await dbContext
+        var player = await _testContext
+            .GetDbContext()
             .Players
             .AsNoTracking()
             .Where(p => p.TeamId == teamId)
@@ -79,7 +79,8 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
         player.Score.ShouldBe(100);
 
         // and also the challenge should have a grading event
-        var events = await dbContext
+        var events = await _testContext
+            .GetDbContext()
             .ChallengeEvents
             .AsNoTracking()
             .Where(e => e.ChallengeId == challengeId && e.Type == ChallengeEventType.Submission)
@@ -152,8 +153,8 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
 
         await http.PutAsync("/api/challenge/grade", submission.ToJsonBody());
 
-        var dbContext = await _testContext.GetDbContext();
-        var challengeEvents = await dbContext
+        var challengeEvents = await _testContext
+            .GetDbContext()
             .ChallengeEvents
             .AsNoTracking()
             .Where(ev => ev.ChallengeId == challengeId)
@@ -232,8 +233,8 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
         var result = await http.PutAsync("/api/challenge/grade", submission.ToJsonBody());
         result.IsSuccessStatusCode.ShouldBeFalse();
 
-        var dbContext = await _testContext.GetDbContext();
-        var challengeEvents = await dbContext
+        var challengeEvents = await _testContext
+            .GetDbContext()
             .ChallengeEvents
             .AsNoTracking()
             .Where(ev => ev.ChallengeId == challengeId)

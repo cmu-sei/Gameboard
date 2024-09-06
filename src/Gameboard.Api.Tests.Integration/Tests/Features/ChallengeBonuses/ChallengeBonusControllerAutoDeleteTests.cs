@@ -45,8 +45,8 @@ public class ChallengeBonusControllerAutoDeleteTests : IClassFixture<GameboardTe
         await httpClient.DeleteAsync($"api/game/{gameId}/bonus/config");
 
         // then there should be no challenges assigned to a spec with the given gameId
-        var dbContext = await _testContext.GetDbContext();
-        var count = await dbContext
+        var count = await _testContext
+            .GetDbContext()
             .ChallengeBonuses
             .AsNoTracking()
             .Include(b => b.ChallengeSpec)

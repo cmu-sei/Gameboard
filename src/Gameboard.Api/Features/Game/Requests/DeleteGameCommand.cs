@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
@@ -47,6 +48,9 @@ internal class DeleteGameHandler(
             .Validate(request, cancellationToken);
 
         // do the things
-        await _gameService.Delete(request.GameId);
+        await _store
+            .WithNoTracking<Data.Game>()
+            .Where(g => g.Id == request.GameId)
+            .ExecuteDeleteAsync(cancellationToken);
     }
 }

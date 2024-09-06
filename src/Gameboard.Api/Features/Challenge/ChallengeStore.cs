@@ -19,8 +19,8 @@ public interface IChallengeStore : IStore<Challenge>
 
 public class ChallengeStore(
     IGuidService guids,
-    IDbContextFactory<GameboardDbContext> dbContextFactory,
-    IStore store) : Store<Challenge>(dbContextFactory, guids), IChallengeStore
+    GameboardDbContext dbContext,
+    IStore store) : Store<Challenge>(dbContext, guids), IChallengeStore
 {
     private readonly IStore _store = store;
 

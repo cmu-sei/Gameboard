@@ -77,7 +77,7 @@ internal static class GameboardTestContextExtensions
 
     public static async Task WithDataState(this GameboardTestContext context, Action<IDataStateBuilder> builderAction)
     {
-        using var dbContext = await context.GetDbContext();
+        using var dbContext = context.GetDbContext();
         await dbContext.Database.MigrateAsync();
         var builderInstance = new DataStateBuilder(dbContext);
         builderAction.Invoke(builderInstance);

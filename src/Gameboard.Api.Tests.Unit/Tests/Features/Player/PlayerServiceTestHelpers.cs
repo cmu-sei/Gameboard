@@ -1,7 +1,6 @@
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Scores;
@@ -21,7 +20,6 @@ internal static class PlayerServiceTestHelpers
     (
         ChallengeService? challengeService = null,
         CoreOptions? coreOptions = null,
-        IGameStore? gameStore = null,
         IGuidService? guidService = null,
         IInternalHubBus? hubBus = null,
         ILogger<PlayerService>? logger = null,
@@ -42,7 +40,6 @@ internal static class PlayerServiceTestHelpers
         (
             challengeService ?? A.Fake<ChallengeService>(),
             coreOptions ?? A.Fake<CoreOptions>(),
-            gameStore ?? A.Fake<IGameStore>(),
             guidService ?? A.Fake<IGuidService>(),
             hubBus ?? A.Fake<IInternalHubBus>(),
             logger ?? A.Fake<ILogger<PlayerService>>(),

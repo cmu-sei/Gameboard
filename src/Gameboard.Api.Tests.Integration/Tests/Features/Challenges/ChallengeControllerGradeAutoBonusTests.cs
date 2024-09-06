@@ -78,8 +78,8 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
 
         // tricky to validate this - the endpoint is pinned to returning a challenge state, which doesn't include bonuses yet.
         // have to go to the DB to minimize false positives
-        var dbContext = await _testContext.GetDbContext();
-        var awardedBonus = await dbContext
+        var awardedBonus = await _testContext
+            .GetDbContext()
             .AwardedChallengeBonuses
             .Include(b => b.ChallengeBonus)
             .Include(b => b.Challenge)
@@ -159,8 +159,8 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
 
         // tricky to validate this - the endpoint is pinned to returning a challenge state, which doesn't include bonuses yet.
         // have to go to the DB to minimize false positives
-        var dbContext = await _testContext.GetDbContext();
-        var awardedBonus = await dbContext
+        var awardedBonus = await _testContext
+            .GetDbContext()
             .AwardedChallengeBonuses
             .Include(b => b.ChallengeBonus)
             .AsNoTracking()
@@ -267,7 +267,7 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
 
         // tricky to validate this - the endpoint is pinned to returning a challenge state, which doesn't include bonuses yet.
         // have to go to the DB to minimize false positives
-        var dbContext = await _testContext.GetDbContext();
+        var dbContext = _testContext.GetDbContext();
         var awardedBonus = await dbContext
             .AwardedChallengeBonuses
             .Include(b => b.ChallengeBonus)

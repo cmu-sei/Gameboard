@@ -1,30 +1,26 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
-using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Structure.MediatR;
-using Microsoft.EntityFrameworkCore;
+using Gameboard.Api.Structure.MediatR.Validators;
 
 namespace Gameboard.Api.Features.GameEngine;
 
 internal class GetGameStateValidator(
     IActingUserService actingUserService,
-    IPlayerStore playerStore,
+    TeamExistsValidator<GetGameStateQuery> teamExists,
+    ITeamService teamService,
     IValidatorService<GetGameStateQuery> validatorService
     ) : IGameboardRequestValidator<GetGameStateQuery>
 {
     private readonly User _actingUser = actingUserService.Get();
-    // TODO: replace playerstore with ITeamService
-    private readonly IPlayerStore _playerStore = playerStore;
+    private readonly TeamExistsValidator<GetGameStateQuery> _teamExists = teamExists;
+    private readonly ITeamService _teamService = teamService;
     private readonly IValidatorService<GetGameStateQuery> _validatorService = validatorService;
 
     public async Task Validate(GetGameStateQuery request, CancellationToken cancellationToken)
     {
-        var players = await _playerStore
-            .ListTeam(request.TeamId)
-            .AsNoTracking()
-            .ToArrayAsync(cancellationToken);
 
         await _validatorService
             .Auth
@@ -33,18 +29,11 @@ internal class GetGameStateValidator(
                     .RequirePermissions(Users.PermissionKey.Admin_View)
                     .Unless
                     (
-                        () => _playerStore
-                            .ListTeam(request.TeamId)
-                            .AsNoTracking()
-                            .AnyAsync(p => p.UserId == _actingUser.Id, cancellationToken),
+                        () => _teamService.IsOnTeam(request.TeamId, _actingUser.Id),
                         new PlayerIsntOnTeam(_actingUser.Id, request.TeamId, "[unknown]")
                     )
             )
-            .AddValidator((request, context) =>
-            {
-                if (players.Length == 0)
-                    context.AddValidationException(new ResourceNotFound<Team>(request.TeamId));
-            })
+            .AddValidator(_teamExists.UseProperty(r => r.TeamId))
             .Validate(request, cancellationToken);
     }
 }

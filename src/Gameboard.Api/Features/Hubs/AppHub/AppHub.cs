@@ -21,7 +21,8 @@ namespace Gameboard.Api.Hubs
         ILogger<AppHub> logger,
         IMapper mapper,
         IUserRolePermissionsService permissionsService,
-        IPlayerStore playerStore
+        IPlayerStore playerStore,
+        IStore store
         ) : Hub<IAppHubEvent>, IAppHubApi
     {
         ILogger Logger { get; } = logger;
@@ -29,6 +30,7 @@ namespace Gameboard.Api.Hubs
         internal static string ContextPlayerKey = "player";
 
         private readonly IMapper _mapper = mapper;
+        private readonly IStore _store = store;
         private readonly IUserRolePermissionsService _permissionsService = permissionsService;
 
         public override Task OnConnectedAsync()
@@ -54,12 +56,12 @@ namespace Gameboard.Api.Hubs
                 await Groups.AddToGroupAsync(Context.ConnectionId, AppConstants.InternalSupportChannel);
 
             // ensure the player is on the right team
-            var teamPlayers = await PlayerStore.ListTeam(teamId)
-                .AsNoTracking()
-                .ToArrayAsync();
+            var player = await _store
+                .WithNoTracking<Data.Player>()
+                .Where(p => p.UserId == Context.UserIdentifier)
+                .Where(p => p.TeamId == teamId)
+                .SingleOrDefaultAsync() ?? throw new UserIsntOnTeam(Context.UserIdentifier, teamId);
 
-            var player = teamPlayers.FirstOrDefault(p => p.UserId == Context.UserIdentifier) ?? throw new UserIsntOnTeam(Context.UserIdentifier, teamId);
-            
             if (Context.Items[ContextPlayerKey] != null)
                 Context.Items.Remove(ContextPlayerKey);
 

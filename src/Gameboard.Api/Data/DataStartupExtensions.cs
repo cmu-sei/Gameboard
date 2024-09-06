@@ -28,10 +28,10 @@ public static class DataStartupExtensions
         switch (dbOptions.Provider.ToLower())
         {
             case "sqlserver":
-                services.AddDbContextFactory<GameboardDbContext>(builder => builder.UseSqlServer(dbOptions.ConnectionString));
+                services.AddDbContext<GameboardDbContext, GameboardDbContextSqlServer>(builder => builder.UseSqlServer(dbOptions.ConnectionString), ServiceLifetime.Transient);
                 break;
             case "postgresql":
-                services.AddDbContextFactory<GameboardDbContext>(builder => builder.UseNpgsql(dbOptions.ConnectionString));
+                services.AddDbContext<GameboardDbContext, GameboardDbContextPostgreSQL>(builder => builder.UseNpgsql(dbOptions.ConnectionString), ServiceLifetime.Transient);
                 break;
         }
 

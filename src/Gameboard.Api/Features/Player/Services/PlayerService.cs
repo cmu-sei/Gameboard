@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Practice;
@@ -43,7 +42,6 @@ public class PlayerService
     CoreOptions CoreOptions { get; }
     ChallengeService ChallengeService { get; set; }
     IPlayerStore PlayerStore { get; }
-    IGameStore GameStore { get; }
     IGuidService GuidService { get; }
     IMemoryCache LocalCache { get; }
 
@@ -51,7 +49,6 @@ public class PlayerService
     (
         ChallengeService challengeService,
         CoreOptions coreOptions,
-        IGameStore gameStore,
         IGuidService guidService,
         IInternalHubBus hubBus,
         ILogger<PlayerService> logger,
@@ -76,7 +73,6 @@ public class PlayerService
         _mediator = mediator;
         _practiceService = practiceService;
         _now = now;
-        GameStore = gameStore;
         _guids = guidService;
         _hubBus = hubBus;
         _logger = logger;
@@ -93,7 +89,9 @@ public class PlayerService
     public async Task<Player> Enroll(NewPlayer model, User actor, CancellationToken cancellationToken)
     {
         var canIgnoreRegistrationRequirements = await _permissionsService.Can(PermissionKey.Play_IgnoreExecutionWindow);
-        var game = await GameStore.Retrieve(model.GameId);
+        var game = await _store
+            .WithNoTracking<Data.Game>()
+            .SingleAsync(g => g.Id == model.GameId, default);
         var user = await _store
             .WithNoTracking<Data.User>()
             .Include(u => u.Sponsor)
@@ -448,7 +446,7 @@ public class PlayerService
             .WithNoTracking<Data.Player>()
             .Include(p => p.Game)
             .Where(p => p.InviteCode == model.Code)
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
 
         if (player.SponsorId.IsEmpty() || player.Sponsor is null)
             throw new PlayerHasDefaultSponsor(model.PlayerId);
@@ -488,7 +486,7 @@ public class PlayerService
         player.Role = PlayerRole.Member;
         player.InviteCode = model.Code;
 
-        await PlayerStore.Update(player);
+        await _store.SaveUpdate(player, cancellationToken);
 
         var mappedPlayer = _mapper.Map<Player>(player);
         await _hubBus.SendPlayerEnrolled(mappedPlayer, actor);
@@ -603,8 +601,6 @@ public class PlayerService
 
     public async Task AdvanceTeams(TeamAdvancement model)
     {
-        var game = await GameStore.Retrieve(model.NextGameId);
-
         var allteams = await PlayerStore.List()
             .Where(p => p.GameId == model.GameId)
             .ToArrayAsync();
@@ -764,7 +760,7 @@ public class PlayerService
 
         // find gamespaces across all practice sessions
         var teamIds = players.Select(p => p.TeamId).ToArray();
-        var game = await GameStore.Retrieve(model.GameId);
+        var game = await _store.SingleAsync<Data.Game>(model.GameId, cancellationToken);
         foreach (var teamId in teamIds)
         {
             // practice mode only allows a single gamespace

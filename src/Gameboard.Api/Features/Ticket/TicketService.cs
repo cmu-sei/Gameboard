@@ -31,7 +31,6 @@ public class TicketService(
         CoreOptions options,
         IUserRolePermissionsService permissionsService,
         IStore store,
-        ITicketStore ticketStore,
         ISupportHubBus supportHubBus,
         ITeamService teamService
         ) : _Service(logger, mapper, options)
@@ -45,7 +44,6 @@ public class TicketService(
     private readonly IStore _store = store;
     private readonly ISupportHubBus _supportHubBus = supportHubBus;
     private readonly ITeamService _teamService = teamService;
-    ITicketStore TicketStore { get; } = ticketStore;
 
     internal static char LABELS_DELIMITER = ' ';
 
@@ -57,6 +55,34 @@ public class TicketService(
 
     public Task<Ticket> Retrieve(int id)
         => LoadTicketDto(id);
+
+    public IQueryable<Data.Ticket> BuildTicketSearchQuery(string term)
+    {
+        var q = BuildTicketQueryBase();
+
+        if (term.NotEmpty())
+        {
+            term = term.ToLower();
+            var prefix = Options.KeyPrefix.ToLower() + "-";
+            q = q.Where
+            (
+                t => t.Summary.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                    t.Label.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                    (prefix + t.Key.ToString()).Contains(term) ||
+                    t.Requester.ApprovedName.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                    t.Assignee.ApprovedName.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                    t.Challenge.Name.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                    t.Challenge.Tag.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                    t.Challenge.Id.Equals(term, StringComparison.CurrentCultureIgnoreCase) ||
+                    t.TeamId.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                    t.PlayerId.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                    t.RequesterId.Contains(term, StringComparison.CurrentCultureIgnoreCase)
+
+            );
+        }
+
+        return q;
+    }
 
     public async Task<Ticket> Create(NewTicket model)
     {
@@ -101,7 +127,7 @@ public class TicketService(
             entity.Attachments = Mapper.Map<string>(fileNames);
         }
 
-        await TicketStore.Create(entity);
+        await _store.Create(entity);
         var createdTicketModel = await LoadTicketDto(entity.Id);
 
         // send app-level notification
@@ -137,7 +163,10 @@ public class TicketService(
     public async Task<Ticket> Update(ChangedTicket model, string actorId, bool sudo)
     {
         // need the creator to send updates
-        var entity = await TicketStore.Retrieve(model.Id, q => q.Include(t => t.Creator));
+        var entity = await _store
+            .WithTracking<Data.Ticket>()
+            .Include(t => t.Creator)
+            .SingleAsync(t => t.Id == model.Id);
         var actingUser = _actingUserService.Get();
         var timestamp = _now.Get();
         var updateClosesTicket = false;
@@ -165,17 +194,14 @@ public class TicketService(
         }
         else // regular participant can only edit a few fields
         {
-            Mapper.Map(
-                Mapper.Map<SelfChangedTicket>(model),
-                entity
-            );
+            Mapper.Map(Mapper.Map<SelfChangedTicket>(model), entity);
 
             updatedByUser = true;
         }
 
         entity.LastUpdated = timestamp;
 
-        await TicketStore.Update(entity);
+        await _store.SaveUpdate(entity, default);
         var updatedTicketModel = await LoadTicketDto(entity.Id);
 
         if (updateClosesTicket)
@@ -194,7 +220,7 @@ public class TicketService(
 
     public async Task<IEnumerable<TicketSummary>> List(TicketSearchFilter model, string userId, bool sudo)
     {
-        var q = TicketStore.List(model.Term);
+        var q = BuildTicketSearchQuery(model.Term);
 
         if (model.WantsOpen)
             q = q.Where(t => t.Status == "Open");
@@ -295,7 +321,9 @@ public class TicketService(
 
     public async Task<TicketActivity> AddComment(NewTicketComment model, string actorId)
     {
-        var entity = await TicketStore.Load(model.TicketId);
+        var entity = await _store
+            .WithTracking<Data.Ticket>()
+            .SingleAsync(t => t.Id == model.TicketId);
         var timestamp = _now.Get();
         var actingUser = _actingUserService.Get();
 
@@ -319,7 +347,7 @@ public class TicketService(
 
         // Set the ticket status to be Open if it was closed before and someone leaves a new comment
         entity.Status = entity.Status == "Closed" ? "Open" : entity.Status;
-        await TicketStore.Update(entity);
+        await _store.SaveUpdate(entity, default);
 
         var result = Mapper.Map<TicketActivity>(commentActivity);
         result.RequesterId = entity.RequesterId;
@@ -340,7 +368,7 @@ public class TicketService(
 
     public async Task<string[]> ListLabels(SearchFilter model)
     {
-        var q = TicketStore.List(model.Term);
+        var q = BuildTicketSearchQuery(model.Term);
         var tickets = await Mapper.ProjectTo<TicketSummary>(q).ToArrayAsync();
 
         var b = tickets
@@ -363,7 +391,17 @@ public class TicketService(
 
     public async Task<bool> IsOwnerOrTeamMember(int ticketId, string userId)
     {
-        var ticket = await TicketStore.Load(ticketId);
+        var ticket = await _store
+            .WithNoTracking<Data.Ticket>()
+            .Select(t => new
+            {
+                t.Id,
+                t.Key,
+                t.RequesterId,
+                t.TeamId
+            })
+            .SingleOrDefaultAsync(t => t.Key == ticketId);
+
         if (ticket == null)
             return false;
         if (ticket.RequesterId == userId)
@@ -380,8 +418,16 @@ public class TicketService(
 
     public async Task<bool> IsOwnerOrTeamMember(string ticketId, string userId)
     {
-        var ticket = await TicketStore.Load(ticketId);
-        if (ticket == null)
+        var ticket = await _store
+            .WithNoTracking<Data.Ticket>()
+            .Select(t => new
+            {
+                t.Id,
+                t.RequesterId,
+                t.TeamId
+            })
+            .SingleOrDefaultAsync(t => t.Id == ticketId);
+        if (ticket is null)
             return false;
         if (ticket.RequesterId == userId)
             return true;
@@ -397,17 +443,16 @@ public class TicketService(
 
     public async Task<bool> IsOwner(string ticketId, string userId)
     {
-        var ticket = await TicketStore.Load(ticketId);
-        if (ticket == null)
-            return false;
-        if (ticket.RequesterId == userId)
-            return true;
-        return false;
+        return await _store
+            .WithNoTracking<Data.Ticket>()
+            .Where(t => t.Id == ticketId)
+            .Where(t => t.RequesterId == userId)
+            .AnyAsync();
     }
 
     public async Task<bool> UserCanUpdate(string ticketId, string userId)
     {
-        var ticket = await TicketStore.Load(ticketId);
+        var ticket = await BuildTicketSearchQuery(ticketId).SingleAsync();
         if (ticket == null)
             return false;
 
@@ -501,10 +546,10 @@ public class TicketService(
     }
 
     private async Task<Ticket> LoadTicketDto(int ticketKey)
-        => await BuildTicketDto(await TicketStore.LoadDetails(ticketKey));
+        => await BuildTicketDto(await BuildTicketQueryBase().SingleOrDefaultAsync(t => t.Key == ticketKey));
 
     private async Task<Ticket> LoadTicketDto(string ticketId)
-        => await BuildTicketDto(await TicketStore.LoadDetails(ticketId));
+        => await BuildTicketDto(await BuildTicketQueryBase().SingleOrDefaultAsync(t => t.Id == ticketId));
 
     private async Task<Ticket> BuildTicketDto(Data.Ticket ticketEntity)
     {
@@ -535,12 +580,24 @@ public class TicketService(
     }
 
     private async Task<TicketUser> BuildTicketUser(Data.User user)
-    {
-        return new TicketUser()
+        => new TicketUser()
         {
             ApprovedName = user.ApprovedName,
             Id = user.Id,
             IsSupportPersonnel = await _permissionsService.Can(PermissionKey.Support_ManageTickets),
         };
-    }
+
+    private IQueryable<Data.Ticket> BuildTicketQueryBase()
+        => _store
+            .WithNoTracking<Data.Ticket>()
+            .Include(c => c.Requester)
+            .Include(c => c.Assignee)
+            .Include(c => c.Creator)
+            .Include(c => c.Activity)
+                .ThenInclude(a => a.User)
+            .Include(c => c.Activity)
+                .ThenInclude(a => a.Assignee)
+            .Include(c => c.Challenge)
+            .Include(c => c.Player)
+                .ThenInclude(p => p.Game);
 }

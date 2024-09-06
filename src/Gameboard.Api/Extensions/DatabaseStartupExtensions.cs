@@ -25,15 +25,10 @@ namespace Gameboard.Api.Extensions
             var services = scope.ServiceProvider;
             var config = services.GetRequiredService<IConfiguration>();
             var env = services.GetService<IWebHostEnvironment>();
-            var dbContextFactory = services.GetService<IDbContextFactory<GameboardDbContext>>();
 
-            using (var db = dbContextFactory.CreateDbContext())
-            {
-                if (!db.Database.IsInMemory())
-                    db.Database.Migrate();
-
-                SeedDatabase(env, config, db, settings, logger);
-            }
+            using var dbContext = services.GetService<GameboardDbContext>();
+            dbContext.Database.Migrate();
+            SeedDatabase(env, config, dbContext, settings, logger);
 
             return app;
         }

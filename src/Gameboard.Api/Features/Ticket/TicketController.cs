@@ -72,7 +72,6 @@ public class TicketController(
     [Authorize]
     public async Task<Ticket> Create([FromForm] NewTicket model)
     {
-        await Validate(model);
         var result = await TicketService.Create(model);
         await Notify(Mapper.Map<TicketNotification>(result), EventAction.Created);
         return result;

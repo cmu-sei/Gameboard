@@ -17,9 +17,9 @@ public class Store<TEntity> : IStore<TEntity> where TEntity : class, IEntity
     private readonly GameboardDbContext _dbContext;
     private readonly IGuidService _guids;
 
-    public Store(IDbContextFactory<GameboardDbContext> dbContextFactory, IGuidService guids)
+    public Store(GameboardDbContext dbContext, IGuidService guids)
     {
-        _dbContext = dbContextFactory.CreateDbContext();
+        _dbContext = dbContext;
         DbSet = _dbContext.Set<TEntity>().AsQueryable();
         _guids = guids;
     }

@@ -16,8 +16,8 @@ public interface IPlayerStore : IStore<Player>
     Task<Player> LoadBoard(string id);
 }
 
-public class PlayerStore(IGuidService guids, IDbContextFactory<GameboardDbContext> dbContextFactory, IStore store)
-    : Store<Data.Player>(dbContextFactory, guids), IPlayerStore
+public class PlayerStore(IGuidService guids, GameboardDbContext dbContext, IStore store)
+    : Store<Data.Player>(dbContext, guids), IPlayerStore
 {
     private readonly IStore _store = store;
 

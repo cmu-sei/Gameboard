@@ -2,14 +2,14 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
-using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data;
 
-public class GameboardDbContext(IServiceProvider serviceProvider, DbContextOptions<GameboardDbContext> options, IWebHostEnvironment env) : DbContext(options)
+public class GameboardDbContext(IServiceProvider serviceProvider, DbContextOptions options, IHostEnvironment env) : DbContext(options)
 {
-    private readonly IWebHostEnvironment _env = env;
+    private readonly IHostEnvironment _env = env;
     private readonly IServiceProvider _serviceProvider = serviceProvider;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
