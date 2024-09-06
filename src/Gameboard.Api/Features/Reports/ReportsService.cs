@@ -8,7 +8,6 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
-using ServiceStack;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -89,7 +88,7 @@ public class ReportsService : IReportsService
             {
                 Name = "Enrollment",
                 Key = ReportKey.Enrollment,
-                Description = "View a summary of player enrollment - who enrolled when, which sponsors do they represent, and how many of them actually played challenges.",
+                Description = "View a summary of player enrollment - who enrolled when, which sponsors they represent, and how many of them actually played challenges.",
                 ExampleFields = new string[]
                 {
                     "Player & Sponsor",
@@ -104,6 +103,23 @@ public class ReportsService : IReportsService
                     "Track",
                     "Game",
                     "Enrollment Date Range",
+                }
+            },
+            new()
+            {
+                Name = "Feedback (Games)",
+                Key = ReportKey.FeedbackGames,
+                Description = "Learn more about how your games are landing with your players. (Requires configuration of feedback in the Game Center.)",
+                ExampleFields = new string[]
+                {
+                    "Question Info",
+                    "Response Summary",
+                    "Individual Responses"
+                },
+                ExampleParameters = new string[]
+                {
+                    "Game",
+                    "Sponsor"
                 }
             },
             new()
@@ -242,6 +258,7 @@ public class ReportsService : IReportsService
             query = query.Where(c => c.GameId == gameId);
 
         return await query.Select(c => new SimpleEntity { Id = c.Id, Name = c.Name })
+            .Distinct()
             .OrderBy(s => s.Name)
             .ToArrayAsync();
     }

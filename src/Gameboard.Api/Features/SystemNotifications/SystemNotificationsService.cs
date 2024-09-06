@@ -23,11 +23,11 @@ internal class SystemNotificationsService : ISystemNotificationsService
     public Task<ViewSystemNotification> Get(string id)
         => _store
             .WithNoTracking<SystemNotification>()
-                .Include(n => n.CreatedByUser)
             .Select(entity => new ViewSystemNotification
             {
                 Id = entity.Id,
                 Title = entity.Title,
+                IsDismissible = entity.IsDismissible,
                 MarkdownContent = entity.MarkdownContent,
                 StartsOn = entity.StartsOn,
                 EndsOn = entity.EndsOn,
@@ -41,6 +41,7 @@ internal class SystemNotificationsService : ISystemNotificationsService
         {
             Id = notification.Id,
             Title = notification.Title,
+            IsDismissible = notification.IsDismissible,
             MarkdownContent = notification.MarkdownContent,
             StartsOn = notification.StartsOn,
             EndsOn = notification.EndsOn,

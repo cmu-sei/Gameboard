@@ -15,20 +15,13 @@ public interface IEnrollmentReportService
     Task<EnrollmentReportStatSummary> GetSummaryStats(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
 }
 
-internal class EnrollmentReportService : IEnrollmentReportService
+internal class EnrollmentReportService(
+    IReportsService reportsService,
+    IStore store
+    ) : IEnrollmentReportService
 {
-    private readonly IReportsService _reportsService;
-    private readonly IStore _store;
-
-    public EnrollmentReportService
-    (
-        IReportsService reportsService,
-        IStore store
-    )
-    {
-        _reportsService = reportsService;
-        _store = store;
-    }
+    private readonly IReportsService _reportsService = reportsService;
+    private readonly IStore _store = store;
 
     public IQueryable<Data.Player> GetBaseQuery(EnrollmentReportParameters parameters)
     {
@@ -53,6 +46,7 @@ internal class EnrollmentReportService : IEnrollmentReportService
             // to be included in this report, the player record must have either no challenges OR have
             // all of their challenges be in competitive mode
             .Where(p => p.Challenges.Count() == 0 || p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
+            .Where(p => p.Mode == PlayerMode.Competition)
             .Where(p => p.TeamId != null && p.TeamId != string.Empty);
 
         if (enrollDateStart != null)

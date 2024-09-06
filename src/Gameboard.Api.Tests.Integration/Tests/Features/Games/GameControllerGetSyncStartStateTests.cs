@@ -1,17 +1,13 @@
 using Gameboard.Api.Common;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestContext>
+public class GameControllerGetSyncStartStateTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>
 {
-    private readonly GameboardTestContext _testContext;
-
-    public GameControllerGetSyncStartStateTests(GameboardTestContext testContext)
-    {
-        _testContext = testContext;
-    }
+    private readonly GameboardTestContext _testContext = testContext;
 
     [Theory, GbIntegrationAutoData]
     public async Task GetSyncStartState_WithAllReady_IsReady(IFixture fixture)
@@ -25,11 +21,11 @@ public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestC
             {
                 g.Id = gameId;
                 g.RequireSynchronizedStart = true;
-                g.Players = new List<Data.Player>
-                {
+                g.Players =
+                [
                     state.Build<Data.Player>(fixture, p => { p.IsReady = true; p.TeamId = fixture.Create<string>(); }),
                     state.Build<Data.Player>(fixture, p => { p.IsReady = true; p.TeamId = fixture.Create<string>(); }),
-                };
+                ];
             });
         });
 
@@ -38,7 +34,7 @@ public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestC
         // when
         var result = await http
             .GetAsync($"/api/game/{gameId}/ready")
-            .WithContentDeserializedAs<SyncStartState>();
+            .DeserializeResponseAs<SyncStartState>();
 
         // then
         result.ShouldNotBeNull();
@@ -77,7 +73,7 @@ public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestC
         // when 
         var result = await http
             .GetAsync($"/api/game/{gameId}/ready")
-            .WithContentDeserializedAs<SyncStartState>();
+            .DeserializeResponseAs<SyncStartState>();
 
         // then
         result.ShouldNotBeNull();
@@ -108,7 +104,7 @@ public class GameControllerGetSyncStartStateTests : IClassFixture<GameboardTestC
 
         // when
         await _testContext
-            .CreateDefaultClient()
+            .CreateHttpClientWithAuthRole(UserRole.Admin)
             .GetAsync($"/api/game/{gameId}/ready")
             // then
             .ShouldYieldGameboardValidationException<GameboardAggregatedValidationExceptions>();

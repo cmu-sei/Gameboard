@@ -3,14 +3,9 @@ using Gameboard.Api.Features.Consoles;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class RecordUserConsoleActiveTests : IClassFixture<GameboardTestContext>
+public class RecordUserConsoleActiveTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>
 {
-    private readonly GameboardTestContext _testContext;
-
-    public RecordUserConsoleActiveTests(GameboardTestContext testContext)
-    {
-        _testContext = testContext;
-    }
+    private readonly GameboardTestContext _testContext = testContext;
 
     [Theory, GbIntegrationAutoData]
     public async Task ActionRecorded_WithPracticeSessionNearEnd_Extends(string userId, IFixture fixture)
@@ -36,7 +31,7 @@ public class RecordUserConsoleActiveTests : IClassFixture<GameboardTestContext>
         var result = await _testContext
             .CreateHttpClientWithActingUser(u => u.Id = userId)
             .PostAsync("api/consoles/active", null)
-            .WithContentDeserializedAs<ConsoleActionResponse>();
+            .DeserializeResponseAs<ConsoleActionResponse>();
 
         // then
         // (See the source of RecordUserConsoleActive for a discussion about why this is currently a string)
@@ -68,7 +63,7 @@ public class RecordUserConsoleActiveTests : IClassFixture<GameboardTestContext>
         var result = await _testContext
             .CreateHttpClientWithActingUser(u => u.Id = userId)
             .PostAsync("api/consoles/active", null)
-            .WithContentDeserializedAs<ConsoleActionResponse>();
+            .DeserializeResponseAs<ConsoleActionResponse>();
 
         // then
         // (See the source of RecordUserConsoleActive for a discussion about why this is currently a string)
@@ -100,7 +95,7 @@ public class RecordUserConsoleActiveTests : IClassFixture<GameboardTestContext>
         var result = await _testContext
             .CreateHttpClientWithActingUser(u => u.Id = userId)
             .PostAsync("api/consoles/active", null)
-            .WithContentDeserializedAs<ConsoleActionResponse>();
+            .DeserializeResponseAs<ConsoleActionResponse>();
 
         // then
         result.Message.ShouldBeNull();

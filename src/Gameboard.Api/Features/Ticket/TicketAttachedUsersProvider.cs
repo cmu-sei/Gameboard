@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Support;
@@ -16,14 +17,10 @@ public interface ITicketAttachedUsersProvider
     Task<IEnumerable<TicketAttachedUser>> GetAttachedUsers(string ticketId);
 }
 
-internal class TicketAttachedUsersProvider : ITicketAttachedUsersProvider
+internal class TicketAttachedUsersProvider(IUserRolePermissionsService permissionsService, IStore store) : ITicketAttachedUsersProvider
 {
-    private readonly IStore _store;
-
-    public TicketAttachedUsersProvider(IStore store)
-    {
-        _store = store;
-    }
+    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
+    private readonly IStore _store = store;
 
     public async Task<IEnumerable<TicketAttachedUser>> GetAttachedUsers(string ticketId)
     {
@@ -51,6 +48,9 @@ internal class TicketAttachedUsersProvider : ITicketAttachedUsersProvider
         .Distinct()
         .ToArray();
 
+        // find roles which are eligible to receive support notifications
+        var supportRoles = await _permissionsService.GetRolesWithPermission(PermissionKey.Support_ManageTickets);
+
         // then we pull those users plus any player's user who is on the ticket team
         var users = await _store
             .WithNoTracking<Data.User>()
@@ -59,13 +59,13 @@ internal class TicketAttachedUsersProvider : ITicketAttachedUsersProvider
                 u =>
                     (distinctUserIds.Length > 0 && distinctUserIds.Contains(u.Id)) ||
                     (ticketInfo.TeamId != null && ticketInfo.TeamId != "" && u.Enrollments.Any(p => p.TeamId == ticketInfo.TeamId)) ||
-                    u.Role.HasFlag(UserRole.Admin | UserRole.Support)
+                    supportRoles.Contains(u.Role)
             )
             .Select(u => new
             {
                 u.Id,
                 u.ApprovedName,
-                IsSupportPersonnel = u.Role.HasFlag(UserRole.Admin | UserRole.Support),
+                IsSupportPersonnel = supportRoles.Contains(u.Role),
                 TeamIds = u.Enrollments.Select(p => p.TeamId)
             })
             .ToArrayAsync();

@@ -9,6 +9,7 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Features.Users;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Scores;
@@ -24,28 +25,20 @@ public interface IScoringService
     IDictionary<string, int?> GetTeamRanks(IEnumerable<TeamForRanking> teams);
 }
 
-internal class ScoringService : IScoringService
+internal class ScoringService(
+    IActingUserService actingUserService,
+    IMapper mapper,
+    IUserRolePermissionsService permissionsService,
+    INowService now,
+    IStore store,
+    ITeamService teamService) : IScoringService
 {
-    private readonly IActingUserService _actingUserService;
-    private readonly IMapper _mapper;
-    private readonly INowService _now;
-    private readonly IStore _store;
-    private readonly ITeamService _teamService;
-
-    public ScoringService
-    (
-        IActingUserService actingUserService,
-        IMapper mapper,
-        INowService now,
-        IStore store,
-        ITeamService teamService)
-    {
-        _actingUserService = actingUserService;
-        _mapper = mapper;
-        _now = now;
-        _store = store;
-        _teamService = teamService;
-    }
+    private readonly IActingUserService _actingUserService = actingUserService;
+    private readonly IMapper _mapper = mapper;
+    private readonly INowService _now = now;
+    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
+    private readonly IStore _store = store;
+    private readonly ITeamService _teamService = teamService;
 
     public async Task<bool> CanAccessTeamScoreDetail(string teamId, CancellationToken cancellationToken)
     {
@@ -61,7 +54,7 @@ internal class ScoringService : IScoringService
         var currentUser = _actingUserService.Get();
         if (currentUser is not null)
         {
-            if (currentUser.IsAdmin || currentUser.IsObserver)
+            if (await _permissionsService.Can(PermissionKey.Scores_ViewLive))
                 return true;
 
             var userTeamIds = await _teamService.GetUserTeamIds(currentUser.Id);

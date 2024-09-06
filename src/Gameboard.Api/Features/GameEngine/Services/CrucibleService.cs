@@ -2,7 +2,6 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using AutoMapper;
-using Gameboard.Api.Data.Abstractions;
 using Microsoft.Extensions.Logging;
 using Alloy.Api.Client;
 using System.Threading.Tasks;
@@ -13,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Services;
 using Gameboard.Api.Data;
+using System.Threading;
 
 namespace Gameboard.Api.Features.GameEngine;
 
@@ -25,28 +25,21 @@ public interface ICrucibleService
     Task<GameEngineGameState> RegisterGamespace(Data.ChallengeSpec spec, Data.Game game, Data.Player player, Data.Challenge entity);
 }
 
-public class CrucibleService : _Service, ICrucibleService
+public class CrucibleService(
+    ILogger<ChallengeService> logger,
+    IMapper mapper,
+    CoreOptions options,
+    IAlloyApiClient alloy,
+    CrucibleOptions crucibleOptions,
+    ILockService lockService,
+    IStore store
+    ) : _Service(logger, mapper, options), ICrucibleService
 {
-    IChallengeStore Store { get; }
-    IAlloyApiClient Alloy { get; }
-    CrucibleOptions CrucibleOptions { get; }
-    ILockService LockService { get; }
+    IAlloyApiClient Alloy { get; } = alloy;
+    CrucibleOptions CrucibleOptions { get; } = crucibleOptions;
+    ILockService LockService { get; } = lockService;
 
-    public CrucibleService(
-        ILogger<ChallengeService> logger,
-        IMapper mapper,
-        CoreOptions options,
-        IChallengeStore store,
-        IAlloyApiClient alloy,
-        CrucibleOptions crucibleOptions,
-        ILockService lockService
-    ) : base(logger, mapper, options)
-    {
-        Store = store;
-        Alloy = alloy;
-        CrucibleOptions = crucibleOptions;
-        LockService = lockService;
-    }
+    private readonly IStore _store = store;
 
     public async Task<GameEngineGameState> RegisterGamespace(Data.ChallengeSpec spec, Data.Game game, Data.Player player, Data.Challenge entity)
     {
@@ -55,7 +48,8 @@ public class CrucibleService : _Service, ICrucibleService
 
         if (game.AllowTeam)
         {
-            additionalUserIds = await Store.DbContext.Players
+            additionalUserIds = await _store
+                .WithNoTracking<Data.Player>()
                 .Where(x => x.TeamId == player.TeamId && x.Id != player.Id)
                 .Select(x => new Guid(x.UserId))
                 .ToListAsync();
@@ -78,16 +72,16 @@ public class CrucibleService : _Service, ICrucibleService
         {
             Markdown = spec.Description,
             IsActive = true,
-            Players = new List<GameEnginePlayer>
-            {
+            Players =
+            [
                 new()
                 {
                     GamespaceId = evt.Id.ToString(),
                     SubjectId = player.TeamId,
                     SubjectName = player.ApprovedName
                 }
-            },
-            Vms = new List<GameEngineVmState>(),
+            ],
+            Vms = [],
             Name = spec.Name,
             Id = entity.Id,
             WhenCreated = whenCreated,
@@ -117,14 +111,13 @@ public class CrucibleService : _Service, ICrucibleService
             SectionIndex = 0,
             SectionScore = 0,
             SectionText = "Section 1",
-            Text = "Answer the questions"
+            Text = "Answer the questions",
+            Questions = questions.Select(q => new GameEngineQuestionView
+            {
+                Text = q.Text,
+                Weight = q.Weight
+            })
         };
-
-        state.Challenge.Questions = questions.Select(q => new GameEngineQuestionView
-        {
-            Text = q.Text,
-            Weight = q.Weight
-        });
 
         return state;
     }
@@ -142,7 +135,7 @@ public class CrucibleService : _Service, ICrucibleService
         // Ensure each challenge can only have one attempt graded at a time
         using (await LockService.GetChallengeLock(challengeId).LockAsync())
         {
-            var challengeEntity = await Store.Load(challengeId);
+            var challengeEntity = await _store.SingleAsync<Data.Challenge>(challengeId, CancellationToken.None);
             var challenge = Mapper.Map<Challenge>(challengeEntity);
 
             if (challenge.State.Challenge.Attempts >= challenge.State.Challenge.MaxAttempts)
@@ -150,7 +143,7 @@ public class CrucibleService : _Service, ICrucibleService
                 throw new ActionForbidden();
             }
 
-            DateTimeOffset ts = DateTimeOffset.UtcNow;
+            var ts = DateTimeOffset.UtcNow;
 
             var eventId = challenge.State.Players.FirstOrDefault().GamespaceId;
 
@@ -185,7 +178,7 @@ public class CrucibleService : _Service, ICrucibleService
             });
 
             Mapper.Map(state, challengeEntity);
-            await Store.Update(challengeEntity);
+            await _store.SaveUpdate(challengeEntity, CancellationToken.None);
 
             return Mapper.Map<GameEngineGameState>(state);
         }

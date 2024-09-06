@@ -11,17 +11,9 @@ namespace Gameboard.Api.Features.Games;
 public interface IGameHubApi { }
 
 [Authorize(AppConstants.HubPolicy)]
-public class GameHub : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
+public class GameHub(ILogger<GameHub> logger) : Hub<IGameHubEvent>, IGameHubApi, IGameboardHub
 {
-    private readonly ILogger<GameHub> _logger;
-
-    public GameHub
-    (
-        ILogger<GameHub> logger
-    )
-    {
-        _logger = logger;
-    }
+    private readonly ILogger<GameHub> _logger = logger;
 
     public GameboardHubType GroupType => GameboardHubType.Game;
 

@@ -5,10 +5,8 @@ using System.Threading.Tasks;
 using System.Transactions;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,35 +14,19 @@ namespace Gameboard.Api.Features.ChallengeBonuses;
 
 public record ConfigureGameAutoBonusesCommand(ConfigureGameAutoBonusesCommandParameters Parameters) : IRequest<GameScoringConfig>;
 
-internal class ConfigureGameAutoBonusesHandler : IRequestHandler<ConfigureGameAutoBonusesCommand, GameScoringConfig>
+internal class ConfigureGameAutoBonusesHandler(
+    IGuidService guids,
+    IScoringService scoringService,
+    IStore store,
+    IGameboardRequestValidator<ConfigureGameAutoBonusesCommand> requestValidator) : IRequestHandler<ConfigureGameAutoBonusesCommand, GameScoringConfig>
 {
-    private readonly IGuidService _guids;
-    private readonly IGameboardRequestValidator<ConfigureGameAutoBonusesCommand> _requestValidator;
-    private readonly IScoringService _scoringService;
-    private readonly IStore _store;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
-
-    public ConfigureGameAutoBonusesHandler(
-        IGuidService guids,
-        IScoringService scoringService,
-        IStore store,
-        UserRoleAuthorizer userRoleAuthorizer,
-        IGameboardRequestValidator<ConfigureGameAutoBonusesCommand> requestValidator)
-    {
-        _requestValidator = requestValidator;
-        _guids = guids;
-        _scoringService = scoringService;
-        _store = store;
-        _userRoleAuthorizer = userRoleAuthorizer;
-    }
+    private readonly IGuidService _guids = guids;
+    private readonly IGameboardRequestValidator<ConfigureGameAutoBonusesCommand> _requestValidator = requestValidator;
+    private readonly IScoringService _scoringService = scoringService;
+    private readonly IStore _store = store;
 
     public async Task<GameScoringConfig> Handle(ConfigureGameAutoBonusesCommand request, CancellationToken cancellationToken)
     {
-        // authorize
-        _userRoleAuthorizer
-            .AllowRoles(UserRole.Admin, UserRole.Director, UserRole.Designer, UserRole.Tester)
-            .Authorize();
-
         // validate
         await _requestValidator.Validate(request, cancellationToken);
 

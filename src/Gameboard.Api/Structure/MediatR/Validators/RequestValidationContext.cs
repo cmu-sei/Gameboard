@@ -13,4 +13,10 @@ public class RequestValidationContext
         _exceptions.Add(exception);
         return this;
     }
+
+    public RequestValidationContext AddValidationExceptionRange(IEnumerable<GameboardValidationException> exceptions)
+    {
+        _exceptions.AddRange(exceptions);
+        return this;
+    }
 }

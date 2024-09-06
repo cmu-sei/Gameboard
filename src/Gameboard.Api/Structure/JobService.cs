@@ -11,21 +11,14 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api;
 
-public class JobService : BackgroundService, IDisposable
+public class JobService(
+    ILogger<JobService> logger,
+    IServiceProvider serviceProvider
+    ) : BackgroundService, IDisposable, IAsyncDisposable
 {
     private int _runCount = 0;
-    private readonly ILogger _logger;
-    private readonly IServiceProvider _services;
-
-    public JobService
-    (
-        ILogger<JobService> logger,
-        IServiceProvider serviceProvider
-    )
-    {
-        _logger = logger;
-        _services = serviceProvider;
-    }
+    private readonly ILogger _logger = logger;
+    private readonly IServiceProvider _services = serviceProvider;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -49,5 +42,10 @@ public class JobService : BackgroundService, IDisposable
             _logger.LogInformation(message: $"{nameof(JobService)} run #{_runCount} complete. Waiting for next run...");
             await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken);
         }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        return ValueTask.CompletedTask;
     }
 }

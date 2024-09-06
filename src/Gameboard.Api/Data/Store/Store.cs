@@ -12,6 +12,7 @@ namespace Gameboard.Api.Data;
 
 public interface IStore
 {
+    Task<bool> AnyAsync<TEntity>(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) where TEntity : class, IEntity;
     Task<TEntity> Create<TEntity>(TEntity entity) where TEntity : class, IEntity;
     Task<TEntity> Create<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity;
     Task Delete<TEntity>(string id) where TEntity : class, IEntity;
@@ -26,7 +27,6 @@ public interface IStore
     Task<TEntity> FirstOrDefaultAsync<TEntity>(CancellationToken cancellationToken) where TEntity : class, IEntity;
     Task<TEntity> FirstOrDefaultAsync<TEntity>(bool enableTracking, CancellationToken cancellationToken) where TEntity : class, IEntity;
     Task<TEntity> FirstOrDefaultAsync<TEntity>(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) where TEntity : class, IEntity;
-    GameboardDbContext GetDbContext();
     IQueryable<TEntity> List<TEntity>(bool enableTracking = false) where TEntity : class, IEntity;
     Task<TEntity> Retrieve<TEntity>(string id, bool enableTracking = false) where TEntity : class, IEntity;
     Task<TEntity> Retrieve<TEntity>(string id, Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder, bool enableTracking = false) where TEntity : class, IEntity;
@@ -41,16 +41,12 @@ public interface IStore
     IQueryable<TEntity> WithTracking<TEntity>() where TEntity : class, IEntity;
 }
 
-internal class Store : IStore
+internal class Store(IGuidService guids, GameboardDbContext dbContext) : IStore
 {
-    private readonly IGuidService _guids;
-    private readonly GameboardDbContext _dbContext;
+    private readonly IGuidService _guids = guids;
 
-    public Store(IGuidService guids, GameboardDbContext dbContext)
-    {
-        _dbContext = dbContext;
-        _guids = guids;
-    }
+    public Task<bool> AnyAsync<TEntity>(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) where TEntity : class, IEntity
+        => dbContext.Set<TEntity>().AnyAsync(predicate, cancellationToken);
 
     public Task<TEntity> Create<TEntity>(TEntity entity) where TEntity : class, IEntity
         => Create(entity, CancellationToken.None);
@@ -60,15 +56,15 @@ internal class Store : IStore
         if (entity.Id.IsEmpty())
             entity.Id = _guids.GetGuid();
 
-        _dbContext.Add(entity);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        dbContext.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return entity;
     }
 
     public async Task Delete<TEntity>(string id) where TEntity : class, IEntity
     {
-        var rowsAffected = await _dbContext
+        var rowsAffected = await dbContext
             .Set<TEntity>()
             .Where(e => e.Id == id)
             .ExecuteDeleteAsync();
@@ -77,16 +73,16 @@ internal class Store : IStore
             throw new GameboardException($"""Delete of entity type {typeof(TEntity)} with id "{id}" affected {rowsAffected} rows (expected 1).""");
     }
 
-    public Task Delete<TEntity>(params TEntity[] entity) where TEntity : class, IEntity
+    public async Task Delete<TEntity>(params TEntity[] entity) where TEntity : class, IEntity
     {
-        _dbContext.RemoveRange(entity);
-        return _dbContext.SaveChangesAsync();
+        dbContext.RemoveRange(entity);
+        await dbContext.SaveChangesAsync();
     }
 
     public async Task DoTransaction(Func<GameboardDbContext, Task> operation, CancellationToken cancellationToken)
     {
-        using var transaction = _dbContext.Database.BeginTransaction();
-        await operation(_dbContext);
+        using var transaction = dbContext.Database.BeginTransaction();
+        await operation(dbContext);
         await transaction.CommitAsync(cancellationToken);
     }
 
@@ -95,13 +91,13 @@ internal class Store : IStore
         Expression<Func<TEntity, bool>> predicate,
         Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls
     ) where TEntity : class, IEntity
-        => _dbContext
+        => dbContext
             .Set<TEntity>()
             .Where(predicate)
             .ExecuteUpdateAsync(setPropertyCalls);
 
     public Task<bool> Exists<TEntity>(string id) where TEntity : class, IEntity
-        => _dbContext
+        => dbContext
             .Set<TEntity>()
             .AnyAsync(e => e.Id == id);
 
@@ -123,8 +119,6 @@ internal class Store : IStore
 
         return query.FirstOrDefaultAsync(cancellationToken);
     }
-
-    public GameboardDbContext GetDbContext() => _dbContext;
 
     public IQueryable<TEntity> List<TEntity>(bool enableTracking = false) where TEntity : class, IEntity
         => GetQueryBase<TEntity>(enableTracking);
@@ -150,19 +144,20 @@ internal class Store : IStore
 
     public async Task<IEnumerable<TEntity>> SaveAddRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity
     {
-        _dbContext.AddRange(entities);
-        await _dbContext.SaveChangesAsync();
+        dbContext.AddRange(entities);
+        await dbContext.SaveChangesAsync();
 
         // detach because of EF stuff
         // TODO: investigate why our store is running afoul of EF attachment stuff
-        _dbContext.DetachUnchanged();
+        // may be fixed because we undumbed and made dbcontext transient
+        dbContext.DetachUnchanged();
         return entities;
     }
 
     public async Task SaveRemoveRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity
     {
-        _dbContext.RemoveRange(entities);
-        await _dbContext.SaveChangesAsync();
+        dbContext.RemoveRange(entities);
+        await dbContext.SaveChangesAsync();
     }
 
     public async Task<TEntity> SaveUpdate<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity
@@ -171,16 +166,16 @@ internal class Store : IStore
         return entity;
     }
 
-    public Task SaveUpdateRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity
+    public async Task SaveUpdateRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity
     {
         foreach (var entity in entities)
         {
-            if (_dbContext.Entry(entity).State == EntityState.Detached)
-                _dbContext.Attach(entity);
+            if (dbContext.Entry(entity).State == EntityState.Detached)
+                dbContext.Attach(entity);
         }
 
-        _dbContext.UpdateRange(entities);
-        return _dbContext.SaveChangesAsync();
+        dbContext.UpdateRange(entities);
+        await dbContext.SaveChangesAsync();
     }
 
     public IQueryable<TEntity> WithNoTracking<TEntity>() where TEntity : class, IEntity
@@ -190,12 +185,5 @@ internal class Store : IStore
         => GetQueryBase<TEntity>(enableTracking: true);
 
     private IQueryable<TEntity> GetQueryBase<TEntity>(bool enableTracking = false) where TEntity : class, IEntity
-    {
-        var query = _dbContext.Set<TEntity>().AsQueryable();
-
-        if (!enableTracking)
-            query = query.AsNoTracking();
-
-        return query;
-    }
+        => dbContext.Set<TEntity>().AsQueryable();
 }

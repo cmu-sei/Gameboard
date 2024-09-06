@@ -8,14 +8,9 @@ namespace Gameboard.Api.Features.SystemNotifications;
 
 [Route("api")]
 [Authorize]
-public class SystemNotificationsController : ControllerBase
+public class SystemNotificationsController(IMediator mediator) : ControllerBase
 {
-    private readonly IMediator _mediator;
-
-    public SystemNotificationsController(IMediator mediator)
-    {
-        _mediator = mediator;
-    }
+    private readonly IMediator _mediator = mediator;
 
     [HttpPost("system-notifications")]
     public Task<ViewSystemNotification> CreateSystemNotification([FromBody] CreateSystemNotification createSystemNotification)
@@ -30,7 +25,6 @@ public class SystemNotificationsController : ControllerBase
         => _mediator.Send(new UpdateSystemNotificationCommand(request));
 
     [HttpDelete("system-notifications/{id}")]
-    [Authorize(AppConstants.AdminPolicy)]
     public Task DeleteSystemNotification([FromRoute] string id)
         => _mediator.Send(new DeleteSystemNotificationCommand(id));
 

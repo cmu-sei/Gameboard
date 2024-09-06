@@ -184,6 +184,7 @@ public class ConsoleSummary
     public string Url { get; set; }
     public bool IsRunning { get; set; }
     public bool IsObserver { get; set; }
+    public string Ticket { get; set; }
 }
 
 public enum ConsoleAction

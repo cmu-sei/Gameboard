@@ -1,3 +1,4 @@
+using Gameboard.Api.Data;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;

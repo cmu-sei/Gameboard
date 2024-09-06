@@ -25,34 +25,33 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
                 throw new GbAutomatedTestSetupException("Couldn't initialize the test context - the database contianer hasn't been resolved.");
 
             // Add DB context with connection to the container
-            services.RemoveService<DbContext>();
-            services.AddDbContext<GameboardDbContext, GameboardDbContextPostgreSQL>(builder =>
-            {
-                builder.UseNpgsql(_container.GetConnectionString(), opts => opts.MigrationsAssembly("Gameboard.Api"));
-            });
+            services
+                .AddDbContext<GameboardDbContext, GameboardDbContextPostgreSQL>(builder =>
+                {
+                    builder.EnableDetailedErrors();
+                    builder.EnableSensitiveDataLogging();
+                    builder.UseNpgsql(_container.GetConnectionString());
+                }, ServiceLifetime.Transient);
 
-            // Some services (like the stores) in Gameboard inject with GameboardDbContext rather than DbContext,
-            // so we need to add an additional binding for them
-            services.AddScoped<GameboardDbContextPostgreSQL>();
-            services.AddScoped<GameboardDbContext, GameboardDbContextPostgreSQL>();
+            services
+                // add user claims transformation that lets them all through
+                .ReplaceService<IClaimsTransformation, TestClaimsTransformation>(allowMultipleReplace: true)
 
-            // add user claims transformation that lets them all through
-            services.ReplaceService<IClaimsTransformation, TestClaimsTransformation>(allowMultipleReplace: true);
+                // add a stand-in for external services
+                .ReplaceService<IExternalGameHostService, TestExternalGameHostService>()
+                .ReplaceService<IGameEngineService, TestGameEngineService>()
 
-            // add a stand-in for external services
-            services.ReplaceService<IExternalGameHostService, TestGamebrainService>();
-            services.ReplaceService<IGameEngineService, TestGameEngineService>();
+                // dummy authorization service that lets everything through
+                .ReplaceService<IAuthorizationService, TestAuthorizationService>()
 
-            // dummy authorization service that lets everything through
-            services.ReplaceService<IAuthorizationService, TestAuthorizationService>();
-
-            // add defaults for services that are sometimes replaced in .ConfigureTestServices
-            services.AddScoped<ITestGameEngineStateChangeService, TestGameEngineStateChangeService>();
-            services.AddScoped<ITestGradingResultService>(_ => new TestGradingResultService(new TestGradingResultServiceConfiguration()));
+                // add defaults for services that are sometimes replaced in .ConfigureTestServices
+                .AddScoped<ITestGameEngineStateChangeService, TestGameEngineStateChangeService>()
+                .AddScoped<ITestGradingResultService>(_ => new TestGradingResultService(new TestGradingResultServiceConfiguration()));
         });
     }
 
-    public GameboardDbContext GetDbContext() => Services.GetRequiredService<GameboardDbContext>();
+    public GameboardDbContext GetDbContext()
+        => Services.GetRequiredService<GameboardDbContext>();
 
     public async Task InitializeAsync()
     {

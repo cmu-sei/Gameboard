@@ -6,16 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 namespace Gameboard.Api.Features.Admin;
 
 [Route("api/admin")]
-public class AdminController : ControllerBase
+public class AdminController(IMediator mediator, IActingUserService actingUserService) : ControllerBase
 {
-    private readonly User _actingUser;
-    private readonly IMediator _mediator;
-
-    public AdminController(IMediator mediator, IActingUserService actingUserService)
-    {
-        _actingUser = actingUserService.Get();
-        _mediator = mediator;
-    }
+    private readonly User _actingUser = actingUserService.Get();
+    private readonly IMediator _mediator = mediator;
 
     [HttpGet("active-challenges")]
     public Task<GetAppActiveChallengesResponse> GetActiveChallenges([FromQuery] string playerMode)

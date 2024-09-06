@@ -1,36 +1,23 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 
 namespace Gameboard.Api.Features.GameEngine.Requests;
 
-internal class GetSubmissionsRequestValidator : IGameboardRequestValidator<GetSubmissionsQuery>
+internal class GetSubmissionsRequestValidator(
+    EntityExistsValidator<GetSubmissionsQuery, Data.Challenge> challengeExists,
+    IValidatorService<GetSubmissionsQuery> validatorService
+    ) : IGameboardRequestValidator<GetSubmissionsQuery>
 {
-    private readonly EntityExistsValidator<GetSubmissionsQuery, Data.Challenge> _challengeExists;
-    private readonly UserRoleAuthorizer _roleAuthorizer;
-    private readonly IValidatorService<GetSubmissionsQuery> _validatorService;
-
-    public GetSubmissionsRequestValidator
-    (
-        EntityExistsValidator<GetSubmissionsQuery, Data.Challenge> challengeExists,
-        UserRoleAuthorizer roleAuthorizer,
-        IValidatorService<GetSubmissionsQuery> validatorService
-    )
-    {
-        _challengeExists = challengeExists;
-        _roleAuthorizer = roleAuthorizer;
-        _validatorService = validatorService;
-    }
+    private readonly EntityExistsValidator<GetSubmissionsQuery, Data.Challenge> _challengeExists = challengeExists;
+    private readonly IValidatorService<GetSubmissionsQuery> _validatorService = validatorService;
 
     public async Task Validate(GetSubmissionsQuery query, CancellationToken cancellationToken)
     {
-        _roleAuthorizer
-            .AllowRoles(UserRole.Admin, UserRole.Support, UserRole.Designer)
-            .Authorize();
-
-        _validatorService.AddValidator(_challengeExists);
-        await _validatorService.Validate(query, cancellationToken);
+        await _validatorService
+            .Auth(a => a.RequirePermissions(Users.PermissionKey.Teams_Observe))
+            .AddValidator(_challengeExists)
+            .Validate(query, cancellationToken);
     }
 }

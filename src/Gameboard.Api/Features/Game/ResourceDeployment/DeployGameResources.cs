@@ -5,8 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -16,48 +16,33 @@ namespace Gameboard.Api.Features.Games;
 
 public record DeployGameResourcesCommand(string GameId, IEnumerable<string> TeamIds) : IRequest;
 
-internal class DeployGameResourcesHandler : IRequestHandler<DeployGameResourcesCommand>
+internal class DeployGameResourcesHandler(
+    IActingUserService actingUserService,
+    IAppUrlService appUrlService,
+    IBackgroundAsyncTaskQueueService backgroundTaskQueue,
+    BackgroundAsyncTaskContext backgroundTaskContext,
+    GameWithModeExistsValidator<DeployGameResourcesCommand> gameExists,
+    IServiceScopeFactory serviceScopeFactory,
+    IStore store,
+    IValidatorService<DeployGameResourcesCommand> validator
+    ) : IRequestHandler<DeployGameResourcesCommand>
 {
-    private readonly IActingUserService _actingUserService;
-    private readonly IAppUrlService _appUrlService;
-    private readonly IBackgroundAsyncTaskQueueService _backgroundTaskQueue;
-    private readonly BackgroundAsyncTaskContext _backgroundTaskContext;
-    private readonly GameWithModeExistsValidator<DeployGameResourcesCommand> _gameExists;
-    private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly IStore _store;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
-    private readonly IValidatorService<DeployGameResourcesCommand> _validator;
-
-    public DeployGameResourcesHandler
-    (
-        IActingUserService actingUserService,
-        IAppUrlService appUrlService,
-        IBackgroundAsyncTaskQueueService backgroundTaskQueue,
-        BackgroundAsyncTaskContext backgroundTaskContext,
-        GameWithModeExistsValidator<DeployGameResourcesCommand> gameExists,
-        IServiceScopeFactory serviceScopeFactory,
-        IStore store,
-        UserRoleAuthorizer userRoleAuthorizer,
-        IValidatorService<DeployGameResourcesCommand> validator
-    )
-    {
-        _actingUserService = actingUserService;
-        _appUrlService = appUrlService;
-        _backgroundTaskQueue = backgroundTaskQueue;
-        _backgroundTaskContext = backgroundTaskContext;
-        _gameExists = gameExists;
-        _serviceScopeFactory = serviceScopeFactory;
-        _store = store;
-        _userRoleAuthorizer = userRoleAuthorizer;
-        _validator = validator;
-    }
+    private readonly IActingUserService _actingUserService = actingUserService;
+    private readonly IAppUrlService _appUrlService = appUrlService;
+    private readonly IBackgroundAsyncTaskQueueService _backgroundTaskQueue = backgroundTaskQueue;
+    private readonly BackgroundAsyncTaskContext _backgroundTaskContext = backgroundTaskContext;
+    private readonly GameWithModeExistsValidator<DeployGameResourcesCommand> _gameExists = gameExists;
+    private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
+    private readonly IStore _store = store;
+    private readonly IValidatorService<DeployGameResourcesCommand> _validator = validator;
 
     public async Task Handle(DeployGameResourcesCommand request, CancellationToken cancellationToken)
     {
         // auth and validate
-        _userRoleAuthorizer.AllowRoles(UserRole.Admin).Authorize();
-        _validator.AddValidator(_gameExists.UseIdProperty(r => r.GameId));
-        await _validator.Validate(request, cancellationToken);
+        await _validator
+            .Auth(config => config.RequirePermissions(PermissionKey.Teams_DeployGameResources))
+            .AddValidator(_gameExists.UseIdProperty(r => r.GameId))
+            .Validate(request, cancellationToken);
 
         // do the predeploy stuff
         // (note that we fire and forget this because updates are provided over signalR in the GameHub).

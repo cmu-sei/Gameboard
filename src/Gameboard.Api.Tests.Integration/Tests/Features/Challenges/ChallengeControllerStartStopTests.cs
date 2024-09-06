@@ -90,7 +90,7 @@ public class ChallengeControllerStartStopTests : IClassFixture<GameboardTestCont
         // when the challenge is started
         var result = await http
             .PutAsync("/api/challenge/start", new ChangedChallenge { Id = challengeId }.ToJsonBody())
-            .WithContentDeserializedAs<Challenge>();
+            .DeserializeResponseAs<Challenge>();
 
         // then the resulting challenge should have a deployed gamespace
         result.HasDeployedGamespace.ShouldBeTrue();
@@ -154,7 +154,7 @@ public class ChallengeControllerStartStopTests : IClassFixture<GameboardTestCont
         // when the challenge is stopped
         var result = await http
             .PutAsync("/api/challenge/stop", new ChangedChallenge { Id = challengeId }.ToJsonBody())
-            .WithContentDeserializedAs<Challenge>();
+            .DeserializeResponseAs<Challenge>();
 
         // then the resulting challenge should have a deployed gamespace
         result.HasDeployedGamespace.ShouldBeFalse();

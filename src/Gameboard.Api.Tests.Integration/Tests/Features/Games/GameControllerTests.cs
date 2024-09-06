@@ -1,3 +1,5 @@
+using Gameboard.Api.Data;
+
 namespace Gameboard.Api.Tests.Integration;
 
 public class GameControllerTests : IClassFixture<GameboardTestContext>
@@ -30,9 +32,9 @@ public class GameControllerTests : IClassFixture<GameboardTestContext>
 
         // act
         var responseGame = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Designer)
+            .CreateHttpClientWithAuthRole(UserRole.Tester)
             .PostAsync("/api/game", game.ToJsonBody())
-            .WithContentDeserializedAs<Data.Game>();
+            .DeserializeResponseAs<Data.Game>();
 
         // assert
         responseGame?.Name.ShouldBe(game.Name);

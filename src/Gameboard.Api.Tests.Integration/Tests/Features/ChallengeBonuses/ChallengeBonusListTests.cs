@@ -52,7 +52,7 @@ public class ChallengeBonusListTests : IClassFixture<GameboardTestContext>
         // when
         var bonuses = await http
             .GetAsync($"api/challenge/{challengeId}/bonus/manual")
-            .WithContentDeserializedAs<IEnumerable<ManualChallengeBonusViewModel>>();
+            .DeserializeResponseAs<IEnumerable<ManualChallengeBonusViewModel>>();
 
         // then
         bonuses.ShouldNotBeNull();

@@ -89,7 +89,6 @@ public class PlayerEnlistment
 public class PlayerUnenrollRequest
 {
     public User Actor { get; set; }
-    public bool AsAdmin { get; set; } = false;
     public required string PlayerId { get; set; }
 }
 
@@ -117,6 +116,7 @@ public class PlayerOverview
     public string GameId { get; set; }
     public string GameName { get; set; }
     public string ApprovedName { get; set; }
+    public DateTimeOffset SessionEnd { get; set; }
 }
 
 public class PlayerDataFilter : SearchFilter

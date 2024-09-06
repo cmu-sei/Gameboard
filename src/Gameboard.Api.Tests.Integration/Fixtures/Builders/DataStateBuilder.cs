@@ -1,5 +1,6 @@
 using Gameboard.Api.Data;
 using Gameboard.Api.Tests.Shared;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
@@ -11,11 +12,9 @@ public interface IDataStateBuilder
     IDataStateBuilder AddRange<TEntity>(ICollection<TEntity> entities) where TEntity : class, IEntity;
 }
 
-internal class DataStateBuilder : IDataStateBuilder
+internal class DataStateBuilder(GameboardDbContext dbContext) : IDataStateBuilder
 {
-    private readonly GameboardDbContext _dbContext;
-
-    public DataStateBuilder(GameboardDbContext dbContext) => _dbContext = dbContext;
+    private readonly GameboardDbContext _dbContext = dbContext;
 
     public IDataStateBuilder Add<TEntity>(IFixture fixture) where TEntity : class, IEntity
         => Add<TEntity>(fixture, null);

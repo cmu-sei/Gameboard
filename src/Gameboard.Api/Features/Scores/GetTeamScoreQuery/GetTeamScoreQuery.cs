@@ -3,8 +3,8 @@ using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -25,7 +25,6 @@ internal class GetTeamScoreHandler : IRequestHandler<GetTeamScoreQuery, TeamScor
     private readonly IStore _store;
     private readonly TeamExistsValidator<GetTeamScoreQuery> _teamExists;
     private readonly ITeamService _teamService;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
     private readonly IValidatorService<GetTeamScoreQuery> _validatorService;
 
     public GetTeamScoreHandler(
@@ -33,31 +32,26 @@ internal class GetTeamScoreHandler : IRequestHandler<GetTeamScoreQuery, TeamScor
         IStore store,
         TeamExistsValidator<GetTeamScoreQuery> teamExists,
         ITeamService teamService,
-        UserRoleAuthorizer userRoleAuthorizer,
         IValidatorService<GetTeamScoreQuery> validatorService)
     {
         _scoreService = scoreService;
         _store = store;
         _teamExists = teamExists;
         _teamService = teamService;
-        _userRoleAuthorizer = userRoleAuthorizer;
         _validatorService = validatorService;
     }
 
     public async Task<TeamScoreQueryResponse> Handle(GetTeamScoreQuery request, CancellationToken cancellationToken)
     {
-        _validatorService.AddValidator(_teamExists.UseProperty(r => r.TeamId));
-
-        if (!_userRoleAuthorizer.AllowRoles(UserRole.Admin, UserRole.Observer).WouldAuthorize())
-        {
-            _validatorService.AddValidator(async (req, ctx) =>
+        await _validatorService
+            .Auth(config =>
             {
-                if (!await _scoreService.CanAccessTeamScoreDetail(request.TeamId, cancellationToken))
-                    ctx.AddValidationException(new CantAccessThisScore("not on requested team"));
-            });
-        }
-
-        await _validatorService.Validate(request, cancellationToken);
+                config
+                    .RequirePermissions(PermissionKey.Scores_ViewLive)
+                    .Unless(() => _scoreService.CanAccessTeamScoreDetail(request.TeamId, cancellationToken), new CantAccessThisScore("not on requested team"));
+            })
+            .AddValidator(_teamExists.UseProperty(r => r.TeamId))
+            .Validate(request, cancellationToken);
 
         // there are definitely extra reads in here but i just can't
         var gameId = await _teamService.GetGameId(request.TeamId, cancellationToken);

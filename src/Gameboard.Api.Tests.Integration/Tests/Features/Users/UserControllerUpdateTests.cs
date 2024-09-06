@@ -1,3 +1,4 @@
+using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
@@ -26,15 +27,8 @@ public class UserControllerUpdateTests : IClassFixture<GameboardTestContext>
         // given a user with two player records (one with a started session, one without)
         await _testContext.WithDataState(state =>
         {
-            state.Add<Data.Sponsor>(fixture, s =>
-            {
-                s.Id = oldSponsorId;
-            });
-
-            state.Add<Data.Sponsor>(fixture, s =>
-            {
-                s.Id = newSponsorId;
-            });
+            state.Add<Data.Sponsor>(fixture, s => s.Id = oldSponsorId);
+            state.Add<Data.Sponsor>(fixture, s => s.Id = newSponsorId);
 
             state.Add<Data.User>(fixture, u =>
             {

@@ -2,25 +2,19 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Threading.Tasks;
+using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
 
 namespace Gameboard.Api.ChallengeGates;
 
-public class ChallengeGateValidator : IModelValidator
+public class ChallengeGateValidator(
+    IStore store,
+    IStore<Data.ChallengeSpec> specStore,
+    IStore<Data.ChallengeGate> challengeGateStore) : IModelValidator
 {
-    private readonly IGameStore _gameStore;
-    private readonly IStore<Data.ChallengeSpec> _specStore;
-    private readonly IStore<Data.ChallengeGate> _store;
-
-    public ChallengeGateValidator(
-        IGameStore gameStore,
-        IStore<Data.ChallengeSpec> specStore,
-        IStore<Data.ChallengeGate> store)
-    {
-        _gameStore = gameStore;
-        _specStore = specStore;
-        _store = store;
-    }
+    private readonly IStore<Data.ChallengeSpec> _specStore = specStore;
+    private readonly IStore<Data.ChallengeGate> _challengeGateStore = challengeGateStore;
+    private readonly IStore _store = store;
 
     public Task Validate(object model)
     {
@@ -38,7 +32,7 @@ public class ChallengeGateValidator : IModelValidator
 
     private async Task _validate(Entity model)
     {
-        if ((await _store.Exists(model.Id)).Equals(false))
+        if ((await _challengeGateStore.Exists(model.Id)).Equals(false))
             throw new ResourceNotFound<ChallengeGate>(model.Id);
 
         await Task.CompletedTask;
@@ -46,7 +40,7 @@ public class ChallengeGateValidator : IModelValidator
 
     private async Task _validate(NewChallengeGate model)
     {
-        if ((await _gameStore.Exists(model.GameId)).Equals(false))
+        if (!await _store.AnyAsync<Data.Game>(g => g.Id == model.GameId, default))
             throw new ResourceNotFound<Game>(model.GameId);
 
         if ((await _specStore.Exists(model.TargetId)).Equals(false))
@@ -66,7 +60,7 @@ public class ChallengeGateValidator : IModelValidator
 
     private async Task _validate(ChangedChallengeGate model)
     {
-        if ((await _store.Exists(model.Id)).Equals(false))
+        if ((await _challengeGateStore.Exists(model.Id)).Equals(false))
             throw new ResourceNotFound<ChallengeGate>(model.Id);
 
         await Task.CompletedTask;

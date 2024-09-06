@@ -18,7 +18,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.17")
+                .HasAnnotation("ProductVersion", "8.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -515,6 +515,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -958,6 +961,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex("Id", "TeamId");
+
                     b.HasIndex("UserId", "TeamId");
 
                     b.ToTable("Players");
@@ -1091,6 +1096,11 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
+
+                    b.Property<bool>("IsDismissible")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("MarkdownContent")
                         .IsRequired()

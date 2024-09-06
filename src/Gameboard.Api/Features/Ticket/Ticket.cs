@@ -39,7 +39,7 @@ public class Ticket
     public ChallengeOverview Challenge { get; set; }
     public PlayerOverview Player { get; set; }
 
-    public List<TicketActivity> Activity { get; set; } = new List<TicketActivity>();
+    public List<TicketActivity> Activity { get; set; } = [];
 }
 
 public class TicketSummary

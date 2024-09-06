@@ -2,8 +2,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -12,35 +12,21 @@ namespace Gameboard.Api.Features.SystemNotifications;
 
 public record DeleteSystemNotificationCommand(string SystemNotificationId) : IRequest;
 
-internal class DeleteSystemNotificationHandler : IRequestHandler<DeleteSystemNotificationCommand>
+internal class DeleteSystemNotificationHandler(
+    EntityExistsValidator<DeleteSystemNotificationCommand, SystemNotification> notificationExists,
+    IStore store,
+    IValidatorService<DeleteSystemNotificationCommand> validatorService
+    ) : IRequestHandler<DeleteSystemNotificationCommand>
 {
-    private readonly EntityExistsValidator<DeleteSystemNotificationCommand, SystemNotification> _notificationExists;
-    private readonly IStore _store;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
-    private readonly IValidatorService<DeleteSystemNotificationCommand> _validatorService;
-
-    public DeleteSystemNotificationHandler
-    (
-        EntityExistsValidator<DeleteSystemNotificationCommand, SystemNotification> notificationExists,
-        IStore store,
-        UserRoleAuthorizer userRoleAuthorizer,
-        IValidatorService<DeleteSystemNotificationCommand> validatorService
-    )
-    {
-        _notificationExists = notificationExists;
-        _store = store;
-        _userRoleAuthorizer = userRoleAuthorizer;
-        _validatorService = validatorService;
-    }
+    private readonly EntityExistsValidator<DeleteSystemNotificationCommand, SystemNotification> _notificationExists = notificationExists;
+    private readonly IStore _store = store;
+    private readonly IValidatorService<DeleteSystemNotificationCommand> _validatorService = validatorService;
 
     public async Task Handle(DeleteSystemNotificationCommand request, CancellationToken cancellationToken)
     {
         // validate/authorize
-        _userRoleAuthorizer
-            .AllowRoles(UserRole.Admin)
-            .Authorize();
-
         await _validatorService
+            .Auth(a => a.RequirePermissions(PermissionKey.SystemNotifications_CreateEdit))
             .AddValidator(_notificationExists.UseProperty(r => r.SystemNotificationId))
             .Validate(request, cancellationToken);
 

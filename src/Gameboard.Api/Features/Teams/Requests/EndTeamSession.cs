@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
@@ -11,26 +12,19 @@ namespace Gameboard.Api.Features.Teams;
 
 public record EndTeamSessionCommand(string TeamId, User Actor) : IRequest;
 
-internal class EndTeamSessionHandler : IRequestHandler<EndTeamSessionCommand>
+internal class EndTeamSessionHandler(
+    IUserRolePermissionsService permissionsService,
+    IStore store,
+    TeamExistsValidator<EndTeamSessionCommand> teamExists,
+    ITeamService teamService,
+    IValidatorService<EndTeamSessionCommand> validatorService
+    ) : IRequestHandler<EndTeamSessionCommand>
 {
-    private readonly IStore _store;
-    private readonly TeamExistsValidator<EndTeamSessionCommand> _teamExists;
-    private readonly ITeamService _teamService;
-    private readonly IValidatorService<EndTeamSessionCommand> _validatorService;
-
-    public EndTeamSessionHandler
-    (
-        IStore store,
-        TeamExistsValidator<EndTeamSessionCommand> teamExists,
-        ITeamService teamService,
-        IValidatorService<EndTeamSessionCommand> validatorService
-    )
-    {
-        _store = store;
-        _teamExists = teamExists;
-        _teamService = teamService;
-        _validatorService = validatorService;
-    }
+    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
+    private readonly IStore _store = store;
+    private readonly TeamExistsValidator<EndTeamSessionCommand> _teamExists = teamExists;
+    private readonly ITeamService _teamService = teamService;
+    private readonly IValidatorService<EndTeamSessionCommand> _validatorService = validatorService;
 
     public async Task Handle(EndTeamSessionCommand request, CancellationToken cancellationToken)
     {
@@ -41,9 +35,11 @@ internal class EndTeamSessionHandler : IRequestHandler<EndTeamSessionCommand>
             .ToArrayAsync(cancellationToken);
 
         _validatorService.AddValidator(_teamExists.UseProperty(r => r.TeamId));
-        _validatorService.AddValidator((req, context) =>
+        _validatorService.AddValidator(async (req, context) =>
         {
-            if (!request.Actor.IsRegistrar && !players.Any(p => p.UserId == req.Actor.Id))
+            var canManageSessions = await _permissionsService.Can(PermissionKey.Teams_EditSession);
+
+            if (!canManageSessions && !players.Any(p => p.UserId == req.Actor.Id))
                 throw new ActionForbidden();
         });
 

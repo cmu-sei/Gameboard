@@ -1,25 +1,19 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Player;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Validators
 {
-    public class ChallengeValidator : IModelValidator
+    public class ChallengeValidator(IStore store) : IModelValidator
     {
-        private readonly IStore<Data.ChallengeSpec> _specStore;
-        private readonly IChallengeStore _store;
-        private readonly IPlayerStore _playerStore;
-
-        public ChallengeValidator(IChallengeStore store, IStore<Data.ChallengeSpec> specStore, IPlayerStore playerStore)
-        {
-            _playerStore = playerStore;
-            _specStore = specStore;
-            _store = store;
-        }
+        private readonly IStore _store = store;
 
         public Task Validate(object model)
         {
@@ -37,24 +31,39 @@ namespace Gameboard.Api.Validators
 
         private async Task _validate(Entity model)
         {
-            if ((await _store.Exists(model.Id)).Equals(false))
+            if ((await _store.WithNoTracking<Data.Challenge>().AnyAsync(c => c.Id == model.Id)).Equals(false))
                 throw new ResourceNotFound<Challenge>(model.Id);
         }
 
         private async Task _validate(NewChallenge model)
         {
-            if ((await _playerStore.Exists(model.PlayerId)).Equals(false))
+            if ((await _store.AnyAsync<Data.Player>(p => p.Id == model.PlayerId, CancellationToken.None)).Equals(false))
                 throw new ResourceNotFound<Data.Player>(model.PlayerId);
 
-            if ((await _specStore.Exists(model.SpecId)).Equals(false))
+            if ((await _store.AnyAsync<Data.ChallengeSpec>(s => s.Id == model.SpecId, CancellationToken.None)).Equals(false))
                 throw new ResourceNotFound<Data.ChallengeSpec>(model.SpecId);
 
-            var player = await _store.DbContext.Players.FindAsync(model.PlayerId);
+            var player = await _store
+                .WithNoTracking<Data.Player>()
+                .Where(p => p.Id == model.PlayerId)
+                .Select(p => new
+                {
+                    p.Id,
+                    p.GameId,
+                    IsActive = p.SessionBegin >= DateTimeOffset.MinValue &&
+                        p.SessionBegin <= DateTime.UtcNow &&
+                        p.SessionEnd >= DateTime.UtcNow,
+                    IsPractice = p.Mode == PlayerMode.Practice,
+                })
+                .SingleAsync();
 
-            if (!player.IsPractice && player.IsLive.Equals(false))
+            if (!player.IsPractice && !player.IsActive)
                 throw new SessionNotActive(player.Id);
 
-            var spec = await _store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
+            var spec = await _store
+                .WithNoTracking<Data.ChallengeSpec>()
+                .Where(cs => cs.Id == model.SpecId)
+                .SingleOrDefaultAsync();
 
             if (spec.GameId != player.GameId)
                 throw new ActionForbidden();
@@ -65,7 +74,7 @@ namespace Gameboard.Api.Validators
 
         private async Task _validate(ChangedChallenge model)
         {
-            if ((await _store.Exists(model.Id)).Equals(false))
+            if ((await _store.AnyAsync<Data.Challenge>(c => c.Id == model.Id, CancellationToken.None)).Equals(false))
                 throw new ResourceNotFound<Data.Challenge>(model.Id);
 
             await Task.CompletedTask;

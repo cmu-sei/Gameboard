@@ -3,6 +3,7 @@
 
 using System;
 using System.Linq;
+using Gameboard.Api.Data;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 
 namespace Gameboard.Api;

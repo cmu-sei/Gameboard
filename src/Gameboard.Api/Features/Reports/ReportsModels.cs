@@ -7,6 +7,8 @@ public static class ReportKey
 {
     public static string Challenges { get; } = "challenges";
     public static string Enrollment { get; } = "enrollment";
+    public static string FeedbackChallenges { get; set; } = "feedback-challenges";
+    public static string FeedbackGames { get; } = "feedback-games";
     public static string Players { get; } = "players";
     public static string PracticeArea { get; } = "practice-area";
     public static string SiteUsage { get; } = "site-usage";

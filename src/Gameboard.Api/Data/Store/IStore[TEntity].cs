@@ -11,7 +11,6 @@ namespace Gameboard.Api.Data.Abstractions;
 
 public interface IStore<TEntity> where TEntity : class, IEntity
 {
-    GameboardDbContext DbContext { get; }
     IQueryable<TEntity> DbSet { get; }
 
     Task<bool> AnyAsync();

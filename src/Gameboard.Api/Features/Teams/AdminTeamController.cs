@@ -9,12 +9,9 @@ namespace Gameboard.Api.Features.Teams;
 
 [Route("api/admin/team")]
 [Authorize]
-public class AdminTeamsController : ControllerBase
+public class AdminTeamsController(IMediator mediator) : ControllerBase
 {
-    private readonly IMediator _mediator;
-
-    public AdminTeamsController(IMediator mediator)
-        => _mediator = mediator;
+    private readonly IMediator _mediator = mediator;
 
     [HttpPost]
     public Task<AdminEnrollTeamResponse> Create([FromBody] AdminEnrollTeamRequest request)

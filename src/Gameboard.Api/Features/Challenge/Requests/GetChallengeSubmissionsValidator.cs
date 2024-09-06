@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,7 @@ internal class GetChallengeSubmissionsValidator : IGameboardRequestValidator<Get
 {
     private readonly IActingUserService _actingUserService;
     private readonly EntityExistsValidator<GetChallengeSubmissionsQuery, Data.Challenge> _challengeExists;
+    private readonly IUserRolePermissionsService _permissionsService;
     private readonly IStore _store;
     private readonly IValidatorService<GetChallengeSubmissionsQuery> _validatorService;
 
@@ -21,12 +23,14 @@ internal class GetChallengeSubmissionsValidator : IGameboardRequestValidator<Get
     (
         IActingUserService actingUserService,
         EntityExistsValidator<GetChallengeSubmissionsQuery, Data.Challenge> challengeExists,
+        IUserRolePermissionsService permissionsService,
         IStore store,
         IValidatorService<GetChallengeSubmissionsQuery> validatorService
     )
     {
         _actingUserService = actingUserService;
         _challengeExists = challengeExists;
+        _permissionsService = permissionsService;
         _store = store;
         _validatorService = validatorService;
     }
@@ -47,9 +51,10 @@ internal class GetChallengeSubmissionsValidator : IGameboardRequestValidator<Get
             }
 
             // check that the acting user is a player on the challenge team or an admin
-            var actingUser = _actingUserService.Get();
-            if (!actingUser.IsAdmin)
+            if (!await _permissionsService.Can(PermissionKey.Teams_Observe))
             {
+                var actingUser = _actingUserService.Get();
+
                 var isUserOnTeam = await _store
                     .WithNoTracking<Data.Player>()
                     .Where(p => p.UserId == actingUser.Id)

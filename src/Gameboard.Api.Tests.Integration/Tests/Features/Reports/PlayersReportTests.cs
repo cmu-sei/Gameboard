@@ -1,3 +1,4 @@
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Reports;
 
 namespace Gameboard.Api.Tests.Integration;
@@ -42,7 +43,7 @@ public class PlayersReportTests : IClassFixture<GameboardTestContext>
         var results = await _testContext
             .CreateHttpClientWithAuthRole(UserRole.Admin)
             .GetAsync("/api/reports/players")
-            .WithContentDeserializedAs<ReportResults<PlayersReportStatSummary, PlayersReportRecord>>();
+            .DeserializeResponseAs<ReportResults<PlayersReportStatSummary, PlayersReportRecord>>();
 
         // then the user's lastplayedon date should be the more recent one
         results.Records.Single(r => r.User.Id == userId).LastPlayedOn.ShouldBe(sessionDate);

@@ -56,7 +56,7 @@ internal class GetTeamGamespaceLimitStateQueryHandler : IRequestHandler<GetTeamG
             (
                 _userIsPlayingGame
                     .UseGameIdProperty(r => r.GameId)
-                    .UseUserIdProperty(r => r.ActingUser)
+                    .UseUserProperty(r => r.ActingUser)
             )
             .Validate(request, cancellationToken);
 

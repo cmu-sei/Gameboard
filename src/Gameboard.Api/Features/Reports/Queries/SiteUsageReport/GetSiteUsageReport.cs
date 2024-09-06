@@ -56,7 +56,8 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
                 c.StartTime,
                 c.EndTime,
                 c.SpecId,
-                c.TeamId
+                c.TeamId,
+                c.Player.UserId
             })
             .ToArrayAsync(cancellationToken);
 
@@ -65,19 +66,13 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
             .Where(tId => tId != null && tId != string.Empty)
             .Distinct()
             .ToArray();
-        var teamIdsUserIds = await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => teamIds.Contains(p.TeamId))
-            // incredibly, these are currently not required by the schema
-            .Where(p => p.TeamId != null && p.TeamId != string.Empty)
-            .Where(p => p.UserId != null && p.UserId != string.Empty)
-            .Select(p => new
-            {
-                p.TeamId,
-                p.UserId
-            })
+
+        var teamIdsUserIds = challenges
+            .Where(c => c.TeamId.IsNotEmpty())
+            .Where(c => c.UserId.IsNotEmpty())
+            .Select(c => new { c.TeamId, c.UserId })
             .Distinct()
-            .ToArrayAsync(cancellationToken);
+            .ToArray();
 
         var teamUsers = teamIdsUserIds.GroupBy(e => e.TeamId).ToDictionary(gr => gr.Key, gr => gr.Select(e => e.UserId).ToArray());
         var userTeams = teamIdsUserIds.GroupBy(e => e.UserId).ToDictionary(gr => gr.Key, gr => gr.Select(e => e.TeamId).ToArray());
@@ -107,7 +102,7 @@ internal class GetSiteUsageReportHandler : IRequestHandler<GetSiteUsageReportQue
             .WithNoTracking<Data.Player>()
                 .Include(p => p.Sponsor)
                     .ThenInclude(s => s.ParentSponsor)
-            .Where(p => teamIds.Contains(p.TeamId))
+            .Where(p => teamUsers.Keys.Contains(p.TeamId))
             .Select(s => s.SponsorId)
             .Distinct()
             .CountAsync(cancellationToken);

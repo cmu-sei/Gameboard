@@ -5,7 +5,6 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,42 +12,23 @@ namespace Gameboard.Api.Features.ChallengeBonuses;
 
 public record AddManualBonusCommand(string ChallengeId, string TeamId, CreateManualBonus Model) : IRequest;
 
-internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
+internal class AddManualBonusHandler(
+    IActingUserService actingUserService,
+    IMediator mediator,
+    INowService now,
+    IStore store,
+    IGameboardRequestValidator<AddManualBonusCommand> validator) : IRequestHandler<AddManualBonusCommand>
 {
-    private readonly IActingUserService _actingUserService;
-    private readonly IMediator _mediator;
-    private readonly INowService _now;
-    private readonly IStore _store;
+    private readonly IActingUserService _actingUserService = actingUserService;
+    private readonly IMediator _mediator = mediator;
+    private readonly INowService _now = now;
+    private readonly IStore _store = store;
 
     // validators
-    private readonly IGameboardRequestValidator<AddManualBonusCommand> _validator;
-
-    // authorizers 
-    private readonly UserRoleAuthorizer _roleAuthorizer;
-
-    public AddManualBonusHandler
-    (
-        IActingUserService actingUserService,
-        IMediator mediator,
-        INowService now,
-        UserRoleAuthorizer roleAuthorizer,
-        IStore store,
-        IGameboardRequestValidator<AddManualBonusCommand> validator)
-    {
-        _actingUserService = actingUserService;
-        _mediator = mediator;
-        _now = now;
-        _roleAuthorizer = roleAuthorizer;
-        _store = store;
-        _validator = validator;
-    }
+    private readonly IGameboardRequestValidator<AddManualBonusCommand> _validator = validator;
 
     public async Task Handle(AddManualBonusCommand request, CancellationToken cancellationToken)
     {
-        _roleAuthorizer
-            .AllowRoles(UserRole.Admin, UserRole.Support, UserRole.Designer)
-            .Authorize();
-
         await _validator.Validate(request, cancellationToken);
 
         // this endpoint can either of two entities (using EF table-per-hierarchy)
@@ -87,6 +67,6 @@ internal class AddManualBonusHandler : IRequestHandler<AddManualBonusCommand>
 
         // adding a manual bonus will change the team's score, so we need to 
         // manually refresh the denormalization of the scoreboard
-        await _mediator.Publish(new ScoreChangedNotification(resolvedTeamId));
+        await _mediator.Publish(new ScoreChangedNotification(resolvedTeamId), cancellationToken);
     }
 }

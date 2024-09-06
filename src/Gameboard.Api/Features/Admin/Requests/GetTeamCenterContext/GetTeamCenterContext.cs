@@ -1,12 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Scores;
-using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -15,50 +15,36 @@ namespace Gameboard.Api.Features.Admin;
 
 public record GetTeamCenterContextQuery(string TeamId, User User) : IRequest<TeamCenterContext>;
 
-internal class GetTeamCenterContextHandler : IRequestHandler<GetTeamCenterContextQuery, TeamCenterContext>
+internal class GetTeamCenterContextHandler(
+    IScoringService scoringService,
+    IStore store,
+    TeamExistsValidator<GetTeamCenterContextQuery> teamExists,
+    IValidatorService<GetTeamCenterContextQuery> validatorService) : IRequestHandler<GetTeamCenterContextQuery, TeamCenterContext>
 {
-    private readonly IScoringService _scoringService;
-    private readonly IStore _store;
-    private readonly TeamExistsValidator<GetTeamCenterContextQuery> _teamExists;
-    private readonly UserRoleAuthorizer _userRoleAuth;
-    private readonly IValidatorService<GetTeamCenterContextQuery> _validatorService;
-
-    public GetTeamCenterContextHandler
-    (
-        IScoringService scoringService,
-        IStore store,
-        TeamExistsValidator<GetTeamCenterContextQuery> teamExists,
-        UserRoleAuthorizer userRoleAuth,
-        IValidatorService<GetTeamCenterContextQuery> validatorService)
-    {
-        _scoringService = scoringService;
-        _store = store;
-        _teamExists = teamExists;
-        _userRoleAuth = userRoleAuth;
-        _validatorService = validatorService;
-    }
+    private readonly IScoringService _scoringService = scoringService;
+    private readonly IStore _store = store;
+    private readonly TeamExistsValidator<GetTeamCenterContextQuery> _teamExists = teamExists;
+    private readonly IValidatorService<GetTeamCenterContextQuery> _validatorService = validatorService;
 
     public async Task<TeamCenterContext> Handle(GetTeamCenterContextQuery request, CancellationToken cancellationToken)
     {
-        _validatorService.AddValidator(_teamExists.UseProperty(r => r.TeamId));
-
-        _userRoleAuth.AllowAllElevatedRoles();
-        if (!_userRoleAuth.WouldAuthorize())
-        {
-            _validatorService.AddValidator(async (req, ctx) =>
+        await _validatorService
+            .Auth(config =>
             {
-                var userIsOnTeam = await _store
-                    .WithNoTracking<Data.Player>()
-                    .Where(p => p.TeamId == request.TeamId)
-                    .Where(p => p.UserId == request.User.Id)
-                    .AnyAsync(cancellationToken);
-
-                if (!userIsOnTeam)
-                    ctx.AddValidationException(new UserIsntOnTeam(request.User.Id, request.TeamId));
-            });
-        }
-
-        await _validatorService.Validate(request, cancellationToken);
+                config
+                    .RequirePermissions(PermissionKey.Admin_View)
+                    .Unless
+                    (
+                        () => _store
+                            .WithNoTracking<Data.Player>()
+                            .Where(p => p.TeamId == request.TeamId)
+                            .Where(p => p.UserId == request.User.Id)
+                            .Select(p => p.UserId)
+                            .Distinct()
+                            .AnyAsync(cancellationToken)
+                    );
+            })
+            .Validate(request, cancellationToken);
 
         var players = await _store
             .WithNoTracking<Data.Player>()
@@ -130,7 +116,11 @@ internal class GetTeamCenterContextHandler : IRequestHandler<GetTeamCenterContex
         {
             Id = request.TeamId,
             Name = captain.Name,
-            Captain = new SimpleEntity { Id = captain.Id, Name = captain.Name },
+            Captain = new SimpleEntity
+            {
+                Id = captain.Id,
+                Name = captain.Name
+            },
             Challenges = challenges.Select(c => new TeamCenterContextChallenge
             {
                 Id = c.Id,

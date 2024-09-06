@@ -5,49 +5,37 @@ using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Services
 {
-    public class ReportServiceLegacy : _Service
+    public class ReportServiceLegacy(
+        ILogger<ReportServiceLegacy> logger,
+        IMapper mapper,
+        CoreOptions options,
+        Defaults defaults,
+        IStore store,
+        TicketService ticketService
+        ) : _Service(logger, mapper, options)
     {
-        GameboardDbContext Store { get; }
-        ITicketStore TicketStore { get; }
-        Defaults Defaults { get; }
+        Defaults Defaults { get; } = defaults;
 
         string blankName = "N/A";
+        private readonly IStore _store = store;
+        private readonly TicketService _ticketService = ticketService;
 
-        public ReportServiceLegacy(
-            ILogger<ReportServiceLegacy> logger,
-            IMapper mapper,
-            CoreOptions options,
-            Defaults defaults,
-            GameboardDbContext store,
-            ITicketStore ticketStore
-        ) : base(logger, mapper, options)
-        {
-            Store = store;
-            TicketStore = ticketStore;
-            Defaults = defaults;
-        }
-
-        internal Task<UserReport> GetUserStats()
-        {
-            UserReport userReport = new UserReport
+        internal async Task<UserReport> GetUserStats()
+            => new UserReport
             {
                 Timestamp = DateTime.UtcNow,
-                EnrolledUserCount = Store.Users.Where(u => u.Enrollments.Count() > 0).Count(),
-                UnenrolledUserCount = Store.Users.Where(u => u.Enrollments.Count == 0).Count(),
+                EnrolledUserCount = await _store.WithNoTracking<Data.User>().Where(u => u.Enrollments.Count > 0).CountAsync(),
+                UnenrolledUserCount = await _store.WithNoTracking<Data.User>().Where(u => u.Enrollments.Count == 0).CountAsync()
             };
-
-            return Task.FromResult(userReport);
-        }
 
         internal Task<PlayerReport> GetPlayerStats()
         {
-            var ps = from games in Store.Games
+            var ps = from games in _store.WithNoTracking<Data.Game>()
                      select new PlayerStat
                      {
                          GameId = games.Id,
@@ -58,7 +46,7 @@ namespace Gameboard.Api.Services
                          SessionPlayerCount = games.Players.Where(p => p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Count()
                      };
 
-            PlayerReport playerReport = new PlayerReport
+            PlayerReport playerReport = new()
             {
                 Timestamp = DateTime.UtcNow,
                 Stats = ps.ToArray()
@@ -72,7 +60,7 @@ namespace Gameboard.Api.Services
             return new SponsorReport
             {
                 Timestamp = DateTime.UtcNow,
-                Stats = await Store.Sponsors.Select(s => new SponsorStat
+                Stats = await _store.WithNoTracking<Data.Sponsor>().Select(s => new SponsorStat
                 {
                     Id = s.Id,
                     Name = s.Name,
@@ -89,22 +77,20 @@ namespace Gameboard.Api.Services
             List<GameSponsorStat> gameSponsorStats = new List<GameSponsorStat>();
 
             if (string.IsNullOrWhiteSpace(gameId))
-            {
                 throw new ArgumentNullException("Invalid game id");
-            }
 
-            var game = Store.Games.Where(g => g.Id == gameId).Select(g => new { g.Id, g.Name, g.MaxTeamSize }).FirstOrDefault();
+            var game = _store
+                .WithNoTracking<Data.Game>()
+                .Where(g => g.Id == gameId)
+                .Select(g => new { g.Id, g.Name, g.MaxTeamSize })
+                .FirstOrDefault() ?? throw new Exception("Invalid game");
 
-            if (game is null)
-            {
-                throw new Exception("Invalid game");
-            }
-
-            var players = Store
-                .Players.Where(p => p.GameId == gameId)
+            var players = _store
+                .WithNoTracking<Data.Player>()
+                .Where(p => p.GameId == gameId)
                 .Select(p => new { p.Sponsor, p.TeamId, p.Id, p.UserId }).ToList();
 
-            var sponsors = Store.Sponsors;
+            var sponsors = _store.WithNoTracking<Data.Sponsor>();
             var sponsorStats = new List<SponsorStat>();
 
             foreach (Data.Sponsor sponsor in sponsors)
@@ -158,17 +144,18 @@ namespace Gameboard.Api.Services
 
         internal async Task<ChallengeReport> GetChallengeStats(string gameId)
         {
-            var challenges = await Store.Challenges
+            var challenges = await _store
+                .WithNoTracking<Data.Challenge>()
                 .Where(c => c.GameId == gameId)
                 .Select(c => new
                 {
-                    SpecId = c.SpecId,
-                    Name = c.Name,
-                    Tag = c.Tag,
-                    Points = c.Points,
-                    Score = c.Score,
-                    Result = c.Result,
-                    Duration = c.Duration
+                    c.SpecId,
+                    c.Name,
+                    c.Tag,
+                    c.Points,
+                    c.Score,
+                    c.Result,
+                    c.Duration
                 })
                 .ToArrayAsync()
             ;
@@ -206,8 +193,8 @@ namespace Gameboard.Api.Services
 
         internal async Task<ChallengeDetailReport> GetChallengeDetails(string id)
         {
-            var challenges = Mapper.Map<Challenge[]>(await Store.Challenges.Where(c => c.SpecId == id).ToArrayAsync());
-            List<Part> parts = new List<Part>();
+            var challenges = Mapper.Map<Challenge[]>(await _store.WithNoTracking<Data.Challenge>().Where(c => c.SpecId == id).ToArrayAsync());
+            List<Part> parts = [];
 
             if (challenges.Length > 0)
             {
@@ -238,20 +225,21 @@ namespace Gameboard.Api.Services
                 }
             }
 
-            ChallengeDetailReport challengeDetailReport = new ChallengeDetailReport();
-            challengeDetailReport.Timestamp = DateTime.UtcNow;
-            challengeDetailReport.Parts = parts.ToArray();
-            challengeDetailReport.AttemptCount = challenges != null ? challenges.Length : 0;
-            challengeDetailReport.ChallengeId = id;
+            var challengeDetailReport = new ChallengeDetailReport
+            {
+                Timestamp = DateTime.UtcNow,
+                Parts = parts.ToArray(),
+                AttemptCount = challenges != null ? challenges.Length : 0,
+                ChallengeId = id
+            };
 
             return challengeDetailReport;
         }
 
         internal Task<SeriesReport> GetSeriesStats()
         {
-
             // Create a temporary table of all series with the number of games in that series included
-            var tempTable = Store.Games.Select(
+            var tempTable = _store.WithNoTracking<Data.Game>().Select(
                 g => new
                 {
                     // Replace null, white space, or empty series with "N/A"
@@ -272,15 +260,15 @@ namespace Gameboard.Api.Services
                     // Get the number of games in the series
                     GameCount = s.Key.GameCount,
                     // Get the number of registered players in the series
-                    PlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Competition) ? blankName : p.Game.Competition) == s.Key.Series).Select(p => p.UserId).Distinct().Count(),
+                    PlayerCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Competition) ? blankName : p.Game.Competition) == s.Key.Series).Select(p => p.UserId).Distinct().Count(),
                     // Get the number of enrolled players in the series
-                    SessionPlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Competition) ? blankName : p.Game.Competition) == s.Key.Series && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count(),
+                    SessionPlayerCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Competition) ? blankName : p.Game.Competition) == s.Key.Series && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count(),
                     // Get the number of registered teams in the series
-                    TeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Competition) ? blankName : p.Game.Competition) == s.Key.Series).Select(p => p.TeamId).Distinct().Count(),
+                    TeamCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Competition) ? blankName : p.Game.Competition) == s.Key.Series).Select(p => p.TeamId).Distinct().Count(),
                     // Get the number of enrolled teams in the series
-                    SessionTeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Competition) ? blankName : p.Game.Competition) == s.Key.Series && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.TeamId).Distinct().Count(),
+                    SessionTeamCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Competition) ? blankName : p.Game.Competition) == s.Key.Series && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.TeamId).Distinct().Count(),
                     // Get the number of challenges deployed in this series
-                    ChallengesDeployedCount = Store.ArchivedChallenges.Join(Store.Games, ac => ac.GameId, g => g.Id, (ac, g) => new { GameId = g.Id, Series = g.Competition }).Where(g => (string.IsNullOrWhiteSpace(g.Series) ? blankName : g.Series) == s.Key.Series).Count() + Store.Challenges.Join(Store.Games, c => c.GameId, g => g.Id, (c, g) => new { Series = g.Competition }).Where(g => (string.IsNullOrWhiteSpace(g.Series) ? blankName : g.Series) == s.Key.Series).Count()
+                    ChallengesDeployedCount = _store.WithNoTracking<Data.ArchivedChallenge>().Join(_store.WithNoTracking<Data.Game>(), ac => ac.GameId, g => g.Id, (ac, g) => new { GameId = g.Id, Series = g.Competition }).Where(g => (string.IsNullOrWhiteSpace(g.Series) ? blankName : g.Series) == s.Key.Series).Count() + _store.WithNoTracking<Data.Challenge>().Join(_store.WithNoTracking<Data.Game>(), c => c.GameId, g => g.Id, (c, g) => new { Series = g.Competition }).Where(g => (string.IsNullOrWhiteSpace(g.Series) ? blankName : g.Series) == s.Key.Series).Count()
                 }
             ).OrderBy(stat => stat.Key).ToArray();
 
@@ -297,7 +285,7 @@ namespace Gameboard.Api.Services
         {
 
             // Create a temporary table of all tracks with the number of games in that track included
-            var tempTable = Store.Games.Select(
+            var tempTable = _store.WithNoTracking<Data.Game>().Select(
                 g => new
                 {
                     // Replace null, white space, or empty tracks with "N/A"
@@ -319,15 +307,15 @@ namespace Gameboard.Api.Services
                     // Get the number of games in the track
                     GameCount = s.Key.GameCount,
                     // Get the number of registered players in the track
-                    PlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Track) ? blankName : p.Game.Track) == s.Key.Track).Select(p => p.UserId).Distinct().Count(),
+                    PlayerCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Track) ? blankName : p.Game.Track) == s.Key.Track).Select(p => p.UserId).Distinct().Count(),
                     // Get the number of enrolled players in the track
-                    SessionPlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Track) ? blankName : p.Game.Track) == s.Key.Track && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count(),
+                    SessionPlayerCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Track) ? blankName : p.Game.Track) == s.Key.Track && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count(),
                     // Get the number of registered teams in the track
-                    TeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Track) ? blankName : p.Game.Track) == s.Key.Track).Select(p => p.TeamId).Distinct().Count(),
+                    TeamCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Track) ? blankName : p.Game.Track) == s.Key.Track).Select(p => p.TeamId).Distinct().Count(),
                     // Get the number of enrolled teams in the track
-                    SessionTeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Track) ? blankName : p.Game.Track) == s.Key.Track && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.TeamId).Distinct().Count(),
+                    SessionTeamCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Track) ? blankName : p.Game.Track) == s.Key.Track && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.TeamId).Distinct().Count(),
                     // Get the number of challenges deployed in this track
-                    ChallengesDeployedCount = Store.ArchivedChallenges.Join(Store.Games, ac => ac.GameId, g => g.Id, (ac, g) => new { GameId = g.Id, Track = g.Track }).Where(g => (string.IsNullOrWhiteSpace(g.Track) ? blankName : g.Track) == s.Key.Track).Count() + Store.Challenges.Join(Store.Games, c => c.GameId, g => g.Id, (c, g) => new { Track = g.Track }).Where(g => (string.IsNullOrWhiteSpace(g.Track) ? blankName : g.Track) == s.Key.Track).Count()
+                    ChallengesDeployedCount = _store.WithNoTracking<Data.ArchivedChallenge>().Join(_store.WithNoTracking<Data.Game>(), ac => ac.GameId, g => g.Id, (ac, g) => new { GameId = g.Id, Track = g.Track }).Where(g => (string.IsNullOrWhiteSpace(g.Track) ? blankName : g.Track) == s.Key.Track).Count() + _store.WithNoTracking<Data.Challenge>().Join(_store.WithNoTracking<Data.Game>(), c => c.GameId, g => g.Id, (c, g) => new { Track = g.Track }).Where(g => (string.IsNullOrWhiteSpace(g.Track) ? blankName : g.Track) == s.Key.Track).Count()
                 }
             ).OrderBy(stat => stat.Key).ToArray();
 
@@ -344,7 +332,7 @@ namespace Gameboard.Api.Services
         {
 
             // Create a temporary table of all divisions with the number of games in that division included
-            var tempTable = Store.Games.Select(
+            var tempTable = _store.WithNoTracking<Data.Game>().Select(
                 g => new
                 {
                     // Replace null, white space, or empty divisions with "N/A"
@@ -366,15 +354,15 @@ namespace Gameboard.Api.Services
                     // Get the number of games in the division
                     GameCount = s.Key.GameCount,
                     // Get the number of registered players in the division
-                    PlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Season) ? blankName : p.Game.Season) == s.Key.Season).Select(p => p.UserId).Distinct().Count(),
+                    PlayerCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Season) ? blankName : p.Game.Season) == s.Key.Season).Select(p => p.UserId).Distinct().Count(),
                     // Get the number of enrolled players in the division
-                    SessionPlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Season) ? blankName : p.Game.Season) == s.Key.Season && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count(),
+                    SessionPlayerCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Season) ? blankName : p.Game.Season) == s.Key.Season && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count(),
                     // Get the number of registered teams in the season
-                    TeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Season) ? blankName : p.Game.Season) == s.Key.Season).Select(p => p.TeamId).Distinct().Count(),
+                    TeamCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Season) ? blankName : p.Game.Season) == s.Key.Season).Select(p => p.TeamId).Distinct().Count(),
                     // Get the number of enrolled teams in the season
-                    SessionTeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Season) ? blankName : p.Game.Season) == s.Key.Season && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.TeamId).Distinct().Count(),
+                    SessionTeamCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Season) ? blankName : p.Game.Season) == s.Key.Season && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.TeamId).Distinct().Count(),
                     // Get the number of challenges deployed in this season
-                    ChallengesDeployedCount = Store.ArchivedChallenges.Join(Store.Games, ac => ac.GameId, g => g.Id, (ac, g) => new { GameId = g.Id, Season = g.Season }).Where(g => (string.IsNullOrWhiteSpace(g.Season) ? blankName : g.Season) == s.Key.Season).Count() + Store.Challenges.Join(Store.Games, c => c.GameId, g => g.Id, (c, g) => new { Season = g.Season }).Where(g => (string.IsNullOrWhiteSpace(g.Season) ? blankName : g.Season) == s.Key.Season).Count()
+                    ChallengesDeployedCount = _store.WithNoTracking<Data.ArchivedChallenge>().Join(_store.WithNoTracking<Data.Game>(), ac => ac.GameId, g => g.Id, (ac, g) => new { GameId = g.Id, Season = g.Season }).Where(g => (string.IsNullOrWhiteSpace(g.Season) ? blankName : g.Season) == s.Key.Season).Count() + _store.WithNoTracking<Data.Challenge>().Join(_store.WithNoTracking<Data.Game>(), c => c.GameId, g => g.Id, (c, g) => new { Season = g.Season }).Where(g => (string.IsNullOrWhiteSpace(g.Season) ? blankName : g.Season) == s.Key.Season).Count()
                 }
             ).OrderBy(stat => stat.Key).ToArray();
 
@@ -391,7 +379,7 @@ namespace Gameboard.Api.Services
         {
 
             // Create a temporary table of all divisions with the number of games in that division included
-            var tempTable = Store.Games.Select(
+            var tempTable = _store.WithNoTracking<Data.Game>().Select(
                 g => new
                 {
                     // Replace null, white space, or empty divisions with "N/A"
@@ -413,15 +401,15 @@ namespace Gameboard.Api.Services
                     // Get the number of games in the division
                     GameCount = s.Key.GameCount,
                     // Get the number of registered players in the division
-                    PlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Division) ? blankName : p.Game.Division) == s.Key.Division).Select(p => p.UserId).Distinct().Count(),
+                    PlayerCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Division) ? blankName : p.Game.Division) == s.Key.Division).Select(p => p.UserId).Distinct().Count(),
                     // Get the number of enrolled players in the division
-                    SessionPlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Division) ? blankName : p.Game.Division) == s.Key.Division && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count(),
+                    SessionPlayerCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Division) ? blankName : p.Game.Division) == s.Key.Division && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count(),
                     // Get the number of registered teams in the division
-                    TeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Division) ? blankName : p.Game.Division) == s.Key.Division).Select(p => p.TeamId).Distinct().Count(),
+                    TeamCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Division) ? blankName : p.Game.Division) == s.Key.Division).Select(p => p.TeamId).Distinct().Count(),
                     // Get the number of enrolled teams in the division
-                    SessionTeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Division) ? blankName : p.Game.Division) == s.Key.Division && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.TeamId).Distinct().Count(),
+                    SessionTeamCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Division) ? blankName : p.Game.Division) == s.Key.Division && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.TeamId).Distinct().Count(),
                     // Get the number of challenges deployed in this division
-                    ChallengesDeployedCount = Store.ArchivedChallenges.Join(Store.Games, ac => ac.GameId, g => g.Id, (ac, g) => new { GameId = g.Id, Division = g.Division }).Where(g => (string.IsNullOrWhiteSpace(g.Division) ? blankName : g.Division) == s.Key.Division).Count() + Store.Challenges.Join(Store.Games, c => c.GameId, g => g.Id, (c, g) => new { Division = g.Division }).Where(g => (string.IsNullOrWhiteSpace(g.Division) ? blankName : g.Division) == s.Key.Division).Count()
+                    ChallengesDeployedCount = _store.WithNoTracking<Data.ArchivedChallenge>().Join(_store.WithNoTracking<Data.Game>(), ac => ac.GameId, g => g.Id, (ac, g) => new { GameId = g.Id, Division = g.Division }).Where(g => (string.IsNullOrWhiteSpace(g.Division) ? blankName : g.Division) == s.Key.Division).Count() + _store.WithNoTracking<Data.Challenge>().Join(_store.WithNoTracking<Data.Game>(), c => c.GameId, g => g.Id, (c, g) => new { Division = g.Division }).Where(g => (string.IsNullOrWhiteSpace(g.Division) ? blankName : g.Division) == s.Key.Division).Count()
                 }
             ).OrderBy(stat => stat.Key).ToArray();
 
@@ -438,7 +426,7 @@ namespace Gameboard.Api.Services
         {
 
             // Create a temporary table of all modes with the number of games in that mode included
-            var tempTable = Store.Games.Select(
+            var tempTable = _store.WithNoTracking<Data.Game>().Select(
                 g => new
                 {
                     // Replace null, white space, or empty modes with "N/A"
@@ -460,19 +448,19 @@ namespace Gameboard.Api.Services
                     // Get the number of games in the mode
                     GameCount = s.Key.GameCount,
                     // Get the number of registered players in the mode
-                    PlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Mode) ? blankName : p.Game.Mode) == s.Key.Mode).Select(p => p.UserId).Distinct().Count(),
+                    PlayerCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Mode) ? blankName : p.Game.Mode) == s.Key.Mode).Select(p => p.UserId).Distinct().Count(),
                     // Get the number of enrolled players in the mode
-                    SessionPlayerCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Mode) ? blankName : p.Game.Mode) == s.Key.Mode && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count(),
+                    SessionPlayerCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Mode) ? blankName : p.Game.Mode) == s.Key.Mode && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.UserId).Distinct().Count(),
                     // Get the number of registered teams in the mode
-                    TeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Mode) ? blankName : p.Game.Mode) == s.Key.Mode).Select(p => p.TeamId).Distinct().Count(),
+                    TeamCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Mode) ? blankName : p.Game.Mode) == s.Key.Mode).Select(p => p.TeamId).Distinct().Count(),
                     // Get the number of enrolled teams in the mode
-                    SessionTeamCount = Store.Players.Where(p => (string.IsNullOrWhiteSpace(p.Game.Mode) ? blankName : p.Game.Mode) == s.Key.Mode && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.TeamId).Distinct().Count(),
+                    SessionTeamCount = _store.WithNoTracking<Data.Player>().Where(p => (string.IsNullOrWhiteSpace(p.Game.Mode) ? blankName : p.Game.Mode) == s.Key.Mode && p.SessionBegin.ToString() != "-infinity" && p.SessionBegin > DateTimeOffset.MinValue).Select(p => p.TeamId).Distinct().Count(),
                     // Get the number of challenges deployed in this mode
-                    ChallengesDeployedCount = Store.ArchivedChallenges.Join(Store.Games, ac => ac.GameId, g => g.Id, (ac, g) => new { GameId = g.Id, Mode = g.Mode }).Where(g => (string.IsNullOrWhiteSpace(g.Mode) ? blankName : g.Mode) == s.Key.Mode).Count() + Store.Challenges.Join(Store.Games, c => c.GameId, g => g.Id, (c, g) => new { Mode = g.Mode }).Where(g => (string.IsNullOrWhiteSpace(g.Mode) ? blankName : g.Mode) == s.Key.Mode).Count()
+                    ChallengesDeployedCount = _store.WithNoTracking<Data.ArchivedChallenge>().Join(_store.WithNoTracking<Data.Game>(), ac => ac.GameId, g => g.Id, (ac, g) => new { GameId = g.Id, Mode = g.Mode }).Where(g => (string.IsNullOrWhiteSpace(g.Mode) ? blankName : g.Mode) == s.Key.Mode).Count() + _store.WithNoTracking<Data.Challenge>().Join(_store.WithNoTracking<Data.Game>(), c => c.GameId, g => g.Id, (c, g) => new { Mode = g.Mode }).Where(g => (string.IsNullOrWhiteSpace(g.Mode) ? blankName : g.Mode) == s.Key.Mode).Count()
                 }
             ).OrderBy(stat => stat.Key).ToArray();
 
-            ModeReport modeReport = new ModeReport
+            var modeReport = new ModeReport
             {
                 Timestamp = DateTime.UtcNow,
                 Stats = stats
@@ -483,9 +471,8 @@ namespace Gameboard.Api.Services
 
         internal Task<CorrelationReport> GetCorrelationStats()
         {
-
             // Create a temporary table to first group by the user ID and count the number of games played
-            var tempTable = Store.Players.GroupBy(g => g.UserId).Select(
+            var tempTable = _store.WithNoTracking<Data.Player>().GroupBy(g => g.UserId).Select(
                 s => new
                 {
                     UserId = s.Key,
@@ -511,52 +498,9 @@ namespace Gameboard.Api.Services
             return Task.FromResult(correlationReport);
         }
 
-        private static string GetCommonGroupString(string original)
-        {
-            return string.IsNullOrWhiteSpace(original) ? "N/A" : original;
-        }
-
-        // Compute aggregates for each feedback question in template based on all responses in feedback table
-        internal List<QuestionStats> GetFeedbackQuestionStats(QuestionTemplate[] questionTemplate, FeedbackReportHelper[] feedbackTable)
-        {
-            List<QuestionStats> questionStats = new List<QuestionStats>();
-            foreach (QuestionTemplate question in questionTemplate)
-            {
-                if (question.Type != "likert")
-                    continue;
-
-                List<int> answers = new List<int>();
-                foreach (var response in feedbackTable.Where(f => f.Submitted || true))
-                {
-                    var answer = response.IdToAnswer.GetValueOrDefault(question.Id, null);
-                    if (answer != null)
-                        answers.Add(Int32.Parse(answer));
-                }
-                var newStat = new QuestionStats
-                {
-                    Id = question.Id,
-                    Prompt = question.Prompt,
-                    ShortName = question.ShortName,
-                    Required = question.Required,
-                    ScaleMin = question.Min,
-                    ScaleMax = question.Max,
-                    Count = answers.Count(),
-                };
-                if (newStat.Count > 0)
-                {
-                    newStat.Average = answers.Average();
-                    newStat.Lowest = answers.Min();
-                    newStat.Highest = answers.Max();
-                }
-                questionStats.Add(newStat);
-            }
-            return questionStats;
-        }
-
         #region Support Stats
         internal async Task<TicketDetail[]> GetTicketDetails(TicketReportFilter model, string userId)
         {
-
             var q = ListFilteredTickets(model, userId);
             var tickets = await q.ToArrayAsync();
 
@@ -709,10 +653,10 @@ namespace Gameboard.Api.Services
 
         private IQueryable<Data.Ticket> ListFilteredTickets(TicketReportFilter model, string userId = null)
         {
-            var q = Store.Tickets.AsNoTracking();
+            var q = _store.WithNoTracking<Data.Ticket>();
             if (userId != null)
             {
-                q = TicketStore.List(model.Term).AsNoTracking();
+                q = _ticketService.BuildTicketSearchQuery(model.Term);
             }
 
             if (model.WantsGame)
@@ -760,12 +704,49 @@ namespace Gameboard.Api.Services
         {
             int total = 0;
             if (model.WantsGame) // count enrollments for a specific game id, that are started
-                total = await Store.Players.Where(p => p.GameId == model.GameId && p.SessionBegin > DateTimeOffset.MinValue).CountAsync();
+                total = await _store.WithNoTracking<Data.Player>().Where(p => p.GameId == model.GameId && p.SessionBegin > DateTimeOffset.MinValue).CountAsync();
             else if (model.WantsSpecificChallenge) // count challenges with specific challenge spec id
-                total = await Store.Challenges.Where(p => p.SpecId == model.ChallengeSpecId).CountAsync();
+                total = await _store.WithNoTracking<Data.Challenge>().Where(p => p.SpecId == model.ChallengeSpecId).CountAsync();
             else if (model.WantsChallenge) // count challenges with specific game id
-                total = await Store.Challenges.Where(p => p.GameId == model.GameId).CountAsync();
+                total = await _store.WithNoTracking<Data.Challenge>().Where(p => p.GameId == model.GameId).CountAsync();
             return total;
+        }
+
+        // Compute aggregates for each feedback question in template based on all responses in feedback table
+        public IEnumerable<QuestionStats> GetFeedbackQuestionStats(QuestionTemplate[] questionTemplate, FeedbackReportHelper[] feedbackTable)
+        {
+            var questionStats = new List<QuestionStats>();
+            foreach (QuestionTemplate question in questionTemplate)
+            {
+                if (question.Type != "likert")
+                    continue;
+
+                var answers = new List<int>();
+                foreach (var response in feedbackTable.Where(f => f.Submitted || true))
+                {
+                    var answer = response.IdToAnswer.GetValueOrDefault(question.Id, null);
+                    if (answer != null)
+                        answers.Add(Int32.Parse(answer));
+                }
+                var newStat = new QuestionStats
+                {
+                    Id = question.Id,
+                    Prompt = question.Prompt,
+                    ShortName = question.ShortName,
+                    Required = question.Required,
+                    ScaleMin = question.Min,
+                    ScaleMax = question.Max,
+                    Count = answers.Count,
+                };
+                if (newStat.Count > 0)
+                {
+                    newStat.Average = answers.Average();
+                    newStat.Lowest = answers.Min();
+                    newStat.Highest = answers.Max();
+                }
+                questionStats.Add(newStat);
+            }
+            return questionStats;
         }
 
         internal byte[] ConvertToBytes<T>(IEnumerable<T> collection)

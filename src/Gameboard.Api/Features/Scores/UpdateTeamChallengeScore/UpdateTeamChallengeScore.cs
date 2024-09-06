@@ -12,35 +12,21 @@ namespace Gameboard.Api.Features.Scores;
 
 public record UpdateTeamChallengeBaseScoreCommand(string ChallengeId, double Score) : IRequest<TeamChallengeScore>;
 
-internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamChallengeBaseScoreCommand, TeamChallengeScore>
+internal class UpdateTeamChallengeBaseScoreHandler(
+    IGuidService guidService,
+    IMapper mapper,
+    IMediator mediator,
+    IScoringService scoringService,
+    IStore store,
+    IGameboardRequestValidator<UpdateTeamChallengeBaseScoreCommand> validator
+    ) : IRequestHandler<UpdateTeamChallengeBaseScoreCommand, TeamChallengeScore>
 {
-    private readonly IGuidService _guidService;
-    private readonly IMapper _mapper;
-    private readonly IMediator _mediator;
-    private readonly IScoringService _scoringService;
-    private readonly IStore _store;
-    private readonly IGameboardRequestValidator<UpdateTeamChallengeBaseScoreCommand> _validator;
-    private readonly GameboardDbContext _dbContext;
-
-    public UpdateTeamChallengeBaseScoreHandler
-    (
-        IGuidService guidService,
-        IMapper mapper,
-        IMediator mediator,
-        IScoringService scoringService,
-        IStore store,
-        IGameboardRequestValidator<UpdateTeamChallengeBaseScoreCommand> validator,
-        GameboardDbContext dbContext
-    )
-    {
-        _guidService = guidService;
-        _mapper = mapper;
-        _mediator = mediator;
-        _scoringService = scoringService;
-        _store = store;
-        _validator = validator;
-        _dbContext = dbContext;
-    }
+    private readonly IGuidService _guidService = guidService;
+    private readonly IMapper _mapper = mapper;
+    private readonly IMediator _mediator = mediator;
+    private readonly IScoringService _scoringService = scoringService;
+    private readonly IStore _store = store;
+    private readonly IGameboardRequestValidator<UpdateTeamChallengeBaseScoreCommand> _validator = validator;
 
     public async Task<TeamChallengeScore> Handle(UpdateTeamChallengeBaseScoreCommand request, CancellationToken cancellationToken)
     {
@@ -49,7 +35,7 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
 
         // load additional data (and track - we use the dbContext to finalize below)
         var updateChallenge = await _store
-            .WithTracking<Data.Challenge>()
+            .WithNoTracking<Data.Challenge>()
             .Include(c => c.Game)
             .SingleAsync(c => c.Id == request.ChallengeId, cancellationToken);
 
@@ -94,18 +80,18 @@ internal class UpdateTeamChallengeBaseScoreHandler : IRequestHandler<UpdateTeamC
                     );
 
             if (availableBonuses.Any() && (availableBonuses.First() as ChallengeBonusCompleteSolveRank).SolveRank == otherTeamChallenges.Length + 1)
-                updateChallenge.AwardedBonuses.Add(new AwardedChallengeBonus
+            {
+                await _store.Create(new AwardedChallengeBonus
                 {
                     Id = _guidService.GetGuid(),
-                    ChallengeBonusId = availableBonuses.First().Id
+                    ChallengeBonusId = availableBonuses.First().Id,
+                    ChallengeId = updateChallenge.Id
                 });
+            }
         }
 
-        // commit it
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
         // notify score-interested listeners that a team has scored
-        await _mediator.Publish(new ScoreChangedNotification(updateChallenge.TeamId));
+        await _mediator.Publish(new ScoreChangedNotification(updateChallenge.TeamId), cancellationToken);
 
         // have to query the scoring service to compose a complete score (which includes manual bonuses)
         return _mapper.Map<TeamChallengeScore>(await _scoringService.GetTeamChallengeScore(updateChallenge.Id));

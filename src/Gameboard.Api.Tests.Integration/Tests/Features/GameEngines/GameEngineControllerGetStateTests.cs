@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api.Tests.Integration;
@@ -59,7 +60,7 @@ public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestCont
         // when
         var results = await httpClient
             .GetAsync($"/api/gameEngine/state?teamId={teamId}")
-            .WithContentDeserializedAs<IEnumerable<GameEngineGameState>>();
+            .DeserializeResponseAs<IEnumerable<GameEngineGameState>>();
 
         // then
         results?.Count().ShouldBe(2);

@@ -1,23 +1,20 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using Microsoft.AspNetCore.Hosting;
+using System;
+using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data;
 
-public class GameboardDbContext : DbContext
+public class GameboardDbContext(IServiceProvider serviceProvider, DbContextOptions options, IHostEnvironment env) : DbContext(options)
 {
-    private readonly IWebHostEnvironment _env;
-
-    public GameboardDbContext(DbContextOptions options, IWebHostEnvironment env) : base(options)
-    {
-        _env = env;
-    }
+    private readonly IHostEnvironment _env = env;
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.WithGameboardOptions(_env);
+        optionsBuilder.WithGameboardOptions(_env, _serviceProvider);
     }
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -274,6 +271,7 @@ public class GameboardDbContext : DbContext
             // performance-oriented indices
             b.HasIndex(p => p.UserId);
             b.HasIndex(p => new { p.UserId, p.TeamId });
+            b.HasIndex(p => new { p.Id, p.TeamId });
 
             // nav properties
             b.HasOne(p => p.User).WithMany(u => u.Enrollments).OnDelete(DeleteBehavior.Cascade);
@@ -362,6 +360,7 @@ public class GameboardDbContext : DbContext
             b.Property(n => n.Title)
                 .HasStandardNameLength()
                 .IsRequired();
+            b.Property(n => n.IsDismissible).HasDefaultValue(true);
             b.Property(n => n.MarkdownContent).IsRequired();
 
             // nav properties

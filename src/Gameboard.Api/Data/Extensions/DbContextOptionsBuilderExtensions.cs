@@ -1,6 +1,6 @@
 using System;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -8,7 +8,7 @@ namespace Gameboard.Api.Data;
 
 public static class DbContextOptionsBuilderExtensions
 {
-    public static DbContextOptionsBuilder WithGameboardOptions(this DbContextOptionsBuilder builder, IWebHostEnvironment env)
+    public static DbContextOptionsBuilder WithGameboardOptions(this DbContextOptionsBuilder builder, IHostEnvironment env, IServiceProvider serviceProvider)
     {
         // we accommodate for the case that the environment is null (as it is during the creation of migrations)
         // by assuming that we don't need any detailed/sensitive logging - the environment must explicitly be set
@@ -42,6 +42,11 @@ public static class DbContextOptionsBuilderExtensions
         {
             builder.LogTo(Console.WriteLine, LogLevel.Warning);
         }
+
+        // when run at design-time, the service provider may be null (because there's no running app to create it)
+        if (serviceProvider is not null)
+            builder
+                .AddInterceptors(new SlowCommandLogInterceptor(serviceProvider.GetRequiredService<ILoggerFactory>()));
 
         return builder;
     }

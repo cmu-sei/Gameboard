@@ -38,16 +38,16 @@ public class SupportReportServiceTests
         var tickets = new Data.Ticket[]
         {
             // this ticket was created at 8:58am on 5/9/2023, or about an hour and a half ago
-            new Data.Ticket { Created = new DateTimeOffset(new DateTime(2023, 5, 9, 8, 58, 0)) },
+            new() { Created = new DateTimeOffset(new DateTime(2023, 5, 9, 8, 58, 0)) },
             // this one was created 2 minutes ago
-            new Data.Ticket { Created = new DateTimeOffset(new DateTime(2023, 5, 9, 10, 28, 0)) }
+            new() { Created = new DateTimeOffset(new DateTime(2023, 5, 9, 10, 28, 0)) }
         }.BuildMock();
 
-        var ticketStore = A.Fake<ITicketStore>();
-        A.CallTo(() => ticketStore.ListWithNoTracking()).Returns(tickets);
+        var store = A.Fake<IStore>();
+        A.CallTo(() => store.WithNoTracking<Data.Ticket>()).Returns(tickets);
 
         var parameters = new SupportReportParameters { MinutesSinceOpen = 60 };
-        var sut = FakeBuilder.BuildMeA<SupportReportService>(now, ticketStore);
+        var sut = FakeBuilder.BuildMeA<SupportReportService>(now, store);
 
         // act
         var results = await sut.QueryRecords(parameters);

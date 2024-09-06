@@ -1,4 +1,5 @@
 using Gameboard.Api.Common;
+using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Tests.Integration;
 
@@ -48,7 +49,7 @@ public class PlayerControllerEnrollTests : IClassFixture<GameboardTestContext>
         // when
         var result = await httpClient
             .PostAsync("/api/player", enrollRequest.ToJsonBody())
-            .WithContentDeserializedAs<Player>();
+            .DeserializeResponseAs<Player>();
 
         result.ShouldNotBeNull();
         result.UserId.ShouldBe(userId);

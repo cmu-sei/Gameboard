@@ -1,5 +1,4 @@
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Gameboard.Api.Structure;
@@ -10,7 +9,6 @@ internal static class MediatRExtensionsToServiceCollection
     {
         return services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>())
             .AddConcretesFromNamespaceStartsWith("Gameboard.Api.Structure.MediatR")
-            .AddImplementationsOf<IAuthorizer>()
             .AddImplementationsOf<IGameboardValidator>()
             .AddImplementationsOf(typeof(IGameboardValidator<>))
             .AddImplementationsOf(typeof(IGameboardRequestValidator<>))

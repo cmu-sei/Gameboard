@@ -61,7 +61,7 @@ internal static class WebApplicationBuilderExtensions
         return settings;
     }
 
-    public static void ConfigureServices(this WebApplicationBuilder builder, AppSettings settings, ILogger logger)
+    public static void ConfigureServices(this WebApplicationBuilder builder, AppSettings settings)
     {
         var services = builder.Services;
 
@@ -84,7 +84,7 @@ internal static class WebApplicationBuilderExtensions
         services
             .AddSingleton(_ => settings.Core)
             .AddSingleton(_ => settings.Crucible)
-            .AddGameboardData(settings.Database.Provider, settings.Database.ConnectionString)
+            .AddGameboardData(builder.Environment, settings.Database)
             .AddGameboardMediatR()
             .AddGameboardServices(settings)
             .AddConfiguredHttpClients(settings.Core)
