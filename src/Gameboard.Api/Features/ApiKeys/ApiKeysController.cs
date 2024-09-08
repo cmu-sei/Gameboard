@@ -30,7 +30,6 @@ public class ApiKeysController(
     public async Task<IEnumerable<ApiKeyViewModel>> ListApiKeys(string userId)
     {
         await Authorize();
-        await _validator.Validate(new ListApiKeysRequest { UserId = userId });
         return await _apiKeyService.ListKeys(userId);
     }
 

@@ -9,25 +9,35 @@ using Microsoft.Extensions.Logging;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Features.Users;
 
 namespace Gameboard.Api.Controllers
 {
     [Authorize]
-    public class FeedbackController : _Controller
+    public class FeedbackController(
+        IActingUserService actingUserService,
+        ILogger<ChallengeController> logger,
+        IDistributedCache cache,
+        FeedbackValidator validator,
+        FeedbackService feedbackService,
+        IUserRolePermissionsService permissionsService
+        ) : _Controller(actingUserService, logger, cache, validator)
     {
-        FeedbackService FeedbackService { get; }
+        private readonly IUserRolePermissionsService _permissionsService = permissionsService;
+        FeedbackService FeedbackService { get; } = feedbackService;
 
-        public FeedbackController(
-            IActingUserService actingUserService,
-            ILogger<ChallengeController> logger,
-            IDistributedCache cache,
-            FeedbackValidator validator,
-            ChallengeService challengeService,
-            FeedbackService feedbackService,
-            PlayerService playerService
-        ) : base(actingUserService, logger, cache, validator)
+        /// <summary>
+        /// Lists feedback based on search params
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpGet("/api/feedback/list")]
+        [Authorize]
+        public async Task<FeedbackReportDetails[]> List([FromQuery] FeedbackSearchParams model)
         {
-            FeedbackService = feedbackService;
+            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
+
+            return await FeedbackService.List(model);
         }
 
         /// <summary>
