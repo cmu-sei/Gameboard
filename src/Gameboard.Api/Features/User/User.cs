@@ -62,7 +62,7 @@ public class TeamMember
 
 public class UserSearch : SearchFilter
 {
-    public const string UserRoleFilter = "roles";
+    public const string UserRoleFilter = "elevated-role";
     public const string NamePendingFilter = "pending";
     public const string NameDisallowedFilter = "disallowed";
     public string EligibleForGameId { get; set; }

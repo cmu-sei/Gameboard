@@ -11,32 +11,21 @@ namespace Gameboard.Api.Features.Reports;
 
 public record GetFeedbackGameReportQuery(string GameId, string ChallengeSpecId) : IRequest<FeedbackGameReportResults>, IReportQuery;
 
-internal sealed class GetFeedbackGameReportHandler : IRequestHandler<GetFeedbackGameReportQuery, FeedbackGameReportResults>
+internal sealed class GetFeedbackGameReportHandler(
+    FeedbackService feedbackService,
+    EntityExistsValidator<GetFeedbackGameReportQuery, Data.Game> gameExists,
+    IGameService gameService,
+    ReportsQueryValidator reportsQueryValidator,
+    EntityExistsValidator<GetFeedbackGameReportQuery, Data.ChallengeSpec> specExists,
+    IValidatorService<GetFeedbackGameReportQuery> validatorService
+    ) : IRequestHandler<GetFeedbackGameReportQuery, FeedbackGameReportResults>
 {
-    private readonly FeedbackService _feedbackService;
-    private readonly EntityExistsValidator<GetFeedbackGameReportQuery, Data.Game> _gameExists;
-    private readonly IGameService _gameService;
-    private readonly ReportsQueryValidator _reportsQueryValidator;
-    private readonly EntityExistsValidator<GetFeedbackGameReportQuery, Data.ChallengeSpec> _specExists;
-    private readonly IValidatorService<GetFeedbackGameReportQuery> _validatorService;
-
-    public GetFeedbackGameReportHandler
-    (
-        FeedbackService feedbackService,
-        EntityExistsValidator<GetFeedbackGameReportQuery, Data.Game> gameExists,
-        IGameService gameService,
-        ReportsQueryValidator reportsQueryValidator,
-        EntityExistsValidator<GetFeedbackGameReportQuery, Data.ChallengeSpec> specExists,
-        IValidatorService<GetFeedbackGameReportQuery> validatorService
-    )
-    {
-        _feedbackService = feedbackService;
-        _gameExists = gameExists;
-        _gameService = gameService;
-        _reportsQueryValidator = reportsQueryValidator;
-        _specExists = specExists;
-        _validatorService = validatorService;
-    }
+    private readonly FeedbackService _feedbackService = feedbackService;
+    private readonly EntityExistsValidator<GetFeedbackGameReportQuery, Data.Game> _gameExists = gameExists;
+    private readonly IGameService _gameService = gameService;
+    private readonly ReportsQueryValidator _reportsQueryValidator = reportsQueryValidator;
+    private readonly EntityExistsValidator<GetFeedbackGameReportQuery, Data.ChallengeSpec> _specExists = specExists;
+    private readonly IValidatorService<GetFeedbackGameReportQuery> _validatorService = validatorService;
 
     public async Task<FeedbackGameReportResults> Handle(GetFeedbackGameReportQuery request, CancellationToken cancellationToken)
     {
@@ -57,7 +46,7 @@ internal sealed class GetFeedbackGameReportHandler : IRequestHandler<GetFeedback
             return new()
             {
                 Game = gameSimple,
-                Questions = Array.Empty<FeedbackQuestion>()
+                Questions = []
             };
 
         var query = new FeedbackSearchParams
@@ -74,8 +63,6 @@ internal sealed class GetFeedbackGameReportHandler : IRequestHandler<GetFeedback
         {
             return new() { Game = gameSimple, Questions = Array.Empty<FeedbackQuestion>() };
         }
-
-
         var submittedFeedback = feedback.Where(f => f.Submitted).ToArray();
         var expandedTable = _feedbackService.MakeHelperList(submittedFeedback);
         var maxResponses = await _feedbackService.GetFeedbackMaxResponses(query);

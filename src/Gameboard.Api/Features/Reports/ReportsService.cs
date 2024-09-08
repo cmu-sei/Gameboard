@@ -28,28 +28,19 @@ public interface IReportsService
     IEnumerable<string> ParseMultiSelectCriteria(string criteria);
 }
 
-public class ReportsService : IReportsService
+public class ReportsService(
+    INowService now,
+    IPagingService paging,
+    IStore store,
+    ITeamService teamService
+    ) : IReportsService
 {
     private static readonly string MULTI_SELECT_DELIMITER = ",";
 
-    private readonly INowService _now;
-    private readonly IPagingService _paging;
-    private readonly IStore _store;
-    private readonly ITeamService _teamService;
-
-    public ReportsService
-    (
-        INowService now,
-        IPagingService paging,
-        IStore store,
-        ITeamService teamService
-    )
-    {
-        _now = now;
-        _paging = paging;
-        _store = store;
-        _teamService = teamService;
-    }
+    private readonly INowService _now = now;
+    private readonly IPagingService _paging = paging;
+    private readonly IStore _store = store;
+    private readonly ITeamService _teamService = teamService;
 
     public async Task<string> GetDescription(string key)
     {
@@ -66,8 +57,8 @@ public class ReportsService : IReportsService
                 Name = "Challenges",
                 Key = ReportKey.Challenges,
                 Description = "View a summary about the challenges running on Gameboard. See summaries describing scoring and popularity.",
-                ExampleFields = new string[]
-                {
+                ExampleFields =
+                [
                     "Challenge Name",
                     "Game",
                     "Season",
@@ -75,14 +66,14 @@ public class ReportsService : IReportsService
                     "Track",
                     "Scoring Distribution",
                     "Unique players"
-                },
-                ExampleParameters = new string[]
-                {
+                ],
+                ExampleParameters =
+                [
                     "Season",
                     "Series",
                     "Track",
                     "Game"
-                }
+                ]
             },
             new()
             {
@@ -107,61 +98,56 @@ public class ReportsService : IReportsService
             },
             new()
             {
-                Name = "Feedback (Games)",
-                Key = ReportKey.FeedbackGames,
+                Name = "Feedback",
+                Key = ReportKey.Feedback,
                 Description = "Learn more about how your games are landing with your players. (Requires configuration of feedback in the Game Center.)",
-                ExampleFields = new string[]
-                {
+                ExampleFields =
+                [
                     "Question Info",
                     "Response Summary",
                     "Individual Responses"
-                },
-                ExampleParameters = new string[]
-                {
+                ],
+                ExampleParameters =
+                [
                     "Game",
                     "Sponsor"
-                }
+                ]
             },
             new()
             {
                 Name = "Players",
                 Key = ReportKey.Players,
                 Description = "View a summary of your players. See their basic information, their sponsors, and how many challenges they're playing.",
-                ExampleFields = new string[]
-                {
+                ExampleFields =
+                [
                     "Player & Sponsor",
                     "Challenges Deployed",
                     "Distinct Competitions Played"
-                },
-                ExampleParameters = new string[]
-                {
-                    "Creation Date",
-                    "Last Played Date",
-                    "Sponsor"
-                }
+                ],
+                ExampleParameters = []
             },
             new()
             {
                 Name = "Practice Area",
                 Key = ReportKey.PracticeArea,
                 Description = "Check in on players who are spending free time honing their skills on Gameboard. See which challenges are practiced most, success rates, and which players are logging in to practice.",
-                ExampleFields = new string[]
-                {
+                ExampleFields =
+                [
                     "Challenge Performance",
                     "Player Performance",
                     "Scoring",
                     "Trends",
                     "Competitive vs. Practice"
-                },
-                ExampleParameters = new string[]
-                {
+                ],
+                ExampleParameters =
+                [
                     "Practice Date",
                     "Series",
                     "Track",
                     "Season",
                     "Game",
                     "Sponsor"
-                }
+                ]
             },
             new()
             {
@@ -187,22 +173,22 @@ public class ReportsService : IReportsService
                 Name = "Support",
                 Key = ReportKey.Support,
                 Description = "View a summary of the support tickets that have been created in Gameboard, including closer looks at submission times, ticket categories, and associated challenges.",
-                ExampleFields = new string[]
-                {
+                ExampleFields =
+                [
                     "Summary Info",
                     "Status",
                     "Label",
                     "Challenge",
                     "Time Windows",
                     "Assignment Info"
-                },
-                ExampleParameters = new string[]
-                {
+                ],
+                ExampleParameters =
+                [
                     "Status & Label",
                     "Game & Challenge",
                     "Creation Date",
                     "Time Since Opened / Updated",
-                }
+                ]
             },
         };
 
