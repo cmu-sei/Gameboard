@@ -218,7 +218,7 @@ internal class GameHubService : IGameHubService, IGameboardHubService
         => UpdateGameAndTeamUserIdsMaps(notification.GameId);
 
     public Task Handle(GameEnrolledPlayersChangeNotification notification, CancellationToken cancellationToken)
-        => UpdateGameAndTeamUserIdsMaps(notification.Context.GameId);
+        => UpdateGameAndTeamUserIdsMaps(notification.GameId);
 
     public Task Handle(GameLaunchEndedNotification notification, CancellationToken cancellationToken)
         => SendLaunchEnded(new GameHubEvent { GameId = notification.GameId, TeamIds = notification.TeamIds });
@@ -236,7 +236,7 @@ internal class GameHubService : IGameHubService, IGameboardHubService
     {
         _gameIdUserIdsMap.TryGetValue(gameId, out var userIds);
         if (userIds.IsEmpty())
-            return Array.Empty<string>();
+            return [];
 
         return userIds;
     }

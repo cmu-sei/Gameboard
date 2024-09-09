@@ -146,13 +146,13 @@ internal class Store : IStore
     }
 
     public Task<TEntity> SingleAsync<TEntity>(string id, CancellationToken cancellationToken) where TEntity : class, IEntity
-        => GetQueryBase<TEntity>().SingleAsync(e => e.Id == id, cancellationToken);
+        => GetQueryBase<TEntity>(StoreTrackingType.NoTracking).SingleAsync(e => e.Id == id, cancellationToken);
 
     public Task<TEntity> SingleOrDefaultAsync<TEntity>(CancellationToken cancellationToken) where TEntity : class, IEntity
-        => GetQueryBase<TEntity>().SingleOrDefaultAsync(cancellationToken);
+        => GetQueryBase<TEntity>(StoreTrackingType.NoTracking).SingleOrDefaultAsync(cancellationToken);
 
     public Task<TEntity> SingleOrDefaultAsync<TEntity>(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) where TEntity : class, IEntity
-        => GetQueryBase<TEntity>().SingleOrDefaultAsync(predicate, cancellationToken);
+        => GetQueryBase<TEntity>(StoreTrackingType.NoTracking).SingleOrDefaultAsync(predicate, cancellationToken);
 
     public async Task<IEnumerable<TEntity>> SaveAddRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity
     {

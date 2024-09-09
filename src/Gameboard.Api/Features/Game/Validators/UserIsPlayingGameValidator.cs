@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Structure.MediatR;
@@ -27,17 +28,17 @@ public class UserIsPlayingGameValidator(IStore store) : IGameboardValidator
         return this;
     }
 
-    public Func<RequestValidationContext, Task> GetValidationTask()
+    public Func<RequestValidationContext, Task> GetValidationTask(CancellationToken cancellationToken)
     {
         return async context =>
         {
             var user = await _store
                 .WithNoTracking<Data.User>()
-                .FirstOrDefaultAsync(u => u.Id == _userId);
+                .FirstOrDefaultAsync(u => u.Id == _userId, cancellationToken);
 
             var hasPlayer = await _store
                 .WithNoTracking<Data.Player>()
-                .AnyAsync(p => p.UserId == _userId && p.GameId == _gameId);
+                .AnyAsync(p => p.UserId == _userId && p.GameId == _gameId, cancellationToken);
 
             if (!hasPlayer)
                 context.AddValidationException(new UserIsntPlayingGame(_userId, _gameId));

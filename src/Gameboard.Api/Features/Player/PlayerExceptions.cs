@@ -15,12 +15,6 @@ internal class CantLateStart : GameboardValidationException
         : base($"Can't start {teamIds.Count()} team(s) in game {gameName}. The game ends at {gameEnd}, which is within a session length of {sessionLength} minutes from now.") { }
 }
 
-internal class CantResolveTeamFromCode : GameboardException
-{
-    internal CantResolveTeamFromCode(string code, string[] teamIds)
-        : base($"""Couldn't resolve a unique team from invitation code "{code}": {teamIds.Count()} have this code ({string.Join(",", teamIds)}). """) { }
-}
-
 internal class CantStartSessionOfOtherPlayer : GameboardValidationException
 {
     internal CantStartSessionOfOtherPlayer(string playerId, string userId)
@@ -63,6 +57,12 @@ internal class NoPlayerSponsorForGame : GameboardValidationException
     internal NoPlayerSponsorForGame(string userId, string gameId) : base($"""User "{userId}" hasn't selected a sponsor, so they can't register for game "{gameId}".""") { }
 }
 
+internal class NotYetRegistered : GameboardValidationException
+{
+    internal NotYetRegistered(string playerId, string gameId)
+        : base($"User {playerId} hasn't yet registered for game {gameId}.") { }
+}
+
 internal class PlayerIsntManager : GameboardException
 {
     internal PlayerIsntManager(string playerId, string addlMessage) : base($"Player {playerId} isn't the team manager. {addlMessage}") { }
@@ -71,6 +71,13 @@ internal class PlayerIsntManager : GameboardException
 internal class PromotionFailed : GameboardException
 {
     internal PromotionFailed(string teamId, string playerId, int recordsAffected) : base($"Failed to promote player {playerId} to manager of team {teamId}: Incorrect number of records affected ({recordsAffected}).") { }
+}
+
+internal class RegistrationIsClosed : GameboardValidationException
+{
+    internal RegistrationIsClosed(string gameId, string addlMessage = null) :
+        base($"Registration for game {gameId} is closed.{(addlMessage.NotEmpty() ? $" [{addlMessage}]" : string.Empty)}")
+    { }
 }
 
 internal class SessionAlreadyStarted : GameboardValidationException
@@ -96,10 +103,4 @@ internal class SyncStartNotReady : GameboardValidationException
         return string
             .Join("\n- ", nonReadyPlayers.Select(p => $"{p.Name} (id: {p.Id})").ToArray());
     }
-}
-
-internal class TeamIsFull : GameboardException
-{
-    internal TeamIsFull(string invitingPlayerId, int teamSize, int maxTeamSize)
-        : base($"Inviting player {invitingPlayerId} has {teamSize} players on their team, and the max team size for this game is {maxTeamSize}.") { }
 }

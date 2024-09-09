@@ -80,13 +80,20 @@ internal class AdminEnrollTeamHandler : IRequestHandler<AdminEnrollTeamRequest, 
                 await _store
                     .WithNoTracking<Data.Player>()
                     .Where(p => p.Id == captainPlayer.Id)
-                    .ExecuteUpdateAsync(up => up.SetProperty(p => p.InviteCode, teamUpCode), cancellationToken);
+                    .ExecuteUpdateAsync
+                    (
+                        up => up
+                            .SetProperty(p => p.InviteCode, teamUpCode)
+                            .SetProperty(p => p.Role, PlayerRole.Manager)
+                        , cancellationToken
+                    );
             }
         }
 
         // team everyone up
-        foreach (var player in createdPlayers.Where(p => p.Id != captainPlayer.Id))
-            await _playerService.Enlist(new PlayerEnlistment { Code = teamUpCode, PlayerId = player.Id }, actingUser, cancellationToken);
+        // TODO: kinda yucky. Want to share logic about what it means to be added to a team, but all the validation around
+        var playersToAdd = createdPlayers.Where(p => p.Id != captainPlayer.Id).Select(p => p.Id).ToArray();
+        await _teamService.AddPlayers(captainPlayer.TeamId, cancellationToken, playersToAdd);
 
         // make the captain the actual captain
         await _teamService.PromoteCaptain(captainPlayer.TeamId, captainPlayer.Id, actingUser, cancellationToken);

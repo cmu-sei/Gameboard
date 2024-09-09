@@ -21,7 +21,7 @@ public interface ISyncStartGameService
     Task UpdateTeamReadyState(string teamId, bool isReady, CancellationToken cancellationToken);
 }
 
-internal class SyncStartGameService : ISyncStartGameService
+internal class SyncStartGameService : ISyncStartGameService, INotificationHandler<GameEnrolledPlayersChangeNotification>
 {
     private readonly IActingUserService _actingUserService;
     private readonly IAppUrlService _appUrlService;
@@ -132,6 +132,18 @@ internal class SyncStartGameService : ISyncStartGameService
         };
     }
 
+    public async Task Handle(GameEnrolledPlayersChangeNotification notification, CancellationToken cancellationToken)
+    {
+        var isSyncStart = await _store
+            .WithNoTracking<Data.Game>()
+            .Where(g => g.Id == notification.GameId)
+            .Select(g => g.RequireSynchronizedStart)
+            .SingleAsync(cancellationToken);
+
+        if (isSyncStart)
+            await HandleSyncStartStateChanged(notification.GameId, cancellationToken);
+    }
+
     public async Task HandleSyncStartStateChanged(string gameId, CancellationToken cancellationToken)
     {
         var validationResult = await ValidateSyncStart(gameId, null, cancellationToken);
@@ -161,60 +173,6 @@ internal class SyncStartGameService : ISyncStartGameService
             await mediator.Send(new StartTeamSessionsCommand(teamIds), cancellationToken);
         });
     }
-
-    /// <summary>
-    /// Initiates a synchronized game session for all players registered for the given game ID. Optionally offsets
-    /// the session length by a countdown in order to give players a little warning that the session is beginning.
-    /// </summary>
-    /// <returns></returns>
-    // public async Task<SyncStartGameStartedState> StartSynchronizedSession(IEnumerable<string> teamIds, CancellationToken cancellationToken)
-    // {
-    //     _logger.LogInformation($"Starting a synchronized session for teams {string.Join(',', teamIds)}...");
-    //     var gameId = await _teamService.GetGameId(teamIds, cancellationToken);
-    //     _logger.LogInformation($"Teams are from game {gameId}.");
-
-    //     using (await _lockService.GetSyncStartGameLock(gameId).LockAsync(cancellationToken))
-    //     {
-    //         _logger.LogInformation($"Acquired asynchronous lock for sync start game {gameId}.");
-
-    //         // validate that the various conditions we need in order to sync start a game are available:
-    //         _logger.LogInformation($"Validating sync start for game {gameId}.");
-    //         var validateStartResult = await ValidateSyncStart(gameId, teamIds, cancellationToken);
-
-    //         if (!validateStartResult.CanStart)
-    //             throw new CantStartSynchronizedSession(gameId, validateStartResult);
-
-    //         // now that the quitters (and by quitters I mean attempts to start a sync game that is already started) 
-    //         // are gone, notify signalR that it's business time.
-    //         await _gameHubBus.SendSyncStartGameStarting(validateStartResult.SyncStartState);
-
-    //         // validation is all clear - compute new session times and update players, challenges, and gamespaces
-    //         _logger.LogInformation($"Starting synchronized session for game {gameId}...");
-    //         var startResult = await _mediator.Send(new StartTeamSessionsCommand(teamIds, true), cancellationToken);
-    //         var session = startResult.SessionWindow;
-    //         _logger.LogInformation($"Synchronized session started for game {gameId}.Start: {session.Start}. End: {startResult.SessionWindow.End}. Total duration: {(session.End - session.Start).TotalMinutes} minutes.");
-
-    //         // compose a return value summarizing the sync session
-    //         var startState = new SyncStartGameStartedState
-    //         {
-    //             Game = new SimpleEntity { Id = validateStartResult.Game.Id },
-    //             SessionBegin = startResult.SessionWindow.Start,
-    //             SessionEnd = startResult.SessionWindow.End,
-    //             Teams = validateStartResult.Players
-    //                 .GroupBy(p => p.TeamId)
-    //                 .ToDictionary(p => p.Key, p => p.Select(p => new SyncStartGameStartedStatePlayer
-    //                 {
-    //                     Id = p.Id,
-    //                     Name = p.Name,
-    //                     UserId = p.UserId
-    //                 }))
-    //         };
-
-    //         await _gameHubBus.SendSyncStartGameStarted(startState);
-    //         _logger.LogInformation($"Synchronized session started for game {gameId}! ({teamIds.Count()} are playing.)");
-    //         return startState;
-    //     }
-    // }
 
     public async Task<SyncStartPlayerStatusUpdate> UpdatePlayerReadyState(string playerId, bool isReady, CancellationToken cancellationToken)
     {

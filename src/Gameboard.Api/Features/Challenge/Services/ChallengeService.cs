@@ -321,7 +321,7 @@ public partial class ChallengeService(
         return Mapper.Map<Challenge>(challenge);
     }
 
-    public async Task<Challenge> Grade(GameEngineSectionSubmission model, User actor)
+    public async Task<Challenge> Grade(GameEngineSectionSubmission model, User actor, CancellationToken cancellationToken)
     {
         var now = _now.Get();
         var challenge = await _store

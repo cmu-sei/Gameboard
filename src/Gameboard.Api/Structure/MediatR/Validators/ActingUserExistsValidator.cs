@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
@@ -21,7 +22,7 @@ public class ActingUserExistsValidator : IGameboardValidator
         _store = store;
     }
 
-    public Func<RequestValidationContext, Task> GetValidationTask()
+    public Func<RequestValidationContext, Task> GetValidationTask(CancellationToken cancellationToken)
     {
         var actingUserId = _actingUserService.Get().Id;
 
@@ -29,7 +30,7 @@ public class ActingUserExistsValidator : IGameboardValidator
         {
             var exists = await _store
                     .WithNoTracking<Data.User>()
-                    .AnyAsync(u => u.Id == actingUserId);
+                    .AnyAsync(u => u.Id == actingUserId, cancellationToken);
 
             if (!exists)
                 ctx.AddValidationException(new ResourceNotFound<Data.User>(actingUserId));

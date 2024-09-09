@@ -29,19 +29,6 @@ namespace Gameboard.Api
 
     internal class MissingRequiredDate(string propertyName) : GameboardValidationException($"The date property {propertyName} is required.") { }
 
-    internal class NotYetRegistered : GameboardException
-    {
-        internal NotYetRegistered(string playerId, string gameId)
-            : base($"User {playerId} hasn't yet registered for game {gameId}.") { }
-    }
-
-    internal class RegistrationIsClosed : GameboardException
-    {
-        internal RegistrationIsClosed(string gameId, string addlMessage = null) :
-            base($"Registration for game {gameId} is closed.{(addlMessage.NotEmpty() ? $" [{addlMessage}]" : string.Empty)}")
-        { }
-    }
-
     internal class ResourceAlreadyExists<T> : GameboardException where T : class, IEntity
     {
         internal ResourceAlreadyExists(string id, string addlMessage = null) :
@@ -53,12 +40,6 @@ namespace Gameboard.Api
     {
         internal ResourceNotFound(string id, string addlMessage = null)
             : base($"Couldn't find resource {id} of type {typeof(T).Name}.{(addlMessage.NotEmpty() ? $" [{addlMessage}]" : string.Empty)}") { }
-    }
-
-    internal class RequiresSameSponsor : GameboardException
-    {
-        internal RequiresSameSponsor(string gameId, string managerPlayerId, string managerSponsor, string playerId, string playerSponsor)
-            : base($"Game {gameId} requires that all players have the same sponsor. The inviting player {managerPlayerId} has sponsor {managerSponsor}, while player {playerId} has sponsor {playerSponsor}.") { }
     }
 
     internal class SimpleValidatorException : GameboardValidationException

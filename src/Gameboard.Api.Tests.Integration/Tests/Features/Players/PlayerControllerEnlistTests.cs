@@ -21,6 +21,7 @@ public class PlayerControllerEnlistTests(GameboardTestContext testContext) : ICl
             var game = state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
+                g.MaxTeamSize = 2;
                 g.Players =
                 [
                     // the person doing the inviting

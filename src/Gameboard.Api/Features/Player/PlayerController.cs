@@ -227,18 +227,8 @@ public class PlayerController
     /// <returns></returns>
     [HttpPost("/api/player/enlist")]
     [Authorize]
-    public async Task<Player> Enlist([FromBody] PlayerEnlistment model, CancellationToken cancellationToken)
-    {
-        await AuthorizeAny
-        (
-            _permissionsService.Can(PermissionKey.Teams_Enroll),
-            _permissionsService.IsActingUserAsync(model.UserId),
-            IsSelf(model.PlayerId)
-        );
-
-        await Validate(model);
-        return await PlayerService.Enlist(model, Actor, cancellationToken);
-    }
+    public Task<Player> Enlist([FromBody] PlayerEnlistment model, CancellationToken cancellationToken)
+        => _mediator.Send(new AddPlayerToTeamCommand(model.PlayerId, model.Code), cancellationToken);
 
     [HttpPut("/api/team/{teamId}/manager/{playerId}")]
     [Authorize]
