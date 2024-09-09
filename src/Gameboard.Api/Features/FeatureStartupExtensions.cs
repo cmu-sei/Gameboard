@@ -39,7 +39,6 @@ public static class ServiceStartupExtensions
             .AddConcretesFromNamespace("Gameboard.Api.Services")
             .AddConcretesFromNamespace("Gameboard.Api.Structure.Authorizers")
             .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators")
-            .AddTransient<IStore, Store>()
             .AddScoped(typeof(IStore<>), typeof(Store<>))
             .AddScoped(typeof(UserIsPlayingGameValidator<>))
             .AddImplementationsOf<IGameboardRequestValidator<IReportQuery>>()
