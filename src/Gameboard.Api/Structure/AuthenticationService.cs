@@ -4,6 +4,7 @@
 using System;
 using System.Net.Http;
 using System.Threading;
+using System.Threading.Tasks;
 using IdentityModel.Client;
 using Microsoft.Extensions.Logging;
 
@@ -11,7 +12,7 @@ namespace Gameboard.Api
 {
     public interface IAuthenticationService
     {
-        TokenResponse GetToken(CancellationToken ct = new CancellationToken());
+        Task<TokenResponse> GetToken(CancellationToken ct = new CancellationToken());
         void InvalidateToken();
     }
 
@@ -21,6 +22,7 @@ namespace Gameboard.Api
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly CrucibleOptions _settings;
         private readonly ILogger<AuthenticationService> _logger;
+        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
         private TokenResponse _tokenResponse;
 
@@ -31,18 +33,20 @@ namespace Gameboard.Api
             _logger = logger;
         }
 
-        public TokenResponse GetToken(CancellationToken ct = new CancellationToken())
+        public async Task<TokenResponse> GetToken(CancellationToken ct = new CancellationToken())
         {
             if (!ValidateToken())
             {
-                lock (_lock)
+                try
                 {
                     // Check again so we don't renew again if
                     // another thread already did while we were waiting on the lock
-                    if (!ValidateToken())
-                    {
-                        _tokenResponse = RenewToken(ct);
-                    }
+                    await _semaphore.WaitAsync(ct);
+                    _tokenResponse = await RenewToken(ct);
+                }
+                finally
+                {
+                    _semaphore.Release();
                 }
             }
 
@@ -66,19 +70,19 @@ namespace Gameboard.Api
             }
         }
 
-        private TokenResponse RenewToken(CancellationToken ct)
+        private async Task<TokenResponse> RenewToken(CancellationToken ct)
         {
             try
             {
                 var httpClient = _httpClientFactory.CreateClient("identity");
-                var response = httpClient.RequestPasswordTokenAsync(new PasswordTokenRequest
+                var response = await httpClient.RequestPasswordTokenAsync(new PasswordTokenRequest
                 {
                     Address = _settings.TokenUrl,
                     ClientId = _settings.ClientId,
                     Scope = _settings.Scope,
                     UserName = _settings.UserName,
                     Password = _settings.Password
-                }, ct).Result;
+                }, ct);
 
                 return response;
             }
