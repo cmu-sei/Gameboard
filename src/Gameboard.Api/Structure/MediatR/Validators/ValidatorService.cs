@@ -25,7 +25,7 @@ internal class ValidatorService(IActingUserService actingUserService, UserRolePe
 
     public IValidatorService AddValidator(IGameboardValidator validator)
     {
-        _validationTasks.Add(validator.GetValidationTask());
+        _validationTasks.Add(validator.GetValidationTask(default));
         return this;
     }
 
@@ -89,7 +89,7 @@ internal class ValidatorService<TModel>(IActingUserService actingUserService, Us
 
     public IValidatorService<TModel> AddValidator(IGameboardValidator validator)
     {
-        _nonModelValidationTasks.Add(validator.GetValidationTask());
+        _nonModelValidationTasks.Add(validator.GetValidationTask(default));
         return this;
     }
 

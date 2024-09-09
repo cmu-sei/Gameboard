@@ -117,7 +117,7 @@ public class PlayerService
 
         await _store.Create(entity, cancellationToken);
         await _hubBus.SendPlayerEnrolled(_mapper.Map<Player>(entity), actor);
-        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(new GameEnrolledPlayersChangeContext(entity.GameId, game.RequireSynchronizedStart)), cancellationToken);
+        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(entity.GameId), cancellationToken);
 
         if (game.RequireSynchronizedStart)
             await _syncStartGameService.HandleSyncStartStateChanged(entity.GameId, cancellationToken);
@@ -457,72 +457,6 @@ public class PlayerService
         return new TeamInvitation { Code = code };
     }
 
-    public async Task<Player> Enlist(PlayerEnlistment model, User actor, CancellationToken cancellationToken)
-    {
-        var canIgnoreRegistrationWindow = await _permissionsService.Can(PermissionKey.Play_IgnoreExecutionWindow);
-
-        var player = await _store
-            .WithTracking<Data.Player>()
-            .Include(p => p.Sponsor)
-            .SingleOrDefaultAsync(p => p.Id == model.PlayerId, cancellationToken) ?? throw new ResourceNotFound<Data.Player>(model.PlayerId);
-
-        if (player.SponsorId.IsEmpty() || player.Sponsor is null)
-            throw new PlayerHasDefaultSponsor(model.PlayerId);
-
-        var playersWithThisCode = await _store
-            .WithNoTracking<Data.Player>()
-            .Include(p => p.Game)
-            .Where(p => p.InviteCode == model.Code)
-            .ToArrayAsync(cancellationToken);
-
-        var teamIds = playersWithThisCode.Select(p => p.TeamId).Distinct().ToArray();
-        if (teamIds.Length != 1)
-            throw new CantResolveTeamFromCode(model.Code, teamIds);
-
-        var manager = _teamService.ResolveCaptain(playersWithThisCode);
-
-        if (player.GameId != manager.GameId)
-            throw new NotYetRegistered(player.Id, manager.GameId);
-
-        if (player.Id == manager.Id)
-            return _mapper.Map<Player>(player);
-
-        var game = await _store.SingleAsync<Data.Game>(manager.GameId, cancellationToken);
-
-        if (!canIgnoreRegistrationWindow && !game.RegistrationActive)
-            throw new RegistrationIsClosed(manager.GameId);
-
-        if (!canIgnoreRegistrationWindow && manager.SessionBegin.Year > 1)
-            throw new RegistrationIsClosed(manager.GameId, "Registration begins in more than a year.");
-
-        if (!canIgnoreRegistrationWindow && manager.Game.RequireSponsoredTeam && manager.SponsorId != player.SponsorId)
-            throw new RequiresSameSponsor(manager.GameId, manager.Id, manager.Sponsor.Name, player.Id, player.Sponsor.Name);
-
-        var count = await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => p.TeamId == manager.TeamId)
-            .CountAsync(cancellationToken);
-
-        if (manager.Game.AllowTeam && count >= manager.Game.MaxTeamSize)
-            throw new TeamIsFull(manager.Id, count, manager.Game.MaxTeamSize);
-
-        player.TeamId = manager.TeamId;
-        player.Role = PlayerRole.Member;
-        player.InviteCode = model.Code;
-
-        await _store.SaveUpdate(player, cancellationToken);
-
-        var mappedPlayer = _mapper.Map<Player>(player);
-        await _hubBus.SendPlayerEnrolled(mappedPlayer, actor);
-        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(new GameEnrolledPlayersChangeContext(player.GameId, game.RequireSynchronizedStart)), cancellationToken);
-
-        var isSyncStartGame = await _store.WithNoTracking<Data.Game>().Where(g => g.Id == mappedPlayer.GameId && g.RequireSynchronizedStart).AnyAsync();
-        if (isSyncStartGame)
-            await _syncStartGameService.HandleSyncStartStateChanged(mappedPlayer.GameId, cancellationToken);
-
-        return mappedPlayer;
-    }
-
     public async Task Unenroll(PlayerUnenrollRequest request, CancellationToken cancellationToken)
     {
         // make sure we've got a real player
@@ -530,9 +464,6 @@ public class PlayerService
             .WithNoTracking<Data.Player>()
             .Include(p => p.Game)
             .SingleAsync(p => p.Id == request.PlayerId, cancellationToken);
-
-        // record sync start state because we need to raise events after we're done if the game is sync start
-        var gameIsSyncStart = player.Game.RequireSynchronizedStart;
 
         // archive challenges and delete the player
         await ChallengeService.ArchivePlayerChallenges(player);
@@ -546,11 +477,7 @@ public class PlayerService
         // notify listeners on SignalR (like the team)
         var playerModel = _mapper.Map<Player>(player);
         await _hubBus.SendPlayerLeft(playerModel, request.Actor);
-        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(new GameEnrolledPlayersChangeContext(player.GameId, gameIsSyncStart)), cancellationToken);
-
-        // update sync start if needed
-        if (gameIsSyncStart)
-            await _syncStartGameService.HandleSyncStartStateChanged(playerModel.GameId, cancellationToken);
+        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(player.GameId), cancellationToken);
     }
 
     public async Task<TeamChallenge[]> LoadChallengesForTeam(string teamId)

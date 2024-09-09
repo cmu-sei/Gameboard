@@ -17,6 +17,7 @@ namespace Gameboard.Api.Features.Teams;
 
 public interface ITeamService
 {
+    Task<IEnumerable<Api.Player>> AddPlayers(string teamId, CancellationToken cancellationToken, params string[] playerIds);
     Task DeleteTeam(string teamId, SimpleEntity actingUser, CancellationToken cancellationToken);
     Task EndSession(string teamId, User actor, CancellationToken cancellationToken);
     Task<Api.Player> ExtendSession(ExtendTeamSessionRequest request, CancellationToken cancellationToken);
@@ -42,17 +43,19 @@ public interface ITeamService
 
 internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNotification>
 {
+    private readonly IActingUserService _actingUserService;
     private readonly ICacheService _cacheService;
     private readonly IGameEngineService _gameEngine;
     private readonly IMapper _mapper;
     private readonly IMediator _mediator;
     private readonly INowService _now;
-    private readonly IInternalHubBus _teamHubService;
+    private readonly IInternalHubBus _hubBus;
     private readonly IPracticeService _practiceService;
     private readonly IStore _store;
 
     public TeamService
     (
+        IActingUserService actingUserService,
         ICacheService cacheService,
         IGameEngineService gameEngine,
         IMapper mapper,
@@ -63,6 +66,7 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
         IStore store
     )
     {
+        _actingUserService = actingUserService;
         _cacheService = cacheService;
         _gameEngine = gameEngine;
         _mapper = mapper;
@@ -70,11 +74,49 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
         _now = now;
         _practiceService = practiceService;
         _store = store;
-        _teamHubService = teamHubService;
+        _hubBus = teamHubService;
     }
 
     public Task Handle(UserJoinedTeamNotification notification, CancellationToken cancellationToken)
         => Task.Run(() => _cacheService.Invalidate(GetUserTeamIdsCacheKey(notification.UserId)), cancellationToken);
+
+    public async Task<IEnumerable<Api.Player>> AddPlayers(string teamId, CancellationToken cancellationToken, params string[] playerIds)
+    {
+        var code = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.TeamId == teamId)
+            .Select(p => p.InviteCode)
+            .Distinct()
+            .SingleAsync(cancellationToken);
+
+        await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => playerIds.Contains(p.Id))
+            .ExecuteUpdateAsync
+            (
+                up => up
+                    .SetProperty(p => p.InviteCode, code)
+                    .SetProperty(p => p.Role, PlayerRole.Member)
+                    .SetProperty(p => p.TeamId, teamId),
+                cancellationToken
+            );
+
+        // notify interested parties
+        var updatedPlayers = _mapper.ProjectTo<Api.Player>
+        (
+            _store
+                .WithNoTracking<Data.Player>()
+                .Where(p => playerIds.Contains(p.Id))
+        );
+
+        foreach (var updatedPlayer in updatedPlayers)
+        {
+            await _hubBus.SendPlayerEnrolled(updatedPlayer, _actingUserService.Get());
+        }
+        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(updatedPlayers.Select(p => p.GameId).Single()), cancellationToken);
+
+        return updatedPlayers;
+    }
 
     public async Task DeleteTeam(string teamId, SimpleEntity actingUser, CancellationToken cancellationToken)
     {
@@ -104,10 +146,10 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
             .ExecuteDeleteAsync(cancellationToken);
 
         // notify app listeners
-        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(new GameEnrolledPlayersChangeContext(teamState.GameId, isSyncStartGame)));
+        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(teamState.GameId), cancellationToken);
 
         // notify hub that the team is deleted /players left so the client can respond
-        await _teamHubService.SendTeamDeleted(teamState, actingUser);
+        await _hubBus.SendTeamDeleted(teamState, actingUser);
     }
 
     public async Task EndSession(string teamId, User actor, CancellationToken cancellationToken)
@@ -146,8 +188,8 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
         await _mediator.Publish(new TeamSessionExtendedNotification(request.TeamId, request.NewSessionEnd), cancellationToken);
 
         // update the notifications hub on the client side
-        await _teamHubService.SendTeamUpdated(captainModel, request.Actor);
-        await _teamHubService.SendTeamSessionExtended(new TeamState
+        await _hubBus.SendTeamUpdated(captainModel, request.Actor);
+        await _hubBus.SendTeamSessionExtended(new TeamState
         {
             Id = captain.TeamId,
             ApprovedName = captain.ApprovedName,
@@ -383,7 +425,7 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
                 throw new PromotionFailed(teamId, newCaptainPlayerId, affectedPlayers);
         }, cancellationToken);
 
-        await _teamHubService.SendPlayerRoleChanged(_mapper.Map<Api.Player>(newCaptain), actingUser);
+        await _hubBus.SendPlayerRoleChanged(_mapper.Map<Api.Player>(newCaptain), actingUser);
     }
 
     public async Task<Data.Player> ResolveCaptain(string teamId, CancellationToken cancellationToken)
@@ -398,15 +440,14 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
 
     public Data.Player ResolveCaptain(IEnumerable<Data.Player> players)
     {
+        if (!players.Any())
+            throw new CaptainResolutionFailure();
+
         var teamIds = players.Select(p => p.TeamId).Distinct();
         if (teamIds.Count() != 1)
             throw new PlayersAreFromMultipleTeams(teamIds);
 
-        var teamId = teamIds.First();
-        if (!players.Any())
-        {
-            throw new CaptainResolutionFailure(teamId, "This team doesn't have any players.");
-        }
+        var teamId = teamIds.Single();
 
         // if the team has a captain (manager), yay
         // if they have too many, boo (pick one by name which is stupid but stupid things happen sometimes)

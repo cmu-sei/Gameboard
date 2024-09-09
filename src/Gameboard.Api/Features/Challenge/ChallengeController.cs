@@ -198,11 +198,12 @@ namespace Gameboard.Api.Controllers
         /// Grade a challenge
         /// </summary>
         /// <param name="model"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpPost("/api/challenge/grade")]
         [HttpPut("/api/challenge/grade")]
         [Authorize(AppConstants.GraderPolicy)]
-        public async Task<Challenge> Grade([FromBody] GameEngineSectionSubmission model)
+        public async Task<Challenge> Grade([FromBody] GameEngineSectionSubmission model, CancellationToken cancellationToken)
         {
             await AuthorizeAny
             (
@@ -215,7 +216,7 @@ namespace Gameboard.Api.Controllers
 
             await Validate(new Entity { Id = model.Id });
 
-            var result = await ChallengeService.Grade(model, Actor);
+            var result = await ChallengeService.Grade(model, Actor, cancellationToken);
 
             await Hub.Clients.Group(result.TeamId).ChallengeEvent(
                 new HubEvent<Challenge>

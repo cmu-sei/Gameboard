@@ -48,17 +48,6 @@ internal class TeamExistsValidator<TModel>(IStore store) : IGameboardValidator<T
             if (finalTeamIds.Length == 0)
                 context.AddValidationException(new MissingRequiredInput<string>(nameof(_teamIdProperty), _teamIdProperty?.ToString()));
 
-            await _store.DoTransaction(async dbContext =>
-            {
-                var flarbers = await _store
-                    .WithNoTracking<Data.Player>()
-                    .Where(p => finalTeamIds.Contains(p.TeamId))
-                    .GroupBy(p => p.TeamId)
-                    .ToDictionaryAsync(gr => gr.Key, gr => gr.ToArray());
-
-                Console.WriteLine("flarbers");
-            }, CancellationToken.None);
-
             // grab the gameId as a representation of each player, because we also need to know if they're somehow
             // in different games
             var players = await _store

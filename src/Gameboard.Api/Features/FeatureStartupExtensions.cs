@@ -52,6 +52,7 @@ public static class ServiceStartupExtensions
             .AddScoped<IExternalSyncGameModeService, ExternalSyncGameModeService>()
             .AddScoped<IGameHubService, GameHubService>()
             .AddScoped<IStandardGameModeService, StandardGameModeService>()
+            .AddScoped<ISyncStartGameService, SyncStartGameService>()
             .AddScoped<IGameResourcesDeployStatusService, GameResourcesDeployStatusService>()
             .AddScoped<ISupportHubBus, SupportHubBus>()
             .AddScoped<ITeamService, TeamService>()
