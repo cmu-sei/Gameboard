@@ -123,8 +123,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<Challenge> Preview([FromBody] NewChallenge model)
         {
-            AuthorizeAny(() => IsSelf(model.PlayerId).Result);
-
+            await AuthorizeAny(IsSelf(model.PlayerId));
             await Validate(model);
 
             return await ChallengeService.Preview(model);

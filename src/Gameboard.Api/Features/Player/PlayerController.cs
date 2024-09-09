@@ -199,7 +199,7 @@ public class PlayerController
     public async Task<BoardPlayer> GetBoard([FromRoute] string id)
     {
         await Validate(new Entity { Id = id });
-        AuthorizeAny(() => IsSelf(id).Result);
+        await AuthorizeAny(IsSelf(id));
 
         return await PlayerService.LoadBoard(id);
     }
@@ -262,7 +262,7 @@ public class PlayerController
     public async Task<PlayerCertificate> GetCertificate([FromRoute] string id)
     {
         await Validate(new Entity { Id = id });
-        AuthorizeAny(() => IsSelf(id).Result);
+        await AuthorizeAny(IsSelf(id));
 
         return await PlayerService.MakeCertificate(id);
     }
