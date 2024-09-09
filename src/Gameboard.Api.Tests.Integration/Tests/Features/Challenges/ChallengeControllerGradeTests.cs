@@ -101,8 +101,9 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
         IFixture fixture
     )
     {
-        var challengeStartTime = DateTime.UtcNow.AddDays(-1);
-        var challengeEndTime = DateTime.UtcNow.AddMinutes(-5);
+        var now = DateTimeOffset.UtcNow;
+        var challengeStartTime = now.AddDays(-1);
+        var challengeEndTime = now.AddMinutes(-5);
 
         // given a challenge and a faked game engine service
         // which will throw an expired exception on grade
@@ -112,13 +113,13 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
             state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
-                g.Players = new List<Data.Player>
-                {
+                g.Players =
+                [
                     new()
                     {
                         Id = fixture.Create<string>(),
-                        Challenges = new List<Data.Challenge>
-                        {
+                        Challenges =
+                        [
                             new()
                             {
                                 Id = challengeId,
@@ -127,11 +128,11 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
                                 SpecId = challengeSpecId,
                                 GameId = gameId
                             }
-                        },
+                        ],
                         SponsorId = sponsorId,
                         User = state.Build<Data.User>(fixture, u => u.Id = userId)
                     }
-                };
+                ];
             });
         });
 
@@ -141,7 +142,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
             Id = challengeId,
             SectionIndex = 0,
             Timestamp = DateTimeOffset.UtcNow,
-            Questions = Array.Empty<GameEngineAnswerSubmission>()
+            Questions = []
         };
 
         var http = _testContext
@@ -178,10 +179,11 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
         IFixture fixture
     )
     {
-        var challengeStartTime = DateTime.UtcNow.AddDays(-1);
-        var challengeEndTime = DateTime.UtcNow.AddDays(1);
-        var gameStartTime = DateTime.UtcNow.AddDays(-1);
-        var gameEndTime = DateTime.UtcNow.AddMinutes(-1);
+        var now = DateTime.UtcNow;
+        var challengeStartTime = now.AddDays(-1);
+        var challengeEndTime = now.AddDays(1);
+        var gameStartTime = now.AddDays(-1);
+        var gameEndTime = now.AddMinutes(-1);
 
         // given a challenge and a faked game engine service
         // which will throw an expired exception on grade
@@ -194,8 +196,8 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
                 g.GameStart = gameStartTime;
                 g.GameEnd = gameEndTime;
                 g.PlayerMode = PlayerMode.Competition;
-                g.Players = new List<Data.Player>
-                {
+                g.Players =
+                [
                     new()
                     {
                         Id = fixture.Create<string>(),
@@ -214,7 +216,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
                         SponsorId = sponsorId,
                         User = state.Build<Data.User>(fixture, u => u.Id = userId)
                     }
-                };
+                ];
             });
         });
 
@@ -222,8 +224,8 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
         {
             Id = challengeId,
             SectionIndex = 0,
-            Timestamp = DateTimeOffset.UtcNow,
-            Questions = Array.Empty<GameEngineAnswerSubmission>()
+            Timestamp = now,
+            Questions = []
         };
 
         var http = _testContext
