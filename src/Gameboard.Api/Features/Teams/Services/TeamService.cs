@@ -48,7 +48,6 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
     private readonly IMediator _mediator;
     private readonly INowService _now;
     private readonly IInternalHubBus _teamHubService;
-    private readonly IPlayerStore _playerStore;
     private readonly IPracticeService _practiceService;
     private readonly IStore _store;
 
@@ -60,7 +59,6 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
         IMediator mediator,
         INowService now,
         IInternalHubBus teamHubService,
-        IPlayerStore playerStore,
         IPracticeService practiceService,
         IStore store
     )
@@ -70,7 +68,6 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
         _mapper = mapper;
         _mediator = mediator;
         _now = now;
-        _playerStore = playerStore;
         _practiceService = practiceService;
         _store = store;
         _teamHubService = teamHubService;
@@ -194,7 +191,7 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
 
     public async Task<IEnumerable<SimpleEntity>> GetChallengesWithActiveGamespace(string teamId, string gameId, CancellationToken cancellationToken)
         => await _store
-            .List<Data.Challenge>()
+            .WithNoTracking<Data.Challenge>()
             .Where(c => c.TeamId == teamId)
             .Where(c => c.GameId == gameId)
             .Where(c => c.HasDeployedGamespace == true)
@@ -264,16 +261,16 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
     {
         var now = _now.Get();
 
-        return await _playerStore
-            .List()
-            .CountAsync
+        return await _store
+            .WithNoTracking<Data.Player>()
+            .Where
             (
                 p =>
                     p.GameId == gameId &&
                     p.Role == PlayerRole.Manager &&
-                    now < p.SessionEnd,
-                cancellationToken
-            );
+                    now < p.SessionEnd
+            )
+            .CountAsync(cancellationToken);
     }
 
     public async Task<Team> GetTeam(string id)
@@ -358,9 +355,8 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
 
     public async Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser, CancellationToken cancellationToken)
     {
-        var teamPlayers = await _playerStore
-            .List()
-            .AsNoTracking()
+        var teamPlayers = await _store
+            .WithNoTracking<Data.Player>()
             .Where(p => p.TeamId == teamId)
             .ToListAsync(cancellationToken);
 

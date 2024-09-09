@@ -43,7 +43,6 @@ public class PlayerValidatorTests
         (
             A.Fake<IGameModeServiceFactory>(),
             A.Fake<IUserRolePermissionsService>(),
-            A.Fake<IPlayerStore>(),
             BuildStoreWithActingPlayer("manager",
             [
                 managerPlayer, nonManagerPlayer
@@ -74,7 +73,6 @@ public class PlayerValidatorTests
         (
             A.Fake<IGameModeServiceFactory>(),
             A.Fake<IUserRolePermissionsService>(),
-            A.Fake<IPlayerStore>(),
             store
         );
 
@@ -107,7 +105,6 @@ public class PlayerValidatorTests
         (
             A.Fake<IGameModeServiceFactory>(),
             A.Fake<IUserRolePermissionsService>(),
-            A.Fake<IPlayerStore>(),
             store
         );
 
@@ -146,7 +143,6 @@ public class PlayerValidatorTests
         (
             A.Fake<IGameModeServiceFactory>(),
             permissionsFake,
-            A.Fake<IPlayerStore>(),
             store
         );
 

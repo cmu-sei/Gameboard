@@ -23,67 +23,43 @@ using Gameboard.Api.Features.Users;
 
 namespace Gameboard.Api.Services;
 
-public partial class ChallengeService : _Service
+public partial class ChallengeService(
+    IActingUserService actingUserService,
+    ConsoleActorMap actorMap,
+    CoreOptions coreOptions,
+    IChallengeStore challengeStore,
+    IChallengeDocsService challengeDocsService,
+    IChallengeSubmissionsService challengeSubmissionsService,
+    IChallengeSyncService challengeSyncService,
+    IGameEngineService gameEngine,
+    IGuidService guids,
+    IJsonService jsonService,
+    ILogger<ChallengeService> logger,
+    IMapper mapper,
+    IMediator mediator,
+    IMemoryCache memCache,
+    INowService now,
+    IUserRolePermissionsService permissionsService,
+    IStore store,
+    ITeamService teamService
+    ) : _Service(logger, mapper, coreOptions)
 {
-    private readonly IActingUserService _actingUserService;
-    private readonly ConsoleActorMap _actorMap;
-    private readonly IChallengeStore _challengeStore;
-    private readonly IGameEngineService _gameEngine;
-    private readonly IGuidService _guids;
-    private readonly IJsonService _jsonService;
-    private readonly IMapper _mapper;
-    private readonly IMediator _mediator;
-    private readonly IMemoryCache _memCache;
-    private readonly INowService _now;
-    private readonly IUserRolePermissionsService _permissionsService;
-    private readonly IPlayerStore _playerStore;
-    private readonly IChallengeDocsService _challengeDocsService;
-    private readonly IChallengeSubmissionsService _challengeSubmissionsService;
-    private readonly IChallengeSyncService _challengeSyncService;
-    private readonly IStore _store;
-    private readonly ITeamService _teamService;
-
-    public ChallengeService
-    (
-        IActingUserService actingUserService,
-        ConsoleActorMap actorMap,
-        CoreOptions coreOptions,
-        IChallengeStore challengeStore,
-        IChallengeDocsService challengeDocsService,
-        IChallengeSubmissionsService challengeSubmissionsService,
-        IChallengeSyncService challengeSyncService,
-        IGameEngineService gameEngine,
-        IGuidService guids,
-        IJsonService jsonService,
-        ILogger<ChallengeService> logger,
-        IMapper mapper,
-        IMediator mediator,
-        IMemoryCache memCache,
-        INowService now,
-        IPlayerStore playerStore,
-        IUserRolePermissionsService permissionsService,
-        IStore store,
-        ITeamService teamService
-    ) : base(logger, mapper, coreOptions)
-    {
-        _actingUserService = actingUserService;
-        _actorMap = actorMap;
-        _challengeStore = challengeStore;
-        _challengeDocsService = challengeDocsService;
-        _challengeSubmissionsService = challengeSubmissionsService;
-        _challengeSyncService = challengeSyncService;
-        _gameEngine = gameEngine;
-        _guids = guids;
-        _jsonService = jsonService;
-        _mapper = mapper;
-        _mediator = mediator;
-        _memCache = memCache;
-        _now = now;
-        _permissionsService = permissionsService;
-        _playerStore = playerStore;
-        _store = store;
-        _teamService = teamService;
-    }
+    private readonly IActingUserService _actingUserService = actingUserService;
+    private readonly ConsoleActorMap _actorMap = actorMap;
+    private readonly IChallengeStore _challengeStore = challengeStore;
+    private readonly IGameEngineService _gameEngine = gameEngine;
+    private readonly IGuidService _guids = guids;
+    private readonly IJsonService _jsonService = jsonService;
+    private readonly IMapper _mapper = mapper;
+    private readonly IMediator _mediator = mediator;
+    private readonly IMemoryCache _memCache = memCache;
+    private readonly INowService _now = now;
+    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
+    private readonly IChallengeDocsService _challengeDocsService = challengeDocsService;
+    private readonly IChallengeSubmissionsService _challengeSubmissionsService = challengeSubmissionsService;
+    private readonly IChallengeSyncService _challengeSyncService = challengeSyncService;
+    private readonly IStore _store = store;
+    private readonly ITeamService _teamService = teamService;
 
     public async Task<Challenge> GetOrCreate(NewChallenge model, string actorId, string graderUrl)
     {
@@ -234,9 +210,8 @@ public partial class ChallengeService : _Service
 
         // resolve the players of the challenges that are coming back
         var teamIds = summaries.Select(s => s.TeamId);
-        var teamPlayerMap = await _playerStore
-            .List()
-            .AsNoTracking()
+        var teamPlayerMap = await _store
+            .WithNoTracking<Data.Player>()
             .Where(p => teamIds.Contains(p.TeamId))
             .GroupBy(p => p.TeamId)
             .ToDictionaryAsync(g => g.Key, g => g);

@@ -53,12 +53,12 @@ internal class GetUserActiveChallengesHandler(
 
         // retrieve stuff (initial pull from DB side eval)
         var user = await _store
-            .List<Data.User>()
+            .WithNoTracking<Data.User>()
             .Select(u => new SimpleEntity { Id = u.Id, Name = u.ApprovedName })
             .SingleOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
 
         var challenges = await _store
-            .List<Data.Challenge>()
+            .WithNoTracking<Data.Challenge>()
                 .Include(c => c.Game)
                 .Include(c => c.Player)
                     .ThenInclude(p => p.User)
@@ -106,7 +106,7 @@ internal class GetUserActiveChallengesHandler(
         // load the spec names and set state properties
         var specIds = challenges.Select(c => c.Spec.Id).ToList();
         var specs = await _store
-            .List<Data.ChallengeSpec>()
+            .WithNoTracking<Data.ChallengeSpec>()
             .Where(s => specIds.Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, s => s, cancellationToken);
 

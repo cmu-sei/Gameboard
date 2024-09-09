@@ -36,7 +36,7 @@ internal class GetCompetitiveModeCertificateHtmlHandler : IRequestHandler<GetCom
     public async Task<string> Handle(GetCompetitiveModeCertificateHtmlQuery request, CancellationToken cancellationToken)
     {
         var isPublished = await _store
-            .List<PublishedCompetitiveCertificate>()
+            .WithNoTracking<PublishedCompetitiveCertificate>()
             .AnyAsync(c => c.GameId == request.GameId && c.OwnerUserId == request.OwnerUserId);
 
         await _validatorService
@@ -51,7 +51,7 @@ internal class GetCompetitiveModeCertificateHtmlHandler : IRequestHandler<GetCom
             .Validate(request, cancellationToken);
 
         var player = await _store
-            .List<Data.Player>()
+            .WithNoTracking<Data.Player>()
             .Where(p => p.UserId == request.OwnerUserId)
             .Where(p => p.GameId == request.GameId)
             .FirstAsync();

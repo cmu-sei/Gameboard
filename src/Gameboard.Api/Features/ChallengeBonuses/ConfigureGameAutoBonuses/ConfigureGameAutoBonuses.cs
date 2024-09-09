@@ -87,7 +87,7 @@ internal class ConfigureGameAutoBonusesHandler(
             PointValue = b.PointValue,
             SolveRank = b.SolveRank,
             ChallengeBonusType = ChallengeBonusType.CompleteSolveRank,
-            AwardedTo = new List<AwardedChallengeBonus>(),
+            AwardedTo = [],
             ChallengeSpecId = specId
         } as Data.ChallengeBonus).ToArray();
 

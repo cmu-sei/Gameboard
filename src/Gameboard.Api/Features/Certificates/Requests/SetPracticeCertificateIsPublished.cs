@@ -72,7 +72,7 @@ internal class SetPracticeCertificateIsPublishedHandler : IRequestHandler<SetPra
         else if (!request.IsPublished && existingPublish is not null)
         {
             await _store
-                .List<PublishedPracticeCertificate>()
+                .WithNoTracking<PublishedPracticeCertificate>()
                 .Where(c => c.ChallengeSpecId == request.ChallengeSpecId)
                 .Where(c => c.OwnerUserId == request.ActingUser.Id)
                 .ExecuteDeleteAsync(cancellationToken);
@@ -92,7 +92,7 @@ internal class SetPracticeCertificateIsPublishedHandler : IRequestHandler<SetPra
 
     private async Task<PublishedPracticeCertificate> GetExistingPublish(string ownerUserId, string challengeSpecId, CancellationToken cancellationToken)
         => await _store
-            .List<PublishedPracticeCertificate>()
+            .WithNoTracking<PublishedPracticeCertificate>()
                 .Include(c => c.ChallengeSpec)
                 .Include(c => c.OwnerUser)
             .Where(c => c.ChallengeSpecId == challengeSpecId)

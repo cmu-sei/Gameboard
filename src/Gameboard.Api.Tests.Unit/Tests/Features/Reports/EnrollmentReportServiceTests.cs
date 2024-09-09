@@ -38,8 +38,8 @@ public class EnrollmentReportServiceTests
             .Returns(Array.Empty<string>());
 
         var store = A.Fake<IStore>();
-        A.CallTo(() => store.List<Data.Sponsor>(false)).Returns(sponsors);
-        A.CallTo(() => store.List<Data.Player>(false)).Returns(players);
+        A.CallTo(() => store.WithNoTracking<Data.Sponsor>()).Returns(sponsors);
+        A.CallTo(() => store.WithNoTracking<Data.Player>()).Returns(players);
 
         var sut = new EnrollmentReportService(reportsService, store);
 
@@ -104,8 +104,8 @@ public class EnrollmentReportServiceTests
             .Returns(Array.Empty<string>());
 
         var store = A.Fake<IStore>();
-        A.CallTo(() => store.List<Data.Sponsor>(false)).Returns(sponsors);
-        A.CallTo(() => store.List<Data.Player>(false)).Returns(players);
+        A.CallTo(() => store.WithNoTracking<Data.Sponsor>()).Returns(sponsors);
+        A.CallTo(() => store.WithNoTracking<Data.Player>()).Returns(players);
 
         var sut = new EnrollmentReportService(reportsService, store);
 
@@ -138,7 +138,7 @@ public class EnrollmentReportServiceTests
         challenge.PlayerMode = PlayerMode.Competition;
 
         var player = fixture.Create<Data.Player>();
-        player.Challenges = new Data.Challenge[] { challenge };
+        player.Challenges = [challenge];
         player.Game = fixture.Create<Data.Game>();
         player.Game.PlayerMode = PlayerMode.Practice;
         player.Sponsor = sponsors.First();
@@ -148,11 +148,11 @@ public class EnrollmentReportServiceTests
         var reportsService = A.Fake<IReportsService>();
         A.CallTo(() => reportsService.ParseMultiSelectCriteria(string.Empty))
             .WithAnyArguments()
-            .Returns(Array.Empty<string>());
+            .Returns([]);
 
         var store = A.Fake<IStore>();
-        A.CallTo(() => store.List<Data.Sponsor>(false)).Returns(sponsors);
-        A.CallTo(() => store.List<Data.Player>(false)).Returns(players);
+        A.CallTo(() => store.WithNoTracking<Data.Sponsor>()).Returns(sponsors);
+        A.CallTo(() => store.WithNoTracking<Data.Player>()).Returns(players);
 
         var sut = new EnrollmentReportService(reportsService, store);
 
@@ -186,11 +186,11 @@ public class EnrollmentReportServiceTests
         var reportsService = A.Fake<IReportsService>();
         A.CallTo(() => reportsService.ParseMultiSelectCriteria(string.Empty))
             .WithAnyArguments()
-            .Returns(Array.Empty<string>());
+            .Returns([]);
 
         var store = A.Fake<IStore>();
-        A.CallTo(() => store.List<Data.Sponsor>(false)).Returns(sponsors);
-        A.CallTo(() => store.List<Data.Player>(false)).Returns(players);
+        A.CallTo(() => store.WithNoTracking<Data.Sponsor>()).Returns(sponsors);
+        A.CallTo(() => store.WithNoTracking<Data.Player>()).Returns(players);
 
         var sut = new EnrollmentReportService(reportsService, store);
 

@@ -22,7 +22,7 @@ public class EntityExistsValidator<TModel, TEntity> : IGameboardValidator<TModel
         return async (model, context) =>
         {
             var id = _idProperty(model);
-            if (!await _store.List<TEntity>().AnyAsync(e => e.Id == id))
+            if (!await _store.AnyAsync<TEntity>(e => e.Id == id, default))
                 context.AddValidationException(new ResourceNotFound<TEntity>(id));
         };
     }

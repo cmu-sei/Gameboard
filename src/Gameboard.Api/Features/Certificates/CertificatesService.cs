@@ -26,7 +26,7 @@ internal class CertificatesService : ICertificatesService
     public async Task<IEnumerable<PracticeModeCertificate>> GetPracticeCertificates(string userId)
     {
         var challenges = await _store
-            .List<Data.Challenge>()
+            .WithNoTracking<Data.Challenge>()
                 .Include(c => c.Game)
                 .Include(c => c.Player)
                     .ThenInclude(p => p.User)
@@ -40,7 +40,7 @@ internal class CertificatesService : ICertificatesService
         // have to hit specs separately for now
         var specIds = challenges.Values.Select(c => c.SpecId);
         var specs = await _store
-            .List<Data.ChallengeSpec>()
+            .WithNoTracking<Data.ChallengeSpec>()
                 .Include(s => s.PublishedPracticeCertificates.Where(c => c.OwnerUserId == userId))
             .Where(s => specIds.Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, s => s);

@@ -41,7 +41,6 @@ public class PlayerService
 
     CoreOptions CoreOptions { get; }
     ChallengeService ChallengeService { get; set; }
-    IPlayerStore PlayerStore { get; }
     IGuidService GuidService { get; }
     IMemoryCache LocalCache { get; }
 
@@ -57,7 +56,6 @@ public class PlayerService
         IMemoryCache memCache,
         INowService now,
         IUserRolePermissionsService permissionsService,
-        IPlayerStore playerStore,
         IPracticeService practiceService,
         IScoringService scores,
         IStore store,
@@ -79,7 +77,6 @@ public class PlayerService
         LocalCache = memCache;
         _mapper = mapper;
         _permissionsService = permissionsService;
-        PlayerStore = playerStore;
         _scores = scores;
         _store = store;
         _syncStartGameService = syncStartGameService;
@@ -118,7 +115,7 @@ public class PlayerService
 
         var entity = InitializePlayer(model, user, game.SessionMinutes);
 
-        await PlayerStore.Create(entity);
+        await _store.Create(entity, cancellationToken);
         await _hubBus.SendPlayerEnrolled(_mapper.Map<Player>(entity), actor);
         await _mediator.Publish(new GameEnrolledPlayersChangeNotification(new GameEnrolledPlayersChangeContext(entity.GameId, game.RequireSynchronizedStart)), cancellationToken);
 
@@ -164,7 +161,7 @@ public class PlayerService
 
     public async Task<Player> Retrieve(string id)
     {
-        return _mapper.Map<Player>(await PlayerStore.Retrieve(id));
+        return _mapper.Map<Player>(await _store.WithNoTracking<Data.Player>().SingleAsync(p => p.Id == id));
     }
 
     public async Task<Player> Update(ChangedPlayer model, User actor, bool sudo = false)
@@ -193,7 +190,9 @@ public class PlayerService
         if (prev.Name != player.Name)
         {
             // check uniqueness
-            bool found = await PlayerStore.DbSet.AnyAsync(p =>
+            bool found = await _store
+                .WithNoTracking<Data.Player>()
+                .AnyAsync(p =>
                 p.GameId == player.GameId &&
                 p.TeamId != player.TeamId &&
                 p.Name == player.Name
@@ -300,7 +299,8 @@ public class PlayerService
     {
         var ts = _now.Get();
 
-        var q = PlayerStore.List()
+        var q = _store
+            .WithNoTracking<Data.Player>()
             .Include(p => p.User)
             .Include(p => p.Sponsor)
             .Include(p => p.AdvancedFromGame)
@@ -351,16 +351,18 @@ public class PlayerService
         {
             var term = model.Term.ToLower();
 
-            q = q.Where(p =>
-                p.ApprovedName.ToLower().Contains(term) ||
-                p.Name.ToLower().Contains(term) ||
-                p.Id.StartsWith(term) ||
-                p.TeamId.StartsWith(term) ||
-                p.UserId.StartsWith(term) ||
-                p.Sponsor.Name.StartsWith(term) ||
-                p.User.Name.ToLower().Contains(term) ||
-                p.User.ApprovedName.ToLower().Contains(term) ||
-                PlayerStore.DbSet.Where(p2 => p2.TeamId == p.TeamId && (p2.UserId.StartsWith(term) || p2.User.ApprovedName.ToLower().Contains(term))).Any()
+            q = q.Where
+            (
+                p =>
+                    p.ApprovedName.ToLower().Contains(term) ||
+                    p.Name.ToLower().Contains(term) ||
+                    p.Id.StartsWith(term) ||
+                    p.TeamId.StartsWith(term) ||
+                    p.UserId.StartsWith(term) ||
+                    p.Sponsor.Name.StartsWith(term) ||
+                    p.User.Name.ToLower().Contains(term) ||
+                    p.User.ApprovedName.ToLower().Contains(term) ||
+                    _store.WithNoTracking<Data.Player>().Where(p2 => p2.TeamId == p.TeamId && (p2.UserId.StartsWith(term) || p2.User.ApprovedName.ToLower().Contains(term))).Any()
             );
         }
 
@@ -390,10 +392,26 @@ public class PlayerService
 
     public async Task<BoardPlayer> LoadBoard(string id)
     {
-        var mapped = _mapper.Map<BoardPlayer>(
-            await PlayerStore.LoadBoard(id)
-        );
+        var result = await _store
+            .WithNoTracking<Data.Player>()
+            .Include(p => p.Game)
+                .ThenInclude(g => g.Specs)
+            .Include(p => p.Game)
+                .ThenInclude(g => g.Prerequisites)
+            .Include(p => p.Challenges)
+                .ThenInclude(c => c.Events)
+            .FirstOrDefaultAsync(p => p.Id == id);
 
+        if (result.Game.AllowTeam)
+        {
+            result.Challenges = await _store
+                .WithNoTracking<Data.Challenge>()
+                .Include(c => c.Events)
+                .Where(c => c.TeamId == result.TeamId)
+                .ToArrayAsync();
+        }
+
+        var mapped = _mapper.Map<BoardPlayer>(result);
         mapped.ChallengeDocUrl = CoreOptions.ChallengeDocUrl;
 
         // handle relative urls in challenge text
@@ -410,7 +428,14 @@ public class PlayerService
 
     public async Task<TeamInvitation> GenerateInvitation(string id)
     {
-        var player = await PlayerStore.Retrieve(id);
+        var player = await _store
+            .WithNoTracking<Data.Player>()
+            .Select(p => new
+            {
+                p.Id,
+                p.Role
+            })
+            .SingleAsync(p => p.Id == id);
 
         if (player.Role != PlayerRole.Manager)
             throw new ActionForbidden();
@@ -419,18 +444,17 @@ public class PlayerService
 
         new Random().NextBytes(buffer);
 
-        player.InviteCode = Convert.ToBase64String(buffer)
-            .Replace("+", "")
-            .Replace("/", "")
-            .Replace("=", "")
-        ;
+        var code = Convert.ToBase64String(buffer)
+            .Replace("+", string.Empty)
+            .Replace("/", string.Empty)
+            .Replace("=", string.Empty);
 
-        await PlayerStore.Update(player);
+        await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.Id == id)
+            .ExecuteUpdateAsync(up => up.SetProperty(p => p.InviteCode, code));
 
-        return new TeamInvitation
-        {
-            Code = player.InviteCode
-        };
+        return new TeamInvitation { Code = code };
     }
 
     public async Task<Player> Enlist(PlayerEnlistment model, User actor, CancellationToken cancellationToken)
@@ -442,14 +466,14 @@ public class PlayerService
             .Include(p => p.Sponsor)
             .SingleOrDefaultAsync(p => p.Id == model.PlayerId, cancellationToken) ?? throw new ResourceNotFound<Data.Player>(model.PlayerId);
 
+        if (player.SponsorId.IsEmpty() || player.Sponsor is null)
+            throw new PlayerHasDefaultSponsor(model.PlayerId);
+
         var playersWithThisCode = await _store
             .WithNoTracking<Data.Player>()
             .Include(p => p.Game)
             .Where(p => p.InviteCode == model.Code)
             .ToArrayAsync(cancellationToken);
-
-        if (player.SponsorId.IsEmpty() || player.Sponsor is null)
-            throw new PlayerHasDefaultSponsor(model.PlayerId);
 
         var teamIds = playersWithThisCode.Select(p => p.TeamId).Distinct().ToArray();
         if (teamIds.Length != 1)
@@ -536,7 +560,8 @@ public class PlayerService
 
     public async Task<TeamSummary[]> LoadGameTeamsMailMetadata(string gameId)
     {
-        var players = await PlayerStore.List()
+        var players = await _store
+            .WithNoTracking<Data.Player>()
             .Include(p => p.Sponsor)
             .Where(p => p.GameId == gameId)
             .ToArrayAsync();
@@ -558,7 +583,8 @@ public class PlayerService
 
     public async Task<IEnumerable<ObserveTeam>> ObserveTeams(string id)
     {
-        var players = await PlayerStore.List()
+        var players = await _store
+            .WithNoTracking<Data.Player>()
             .Where(p => p.GameId == id)
             .Include(p => p.User)
             .ToArrayAsync();
@@ -601,13 +627,22 @@ public class PlayerService
 
     public async Task AdvanceTeams(TeamAdvancement model)
     {
-        var allteams = await PlayerStore.List()
+        var teams = await _store
+            .WithNoTracking<Data.Player>()
             .Where(p => p.GameId == model.GameId)
-            .ToArrayAsync();
-
-        var teams = allteams.GroupBy(p => p.TeamId)
-            .Where(g => model.TeamIds.Contains(g.Key))
-            .ToArray();
+            .Select(p => new
+            {
+                p.Id,
+                p.ApprovedName,
+                p.Name,
+                p.NameStatus,
+                p.Role,
+                p.SponsorId,
+                p.TeamId,
+                p.UserId,
+            })
+            .GroupBy(p => p.TeamId)
+            .ToDictionaryAsync(kv => kv.Key, kv => kv.ToArray());
 
         var enrollments = new List<Data.Player>();
 
@@ -617,21 +652,20 @@ public class PlayerService
             // compute complete score, including bonuses
             var teamScore = await _scores.GetTeamScore(team.Key, CancellationToken.None);
 
-            foreach (var player in team)
+            foreach (var player in team.Value)
             {
-                player.Advanced = true;
-
                 var newPlayer = new Data.Player
                 {
                     TeamId = newId,
                     UserId = player.UserId,
                     GameId = model.NextGameId,
-                    AdvancedFromGameId = player.GameId,
+                    AdvancedFromGameId = model.GameId,
                     AdvancedFromPlayerId = player.Id,
                     AdvancedFromTeamId = player.TeamId,
                     AdvancedWithScore = model.WithScores ? teamScore.OverallScore.TotalScore : null,
                     ApprovedName = player.ApprovedName,
                     Name = player.Name,
+                    NameStatus = player.NameStatus,
                     SponsorId = player.SponsorId,
                     Role = player.Role,
                     Score = model.WithScores ? (int)Math.Floor(teamScore.OverallScore.TotalScore) : 0,
@@ -642,30 +676,43 @@ public class PlayerService
             }
         }
 
-        await PlayerStore.Create(enrollments);
-        await PlayerStore.Update(allteams);
+        await _store.SaveAddRange(enrollments.ToArray());
+
+        var allAdvancingPlayerIds = teams.Values
+            .SelectMany(v => v.Select(p => p.Id))
+            .Distinct()
+            .ToArray();
+
+        await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => allAdvancingPlayerIds.Contains(p.Id))
+            .ExecuteUpdateAsync(up => up.SetProperty(p => p.Advanced, true));
+
 
         // for now, this is a little goofy, but raising any team's score change will rerank the game,
         // and that's what we want, so...
-        if (teams.Any())
+        if (teams.Count > 0)
             await _mediator.Publish(new ScoreChangedNotification(model.TeamIds.First()));
     }
 
     public async Task<PlayerCertificate> MakeCertificate(string id)
     {
-        var player = await PlayerStore.List()
+        var player = await _store
+            .WithNoTracking<Data.Player>()
             .Include(p => p.Game)
             .Include(p => p.User)
                 .ThenInclude(u => u.PublishedCompetitiveCertificates)
             .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
             .FirstOrDefaultAsync(p => p.Id == id);
 
-        var playerCount = await PlayerStore.DbSet
+        var playerCount = await _store
+            .WithNoTracking<Data.Player>()
             .Where(p => p.GameId == player.GameId && p.SessionEnd > DateTimeOffset.MinValue)
             .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
             .CountAsync();
 
-        var teamCount = await PlayerStore.DbSet
+        var teamCount = await _store
+            .WithNoTracking<Data.Player>()
             .Where(p => p.GameId == player.GameId &&
                 p.SessionEnd > DateTimeOffset.MinValue)
             .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
@@ -679,7 +726,8 @@ public class PlayerService
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;
 
-        var completedSessions = await PlayerStore.List()
+        var completedSessions = await _store
+            .WithNoTracking<Data.Player>()
             .Include(p => p.Game)
             .Include(p => p.User)
                 .ThenInclude(u => u.PublishedCompetitiveCertificates)
@@ -698,18 +746,21 @@ public class PlayerService
 
         return completedSessions.Select
         (
-            c => CertificateFromTemplate(c,
-                    PlayerStore.DbSet
-                        .Where(p => p.Game == c.Game && p.SessionEnd > DateTimeOffset.MinValue)
-                        .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
-                        .WhereIsScoringPlayer()
-                        .Count(),
-                    PlayerStore.DbSet
-                        .Where(p => p.Game == c.Game && p.SessionEnd > DateTimeOffset.MinValue)
-                        .WhereIsScoringPlayer()
-                        .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
-                        .GroupBy(p => p.TeamId).Count()
-                )).ToArray();
+            c => CertificateFromTemplate
+            (
+                c,
+                _store.WithNoTracking<Data.Player>()
+                    .Where(p => p.Game == c.Game && p.SessionEnd > DateTimeOffset.MinValue)
+                    .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
+                    .WhereIsScoringPlayer()
+                    .Count(),
+                _store.WithNoTracking<Data.Player>()
+                    .Where(p => p.Game == c.Game && p.SessionEnd > DateTimeOffset.MinValue)
+                    .WhereIsScoringPlayer()
+                    .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
+                    .GroupBy(p => p.TeamId).Count()
+            )
+        ).ToArray();
     }
 
     private PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount)
@@ -747,13 +798,15 @@ public class PlayerService
         // check for existing sessions
         var nowStamp = _now.Get();
 
-        var players = await PlayerStore.ListWithNoTracking().Where
-        (
-            p =>
-                p.UserId == model.UserId &&
-                p.Mode == PlayerMode.Practice &&
-                p.SessionEnd > nowStamp
-        ).ToArrayAsync(cancellationToken);
+        var players = await _store
+            .WithNoTracking<Data.Player>()
+            .Where
+            (
+                p =>
+                    p.UserId == model.UserId &&
+                    p.Mode == PlayerMode.Practice &&
+                    p.SessionEnd > nowStamp
+            ).ToArrayAsync(cancellationToken);
 
         if (players.Any(p => p.GameId == model.GameId))
             return _mapper.Map<Player>(players.First(p => p.GameId == model.GameId));
@@ -771,9 +824,14 @@ public class PlayerService
         // don't exceed global configured limit
         if (settings.MaxConcurrentPracticeSessions.HasValue)
         {
-            int count = await PlayerStore.DbSet.CountAsync(p =>
-                p.Mode == PlayerMode.Practice &&
-                p.SessionEnd > nowStamp, cancellationToken);
+            int count = await _store
+                .WithNoTracking<Data.Player>()
+                .CountAsync<Data.Player>
+                (
+                    p =>
+                        p.Mode == PlayerMode.Practice &&
+                        p.SessionEnd > nowStamp, cancellationToken
+                );
 
             if (count >= settings.MaxConcurrentPracticeSessions.Value)
             {
@@ -789,7 +847,7 @@ public class PlayerService
         entity.SessionEnd = entity.SessionBegin.AddMinutes(entity.SessionMinutes);
         entity.Mode = PlayerMode.Practice;
 
-        await PlayerStore.Create(entity);
+        await _store.Create(entity, cancellationToken);
         return _mapper.Map<Player>(entity);
     }
 

@@ -71,7 +71,7 @@ internal class SetCompetitiveCertificateIsPublishedHandler : IRequestHandler<Set
         else if (!request.IsPublished && existingPublish is not null)
         {
             await _store
-                .List<PublishedCompetitiveCertificate>()
+                .WithNoTracking<PublishedCompetitiveCertificate>()
                 .Where(c => c.GameId == request.GameId)
                 .Where(c => c.OwnerUserId == request.ActingUser.Id)
                 .ExecuteDeleteAsync(cancellationToken);
@@ -91,7 +91,7 @@ internal class SetCompetitiveCertificateIsPublishedHandler : IRequestHandler<Set
 
     private async Task<PublishedCompetitiveCertificate> GetExistingPublish(string ownerUserId, string gameId, CancellationToken cancellationToken)
         => await _store
-            .List<PublishedCompetitiveCertificate>()
+            .WithNoTracking<PublishedCompetitiveCertificate>()
                 .Include(c => c.Game)
                 .Include(c => c.OwnerUser)
             .Where(c => c.GameId == gameId)

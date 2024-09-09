@@ -206,7 +206,7 @@ public class ReportsService(
     public async Task<IDictionary<string, ReportTeamViewModel>> GetTeamsByPlayerIds(IEnumerable<string> playerIds, CancellationToken cancellationToken)
     {
         var teamPlayers = await _store
-            .List<Data.Player>()
+            .WithNoTracking<Data.Player>()
                 .Include(p => p.Sponsor)
             .Where(p => playerIds.Contains(p.Id))
             .ToArrayAsync(cancellationToken);
@@ -238,7 +238,7 @@ public class ReportsService(
 
     public async Task<IEnumerable<SimpleEntity>> ListChallengeSpecs(string gameId)
     {
-        var query = _store.List<Data.ChallengeSpec>();
+        var query = _store.WithNoTracking<Data.ChallengeSpec>();
 
         if (gameId.NotEmpty())
             query = query.Where(c => c.GameId == gameId);
@@ -256,13 +256,13 @@ public class ReportsService(
         => GetGameStringPropertyOptions(g => g.Division);
 
     public async Task<IEnumerable<SimpleEntity>> ListGames()
-        => await _store.List<Data.Game>()
+        => await _store.WithNoTracking<Data.Game>()
             .Select(g => new SimpleEntity { Id = g.Id, Name = g.Name })
             .OrderBy(g => g.Name)
             .ToArrayAsync();
 
     public async Task<IEnumerable<ReportSponsorViewModel>> ListSponsors()
-        => await _store.List<Data.Sponsor>()
+        => await _store.WithNoTracking<Data.Sponsor>()
             .Select(s => new ReportSponsorViewModel
             {
                 Id = s.Id,
@@ -277,7 +277,7 @@ public class ReportsService(
 
     public async Task<IEnumerable<string>> ListTicketStatuses()
     {
-        return await _store.List<Data.Ticket>()
+        return await _store.WithNoTracking<Data.Ticket>()
             .Select(t => t.Status)
             .Distinct()
             .OrderBy(t => t)
@@ -337,7 +337,7 @@ public class ReportsService(
         =>
         (
             await _store
-                .List<Data.Game>()
+                .WithNoTracking<Data.Game>()
                 .Select(property)
                 .Distinct()
                 // catch as many blanks as we can here, but have to use

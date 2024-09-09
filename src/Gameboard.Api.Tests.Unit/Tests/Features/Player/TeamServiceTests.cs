@@ -15,7 +15,6 @@ public class TeamServiceTests
     public void ResolveCaptain_WhenMultiplePlayersFromSameTeam_ResolvesExpected()
     {
         // arrange
-        var playerStore = A.Fake<IPlayerStore>();
         var sut = new TeamService
         (
             A.Fake<ICacheService>(),
@@ -24,7 +23,6 @@ public class TeamServiceTests
             A.Fake<IMediator>(),
             A.Fake<INowService>(),
             A.Fake<IInternalHubBus>(),
-            playerStore,
             A.Fake<IPracticeService>(),
             A.Fake<IStore>()
         );

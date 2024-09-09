@@ -49,6 +49,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
                             p.GameId = gameId;
                             p.Score = 0;
                             p.Rank = 0;
+                            p.SessionBegin = DateTimeOffset.UtcNow;
                             p.TeamId = teamId;
                         });
                     }).ToCollection();
@@ -68,15 +69,15 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
             .DeserializeResponseAs<Challenge>();
 
         // then the players table should have the expected properties set
-        var player = await _testContext
+        var teamRanking = await _testContext
             .GetDbContext()
-            .Players
+            .DenormalizedTeamScores
             .AsNoTracking()
-            .Where(p => p.TeamId == teamId)
+            .Where(t => t.TeamId == teamId)
             .SingleAsync();
 
-        player.Rank.ShouldBe(1);
-        player.Score.ShouldBe(100);
+        teamRanking.Rank.ShouldBe(1);
+        teamRanking.ScoreOverall.ShouldBe(100);
 
         // and also the challenge should have a grading event
         var events = await _testContext
