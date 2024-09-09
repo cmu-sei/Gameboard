@@ -247,11 +247,7 @@ public class PlayerController
         await AuthorizeAny
         (
             _permissionsService.Can(PermissionKey.Teams_Enroll),
-            Task.Run(async () =>
-            {
-                var player = await PlayerService.Retrieve(promoteRequest.CurrentManagerPlayerId);
-                return player.UserId == Actor.Id;
-            })
+            IsSelf(promoteRequest.CurrentManagerPlayerId)
         );
 
         var model = new PromoteToManagerRequest

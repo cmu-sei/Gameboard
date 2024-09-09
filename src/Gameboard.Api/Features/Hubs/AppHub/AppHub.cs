@@ -21,12 +21,10 @@ namespace Gameboard.Api.Hubs
         ILogger<AppHub> logger,
         IMapper mapper,
         IUserRolePermissionsService permissionsService,
-        IPlayerStore playerStore,
         IStore store
         ) : Hub<IAppHubEvent>, IAppHubApi
     {
         ILogger Logger { get; } = logger;
-        IPlayerStore PlayerStore { get; } = playerStore;
         internal static string ContextPlayerKey = "player";
 
         private readonly IMapper _mapper = mapper;
@@ -90,8 +88,8 @@ namespace Gameboard.Api.Hubs
 
         public async Task<Data.Player[]> ListTeam(string teamId)
         {
-            var teamPlayers = await PlayerStore.DbSet
-                .AsNoTrackingWithIdentityResolution()
+            var teamPlayers = await _store
+                .WithNoTrackingAndIdentityResolution<Data.Player>()
                 .Where(p => p.TeamId == teamId)
                 .Include(p => p.Game)
                 .Include(p => p.User)
@@ -109,10 +107,11 @@ namespace Gameboard.Api.Hubs
 
             if (player is null)
             {
-                tasks = new Task[] {
+                tasks =
+                [
                     Groups.RemoveFromGroupAsync(Context.ConnectionId, Context.UserIdentifier),
                     Groups.RemoveFromGroupAsync(Context.ConnectionId, AppConstants.InternalSupportChannel)
-                };
+                ];
             }
             else
             {

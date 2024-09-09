@@ -117,7 +117,6 @@ public class ChallengeServiceTests
             A.Fake<IMediator>(),
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
-            A.Fake<IPlayerStore>(),
             A.Fake<IUserRolePermissionsService>(),
             A.Fake<IStore>(),
             A.Fake<ITeamService>()
@@ -240,7 +239,6 @@ public class ChallengeServiceTests
             A.Fake<IMediator>(),
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
-            A.Fake<IPlayerStore>(),
             A.Fake<IUserRolePermissionsService>(),
             A.Fake<IStore>(),
             A.Fake<ITeamService>()

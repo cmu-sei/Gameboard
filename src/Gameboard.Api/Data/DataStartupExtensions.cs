@@ -4,12 +4,11 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using Gameboard.Api;
-using Gameboard.Api.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace Gameboard.Api.Data;
 
 public static class DataStartupExtensions
 {

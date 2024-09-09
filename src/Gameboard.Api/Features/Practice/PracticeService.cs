@@ -138,7 +138,7 @@ internal class PracticeService : IPracticeService
 
     private IQueryable<Data.Player> GetActivePracticeSessionsQueryBase()
         => _store
-            .List<Data.Player>()
+            .WithNoTracking<Data.Player>()
             .Where(p => p.SessionEnd > _now.Get())
             .Where(p => p.Mode == PlayerMode.Practice);
 }

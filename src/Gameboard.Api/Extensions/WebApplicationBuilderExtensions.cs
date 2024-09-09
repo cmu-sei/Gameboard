@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Data;
 using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
@@ -20,12 +21,12 @@ internal static class WebApplicationBuilderExtensions
 
         settings.Cache.SharedFolder = Path.Combine(
             builder.Environment.ContentRootPath,
-            settings.Cache.SharedFolder ?? ""
+            settings.Cache.SharedFolder ?? string.Empty
         );
 
         settings.Core.ImageFolder = Path.Combine(
             builder.Environment.ContentRootPath,
-            settings.Core.ImageFolder ?? ""
+            settings.Core.ImageFolder ?? string.Empty
         );
 
         settings.Core.WebHostRoot = builder.Environment.ContentRootPath;

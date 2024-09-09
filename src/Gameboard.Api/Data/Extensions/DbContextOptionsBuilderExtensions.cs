@@ -15,7 +15,7 @@ public static class DbContextOptionsBuilderExtensions
         // to activate these behaviors
         if (env is null)
         {
-            return builder.LogTo(Console.WriteLine, new[] { DbLoggerCategory.Query.Name }, LogLevel.Debug);
+            return builder.LogTo(Console.WriteLine, [DbLoggerCategory.Query.Name], LogLevel.Debug);
         }
 
         // warn us about queries that might benefit from query splitting
@@ -32,7 +32,7 @@ public static class DbContextOptionsBuilderExtensions
             {
                 Console.WriteLine("Starting in dev environment. Enabling detailed/sensitive EF logging...");
 
-                builder.LogTo(Console.WriteLine, new[] { DbLoggerCategory.Query.Name }, LogLevel.Information);
+                builder.LogTo(Console.WriteLine, [DbLoggerCategory.Query.Name], LogLevel.Information);
                 builder
                     .EnableDetailedErrors()
                     .EnableSensitiveDataLogging();

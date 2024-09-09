@@ -37,7 +37,7 @@ internal class EnrollmentReportService(
         // the fundamental unit of reporting here is really the player record (an "enrollment"), so resolve enrollments that
         // meet the filter criteria (and have at least one challenge completed in competitive mode)
         var query = _store
-            .List<Data.Player>()
+            .WithNoTracking<Data.Player>()
             .AsSplitQuery()
             .Include(p => p.Game)
             .Include(p => p.Challenges.Where(c => c.PlayerMode == PlayerMode.Competition))

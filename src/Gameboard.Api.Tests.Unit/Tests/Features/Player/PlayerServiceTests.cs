@@ -24,7 +24,7 @@ public class PlayerServiceTests
     {
         // arrange
         var userId = fixture.Create<string>();
-        var fakeStore = A.Fake<IPlayerStore>();
+        var fakeStore = A.Fake<IStore>();
         var fakePlayers = new Data.Player[]
         {
             new Data.Player
@@ -41,10 +41,9 @@ public class PlayerServiceTests
             }
         }.ToList().BuildMock();
 
-        A.CallTo(() => fakeStore.List(null)).Returns(fakePlayers);
-        A.CallTo(() => fakeStore.DbSet).Returns(fakePlayers);
+        A.CallTo(() => fakeStore.WithNoTracking<Data.Player>()).Returns(fakePlayers);
 
-        var sut = PlayerServiceTestHelpers.GetTestableSut(playerStore: fakeStore);
+        var sut = PlayerServiceTestHelpers.GetTestableSut(store: fakeStore);
 
         // act
         var result = await sut.MakeCertificates(userId);
@@ -58,7 +57,7 @@ public class PlayerServiceTests
     {
         // arrange
         var userId = fixture.Create<string>();
-        var fakeStore = A.Fake<IPlayerStore>();
+        var fakeStore = A.Fake<IStore>();
         var fakePlayers = new Data.Player[]
         {
             new()
@@ -76,10 +75,9 @@ public class PlayerServiceTests
             }
         }.ToList().BuildMock();
 
-        A.CallTo(() => fakeStore.List(null)).Returns(fakePlayers);
-        A.CallTo(() => fakeStore.DbSet).Returns(fakePlayers);
+        A.CallTo(() => fakeStore.WithNoTracking<Data.Player>()).Returns(fakePlayers);
 
-        var sut = PlayerServiceTestHelpers.GetTestableSut(playerStore: fakeStore);
+        var sut = PlayerServiceTestHelpers.GetTestableSut(store: fakeStore);
 
         // act
         var result = await sut.MakeCertificates(userId);

@@ -17,13 +17,11 @@ namespace Gameboard.Api.Validators;
 public class PlayerValidator(
     IGameModeServiceFactory gameModeServiceFactory,
     IUserRolePermissionsService permissionsService,
-    IPlayerStore playerStore,
     IStore store
     ) : IModelValidator
 {
     private readonly IGameModeServiceFactory _gameModeServiceFactory = gameModeServiceFactory;
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
-    private readonly IPlayerStore _playerStore = playerStore;
     private readonly IStore _store = store;
 
     public Task Validate(object model)
@@ -71,10 +69,11 @@ public class PlayerValidator(
 
     private async Task _validate(SessionStartRequest model)
     {
-        if (!await _store.Exists<Data.Player>(model.PlayerId))
-            throw new ResourceNotFound<Player>(model.PlayerId);
-
-        var player = await _playerStore.Retrieve(model.PlayerId);
+        var player = await _store
+            .WithNoTracking<Data.Player>()
+            .Select(p => new { p.Id, p.SessionBegin })
+            .Where(p => p.Id == model.PlayerId)
+            .SingleOrDefaultAsync() ?? throw new ResourceNotFound<Player>(model.PlayerId);
 
         if (player.SessionBegin.Year > 1)
             throw new SessionAlreadyStarted(model.PlayerId, $"Player {model.PlayerId}'s session has already started.");
@@ -132,14 +131,17 @@ public class PlayerValidator(
     private async Task _validate(PromoteToManagerRequest model)
     {
         // INDEPENDENT OF ADMIN
-        var currentManager = await _playerStore.List()
+        var currentManager = await _store
+            .WithNoTracking<Data.Player>()
             .SingleOrDefaultAsync(p => p.Id == model.CurrentManagerPlayerId)
             ?? throw new ResourceNotFound<Player>(model.CurrentManagerPlayerId, $"Couldn't resolve the player record for current manager {model.CurrentManagerPlayerId}.");
 
         if (!currentManager.IsManager)
             throw new PlayerIsntManager(model.CurrentManagerPlayerId, "Calls to this endpoint must supply the correct ID of the current manager.");
 
-        var newManager = await _playerStore.List().SingleOrDefaultAsync(p => p.Id == model.NewManagerPlayerId)
+        var newManager = await _store
+            .WithNoTracking<Data.Player>()
+            .SingleOrDefaultAsync(p => p.Id == model.NewManagerPlayerId)
             ?? throw new ResourceNotFound<Player>(model.NewManagerPlayerId, $"Couldn't resolve the player record for new manager {model.NewManagerPlayerId}");
 
         if (currentManager.TeamId != newManager.TeamId)
