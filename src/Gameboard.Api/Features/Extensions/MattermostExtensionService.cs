@@ -7,7 +7,7 @@ using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Features.Extensions;
 
-[DontBindForDI]
+[DIIgnore]
 internal class MattermostExtensionService(
     Extension extension,
     IHttpClientFactory httpClientFactory

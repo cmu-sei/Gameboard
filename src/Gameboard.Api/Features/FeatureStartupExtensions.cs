@@ -41,6 +41,7 @@ public static class ServiceStartupExtensions
             .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators")
             .AddScoped(typeof(IStore<>), typeof(Store<>))
             .AddScoped(typeof(UserIsPlayingGameValidator<>))
+            .AddImplementationsOf<IModelValidator>()
             .AddImplementationsOf<IGameboardRequestValidator<IReportQuery>>()
             // these aren't picked up right now because they implement multiple interfaces,
             // but allowing multiple-interface classes causes things like IReportQuery implementers to get snagged
@@ -57,22 +58,22 @@ public static class ServiceStartupExtensions
             .AddScoped<IUserHubBus, UserHubBus>()
             .AddInterfacesWithSingleImplementations();
 
-        foreach (var t in Assembly
-            .GetExecutingAssembly()
-            .ExportedTypes
-            .Where
-            (
-                t =>
-                    t.GetInterface(nameof(IModelValidator)) != null
-                    && t.IsClass
-                    && !t.IsAbstract
-            )
-        )
-        {
-            foreach (Type i in t.GetInterfaces())
-                services.AddScoped(i, t);
-            services.AddScoped(t);
-        }
+        // foreach (var t in Assembly
+        //     .GetExecutingAssembly()
+        //     .ExportedTypes
+        //     .Where
+        //     (
+        //         t =>
+        //             t.GetInterface(nameof(IModelValidator)) != null
+        //             && t.IsClass
+        //             && !t.IsAbstract
+        //     )
+        // )
+        // {
+        //     foreach (Type i in t.GetInterfaces())
+        //         services.AddScoped(i, t);
+        //     services.AddScoped(t);
+        // }
 
         return services;
     }
