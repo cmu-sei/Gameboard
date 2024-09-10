@@ -79,7 +79,8 @@ namespace Gameboard.Api
                 new(AppConstants.SponsorClaimName, user.SponsorId)
             };
 
-            return new ClaimsPrincipal(
+            return new ClaimsPrincipal
+            (
                 new ClaimsIdentity(
                     claims,
                     principal.Identity.AuthenticationType,

@@ -57,7 +57,7 @@ public class TeamsControllerResetTests(GameboardTestContext testContext) : IClas
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var teamChallengeCount = await _testContext
-            .GetDbContext()
+            .GetValidationDbContext()
             .Challenges
             .AsNoTracking()
             .Where(c => c.TeamId == teamId)
@@ -111,7 +111,7 @@ public class TeamsControllerResetTests(GameboardTestContext testContext) : IClas
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var teamChallengeCount = await _testContext
-            .GetDbContext()
+            .GetValidationDbContext()
             .Challenges
             .AsNoTracking()
             .Where(c => c.TeamId == teamId)

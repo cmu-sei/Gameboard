@@ -2,7 +2,7 @@ using System.Threading.Tasks;
 
 namespace Gameboard.Api.Features.Extensions;
 
-[DontBindForDI]
+[DIIgnore]
 public interface IExtensionService
 {
     Task NotifyScored(ExtensionMessage message);

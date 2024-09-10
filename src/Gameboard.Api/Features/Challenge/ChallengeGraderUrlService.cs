@@ -7,14 +7,9 @@ public interface IChallengeGraderUrlService
     public string BuildGraderUrl();
 }
 
-internal class ChallengeGraderUrlService : IChallengeGraderUrlService
+internal class ChallengeGraderUrlService(IAppUrlService appUrlService) : IChallengeGraderUrlService
 {
-    private readonly IAppUrlService _appUrlService;
-
-    public ChallengeGraderUrlService(IAppUrlService appUrlService)
-    {
-        _appUrlService = appUrlService;
-    }
+    private readonly IAppUrlService _appUrlService = appUrlService;
 
     public string BuildGraderUrl()
     {

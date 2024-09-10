@@ -42,19 +42,10 @@ public interface IStore
     IQueryable<TEntity> WithTracking<TEntity>() where TEntity : class, IEntity;
 }
 
-internal class Store : IStore
+internal class Store(IGuidService guids, GameboardDbContext dbContext) : IStore
 {
-    private readonly GameboardDbContext _dbContext;
-    private readonly IGuidService _guids;
-
-    public readonly string MYID;
-
-    public Store(IGuidService guids, GameboardDbContext dbContext)
-    {
-        _dbContext = dbContext;
-        _guids = guids;
-        MYID = _guids.GetGuid();
-    }
+    private readonly GameboardDbContext _dbContext = dbContext;
+    private readonly IGuidService _guids = guids;
 
     public Task<bool> AnyAsync<TEntity>(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) where TEntity : class, IEntity
         => _dbContext.Set<TEntity>().AnyAsync(predicate, cancellationToken);
@@ -71,7 +62,7 @@ internal class Store : IStore
             entity.Id = _guids.GetGuid();
 
         if (!_dbContext.Set<TEntity>().Any(e => e == entity))
-            _dbContext.Add(entity);
+            await _dbContext.AddAsync(entity, cancellationToken);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
         return entity;

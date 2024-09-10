@@ -11,7 +11,7 @@ public class ChallengeBonusControllerManualTests(GameboardTestContext testContex
     public async Task AddManual_WithChallenge_Succeeds(string challengeId, string userId, string description, double pointsValue, IFixture fixture)
     {
         // given
-        var dbContext = _testContext.GetDbContext();
+        var dbContext = _testContext.GetValidationDbContext();
         var bonuses = await dbContext.ManualBonuses.ToArrayAsync();
 
         await _testContext.WithDataState(state =>

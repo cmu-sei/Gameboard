@@ -398,34 +398,35 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
     public async Task PromoteCaptain(string teamId, string newCaptainPlayerId, User actingUser, CancellationToken cancellationToken)
     {
         var teamPlayers = await _store
-            .WithNoTracking<Data.Player>()
+            .WithTracking<Data.Player>()
             .Where(p => p.TeamId == teamId)
             .ToListAsync(cancellationToken);
 
-        var oldCaptain = teamPlayers.SingleOrDefault(p => p.Role == PlayerRole.Manager);
-        var newCaptain = teamPlayers.Single(p => p.Id == newCaptainPlayerId);
+        if (teamPlayers.Count == 0)
+            throw new TeamHasNoPlayersException(teamId);
 
-        await _store.DoTransaction(async dbContext =>
+        var captainFound = false;
+        foreach (var player in teamPlayers)
         {
-            await _store
-                .WithNoTracking<Data.Player>()
-                .Where(p => p.TeamId == teamId)
-                .ExecuteUpdateAsync(p => p.SetProperty(p => p.Role, PlayerRole.Member));
+            player.Role = PlayerRole.Member;
 
-            var affectedPlayers = await _store
-                .WithNoTracking<Data.Player>()
-                .Where(p => p.Id == newCaptainPlayerId)
-                .ExecuteUpdateAsync
-                (
-                    p => p.SetProperty(p => p.Role, PlayerRole.Manager)
-                );
+            if (player.Id == newCaptainPlayerId)
+            {
+                player.Role = PlayerRole.Manager;
+                captainFound = true;
+            }
+        }
 
-            // this automatically rolls back the transaction
-            if (affectedPlayers != 1)
-                throw new PromotionFailed(teamId, newCaptainPlayerId, affectedPlayers);
-        }, cancellationToken);
+        if (!captainFound)
+        {
+            teamPlayers
+                .OrderBy(p => p.WhenCreated)
+                .First()
+                .Role = PlayerRole.Manager;
+        }
 
-        await _hubBus.SendPlayerRoleChanged(_mapper.Map<Api.Player>(newCaptain), actingUser);
+        await _store.SaveUpdateRange(teamPlayers.ToArray());
+        await _hubBus.SendPlayerRoleChanged(_mapper.Map<Api.Player>(teamPlayers.Single(p => p.Role == PlayerRole.Manager)), actingUser);
     }
 
     public async Task<Data.Player> ResolveCaptain(string teamId, CancellationToken cancellationToken)

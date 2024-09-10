@@ -28,7 +28,7 @@ namespace Gameboard.Api.Controllers
 
         protected string AuthenticatedGraderForChallengeId
         {
-            get => this.User.ToAuthenticatedGraderForChallengeId();
+            get => HttpContext.Items[AppConstants.RequestContextGameboardGraderForChallengeId]?.ToString();
         }
 
         protected ILogger Logger { get; private set; } = logger;

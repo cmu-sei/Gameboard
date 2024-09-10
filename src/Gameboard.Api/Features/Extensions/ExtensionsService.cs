@@ -58,8 +58,8 @@ internal class ExtensionsService : IExtensionsService, INotificationHandler<Scor
             Rank = 1,
             ScoringSummary = new()
             {
-                ChallengeName = score.Challenges.First().Name,
-                Points = score.Challenges.First().Score.TotalScore
+                ChallengeName = score.Challenges.FirstOrDefault()?.Name ?? "Unknown Challenge",
+                Points = score.Challenges.FirstOrDefault()?.Score?.TotalScore ?? 0
             }
         }, cancellationToken);
     }

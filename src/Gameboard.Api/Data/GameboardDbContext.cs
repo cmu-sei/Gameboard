@@ -7,15 +7,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data;
 
-public class GameboardDbContext(IServiceProvider serviceProvider, DbContextOptions options, IHostEnvironment env) : DbContext(options)
+public class GameboardDbContext : DbContext
 {
-    private readonly IHostEnvironment _env = env;
-    private readonly IServiceProvider _serviceProvider = serviceProvider;
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder.WithGameboardOptions(_env, _serviceProvider);
-    }
+    public GameboardDbContext(DbContextOptions options) : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
