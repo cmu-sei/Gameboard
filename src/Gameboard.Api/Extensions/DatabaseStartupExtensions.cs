@@ -26,8 +26,10 @@ namespace Gameboard.Api.Extensions
             var config = services.GetRequiredService<IConfiguration>();
             var env = services.GetService<IWebHostEnvironment>();
 
+            logger.LogInformation($"Migrating database...");
             using var dbContext = services.GetService<GameboardDbContext>();
             dbContext.Database.Migrate();
+            logger.LogInformation($"Database migrated!");
             SeedDatabase(env, config, dbContext, settings, logger);
 
             return app;
