@@ -52,8 +52,7 @@ public class ChallengeStore(
     {
         return await DbSet
             .Include(c => c.Events)
-            .FirstOrDefaultAsync(c => c.Id == id)
-        ;
+            .FirstOrDefaultAsync(c => c.Id == id);
     }
 
     public async Task<Challenge> Load(NewChallenge model)

@@ -17,14 +17,9 @@ namespace Gameboard.Api.Tests.Integration;
 /// of the state DOES NOT REFLECT the stoppedness of the gamespace. Thus, we have these tests to verify
 /// that we're using the VM count NOT the IsActive flag as the basis for Gameboard's decision.
 /// </summary>
-public class ChallengeControllerStartStopTests : IClassFixture<GameboardTestContext>
+public class ChallengeControllerStartStopTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>
 {
-    private readonly GameboardTestContext _testContext;
-
-    public ChallengeControllerStartStopTests(GameboardTestContext testContext)
-    {
-        _testContext = testContext;
-    }
+    private readonly GameboardTestContext _testContext = testContext;
 
     [Theory, GbIntegrationAutoData]
     public async Task Start_WithGameEngineResponseWithVMsAndNotIsActive_HasDeployedGamespace
@@ -38,57 +33,52 @@ public class ChallengeControllerStartStopTests : IClassFixture<GameboardTestCont
         IFixture fixture
     )
     {
-        // given a challenge and a game engine service that will return a gamespace
-        // with IsActive = false and a non-empty list of VMs when asked to Start 
-        var gameEngineStateChangeService = new TestGameEngineStateChangeService(startGamespaceResult: new GameEngineGameState
-        {
-            Id = challengeId,
-            // the main gag here is that, by rule, IsActive DOES NOT relate to HasDeployedGamespace, at least for Topomojo, 
-            // which is our only actively used game engine. HasDeployedGamespace is true if the state returned from the
-            // engine has a nonzero number of VMs.
-            IsActive = false,
-            Vms = new GameEngineVmState[]
-            {
-                new() { Name = fixture.Create<string>() }
-            }
-        });
-
         await _testContext.WithDataState(state =>
         {
             state.Add<Data.Sponsor>(fixture, s => s.Id = sponsorId);
             state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
-                g.Players = new List<Data.Player>
-                {
+                g.Players =
+                [
                     new()
                     {
                         Id = playerId,
                         SponsorId = sponsorId,
                         TeamId = teamId,
-                        User = state.Build<Data.User>(fixture, u => u.Id = userId)
+                        User = state.Build<Data.User>(fixture, u => u.Id = userId),
+                        Challenges =
+                        [
+                            state.Build<Data.Challenge>(fixture, c =>
+                            {
+                                c.Id = challengeId;
+                                c.GameId = gameId;
+                                c.PlayerId = playerId;
+                                c.TeamId = teamId;
+                            })
+                        ]
                     }
-                };
-            });
-
-            state.Add<Data.Challenge>(fixture, c =>
-            {
-                c.Id = challengeId;
-                c.GameId = gameId;
-                c.PlayerId = playerId;
-                c.TeamId = teamId;
+                ];
             });
         });
 
-        var http = _testContext
+        // when the challenge is started
+        var result = await _testContext
             .BuildTestApplication(u => u.Id = userId, services =>
             {
-                services.ReplaceService<ITestGameEngineStateChangeService, TestGameEngineStateChangeService>(gameEngineStateChangeService);
+                // given a challenge and a game engine service that will return a gamespace
+                // with IsActive = false and a non-empty list of VMs when asked to Start 
+                services.ReplaceService<ITestGameEngineStateChangeService, TestGameEngineStateChangeService>(new TestGameEngineStateChangeService(startGamespaceResult: new GameEngineGameState
+                {
+                    Id = challengeId,
+                    // the main gag here is that, by rule, IsActive DOES NOT relate to HasDeployedGamespace, at least for Topomojo, 
+                    // which is our only actively used game engine. HasDeployedGamespace is true if the state returned from the
+                    // engine has a nonzero number of VMs.
+                    IsActive = false,
+                    Vms = [new() { Name = fixture.Create<string>() }]
+                }));
             })
-            .CreateClient();
-
-        // when the challenge is started
-        var result = await http
+            .CreateClient()
             .PutAsync("/api/challenge/start", new ChangedChallenge { Id = challengeId }.ToJsonBody())
             .DeserializeResponseAs<Challenge>();
 
@@ -114,7 +104,7 @@ public class ChallengeControllerStartStopTests : IClassFixture<GameboardTestCont
         {
             Id = challengeId,
             IsActive = true,
-            Vms = Array.Empty<GameEngineVmState>()
+            Vms = []
         });
 
         await _testContext.WithDataState(state =>
@@ -123,8 +113,8 @@ public class ChallengeControllerStartStopTests : IClassFixture<GameboardTestCont
             state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
-                g.Players = new List<Data.Player>
-                {
+                g.Players =
+                [
                     new()
                     {
                         Id = playerId,
@@ -132,7 +122,7 @@ public class ChallengeControllerStartStopTests : IClassFixture<GameboardTestCont
                         TeamId = teamId,
                         User = state.Build<Data.User>(fixture, u => u.Id = userId)
                     }
-                };
+                ];
             });
 
             state.Add<Data.Challenge>(fixture, c =>
@@ -144,15 +134,21 @@ public class ChallengeControllerStartStopTests : IClassFixture<GameboardTestCont
             });
         });
 
-        var http = _testContext
+        // when the challenge is stopped
+        var result = await _testContext
             .BuildTestApplication(u => u.Id = userId, services =>
             {
-                services.ReplaceService<ITestGameEngineStateChangeService, TestGameEngineStateChangeService>(gameEngineStateChangeService);
+                services.ReplaceService<ITestGameEngineStateChangeService, TestGameEngineStateChangeService>
+                (
+                    new TestGameEngineStateChangeService(stopGamespaceResult: new GameEngineGameState
+                    {
+                        Id = challengeId,
+                        IsActive = true,
+                        Vms = []
+                    })
+                );
             })
-            .CreateClient();
-
-        // when the challenge is stopped
-        var result = await http
+            .CreateClient()
             .PutAsync("/api/challenge/stop", new ChangedChallenge { Id = challengeId }.ToJsonBody())
             .DeserializeResponseAs<Challenge>();
 

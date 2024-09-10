@@ -46,7 +46,7 @@ public class ChallengeBonusControllerAutoDeleteTests : IClassFixture<GameboardTe
 
         // then there should be no challenges assigned to a spec with the given gameId
         var count = await _testContext
-            .GetDbContext()
+            .GetValidationDbContext()
             .ChallengeBonuses
             .AsNoTracking()
             .Include(b => b.ChallengeSpec)

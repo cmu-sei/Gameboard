@@ -165,9 +165,7 @@ public partial class ChallengeService(
 
     public async Task<Challenge> Retrieve(string id)
     {
-        var result = Mapper.Map<Challenge>(
-            await _challengeStore.Load(id)
-        );
+        var result = Mapper.Map<Challenge>(await _challengeStore.Load(id));
 
         return result;
     }
@@ -179,15 +177,17 @@ public partial class ChallengeService(
         await _gameEngine.DeleteGamespace(entity);
     }
 
-    public async Task<bool> UserIsTeamPlayer(string id, string subjectId)
+    public async Task<bool> UserIsPlayingChallenge(string id, string subjectId)
     {
-        var entity = await _challengeStore.Retrieve(id);
+        var challengeTeamId = await _store
+            .WithNoTracking<Data.Challenge>()
+            .Where(c => c.Id == id)
+            .Select(c => c.TeamId)
+            .Distinct()
+            .SingleOrDefaultAsync();
 
-        return await _store.AnyAsync<Data.User>(u =>
-            u.Id == subjectId &&
-            u.Enrollments.Any(e => e.TeamId == entity.TeamId),
-            CancellationToken.None
-        );
+        var userTeamIds = await _teamService.GetUserTeamIds(subjectId);
+        return userTeamIds.Any(tId => tId == challengeTeamId);
     }
 
     public async Task<ChallengeSummary[]> List(SearchFilter model = null)
@@ -326,14 +326,14 @@ public partial class ChallengeService(
         var now = _now.Get();
         var challenge = await _store
             .WithNoTracking<Data.Challenge>()
-            .SingleAsync(c => c.Id == model.Id);
+            .SingleAsync(c => c.Id == model.Id, cancellationToken);
 
         // have to retrieve game end separately due to a bug with Store (tracked entity issue)
         var gameProperties = await _store
             .WithNoTracking<Data.Game>()
             .Where(g => g.Id == challenge.GameId)
             .Select(g => new { g.PlayerMode, g.GameEnd })
-            .SingleAsync();
+            .SingleAsync(cancellationToken);
 
         // ensure that the game hasn't ended - if it has, we have to bounce this one
         var canPlayOutsideExecutionWindow = await _permissionsService.Can(PermissionKey.Play_IgnoreExecutionWindow);

@@ -52,6 +52,12 @@ internal static class GameboardTestContextExtensions
             .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
     }
 
+    public static HttpClient CreateHttpClientWithActingUser(this WebApplicationFactory<Program> webAppFactory, Action<TestAuthenticationUser>? userBuilder = null)
+    {
+        return webAppFactory
+            .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+    }
+
     public static HttpClient CreateHttpClientWithAuthRole(this GameboardTestContext testContext, UserRole role)
         => CreateHttpClientWithActingUser(testContext, u => u.Role = role);
 
@@ -77,11 +83,15 @@ internal static class GameboardTestContextExtensions
 
     public static async Task WithDataState(this GameboardTestContext context, Action<IDataStateBuilder> builderAction)
     {
-        using var dbContext = context.GetDbContext();
+        // get a context and prep the db
+        using var dbContext = context.GetValidationDbContext();
         await dbContext.Database.MigrateAsync();
+
+        // seed requested data state
         var builderInstance = new DataStateBuilder(dbContext);
         builderAction.Invoke(builderInstance);
 
+        // save and go
         await dbContext.SaveChangesAsync();
     }
 }

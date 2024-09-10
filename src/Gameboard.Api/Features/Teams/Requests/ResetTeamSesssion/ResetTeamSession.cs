@@ -101,7 +101,6 @@ internal class ResetTeamSessionHandler : IRequestHandler<ResetTeamSessionCommand
                 player.CorrectCount = 0;
                 player.IsReady = false;
                 player.PartialCount = 0;
-                player.Rank = 0;
                 player.Score = (int)advancedScore;
                 player.SessionBegin = DateTimeOffset.MinValue;
                 player.SessionEnd = DateTimeOffset.MinValue;

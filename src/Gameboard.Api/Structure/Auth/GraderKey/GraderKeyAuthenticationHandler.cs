@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Gameboard.Api.Structure.Auth;
 
@@ -60,25 +62,26 @@ internal class GraderKeyAuthenticationHandler : AuthenticationHandler<GraderKeyA
             if (!Request.Headers.TryGetValue(ApiKeyAuthentication.ApiKeyHeaderName, out graderKey))
                 return AuthenticateResult.NoResult();
 
-
         var hashedKey = graderKey.ToString().ToSha256();
-        var challenge = await _store
+        var challengeId = await _store
             .WithNoTracking<Data.Challenge>()
-            .SingleOrDefaultAsync(c => c.GraderKey == hashedKey);
+            .Where(c => c.GraderKey == hashedKey)
+            .Select(c => c.Id)
+            .SingleOrDefaultAsync();
 
-        if (challenge is null)
+        if (challengeId.IsNullOrEmpty())
             return AuthenticateResult.Fail(new GraderKeyUnresolvedChallengeException(graderKey));
 
         var claimsPrincipal = new ClaimsPrincipal
         (
             new ClaimsIdentity
             (
-                new Claim[] { new(GraderKeyAuthentication.GraderKeyChallengeIdClaimName, challenge.Id) },
+                [new Claim(GraderKeyAuthentication.GraderKeyChallengeIdClaimName, challengeId)],
                 Scheme.Name
             )
         );
 
-        Logger.Log(LogLevel.Information, $"Authenticated challenge grader for challenge {challenge.Id} authenticated with grader key '{graderKey}'.");
+        Logger.Log(LogLevel.Information, $"Authenticated challenge grader for challenge {challengeId} authenticated with grader key '{graderKey}'.");
         return AuthenticateResult.Success(new AuthenticationTicket(claimsPrincipal, Scheme.Name));
     }
 }

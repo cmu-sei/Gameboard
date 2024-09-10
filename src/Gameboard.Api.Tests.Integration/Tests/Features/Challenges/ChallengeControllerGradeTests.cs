@@ -4,12 +4,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
+public class ChallengeControllerGradeTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>
 {
-    private readonly GameboardTestContext _testContext;
-
-    public ChallengeControllerGradeTests(GameboardTestContext testContext)
-        => _testContext = testContext;
+    private readonly GameboardTestContext _testContext = testContext;
 
     [Theory, GbIntegrationAutoData]
     public async Task Grade_WithFirstSolve_SetsExpectedRankAndScore
@@ -48,7 +45,6 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
                         {
                             p.GameId = gameId;
                             p.Score = 0;
-                            p.Rank = 0;
                             p.SessionBegin = DateTimeOffset.UtcNow;
                             p.TeamId = teamId;
                         });
@@ -69,25 +65,26 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
             .DeserializeResponseAs<Challenge>();
 
         // then the players table should have the expected properties set
-        var teamRanking = await _testContext
-            .GetDbContext()
-            .DenormalizedTeamScores
-            .AsNoTracking()
-            .Where(t => t.TeamId == teamId)
-            .SingleAsync();
+        await _testContext.ValidateStoreStateAsync(async dbContext =>
+        {
+            var teamRanking = await dbContext
+                .DenormalizedTeamScores
+                .AsNoTracking()
+                .Where(t => t.TeamId == teamId)
+                .SingleAsync();
 
-        teamRanking.Rank.ShouldBe(1);
-        teamRanking.ScoreOverall.ShouldBe(100);
+            teamRanking.Rank.ShouldBe(1);
+            teamRanking.ScoreOverall.ShouldBe(100);
 
-        // and also the challenge should have a grading event
-        var events = await _testContext
-            .GetDbContext()
-            .ChallengeEvents
-            .AsNoTracking()
-            .Where(e => e.ChallengeId == challengeId && e.Type == ChallengeEventType.Submission)
-            .ToArrayAsync();
+            // and also the challenge should have a grading event
+            var events = await dbContext
+                .ChallengeEvents
+                .AsNoTracking()
+                .Where(e => e.ChallengeId == challengeId && e.Type == ChallengeEventType.Submission)
+                .ToArrayAsync();
 
-        events.Length.ShouldBe(1);
+            events.Length.ShouldBe(1);
+        });
     }
 
     [Theory, GbIntegrationAutoData]
@@ -96,7 +93,9 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
         string gameId,
         string challengeId,
         string challengeSpecId,
+        string challengeGraderKey,
         string sponsorId,
+        string teamId,
         string userId,
         IFixture fixture
     )
@@ -110,15 +109,16 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
         await _testContext.WithDataState(state =>
         {
             state.Add<Data.Sponsor>(fixture, s => s.Id = sponsorId);
+            state.Add<Data.ChallengeSpec>(fixture, s => s.Id = challengeSpecId);
             state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
                 g.Players =
                 [
-                    new()
+                    state.Build<Data.Player>(fixture, p =>
                     {
-                        Id = fixture.Create<string>(),
-                        Challenges =
+                        p.Id = fixture.Create<string>();
+                        p.Challenges =
                         [
                             new()
                             {
@@ -126,17 +126,19 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
                                 EndTime = challengeEndTime,
                                 StartTime = challengeStartTime,
                                 SpecId = challengeSpecId,
-                                GameId = gameId
+                                GameId = gameId,
+                                GraderKey = challengeGraderKey.ToSha256(),
+                                TeamId = teamId
                             }
-                        ],
-                        SponsorId = sponsorId,
-                        User = state.Build<Data.User>(fixture, u => u.Id = userId)
-                    }
+                        ];
+                        p.SponsorId = sponsorId;
+                        p.TeamId = teamId;
+                        p.User = state.Build<Data.User>(fixture, u => u.Id = userId);
+                    })
                 ];
             });
         });
 
-        var exceptionToThrow = new SubmissionIsForExpiredGamespace(challengeId, null);
         var submission = new GameEngineSectionSubmission
         {
             Id = challengeId,
@@ -145,26 +147,32 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
             Questions = []
         };
 
-        var http = _testContext
+        await _testContext
             .BuildTestApplication(u => u.Id = userId, services =>
             {
-                var gradingResultConfig = new TestGradingResultServiceConfiguration { ThrowsOnGrading = exceptionToThrow };
-                services.ReplaceService<ITestGradingResultService, TestGradingResultService>(new TestGradingResultService(gradingResultConfig));
+                var testGradingResultService = new TestGradingResultService(new TestGradingResultServiceConfiguration
+                {
+                    ThrowsOnGrading = new SubmissionIsForExpiredGamespace(challengeId, new GameboardIntegrationTestException("Expected exception"))
+                });
+
+                services.ReplaceService<ITestGradingResultService, TestGradingResultService>(testGradingResultService);
             })
-            .CreateClient();
+            .CreateClient()
+            .PutAsync("/api/challenge/grade", submission.ToJsonBody());
 
-        await http.PutAsync("/api/challenge/grade", submission.ToJsonBody());
+        await _testContext.ValidateStoreStateAsync(async dbContext =>
+        {
+            var challengeEvents = await dbContext
+                .ChallengeEvents
+                .AsNoTracking()
+                .Where(ev => ev.ChallengeId == challengeId)
+                .Where(ev => ev.Type == ChallengeEventType.SubmissionRejectedGamespaceExpired)
+                .OrderByDescending(ev => ev.Timestamp)
+                .ToArrayAsync();
 
-        var challengeEvents = await _testContext
-            .GetDbContext()
-            .ChallengeEvents
-            .AsNoTracking()
-            .Where(ev => ev.ChallengeId == challengeId)
-            .Where(ev => ev.Type == ChallengeEventType.SubmissionRejectedGamespaceExpired)
-            .OrderByDescending(ev => ev.Timestamp)
-            .ToArrayAsync();
+            challengeEvents.Length.ShouldBe(1);
+        });
 
-        challengeEvents.Length.ShouldBe(1);
     }
 
     [Theory, GbIntegrationAutoData]
@@ -175,6 +183,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
         string challengeId,
         string challengeSpecId,
         string sponsorId,
+        string teamId,
         string userId,
         IFixture fixture
     )
@@ -190,6 +199,7 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
         await _testContext.WithDataState(state =>
         {
             state.Add<Data.Sponsor>(fixture, s => s.Id = sponsorId);
+            state.Add<Data.ChallengeSpec>(fixture, s => s.Id = challengeSpecId);
             state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
@@ -210,10 +220,12 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
                                 GraderKey = graderKey.ToSha256(),
                                 StartTime = challengeStartTime,
                                 SpecId = challengeSpecId,
-                                GameId = gameId
+                                GameId = gameId,
+                                TeamId = teamId
                             }
                         ],
                         SponsorId = sponsorId,
+                        TeamId = teamId,
                         User = state.Build<Data.User>(fixture, u => u.Id = userId)
                     }
                 ];
@@ -232,19 +244,20 @@ public class ChallengeControllerGradeTests : IClassFixture<GameboardTestContext>
             .CreateHttpClientWithGraderConfig(100, graderKey);
 
         // Under the hood, the API does throw a specialized exception for this, but we only get 400s for now.
-        // await Should.ThrowAsync<CantGradeBecauseGameExecutionPeriodIsOver>(() => http.PutAsync("/api/challenge/grade", submission.ToJsonBody()));
         var result = await http.PutAsync("/api/challenge/grade", submission.ToJsonBody());
         result.IsSuccessStatusCode.ShouldBeFalse();
 
-        var challengeEvents = await _testContext
-            .GetDbContext()
-            .ChallengeEvents
-            .AsNoTracking()
-            .Where(ev => ev.ChallengeId == challengeId)
-            .Where(ev => ev.Type == ChallengeEventType.SubmissionRejectedGameEnded)
-            .OrderByDescending(ev => ev.Timestamp)
-            .ToArrayAsync();
+        await _testContext.ValidateStoreStateAsync(async db =>
+        {
+            var challengeEvents = await db
+                .ChallengeEvents
+                .AsNoTracking()
+                .Where(ev => ev.ChallengeId == challengeId)
+                .Where(ev => ev.Type == ChallengeEventType.SubmissionRejectedGameEnded)
+                .OrderByDescending(ev => ev.Timestamp)
+                .ToArrayAsync();
 
-        challengeEvents.Length.ShouldBe(1);
+            challengeEvents.Length.ShouldBe(1);
+        });
     }
 }

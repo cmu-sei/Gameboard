@@ -32,7 +32,7 @@ public static class HttpExtensions
             }
             else
             {
-                throw new InvalidOperationException($"The response had an unsuccessful status code ({response.StatusCode}).");
+                throw new GameboardException($"The response had an unsuccessful status code ({response.StatusCode}).");
             }
         }
         catch (Exception ex)

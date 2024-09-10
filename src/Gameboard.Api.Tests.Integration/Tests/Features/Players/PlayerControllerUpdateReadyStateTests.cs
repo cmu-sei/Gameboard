@@ -57,7 +57,7 @@ public class PlayerControllerUpdatePlayerReadyTests(GameboardTestContext testCon
         // then
         // only way to validate is to check for an upcoming session for the game
         var finalPlayer1 = await _testContext
-            .GetDbContext()
+            .GetValidationDbContext()
             .Players
             .SingleOrDefaultAsync(p => p.Id == notReadyPlayer1Id);
 

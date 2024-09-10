@@ -62,7 +62,7 @@ internal class Store(IGuidService guids, GameboardDbContext dbContext) : IStore
             entity.Id = _guids.GetGuid();
 
         if (!_dbContext.Set<TEntity>().Any(e => e == entity))
-            _dbContext.Add(entity);
+            await _dbContext.AddAsync(entity, cancellationToken);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
         return entity;

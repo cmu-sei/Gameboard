@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
-using AutoMapper.Configuration.Annotations;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
@@ -241,7 +240,7 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
             deployedGamespaces.Add(predeployedState.Id, ChallengeStateToTeamGamespace(predeployedState));
 
         // if we don't have any gamespaces that aren't predeployed, we can take a big fat shortcut
-        if (notPredeployedChallenges.Any())
+        if (notPredeployedChallenges.Length > 0)
         {
             // Create one task for each gamespace in batches of the size specified in the app's
             // helm chart config (min batch size 1)

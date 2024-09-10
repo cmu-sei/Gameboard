@@ -11,7 +11,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Validators;
 
-[DIAsTransient]
 public class ChallengeValidator(IStore store) : IModelValidator
 {
     private readonly IStore _store = store;
@@ -20,28 +19,26 @@ public class ChallengeValidator(IStore store) : IModelValidator
     {
         if (model is Entity)
             return _validate(model as Entity);
-
         if (model is NewChallenge)
             return _validate(model as NewChallenge);
-
         if (model is ChangedChallenge)
             return _validate(model as ChangedChallenge);
 
-        throw new System.NotImplementedException();
+        throw new NotImplementedException();
     }
 
     private async Task _validate(Entity model)
     {
-        if ((await _store.WithNoTracking<Data.Challenge>().AnyAsync(c => c.Id == model.Id)).Equals(false))
+        if (!await _store.WithNoTracking<Data.Challenge>().AnyAsync(c => c.Id == model.Id))
             throw new ResourceNotFound<Challenge>(model.Id);
     }
 
     private async Task _validate(NewChallenge model)
     {
-        if ((await _store.AnyAsync<Data.Player>(p => p.Id == model.PlayerId, CancellationToken.None)).Equals(false))
+        if ((await _store.WithNoTracking<Data.Player>().AnyAsync(p => p.Id == model.PlayerId, CancellationToken.None)).Equals(false))
             throw new ResourceNotFound<Data.Player>(model.PlayerId);
 
-        if ((await _store.AnyAsync<Data.ChallengeSpec>(s => s.Id == model.SpecId, CancellationToken.None)).Equals(false))
+        if ((await _store.WithNoTracking<Data.ChallengeSpec>().AnyAsync(s => s.Id == model.SpecId, CancellationToken.None)).Equals(false))
             throw new ResourceNotFound<Data.ChallengeSpec>(model.SpecId);
 
         var player = await _store
@@ -70,14 +67,11 @@ public class ChallengeValidator(IStore store) : IModelValidator
             throw new ActionForbidden();
 
         // Note: not checking "already exists" since this is used idempotently
-        await Task.CompletedTask;
     }
 
     private async Task _validate(ChangedChallenge model)
     {
-        if ((await _store.AnyAsync<Data.Challenge>(c => c.Id == model.Id, CancellationToken.None)).Equals(false))
+        if ((await _store.WithNoTracking<Data.Challenge>().AnyAsync(c => c.Id == model.Id, CancellationToken.None)).Equals(false))
             throw new ResourceNotFound<Data.Challenge>(model.Id);
-
-        await Task.CompletedTask;
     }
 }

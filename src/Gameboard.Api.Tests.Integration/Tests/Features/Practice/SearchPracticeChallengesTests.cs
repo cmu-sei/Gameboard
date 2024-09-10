@@ -13,7 +13,7 @@ public class SearchPracticeChallengesTests(GameboardTestContext testContext) : I
     {
         // given a challenge spec with a tag slug-equal to one of the suggested searches in 
         // the practice area...
-        var dbContext = _testContext.GetDbContext();
+        var dbContext = _testContext.GetValidationDbContext();
         var existingSettings = dbContext.Set<Data.PracticeModeSettings>();
         dbContext.Set<Data.PracticeModeSettings>().RemoveRange(existingSettings);
         await dbContext.SaveChangesAsync();
