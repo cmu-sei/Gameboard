@@ -18,18 +18,15 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     SELECT INTO unmigratedUsers COUNT(*) FROM "Users" WHERE "Role" > 4;
 
                     IF unmigratedUsers > 0 THEN
-                        WITH upd AS(
-                            UPDATE "Users" SET "Role" = CASE
-                                WHEN "Role" = 0 THEN 0
-                                WHEN CAST("Role" AS BIT(7)) & B'0100000' = b'0100000' THEN 4
-                                WHEN CAST("Role" AS BIT(7)) & B'0010000' = B'0010000' THEN 3
-                                WHEN CAST("Role" AS BIT(7)) & B'1000000' = B'1000000' THEN 2
-                                WHEN "Role" != 0 THEN 1
-                                ELSE 0
-                            END
-                            WHERE "Role" != 0
-                        )
-                        SELECT * FROM "Update";
+                        UPDATE "Users" SET "Role" = CASE
+                            WHEN "Role" = 0 THEN 0
+                            WHEN CAST("Role" AS BIT(7)) & B'0100000' = b'0100000' THEN 4
+                            WHEN CAST("Role" AS BIT(7)) & B'0010000' = B'0010000' THEN 3
+                            WHEN CAST("Role" AS BIT(7)) & B'1000000' = B'1000000' THEN 2
+                            WHEN "Role" != 0 THEN 1
+                            ELSE 0
+                        END
+                        WHERE "Role" != 0;
                     END IF;
                 END; $$;
             """);
@@ -38,7 +35,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-
+            // there's no going back, my friend
         }
     }
 }
