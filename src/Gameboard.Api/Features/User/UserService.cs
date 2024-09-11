@@ -214,8 +214,8 @@ public class UserService(
             model.Term = model.Term.ToLower();
             q = q.Where(u =>
                 u.Id.StartsWith(model.Term) ||
-                u.Name.Contains(model.Term, StringComparison.CurrentCultureIgnoreCase) ||
-                u.ApprovedName.Contains(model.Term, StringComparison.CurrentCultureIgnoreCase)
+                u.Name.ToLower().Contains(model.Term) ||
+                u.ApprovedName.ToLower().Contains(model.Term, StringComparison.CurrentCultureIgnoreCase)
             );
         }
 
