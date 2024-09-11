@@ -35,7 +35,7 @@ namespace Gameboard.Api.Controllers
         PlayerService playerService,
         IHubContext<AppHub, IAppHubEvent> hub,
         ConsoleActorMap actormap
-        ) : _Controller(actingUserService, logger, cache, validator)
+        ) : GameboardLegacyController(actingUserService, logger, cache, validator)
     {
         private readonly IChallengeGraderUrlService _challengeGraderUrlService = challengeGraderUrlService;
         private readonly IMediator _mediator = mediator;
@@ -57,8 +57,8 @@ namespace Gameboard.Api.Controllers
         {
             await AuthorizeAny
             (
-                _permissionsService.Can(PermissionKey.Teams_DeployGameResources),
-                IsSelf(model.PlayerId)
+                () => _permissionsService.Can(PermissionKey.Teams_DeployGameResources),
+                () => IsSelf(model.PlayerId)
             );
             await Validate(model);
 
@@ -89,8 +89,8 @@ namespace Gameboard.Api.Controllers
         {
             await AuthorizeAny
             (
-                _permissionsService.Can(PermissionKey.Teams_Observe),
-                ChallengeService.UserIsPlayingChallenge(id, Actor.Id)
+                () => _permissionsService.Can(PermissionKey.Teams_Observe),
+                () => ChallengeService.UserIsPlayingChallenge(id, Actor.Id)
             );
 
             await Validate(new Entity { Id = id });
@@ -106,7 +106,7 @@ namespace Gameboard.Api.Controllers
         [HttpPost("api/challenge/preview")]
         public async Task<Challenge> Preview([FromBody] NewChallenge model)
         {
-            await AuthorizeAny(IsSelf(model.PlayerId));
+            await Authorize(IsSelf(model.PlayerId));
             await Validate(model);
 
             return await ChallengeService.Preview(model);
@@ -123,8 +123,8 @@ namespace Gameboard.Api.Controllers
         {
             await AuthorizeAny
             (
-                _permissionsService.Can(PermissionKey.Teams_DeployGameResources),
-                ChallengeService.UserIsPlayingChallenge(model.Id, Actor.Id)
+                () => _permissionsService.Can(PermissionKey.Teams_DeployGameResources),
+                () => ChallengeService.UserIsPlayingChallenge(model.Id, Actor.Id)
             );
 
             await Validate(model);
@@ -154,8 +154,8 @@ namespace Gameboard.Api.Controllers
         {
             await AuthorizeAny
             (
-                _permissionsService.Can(PermissionKey.Teams_DeployGameResources),
-                ChallengeService.UserIsPlayingChallenge(model.Id, Actor.Id)
+                () => _permissionsService.Can(PermissionKey.Teams_DeployGameResources),
+                () => ChallengeService.UserIsPlayingChallenge(model.Id, Actor.Id)
             );
 
             await Validate(new Entity { Id = model.Id });
@@ -189,10 +189,10 @@ namespace Gameboard.Api.Controllers
             await AuthorizeAny
             (
                 // this is set by _Controller if the caller authenticated with a grader key
-                Task.FromResult(AuthenticatedGraderForChallengeId == model.Id),
+                () => Task.FromResult(AuthenticatedGraderForChallengeId == model.Id),
                 // these are set if the caller authenticated with standard JWT
-                _permissionsService.Can(PermissionKey.Teams_DeployGameResources),
-                ChallengeService.UserIsPlayingChallenge(model.Id, Actor.Id)
+                () => _permissionsService.Can(PermissionKey.Teams_DeployGameResources),
+                () => ChallengeService.UserIsPlayingChallenge(model.Id, Actor.Id)
             );
 
             await Validate(new Entity { Id = model.Id });
@@ -219,7 +219,7 @@ namespace Gameboard.Api.Controllers
         [HttpPut("/api/challenge/regrade")]
         public async Task<Challenge> Regrade([FromBody] Entity model)
         {
-            await AuthorizeAny(_permissionsService.Can(PermissionKey.Scores_RegradeAndRerank));
+            await Authorize(_permissionsService.Can(PermissionKey.Scores_RegradeAndRerank));
             await Validate(model);
             var result = await ChallengeService.Regrade(model.Id);
 
@@ -243,7 +243,7 @@ namespace Gameboard.Api.Controllers
         [HttpGet("/api/challenge/{id}/audit")]
         public async Task<IEnumerable<GameEngineSectionSubmission>> Audit([FromRoute] string id)
         {
-            await AuthorizeAny(_permissionsService.Can(PermissionKey.Teams_Observe));
+            await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
             await Validate(new Entity { Id = id });
             return await ChallengeService.Audit(id);
         }
@@ -261,11 +261,8 @@ namespace Gameboard.Api.Controllers
             var isTeamMember = await ChallengeService.UserIsPlayingChallenge(model.SessionId, Actor.Id);
             Logger.LogInformation($"Console access attempt ({model.Id} / {Actor.Id}): User {Actor.Id}, roles {Actor.Role}, on team = {isTeamMember} .");
 
-            await AuthorizeAny
-            (
-                _permissionsService.Can(PermissionKey.Teams_Observe),
-                Task.FromResult(isTeamMember)
-            );
+            if (!isTeamMember)
+                await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
 
             Logger.LogInformation($"""Console access attempt ({model.Id} / {Actor.Id}): Allowed.""");
             var result = await ChallengeService.GetConsole(model, isTeamMember.Equals(false));
@@ -295,14 +292,14 @@ namespace Gameboard.Api.Controllers
         [HttpGet("/api/challenge/consoles")]
         public async Task<List<ObserveChallenge>> FindConsoles([FromQuery] string gid)
         {
-            await AuthorizeAny(_permissionsService.Can(PermissionKey.Teams_Observe));
+            await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
             return await ChallengeService.GetChallengeConsoles(gid);
         }
 
         [HttpGet("/api/challenge/consoleactors")]
         public async Task<ConsoleActor[]> GetConsoleActors([FromQuery] string gid)
         {
-            await AuthorizeAny(_permissionsService.Can(PermissionKey.Teams_Observe));
+            await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
             return ChallengeService.GetConsoleActors(gid);
         }
 
@@ -310,7 +307,7 @@ namespace Gameboard.Api.Controllers
         [Authorize(AppConstants.ConsolePolicy)]
         public async Task<ConsoleActor> GetConsoleActor([FromQuery] string uid)
         {
-            await AuthorizeAny(_permissionsService.Can(PermissionKey.Teams_Observe));
+            await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
             return ChallengeService.GetConsoleActor(uid);
         }
 
@@ -334,7 +331,7 @@ namespace Gameboard.Api.Controllers
         [HttpGet("/api/challenges")]
         public async Task<ChallengeSummary[]> List([FromQuery] SearchFilter model)
         {
-            await AuthorizeAny(_permissionsService.Can(PermissionKey.Teams_Observe));
+            await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
             return await ChallengeService.List(model);
         }
 
@@ -362,7 +359,7 @@ namespace Gameboard.Api.Controllers
         [HttpGet("/api/challenges/archived")]
         public async Task<ArchivedChallenge[]> ListArchived([FromQuery] SearchFilter model)
         {
-            await AuthorizeAny(_permissionsService.Can(PermissionKey.Teams_Observe));
+            await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
             return await ChallengeService.ListArchived(model);
         }
 

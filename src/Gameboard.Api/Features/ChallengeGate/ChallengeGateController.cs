@@ -21,7 +21,7 @@ public class ChallengeGateController(
         ChallengeGateValidator validator,
         ChallengeGateService challengeGateService,
         IUserRolePermissionsService permissionsService
-        ) : _Controller(actingUserService, logger, cache, validator)
+        ) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
     ChallengeGateService ChallengeGateService { get; } = challengeGateService;
 

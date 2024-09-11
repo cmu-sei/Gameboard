@@ -29,7 +29,7 @@ public class TicketController(
     TicketService ticketService,
     IHubContext<AppHub, IAppHubEvent> hub,
     IMapper mapper
-    ) : _Controller(actingUserService, logger, cache, validator)
+    ) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
     TicketService TicketService { get; } = ticketService;
@@ -48,8 +48,8 @@ public class TicketController(
     {
         await AuthorizeAny
         (
-            _permissionsService.Can(PermissionKey.Support_ViewTickets),
-            TicketService.IsOwnerOrTeamMember(id, Actor.Id)
+            () => _permissionsService.Can(PermissionKey.Support_ViewTickets),
+            () => TicketService.IsOwnerOrTeamMember(id, Actor.Id)
         );
 
         await Cache.SetStringAsync
@@ -87,11 +87,8 @@ public class TicketController(
     public async Task<Ticket> Update([FromBody] ChangedTicket model)
     {
         var isTicketAdmin = await _permissionsService.Can(PermissionKey.Support_ManageTickets);
-
-        await AuthorizeAny(
-            Task.FromResult(isTicketAdmin),
-            TicketService.UserCanUpdate(model.Id, Actor.Id)
-        );
+        if (!isTicketAdmin)
+            await Authorize(TicketService.UserCanUpdate(model.Id, Actor.Id));
 
         await Validate(model);
 
@@ -130,8 +127,8 @@ public class TicketController(
     {
         await AuthorizeAny
         (
-            _permissionsService.Can(PermissionKey.Support_ManageTickets),
-            TicketService.IsOwnerOrTeamMember(model.TicketId, Actor.Id)
+            () => _permissionsService.Can(PermissionKey.Support_ManageTickets),
+            () => TicketService.IsOwnerOrTeamMember(model.TicketId, Actor.Id)
         );
 
         await Validate(model);
@@ -151,7 +148,7 @@ public class TicketController(
     [Authorize]
     public async Task<string[]> ListLabels([FromQuery] SearchFilter model)
     {
-        await AuthorizeAny(_permissionsService.Can(PermissionKey.Support_ViewTickets));
+        await Authorize(_permissionsService.Can(PermissionKey.Support_ViewTickets));
         return await TicketService.ListLabels(model);
     }
 

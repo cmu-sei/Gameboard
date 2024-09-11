@@ -37,7 +37,7 @@ namespace Gameboard.Api.Controllers
         IMediator mediator,
         IHostEnvironment env,
         IUserRolePermissionsService permissionsService
-        ) : _Controller(actingUserService, logger, cache, validator)
+        ) : GameboardLegacyController(actingUserService, logger, cache, validator)
     {
         GameService GameService { get; } = gameService;
         public CoreOptions Options { get; } = options;
@@ -158,14 +158,14 @@ namespace Gameboard.Api.Controllers
         [HttpPost("api/game/{id}/card")]
         public async Task<ActionResult<UploadedFile>> UploadGameCard(string id, IFormFile file)
         {
-            await AuthorizeAny(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
             return Ok(await GameService.SaveGameCardImage(id, file));
         }
 
         [HttpPost("api/game/{id}/{type}")]
         public async Task<ActionResult<UploadedFile>> UploadMapImage(string id, string type, IFormFile file)
         {
-            await AuthorizeAny(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
             await Validate(new Entity { Id = id });
 
             string filename = $"{type}_{new Random().Next().ToString("x8")}{Path.GetExtension(file.FileName)}".ToLower();
@@ -184,7 +184,7 @@ namespace Gameboard.Api.Controllers
         [HttpDelete("api/game/{id}/card")]
         public async Task DeleteGameCard([FromRoute] string id)
         {
-            await AuthorizeAny(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
             await GameService.DeleteGameCardImage(id);
         }
 
@@ -192,7 +192,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<UploadedFile>> DeleteImage([FromRoute] string id, [FromRoute] string type)
         {
-            await AuthorizeAny(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
             await Validate(new Entity { Id = id });
 
             string target = $"{id}_{type}.*".ToLower();
@@ -216,7 +216,7 @@ namespace Gameboard.Api.Controllers
         [HttpPost("/api/game/{id}/rerank")]
         public async Task Rerank([FromRoute] string id, CancellationToken cancellationToken)
         {
-            await AuthorizeAny(_permissionsService.Can(PermissionKey.Scores_RegradeAndRerank));
+            await Authorize(_permissionsService.Can(PermissionKey.Scores_RegradeAndRerank));
             await Validate(new Entity { Id = id });
 
             await GameService.ReRank(id);

@@ -24,7 +24,7 @@ public class ChallengeSpecController(
         ChallengeSpecValidator validator,
         ChallengeSpecService challengespecService,
         IUserRolePermissionsService permissionsService
-        ) : _Controller(actingUserService, logger, cache, validator)
+        ) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
     private readonly IMediator _mediator = mediator;
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
@@ -38,7 +38,7 @@ public class ChallengeSpecController(
     [HttpPost("api/challengespec")]
     public async Task<ChallengeSpec> Create([FromBody] NewChallengeSpec model)
     {
-        await AuthorizeAny(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
         await Validate(model);
 
         return await ChallengeSpecService.AddOrUpdate(model);
@@ -63,7 +63,7 @@ public class ChallengeSpecController(
     [HttpPut("api/challengespec")]
     public async Task Update([FromBody] ChangedChallengeSpec model)
     {
-        await AuthorizeAny(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
         await ChallengeSpecService.Update(model);
     }
 
@@ -75,7 +75,7 @@ public class ChallengeSpecController(
     [HttpDelete("/api/challengespec/{id}")]
     public async Task Delete([FromRoute] string id)
     {
-        await AuthorizeAny(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
         await ChallengeSpecService.Delete(id);
     }
 
@@ -87,7 +87,7 @@ public class ChallengeSpecController(
     [HttpGet("/api/challengespecs")]
     public async Task<ExternalSpec[]> List([FromQuery] SearchFilter model)
     {
-        await AuthorizeAny(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
         return await ChallengeSpecService.List(model);
     }
 
@@ -106,7 +106,7 @@ public class ChallengeSpecController(
     [HttpPost("/api/challengespecs/sync/{id}")]
     public async Task Sync([FromRoute] string id)
     {
-        await AuthorizeAny(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
         await ChallengeSpecService.Sync(id);
     }
 }

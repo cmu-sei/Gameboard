@@ -32,7 +32,7 @@ public class PlayerController
         IMapper _mapper,
         IUserRolePermissionsService permissionsService,
         ITeamService teamService
-        ) : _Controller(actingUserService, logger, cache, validator)
+        ) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
     private readonly IMediator _mediator = mediator;
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
@@ -53,8 +53,8 @@ public class PlayerController
     {
         await AuthorizeAny
         (
-            _permissionsService.Can(PermissionKey.Teams_Enroll),
-            Task.FromResult(model.UserId == Actor.Id)
+            () => _permissionsService.Can(PermissionKey.Teams_Enroll),
+            () => Task.FromResult(model.UserId == Actor.Id)
         );
 
         await Validate(model);
@@ -90,8 +90,8 @@ public class PlayerController
     {
         await AuthorizeAny
         (
-            _permissionsService.IsActingUserAsync(model.Id),
-            _permissionsService.Can(PermissionKey.Teams_ApproveNameChanges)
+            () => _permissionsService.IsActingUserAsync(model.Id),
+            () => _permissionsService.Can(PermissionKey.Teams_ApproveNameChanges)
         );
 
         await Validate(model);
@@ -111,8 +111,8 @@ public class PlayerController
     {
         await AuthorizeAny
         (
-            IsSelf(playerId),
-            _permissionsService.Can(PermissionKey.Teams_EditSession)
+            () => IsSelf(playerId),
+            () => _permissionsService.Can(PermissionKey.Teams_EditSession)
         );
 
         var sessionStartRequest = new SessionStartRequest { PlayerId = playerId };
@@ -133,8 +133,8 @@ public class PlayerController
     {
         await AuthorizeAny
         (
-            IsSelf(playerId),
-            _permissionsService.Can(PermissionKey.Teams_Enroll)
+            () => IsSelf(playerId),
+            () => _permissionsService.Can(PermissionKey.Teams_Enroll)
         );
 
         var unenrollRequest = new PlayerUnenrollRequest
@@ -172,7 +172,7 @@ public class PlayerController
     [Authorize]
     public async Task<IEnumerable<TeamChallenge>> GetTeamChallenges([FromRoute] string id)
     {
-        await AuthorizeAny(_permissionsService.Can(PermissionKey.Teams_Observe));
+        await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
         return await PlayerService.LoadChallengesForTeam(id);
     }
 
@@ -185,7 +185,7 @@ public class PlayerController
     [Authorize]
     public async Task<IEnumerable<ObserveTeam>> ObserveTeams([FromRoute] string id)
     {
-        await AuthorizeAny(_permissionsService.Can(PermissionKey.Teams_Observe));
+        await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
         return await PlayerService.ObserveTeams(id);
     }
 
@@ -199,7 +199,7 @@ public class PlayerController
     public async Task<BoardPlayer> GetBoard([FromRoute] string id)
     {
         await Validate(new Entity { Id = id });
-        await AuthorizeAny(IsSelf(id));
+        await Authorize(IsSelf(id));
 
         return await PlayerService.LoadBoard(id);
     }
@@ -210,8 +210,8 @@ public class PlayerController
     {
         await AuthorizeAny
         (
-            _permissionsService.IsActingUserAsync(id),
-            _permissionsService.Can(PermissionKey.Teams_Enroll)
+            () => _permissionsService.IsActingUserAsync(id),
+            () => _permissionsService.Can(PermissionKey.Teams_Enroll)
         );
 
         await Validate(new Entity { Id = id });
@@ -236,8 +236,8 @@ public class PlayerController
     {
         await AuthorizeAny
         (
-            _permissionsService.Can(PermissionKey.Teams_Enroll),
-            IsSelf(promoteRequest.CurrentManagerPlayerId)
+            () => _permissionsService.Can(PermissionKey.Teams_Enroll),
+            () => IsSelf(promoteRequest.CurrentManagerPlayerId)
         );
 
         var model = new PromoteToManagerRequest
@@ -262,7 +262,7 @@ public class PlayerController
     public async Task<PlayerCertificate> GetCertificate([FromRoute] string id)
     {
         await Validate(new Entity { Id = id });
-        await AuthorizeAny(IsSelf(id));
+        await Authorize(IsSelf(id));
 
         return await PlayerService.MakeCertificate(id);
     }

@@ -34,7 +34,7 @@ namespace Gameboard.Api.Controllers
         CoreOptions options,
         IMediator mediator,
         IUserRolePermissionsService permissionsService
-        ) : _Controller(actingUserService, logger, cache, validator)
+        ) : GameboardLegacyController(actingUserService, logger, cache, validator)
     {
         private readonly IActingUserService _actingUserService = actingUserService;
         private readonly IGuidService _guids = guids;
@@ -55,8 +55,8 @@ namespace Gameboard.Api.Controllers
         {
             await AuthorizeAny
             (
-                Task.FromResult(model.Id == Actor?.Id),
-                _permissionsService.Can(PermissionKey.Users_CreateEditDelete)
+                () => Task.FromResult(model.Id == Actor?.Id),
+                () => _permissionsService.Can(PermissionKey.Users_CreateEditDelete)
             );
 
             var result = await UserService.TryCreate(model);
@@ -99,8 +99,8 @@ namespace Gameboard.Api.Controllers
         {
             await AuthorizeAny
             (
-                _permissionsService.Can(PermissionKey.Admin_View),
-                Task.FromResult(id == Actor.Id)
+                () => _permissionsService.Can(PermissionKey.Admin_View),
+                () => Task.FromResult(id == Actor.Id)
             );
 
             await Validate(new Entity { Id = id });
@@ -134,7 +134,7 @@ namespace Gameboard.Api.Controllers
         [HttpDelete("/api/user/{id}")]
         public async Task Delete([FromRoute] string id)
         {
-            await AuthorizeAny(_permissionsService.Can(PermissionKey.Users_CreateEditDelete));
+            await Authorize(_permissionsService.Can(PermissionKey.Users_CreateEditDelete));
             await Validate(new Entity { Id = id });
             await UserService.Delete(id);
         }
@@ -157,7 +157,7 @@ namespace Gameboard.Api.Controllers
         [HttpGet("/api/users")]
         public async Task<IEnumerable<UserOnly>> List([FromQuery] UserSearch model, CancellationToken cancellationToken)
         {
-            await AuthorizeAny(_permissionsService.Can(PermissionKey.Admin_View));
+            await Authorize(_permissionsService.Can(PermissionKey.Admin_View));
             return await UserService.List<UserOnly>(model);
         }
 
@@ -169,7 +169,7 @@ namespace Gameboard.Api.Controllers
         [HttpGet("/api/users/support")]
         public async Task<UserSimple[]> ListSupport([FromQuery] SearchFilter model)
         {
-            await AuthorizeAny(_permissionsService.Can(PermissionKey.Support_ManageTickets));
+            await Authorize(_permissionsService.Can(PermissionKey.Support_ManageTickets));
             return await UserService.ListSupport(model);
         }
 
@@ -220,8 +220,8 @@ namespace Gameboard.Api.Controllers
         {
             var result = Directory.GetFiles(Options.DocFolder, "*", SearchOption.AllDirectories)
                 .Select(x => x.Replace(Options.DocFolder, ""))
-                .ToArray()
-            ;
+                .ToArray();
+
             return result;
         }
 

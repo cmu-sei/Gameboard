@@ -1,3 +1,4 @@
+
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
@@ -37,7 +38,6 @@ public static class ServiceStartupExtensions
             .AddConcretesFromNamespace("Gameboard.Api.Services")
             .AddConcretesFromNamespace("Gameboard.Api.Structure.Authorizers")
             .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators")
-            .AddTransient<IStore, Store>()
             .AddScoped(typeof(IStore<>), typeof(Store<>))
             .AddScoped(typeof(UserIsPlayingGameValidator<>))
             .AddImplementationsOf<IModelValidator>()

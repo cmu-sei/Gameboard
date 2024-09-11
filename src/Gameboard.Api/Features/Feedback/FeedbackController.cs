@@ -21,7 +21,7 @@ namespace Gameboard.Api.Controllers
         FeedbackValidator validator,
         FeedbackService feedbackService,
         IUserRolePermissionsService permissionsService
-        ) : _Controller(actingUserService, logger, cache, validator)
+        ) : GameboardLegacyController(actingUserService, logger, cache, validator)
     {
         private readonly IUserRolePermissionsService _permissionsService = permissionsService;
         FeedbackService FeedbackService { get; } = feedbackService;
@@ -35,7 +35,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<FeedbackReportDetails[]> List([FromQuery] FeedbackSearchParams model)
         {
-            await AuthorizeAny(_permissionsService.Can(PermissionKey.Reports_View));
+            await Authorize(_permissionsService.Can(PermissionKey.Reports_View));
 
             return await FeedbackService.List(model);
         }
@@ -49,8 +49,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<Feedback> Retrieve([FromQuery] FeedbackSearchParams model)
         {
-            AuthorizeAny(() => FeedbackService.UserIsEnrolled(model.GameId, Actor.Id).Result);
-
+            await Authorize(FeedbackService.UserIsEnrolled(model.GameId, Actor.Id));
             return await FeedbackService.Retrieve(model, Actor.Id);
         }
 
@@ -63,10 +62,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<Feedback> Submit([FromBody] FeedbackSubmission model)
         {
-            AuthorizeAny(
-                () => FeedbackService.UserIsEnrolled(model.GameId, Actor.Id).Result
-            );
-
+            await Authorize(FeedbackService.UserIsEnrolled(model.GameId, Actor.Id));
             await Validate(model);
 
             var result = await FeedbackService.Submit(model, Actor.Id);
