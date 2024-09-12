@@ -43,7 +43,6 @@ public class GameDetail
     public bool AllowPublicScoreboardAccess { get; set; }
     public bool AllowPreview { get; set; }
     public bool AllowReset { get; set; }
-    public string Key { get; set; }
     public string CardText1 { get; set; }
     public string CardText2 { get; set; }
     public string CardText3 { get; set; }

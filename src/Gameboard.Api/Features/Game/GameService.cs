@@ -377,7 +377,6 @@ public class GameService : _Service, IGameService
                 t.Division.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
                 t.Competition.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
                 t.Sponsor.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
-                t.Key.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
                 t.Mode.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
                 t.Id.StartsWith(term, StringComparison.CurrentCultureIgnoreCase) ||
                 t.CardText1.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||

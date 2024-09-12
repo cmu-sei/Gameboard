@@ -225,7 +225,6 @@ public class GameboardDbContext : DbContext
             b.Property(p => p.Logo).HasMaxLength(64);
             b.Property(p => p.Background).HasMaxLength(64);
             b.Property(p => p.TestCode).HasMaxLength(64);
-            b.Property(p => p.Key).HasMaxLength(64);
             b.Property(p => p.CardText1).HasMaxLength(64);
             b.Property(p => p.CardText2).HasMaxLength(64);
             b.Property(p => p.CardText3).HasMaxLength(64);

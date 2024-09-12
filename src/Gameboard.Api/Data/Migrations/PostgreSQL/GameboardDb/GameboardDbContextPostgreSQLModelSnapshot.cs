@@ -737,10 +737,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<bool>("IsPublished")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("Key")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
                     b.Property<string>("Logo")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
