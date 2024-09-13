@@ -32,6 +32,7 @@ internal class UserRolePermissionsConfigurationService : IUserRolePermissionsCon
                     PermissionKey.Scores_RegradeAndRerank,
                     PermissionKey.Scores_ViewLive,
                     PermissionKey.Support_ViewTickets,
+                    PermissionKey.Teams_DeployGameResources,
                     PermissionKey.Teams_Observe
                 ]
             },
