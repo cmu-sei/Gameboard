@@ -61,10 +61,10 @@ internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenter
                 c =>
                     searchTerm == null ||
                     c.Id.StartsWith(searchTerm) ||
-                    c.Player.UserId.StartsWith(searchTerm, StringComparison.CurrentCultureIgnoreCase) ||
-                    c.Player.Sponsor.Name.StartsWith(searchTerm, StringComparison.CurrentCultureIgnoreCase) ||
-                    c.Player.User.Sponsor.Name.StartsWith(searchTerm, StringComparison.CurrentCultureIgnoreCase) ||
-                    c.Player.User.Name.Contains(searchTerm, StringComparison.CurrentCultureIgnoreCase)
+                    c.Player.UserId.ToLower().StartsWith(searchTerm) ||
+                    c.Player.Sponsor.Name.ToLower().StartsWith(searchTerm) ||
+                    c.Player.User.Sponsor.Name.ToLower().StartsWith(searchTerm) ||
+                    c.Player.User.Name.ToLower().Contains(searchTerm)
             )
             .Select(c => new
             {

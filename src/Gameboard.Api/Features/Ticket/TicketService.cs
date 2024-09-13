@@ -66,17 +66,17 @@ public class TicketService(
             var prefix = Options.KeyPrefix.ToLower() + "-";
             q = q.Where
             (
-                t => t.Summary.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
-                    t.Label.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
+                t => t.Summary.ToLower().Contains(term) ||
+                    t.Label.ToLower().Contains(term) ||
                     (prefix + t.Key.ToString()).Contains(term) ||
-                    t.Requester.ApprovedName.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
-                    t.Assignee.ApprovedName.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
-                    t.Challenge.Name.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
-                    t.Challenge.Tag.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
-                    t.Challenge.Id.Equals(term, StringComparison.CurrentCultureIgnoreCase) ||
-                    t.TeamId.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
-                    t.PlayerId.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
-                    t.RequesterId.Contains(term, StringComparison.CurrentCultureIgnoreCase)
+                    t.Requester.ApprovedName.ToLower().Contains(term) ||
+                    t.Assignee.ApprovedName.ToLower().Contains(term) ||
+                    t.Challenge.Name.ToLower().Contains(term) ||
+                    t.Challenge.Tag.ToLower().Contains(term) ||
+                    t.Challenge.Id.ToLower() == term ||
+                    t.TeamId.ToLower().Contains(term) ||
+                    t.PlayerId.ToLower().Contains(term) ||
+                    t.RequesterId.ToLower().Contains(term)
 
             );
         }
@@ -479,18 +479,21 @@ public class TicketService(
                 .Where(c => c.Id == entity.ChallengeId)
                 .SingleOrDefaultAsync();
 
-            if (challenge != null)
+            if (challenge is not null)
             {
                 entity.TeamId = challenge.TeamId;
                 entity.PlayerId = challenge.PlayerId;
-                entity.Label = "";
+                entity.Label = string.Empty;
 
-                // auto-add the "practice-challenge" tag - should be there if this is a practice challenge
+                // if support settings specify an automatic tag for practice challenges, throw it on there
                 if (challenge.PlayerMode == PlayerMode.Practice)
                 {
-                    if (!entity.Label.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries).Contains("practice-challenge"))
+                    var supportSettings = await _store.WithNoTracking<Data.SupportSettings>().SingleOrDefaultAsync();
+                    var autoTagLabel = supportSettings?.AutoTagPracticeTicketsWith;
+
+                    if (autoTagLabel.IsNotEmpty() && !entity.Label.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries).Contains(autoTagLabel))
                     {
-                        entity.Label += entity.Label + " practice-challenge".Trim();
+                        entity.Label = $"{entity.Label} {autoTagLabel}".Trim();
                     }
                 }
 

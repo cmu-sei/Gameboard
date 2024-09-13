@@ -1057,6 +1057,10 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
+                    b.Property<string>("AutoTagPracticeTicketsWith")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<string>("SupportPageGreeting")
                         .HasColumnType("text");
 

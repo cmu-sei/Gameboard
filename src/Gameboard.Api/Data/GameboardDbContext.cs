@@ -337,6 +337,9 @@ public class GameboardDbContext : DbContext
             b
                 .Property(b => b.UpdatedOn)
                 .IsRequired();
+            b
+                .Property(b => b.AutoTagPracticeTicketsWith)
+                .HasStandardNameLength();
 
             b
                 .HasOne(b => b.UpdatedByUser)

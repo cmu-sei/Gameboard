@@ -371,17 +371,17 @@ public class GameService : _Service, IGameService
             var term = model.Term.ToLower();
 
             q = q.Where(t =>
-                t.Name.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
-                t.Season.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
-                t.Track.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
-                t.Division.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
-                t.Competition.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
-                t.Sponsor.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
-                t.Mode.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
-                t.Id.StartsWith(term, StringComparison.CurrentCultureIgnoreCase) ||
-                t.CardText1.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
-                t.CardText2.Contains(term, StringComparison.CurrentCultureIgnoreCase) ||
-                t.CardText3.Contains(term, StringComparison.CurrentCultureIgnoreCase)
+                t.Name.ToLower().Contains(term) ||
+                t.Season.ToLower().Contains(term) ||
+                t.Track.ToLower().Contains(term) ||
+                t.Division.ToLower().Contains(term) ||
+                t.Competition.ToLower().Contains(term) ||
+                t.Sponsor.ToLower().Contains(term) ||
+                t.Mode.ToLower().Contains(term) ||
+                t.Id.ToLower().StartsWith(term) ||
+                t.CardText1.ToLower().Contains(term) ||
+                t.CardText2.ToLower().Contains(term) ||
+                t.CardText3.ToLower().Contains(term)
             );
         }
 
@@ -396,7 +396,7 @@ public class GameService : _Service, IGameService
 
         if (model.IsOngoing.HasValue)
             q = q
-                .Where(g => (g.GameEnd == DateTimeOffset.MinValue) == model.IsOngoing)
+                .Where(g => g.GameEnd == DateTimeOffset.MinValue == model.IsOngoing)
                 .Where(g => g.PlayerMode == PlayerMode.Competition);
 
         if (model.WantsAdvanceable)

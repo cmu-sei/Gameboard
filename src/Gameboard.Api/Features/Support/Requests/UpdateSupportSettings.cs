@@ -33,6 +33,8 @@ internal class UpdateSupportSettingsHandler(
             .WithTracking<SupportSettings>()
             .SingleOrDefaultAsync(cancellationToken);
 
+        request.Settings.AutoTagPracticeTicketsWith = request.Settings.AutoTagPracticeTicketsWith.IsEmpty() ? null : request.Settings.AutoTagPracticeTicketsWith;
+
         if (existingSettings is null)
         {
             await _store
@@ -45,12 +47,17 @@ internal class UpdateSupportSettingsHandler(
         }
         else
         {
+            existingSettings.AutoTagPracticeTicketsWith = request.Settings.AutoTagPracticeTicketsWith;
             existingSettings.SupportPageGreeting = request.Settings.SupportPageGreeting;
             existingSettings.UpdatedByUserId = _actingUserService.Get().Id;
             existingSettings.UpdatedOn = _nowService.Get();
             await _store.SaveUpdate(existingSettings, cancellationToken);
         }
 
-        return new SupportSettingsViewModel { SupportPageGreeting = request.Settings.SupportPageGreeting };
+        return new SupportSettingsViewModel
+        {
+            AutoTagPracticeTicketsWith = request.Settings.AutoTagPracticeTicketsWith,
+            SupportPageGreeting = request.Settings.SupportPageGreeting
+        };
     }
 }
