@@ -38,31 +38,22 @@ public interface IGameService
     Task<bool> UserIsTeamPlayer(string uid, string gid, string tid);
 }
 
-public class GameService : _Service, IGameService
+public class GameService(
+    IGuidService guids,
+    ILogger<GameService> logger,
+    IMapper mapper,
+    CoreOptions options,
+    Defaults defaults,
+    INowService nowService,
+    IUserRolePermissionsService permissionsService,
+    IStore store
+    ) : _Service(logger, mapper, options), IGameService
 {
-    private readonly Defaults _defaults;
-    private readonly IGuidService _guids;
-    private readonly INowService _now;
-    private readonly IUserRolePermissionsService _permissionsService;
-    private readonly IStore _store;
-
-    public GameService(
-        IGuidService guids,
-        ILogger<GameService> logger,
-        IMapper mapper,
-        CoreOptions options,
-        Defaults defaults,
-        INowService nowService,
-        IUserRolePermissionsService permissionsService,
-        IStore store
-    ) : base(logger, mapper, options)
-    {
-        _guids = guids;
-        _defaults = defaults;
-        _now = nowService;
-        _permissionsService = permissionsService;
-        _store = store;
-    }
+    private readonly Defaults _defaults = defaults;
+    private readonly IGuidService _guids = guids;
+    private readonly INowService _now = nowService;
+    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
+    private readonly IStore _store = store;
 
     public async Task<Game> Create(NewGame model)
     {

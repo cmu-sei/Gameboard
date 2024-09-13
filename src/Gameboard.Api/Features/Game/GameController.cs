@@ -53,8 +53,11 @@ namespace Gameboard.Api.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("api/game")]
-        public Task<Game> Create([FromBody] NewGame model)
-            => GameService.Create(model);
+        public async Task<Game> Create([FromBody] NewGame model)
+        {
+            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+            return await GameService.Create(model);
+        }
 
         /// <summary>
         /// Retrieve game
