@@ -150,7 +150,7 @@ namespace Gameboard.Api.Controllers
         [HttpPost("/api/game/export")]
         public async Task<string> ExportGameSpec([FromBody] GameSpecExport model)
         {
-            await _permissionsService.Can(PermissionKey.Games_CreateEditDelete);
+            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
             return await GameService.Export(model);
         }
 
