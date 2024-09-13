@@ -32,7 +32,7 @@ public class GameControllerTests : IClassFixture<GameboardTestContext>
 
         // act
         var responseGame = await _testContext
-            .CreateHttpClientWithAuthRole(UserRoleKey.Tester)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Director)
             .PostAsync("/api/game", game.ToJsonBody())
             .DeserializeResponseAs<Data.Game>();
 
