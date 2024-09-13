@@ -84,7 +84,7 @@ public class ScoringControllerGetGameScoreTests : IClassFixture<GameboardTestCon
         });
 
         var result = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Admin)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Admin)
             .GetAsync($"api/game/{gameId}/score")
             .DeserializeResponseAs<GameScore>();
 

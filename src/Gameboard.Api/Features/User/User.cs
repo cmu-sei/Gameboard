@@ -15,7 +15,7 @@ public class User
     public string Name { get; set; }
     public string NameStatus { get; set; }
     public string ApprovedName { get; set; }
-    public UserRole? Role { get; set; }
+    public UserRoleKey? Role { get; set; }
     public IEnumerable<PermissionKey> RolePermissions { get; set; } = [];
     public Player[] Enrollments { get; set; }
     public DateTimeOffset CreatedOn { get; set; }
@@ -41,7 +41,7 @@ public class ChangedUser
     public string NameStatus { get; set; }
     public string ApprovedName { get; set; }
     public string SponsorId { get; set; }
-    public UserRole? Role { get; set; }
+    public UserRoleKey? Role { get; set; }
     public bool? PlayAudioOnBrowserNotification { get; set; }
 }
 
@@ -93,7 +93,7 @@ public class UserOnly
     public DateTimeOffset CreatedOn { get; set; }
     public DateTimeOffset? LastLoginDate { get; set; }
     public int LoginCount { get; set; }
-    public UserRole Role { get; set; }
+    public UserRoleKey Role { get; set; }
 }
 
 public class TryCreateUserResult

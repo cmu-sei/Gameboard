@@ -41,7 +41,7 @@ public class PlayersReportTests : IClassFixture<GameboardTestContext>
 
         // when the report is run
         var results = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Admin)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Admin)
             .GetAsync("/api/reports/players")
             .DeserializeResponseAs<ReportResults<PlayersReportStatSummary, PlayersReportRecord>>();
 

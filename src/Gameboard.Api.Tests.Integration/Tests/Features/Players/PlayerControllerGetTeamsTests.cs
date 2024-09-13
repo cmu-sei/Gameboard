@@ -29,7 +29,7 @@ public class PlayerControllerGetTeamsTests(GameboardTestContext testContext) : I
 
         // when the game's teams are requested
         var result = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Support)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Support)
             .GetAsync($"/api/teams/{gameId}")
             .DeserializeResponseAs<TeamSummary[]>();
 

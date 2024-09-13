@@ -72,7 +72,7 @@ public abstract class GameboardLegacyController(
     /// <param name="requirements"></param>
     protected void AuthorizeAny(params Func<bool>[] requirements)
     {
-        if (Actor?.Role == UserRole.Admin)
+        if (Actor?.Role == UserRoleKey.Admin)
             return;
 
         bool valid = false;
@@ -89,7 +89,7 @@ public abstract class GameboardLegacyController(
 
     protected async Task AuthorizeAny(params Func<Task<bool>>[] requirements)
     {
-        if (Actor?.Role == UserRole.Admin)
+        if (Actor?.Role == UserRoleKey.Admin)
             return;
 
         foreach (var requirement in requirements)

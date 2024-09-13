@@ -42,7 +42,7 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext>
                             p.User = state.Build<Data.User>(fixture, u =>
                             {
                                 u.Id = memberUserId;
-                                u.Role = UserRole.Member;
+                                u.Role = UserRoleKey.Member;
                             });
                             p.Challenges = state.Build<Data.Challenge>(fixture, c =>
                             {
@@ -97,7 +97,7 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext>
                             p.User = state.Build<Data.User>(fixture, u =>
                             {
                                 u.Id = fixture.Create<string>();
-                                u.Role = UserRole.Member;
+                                u.Role = UserRoleKey.Member;
                             });
                         }),
 

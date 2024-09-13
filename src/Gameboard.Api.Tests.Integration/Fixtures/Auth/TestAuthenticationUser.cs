@@ -8,6 +8,6 @@ public class TestAuthenticationUser
 
     public string Id { get; set; } = DEFAULT_USERID;
     public string Name { get; set; } = "";
-    public UserRole Role { get; set; } = UserRole.Member;
+    public UserRoleKey Role { get; set; } = UserRoleKey.Member;
     public string SponsorId { get; set; } = string.Empty;
 }

@@ -21,7 +21,7 @@ public class ChallengeBonusListTests : IClassFixture<GameboardTestContext>
             state.Add<Data.User>(fixture, u =>
             {
                 u.Id = userId;
-                u.Role = UserRole.Support;
+                u.Role = UserRoleKey.Support;
             });
 
             state.Add<Data.Challenge>(fixture, c =>
@@ -47,7 +47,7 @@ public class ChallengeBonusListTests : IClassFixture<GameboardTestContext>
 
         });
 
-        var http = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
+        var http = _testContext.CreateHttpClientWithAuthRole(UserRoleKey.Admin);
 
         // when
         var bonuses = await http

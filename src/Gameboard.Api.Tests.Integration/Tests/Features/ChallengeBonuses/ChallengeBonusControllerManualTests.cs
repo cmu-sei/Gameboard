@@ -20,7 +20,7 @@ public class ChallengeBonusControllerManualTests(GameboardTestContext testContex
             state.Add<Data.User>(fixture, u =>
             {
                 u.Id = userId;
-                u.Role = UserRole.Admin;
+                u.Role = UserRoleKey.Admin;
             });
         });
 
@@ -35,7 +35,7 @@ public class ChallengeBonusControllerManualTests(GameboardTestContext testContex
             .CreateHttpClientWithActingUser(u =>
             {
                 u.Id = userId;
-                u.Role = UserRole.Admin;
+                u.Role = UserRoleKey.Admin;
             })
             .PostAsync($"api/challenge/{challengeId}/bonus/manual", bonus.ToJsonBody());
 

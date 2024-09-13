@@ -58,7 +58,7 @@ internal static class GameboardTestContextExtensions
             .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
     }
 
-    public static HttpClient CreateHttpClientWithAuthRole(this GameboardTestContext testContext, UserRole role)
+    public static HttpClient CreateHttpClientWithAuthRole(this GameboardTestContext testContext, UserRoleKey role)
         => CreateHttpClientWithActingUser(testContext, u => u.Role = role);
 
     public static HttpClient CreateHttpClientWithGraderConfig(this GameboardTestContext testContext, double gradedScore)

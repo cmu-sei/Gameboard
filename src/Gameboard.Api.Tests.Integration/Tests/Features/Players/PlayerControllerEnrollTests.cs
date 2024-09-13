@@ -27,7 +27,7 @@ public class PlayerControllerEnrollTests : IClassFixture<GameboardTestContext>
             state.Add<Data.User>(fixture, u =>
             {
                 u.Id = userId;
-                u.Role = UserRole.Member;
+                u.Role = UserRoleKey.Member;
                 u.Sponsor = fixture.Create<Data.Sponsor>();
                 u.Enrollments = state.Build<Data.Player>(fixture, p =>
                 {

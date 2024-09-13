@@ -37,6 +37,6 @@ public static class TestAuthExtensions
         return AddGbIntegrationTestAuth(services, user);
     }
 
-    public static IServiceCollection AddGbIntegrationTestAuth(this IServiceCollection services, UserRole role)
+    public static IServiceCollection AddGbIntegrationTestAuth(this IServiceCollection services, UserRoleKey role)
         => AddGbIntegrationTestAuth(services, u => u.Role = role);
 }

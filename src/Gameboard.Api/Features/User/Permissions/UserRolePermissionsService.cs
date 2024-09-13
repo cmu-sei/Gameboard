@@ -15,10 +15,10 @@ public interface IUserRolePermissionsService
     bool IsActingUser(string userId);
     Task<bool> IsActingUserAsync(string userId);
     Task<IEnumerable<PermissionKey>> GetAllPermissions();
-    Task<IDictionary<UserRole, IEnumerable<PermissionKey>>> GetRolePermissionAssignments();
-    Task<IEnumerable<PermissionKey>> GetPermissions(UserRole? role);
+    Task<IEnumerable<PermissionKey>> GetPermissions(UserRoleKey? role);
     Task<IEnumerable<PermissionKey>> GetPermissions(string userId, CancellationToken cancellationToken);
-    Task<IEnumerable<UserRole>> GetRolesWithPermission(PermissionKey key);
+    Task<IEnumerable<UserRole>> GetRoles();
+    Task<IEnumerable<UserRoleKey>> GetRolesWithPermission(PermissionKey key);
     Task<IEnumerable<UserRolePermission>> List();
 }
 
@@ -29,7 +29,7 @@ internal class UserRolePermissionsService(IActingUserService actingUserService, 
         new()
         {
             Group = PermissionKeyGroup.Admin,
-            Key = PermissionKey.Admin_CreateApiKeys,
+            Key = PermissionKey.ApiKeys_CreateRevoke,
             Name = "Manage API Keys",
             Description = "Can generate API keys for any user and revoke their access"
         },
@@ -220,7 +220,7 @@ internal class UserRolePermissionsService(IActingUserService actingUserService, 
     public Task<IEnumerable<PermissionKey>> GetAllPermissions()
         => Task.FromResult<IEnumerable<PermissionKey>>(Enum.GetValues<PermissionKey>());
 
-    public Task<IEnumerable<PermissionKey>> GetPermissions(UserRole? role)
+    public Task<IEnumerable<PermissionKey>> GetPermissions(UserRoleKey? role)
     {
         var permissions = Array.Empty<PermissionKey>() as IEnumerable<PermissionKey>;
         if (role is not null)
@@ -239,6 +239,36 @@ internal class UserRolePermissionsService(IActingUserService actingUserService, 
         return await GetPermissions(role);
     }
 
+    public async Task<IEnumerable<UserRole>> GetRoles()
+    {
+        var retVal = new List<UserRole>();
+        var descriptions = await GetRoleDescriptions();
+
+        foreach (var role in Enum.GetValues<UserRoleKey>())
+        {
+            retVal.Add(new UserRole
+            {
+                Key = role,
+                Description = descriptions[role],
+                Permissions = await GetPermissions(role)
+            });
+        }
+
+        return retVal;
+    }
+
+    public Task<IDictionary<UserRoleKey, string>> GetRoleDescriptions()
+    {
+        return Task.FromResult(new Dictionary<UserRoleKey, string>
+        {
+            { UserRoleKey.Member, "General users of the application with no elevated permissions." },
+            { UserRoleKey.Admin, "Full permissions to access all parts of the application and change permissions assigned to other users." },
+            { UserRoleKey.Director, "**Tester** and **Support** permissions plus permission to create/edit/delete games/game settings, deploy game resources, manage team sessions and scores, and create/edit some site-wide settings (e.g., announcements, practice area, etc.)." },
+            { UserRoleKey.Support, "**Tester** permissions plus permission to view additional information about teams/games (e.g., observe teams, manage enrolled players, etc.), view reports, and manage support tickets." },
+            { UserRoleKey.Tester, "Can play games outside of the execution window and view hidden games for the purpose of testing game functionality." },
+        } as IDictionary<UserRoleKey, string>);
+    }
+
     public bool IsActingUser(string userId)
     {
         var actingUser = actingUserService.Get();
@@ -251,19 +281,7 @@ internal class UserRolePermissionsService(IActingUserService actingUserService, 
     public Task<IEnumerable<UserRolePermission>> List()
         => Task.FromResult(_permissions);
 
-    public async Task<IDictionary<UserRole, IEnumerable<PermissionKey>>> GetRolePermissionAssignments()
-    {
-        var retVal = new Dictionary<UserRole, IEnumerable<PermissionKey>>();
-
-        foreach (var role in Enum.GetValues<UserRole>())
-        {
-            retVal.Add(role, await GetPermissions(role));
-        }
-
-        return retVal;
-    }
-
-    public Task<IEnumerable<UserRole>> GetRolesWithPermission(PermissionKey key)
+    public Task<IEnumerable<UserRoleKey>> GetRolesWithPermission(PermissionKey key)
     {
         var config = _configurationService.GetConfiguration();
 
@@ -272,7 +290,7 @@ internal class UserRolePermissionsService(IActingUserService actingUserService, 
             config
                 .Keys
                 .Where(k => config[k].Contains(key))
-                .ToArray() as IEnumerable<UserRole>
+                .ToArray() as IEnumerable<UserRoleKey>
         );
     }
 }

@@ -15,10 +15,10 @@ public static class ClaimsPrincipalExtensions
     public static async Task<User> ToActor(this ClaimsPrincipal principal, IUserRolePermissionsService userRolePermissionsService)
     {
         // the user could be anon and therefore have no role claim (we distinguish "member" from "unauthed")
-        var finalRole = default(UserRole?);
+        var finalRole = default(UserRoleKey?);
         var roleString = principal.FindFirstValue(AppConstants.RoleClaimName);
 
-        if (Enum.TryParse<UserRole>(roleString, out var role))
+        if (Enum.TryParse<UserRoleKey>(roleString, out var role))
             finalRole = role;
 
         return new User

@@ -14,7 +14,7 @@ public class User : IEntity
     public string Name { get; set; }
     public string NameStatus { get; set; }
     public string ApprovedName { get; set; }
-    public UserRole Role { get; set; }
+    public UserRoleKey Role { get; set; }
     public DateTimeOffset CreatedOn { get; set; }
     public DateTimeOffset? LastLoginDate { get; set; }
     public int LoginCount { get; set; }
@@ -36,7 +36,7 @@ public class User : IEntity
     public SupportSettings UpdatedSupportSettings { get; set; }
 }
 
-public enum UserRole
+public enum UserRoleKey
 {
     Member = 0,
     Tester = 1,

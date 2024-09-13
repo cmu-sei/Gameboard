@@ -44,7 +44,7 @@ public class ApiKeysController(
 
     private async Task Authorize()
     {
-        if (!await _permissionsService.Can(PermissionKey.Admin_CreateApiKeys))
+        if (!await _permissionsService.Can(PermissionKey.ApiKeys_CreateRevoke))
             throw new ActionForbidden();
     }
 }

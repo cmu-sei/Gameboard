@@ -42,7 +42,7 @@ public class PlayerControllerGetTests : IClassFixture<GameboardTestContext>
 
         // when
         var results = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Admin)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Admin)
             .GetAsync($"/api/players?filter=collapse&gid={gameId}")
             .DeserializeResponseAs<Player[]>();
 

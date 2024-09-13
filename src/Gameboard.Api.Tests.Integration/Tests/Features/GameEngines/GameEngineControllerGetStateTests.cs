@@ -55,7 +55,7 @@ public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestCont
             });
         });
 
-        var httpClient = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
+        var httpClient = _testContext.CreateHttpClientWithAuthRole(UserRoleKey.Admin);
 
         // when
         var results = await httpClient

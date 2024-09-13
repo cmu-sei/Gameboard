@@ -6,9 +6,8 @@ namespace Gameboard.Api.Features.Users;
 
 public enum PermissionKey
 {
-    Admin_CreateApiKeys,
-    Sponsors_CreateEdit,
     Admin_View,
+    ApiKeys_CreateRevoke,
     Games_CreateEditDelete,
     Games_ViewUnpublished,
     Play_ChooseChallengeVariant,
@@ -19,6 +18,7 @@ public enum PermissionKey
     Scores_AwardManualBonuses,
     Scores_RegradeAndRerank,
     Scores_ViewLive,
+    Sponsors_CreateEdit,
     Support_EditSettings,
     Support_ManageTickets,
     Support_ViewTickets,
@@ -47,6 +47,13 @@ public enum PermissionKeyGroup
     Users
 }
 
+public sealed class UserRole
+{
+    public required UserRoleKey Key { get; set; }
+    public required string Description { get; set; }
+    public IEnumerable<PermissionKey> Permissions { get; set; }
+}
+
 public sealed class UserRolePermissionCategory
 {
     public required string Name { get; set; }
@@ -63,6 +70,6 @@ public sealed class UserRolePermission
 
 public sealed class UserRolePermissionException : GameboardValidationException
 {
-    public UserRolePermissionException(UserRole role, IEnumerable<PermissionKey> requiredPermissions)
+    public UserRolePermissionException(UserRoleKey role, IEnumerable<PermissionKey> requiredPermissions)
         : base($"This operation requires the following permission(s): {string.Join(",", requiredPermissions)}. Your role ({role}) does not have one or more of these.") { }
 }

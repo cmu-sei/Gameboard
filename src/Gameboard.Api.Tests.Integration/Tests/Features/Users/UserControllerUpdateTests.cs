@@ -36,7 +36,7 @@ public class UserControllerUpdateTests : IClassFixture<GameboardTestContext>
                 u.SponsorId = oldSponsorId;
                 u.Name = userName;
                 u.ApprovedName = userName;
-                u.Role = UserRole.Member;
+                u.Role = UserRoleKey.Member;
                 u.Enrollments = new List<Data.Player>
                 {
                     new()

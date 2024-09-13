@@ -108,7 +108,7 @@ public class PlayerControllerUpdatePlayerReadyTests(GameboardTestContext testCon
         var response = client.PutAsync($"/api/player/{notReadyPlayerId}/ready", new PlayerReadyUpdate { IsReady = true }.ToJsonBody());
 
         var gameSyncStartState = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Admin)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Admin)
             .GetAsync($"/api/game/{gameId}/ready")
             .DeserializeResponseAs<SyncStartState>();
 

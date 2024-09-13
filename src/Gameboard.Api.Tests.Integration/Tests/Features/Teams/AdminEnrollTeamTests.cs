@@ -29,14 +29,14 @@ public class AdminEnrollTeamTests(GameboardTestContext testContext) : IClassFixt
             state.Add<Data.User>(fixture, u =>
             {
                 u.Id = firstUserId;
-                u.Role = UserRole.Member;
+                u.Role = UserRoleKey.Member;
                 u.SponsorId = sponsorId;
             });
 
             state.Add<Data.User>(fixture, u =>
             {
                 u.Id = secondUserId;
-                u.Role = UserRole.Member;
+                u.Role = UserRoleKey.Member;
                 u.SponsorId = sponsorId;
             });
 
@@ -50,7 +50,7 @@ public class AdminEnrollTeamTests(GameboardTestContext testContext) : IClassFixt
 
         // when the registrar tries to team them up
         var result = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Support)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Support)
             .PostAsync("api/admin/team", new AdminEnrollTeamRequest(gameId, [firstUserId, secondUserId]).ToJsonBody())
             .DeserializeResponseAs<AdminEnrollTeamResponse>();
 

@@ -50,7 +50,7 @@ public class TeamsControllerResetTests(GameboardTestContext testContext) : IClas
 
         // when the team's session is reset
         var response = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Tester)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Tester)
             .PutAsync($"api/team/{teamId}/session", new ResetTeamSessionCommand(teamId, TeamSessionResetType.ArchiveChallenges, null).ToJsonBody());
 
         // we expect a successful request and no challenges in the DB
@@ -104,7 +104,7 @@ public class TeamsControllerResetTests(GameboardTestContext testContext) : IClas
 
         // when the team's session is reset
         var response = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Tester)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Tester)
             .PutAsync($"api/team/{teamId}/session", new ResetTeamSessionCommand(teamId, TeamSessionResetType.UnenrollAndArchiveChallenges, null).ToJsonBody());
 
         // we expect a successful request and no challenges in the DB

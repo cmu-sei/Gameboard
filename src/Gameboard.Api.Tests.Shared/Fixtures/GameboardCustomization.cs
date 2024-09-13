@@ -205,7 +205,7 @@ public class GameboardCustomization : ICustomization
             Username = fixture.Create<string>(),
             ApprovedName = fixture.Create<string>(),
             Sponsor = fixture.Create<Data.Sponsor>(),
-            Role = UserRole.Member
+            Role = UserRoleKey.Member
         });
 
         fixture.Register(() => new GameEngineSectionSubmission

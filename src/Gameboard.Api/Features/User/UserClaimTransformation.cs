@@ -55,8 +55,8 @@ namespace Gameboard.Api
                     user = new User
                     {
                         Id = subject,
-                        Role = UserRole.Member,
-                        RolePermissions = await userRolePermissionsService.GetPermissions(UserRole.Member)
+                        Role = UserRoleKey.Member,
+                        RolePermissions = await userRolePermissionsService.GetPermissions(UserRoleKey.Member)
                     };
                 }
 

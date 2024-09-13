@@ -19,7 +19,7 @@ public class SystemNotificationsCreateTests : IClassFixture<GameboardTestContext
             state.Add<Data.User>(fixture, u =>
             {
                 u.Id = userId;
-                u.Role = UserRole.Admin;
+                u.Role = UserRoleKey.Admin;
             });
         });
 
@@ -38,7 +38,7 @@ public class SystemNotificationsCreateTests : IClassFixture<GameboardTestContext
             .CreateHttpClientWithActingUser(u =>
             {
                 u.Id = userId;
-                u.Role = UserRole.Admin;
+                u.Role = UserRoleKey.Admin;
             })
             .PostAsync("api/system-notifications", notification.ToJsonBody())
             .DeserializeResponseAs<ViewSystemNotification>();

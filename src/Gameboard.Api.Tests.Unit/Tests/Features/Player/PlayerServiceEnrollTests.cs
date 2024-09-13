@@ -46,7 +46,7 @@ public class PlayerServiceEnrollTests
         var actor = new User
         {
             Id = userId,
-            Role = UserRole.Member,
+            Role = UserRoleKey.Member,
             RolePermissions = [],
         };
 
@@ -102,7 +102,7 @@ public class PlayerServiceEnrollTests
         var actor = new User
         {
             Id = userId,
-            Role = UserRole.Member,
+            Role = UserRoleKey.Member,
             RolePermissions = []
         };
 

@@ -48,7 +48,7 @@ public class UserControllerTests : IClassFixture<GameboardTestContext>
 
         // when 
         var result = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Admin)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Admin)
             .PostAsync("api/user", newUser.ToJsonBody())
             .DeserializeResponseAs<TryCreateUserResult>();
 

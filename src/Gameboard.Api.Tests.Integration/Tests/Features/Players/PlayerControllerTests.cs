@@ -43,7 +43,7 @@ public class PlayerControllerTests(GameboardTestContext testContext) : IClassFix
 
         // when
         var updatedPlayer = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Admin)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Admin)
             .PutAsync("/api/player", sutParams.ToJsonBody())
             .DeserializeResponseAs<Player>();
 

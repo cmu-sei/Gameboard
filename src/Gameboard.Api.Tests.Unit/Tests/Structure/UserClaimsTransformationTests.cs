@@ -41,7 +41,7 @@ public class UserClaimsTransformationTests
         result.Claims.Any(c => c.Type == AppConstants.SubjectClaimName).ShouldBeTrue();
         result.Claims.Any(c => c.Type == AppConstants.NameClaimName).ShouldBeTrue();
         result.Claims.Any(c => c.Type == AppConstants.ApprovedNameClaimName).ShouldBeTrue();
-        result.Claims.Single(c => c.Type == AppConstants.RoleClaimName).Value.ShouldBe(UserRole.Member.ToString());
+        result.Claims.Single(c => c.Type == AppConstants.RoleClaimName).Value.ShouldBe(UserRoleKey.Member.ToString());
         result.Claims.Single(c => c.Type == AppConstants.SponsorClaimName).Value.ShouldBe(sponsorId);
     }
 }

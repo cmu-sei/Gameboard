@@ -149,7 +149,7 @@ public class PlayerValidatorTests
         // act / assert
         await Should.NotThrowAsync(() => sut._validate(new PlayerUnenrollRequest
         {
-            Actor = new User { Id = player.UserId, Role = UserRole.Admin, RolePermissions = [PermissionKey.Play_IgnoreExecutionWindow] },
+            Actor = new User { Id = player.UserId, Role = UserRoleKey.Admin, RolePermissions = [PermissionKey.Play_IgnoreExecutionWindow] },
             PlayerId = player.Id,
         }));
     }

@@ -29,7 +29,7 @@ public class GameControllerGetSyncStartStateTests(GameboardTestContext testConte
             });
         });
 
-        var http = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
+        var http = _testContext.CreateHttpClientWithAuthRole(UserRoleKey.Admin);
 
         // when
         var result = await http
@@ -68,7 +68,7 @@ public class GameControllerGetSyncStartStateTests(GameboardTestContext testConte
             });
         });
 
-        var http = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
+        var http = _testContext.CreateHttpClientWithAuthRole(UserRoleKey.Admin);
 
         // when 
         var result = await http
@@ -104,7 +104,7 @@ public class GameControllerGetSyncStartStateTests(GameboardTestContext testConte
 
         // when
         await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Admin)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Admin)
             .GetAsync($"/api/game/{gameId}/ready")
             // then
             .ShouldYieldGameboardValidationException<GameboardAggregatedValidationExceptions>();

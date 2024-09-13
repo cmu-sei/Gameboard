@@ -46,7 +46,7 @@ public class TeamControllerGetTeamsTests(GameboardTestContext testContext) : ICl
 
         // when we ask for the team by Id
         var result = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Support)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Support)
             .GetAsync($"api/team/{teamId}")
             .DeserializeResponseAs<Team>();
 
@@ -97,7 +97,7 @@ public class TeamControllerGetTeamsTests(GameboardTestContext testContext) : ICl
 
         // when we ask for the team by Id
         var result = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Support)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Support)
             .GetAsync($"api/admin/team/search?ids={teamId},{otherTeamId}")
             .DeserializeResponseAs<IEnumerable<Team>>();
 

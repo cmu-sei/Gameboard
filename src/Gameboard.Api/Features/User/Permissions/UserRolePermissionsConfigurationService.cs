@@ -8,21 +8,21 @@ namespace Gameboard.Api.Features.Users;
 // (interfaced and internal to allow injection to support unit testing)
 internal interface IUserRolePermissionsConfigurationService
 {
-    IDictionary<UserRole, IEnumerable<PermissionKey>> GetConfiguration();
+    IDictionary<UserRoleKey, IEnumerable<PermissionKey>> GetConfiguration();
 }
 
 internal class UserRolePermissionsConfigurationService : IUserRolePermissionsConfigurationService
 {
-    public IDictionary<UserRole, IEnumerable<PermissionKey>> GetConfiguration()
+    public IDictionary<UserRoleKey, IEnumerable<PermissionKey>> GetConfiguration()
     {
-        return new Dictionary<UserRole, IEnumerable<PermissionKey>>()
+        return new Dictionary<UserRoleKey, IEnumerable<PermissionKey>>()
         {
             {
-                UserRole.Admin,
+                UserRoleKey.Admin,
                 Enum.GetValues<PermissionKey>()
             },
             {
-                UserRole.Director,
+                UserRoleKey.Director,
                 [
                     PermissionKey.Admin_View,
                     PermissionKey.Games_CreateEditDelete,
@@ -48,7 +48,7 @@ internal class UserRolePermissionsConfigurationService : IUserRolePermissionsCon
                 ]
             },
             {
-                UserRole.Support,
+                UserRoleKey.Support,
                 [
                     PermissionKey.Admin_View,
                     PermissionKey.Games_ViewUnpublished,
@@ -66,7 +66,7 @@ internal class UserRolePermissionsConfigurationService : IUserRolePermissionsCon
                 ]
             },
             {
-                UserRole.Tester,
+                UserRoleKey.Tester,
                 [
                     PermissionKey.Admin_View,
                     PermissionKey.Games_ViewUnpublished,
@@ -78,7 +78,7 @@ internal class UserRolePermissionsConfigurationService : IUserRolePermissionsCon
                     PermissionKey.Teams_Enroll,
                 ]
             },
-            { UserRole.Member, [] }
+            { UserRoleKey.Member, [] }
         };
     }
 }

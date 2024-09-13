@@ -39,7 +39,7 @@ public class ChallengeBonusControllerAutoDeleteTests : IClassFixture<GameboardTe
                 });
             });
 
-        var httpClient = _testContext.CreateHttpClientWithAuthRole(UserRole.Tester);
+        var httpClient = _testContext.CreateHttpClientWithAuthRole(UserRoleKey.Tester);
 
         // when delete is called
         await httpClient.DeleteAsync($"api/game/{gameId}/bonus/config");
@@ -81,7 +81,7 @@ public class ChallengeBonusControllerAutoDeleteTests : IClassFixture<GameboardTe
                 });
             });
 
-        var httpClient = _testContext.CreateHttpClientWithAuthRole(UserRole.Admin);
+        var httpClient = _testContext.CreateHttpClientWithAuthRole(UserRoleKey.Admin);
 
         // when delete is called, then it should fail validation
         await httpClient

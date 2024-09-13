@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
+using Microsoft.AspNetCore.WebUtilities;
+using ServiceStack;
 
 namespace Gameboard.Api.Features.Users;
 
@@ -30,6 +32,8 @@ internal sealed class UserRolePermissionsOverviewHandler(
             .GroupBy(p => p.Group)
             .ToDictionary(kv => kv.Key, kv => kv.ToList());
 
+        var roles = await _permissionsService.GetRoles();
+
         return new()
         {
             Categories = groupedPermissions.Select(kv => new UserRolePermissionCategory
@@ -37,7 +41,7 @@ internal sealed class UserRolePermissionsOverviewHandler(
                 Name = kv.Key.ToString(),
                 Permissions = kv.Value
             }),
-            RolePermissions = await _permissionsService.GetRolePermissionAssignments(),
+            Roles = roles.ToDictionary(kv => kv.Key, kv => kv),
             YourRole = _actingUserService.Get().Role
         };
     }
