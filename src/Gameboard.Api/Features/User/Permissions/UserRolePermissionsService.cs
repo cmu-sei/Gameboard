@@ -150,7 +150,7 @@ internal class UserRolePermissionsService(IActingUserService actingUserService, 
             Group = PermissionKeyGroup.Teams,
             Key = PermissionKey.Teams_DeployGameResources,
             Name = "Deploy game resources",
-            Description = "Deploy virtual resources on behalf of players through the Admin section"
+            Description = "Deploy virtual  on behalf of players through the Admin section"
         },
         new()
         {

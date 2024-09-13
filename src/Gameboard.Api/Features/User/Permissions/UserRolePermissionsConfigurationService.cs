@@ -36,9 +36,15 @@ internal class UserRolePermissionsConfigurationService : IUserRolePermissionsCon
                     PermissionKey.Scores_RegradeAndRerank,
                     PermissionKey.Scores_ViewLive,
                     PermissionKey.Sponsors_CreateEdit,
+                    PermissionKey.Support_EditSettings,
+                    PermissionKey.Support_ManageTickets,
                     PermissionKey.Support_ViewTickets,
+                    PermissionKey.Teams_ApproveNameChanges,
                     PermissionKey.Teams_DeployGameResources,
-                    PermissionKey.Teams_Observe
+                    PermissionKey.Teams_EditSession,
+                    PermissionKey.Teams_Enroll,
+                    PermissionKey.Teams_Observe,
+                    PermissionKey.Teams_SendAnnouncements
                 ]
             },
             {
@@ -72,7 +78,7 @@ internal class UserRolePermissionsConfigurationService : IUserRolePermissionsCon
                     PermissionKey.Teams_Enroll,
                 ]
             },
-            { UserRole.Member, Array.Empty<PermissionKey>() }
+            { UserRole.Member, [] }
         };
     }
 }
