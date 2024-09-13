@@ -67,7 +67,7 @@ public class SponsorController(
     [HttpPost("api/sponsors")]
     public async Task CreateBatch([FromBody] UpdateSponsorRequest[] model)
     {
-        if (!await _permissionsService.Can(PermissionKey.Admin_CreateEditSponsors))
+        if (!await _permissionsService.Can(PermissionKey.Sponsors_CreateEdit))
             throw new ActionForbidden();
 
         foreach (var s in model)

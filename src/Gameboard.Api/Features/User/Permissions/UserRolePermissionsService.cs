@@ -36,7 +36,7 @@ internal class UserRolePermissionsService(IActingUserService actingUserService, 
         new()
         {
             Group = PermissionKeyGroup.Admin,
-            Key = PermissionKey.Admin_CreateEditSponsors,
+            Key = PermissionKey.Sponsors_CreateEdit,
             Name = "Create/edit sponsors",
             Description = "Create and edit sponsor organizations"
         },

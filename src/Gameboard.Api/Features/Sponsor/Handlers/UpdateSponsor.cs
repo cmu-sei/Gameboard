@@ -29,7 +29,7 @@ internal class UpdateSponsorHandler(
     {
         // validate/authorize
         await _validatorService
-            .Auth(a => a.RequirePermissions(PermissionKey.Admin_CreateEditSponsors))
+            .Auth(a => a.RequirePermissions(PermissionKey.Sponsors_CreateEdit))
             .AddValidator(_sponsorExists.UseProperty(r => r.Model.Id))
             .AddValidator((req, ctx) =>
             {

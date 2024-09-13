@@ -31,7 +31,7 @@ internal class DeleteSponsorHandler(
     {
         // authorize/validate
         await _validatorService
-            .Auth(a => a.RequirePermissions(PermissionKey.Admin_CreateEditSponsors))
+            .Auth(a => a.RequirePermissions(PermissionKey.Sponsors_CreateEdit))
             .AddValidator(_sponsorExists.UseProperty(r => r.SponsorId))
             .Validate(request, cancellationToken);
 

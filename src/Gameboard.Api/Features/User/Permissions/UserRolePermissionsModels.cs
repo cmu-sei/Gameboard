@@ -7,7 +7,7 @@ namespace Gameboard.Api.Features.Users;
 public enum PermissionKey
 {
     Admin_CreateApiKeys,
-    Admin_CreateEditSponsors,
+    Sponsors_CreateEdit,
     Admin_View,
     Games_CreateEditDelete,
     Games_ViewUnpublished,
