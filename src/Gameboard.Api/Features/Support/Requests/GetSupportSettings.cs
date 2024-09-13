@@ -27,10 +27,15 @@ internal class GetSupportSettingsHandler(IStore store, IValidatorService validat
             .SingleOrDefaultAsync(cancellationToken);
 
         if (existingSettings is null)
-            return new SupportSettingsViewModel { SupportPageGreeting = null };
+            return new SupportSettingsViewModel
+            {
+                AutoTagPracticeTicketsWith = "practice-challenge",
+                SupportPageGreeting = null
+            };
 
         return new SupportSettingsViewModel
         {
+            AutoTagPracticeTicketsWith = existingSettings.AutoTagPracticeTicketsWith,
             SupportPageGreeting = existingSettings.SupportPageGreeting
         };
     }
