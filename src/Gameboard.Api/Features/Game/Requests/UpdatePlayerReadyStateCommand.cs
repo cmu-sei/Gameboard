@@ -33,7 +33,7 @@ internal class UpdatePlayerReadyStateCommandHandler(
             .ConfigureAuthorization
             (
                 config => config
-                    .RequirePermissions(PermissionKey.Games_AdminExternal)
+                    .RequirePermissions(PermissionKey.Teams_SetSyncStartReady)
                     .UnlessUserIdIn(player?.UserId)
 
             ).AddValidator(ctx =>

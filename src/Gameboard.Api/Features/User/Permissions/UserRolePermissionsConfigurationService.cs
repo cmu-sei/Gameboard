@@ -40,7 +40,6 @@ internal class UserRolePermissionsConfigurationService : IUserRolePermissionsCon
                 UserRole.Support,
                 [
                     PermissionKey.Admin_View,
-                    PermissionKey.Games_AdminExternal,
                     PermissionKey.Play_ChooseChallengeVariant,
                     PermissionKey.Reports_View,
                     PermissionKey.Scores_RegradeAndRerank,
@@ -52,19 +51,20 @@ internal class UserRolePermissionsConfigurationService : IUserRolePermissionsCon
                     PermissionKey.Teams_ApproveNameChanges,
                     PermissionKey.Teams_Observe,
                     PermissionKey.Teams_Enroll,
+                    PermissionKey.Teams_SetSyncStartReady,
                 ]
             },
             {
                 UserRole.Tester,
                 [
                     PermissionKey.Admin_View,
-                    PermissionKey.Games_AdminExternal,
                     PermissionKey.Play_ChooseChallengeVariant,
                     PermissionKey.Play_IgnoreExecutionWindow,
                     PermissionKey.Play_IgnoreSessionResetSettings,
                     PermissionKey.Scores_RegradeAndRerank,
                     PermissionKey.Scores_ViewLive,
                     PermissionKey.Teams_ApproveNameChanges,
+                    PermissionKey.Teams_SetSyncStartReady,
                     PermissionKey.Teams_Enroll,
                 ]
             },

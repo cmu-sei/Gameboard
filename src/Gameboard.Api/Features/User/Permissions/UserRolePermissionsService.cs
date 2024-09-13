@@ -50,13 +50,6 @@ internal class UserRolePermissionsService(IActingUserService actingUserService, 
         new()
         {
             Group = PermissionKeyGroup.Games,
-            Key = PermissionKey.Games_AdminExternal,
-            Name = "Administer external games",
-            Description = "Administer and deploy external-mode games"
-        },
-        new()
-        {
-            Group = PermissionKeyGroup.Games,
             Key = PermissionKey.Games_CreateEditDelete,
             Name = "Create/edit/delete games",
             Description = "Create, edit, and delete games. Add and remove challenges, set their scoring properties, and add manual bonuses."
@@ -186,6 +179,13 @@ internal class UserRolePermissionsService(IActingUserService actingUserService, 
             Key = PermissionKey.Teams_SendAnnouncements,
             Name = "Send announcements",
             Description = "Send announcements to all players (or individual players and teams)"
+        },
+        new()
+        {
+            Group = PermissionKeyGroup.Games,
+            Key = PermissionKey.Teams_SetSyncStartReady,
+            Name = "Set players to ready",
+            Description = "Change player status to ready/not ready in sync-start games"
         },
         new()
         {

@@ -9,7 +9,6 @@ public enum PermissionKey
     Admin_CreateApiKeys,
     Admin_CreateEditSponsors,
     Admin_View,
-    Games_AdminExternal,
     Games_CreateEditDelete,
     Games_ViewUnpublished,
     Play_ChooseChallengeVariant,
@@ -30,6 +29,7 @@ public enum PermissionKey
     Teams_Enroll,
     Teams_Observe,
     Teams_SendAnnouncements,
+    Teams_SetSyncStartReady,
     Users_CreateEditDelete,
     Users_EditRoles
 }
