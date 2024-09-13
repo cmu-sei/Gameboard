@@ -114,7 +114,7 @@ internal static class ServiceRegistrationExtensions
 
             // if the implementation type doesn't have any generic args and the interface does, make a generic of the interface's generic parameters and associate
             // (like IGameboardRequestValidator<GetGameStateQuery> and GetGameStateValidator)
-            if (implementationGenericArgs.Count() == 0 && implementationGenericParams.Count() == 0 && type.Interface.IsGenericTypeDefinition)
+            if (implementationGenericArgs.Length == 0 && implementationGenericParams.Length == 0 && type.Interface.IsGenericTypeDefinition)
             {
                 var matchingInterface = type.Implementation.GetInterfaces().First(i => i.GetGenericTypeDefinition() == type.Interface);
                 Register(serviceCollection, matchingInterface, type.Implementation);
@@ -136,7 +136,6 @@ internal static class ServiceRegistrationExtensions
     {
         ArgumentNullException.ThrowIfNull(implementationType);
 
-        var implementationTypeName = implementationType.Name.ToString();
         if (implementationType.HasAttribute<DIIgnoreAttribute>())
             return serviceCollection;
 
@@ -160,7 +159,7 @@ internal static class ServiceRegistrationExtensions
         return serviceCollection;
     }
 
-    private static IEnumerable<Type> GetRootQuery()
+    private static Type[] GetRootQuery()
       => typeof(Program)
             .Assembly
             .GetTypes()

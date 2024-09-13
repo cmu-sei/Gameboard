@@ -580,12 +580,17 @@ public class TicketService(
     }
 
     private async Task<TicketUser> BuildTicketUser(Data.User user)
-        => new TicketUser()
+    {
+        if (user is null)
+            return null;
+
+        return new TicketUser()
         {
             ApprovedName = user.ApprovedName,
             Id = user.Id,
             IsSupportPersonnel = await _permissionsService.Can(PermissionKey.Support_ManageTickets),
         };
+    }
 
     private IQueryable<Data.Ticket> BuildTicketQueryBase()
         => _store
