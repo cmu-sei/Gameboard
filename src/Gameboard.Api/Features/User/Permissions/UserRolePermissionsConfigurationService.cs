@@ -39,12 +39,14 @@ internal class UserRolePermissionsConfigurationService : IUserRolePermissionsCon
                     PermissionKey.Support_EditSettings,
                     PermissionKey.Support_ManageTickets,
                     PermissionKey.Support_ViewTickets,
+                    PermissionKey.SystemNotifications_CreateEdit,
                     PermissionKey.Teams_ApproveNameChanges,
                     PermissionKey.Teams_DeployGameResources,
                     PermissionKey.Teams_EditSession,
                     PermissionKey.Teams_Enroll,
                     PermissionKey.Teams_Observe,
-                    PermissionKey.Teams_SendAnnouncements
+                    PermissionKey.Teams_SendAnnouncements,
+                    PermissionKey.Teams_SetSyncStartReady,
                 ]
             },
             {
@@ -53,29 +55,25 @@ internal class UserRolePermissionsConfigurationService : IUserRolePermissionsCon
                     PermissionKey.Admin_View,
                     PermissionKey.Games_ViewUnpublished,
                     PermissionKey.Play_ChooseChallengeVariant,
+                    PermissionKey.Play_IgnoreExecutionWindow,
+                    PermissionKey.Play_IgnoreSessionResetSettings,
                     PermissionKey.Reports_View,
                     PermissionKey.Scores_ViewLive,
                     PermissionKey.Support_EditSettings,
                     PermissionKey.Support_ManageTickets,
                     PermissionKey.Support_ViewTickets,
-                    PermissionKey.SystemNotifications_CreateEdit,
                     PermissionKey.Teams_ApproveNameChanges,
                     PermissionKey.Teams_Observe,
                     PermissionKey.Teams_Enroll,
-                    PermissionKey.Teams_SetSyncStartReady,
                 ]
             },
             {
                 UserRoleKey.Tester,
                 [
-                    PermissionKey.Admin_View,
                     PermissionKey.Games_ViewUnpublished,
                     PermissionKey.Play_ChooseChallengeVariant,
                     PermissionKey.Play_IgnoreExecutionWindow,
                     PermissionKey.Play_IgnoreSessionResetSettings,
-                    PermissionKey.Teams_ApproveNameChanges,
-                    PermissionKey.Teams_SetSyncStartReady,
-                    PermissionKey.Teams_Enroll,
                 ]
             },
             { UserRoleKey.Member, [] }

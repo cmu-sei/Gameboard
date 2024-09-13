@@ -36,16 +36,16 @@ internal class UserRolePermissionsService(IActingUserService actingUserService, 
         new()
         {
             Group = PermissionKeyGroup.Admin,
-            Key = PermissionKey.Sponsors_CreateEdit,
-            Name = "Create/edit sponsors",
-            Description = "Create and edit sponsor organizations"
+            Key = PermissionKey.Admin_View,
+            Name = "Admin Area",
+            Description = "Access the Admin area"
         },
         new()
         {
             Group = PermissionKeyGroup.Admin,
-            Key = PermissionKey.Admin_View,
-            Name = "Admin Area",
-            Description = "Access the Admin area and various data about teams (even those you're not on)"
+            Key = PermissionKey.SystemNotifications_CreateEdit,
+            Name = "Manage system notifications",
+            Description = "Create, edit, and delete notifications which appear at the top of the app"
         },
         new()
         {
@@ -116,6 +116,13 @@ internal class UserRolePermissionsService(IActingUserService actingUserService, 
             Key = PermissionKey.Scores_ViewLive,
             Name = "View scores live",
             Description = "View scores for all players and teams (even before the game has ended)"
+        },
+        new()
+        {
+            Group = PermissionKeyGroup.Admin,
+            Key = PermissionKey.Sponsors_CreateEdit,
+            Name = "Create/edit sponsors",
+            Description = "Create and edit sponsor organizations"
         },
         new()
         {

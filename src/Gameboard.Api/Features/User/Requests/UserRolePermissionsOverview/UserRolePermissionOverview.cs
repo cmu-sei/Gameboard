@@ -39,7 +39,7 @@ internal sealed class UserRolePermissionsOverviewHandler(
             Categories = groupedPermissions.Select(kv => new UserRolePermissionCategory
             {
                 Name = kv.Key.ToString(),
-                Permissions = kv.Value
+                Permissions = kv.Value.OrderBy(permission => permission.Name)
             }),
             Roles = roles.ToDictionary(kv => kv.Key, kv => kv),
             YourRole = _actingUserService.Get().Role
