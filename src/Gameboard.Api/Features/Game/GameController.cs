@@ -98,7 +98,7 @@ namespace Gameboard.Api.Controllers
         [HttpPut("api/game")]
         public async Task<Data.Game> Update([FromBody] ChangedGame model)
         {
-            await _permissionsService.Can(PermissionKey.Games_CreateEditDelete);
+            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
             await Validate(model);
             return await GameService.Update(model);
         }

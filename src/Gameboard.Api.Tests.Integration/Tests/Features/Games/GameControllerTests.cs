@@ -2,14 +2,9 @@ using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class GameControllerTests : IClassFixture<GameboardTestContext>
+public class GameControllerTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>
 {
-    private readonly GameboardTestContext _testContext;
-
-    public GameControllerTests(GameboardTestContext testContext)
-    {
-        _testContext = testContext;
-    }
+    private readonly GameboardTestContext _testContext = testContext;
 
     [Fact]
     public async Task GameController_Create_ReturnsGame()
