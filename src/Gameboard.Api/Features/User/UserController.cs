@@ -177,7 +177,7 @@ public class UserController(
     /// <remarks>Expires in 20s</remarks>
     /// <returns>{ "ticket": "value"}</returns>
     [HttpPost("/api/user/ticket")]
-    public async Task<IActionResult> GetTicket()
+    public IActionResult GetTicket()
     {
         var ticket = _guids.GetGuid();
         return Ok(new { Ticket = ticket });
