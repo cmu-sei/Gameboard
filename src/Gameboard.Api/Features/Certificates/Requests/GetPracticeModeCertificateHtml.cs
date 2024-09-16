@@ -13,37 +13,27 @@ namespace Gameboard.Api.Features.Practice;
 
 public record GetPracticeModeCertificateHtmlQuery(string ChallengeSpecId, string CertificateOwnerUserId, User ActingUser) : IRequest<string>;
 
-internal class GetPracticeModeCertificateHtmlHandler : IRequestHandler<GetPracticeModeCertificateHtmlQuery, string>
+internal class GetPracticeModeCertificateHtmlHandler(
+    EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> actingUserExists,
+    EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> certificateOwnerExists,
+    ICertificatesService certificatesService,
+    CoreOptions coreOptions,
+    IPracticeService practiceService,
+    IValidatorService<GetPracticeModeCertificateHtmlQuery> validatorService
+    ) : IRequestHandler<GetPracticeModeCertificateHtmlQuery, string>
 {
-    private readonly ICertificatesService _certificatesService;
-    private readonly CoreOptions _coreOptions;
-    private readonly EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> _actingUserExists;
-    private readonly EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> _certificateOwnerExists;
-    private readonly IPracticeService _practiceService;
-    private readonly IValidatorService<GetPracticeModeCertificateHtmlQuery> _validatorService;
-
-    public GetPracticeModeCertificateHtmlHandler
-    (
-        EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> actingUserExists,
-        EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> certificateOwnerExists,
-        ICertificatesService certificatesService,
-        CoreOptions coreOptions,
-        IPracticeService practiceService,
-        IValidatorService<GetPracticeModeCertificateHtmlQuery> validatorService
-    )
-    {
-        _actingUserExists = actingUserExists;
-        _certificateOwnerExists = certificateOwnerExists;
-        _certificatesService = certificatesService;
-        _coreOptions = coreOptions;
-        _practiceService = practiceService;
-        _validatorService = validatorService;
-    }
+    private readonly ICertificatesService _certificatesService = certificatesService;
+    private readonly CoreOptions _coreOptions = coreOptions;
+    private readonly EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> _actingUserExists = actingUserExists;
+    private readonly EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> _certificateOwnerExists = certificateOwnerExists;
+    private readonly IPracticeService _practiceService = practiceService;
+    private readonly IValidatorService<GetPracticeModeCertificateHtmlQuery> _validatorService = validatorService;
 
     public async Task<string> Handle(GetPracticeModeCertificateHtmlQuery request, CancellationToken cancellationToken)
     {
-        var certificate = (await _certificatesService.GetPracticeCertificates(request.CertificateOwnerUserId))
-                    .FirstOrDefault(c => c.Challenge.ChallengeSpecId == request.ChallengeSpecId);
+        var certificate = (await _certificatesService
+            .GetPracticeCertificates(request.CertificateOwnerUserId))
+            .FirstOrDefault(c => c.Challenge.ChallengeSpecId == request.ChallengeSpecId);
 
         await _validatorService
             .AddValidator(_actingUserExists.UseProperty(r => r.ActingUser.Id))

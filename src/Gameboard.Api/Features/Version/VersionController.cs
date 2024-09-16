@@ -1,5 +1,4 @@
 using System;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gameboard.Api.Features.Version;

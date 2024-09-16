@@ -16,16 +16,10 @@ public interface IGameEngineStore
     Task<IEnumerable<GameEngineGameState>> GetGameStatesByTeam(string teamId);
 }
 
-internal class GameEngineStore : IGameEngineStore
+internal class GameEngineStore(GameboardDbContext db, IJsonService jsonService) : IGameEngineStore
 {
-    private readonly GameboardDbContext _db;
-    private readonly IJsonService _jsonService;
-
-    public GameEngineStore(GameboardDbContext db, IJsonService jsonService)
-    {
-        _db = db;
-        _jsonService = jsonService;
-    }
+    private readonly GameboardDbContext _db = db;
+    private readonly IJsonService _jsonService = jsonService;
 
     public Task<IEnumerable<GameEngineGameState>> GetGameStatesByPlayer(string playerId)
         => GetGameStates(playerId: playerId);
@@ -62,6 +56,6 @@ internal class GameEngineStore : IGameEngineStore
             .Distinct()
             .ToArrayAsync();
 
-        return results.Select(stateJson => _jsonService.Deserialize<GameEngineGameState>(stateJson));
+        return results.Select(_jsonService.Deserialize<GameEngineGameState>);
     }
 }

@@ -28,7 +28,8 @@ internal class ConfigureGameAutoBonusesHandler(
     public async Task<GameScoringConfig> Handle(ConfigureGameAutoBonusesCommand request, CancellationToken cancellationToken)
     {
         // validate
-        await _requestValidator.Validate(request, cancellationToken);
+        await _requestValidator
+            .Validate(request, cancellationToken);
 
         // and go (with a transaction to maintain atomicity)
         var specs = await _store

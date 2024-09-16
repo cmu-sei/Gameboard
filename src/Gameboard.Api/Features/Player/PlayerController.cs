@@ -21,24 +21,22 @@ using Microsoft.Extensions.Logging;
 namespace Gameboard.Api.Controllers;
 
 [Authorize]
-public class PlayerController
-    (
-        IActingUserService actingUserService,
-        ILogger<PlayerController> logger,
-        IDistributedCache cache,
-        PlayerValidator validator,
-        IMediator mediator,
-        PlayerService playerService,
-        IMapper _mapper,
-        IUserRolePermissionsService permissionsService,
-        ITeamService teamService
-        ) : GameboardLegacyController(actingUserService, logger, cache, validator)
+public class PlayerController(
+    IActingUserService actingUserService,
+    ILogger<PlayerController> logger,
+    IDistributedCache cache,
+    PlayerValidator validator,
+    IMediator mediator,
+    PlayerService playerService,
+    IMapper _mapper,
+    IUserRolePermissionsService permissionsService,
+    ITeamService teamService
+    ) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
+    private readonly IMapper Mapper = _mapper;
     private readonly IMediator _mediator = mediator;
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
-
     private readonly PlayerService PlayerService = playerService;
-    private readonly IMapper Mapper = _mapper;
     private readonly ITeamService _teamService = teamService;
 
     /// <summary>
@@ -72,8 +70,6 @@ public class PlayerController
     {
         // TODO: consider appropriate authorization
         // Note: this is essentially a scoreboard entry
-        AuthorizeAll();
-
         await Validate(new Entity { Id = id });
 
         return await PlayerService.Retrieve(id);
@@ -273,10 +269,8 @@ public class PlayerController
     /// <returns> </returns>
     [HttpGet("/api/certificates")]
     [Authorize]
-    public async Task<IEnumerable<PlayerCertificate>> GetCertificates()
-    {
-        return await PlayerService.MakeCertificates(Actor.Id);
-    }
+    public Task<IEnumerable<PlayerCertificate>> GetCertificates()
+        => PlayerService.MakeCertificates(Actor.Id);
 
     private async Task<bool> IsSelf(string playerId)
     {

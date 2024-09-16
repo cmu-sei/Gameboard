@@ -17,18 +17,18 @@ namespace Gameboard.Api.Controllers;
 
 [Authorize]
 public class ChallengeSpecController(
-        IActingUserService actingUserService,
-        ILogger<ChallengeSpecController> logger,
-        IDistributedCache cache,
-        IMediator mediator,
-        ChallengeSpecValidator validator,
-        ChallengeSpecService challengespecService,
-        IUserRolePermissionsService permissionsService
-        ) : GameboardLegacyController(actingUserService, logger, cache, validator)
+    IActingUserService actingUserService,
+    ILogger<ChallengeSpecController> logger,
+    IDistributedCache cache,
+    IMediator mediator,
+    ChallengeSpecValidator validator,
+    ChallengeSpecService challengespecService,
+    IUserRolePermissionsService permissionsService
+    ) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
     private readonly IMediator _mediator = mediator;
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
-    ChallengeSpecService ChallengeSpecService { get; } = challengespecService;
+    private readonly ChallengeSpecService _challengeSpecService = challengespecService;
 
     /// <summary>
     /// Create a new challengespec.
@@ -41,7 +41,7 @@ public class ChallengeSpecController(
         await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
         await Validate(model);
 
-        return await ChallengeSpecService.AddOrUpdate(model);
+        return await _challengeSpecService.AddOrUpdate(model);
     }
 
     /// <summary>
@@ -50,10 +50,8 @@ public class ChallengeSpecController(
     /// <param name="id"></param>
     /// <returns></returns>
     [HttpGet("api/challengespec/{id}")]
-    public async Task<ChallengeSpec> Retrieve([FromRoute] string id)
-    {
-        return await ChallengeSpecService.Retrieve(id);
-    }
+    public Task<ChallengeSpec> Retrieve([FromRoute] string id)
+        => _challengeSpecService.Retrieve(id);
 
     /// <summary>
     /// Change challengespec
@@ -64,7 +62,7 @@ public class ChallengeSpecController(
     public async Task Update([FromBody] ChangedChallengeSpec model)
     {
         await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
-        await ChallengeSpecService.Update(model);
+        await _challengeSpecService.Update(model);
     }
 
     /// <summary>
@@ -76,7 +74,7 @@ public class ChallengeSpecController(
     public async Task Delete([FromRoute] string id)
     {
         await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
-        await ChallengeSpecService.Delete(id);
+        await _challengeSpecService.Delete(id);
     }
 
     /// <summary>
@@ -88,7 +86,7 @@ public class ChallengeSpecController(
     public async Task<ExternalSpec[]> List([FromQuery] SearchFilter model)
     {
         await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
-        return await ChallengeSpecService.List(model);
+        return await _challengeSpecService.List(model);
     }
 
     /// <summary>
@@ -107,6 +105,6 @@ public class ChallengeSpecController(
     public async Task Sync([FromRoute] string id)
     {
         await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
-        await ChallengeSpecService.Sync(id);
+        await _challengeSpecService.Sync(id);
     }
 }

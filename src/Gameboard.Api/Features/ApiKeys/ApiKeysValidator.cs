@@ -6,28 +6,22 @@ using Gameboard.Api.Features.Users;
 
 namespace Gameboard.Api.Features.ApiKeys;
 
-public class ApiKeysValidator : IModelValidator
+public class ApiKeysValidator(IStore store, INowService now) : IModelValidator
 {
-    private readonly INowService _now;
-    private readonly IStore _store;
-
-    public ApiKeysValidator(IStore store, INowService now)
-    {
-        _now = now;
-        _store = store;
-    }
+    private readonly INowService _now = now;
+    private readonly IStore _store = store;
 
     public Task Validate(object model)
     {
         if (model is DeleteApiKeyRequest)
-            return _validate(model as DeleteApiKeyRequest);
+            return Validate(model as DeleteApiKeyRequest);
         if (model is NewApiKey)
-            return _validate(model as NewApiKey);
+            return Validate(model as NewApiKey);
 
         throw new ValidationTypeFailure<ApiKeysValidator>(model.GetType());
     }
 
-    private async Task _validate(NewApiKey model)
+    private async Task Validate(NewApiKey model)
     {
         if (string.IsNullOrWhiteSpace(model.Name))
             throw new ApiKeyNoName();
@@ -39,7 +33,7 @@ public class ApiKeysValidator : IModelValidator
             throw new ResourceNotFound<Data.User>(model.UserId);
     }
 
-    private async Task _validate(DeleteApiKeyRequest request)
+    private async Task Validate(DeleteApiKeyRequest request)
     {
         if (!await _store.AnyAsync<ApiKey>(k => k.Id == request.ApiKeyId, CancellationToken.None))
             throw new ResourceNotFound<ApiKey>(request.ApiKeyId);

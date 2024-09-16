@@ -15,16 +15,15 @@ namespace Gameboard.Api.Controllers;
 
 [Authorize]
 public class ChallengeGateController(
-        IActingUserService actingUserService,
-        ILogger<ChallengeGateController> logger,
-        IDistributedCache cache,
-        ChallengeGateValidator validator,
-        ChallengeGateService challengeGateService,
-        IUserRolePermissionsService permissionsService
-        ) : GameboardLegacyController(actingUserService, logger, cache, validator)
+    IActingUserService actingUserService,
+    ILogger<ChallengeGateController> logger,
+    IDistributedCache cache,
+    ChallengeGateValidator validator,
+    ChallengeGateService challengeGateService,
+    IUserRolePermissionsService permissionsService
+    ) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
-    ChallengeGateService ChallengeGateService { get; } = challengeGateService;
-
+    private readonly ChallengeGateService _challengeGateService = challengeGateService;
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
 
     /// <summary>
@@ -40,7 +39,7 @@ public class ChallengeGateController(
 
         await Validate(model);
 
-        return await ChallengeGateService.AddOrUpdate(model);
+        return await _challengeGateService.AddOrUpdate(model);
     }
 
     /// <summary>
@@ -54,7 +53,7 @@ public class ChallengeGateController(
         if (!await _permissionsService.Can(PermissionKey.Games_CreateEditDelete))
             throw new ActionForbidden();
 
-        return await ChallengeGateService.Retrieve(id);
+        return await _challengeGateService.Retrieve(id);
     }
 
     /// <summary>
@@ -68,7 +67,7 @@ public class ChallengeGateController(
         if (!await _permissionsService.Can(PermissionKey.Games_CreateEditDelete))
             throw new ActionForbidden();
 
-        await ChallengeGateService.Update(model);
+        await _challengeGateService.Update(model);
         return;
     }
 
@@ -83,7 +82,7 @@ public class ChallengeGateController(
         if (!await _permissionsService.Can(PermissionKey.Games_CreateEditDelete))
             throw new ActionForbidden();
 
-        await ChallengeGateService.Delete(id);
+        await _challengeGateService.Delete(id);
         return;
     }
 
@@ -98,6 +97,6 @@ public class ChallengeGateController(
         if (!await _permissionsService.Can(PermissionKey.Games_CreateEditDelete))
             throw new ActionForbidden();
 
-        return await ChallengeGateService.List(g);
+        return await _challengeGateService.List(g);
     }
 }

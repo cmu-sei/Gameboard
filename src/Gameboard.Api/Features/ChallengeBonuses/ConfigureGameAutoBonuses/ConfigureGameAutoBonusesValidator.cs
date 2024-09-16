@@ -35,7 +35,7 @@ internal class ConfigureGameAutoBonusesValidator(
             async (request, context) =>
             {
                 var bonusesAwarded = await _store
-                    .WithNoTracking<Data.AwardedChallengeBonus>()
+                    .WithNoTracking<AwardedChallengeBonus>()
                         .Include(b => b.Challenge)
                     .Where(b => b.Challenge.GameId == request.Parameters.GameId)
                     .Select(b => b.Id)

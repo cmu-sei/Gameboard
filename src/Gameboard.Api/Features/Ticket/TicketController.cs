@@ -52,13 +52,6 @@ public class TicketController(
             () => TicketService.IsOwnerOrTeamMember(id, Actor.Id)
         );
 
-        await Cache.SetStringAsync
-        (
-            $"{"file-permit:"}{Actor.Id}:{id}",
-            "true",
-            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = new TimeSpan(0, 15, 0) }
-        );
-
         return await TicketService.Retrieve(id);
     }
 

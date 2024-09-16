@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Gameboard.Api.Features.GameEngine.Requests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,11 +8,9 @@ namespace Gameboard.Api.Features.GameEngine;
 
 [Authorize]
 [Route("/api/gameEngine")]
-public class GameEngineController : ControllerBase
+public class GameEngineController(IMediator mediator) : ControllerBase
 {
-    private readonly IMediator _mediator;
-
-    public GameEngineController(IMediator mediator) => _mediator = mediator;
+    private readonly IMediator _mediator = mediator;
 
     [HttpGet("state")]
     public async Task<IEnumerable<GameEngineGameState>> GetGameStates(string teamId)

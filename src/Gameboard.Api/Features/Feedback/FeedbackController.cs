@@ -11,10 +11,10 @@ using Gameboard.Api.Validators;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Users;
 
-namespace Gameboard.Api.Controllers
-{
-    [Authorize]
-    public class FeedbackController(
+namespace Gameboard.Api.Controllers;
+
+[Authorize]
+public class FeedbackController(
         IActingUserService actingUserService,
         ILogger<ChallengeController> logger,
         IDistributedCache cache,
@@ -22,52 +22,50 @@ namespace Gameboard.Api.Controllers
         FeedbackService feedbackService,
         IUserRolePermissionsService permissionsService
         ) : GameboardLegacyController(actingUserService, logger, cache, validator)
+{
+    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
+    FeedbackService FeedbackService { get; } = feedbackService;
+
+    /// <summary>
+    /// Lists feedback based on search params
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpGet("/api/feedback/list")]
+    [Authorize]
+    public async Task<FeedbackReportDetails[]> List([FromQuery] FeedbackSearchParams model)
     {
-        private readonly IUserRolePermissionsService _permissionsService = permissionsService;
-        FeedbackService FeedbackService { get; } = feedbackService;
+        await Authorize(_permissionsService.Can(PermissionKey.Reports_View));
+        return await FeedbackService.List(model);
+    }
 
-        /// <summary>
-        /// Lists feedback based on search params
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpGet("/api/feedback/list")]
-        [Authorize]
-        public async Task<FeedbackReportDetails[]> List([FromQuery] FeedbackSearchParams model)
-        {
-            await Authorize(_permissionsService.Can(PermissionKey.Reports_View));
+    /// <summary>
+    /// Gets feedback response
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpGet("api/feedback")]
+    [Authorize]
+    public async Task<Feedback> Retrieve([FromQuery] FeedbackSearchParams model)
+    {
+        await Authorize(FeedbackService.UserIsEnrolled(model.GameId, Actor.Id));
+        return await FeedbackService.Retrieve(model, Actor.Id);
+    }
 
-            return await FeedbackService.List(model);
-        }
+    /// <summary>
+    /// Saves feedback response
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpPut("/api/feedback/submit")]
+    [Authorize]
+    public async Task<Feedback> Submit([FromBody] FeedbackSubmission model)
+    {
+        await Authorize(FeedbackService.UserIsEnrolled(model.GameId, Actor.Id));
+        await Validate(model);
 
-        /// <summary>
-        /// Gets feedback response
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpGet("api/feedback")]
-        [Authorize]
-        public async Task<Feedback> Retrieve([FromQuery] FeedbackSearchParams model)
-        {
-            await Authorize(FeedbackService.UserIsEnrolled(model.GameId, Actor.Id));
-            return await FeedbackService.Retrieve(model, Actor.Id);
-        }
+        var result = await FeedbackService.Submit(model, Actor.Id);
 
-        /// <summary>
-        /// Saves feedback response
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpPut("/api/feedback/submit")]
-        [Authorize]
-        public async Task<Feedback> Submit([FromBody] FeedbackSubmission model)
-        {
-            await Authorize(FeedbackService.UserIsEnrolled(model.GameId, Actor.Id));
-            await Validate(model);
-
-            var result = await FeedbackService.Submit(model, Actor.Id);
-
-            return result;
-        }
+        return result;
     }
 }
