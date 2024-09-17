@@ -345,7 +345,28 @@ public class GameboardDbContext : DbContext
                 .HasOne(b => b.UpdatedByUser)
                 .WithOne(u => u.UpdatedSupportSettings)
                 .HasForeignKey<SupportSettings>(s => s.UpdatedByUserId)
-                .OnDelete(DeleteBehavior.SetNull)
+                    .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired();
+        });
+
+        builder.Entity<SupportSettingsAutoTag>(b =>
+        {
+            b.HasKey(b => b.Id);
+            b
+                .Property(b => b.Tag)
+                .IsRequired()
+                .HasStandardNameLength();
+
+            b
+                .Property(b => b.ConditionValue)
+                .IsRequired()
+                .HasStandardGuidLength();
+
+            b
+                .HasOne(b => b.SupportSettings)
+                .WithMany(s => s.AutoTags)
+                .HasForeignKey(s => s.SupportSettingsId)
+                .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired();
         });
 
@@ -445,6 +466,7 @@ public class GameboardDbContext : DbContext
     public DbSet<Player> Players { get; set; }
     public DbSet<PublishedCertificate> PublishedCertificate { get; set; }
     public DbSet<Sponsor> Sponsors { get; set; }
+    public DbSet<SupportSettingsAutoTag> SupportSettingsAutoTags { get; set; }
     public DbSet<SystemNotification> SystemNotifications { get; set; }
     public DbSet<SystemNotificationInteraction> SystemNotificationInteractions { get; set; }
     public DbSet<Ticket> Tickets { get; set; }

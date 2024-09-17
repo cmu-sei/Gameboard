@@ -1079,6 +1079,41 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.ToTable("SupportSettings");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.SupportSettingsAutoTag", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ConditionType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ConditionValue")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SupportSettingsId")
+                        .IsRequired()
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Tag")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SupportSettingsId");
+
+                    b.ToTable("SupportSettingsAutoTags");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.SystemNotification", b =>
                 {
                     b.Property<string>("Id")
@@ -1643,6 +1678,17 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("UpdatedByUser");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.SupportSettingsAutoTag", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.SupportSettings", "SupportSettings")
+                        .WithMany("AutoTags")
+                        .HasForeignKey("SupportSettingsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SupportSettings");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.SystemNotification", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.User", "CreatedByUser")
@@ -1857,6 +1903,11 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("SponsoredPlayers");
 
                     b.Navigation("SponsoredUsers");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.SupportSettings", b =>
+                {
+                    b.Navigation("AutoTags");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.SystemNotification", b =>

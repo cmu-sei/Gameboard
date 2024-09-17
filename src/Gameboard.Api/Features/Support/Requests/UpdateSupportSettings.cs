@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
@@ -26,11 +27,12 @@ internal class UpdateSupportSettingsHandler(
     public async Task<SupportSettingsViewModel> Handle(UpdateSupportSettingsCommand request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .ConfigureAuthorization(a => a.RequirePermissions(PermissionKey.Support_EditSettings))
+            .Auth(a => a.RequirePermissions(PermissionKey.Support_EditSettings))
             .Validate(cancellationToken);
 
         var existingSettings = await _store
             .WithTracking<SupportSettings>()
+                .Include(s => s.AutoTags)
             .SingleOrDefaultAsync(cancellationToken);
 
         request.Settings.AutoTagPracticeTicketsWith = request.Settings.AutoTagPracticeTicketsWith.IsEmpty() ? null : request.Settings.AutoTagPracticeTicketsWith;
@@ -40,6 +42,7 @@ internal class UpdateSupportSettingsHandler(
             await _store
                 .Create(new SupportSettings
                 {
+                    AutoTags = request.Settings.AutoTags.ToArray(),
                     SupportPageGreeting = request.Settings.SupportPageGreeting,
                     UpdatedByUserId = _actingUserService.Get().Id,
                     UpdatedOn = _nowService.Get()
@@ -47,6 +50,7 @@ internal class UpdateSupportSettingsHandler(
         }
         else
         {
+            existingSettings.AutoTags = request.Settings.AutoTags.ToArray();
             existingSettings.AutoTagPracticeTicketsWith = request.Settings.AutoTagPracticeTicketsWith;
             existingSettings.SupportPageGreeting = request.Settings.SupportPageGreeting;
             existingSettings.UpdatedByUserId = _actingUserService.Get().Id;
@@ -56,6 +60,7 @@ internal class UpdateSupportSettingsHandler(
 
         return new SupportSettingsViewModel
         {
+            AutoTags = request.Settings.AutoTags,
             AutoTagPracticeTicketsWith = request.Settings.AutoTagPracticeTicketsWith,
             SupportPageGreeting = request.Settings.SupportPageGreeting
         };

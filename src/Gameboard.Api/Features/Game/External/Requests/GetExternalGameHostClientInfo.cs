@@ -18,7 +18,7 @@ internal sealed class GetExternalGameHostClientInfoHandler(IStore store, IValida
     public async Task<GetExternalGameHostClientInfo> Handle(GetExternalGameHostClientInfoQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .ConfigureAuthorization(config => config.RequireAuthentication())
+            .Auth(config => config.RequireAuthentication())
             .Validate(cancellationToken);
 
         return await _store

@@ -29,7 +29,7 @@ internal class GetVisibleNotificationsHandler(
     public async Task<IEnumerable<ViewSystemNotification>> Handle(GetVisibleNotificationsQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .ConfigureAuthorization(a => a.RequireAuthentication())
+            .Auth(a => a.RequireAuthentication())
             .Validate(cancellationToken);
 
         var nowish = _now.Get();

@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Gameboard.Api.Data;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,4 +24,8 @@ public class SupportController : ControllerBase
     [HttpPut("settings")]
     public Task<SupportSettingsViewModel> UpdateSupportSettings([FromBody] SupportSettingsViewModel settings)
         => _mediator.Send(new UpdateSupportSettingsCommand(settings));
+
+    [HttpPost("settings/autotag")]
+    public Task<SupportSettingsAutoTag> UpsertAutoTag([FromBody] SupportSettingsAutoTag tag)
+        => _mediator.Send(new UpsertSupportSettingsAutoTagCommand(tag));
 }

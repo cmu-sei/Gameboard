@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
@@ -18,23 +19,26 @@ internal class GetSupportSettingsHandler(IStore store, IValidatorService validat
     {
         // validate
         await _validatorService
-            .ConfigureAuthorization(a => a.RequireAuthentication())
+            .Auth(a => a.RequireAuthentication())
             .Validate(cancellationToken);
 
         // provide a default if no one has created settings yet
         var existingSettings = await _store
             .WithNoTracking<SupportSettings>()
+                .Include(s => s.AutoTags)
             .SingleOrDefaultAsync(cancellationToken);
 
         if (existingSettings is null)
             return new SupportSettingsViewModel
             {
+                AutoTags = [],
                 AutoTagPracticeTicketsWith = "practice-challenge",
                 SupportPageGreeting = null
             };
 
         return new SupportSettingsViewModel
         {
+            AutoTags = existingSettings.AutoTags.ToArray(),
             AutoTagPracticeTicketsWith = existingSettings.AutoTagPracticeTicketsWith,
             SupportPageGreeting = existingSettings.SupportPageGreeting
         };

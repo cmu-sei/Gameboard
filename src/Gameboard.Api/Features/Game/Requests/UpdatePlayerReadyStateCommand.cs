@@ -30,7 +30,7 @@ internal class UpdatePlayerReadyStateCommandHandler(
             .SingleOrDefaultAsync(p => p.Id == request.PlayerId, cancellationToken);
 
         await _validatorService
-            .ConfigureAuthorization
+            .Auth
             (
                 config => config
                     .RequirePermissions(PermissionKey.Teams_SetSyncStartReady)

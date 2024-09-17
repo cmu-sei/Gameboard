@@ -13,7 +13,7 @@ public interface IValidatorService
     IValidatorService AddValidator(IGameboardValidator validator);
     IValidatorService AddValidator(Action<RequestValidationContext> validationAction);
     IValidatorService AddValidator(Func<RequestValidationContext, Task> validationTask);
-    IValidatorService ConfigureAuthorization(Action<IUserRolePermissionsValidator> configBuilder);
+    IValidatorService Auth(Action<IUserRolePermissionsValidator> configBuilder);
     Task Validate(CancellationToken cancellationToken);
 }
 
@@ -41,7 +41,7 @@ internal class ValidatorService(IActingUserService actingUserService, UserRolePe
         return this;
     }
 
-    public IValidatorService ConfigureAuthorization(Action<IUserRolePermissionsValidator> configBuilder)
+    public IValidatorService Auth(Action<IUserRolePermissionsValidator> configBuilder)
     {
         configBuilder(_userRolePermissionsValidator);
         return this;

@@ -177,9 +177,16 @@ public class UserController(
     /// <remarks>Expires in 20s</remarks>
     /// <returns>{ "ticket": "value"}</returns>
     [HttpPost("/api/user/ticket")]
-    public IActionResult GetTicket()
+    public async Task<IActionResult> GetTicket()
     {
-        var ticket = _guids.GetGuid();
+        string ticket = _guids.GetGuid();
+
+        await Cache.SetStringAsync(
+            $"{TicketAuthentication.TicketCachePrefix}{ticket}",
+            $"{Actor.Id}#{Actor.Name}",
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = new TimeSpan(0, 0, 20) }
+        );
+
         return Ok(new { Ticket = ticket });
     }
 
