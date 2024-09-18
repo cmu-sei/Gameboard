@@ -8,10 +8,10 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Games;
-using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Practice;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 
 namespace Gameboard.Api.Features.Teams;
 
@@ -28,6 +28,7 @@ public interface ITeamService
     Task<string> GetGameId(IEnumerable<string> teamIds, CancellationToken cancellationToken);
     Task<CalculatedSessionWindow> GetSession(string teamId, CancellationToken cancellationToken);
     Task<int> GetSessionCount(string teamId, string gameId, CancellationToken cancellationToken);
+    Task<IEnumerable<SponsorWithParentSponsor>> GetSponsors(string teamId, CancellationToken cancellationToken);
     Task<Team> GetTeam(string id);
     Task<IEnumerable<Team>> GetTeams(IEnumerable<string> ids);
     Task<string[]> GetUserTeamIds(string userId);
@@ -203,6 +204,37 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
         }, request.Actor);
 
         return captainModel;
+    }
+
+    public async Task<IEnumerable<SponsorWithParentSponsor>> GetSponsors(string teamId, CancellationToken cancellationToken)
+    {
+        var sponsorIds = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.TeamId == teamId)
+            .Select(p => p.SponsorId)
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
+
+        if (sponsorIds.Length == 0)
+            return [];
+
+        return await _store
+            .WithNoTracking<Data.Sponsor>()
+            .Select(s => new SponsorWithParentSponsor
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Logo = s.Logo,
+                ParentSponsor = new Sponsor
+                {
+                    Id = s.ParentSponsor.Id,
+                    Name = s.ParentSponsor.Name,
+                    Logo = s.ParentSponsor.Logo,
+                    ParentSponsorId = s.ParentSponsorId
+                }
+            })
+            .Where(s => sponsorIds.Any(sId => sId == s.Id))
+            .ToArrayAsync(cancellationToken);
     }
 
     public async Task<IDictionary<string, TeamChallengeSolveCounts>> GetSolves(IEnumerable<string> teamIds, CancellationToken cancellationToken)

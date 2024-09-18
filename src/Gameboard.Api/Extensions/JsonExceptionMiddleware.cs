@@ -12,19 +12,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api
 {
-    public class JsonExceptionMiddleware
+    public class JsonExceptionMiddleware(
+        RequestDelegate next,
+        ILogger<JsonExceptionMiddleware> logger
+    )
     {
-        private readonly RequestDelegate _next;
-        private readonly ILogger<JsonExceptionMiddleware> _logger;
-
-        public JsonExceptionMiddleware(
-            RequestDelegate next,
-            ILogger<JsonExceptionMiddleware> logger
-        )
-        {
-            _next = next;
-            _logger = logger;
-        }
+        private readonly RequestDelegate _next = next;
+        private readonly ILogger<JsonExceptionMiddleware> _logger = logger;
 
         public async Task Invoke(HttpContext context)
         {

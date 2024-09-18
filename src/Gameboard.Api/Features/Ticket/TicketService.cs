@@ -22,6 +22,7 @@ namespace Gameboard.Api.Services;
 
 public class TicketService(
         IActingUserService actingUserService,
+        IAutoTagService autoTagService,
         IFileUploadService fileUploadService,
         IGuidService guids,
         ILogger<TicketService> logger,
@@ -36,6 +37,7 @@ public class TicketService(
         ) : _Service(logger, mapper, options)
 {
     private readonly IActingUserService _actingUserService = actingUserService;
+    private readonly IAutoTagService _autoTagService = autoTagService;
     private readonly IFileUploadService _fileUploadService = fileUploadService;
     private readonly IGuidService _guids = guids;
     private readonly IMediator _mediator = mediator;
@@ -512,6 +514,17 @@ public class TicketService(
                 entity.TeamId = player.TeamId;
                 entity.ChallengeId = null;
                 return;
+            }
+        }
+
+        var autoTags = await _autoTagService.GetAutoTags(entity, CancellationToken.None);
+        var finalTags = new List<string>(entity.Label.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+        foreach (var autoTag in autoTags)
+        {
+            if (!finalTags.Contains(autoTag))
+            {
+                finalTags.Add(autoTag);
             }
         }
 

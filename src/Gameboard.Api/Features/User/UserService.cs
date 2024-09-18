@@ -24,7 +24,7 @@ public class UserService(
     IMemoryCache cache,
     INameService namesvc,
     IUserRolePermissionsService permissionsService
-    )
+)
 {
     private readonly IMapper _mapper = mapper;
     private readonly INowService _now = now;
@@ -110,7 +110,7 @@ public class UserService(
         return await BuildUserDto(await _userStore.Retrieve(id));
     }
 
-    public async Task<User> Update(ChangedUser model, bool canAdminUsers)
+    public async Task<User> Update(UpdateUser model, bool canAdminUsers)
     {
         var entity = await _userStore.Retrieve(model.Id, q => q.Include(u => u.Sponsor));
         var sponsorUpdated = false;
@@ -121,8 +121,13 @@ public class UserService(
         {
             if (!await _permissionsService.Can(PermissionKey.Users_EditRoles))
                 throw new ActionForbidden();
-            else
-                entity.Role = model.Role.Value;
+
+            var hasRemainingAdmins = await _store
+                .WithNoTracking<Data.User>()
+                .Where(u => u.Role == UserRoleKey.Admin && u.Id != model.Id)
+                .AnyAsync();
+
+            entity.Role = model.Role.Value;
         }
 
         // everyone can change their sponsor and name

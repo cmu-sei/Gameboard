@@ -1,6 +1,5 @@
 using AutoFixture;
 using AutoMapper;
-using Microsoft.Extensions.DependencyInjection;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 
@@ -10,6 +9,7 @@ public class GameboardCustomization : ICustomization
 {
     public void Customize(IFixture fixture)
     {
+        fixture.Behaviors.Add(new OmitOnRecursionBehavior());
         RegisterDefaultEntityModels(fixture);
         RegisterDefaultServices(fixture);
     }
@@ -18,7 +18,8 @@ public class GameboardCustomization : ICustomization
     {
         fixture.Register(() => fixture);
         fixture.Customizations.Add(new IdBuilder());
-        var now = DateTimeOffset.UtcNow;
+        fixture.Customizations.Add(new DateTimeOffsetSpecimenBuilder());
+        var now = DateTimeOffset.UtcNow.ToUniversalTime();
 
         fixture.Register(() => new Data.ArchivedChallenge
         {
@@ -43,7 +44,7 @@ public class GameboardCustomization : ICustomization
             PointValue = 10,
             ChallengeBonusType = ChallengeBonusType.CompleteSolveRank,
             ChallengeSpec = fixture.Create<Data.ChallengeSpec>(),
-            AwardedTo = new List<Data.AwardedChallengeBonus>()
+            AwardedTo = []
         });
 
         fixture.Register<ChallengeBonus>(() => new ChallengeBonusCompleteSolveRank
@@ -53,7 +54,7 @@ public class GameboardCustomization : ICustomization
             PointValue = 10,
             ChallengeBonusType = ChallengeBonusType.CompleteSolveRank,
             ChallengeSpec = fixture.Create<Data.ChallengeSpec>(),
-            AwardedTo = new List<Data.AwardedChallengeBonus>()
+            AwardedTo = []
         });
 
         fixture.Register(() => new Data.Challenge
@@ -108,8 +109,8 @@ public class GameboardCustomization : ICustomization
             Name = $"Sponsor {fixture.Create<string>()}",
             Approved = true,
             Logo = "test.svg",
-            SponsoredPlayers = new List<Data.Player>(),
-            SponsoredUsers = new List<Data.User>()
+            SponsoredPlayers = [],
+            SponsoredUsers = []
         });
 
         fixture.Register(() => new Data.Player
@@ -135,8 +136,8 @@ public class GameboardCustomization : ICustomization
             Markdown = "Here is some markdown _stuff_.",
             Audience = "gameboard",
             LaunchpointUrl = "https://google.com",
-            Players = new List<TopoMojo.Api.Client.Player>
-            {
+            Players =
+            [
                 new()
                 {
                     GamespaceId = "33b9cf31-8686-4d95-b5a8-9fb1b7f8ce71",
@@ -145,14 +146,14 @@ public class GameboardCustomization : ICustomization
                     Permission = TopoMojo.Api.Client.Permission.None,
                     IsManager = true
                 }
-            },
+            ],
             WhenCreated = DateTimeOffset.UtcNow,
             StartTime = DateTimeOffset.UtcNow,
             EndTime = DateTimeOffset.UtcNow.AddMinutes(60),
             ExpirationTime = DateTime.UtcNow.AddMinutes(60),
             IsActive = true,
-            Vms = new TopoMojo.Api.Client.VmState[]
-            {
+            Vms =
+            [
                 new()
                 {
                     Id = "10fccb66-6916-45e2-9a39-188d3a692d4a",
@@ -169,7 +170,7 @@ public class GameboardCustomization : ICustomization
                     IsRunning = true,
                     IsVisible = false
                 },
-            },
+            ],
             Challenge = new TopoMojo.Api.Client.ChallengeView
             {
                 Text = "A challenging challenge",
@@ -222,10 +223,7 @@ public class GameboardCustomization : ICustomization
 
     private void RegisterDefaultServices(IFixture fixture)
     {
-        var mapper = new MapperConfiguration(cfg =>
-        {
-            cfg.AddGameboardMaps();
-        }).CreateMapper();
+        var mapper = new MapperConfiguration(cfg => cfg.AddGameboardMaps()).CreateMapper();
 
         fixture.Register(() => mapper);
     }

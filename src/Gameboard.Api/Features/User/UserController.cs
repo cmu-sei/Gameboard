@@ -111,7 +111,7 @@ public class UserController(
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPut("api/user")]
-    public async Task<User> Update([FromBody] ChangedUser model)
+    public async Task<User> Update([FromBody] UpdateUser model)
     {
         var canAdminUsers = await _permissionsService.Can(PermissionKey.Users_CreateEditDelete);
         AuthorizeAny

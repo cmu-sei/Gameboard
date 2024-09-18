@@ -1,7 +1,6 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
@@ -9,15 +8,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Support;
 
-public record UpsertSupportSettingsAutoTagCommand(SupportSettingsAutoTag AutoTag) : IRequest<SupportSettingsAutoTag>;
+public record UpsertSupportSettingsAutoTagCommand(UpsertSupportSettingsAutoTagRequest AutoTag) : IRequest<SupportSettingsAutoTag>;
 
 internal class UpsertSupportSettingsAutoTagHandler(
-    IGuidService guids,
     IStore store,
     IValidatorService validatorService
 ) : IRequestHandler<UpsertSupportSettingsAutoTagCommand, SupportSettingsAutoTag>
 {
-    private readonly IGuidService _guids = guids;
     private readonly IStore _store = store;
     private readonly IValidatorService _validatorService = validatorService;
 
@@ -51,8 +48,7 @@ internal class UpsertSupportSettingsAutoTagHandler(
         {
             ConditionType = request.AutoTag.ConditionType,
             ConditionValue = request.AutoTag.ConditionValue,
-            Description = request.AutoTag.Description,
-            IsEnabled = request.AutoTag.IsEnabled,
+            IsEnabled = request.AutoTag.IsEnabled ?? true,
             SupportSettingsId = settingsId,
             Tag = request.AutoTag.Tag,
         };

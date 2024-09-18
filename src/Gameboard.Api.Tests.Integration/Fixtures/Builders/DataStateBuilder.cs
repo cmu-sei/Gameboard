@@ -1,6 +1,6 @@
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Tests.Shared;
-using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
@@ -23,6 +23,8 @@ internal class DataStateBuilder(GameboardDbContext dbContext) : IDataStateBuilde
     {
         var entity = fixture.Create<TEntity>() ?? throw new GbAutomatedTestSetupException($"The test fixture can't create entity of type {typeof(TEntity)}");
         entityBuilder?.Invoke(entity);
+        entity.Id ??= GuidService.StaticGenerateGuid();
+
         _dbContext.Add(entity);
 
         return this;

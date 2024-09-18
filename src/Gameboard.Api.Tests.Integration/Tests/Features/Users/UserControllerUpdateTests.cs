@@ -55,7 +55,7 @@ public class UserControllerUpdateTests : IClassFixture<GameboardTestContext>
         });
 
         // when this user updates their sponsor
-        var changedUser = new ChangedUser
+        var changedUser = new UpdateUser
         {
             Id = userId,
             Name = userName,

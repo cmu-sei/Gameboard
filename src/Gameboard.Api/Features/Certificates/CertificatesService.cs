@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,16 +11,9 @@ public interface ICertificatesService
     Task<IEnumerable<PracticeModeCertificate>> GetPracticeCertificates(string userId);
 }
 
-internal class CertificatesService : ICertificatesService
+internal class CertificatesService(IStore store) : ICertificatesService
 {
-    private readonly INowService _now;
-    private readonly IStore _store;
-
-    public CertificatesService(INowService now, IStore store)
-    {
-        _now = now;
-        _store = store;
-    }
+    private readonly IStore _store = store;
 
     public async Task<IEnumerable<PracticeModeCertificate>> GetPracticeCertificates(string userId)
     {

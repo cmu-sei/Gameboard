@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using MediatR;
@@ -8,14 +9,9 @@ namespace Gameboard.Api.Features.Support;
 
 [Authorize]
 [Route("api/support")]
-public class SupportController : ControllerBase
+public class SupportController(IMediator mediator) : ControllerBase
 {
-    private readonly IMediator _mediator;
-
-    public SupportController(IMediator mediator)
-    {
-        _mediator = mediator;
-    }
+    private readonly IMediator _mediator = mediator;
 
     [HttpGet("settings")]
     public Task<SupportSettingsViewModel> GetSupportSettingsGreeting()
@@ -25,7 +21,11 @@ public class SupportController : ControllerBase
     public Task<SupportSettingsViewModel> UpdateSupportSettings([FromBody] SupportSettingsViewModel settings)
         => _mediator.Send(new UpdateSupportSettingsCommand(settings));
 
+    [HttpGet("settings/autotags")]
+    public Task<IEnumerable<SupportSettingsAutoTagViewModel>> GetAutoTags()
+        => _mediator.Send(new GetSupportSettingsAutoTagsQuery());
+
     [HttpPost("settings/autotag")]
-    public Task<SupportSettingsAutoTag> UpsertAutoTag([FromBody] SupportSettingsAutoTag tag)
-        => _mediator.Send(new UpsertSupportSettingsAutoTagCommand(tag));
+    public Task<SupportSettingsAutoTag> UpsertAutoTag([FromBody] UpsertSupportSettingsAutoTagRequest request)
+        => _mediator.Send(new UpsertSupportSettingsAutoTagCommand(request));
 }

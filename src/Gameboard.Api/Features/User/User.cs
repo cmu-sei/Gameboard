@@ -34,7 +34,7 @@ public class NewUser
     public bool UnsetDefaultSponsorFlag { get; set; }
 }
 
-public class ChangedUser
+public class UpdateUser
 {
     public string Id { get; set; }
     public string Name { get; set; }
