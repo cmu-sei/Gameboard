@@ -35,8 +35,6 @@ internal class UpdateSupportSettingsHandler(
                 .Include(s => s.AutoTags)
             .SingleOrDefaultAsync(cancellationToken);
 
-        request.Settings.AutoTagPracticeTicketsWith = request.Settings.AutoTagPracticeTicketsWith.IsEmpty() ? null : request.Settings.AutoTagPracticeTicketsWith;
-
         if (existingSettings is null)
         {
             await _store
@@ -51,7 +49,6 @@ internal class UpdateSupportSettingsHandler(
         else
         {
             existingSettings.AutoTags = request.Settings.AutoTags.ToArray();
-            existingSettings.AutoTagPracticeTicketsWith = request.Settings.AutoTagPracticeTicketsWith;
             existingSettings.SupportPageGreeting = request.Settings.SupportPageGreeting;
             existingSettings.UpdatedByUserId = _actingUserService.Get().Id;
             existingSettings.UpdatedOn = _nowService.Get();
@@ -61,7 +58,6 @@ internal class UpdateSupportSettingsHandler(
         return new SupportSettingsViewModel
         {
             AutoTags = request.Settings.AutoTags,
-            AutoTagPracticeTicketsWith = request.Settings.AutoTagPracticeTicketsWith,
             SupportPageGreeting = request.Settings.SupportPageGreeting
         };
     }

@@ -32,14 +32,12 @@ internal class GetSupportSettingsHandler(IStore store, IValidatorService validat
             return new SupportSettingsViewModel
             {
                 AutoTags = [],
-                AutoTagPracticeTicketsWith = "practice-challenge",
                 SupportPageGreeting = null
             };
 
         return new SupportSettingsViewModel
         {
             AutoTags = existingSettings.AutoTags.ToArray(),
-            AutoTagPracticeTicketsWith = existingSettings.AutoTagPracticeTicketsWith,
             SupportPageGreeting = existingSettings.SupportPageGreeting
         };
     }

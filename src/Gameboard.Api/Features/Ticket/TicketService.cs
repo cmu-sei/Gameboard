@@ -377,7 +377,7 @@ public class TicketService(
             .Where(t => !t.Label.IsEmpty())
             .SelectMany(t => TransformTicketLabels(t.Label))
             .OrderBy(t => t)
-            .ToHashSet()
+            .Distinct()
             .ToArray();
 
         return b;
@@ -486,19 +486,6 @@ public class TicketService(
                 entity.TeamId = challenge.TeamId;
                 entity.PlayerId = challenge.PlayerId;
                 entity.Label = string.Empty;
-
-                // if support settings specify an automatic tag for practice challenges, throw it on there
-                if (challenge.PlayerMode == PlayerMode.Practice)
-                {
-                    var supportSettings = await _store.WithNoTracking<Data.SupportSettings>().SingleOrDefaultAsync();
-                    var autoTagLabel = supportSettings?.AutoTagPracticeTicketsWith;
-
-                    if (autoTagLabel.IsNotEmpty() && !entity.Label.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries).Contains(autoTagLabel))
-                    {
-                        entity.Label = $"{entity.Label} {autoTagLabel}".Trim();
-                    }
-                }
-
                 return;
             }
         }
@@ -528,6 +515,7 @@ public class TicketService(
             }
         }
 
+        entity.Label = string.Join(LABELS_DELIMITER, finalTags);
         entity.TeamId = null;
         entity.ChallengeId = null;
         entity.PlayerId = null;

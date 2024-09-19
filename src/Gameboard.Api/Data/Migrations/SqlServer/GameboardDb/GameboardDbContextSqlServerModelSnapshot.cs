@@ -1059,10 +1059,6 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
-                    b.Property<string>("AutoTagPracticeTicketsWith")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
                     b.Property<string>("SupportPageGreeting")
                         .HasColumnType("nvarchar(max)");
 
