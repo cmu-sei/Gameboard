@@ -53,7 +53,7 @@ internal class AddPlayerToTeamHandler(
                     .RequirePermissions(PermissionKey.Teams_Enroll)
                     .Unless(() => _store.AnyAsync<Data.Player>(p => p.UserId == _actingUserService.Get().Id && p.Id == request.PlayerId, cancellationToken))
             )
-            .AddValidator(_playerExists.WithIdValue(request.PlayerId))
+            .AddValidator(_playerExists.UseValue(request.PlayerId))
             .AddValidator(async (req, ctx) =>
             {
                 var teamPlayers = await _store

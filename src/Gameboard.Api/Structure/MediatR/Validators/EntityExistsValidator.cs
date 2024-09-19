@@ -10,7 +10,7 @@ public class EntityExistsValidator<TEntity>(IStore store) : IGameboardValidator 
     public string IdValue { get; private set; }
     private readonly IStore _store = store;
 
-    public EntityExistsValidator<TEntity> WithIdValue(string idValue)
+    public EntityExistsValidator<TEntity> UseValue(string idValue)
     {
         IdValue = idValue;
         return this;

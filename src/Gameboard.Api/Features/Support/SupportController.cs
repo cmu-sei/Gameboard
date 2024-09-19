@@ -21,6 +21,10 @@ public class SupportController(IMediator mediator) : ControllerBase
     public Task<SupportSettingsViewModel> UpdateSupportSettings([FromBody] SupportSettingsViewModel settings)
         => _mediator.Send(new UpdateSupportSettingsCommand(settings));
 
+    [HttpDelete("settings/autotag/{id}")]
+    public Task DeleteAutoTag([FromRoute] string id)
+        => _mediator.Send(new DeleteSupportSettingsAutoTagCommand(id));
+
     [HttpGet("settings/autotags")]
     public Task<IEnumerable<SupportSettingsAutoTagViewModel>> GetAutoTags()
         => _mediator.Send(new GetSupportSettingsAutoTagsQuery());
