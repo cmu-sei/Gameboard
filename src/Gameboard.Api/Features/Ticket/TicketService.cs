@@ -358,7 +358,7 @@ public class TicketService(
         result.Status = entity.Status;
 
         // send signalR/browser notifications for updates
-        var ticketDto = await LoadTicketDto(result.Id);
+        var ticketDto = await LoadTicketDto(model.TicketId);
 
         if (await _permissionsService.Can(PermissionKey.Support_ManageTickets))
             await _supportHubBus.SendTicketUpdatedBySupport(ticketDto, actingUser);
@@ -474,6 +474,7 @@ public class TicketService(
 
     private async Task UpdatedSessionContext(Data.Ticket entity)
     {
+        // add conditional auto-tags
         var autoTags = await _autoTagService.GetAutoTags(entity, CancellationToken.None);
         var finalTags = new List<string>(entity.Label?.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? []);
 
@@ -484,6 +485,8 @@ public class TicketService(
                 finalTags.Add(autoTag.Trim());
             }
         }
+
+        entity.Label = string.Join(LABELS_DELIMITER, finalTags);
 
         if (!entity.ChallengeId.IsEmpty())
         {
@@ -514,7 +517,6 @@ public class TicketService(
             }
         }
 
-        entity.Label = string.Join(LABELS_DELIMITER, finalTags);
         entity.TeamId = null;
         entity.ChallengeId = null;
         entity.PlayerId = null;
