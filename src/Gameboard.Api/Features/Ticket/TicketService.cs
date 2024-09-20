@@ -475,7 +475,7 @@ public class TicketService(
     private async Task UpdatedSessionContext(Data.Ticket entity)
     {
         var autoTags = await _autoTagService.GetAutoTags(entity, CancellationToken.None);
-        var finalTags = new List<string>(entity.Label.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        var finalTags = new List<string>(entity.Label?.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? []);
 
         foreach (var autoTag in autoTags)
         {
