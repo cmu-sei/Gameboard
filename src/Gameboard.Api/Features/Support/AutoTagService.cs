@@ -14,10 +14,9 @@ public interface IAutoTagService
     public Task<IEnumerable<string>> GetAutoTags(Data.Ticket ticket, CancellationToken cancellationToken);
 }
 
-internal sealed class AutoTagService(IStore store, ITeamService teamService) : IAutoTagService
+internal sealed class AutoTagService(IStore store) : IAutoTagService
 {
     private readonly IStore _store = store;
-    private readonly ITeamService _teamService = teamService;
 
     public async Task<IEnumerable<string>> GetAutoTags(Data.Ticket ticket, CancellationToken cancellationToken)
     {
@@ -66,6 +65,10 @@ internal sealed class AutoTagService(IStore store, ITeamService teamService) : I
             })
             .ToArrayAsync(cancellationToken);
 
-        return autoTagConfig.Select(t => t.Tag).Distinct().ToArray();
+        var autoTags = await _store.WithNoTracking<SupportSettingsAutoTag>().ToArrayAsync();
+        Console.WriteLine($"DEBURG: {autoTagConfig.Length} matching thingies, but {autoTags.Length} total.");
+
+        return [.. autoTagConfig.Select(c => c.Tag).OrderBy(t => t)];
+
     }
 }

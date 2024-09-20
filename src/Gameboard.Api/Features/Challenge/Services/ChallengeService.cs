@@ -218,9 +218,9 @@ public partial class ChallengeService(
 
         foreach (var summary in summaries)
         {
-            if (teamPlayerMap.ContainsKey(summary.TeamId))
+            if (teamPlayerMap.TryGetValue(summary.TeamId, out IGrouping<string, Data.Player> value))
             {
-                var teamPlayers = teamPlayerMap[summary.TeamId];
+                var teamPlayers = value;
                 summary.Players = teamPlayers.Select(p => _mapper.Map<ChallengePlayer>(p));
             }
             else
@@ -248,7 +248,7 @@ public partial class ChallengeService(
         var practiceChallengesCutoff = _now.Get().AddDays(-7);
         q = q.Include(c => c.Player).Include(c => c.Game);
         // band-aid for #296
-        q = q.Where(c => c.Game.GameEnd > recent || (c.PlayerMode == PlayerMode.Practice && c.StartTime >= practiceChallengesCutoff));
+        // q = q.Where(c => c.Game.GameEnd > recent || (c.PlayerMode == PlayerMode.Practice && c.StartTime >= practiceChallengesCutoff));
         q = q.OrderByDescending(p => p.StartTime);
 
         return await Mapper.ProjectTo<ChallengeOverview>(q).ToArrayAsync();
