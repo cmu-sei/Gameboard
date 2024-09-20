@@ -50,7 +50,7 @@ internal sealed class GetSupportSettingsAutoTagsHandler(IStore store, IValidator
             challengeSpecs = await _store
                 .WithNoTracking<Data.ChallengeSpec>()
                 .Where(s => specIds.Contains(s.Id))
-                .ToDictionaryAsync(s => s.Id, s => $"{s.Game.Name} - {s.Name}", cancellationToken);
+                .ToDictionaryAsync(s => s.Id, s => $"{(s.Game != null ? s.Game.Name : "[no game]")} - {s.Name}", cancellationToken);
         }
 
         var gameIds = autoTags
