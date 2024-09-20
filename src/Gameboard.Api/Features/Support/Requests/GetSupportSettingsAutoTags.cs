@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using MediatR;
 using Gameboard.Api.Data;
 using Gameboard.Api.Structure.MediatR;
-using YamlDotNet.Core.Tokens;
 using System;
 
 namespace Gameboard.Api.Features.Support;
