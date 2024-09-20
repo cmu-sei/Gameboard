@@ -474,6 +474,34 @@ public class TicketService(
 
     private async Task UpdatedSessionContext(Data.Ticket entity)
     {
+
+        if (!entity.ChallengeId.IsEmpty())
+        {
+            var challenge = await _store
+                .WithNoTracking<Data.Challenge>()
+                .Where(c => c.Id == entity.ChallengeId)
+                .SingleOrDefaultAsync();
+
+            if (challenge is not null)
+            {
+                entity.TeamId = challenge.TeamId;
+                entity.PlayerId = challenge.PlayerId;
+            }
+        }
+        else if (!entity.PlayerId.IsEmpty())
+        {
+            var player = await _store
+                .WithNoTracking<Data.Player>()
+                .Where(p => p.Id == entity.PlayerId)
+                .SingleOrDefaultAsync();
+
+            if (player != null)
+            {
+                entity.TeamId = player.TeamId;
+                entity.ChallengeId = null;
+            }
+        }
+
         // add conditional auto-tags
         var autoTags = await _autoTagService.GetAutoTags(entity, CancellationToken.None);
         var finalTags = new List<string>(entity.Label?.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? []);
@@ -488,38 +516,12 @@ public class TicketService(
 
         entity.Label = string.Join(LABELS_DELIMITER, finalTags);
 
-        if (!entity.ChallengeId.IsEmpty())
+        if (entity.TeamId.IsEmpty())
         {
-            var challenge = await _store
-                .WithNoTracking<Data.Challenge>()
-                .Where(c => c.Id == entity.ChallengeId)
-                .SingleOrDefaultAsync();
-
-            if (challenge is not null)
-            {
-                entity.TeamId = challenge.TeamId;
-                entity.PlayerId = challenge.PlayerId;
-                return;
-            }
+            entity.TeamId = null;
+            entity.ChallengeId = null;
+            entity.PlayerId = null;
         }
-        else if (!entity.PlayerId.IsEmpty())
-        {
-            var player = await _store
-                .WithNoTracking<Data.Player>()
-                .Where(p => p.Id == entity.PlayerId)
-                .SingleOrDefaultAsync();
-
-            if (player != null)
-            {
-                entity.TeamId = player.TeamId;
-                entity.ChallengeId = null;
-                return;
-            }
-        }
-
-        entity.TeamId = null;
-        entity.ChallengeId = null;
-        entity.PlayerId = null;
     }
 
     private void AddActivity(Data.Ticket entity, string actorId, bool statusChanged, bool assigneeChanged, DateTimeOffset timestamp)
