@@ -1,6 +1,7 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.ChallengeSpecs;
@@ -88,6 +89,10 @@ public class ChallengeSpecController(
         await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
         return await _challengeSpecService.List(model);
     }
+
+    [HttpGet("/api/challengespecs/by-game")]
+    public Task<IEnumerable<GameChallengeSpecs>> ListByGame()
+        => _challengeSpecService.ListByGame();
 
     /// <summary>
     /// Load solve performance for the challenge spec

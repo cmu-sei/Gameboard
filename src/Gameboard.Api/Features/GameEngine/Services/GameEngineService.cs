@@ -28,7 +28,7 @@ public interface IGameEngineService
     Task<GameEngineGameState> GetPreview(Data.ChallengeSpec spec);
     IEnumerable<GameEngineGamespaceVm> GetGamespaceVms(GameEngineGameState state);
     Task<GameEngineGameState> GradeChallenge(Data.Challenge entity, GameEngineSectionSubmission model);
-    Task<ExternalSpec[]> ListSpecs(SearchFilter model);
+    Task<ExternalSpec[]> ListGameEngineSpecs(SearchFilter model);
     Task<GameEngineGameState> LoadGamespace(Data.Challenge entity);
     Task<GameEngineGameState> RegisterGamespace(GameEngineChallengeRegistration registration);
     Task<GameEngineGameState> RegradeChallenge(Data.Challenge entity);
@@ -36,31 +36,23 @@ public interface IGameEngineService
     Task<GameEngineGameState> StopGamespace(Data.Challenge entity);
 }
 
-public class GameEngineService : _Service, IGameEngineService
+public class GameEngineService(
+    IJsonService jsonService,
+    ILogger<GameEngineService> logger,
+    IMapper mapper,
+    CoreOptions options,
+    ITopoMojoApiClient mojo,
+    IAlloyApiClient alloy,
+    ICrucibleService crucible,
+    IVmUrlResolver vmUrlResolver
+    ) : _Service(logger, mapper, options), IGameEngineService
 {
-    ITopoMojoApiClient Mojo { get; }
-    IAlloyApiClient Alloy { get; }
+    ITopoMojoApiClient Mojo { get; } = mojo;
+    IAlloyApiClient Alloy { get; } = alloy;
 
-    private readonly ICrucibleService _crucible;
-    private readonly IJsonService _jsonService;
-    private readonly IVmUrlResolver _vmUrlResolver;
-
-    public GameEngineService(
-        IJsonService jsonService,
-        ILogger<GameEngineService> logger,
-        IMapper mapper,
-        CoreOptions options,
-        ITopoMojoApiClient mojo,
-        IAlloyApiClient alloy,
-        ICrucibleService crucible,
-        IVmUrlResolver vmUrlResolver
-    ) : base(logger, mapper, options)
-    {
-        _jsonService = jsonService;
-        _crucible = crucible;
-        Mojo = mojo;
-        _vmUrlResolver = vmUrlResolver;
-    }
+    private readonly ICrucibleService _crucible = crucible;
+    private readonly IJsonService _jsonService = jsonService;
+    private readonly IVmUrlResolver _vmUrlResolver = vmUrlResolver;
 
     public async Task<GameEngineGameState> RegisterGamespace(GameEngineChallengeRegistration registration)
     {
@@ -217,7 +209,7 @@ public class GameEngineService : _Service, IGameEngineService
         }
     }
 
-    public async Task<ExternalSpec[]> ListSpecs(SearchFilter model)
+    public async Task<ExternalSpec[]> ListGameEngineSpecs(SearchFilter model)
     {
         var resultsList = new List<ExternalSpec>();
 
