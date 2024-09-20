@@ -474,6 +474,17 @@ public class TicketService(
 
     private async Task UpdatedSessionContext(Data.Ticket entity)
     {
+        var autoTags = await _autoTagService.GetAutoTags(entity, CancellationToken.None);
+        var finalTags = new List<string>(entity.Label.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+        foreach (var autoTag in autoTags)
+        {
+            if (!finalTags.Contains(autoTag))
+            {
+                finalTags.Add(autoTag.Trim());
+            }
+        }
+
         if (!entity.ChallengeId.IsEmpty())
         {
             var challenge = await _store
@@ -485,7 +496,6 @@ public class TicketService(
             {
                 entity.TeamId = challenge.TeamId;
                 entity.PlayerId = challenge.PlayerId;
-                entity.Label = string.Empty;
                 return;
             }
         }
@@ -501,17 +511,6 @@ public class TicketService(
                 entity.TeamId = player.TeamId;
                 entity.ChallengeId = null;
                 return;
-            }
-        }
-
-        var autoTags = await _autoTagService.GetAutoTags(entity, CancellationToken.None);
-        var finalTags = new List<string>(entity.Label.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
-
-        foreach (var autoTag in autoTags)
-        {
-            if (!finalTags.Contains(autoTag))
-            {
-                finalTags.Add(autoTag);
             }
         }
 
