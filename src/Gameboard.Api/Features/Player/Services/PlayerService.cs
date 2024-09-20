@@ -13,7 +13,6 @@ using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Scores;
-using Gameboard.Api.Features.Sponsors;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.Users;
 using MediatR;
