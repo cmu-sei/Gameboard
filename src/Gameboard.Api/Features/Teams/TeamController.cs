@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,7 +16,7 @@ public class TeamController(
     IActingUserService actingUserService,
     IMediator mediator,
     ITeamService teamService
-    ) : ControllerBase
+) : ControllerBase
 {
     private readonly IActingUserService _actingUserService = actingUserService;
     private readonly IMediator _mediator = mediator;

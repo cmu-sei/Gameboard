@@ -115,7 +115,7 @@ public class TeamChallenge
     public string Name { get; set; }
     public string Tag { get; set; }
     public int Points { get; set; }
-    public int Score { get; set; }
+    public double Score { get; set; }
     public long Duration { get; set; }
     public ChallengeResult Result { get; set; }
     public ChallengeEventSummary[] Events { get; set; }
@@ -130,7 +130,7 @@ public class ChallengeOverview
     public string Name { get; set; }
     public string Tag { get; set; }
     public int Points { get; set; }
-    public int Score { get; set; }
+    public double Score { get; set; }
     public long Duration { get; set; }
     public bool AllowTeam { get; set; }
 }
