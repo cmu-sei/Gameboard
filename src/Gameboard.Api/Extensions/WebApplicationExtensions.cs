@@ -1,11 +1,13 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Hubs;
 using Gameboard.Api.Features.Users;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
+using Gameboard.Api.Structure.Middleware;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,6 +44,7 @@ internal static class WebApplicationExtensions
         app.UseCors(settings.Headers.Cors.Name);
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseUserRolePermissions();
         app.UseFileProtection();
         app.UseStaticFiles();
 
@@ -72,14 +75,14 @@ internal static class WebApplicationExtensions
     /// <param name="app"></param>
     /// <param name="logger"></param>
     /// <returns></returns>
-    public static WebApplication DoStartupTasks(this WebApplication app, ILogger logger)
+    public static async Task<WebApplication> DoStartupTasks(this WebApplication app, ILogger logger)
     {
         try
         {
             using var serviceScope = app.Services.CreateScope();
             var taskQueue = serviceScope.ServiceProvider.GetRequiredService<IBackgroundAsyncTaskQueueService>();
 
-            _ = taskQueue.QueueBackgroundWorkItemAsync(async cancellationToken =>
+            await taskQueue.QueueBackgroundWorkItemAsync(async cancellationToken =>
             {
                 using var queueScope = app.Services.CreateScope();
                 var challengeSpecService = queueScope.ServiceProvider.GetRequiredService<ChallengeSpecService>();

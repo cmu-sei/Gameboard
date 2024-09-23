@@ -6,6 +6,7 @@ using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.AspNetCore.Http;
@@ -116,7 +117,7 @@ public class ChallengeServiceTests
             A.Fake<IMediator>(),
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
-            A.Fake<IPlayerStore>(),
+            A.Fake<IUserRolePermissionsService>(),
             A.Fake<IStore>(),
             A.Fake<ITeamService>()
         );
@@ -238,7 +239,7 @@ public class ChallengeServiceTests
             A.Fake<IMediator>(),
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
-            A.Fake<IPlayerStore>(),
+            A.Fake<IUserRolePermissionsService>(),
             A.Fake<IStore>(),
             A.Fake<ITeamService>()
         );

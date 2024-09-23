@@ -14,7 +14,7 @@ public class User : IEntity
     public string Name { get; set; }
     public string NameStatus { get; set; }
     public string ApprovedName { get; set; }
-    public UserRole Role { get; set; }
+    public UserRoleKey Role { get; set; }
     public DateTimeOffset CreatedOn { get; set; }
     public DateTimeOffset? LastLoginDate { get; set; }
     public int LoginCount { get; set; }
@@ -24,14 +24,23 @@ public class User : IEntity
     // navigation properties
     public string SponsorId { get; set; }
     public Sponsor Sponsor { get; set; }
-    public ICollection<ApiKey> ApiKeys { get; set; } = new List<ApiKey>();
-    public ICollection<SystemNotification> CreatedSystemNotifications { get; set; } = new List<SystemNotification>();
-    public ICollection<Player> Enrollments { get; set; } = new List<Player>();
-    public ICollection<ManualBonus> EnteredManualBonuses { get; set; } = new List<ManualBonus>();
-    public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
-    public ICollection<PublishedCompetitiveCertificate> PublishedCompetitiveCertificates { get; set; } = new List<PublishedCompetitiveCertificate>();
-    public ICollection<PublishedPracticeCertificate> PublishedPracticeCertificates { get; set; } = new List<PublishedPracticeCertificate>();
-    public ICollection<SystemNotificationInteraction> SystemNotificationInteractions { get; set; } = new List<SystemNotificationInteraction>();
+    public ICollection<ApiKey> ApiKeys { get; set; } = [];
+    public ICollection<SystemNotification> CreatedSystemNotifications { get; set; } = [];
+    public ICollection<Player> Enrollments { get; set; } = [];
+    public ICollection<ManualBonus> EnteredManualBonuses { get; set; } = [];
+    public ICollection<Feedback> Feedback { get; set; } = [];
+    public ICollection<PublishedCompetitiveCertificate> PublishedCompetitiveCertificates { get; set; } = [];
+    public ICollection<PublishedPracticeCertificate> PublishedPracticeCertificates { get; set; } = [];
+    public ICollection<SystemNotificationInteraction> SystemNotificationInteractions { get; set; } = [];
     public PracticeModeSettings UpdatedPracticeModeSettings { get; set; }
     public SupportSettings UpdatedSupportSettings { get; set; }
+}
+
+public enum UserRoleKey
+{
+    Member = 0,
+    Tester = 1,
+    Support = 2,
+    Director = 3,
+    Admin = 4
 }

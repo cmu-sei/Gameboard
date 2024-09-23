@@ -35,7 +35,7 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
         await _testContext.WithDataState(state =>
         {
             // user adding the bonus points
-            var enteringAdmin = state.Build<Data.User>(fixture, u => u.Role = UserRole.Admin);
+            var enteringAdmin = state.Build<Data.User>(fixture, u => u.Role = UserRoleKey.Admin);
             state.Add(enteringAdmin);
 
             // build the game - 1 player, 2 challenges, 3 bonuses across all
@@ -112,7 +112,7 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
         // when
         var result = await httpClient
             .GetAsync($"api/team/{teamId}/score")
-            .WithContentDeserializedAs<TeamScoreQueryResponse>();
+            .DeserializeResponseAs<TeamScoreQueryResponse>();
 
         // then
         result.ShouldNotBeNull();
@@ -141,7 +141,7 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
         await _testContext.WithDataState(state =>
         {
             // user adding the bonus points
-            var enteringAdmin = state.Build<Data.User>(fixture, u => u.Role = UserRole.Admin);
+            var enteringAdmin = state.Build<Data.User>(fixture, u => u.Role = UserRoleKey.Admin);
             state.Add(enteringAdmin);
 
             // build the game - 1 player, 2 challenges, 3 bonuses across all
@@ -225,7 +225,7 @@ public class ScoringControllerTeamGameSummaryTests : IClassFixture<GameboardTest
         // when
         var result = await httpClient
             .GetAsync($"api/team/{teamId}/score")
-            .WithContentDeserializedAs<TeamScoreQueryResponse>();
+            .DeserializeResponseAs<TeamScoreQueryResponse>();
 
         // then
         result.ShouldNotBeNull();

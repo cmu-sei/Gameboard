@@ -1,3 +1,4 @@
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Tests.Shared;
 
@@ -11,11 +12,9 @@ public interface IDataStateBuilder
     IDataStateBuilder AddRange<TEntity>(ICollection<TEntity> entities) where TEntity : class, IEntity;
 }
 
-internal class DataStateBuilder : IDataStateBuilder
+internal class DataStateBuilder(GameboardDbContext dbContext) : IDataStateBuilder
 {
-    private readonly GameboardDbContext _dbContext;
-
-    public DataStateBuilder(GameboardDbContext dbContext) => _dbContext = dbContext;
+    private readonly GameboardDbContext _dbContext = dbContext;
 
     public IDataStateBuilder Add<TEntity>(IFixture fixture) where TEntity : class, IEntity
         => Add<TEntity>(fixture, null);
@@ -24,6 +23,8 @@ internal class DataStateBuilder : IDataStateBuilder
     {
         var entity = fixture.Create<TEntity>() ?? throw new GbAutomatedTestSetupException($"The test fixture can't create entity of type {typeof(TEntity)}");
         entityBuilder?.Invoke(entity);
+        entity.Id ??= GuidService.StaticGenerateGuid();
+
         _dbContext.Add(entity);
 
         return this;

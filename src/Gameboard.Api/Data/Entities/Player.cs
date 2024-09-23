@@ -44,7 +44,7 @@ public class Player : IEntity
     public double? AdvancedWithScore { get; set; }
 
     // other navigation properties
-    public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
+    public ICollection<Challenge> Challenges { get; set; } = [];
     public string SponsorId { get; set; }
     public Sponsor Sponsor { get; set; }
 

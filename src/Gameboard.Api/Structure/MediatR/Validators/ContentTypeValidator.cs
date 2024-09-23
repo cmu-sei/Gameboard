@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Gameboard.Api.Common;
 using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Structure.MediatR.Validators;

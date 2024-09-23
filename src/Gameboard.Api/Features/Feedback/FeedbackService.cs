@@ -4,10 +4,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -16,8 +16,6 @@ namespace Gameboard.Api.Services
 {
     public class FeedbackService : _Service
     {
-        IFeedbackStore FeedbackStore { get; }
-
         private IMemoryCache _localcache;
         private IStore _store;
 
@@ -25,14 +23,72 @@ namespace Gameboard.Api.Services
             ILogger<FeedbackService> logger,
             IMapper mapper,
             CoreOptions options,
-            IFeedbackStore feedbackStore,
             IStore store,
             IMemoryCache localcache
         ) : base(logger, mapper, options)
         {
-            FeedbackStore = feedbackStore;
             _localcache = localcache;
             _store = store;
+        }
+
+        public async Task<int> GetFeedbackMaxResponses(FeedbackSearchParams model)
+        {
+            var total = 0;
+
+            if (model.WantsGame) // count enrollments for a specific game id, that are started
+                total = await _store
+                    .WithNoTracking<Data.Player>()
+                    .Where(p => p.GameId == model.GameId && p.SessionBegin > DateTimeOffset.MinValue)
+                    .CountAsync();
+            else if (model.WantsSpecificChallenge) // count challenges with specific challenge spec id
+                total = await _store
+                    .WithNoTracking<Data.Challenge>()
+                    .Where(p => p.SpecId == model.ChallengeSpecId)
+                    .CountAsync();
+            else if (model.WantsChallenge) // count challenges with specific game id
+                total = await _store
+                    .WithNoTracking<Data.Challenge>()
+                    .Where(p => p.GameId == model.GameId)
+                    .CountAsync();
+
+            return total;
+        }
+
+        // Compute aggregates for each feedback question in template based on all responses in feedback table
+        public IEnumerable<QuestionStats> GetFeedbackQuestionStats(QuestionTemplate[] questionTemplate, FeedbackReportHelper[] feedbackTable)
+        {
+            var questionStats = new List<QuestionStats>();
+            foreach (QuestionTemplate question in questionTemplate)
+            {
+                if (question.Type != "likert")
+                    continue;
+
+                var answers = new List<int>();
+                foreach (var response in feedbackTable.Where(f => f.Submitted || true))
+                {
+                    var answer = response.IdToAnswer.GetValueOrDefault(question.Id, null);
+                    if (answer != null)
+                        answers.Add(Int32.Parse(answer));
+                }
+                var newStat = new QuestionStats
+                {
+                    Id = question.Id,
+                    Prompt = question.Prompt,
+                    ShortName = question.ShortName,
+                    Required = question.Required,
+                    ScaleMin = question.Min,
+                    ScaleMax = question.Max,
+                    Count = answers.Count,
+                };
+                if (newStat.Count > 0)
+                {
+                    newStat.Average = answers.Average();
+                    newStat.Lowest = answers.Min();
+                    newStat.Highest = answers.Max();
+                }
+                questionStats.Add(newStat);
+            }
+            return questionStats;
         }
 
         public async Task<Feedback> Retrieve(FeedbackSearchParams model, string actorId)
@@ -71,7 +127,7 @@ namespace Gameboard.Api.Services
 
             // if we get here, we're just doing standard lookups with no special logic
             var lookup = MakeFeedbackLookup(model.GameId, model.ChallengeId, model.ChallengeSpecId, actorId);
-            var entity = await FeedbackStore.Load(lookup);
+            var entity = await LoadFeedback(lookup);
             return Mapper.Map<Feedback>(entity);
         }
 
@@ -79,7 +135,7 @@ namespace Gameboard.Api.Services
         public async Task<Feedback> Submit(FeedbackSubmission model, string actorId)
         {
             var lookup = MakeFeedbackLookup(model.GameId, model.ChallengeId, model.ChallengeSpecId, actorId);
-            var entity = await FeedbackStore.Load(lookup);
+            var entity = await LoadFeedback(lookup);
 
             if (model.Submit) // Only fully validate questions on submit as a slight optimization
             {
@@ -88,7 +144,7 @@ namespace Gameboard.Api.Services
                     throw new InvalideFeedbackFormat();
             }
 
-            if (entity is Data.Feedback)
+            if (entity is not null)
             {
                 if (entity.Submitted)
                 {
@@ -96,23 +152,21 @@ namespace Gameboard.Api.Services
                 }
                 Mapper.Map(model, entity);
                 entity.Timestamp = DateTimeOffset.UtcNow; // always last saved/submitted
-                await FeedbackStore.Update(entity);
+                await _store.SaveUpdate(entity, CancellationToken.None);
             }
             else // create new entity and assign player based on user/game combination
             {
-                var player = await FeedbackStore.DbContext.Players.FirstOrDefaultAsync(s =>
+                var player = await _store.WithNoTracking<Data.Player>().FirstOrDefaultAsync(s =>
                     s.UserId == actorId &&
                     s.GameId == model.GameId
-                );
-                if (player == null)
-                    throw new ResourceNotFound<Data.Player>("Id from user/game", $"COuldn't find a player by game {model.GameId} and user {actorId}.");
+                ) ?? throw new ResourceNotFound<Data.Player>("Id from user/game", $"COuldn't find a player by game {model.GameId} and user {actorId}.");
 
                 entity = Mapper.Map<Data.Feedback>(model);
                 entity.UserId = actorId;
                 entity.PlayerId = player.Id;
                 entity.Id = Guid.NewGuid().ToString("n");
                 entity.Timestamp = DateTimeOffset.UtcNow;
-                await FeedbackStore.Create(entity);
+                await _store.Create(entity);
             }
 
             return Mapper.Map<Feedback>(entity);
@@ -121,7 +175,7 @@ namespace Gameboard.Api.Services
         // List feedback responses based on params such as game/challenge filtering, skip/take, and sorting
         public async Task<FeedbackReportDetails[]> List(FeedbackSearchParams model)
         {
-            var q = FeedbackStore.List(model.Term);
+            var q = _store.WithNoTracking<Data.Feedback>();
 
             if (model.GameId.NotEmpty())
                 q = q.Where(u => u.GameId == model.GameId);
@@ -172,10 +226,42 @@ namespace Gameboard.Api.Services
             };
         }
 
+        public IQueryable<Data.Feedback> BuildQuery(FeedbackSearchParams args)
+        {
+            var q = _store.WithNoTracking<Data.Feedback>();
+
+            if (args.GameId.NotEmpty())
+                q = q.Where(u => u.GameId == args.GameId);
+
+            if (args.WantsGame)
+                q = q.Where(u => u.ChallengeSpecId == null);
+            else
+                q = q.Where(u => u.ChallengeSpecId != null);
+
+            if (args.WantsSpecificChallenge)
+                q = q.Where(u => u.ChallengeSpecId == args.ChallengeSpecId);
+
+            if (args.WantsSubmittedOnly)
+                q = q.Where(u => u.Submitted);
+
+            if (args.WantsSortByTimeNewest)
+                q = q.OrderByDescending(u => u.Timestamp);
+            else if (args.WantsSortByTimeOldest)
+                q = q.OrderBy(u => u.Timestamp);
+
+            q = q.Include(p => p.Player).Include(p => p.ChallengeSpec);
+
+            q = q.Skip(args.Skip);
+            if (args.Take > 0)
+                q = q.Take(args.Take);
+
+            return q;
+        }
+
         // check that the actor/user is enrolled in this game they are trying to submit feedback for
         public async Task<bool> UserIsEnrolled(string gameId, string userId)
         {
-            return await FeedbackStore.DbContext.Users.AnyAsync(u =>
+            return await _store.WithNoTracking<Data.User>().AnyAsync(u =>
                 u.Id == userId &&
                 u.Enrollments.Any(e => e.GameId == gameId)
             );
@@ -202,7 +288,7 @@ namespace Gameboard.Api.Services
         // Given a submission of questions and a gameId, check that the questions match the game template and meet requirements
         private async Task<bool> FeedbackMatchesTemplate(QuestionSubmission[] feedback, string gameId, string challengeId)
         {
-            var game = Mapper.Map<Game>(await FeedbackStore.DbContext.Games.FindAsync(gameId));
+            var game = Mapper.Map<Game>(await _store.WithNoTracking<Data.Game>().SingleOrDefaultAsync(g => g.Id == gameId));
 
             var feedbackTemplate = GetTemplate(challengeId.IsEmpty(), game);
 
@@ -232,6 +318,18 @@ namespace Gameboard.Api.Services
                 }
             }
             return true;
+        }
+
+        private Task<Data.Feedback> LoadFeedback(Data.Feedback feedbackLookup)
+        {
+            return _store
+                .WithNoTracking<Data.Feedback>()
+                .FirstOrDefaultAsync(s =>
+                    s.ChallengeSpecId == feedbackLookup.ChallengeSpecId &&
+                    s.ChallengeId == feedbackLookup.ChallengeId &&
+                    s.UserId == feedbackLookup.UserId &&
+                    s.GameId == feedbackLookup.GameId
+                );
         }
     }
 }

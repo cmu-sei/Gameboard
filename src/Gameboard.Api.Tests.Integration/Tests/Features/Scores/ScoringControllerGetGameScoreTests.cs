@@ -84,9 +84,9 @@ public class ScoringControllerGetGameScoreTests : IClassFixture<GameboardTestCon
         });
 
         var result = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Admin)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Admin)
             .GetAsync($"api/game/{gameId}/score")
-            .WithContentDeserializedAs<GameScore>();
+            .DeserializeResponseAs<GameScore>();
 
         // the teams should be aware of the game's one challenge:
         result.Teams.All(t => t.Challenges.Any()).ShouldBeTrue();

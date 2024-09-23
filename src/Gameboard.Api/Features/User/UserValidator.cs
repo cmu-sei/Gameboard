@@ -27,8 +27,8 @@ namespace Gameboard.Api.Validators
             if (model is Entity)
                 return _validate(model as Entity);
 
-            if (model is ChangedUser)
-                return _validate(model as ChangedUser);
+            if (model is UpdateUser)
+                return _validate(model as UpdateUser);
 
             return Task.CompletedTask;
         }
@@ -41,7 +41,7 @@ namespace Gameboard.Api.Validators
             await Task.CompletedTask;
         }
 
-        private async Task _validate(ChangedUser model)
+        private async Task _validate(UpdateUser model)
         {
             if ((await Exists(model.Id)).Equals(false))
                 throw new ResourceNotFound<User>(model.Id);

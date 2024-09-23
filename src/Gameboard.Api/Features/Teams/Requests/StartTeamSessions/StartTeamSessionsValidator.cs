@@ -7,6 +7,7 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,7 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
     private readonly IGameModeServiceFactory _gameModeServiceFactory;
     private readonly IGameService _gameService;
     private readonly INowService _now;
+    private readonly IUserRolePermissionsService _permissionsService;
     private readonly ISessionWindowCalculator _sessionWindow;
     private readonly IStore _store;
     private readonly IValidatorService<StartTeamSessionsCommand> _validatorService;
@@ -29,6 +31,7 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
         IGameService gameService,
         IGameModeServiceFactory gameModeServiceFactory,
         INowService now,
+        IUserRolePermissionsService permissionsService,
         ISessionWindowCalculator sessionWindow,
         IStore store,
         IValidatorService<StartTeamSessionsCommand> validatorService
@@ -38,6 +41,7 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
         _gameModeServiceFactory = gameModeServiceFactory;
         _gameService = gameService;
         _now = now;
+        _permissionsService = permissionsService;
         _sessionWindow = sessionWindow;
         _store = store;
         _validatorService = validatorService;
@@ -51,7 +55,6 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
                 ctx.AddValidationException(new MissingRequiredInput<IEnumerable<string>>(nameof(req.TeamIds), req.TeamIds));
 
             var now = _now.Get();
-            var isGameStartSuperUser = _gameService.IsGameStartSuperUser(_actingUser);
 
             var players = await _store
                 .WithNoTracking<Data.Player>()
@@ -112,7 +115,7 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
                 ctx.AddValidationException(new SessionAlreadyStarted(alreadyStartedPlayer.Id, "Can't start a session for already started players."));
 
             // above validation is required, below only matters if you're not elevated
-            if (isGameStartSuperUser)
+            if (await _permissionsService.Can(PermissionKey.Teams_EditSession))
                 return;
 
             // can only start a session for a team of which the active user is a member
@@ -135,9 +138,8 @@ internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeam
             if (game.SessionLimit > 0 && activeSessions.Count() >= game.SessionLimit)
                 ctx.AddValidationException(new SessionLimitReached(request.TeamIds.First(), game.Id, activeSessions.Count(), game.SessionLimit));
 
-
             // can't start late if late start disabled
-            var sessionWindow = _sessionWindow.Calculate(game.SessionMinutes, game.GameEnd, isGameStartSuperUser, now);
+            var sessionWindow = _sessionWindow.Calculate(game.SessionMinutes, game.GameEnd, await _permissionsService.Can(PermissionKey.Play_IgnoreExecutionWindow), now);
             if (sessionWindow.IsLateStart && !game.AllowLateStart)
                 ctx.AddValidationException(new CantLateStart(request.TeamIds, game.Name, game.GameEnd, game.SessionMinutes));
 

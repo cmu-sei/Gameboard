@@ -14,37 +14,34 @@ namespace Gameboard.Api.Data;
 
 public class Store<TEntity> : IStore<TEntity> where TEntity : class, IEntity
 {
+    private readonly GameboardDbContext _dbContext;
     private readonly IGuidService _guids;
 
     public Store(GameboardDbContext dbContext, IGuidService guids)
     {
-        DbContext = dbContext;
-        DbSet = dbContext.Set<TEntity>().AsQueryable();
+        _dbContext = dbContext;
+        DbSet = _dbContext.Set<TEntity>().AsQueryable();
         _guids = guids;
     }
 
-    public GameboardDbContext DbContext { get; private set; }
     public IQueryable<TEntity> DbSet { get; private set; }
 
     public Task<bool> AnyAsync()
-        => DbContext.Set<TEntity>().AnyAsync();
+        => DbSet.AnyAsync();
 
     public Task<bool> AnyAsync(Expression<Func<TEntity, bool>> predicate)
-        => DbContext.Set<TEntity>().AnyAsync(predicate);
+        => DbSet.AnyAsync(predicate);
 
     public virtual IQueryable<TEntity> List(string term = null)
-    {
-        return DbContext.Set<TEntity>();
-    }
+        => DbSet;
 
     public virtual IQueryable<TEntity> ListAsNoTracking()
     {
-        return DbContext.Set<TEntity>().AsNoTracking();
+        return DbSet.AsNoTracking();
     }
 
     public IQueryable<TEntity> ListWithNoTracking()
-        => DbContext
-            .Set<TEntity>()
+        => DbSet
             .AsNoTracking()
             .AsQueryable();
 
@@ -53,8 +50,8 @@ public class Store<TEntity> : IStore<TEntity> where TEntity : class, IEntity
         if (string.IsNullOrWhiteSpace(entity.Id))
             entity.Id = _guids.GetGuid();
 
-        DbContext.Add(entity);
-        await DbContext.SaveChangesAsync();
+        _dbContext.Add(entity);
+        await _dbContext.SaveChangesAsync();
 
         return entity;
     }
@@ -65,9 +62,9 @@ public class Store<TEntity> : IStore<TEntity> where TEntity : class, IEntity
             if (string.IsNullOrWhiteSpace(entity.Id))
                 entity.Id = _guids.GetGuid();
 
-        DbContext.AddRange(range);
+        _dbContext.AddRange(range);
 
-        await DbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
 
         return range;
     }
@@ -84,37 +81,36 @@ public class Store<TEntity> : IStore<TEntity> where TEntity : class, IEntity
     {
         if (includes != null)
         {
-            var query = includes(DbContext.Set<TEntity>());
+            var query = includes(_dbContext.Set<TEntity>());
             return await query
                 .FirstOrDefaultAsync(e => e.Id == id);
         }
 
-        return await DbContext.Set<TEntity>().FindAsync(id);
+        return await _dbContext.Set<TEntity>().FindAsync(id);
     }
 
     public virtual async Task Update(TEntity entity)
     {
-        DbContext.Update(entity);
+        _dbContext.Update(entity);
 
-        await DbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
     }
 
     public virtual async Task Update(IEnumerable<TEntity> range)
     {
-        DbContext.UpdateRange(range);
+        _dbContext.UpdateRange(range);
 
-        await DbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
     }
 
     public async Task Delete(string id)
-        => await DbContext
-            .Set<TEntity>()
+        => await DbSet
             .Where(e => e.Id == id)
             .ExecuteDeleteAsync();
 
     public virtual async Task<int> CountAsync(Func<IQueryable<TEntity>, IQueryable<TEntity>> queryBuilder = null)
     {
-        var query = DbContext.Set<TEntity>().AsNoTracking();
+        var query = DbSet.AsNoTracking();
 
         if (queryBuilder != null)
         {

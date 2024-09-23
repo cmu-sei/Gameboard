@@ -1,3 +1,4 @@
+using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
@@ -26,15 +27,8 @@ public class UserControllerUpdateTests : IClassFixture<GameboardTestContext>
         // given a user with two player records (one with a started session, one without)
         await _testContext.WithDataState(state =>
         {
-            state.Add<Data.Sponsor>(fixture, s =>
-            {
-                s.Id = oldSponsorId;
-            });
-
-            state.Add<Data.Sponsor>(fixture, s =>
-            {
-                s.Id = newSponsorId;
-            });
+            state.Add<Data.Sponsor>(fixture, s => s.Id = oldSponsorId);
+            state.Add<Data.Sponsor>(fixture, s => s.Id = newSponsorId);
 
             state.Add<Data.User>(fixture, u =>
             {
@@ -42,7 +36,7 @@ public class UserControllerUpdateTests : IClassFixture<GameboardTestContext>
                 u.SponsorId = oldSponsorId;
                 u.Name = userName;
                 u.ApprovedName = userName;
-                u.Role = UserRole.Member;
+                u.Role = UserRoleKey.Member;
                 u.Enrollments = new List<Data.Player>
                 {
                     new()
@@ -61,7 +55,7 @@ public class UserControllerUpdateTests : IClassFixture<GameboardTestContext>
         });
 
         // when this user updates their sponsor
-        var changedUser = new ChangedUser
+        var changedUser = new UpdateUser
         {
             Id = userId,
             Name = userName,
@@ -76,7 +70,7 @@ public class UserControllerUpdateTests : IClassFixture<GameboardTestContext>
         // then the sponsor for the played player record should remain the same, but the 
         // sponsor for the unplayed one should change
         var playerRecords = await _testContext
-            .GetDbContext()
+            .GetValidationDbContext()
             .Players
             .AsNoTracking()
             .Where(p => p.UserId == userId)

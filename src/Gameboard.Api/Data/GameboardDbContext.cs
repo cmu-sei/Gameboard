@@ -1,27 +1,13 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data;
 
 public class GameboardDbContext : DbContext
 {
-    private readonly IWebHostEnvironment _env;
-    private readonly IServiceProvider _serviceProvider;
-
-    public GameboardDbContext(IServiceProvider serviceProvider, DbContextOptions options, IWebHostEnvironment env) : base(options)
-    {
-        _env = env;
-        _serviceProvider = serviceProvider;
-    }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder.WithGameboardOptions(_env, _serviceProvider);
-    }
+    public GameboardDbContext(DbContextOptions options) : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -237,7 +223,6 @@ public class GameboardDbContext : DbContext
             b.Property(p => p.Logo).HasMaxLength(64);
             b.Property(p => p.Background).HasMaxLength(64);
             b.Property(p => p.TestCode).HasMaxLength(64);
-            b.Property(p => p.Key).HasMaxLength(64);
             b.Property(p => p.CardText1).HasMaxLength(64);
             b.Property(p => p.CardText2).HasMaxLength(64);
             b.Property(p => p.CardText3).HasMaxLength(64);
@@ -355,7 +340,28 @@ public class GameboardDbContext : DbContext
                 .HasOne(b => b.UpdatedByUser)
                 .WithOne(u => u.UpdatedSupportSettings)
                 .HasForeignKey<SupportSettings>(s => s.UpdatedByUserId)
-                .OnDelete(DeleteBehavior.SetNull)
+                    .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired();
+        });
+
+        builder.Entity<SupportSettingsAutoTag>(b =>
+        {
+            b.HasKey(b => b.Id);
+            b
+                .Property(b => b.Tag)
+                .IsRequired()
+                .HasStandardNameLength();
+
+            b
+                .Property(b => b.ConditionValue)
+                .IsRequired()
+                .HasStandardGuidLength();
+
+            b
+                .HasOne(b => b.SupportSettings)
+                .WithMany(s => s.AutoTags)
+                .HasForeignKey(s => s.SupportSettingsId)
+                .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired();
         });
 
@@ -366,6 +372,7 @@ public class GameboardDbContext : DbContext
             b.Property(n => n.Title)
                 .HasStandardNameLength()
                 .IsRequired();
+            b.Property(n => n.IsDismissible).HasDefaultValue(true);
             b.Property(n => n.MarkdownContent).IsRequired();
 
             // nav properties
@@ -454,6 +461,7 @@ public class GameboardDbContext : DbContext
     public DbSet<Player> Players { get; set; }
     public DbSet<PublishedCertificate> PublishedCertificate { get; set; }
     public DbSet<Sponsor> Sponsors { get; set; }
+    public DbSet<SupportSettingsAutoTag> SupportSettingsAutoTags { get; set; }
     public DbSet<SystemNotification> SystemNotifications { get; set; }
     public DbSet<SystemNotificationInteraction> SystemNotificationInteractions { get; set; }
     public DbSet<Ticket> Tickets { get; set; }

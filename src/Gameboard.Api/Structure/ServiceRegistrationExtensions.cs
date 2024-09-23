@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using ServiceStack;
 
 namespace Gameboard.Api.Structure;
 
@@ -29,7 +30,7 @@ internal static class ServiceRegistrationExtensions
                 }
             );
 
-        return RegisterScoped(serviceCollection, types);
+        return Register(serviceCollection, types);
     }
 
     public static IServiceCollection AddInterfacesWithSingleImplementations(this IServiceCollection serviceCollection)
@@ -41,7 +42,7 @@ internal static class ServiceRegistrationExtensions
         var singleInterfaceTypes = GetRootTypeQuery()
             .Where(t => t.GetInterfaces().Length == 1)
             .Where(t => t.GetConstructors().Where(c => c.IsPublic).Any())
-            .Where(t => t.GetTypeInfo().GetCustomAttribute<DontBindForDIAttribute>() is null)
+            .Where(t => t.GetTypeInfo().GetCustomAttribute<DIIgnoreAttribute>() is null)
             .GroupBy(t => t.GetInterfaces()[0])
             .ToDictionary(t => t.Key, t => t.ToList());
 
@@ -54,10 +55,7 @@ internal static class ServiceRegistrationExtensions
 
             if (interfaceTypes.Contains(entry.Key) && serviceCollection.FirstOrDefault(s => s.ServiceType == entry.Key) == null)
             {
-                var isDiHidden = entry.Value[0].GetTypeInfo().GetCustomAttribute<DontBindForDIAttribute>() is not null;
-
-                if (!isDiHidden)
-                    serviceCollection.AddScoped(entry.Key, entry.Value[0]);
+                Register(serviceCollection, entry.Key, entry.Value[0]);
             }
         }
 
@@ -86,13 +84,13 @@ internal static class ServiceRegistrationExtensions
 
         foreach (var type in types)
         {
-            serviceCollection.AddScoped(type);
+            Register(serviceCollection, type);
         }
 
         return serviceCollection;
     }
 
-    private static IServiceCollection RegisterScoped(IServiceCollection serviceCollection, IEnumerable<InterfaceTypeMap> types)
+    private static IServiceCollection Register(IServiceCollection serviceCollection, IEnumerable<InterfaceTypeMap> types)
     {
         foreach (var type in types)
         {
@@ -105,40 +103,63 @@ internal static class ServiceRegistrationExtensions
             var implementationGenericParams = type.Implementation.GetTypeInfo().GenericTypeParameters;
 
             // if the interface type and the implementation type have the same number/type of generic PARAMETERS, make a generic version of each and associate them 
-            // (e.g. IValidatorService<T> and ValidatorService<T> )
+            // (e.g. IValidatorService<T> and ValidatorService<T>)
             if (implementationGenericParams.Length == interfaceGenericParameters.Length && type.Interface.IsGenericTypeDefinition)
             {
                 var madeImplementationGeneric = type.Implementation.MakeGenericType(implementationGenericParams);
                 var madeInterfaceGeneric = type.Interface.MakeGenericType(interfaceGenericParameters);
-                serviceCollection.AddScoped(madeInterfaceGeneric, type.Implementation);
+                Register(serviceCollection, madeInterfaceGeneric, type.Implementation);
                 continue;
             }
 
             // if the implementation type doesn't have any generic args and the interface does, make a generic of the interface's generic parameters and associate
             // (like IGameboardRequestValidator<GetGameStateQuery> and GetGameStateValidator)
-            if (implementationGenericArgs.Count() == 0 && implementationGenericParams.Count() == 0 && type.Interface.IsGenericTypeDefinition)
+            if (implementationGenericArgs.Length == 0 && implementationGenericParams.Length == 0 && type.Interface.IsGenericTypeDefinition)
             {
                 var matchingInterface = type.Implementation.GetInterfaces().First(i => i.GetGenericTypeDefinition() == type.Interface);
-                serviceCollection.AddScoped(matchingInterface, type.Implementation);
+                Register(serviceCollection, matchingInterface, type.Implementation);
                 continue;
             }
 
-            // if the the implementation has one or more generic PARAMETERS and they're of a different number than the interface's 
-            // (e.g. EntityExistsValidator<TModel, TEntity> vs IGameboardValidator<TModel>) skip for now, because this is quite tricky
-            // if (interfaceGenericParameters.Count() > 0 && implementationGenericArgs.Count() != interfaceGenericParameters.Count())
-            // {
-            //     continue;
-            // }
-
             // otherwise, just punt and add a scoped version of the concrete type (e.g. UserIsPlayingGameValidator)
-            if (type.Implementation.GetCustomAttribute<DontBindForDIAttribute>() is null)
-                serviceCollection.AddScoped(type.Implementation);
+            Register(serviceCollection, type.Implementation);
+
         }
 
         return serviceCollection;
     }
 
-    private static IEnumerable<Type> GetRootQuery()
+    private static IServiceCollection Register(IServiceCollection serviceCollection, Type implementationType)
+        => Register(serviceCollection, null, implementationType);
+
+    private static IServiceCollection Register(IServiceCollection serviceCollection, Type interfaceType, Type implementationType)
+    {
+        ArgumentNullException.ThrowIfNull(implementationType);
+
+        if (implementationType.HasAttribute<DIIgnoreAttribute>())
+            return serviceCollection;
+
+        var asTransient = implementationType.HasAttribute<DIAsTransientAttribute>();
+
+        if (interfaceType is not null)
+        {
+            if (asTransient)
+                serviceCollection.AddTransient(interfaceType, implementationType);
+            else
+                serviceCollection.AddScoped(interfaceType, implementationType);
+        }
+        else
+        {
+            if (asTransient)
+                serviceCollection.AddTransient(implementationType);
+            else
+                serviceCollection.AddScoped(implementationType);
+        }
+
+        return serviceCollection;
+    }
+
+    private static Type[] GetRootQuery()
       => typeof(Program)
             .Assembly
             .GetTypes()

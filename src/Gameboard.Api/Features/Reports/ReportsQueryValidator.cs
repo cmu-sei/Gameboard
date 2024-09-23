@@ -1,24 +1,18 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 
 namespace Gameboard.Api.Features.Reports;
 
-internal class ReportsQueryValidator : IGameboardRequestValidator<IReportQuery>
+internal class ReportsQueryValidator(IValidatorService<IReportQuery> validatorService) : IGameboardRequestValidator<IReportQuery>
 {
-    private readonly UserRoleAuthorizer _roleAuthorizer;
+    private readonly IValidatorService<IReportQuery> _validatorService = validatorService;
 
-    public ReportsQueryValidator(UserRoleAuthorizer roleAuthorizer)
+    public async Task Validate(IReportQuery request, CancellationToken cancellationToken)
     {
-        _roleAuthorizer = roleAuthorizer;
-    }
-
-    public Task Validate(IReportQuery request, CancellationToken cancellationToken)
-    {
-        _roleAuthorizer.AllowRoles(UserRole.Admin, UserRole.Registrar, UserRole.Support);
-        _roleAuthorizer.Authorize();
-
-        return Task.CompletedTask;
+        await _validatorService
+            .Auth(config => config.RequirePermissions(PermissionKey.Reports_View))
+            .Validate(request, cancellationToken);
     }
 }

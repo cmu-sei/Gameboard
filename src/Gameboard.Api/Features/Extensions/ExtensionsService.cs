@@ -58,8 +58,8 @@ internal class ExtensionsService : IExtensionsService, INotificationHandler<Scor
             Rank = 1,
             ScoringSummary = new()
             {
-                ChallengeName = score.Challenges.First().Name,
-                Points = score.Challenges.First().Score.TotalScore
+                ChallengeName = score.Challenges.FirstOrDefault()?.Name ?? "Unknown Challenge",
+                Points = score.Challenges.FirstOrDefault()?.Score?.TotalScore ?? 0
             }
         }, cancellationToken);
     }
@@ -82,7 +82,7 @@ internal class ExtensionsService : IExtensionsService, INotificationHandler<Scor
             pointsDescription = "from a team manual bonus";
 
         var text = $"It's time for a score update on **{ev.Game.Name}!** {ev.Team.Name} just scored {ev.ScoringSummary.Points} points {pointsDescription}. They're now rank **{ev.Rank}**!";
-        var extensions = await GetConfiguredExtensions(cancellationToken);
+        var extensions = await GetEnabledExtensions(cancellationToken);
         foreach (var extension in extensions)
             await extension.NotifyScored(new ExtensionMessage { Text = text });
     }
@@ -90,19 +90,20 @@ internal class ExtensionsService : IExtensionsService, INotificationHandler<Scor
     private async Task NotifyTicketCreated(TicketCreatedNotification ev, CancellationToken cancellationToken)
     {
         var text = $"""{ev.Creator.Name} just sent us a new ticket ({ev.FullKey}): _"{ev.Title}"_. Head to [{_coreOptions.AppName}]({_coreOptions.AppUrl}/support/tickets/{ev.Key}) to check it out.""";
-        var extensions = await GetConfiguredExtensions(cancellationToken);
+        var extensions = await GetEnabledExtensions(cancellationToken);
 
         foreach (var extension in extensions)
             await extension.NotifyTicketCreated(new ExtensionMessage { Text = text });
     }
 
-    private async Task<IEnumerable<IExtensionService>> GetConfiguredExtensions(CancellationToken cancellationToken)
+    private async Task<IEnumerable<IExtensionService>> GetEnabledExtensions(CancellationToken cancellationToken)
     {
         var configuredExtensions = new List<IExtensionService>();
         var allExtensions = await _store
             .WithNoTracking<Extension>()
             .Where(e => e.HostUrl != null && e.HostUrl != "")
             .Where(e => e.Token != null && e.Token != "")
+            .Where(e => e.IsEnabled)
             .ToArrayAsync(cancellationToken);
 
         var mm = allExtensions.Where(e => e.Type == ExtensionType.Mattermost).SingleOrDefault();

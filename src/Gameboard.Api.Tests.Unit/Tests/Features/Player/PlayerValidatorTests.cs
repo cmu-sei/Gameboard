@@ -1,6 +1,7 @@
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Player;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Validators;
 
 namespace Gameboard.Api.Tests.Unit;
@@ -38,15 +39,19 @@ public class PlayerValidatorTests
             TeamId = teamId
         };
 
-        var sut = new PlayerValidator(A.Fake<IGameModeServiceFactory>(), A.Fake<IPlayerStore>(), BuildStoreWithActingPlayer("manager", new Data.Player[]
-        {
-            managerPlayer, nonManagerPlayer
-        }));
+        var sut = new PlayerValidator
+        (
+            A.Fake<IGameModeServiceFactory>(),
+            A.Fake<IUserRolePermissionsService>(),
+            BuildStoreWithActingPlayer("manager",
+            [
+                managerPlayer, nonManagerPlayer
+            ]));
 
         // act / assert
         Should.Throw<ManagerCantUnenrollWhileTeammatesRemain>(async () => await sut._validate(new PlayerUnenrollRequest
         {
-            Actor = new User { Id = fixture.Create<string>() },
+            Actor = new User { Id = fixture.Create<string>(), RolePermissions = [] },
             PlayerId = managerPlayer.Id
         }));
     }
@@ -64,12 +69,17 @@ public class PlayerValidatorTests
         };
 
         var store = BuildStoreWithActingPlayer(player.Id, player);
-        var sut = new PlayerValidator(A.Fake<IGameModeServiceFactory>(), A.Fake<IPlayerStore>(), store);
+        var sut = new PlayerValidator
+        (
+            A.Fake<IGameModeServiceFactory>(),
+            A.Fake<IUserRolePermissionsService>(),
+            store
+        );
 
         // act / assert
         await Should.NotThrowAsync(() => sut._validate(new PlayerUnenrollRequest
         {
-            Actor = new User { Id = player.UserId },
+            Actor = new User { Id = player.UserId, RolePermissions = [] },
             PlayerId = player.Id
         }));
     }
@@ -91,12 +101,17 @@ public class PlayerValidatorTests
         };
 
         var store = BuildStoreWithActingPlayer(player.Id, player);
-        var sut = new PlayerValidator(A.Fake<IGameModeServiceFactory>(), A.Fake<IPlayerStore>(), store);
+        var sut = new PlayerValidator
+        (
+            A.Fake<IGameModeServiceFactory>(),
+            A.Fake<IUserRolePermissionsService>(),
+            store
+        );
 
         // act / assert
         Should.Throw<SessionAlreadyStarted>(async () => await sut._validate(new PlayerUnenrollRequest
         {
-            Actor = new User { Id = player.UserId },
+            Actor = new User { Id = player.UserId, RolePermissions = [] },
             PlayerId = player.Id
         }));
     }
@@ -117,15 +132,25 @@ public class PlayerValidatorTests
             TeamId = teamId
         };
 
+        var permissionsFake = A.Fake<IUserRolePermissionsService>();
+        A
+            .CallTo(() => permissionsFake.Can(PermissionKey.Play_IgnoreSessionResetSettings))
+            .WithAnyArguments()
+            .Returns(Task.FromResult(true));
+
         var store = BuildStoreWithActingPlayer(player.Id, player);
-        var sut = new PlayerValidator(A.Fake<IGameModeServiceFactory>(), A.Fake<IPlayerStore>(), store);
+        var sut = new PlayerValidator
+        (
+            A.Fake<IGameModeServiceFactory>(),
+            permissionsFake,
+            store
+        );
 
         // act / assert
         await Should.NotThrowAsync(() => sut._validate(new PlayerUnenrollRequest
         {
-            Actor = new User { Id = player.UserId, Role = UserRole.Admin },
+            Actor = new User { Id = player.UserId, Role = UserRoleKey.Admin, RolePermissions = [PermissionKey.Play_IgnoreExecutionWindow] },
             PlayerId = player.Id,
-            AsAdmin = true
         }));
     }
 }

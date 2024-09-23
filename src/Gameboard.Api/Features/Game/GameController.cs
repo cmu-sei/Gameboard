@@ -7,10 +7,12 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.games;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Scores;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
 using MediatR;
@@ -24,33 +26,26 @@ using Microsoft.Extensions.Logging;
 namespace Gameboard.Api.Controllers
 {
     [Authorize]
-    public class GameController : _Controller
+    public class GameController(
+        IActingUserService actingUserService,
+        ILogger<GameController> logger,
+        IDistributedCache cache,
+        GameService gameService,
+        IScoreDenormalizationService scoreDenormalization,
+        GameValidator validator,
+        CoreOptions options,
+        IMediator mediator,
+        IHostEnvironment env,
+        IUserRolePermissionsService permissionsService
+        ) : GameboardLegacyController(actingUserService, logger, cache, validator)
     {
-        GameService GameService { get; }
-        public CoreOptions Options { get; }
-        public IHostEnvironment Env { get; }
+        GameService GameService { get; } = gameService;
+        public CoreOptions Options { get; } = options;
+        public IHostEnvironment Env { get; } = env;
 
-        private readonly IMediator _mediator;
-        private readonly IScoreDenormalizationService _scoreDenormalization;
-
-        public GameController
-        (
-            ILogger<GameController> logger,
-            IDistributedCache cache,
-            GameService gameService,
-            IScoreDenormalizationService scoreDenormalization,
-            GameValidator validator,
-            CoreOptions options,
-            IMediator mediator,
-            IHostEnvironment env
-        ) : base(logger, cache, validator)
-        {
-            GameService = gameService;
-            Options = options;
-            Env = env;
-            _mediator = mediator;
-            _scoreDenormalization = scoreDenormalization;
-        }
+        private readonly IMediator _mediator = mediator;
+        private readonly IUserRolePermissionsService _permissionsService = permissionsService;
+        private readonly IScoreDenormalizationService _scoreDenormalization = scoreDenormalization;
 
         /// <summary>
         /// Create new game
@@ -58,9 +53,11 @@ namespace Gameboard.Api.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("api/game")]
-        [Authorize(AppConstants.DesignerPolicy)]
-        public Task<Game> Create([FromBody] NewGame model)
-            => GameService.Create(model);
+        public async Task<Game> Create([FromBody] NewGame model)
+        {
+            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+            return await GameService.Create(model);
+        }
 
         /// <summary>
         /// Retrieve game
@@ -69,9 +66,8 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("api/game/{id}")]
         [AllowAnonymous]
-        public Task<Game> Retrieve([FromRoute] string id)
-            // only designers and testers can retrieve or list unpublished games
-            => GameService.Retrieve(id, Actor.IsDesigner || Actor.IsTester);
+        public async Task<Game> Retrieve([FromRoute] string id)
+            => await GameService.Retrieve(id, await _permissionsService.Can(PermissionKey.Games_ViewUnpublished));
 
         [HttpGet("api/game/{id}/specs")]
         [Authorize]
@@ -100,9 +96,9 @@ namespace Gameboard.Api.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPut("api/game")]
-        [Authorize(AppConstants.DesignerPolicy)]
         public async Task<Data.Game> Update([FromBody] ChangedGame model)
         {
+            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
             await Validate(model);
             return await GameService.Update(model);
         }
@@ -113,7 +109,6 @@ namespace Gameboard.Api.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpDelete("/api/game/{id}")]
-        [Authorize(AppConstants.DesignerPolicy)]
         public Task Delete([FromRoute] string id)
             => _mediator.Send(new DeleteGameCommand(id));
 
@@ -124,8 +119,8 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("/api/games")]
         [AllowAnonymous]
-        public Task<IEnumerable<Game>> List([FromQuery] GameSearchFilter model)
-            => GameService.List(model, Actor.IsDesigner || Actor.IsTester);
+        public async Task<IEnumerable<Game>> List([FromQuery] GameSearchFilter model)
+            => await GameService.List(model, await _permissionsService.Can(PermissionKey.Games_ViewUnpublished));
 
         /// <summary>
         /// List games grouped by year and month
@@ -134,8 +129,8 @@ namespace Gameboard.Api.Controllers
         /// <returns></returns>
         [HttpGet("/api/games/grouped")]
         [AllowAnonymous]
-        public Task<GameGroup[]> ListGrouped([FromQuery] GameSearchFilter model)
-            => GameService.ListGrouped(model, Actor.IsDesigner || Actor.IsTester);
+        public async Task<GameGroup[]> ListGrouped([FromQuery] GameSearchFilter model)
+            => await GameService.ListGrouped(model, await _permissionsService.Can(PermissionKey.Games_ViewUnpublished));
 
         [HttpGet("/api/game/{gameId}/ready")]
         [Authorize]
@@ -148,14 +143,16 @@ namespace Gameboard.Api.Controllers
             => _mediator.Send(new GetGamePlayStateQuery(gameId, Actor.Id));
 
         [HttpPost("/api/game/import")]
-        [Authorize(AppConstants.DesignerPolicy)]
+        [Authorize]
         public Task<Game> ImportGameSpec([FromBody] GameSpecImport model)
             => GameService.Import(model);
 
         [HttpPost("/api/game/export")]
-        [Authorize(AppConstants.DesignerPolicy)]
-        public Task<string> ExportGameSpec([FromBody] GameSpecExport model)
-            => GameService.Export(model);
+        public async Task<string> ExportGameSpec([FromBody] GameSpecExport model)
+        {
+            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+            return await GameService.Export(model);
+        }
 
         [HttpGet("/api/game/{gameId}/team/{teamId}/gamespace-limit")]
         public Task<TeamGamespaceLimitState> GetTeamGamespaceLimitState([FromRoute] string gameId, [FromRoute] string teamId)
@@ -164,16 +161,14 @@ namespace Gameboard.Api.Controllers
         [HttpPost("api/game/{id}/card")]
         public async Task<ActionResult<UploadedFile>> UploadGameCard(string id, IFormFile file)
         {
-            AuthorizeAny(() => Actor.IsDesigner);
+            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
             return Ok(await GameService.SaveGameCardImage(id, file));
         }
 
         [HttpPost("api/game/{id}/{type}")]
-        [Authorize]
         public async Task<ActionResult<UploadedFile>> UploadMapImage(string id, string type, IFormFile file)
         {
-            AuthorizeAny(() => Actor.IsDesigner);
-
+            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
             await Validate(new Entity { Id = id });
 
             string filename = $"{type}_{new Random().Next().ToString("x8")}{Path.GetExtension(file.FileName)}".ToLower();
@@ -190,10 +185,9 @@ namespace Gameboard.Api.Controllers
         }
 
         [HttpDelete("api/game/{id}/card")]
-        [Authorize]
         public async Task DeleteGameCard([FromRoute] string id)
         {
-            AuthorizeAny(() => Actor.IsDesigner);
+            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
             await GameService.DeleteGameCardImage(id);
         }
 
@@ -201,8 +195,7 @@ namespace Gameboard.Api.Controllers
         [Authorize]
         public async Task<ActionResult<UploadedFile>> DeleteImage([FromRoute] string id, [FromRoute] string type)
         {
-            AuthorizeAny(() => Actor.IsDesigner);
-
+            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
             await Validate(new Entity { Id = id });
 
             string target = $"{id}_{type}.*".ToLower();
@@ -224,12 +217,11 @@ namespace Gameboard.Api.Controllers
         /// <param name="cancellationToken">id</param>
         /// <returns></returns>
         [HttpPost("/api/game/{id}/rerank")]
-        [Authorize(AppConstants.AdminPolicy)]
         public async Task Rerank([FromRoute] string id, CancellationToken cancellationToken)
         {
-            AuthorizeAny(() => Actor.IsDesigner);
-
+            await Authorize(_permissionsService.Can(PermissionKey.Scores_RegradeAndRerank));
             await Validate(new Entity { Id = id });
+
             await GameService.ReRank(id);
             await _scoreDenormalization.DenormalizeGame(id, cancellationToken);
             await _mediator.Publish(new GameCacheInvalidateNotification(id), cancellationToken);

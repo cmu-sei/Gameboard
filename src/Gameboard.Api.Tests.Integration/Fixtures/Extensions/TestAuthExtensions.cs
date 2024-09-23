@@ -1,3 +1,4 @@
+using Gameboard.Api.Data;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
@@ -36,6 +37,6 @@ public static class TestAuthExtensions
         return AddGbIntegrationTestAuth(services, user);
     }
 
-    public static IServiceCollection AddGbIntegrationTestAuth(this IServiceCollection services, UserRole role)
+    public static IServiceCollection AddGbIntegrationTestAuth(this IServiceCollection services, UserRoleKey role)
         => AddGbIntegrationTestAuth(services, u => u.Role = role);
 }

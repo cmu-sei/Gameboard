@@ -2,6 +2,7 @@ namespace Gameboard.Api.Features.ChallengeBonuses;
 
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 
@@ -25,11 +26,13 @@ internal class AddManualBonusValidator : IGameboardRequestValidator<AddManualBon
 
     public async Task Validate(AddManualBonusCommand request, CancellationToken cancellationToken)
     {
-        _validatorService.AddValidator((req, context) =>
-        {
-            if ((req.ChallengeId.IsEmpty() && req.TeamId.IsEmpty()) || (req.ChallengeId.IsNotEmpty() && req.TeamId.IsNotEmpty()))
-                context.AddValidationException(new InvalidManualBonusConfiguration(req.ChallengeId, req.TeamId));
-        });
+        _validatorService
+            .Auth(c => c.RequirePermissions(PermissionKey.Scores_AwardManualBonuses))
+            .AddValidator((req, context) =>
+            {
+                if ((req.ChallengeId.IsEmpty() && req.TeamId.IsEmpty()) || (req.ChallengeId.IsNotEmpty() && req.TeamId.IsNotEmpty()))
+                    context.AddValidationException(new InvalidManualBonusConfiguration(req.ChallengeId, req.TeamId));
+            });
 
         _validatorService.AddValidator((request, context) =>
         {

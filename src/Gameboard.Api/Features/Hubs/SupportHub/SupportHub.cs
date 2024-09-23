@@ -7,18 +7,12 @@ using Microsoft.Extensions.Logging;
 namespace Gameboard.Api.Hubs;
 
 [Authorize(AppConstants.HubPolicy)]
-public sealed class SupportHub : Hub<ISupportHubEvent>, IGameboardHub
+public sealed class SupportHub(
+    ILogger<SupportHub> logger
+    ) : Hub<ISupportHubEvent>, IGameboardHub
 {
-    private readonly ILogger<SupportHub> _logger;
+    private readonly ILogger<SupportHub> _logger = logger;
     internal readonly static string GROUP_STAFF = "staff";
-
-    public SupportHub
-    (
-        ILogger<SupportHub> logger
-    )
-    {
-        _logger = logger;
-    }
 
     public GameboardHubType GroupType => GameboardHubType.Support;
 

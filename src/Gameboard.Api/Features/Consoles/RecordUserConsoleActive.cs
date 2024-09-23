@@ -17,33 +17,23 @@ namespace Gameboard.Api.Features.Consoles;
 /// <param name="ActingUser">The user who owns the challenge console that has reported activity.</param>
 public record RecordUserConsoleActiveCommand(User ActingUser) : IRequest<ConsoleActionResponse>;
 
-internal class RecordUserConsoleActiveHandler : IRequestHandler<RecordUserConsoleActiveCommand, ConsoleActionResponse>
+internal class RecordUserConsoleActiveHandler(
+    INowService nowService,
+    IPracticeService practiceService,
+    ITeamService teamService,
+    EntityExistsValidator<RecordUserConsoleActiveCommand, Data.User> userExists,
+    IValidatorService<RecordUserConsoleActiveCommand> validatorService
+    ) : IRequestHandler<RecordUserConsoleActiveCommand, ConsoleActionResponse>
 {
     internal static int EXTEND_THRESHOLD_MINUTES = 10;
     internal static string MESSAGE_EXTENDED = "Session extended.";
     internal static string MESSAGE_NOT_EXTENDED = "Session not extended.";
 
-    private readonly INowService _nowService;
-    private readonly IPracticeService _practiceService;
-    private readonly ITeamService _teamService;
-    private readonly EntityExistsValidator<RecordUserConsoleActiveCommand, Data.User> _userExists;
-    private readonly IValidatorService<RecordUserConsoleActiveCommand> _validatorService;
-
-    public RecordUserConsoleActiveHandler
-    (
-        INowService nowService,
-        IPracticeService practiceService,
-        ITeamService teamService,
-        EntityExistsValidator<RecordUserConsoleActiveCommand, Data.User> userExists,
-        IValidatorService<RecordUserConsoleActiveCommand> validatorService
-    )
-    {
-        _nowService = nowService;
-        _practiceService = practiceService;
-        _teamService = teamService;
-        _userExists = userExists;
-        _validatorService = validatorService;
-    }
+    private readonly INowService _nowService = nowService;
+    private readonly IPracticeService _practiceService = practiceService;
+    private readonly ITeamService _teamService = teamService;
+    private readonly EntityExistsValidator<RecordUserConsoleActiveCommand, Data.User> _userExists = userExists;
+    private readonly IValidatorService<RecordUserConsoleActiveCommand> _validatorService = validatorService;
 
     public async Task<ConsoleActionResponse> Handle(RecordUserConsoleActiveCommand request, CancellationToken cancellationToken)
     {

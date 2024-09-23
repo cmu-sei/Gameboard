@@ -3,8 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Scores;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -13,43 +13,31 @@ namespace Gameboard.Api.Features.ChallengeBonuses;
 
 public record DeleteManualBonusCommand(string ManualBonusId) : IRequest;
 
-internal class DeleteManualBonusCommandHandler : IRequestHandler<DeleteManualBonusCommand>
+internal class DeleteManualBonusCommandHandler(
+    EntityExistsValidator<DeleteManualBonusCommand, ManualBonus> bonusExists,
+    IMediator mediator,
+    IStore store,
+    IValidatorService<DeleteManualBonusCommand> validatorService) : IRequestHandler<DeleteManualBonusCommand>
 {
-    private readonly IMediator _mediator;
-    private readonly IStore _store;
+    private readonly IMediator _mediator = mediator;
+    private readonly IStore _store = store;
 
     // validators
-    private readonly EntityExistsValidator<DeleteManualBonusCommand, ManualBonus> _bonusExists;
-    private readonly IValidatorService<DeleteManualBonusCommand> _validatorService;
-
-    // authorizers 
-    private readonly UserRoleAuthorizer _roleAuthorizer;
-
-    public DeleteManualBonusCommandHandler(
-        EntityExistsValidator<DeleteManualBonusCommand, ManualBonus> bonusExists,
-        IMediator mediator,
-        UserRoleAuthorizer roleAuthorizer,
-        IStore store,
-        IValidatorService<DeleteManualBonusCommand> validatorService)
-    {
-        _bonusExists = bonusExists;
-        _mediator = mediator;
-        _roleAuthorizer = roleAuthorizer;
-        _store = store;
-        _validatorService = validatorService;
-    }
+    private readonly EntityExistsValidator<DeleteManualBonusCommand, ManualBonus> _bonusExists = bonusExists;
+    private readonly IValidatorService<DeleteManualBonusCommand> _validatorService = validatorService;
 
     public async Task Handle(DeleteManualBonusCommand request, CancellationToken cancellationToken)
     {
         // authorize and validate
-        _roleAuthorizer
-            .AllowRoles(UserRole.Admin, UserRole.Support, UserRole.Designer)
-            .Authorize();
-
-        _validatorService.AddValidator(_bonusExists.UseProperty(r => r.ManualBonusId));
+        await _validatorService
+            .Auth(a => a.RequirePermissions(PermissionKey.Scores_AwardManualBonuses))
+            .AddValidator(_bonusExists.UseProperty(r => r.ManualBonusId))
+            .Validate(request, cancellationToken);
 
         // before we delete, we need to know whose score is changing
-        var bonus = await _store.WithNoTracking<ManualBonus>().SingleAsync(b => b.Id == request.ManualBonusId);
+        var bonus = await _store
+            .WithNoTracking<ManualBonus>()
+            .SingleAsync(b => b.Id == request.ManualBonusId, cancellationToken);
         string teamId;
 
         if (bonus is ManualChallengeBonus)
@@ -70,7 +58,6 @@ internal class DeleteManualBonusCommandHandler : IRequestHandler<DeleteManualBon
             .WithNoTracking<ManualBonus>()
             .Where(b => b.Id == request.ManualBonusId)
             .ExecuteDeleteAsync(cancellationToken);
-
 
         // notify interested parties
         await _mediator.Publish(new ScoreChangedNotification(teamId), cancellationToken);

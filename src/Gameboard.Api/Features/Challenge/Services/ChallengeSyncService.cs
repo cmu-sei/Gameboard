@@ -55,8 +55,7 @@ internal class ChallengeSyncService : IChallengeSyncService
 
     private async Task Sync(CancellationToken cancellationToken, params SyncEntry[] entries)
     {
-        if (entries is null)
-            throw new ArgumentNullException(nameof(entries));
+        ArgumentNullException.ThrowIfNull(entries);
 
         foreach (var entry in entries)
         {

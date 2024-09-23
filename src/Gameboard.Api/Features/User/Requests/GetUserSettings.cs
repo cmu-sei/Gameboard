@@ -37,7 +37,7 @@ internal class GetUserSettingsHandler : IRequestHandler<GetUserSettingsQuery, Us
         // validate
         await _validatorService
             .AddValidator(_actingUserExists)
-            .Validate();
+            .Validate(cancellationToken);
 
         var userEntity = await _store
             .WithNoTracking<Data.User>()

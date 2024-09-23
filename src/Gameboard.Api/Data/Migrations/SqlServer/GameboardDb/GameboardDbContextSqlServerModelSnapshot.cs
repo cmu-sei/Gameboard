@@ -18,7 +18,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.17")
+                .HasAnnotation("ProductVersion", "8.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -515,6 +515,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -734,10 +737,6 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.Property<bool>("IsPublished")
                         .HasColumnType("bit");
-
-                    b.Property<string>("Key")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("Logo")
                         .HasMaxLength(64)
@@ -1078,6 +1077,38 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("SupportSettings");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.SupportSettingsAutoTag", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("ConditionType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ConditionValue")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("SupportSettingsId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Tag")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SupportSettingsId");
+
+                    b.ToTable("SupportSettingsAutoTags");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.SystemNotification", b =>
                 {
                     b.Property<string>("Id")
@@ -1093,6 +1124,11 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
+
+                    b.Property<bool>("IsDismissible")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("MarkdownContent")
                         .IsRequired()
@@ -1635,6 +1671,17 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("UpdatedByUser");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.SupportSettingsAutoTag", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.SupportSettings", "SupportSettings")
+                        .WithMany("AutoTags")
+                        .HasForeignKey("SupportSettingsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SupportSettings");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.SystemNotification", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.User", "CreatedByUser")
@@ -1849,6 +1896,11 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("SponsoredPlayers");
 
                     b.Navigation("SponsoredUsers");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.SupportSettings", b =>
+                {
+                    b.Navigation("AutoTags");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.SystemNotification", b =>

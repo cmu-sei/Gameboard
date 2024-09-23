@@ -7,14 +7,9 @@ namespace Gameboard.Api.Features.Scores;
 
 [Authorize]
 [Route("api")]
-public class ScoringController : ControllerBase
+public class ScoringController(IMediator mediator) : ControllerBase()
 {
-    private readonly IMediator _mediator;
-
-    public ScoringController(IMediator mediator) : base()
-    {
-        _mediator = mediator;
-    }
+    private readonly IMediator _mediator = mediator;
 
     [HttpGet("game/{gameId}/score/config")]
     public async Task<GameScoringConfig> GetGameScoringConfig([FromRoute] string gameId)

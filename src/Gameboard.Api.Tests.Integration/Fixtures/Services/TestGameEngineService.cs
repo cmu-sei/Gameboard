@@ -82,7 +82,7 @@ public class TestGameEngineService : IGameEngineService
         return Task.FromResult(_gradingResultService.Get(entity));
     }
 
-    public Task<ExternalSpec[]> ListSpecs(SearchFilter model)
+    public Task<ExternalSpec[]> ListGameEngineSpecs(SearchFilter model)
     {
         return Task.FromResult(Array.Empty<ExternalSpec>());
     }

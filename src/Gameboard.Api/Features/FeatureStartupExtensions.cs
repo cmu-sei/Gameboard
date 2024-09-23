@@ -1,11 +1,10 @@
+
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System;
-using System.Linq;
 using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 using AutoMapper;
-using Gameboard.Api;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
@@ -20,7 +19,7 @@ using Gameboard.Api.Hubs;
 using Gameboard.Api.Structure;
 using Gameboard.Api.Structure.MediatR;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace Gameboard.Api;
 
 public static class ServiceStartupExtensions
 {
@@ -41,6 +40,7 @@ public static class ServiceStartupExtensions
             .AddConcretesFromNamespace("Gameboard.Api.Structure.Validators")
             .AddScoped(typeof(IStore<>), typeof(Store<>))
             .AddScoped(typeof(UserIsPlayingGameValidator<>))
+            .AddImplementationsOf<IModelValidator>()
             .AddImplementationsOf<IGameboardRequestValidator<IReportQuery>>()
             // these aren't picked up right now because they implement multiple interfaces,
             // but allowing multiple-interface classes causes things like IReportQuery implementers to get snagged
@@ -50,28 +50,12 @@ public static class ServiceStartupExtensions
             .AddScoped<IExternalSyncGameModeService, ExternalSyncGameModeService>()
             .AddScoped<IGameHubService, GameHubService>()
             .AddScoped<IStandardGameModeService, StandardGameModeService>()
+            .AddScoped<ISyncStartGameService, SyncStartGameService>()
             .AddScoped<IGameResourcesDeployStatusService, GameResourcesDeployStatusService>()
             .AddScoped<ISupportHubBus, SupportHubBus>()
             .AddScoped<ITeamService, TeamService>()
             .AddScoped<IUserHubBus, UserHubBus>()
             .AddInterfacesWithSingleImplementations();
-
-        foreach (var t in Assembly
-            .GetExecutingAssembly()
-            .ExportedTypes
-            .Where
-            (
-                t =>
-                    t.GetInterface(nameof(IModelValidator)) != null
-                    && t.IsClass
-                    && !t.IsAbstract
-            )
-        )
-        {
-            foreach (Type i in t.GetInterfaces())
-                services.AddScoped(i, t);
-            services.AddScoped(t);
-        }
 
         return services;
     }

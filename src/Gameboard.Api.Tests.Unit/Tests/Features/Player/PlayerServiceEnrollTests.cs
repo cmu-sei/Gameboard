@@ -1,6 +1,5 @@
 using Gameboard.Api.Common;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Player;
 
 namespace Gameboard.Api.Tests.Unit;
@@ -11,9 +10,9 @@ public class PlayerServiceEnrollTests
     public async Task Enroll_WithNoSponsor_ThrowsExpected(string gameId, string userId, IFixture fixture)
     {
         // given
-        var gameStore = A.Fake<IGameStore>();
+        var store = A.Fake<IStore>();
         A
-            .CallTo(() => gameStore.Retrieve(gameId))
+            .CallTo(() => store.WithNoTracking<Data.Game>())
             .WithAnyArguments()
             .Returns(new Data.Game
             {
@@ -21,9 +20,8 @@ public class PlayerServiceEnrollTests
                 RegistrationType = GameRegistrationType.Open,
                 RegistrationOpen = DateTimeOffset.UtcNow.AddDays(-1),
                 RegistrationClose = DateTimeOffset.UtcNow.AddDays(1)
-            });
+            }.ToCollection().BuildMock());
 
-        var store = A.Fake<IStore>();
         A
             .CallTo(() => store.WithNoTracking<Data.User>())
             .WithAnyArguments()
@@ -37,11 +35,7 @@ public class PlayerServiceEnrollTests
             }.ToCollection().BuildMock());
 
 
-        var sut = PlayerServiceTestHelpers.GetTestableSut
-        (
-            gameStore: gameStore,
-            store: store
-        );
+        var sut = PlayerServiceTestHelpers.GetTestableSut(store: store);
 
         var request = new NewPlayer
         {
@@ -49,10 +43,11 @@ public class PlayerServiceEnrollTests
             UserId = userId,
         };
 
-        var actor = new Api.User
+        var actor = new User
         {
             Id = userId,
-            Role = UserRole.Member,
+            Role = UserRoleKey.Member,
+            RolePermissions = [],
         };
 
         // when/then
@@ -63,18 +58,16 @@ public class PlayerServiceEnrollTests
     public async Task Enroll_WithExistingCompetitiveModeRegistration_ThrowsExpected(string gameId, string userId, IFixture fixture)
     {
         // given
-        var gameStore = A.Fake<IGameStore>();
-        A
-            .CallTo(() => gameStore.Retrieve(gameId))
-            .WithAnyArguments()
-            .Returns(new Data.Game
-            {
-                Id = gameId,
-                PlayerMode = PlayerMode.Competition,
-                RegistrationType = GameRegistrationType.Open,
-                RegistrationOpen = DateTimeOffset.UtcNow.AddDays(-1),
-                RegistrationClose = DateTimeOffset.UtcNow.AddDays(1)
-            });
+        var game = new Data.Game
+        {
+            Id = gameId,
+            PlayerMode = PlayerMode.Competition,
+            GameStart = DateTimeOffset.UtcNow.AddDays(-1),
+            GameEnd = DateTimeOffset.UtcNow.AddDays(1),
+            RegistrationType = GameRegistrationType.Open,
+            RegistrationOpen = DateTimeOffset.UtcNow.AddDays(-1),
+            RegistrationClose = DateTimeOffset.UtcNow.AddDays(1)
+        };
 
         var store = A.Fake<IStore>();
         A
@@ -93,11 +86,12 @@ public class PlayerServiceEnrollTests
                 }.ToCollection()
             }.ToCollection().BuildMock());
 
-        var sut = PlayerServiceTestHelpers.GetTestableSut
-        (
-            gameStore: gameStore,
-            store: store
-        );
+        A
+            .CallTo(() => store.WithNoTracking<Data.Game>())
+            .WithAnyArguments()
+            .Returns(new List<Data.Game>([game]).BuildMock());
+
+        var sut = PlayerServiceTestHelpers.GetTestableSut(store: store);
 
         var request = new NewPlayer
         {
@@ -105,10 +99,11 @@ public class PlayerServiceEnrollTests
             UserId = userId,
         };
 
-        var actor = new Api.User
+        var actor = new User
         {
             Id = userId,
-            Role = UserRole.Member,
+            Role = UserRoleKey.Member,
+            RolePermissions = []
         };
 
         // when/then

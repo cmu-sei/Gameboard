@@ -1,4 +1,3 @@
-using System;
 using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,15 +6,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Data;
 
-public sealed class SlowCommandLogInterceptor : DbCommandInterceptor
+public sealed class SlowCommandLogInterceptor(ILoggerFactory loggerFactory) : DbCommandInterceptor
 {
     private static readonly int DURATION_THRESHOLD_MS = 1500;
-    private readonly ILogger<SlowCommandLogInterceptor> _logger;
-
-    public SlowCommandLogInterceptor(ILoggerFactory loggerFactory)
-    {
-        _logger = loggerFactory.CreateLogger<SlowCommandLogInterceptor>();
-    }
+    private readonly ILogger<SlowCommandLogInterceptor> _logger = loggerFactory.CreateLogger<SlowCommandLogInterceptor>();
 
     public override ValueTask<DbDataReader> ReaderExecutedAsync(DbCommand command, CommandExecutedEventData eventData, DbDataReader result, CancellationToken cancellationToken = default)
     {

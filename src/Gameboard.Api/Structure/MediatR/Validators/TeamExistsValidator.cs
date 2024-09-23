@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
@@ -9,16 +10,11 @@ using ServiceStack;
 
 namespace Gameboard.Api.Structure.MediatR.Validators;
 
-internal class TeamExistsValidator<TModel> : IGameboardValidator<TModel>
+internal class TeamExistsValidator<TModel>(IStore store) : IGameboardValidator<TModel>
 {
-    private readonly IStore _store;
+    private readonly IStore _store = store;
     private Func<TModel, string> _teamIdProperty;
     private Func<TModel, IEnumerable<string>> _teamIdsProperty;
-
-    public TeamExistsValidator(IStore store)
-    {
-        _store = store;
-    }
 
     public TeamExistsValidator<TModel> UseProperty(Func<TModel, string> propertyExpression)
     {
@@ -49,15 +45,15 @@ internal class TeamExistsValidator<TModel> : IGameboardValidator<TModel>
                 .Distinct()
                 .ToArray();
 
-            if (!finalTeamIds.Any())
+            if (finalTeamIds.Length == 0)
                 context.AddValidationException(new MissingRequiredInput<string>(nameof(_teamIdProperty), _teamIdProperty?.ToString()));
 
             // grab the gameId as a representation of each player, because we also need to know if they're somehow
             // in different games
             var players = await _store
                 .WithNoTracking<Data.Player>()
-                .Select(p => new { p.TeamId, p.GameId })
                 .Where(p => finalTeamIds.Contains(p.TeamId))
+                .Select(p => new { p.TeamId, p.GameId })
                 .GroupBy(p => p.TeamId)
                 .ToDictionaryAsync(gr => gr.Key, gr => gr.ToArray());
 

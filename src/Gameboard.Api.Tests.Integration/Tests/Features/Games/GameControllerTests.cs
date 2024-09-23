@@ -1,13 +1,10 @@
+using Gameboard.Api.Data;
+
 namespace Gameboard.Api.Tests.Integration;
 
-public class GameControllerTests : IClassFixture<GameboardTestContext>
+public class GameControllerTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>
 {
-    private readonly GameboardTestContext _testContext;
-
-    public GameControllerTests(GameboardTestContext testContext)
-    {
-        _testContext = testContext;
-    }
+    private readonly GameboardTestContext _testContext = testContext;
 
     [Fact]
     public async Task GameController_Create_ReturnsGame()
@@ -30,9 +27,9 @@ public class GameControllerTests : IClassFixture<GameboardTestContext>
 
         // act
         var responseGame = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Designer)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Director)
             .PostAsync("/api/game", game.ToJsonBody())
-            .WithContentDeserializedAs<Data.Game>();
+            .DeserializeResponseAs<Data.Game>();
 
         // assert
         responseGame?.Name.ShouldBe(game.Name);

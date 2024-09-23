@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,21 +11,14 @@ public interface ICertificatesService
     Task<IEnumerable<PracticeModeCertificate>> GetPracticeCertificates(string userId);
 }
 
-internal class CertificatesService : ICertificatesService
+internal class CertificatesService(IStore store) : ICertificatesService
 {
-    private readonly INowService _now;
-    private readonly IStore _store;
-
-    public CertificatesService(INowService now, IStore store)
-    {
-        _now = now;
-        _store = store;
-    }
+    private readonly IStore _store = store;
 
     public async Task<IEnumerable<PracticeModeCertificate>> GetPracticeCertificates(string userId)
     {
         var challenges = await _store
-            .List<Data.Challenge>()
+            .WithNoTracking<Data.Challenge>()
                 .Include(c => c.Game)
                 .Include(c => c.Player)
                     .ThenInclude(p => p.User)
@@ -40,7 +32,7 @@ internal class CertificatesService : ICertificatesService
         // have to hit specs separately for now
         var specIds = challenges.Values.Select(c => c.SpecId);
         var specs = await _store
-            .List<Data.ChallengeSpec>()
+            .WithNoTracking<Data.ChallengeSpec>()
                 .Include(s => s.PublishedPracticeCertificates.Where(c => c.OwnerUserId == userId))
             .Where(s => specIds.Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, s => s);

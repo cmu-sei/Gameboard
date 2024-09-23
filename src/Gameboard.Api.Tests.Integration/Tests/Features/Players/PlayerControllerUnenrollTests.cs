@@ -1,5 +1,6 @@
 using System.Net;
 using Gameboard.Api.Common;
+using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
@@ -22,8 +23,8 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext>
             {
                 state.Add<Data.Game>(fixture, g =>
                 {
-                    g.Players = new List<Data.Player>
-                    {
+                    g.Players =
+                    [
                         state.Build<Data.Player>(fixture, p =>
                         {
                             p.Id = fixture.Create<string>();
@@ -41,7 +42,7 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext>
                             p.User = state.Build<Data.User>(fixture, u =>
                             {
                                 u.Id = memberUserId;
-                                u.Role = UserRole.Member;
+                                u.Role = UserRoleKey.Member;
                             });
                             p.Challenges = state.Build<Data.Challenge>(fixture, c =>
                             {
@@ -52,7 +53,7 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext>
                                 c.TeamId = teamId;
                             }).ToCollection();
                         })
-                    };
+                    ];
                 });
             });
 
@@ -66,8 +67,9 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext>
         // then
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var hasPlayer = await _testContext.GetDbContext().Players.AnyAsync(p => p.Id == memberPlayerId);
-        var hasChallenge = await _testContext.GetDbContext().Challenges.AnyAsync(c => c.Id == challengeId);
+        var dbContext = _testContext.GetValidationDbContext();
+        var hasPlayer = await dbContext.Players.AnyAsync(p => p.Id == memberPlayerId);
+        var hasChallenge = await dbContext.Challenges.AnyAsync(c => c.Id == challengeId);
 
         hasPlayer.ShouldBeFalse();
         hasChallenge.ShouldBeFalse();
@@ -95,7 +97,7 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext>
                             p.User = state.Build<Data.User>(fixture, u =>
                             {
                                 u.Id = fixture.Create<string>();
-                                u.Role = UserRole.Member;
+                                u.Role = UserRoleKey.Member;
                             });
                         }),
 

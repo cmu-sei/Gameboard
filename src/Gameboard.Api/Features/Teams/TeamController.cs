@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
@@ -11,27 +12,29 @@ namespace Gameboard.Api.Features.Teams;
 
 [Authorize]
 [Route("/api/team")]
-public class TeamController : ControllerBase
+public class TeamController(
+    IActingUserService actingUserService,
+    IMediator mediator,
+    ITeamService teamService
+) : ControllerBase
 {
-    private readonly IActingUserService _actingUserService;
-    private readonly IMediator _mediator;
-    private readonly ITeamService _teamService;
-
-    public TeamController
-    (
-        IActingUserService actingUserService,
-        IMediator mediator,
-        ITeamService teamService
-    )
-    {
-        _actingUserService = actingUserService;
-        _mediator = mediator;
-        _teamService = teamService;
-    }
+    private readonly IActingUserService _actingUserService = actingUserService;
+    private readonly IMediator _mediator = mediator;
+    private readonly ITeamService _teamService = teamService;
 
     [HttpGet("{teamId}")]
     public async Task<Team> GetTeam(string teamId)
         => await _mediator.Send(new GetTeamQuery(teamId, _actingUserService.Get()));
+
+    /// <summary>
+    /// Loads metadata to support emailing teams in a given game
+    /// </summary>
+    /// <param name="gameId">Game Id</param>
+    /// <returns>TeamSummary[]</returns>
+    [HttpGet("/api/teams/{gameId}")]
+    [Authorize]
+    public Task<IEnumerable<TeamSummary>> GetTeams([FromRoute] string gameId)
+        => _mediator.Send(new GetTeamsMailMetadataQuery(gameId));
 
     /// <summary>
     /// Extend or end a team's session. If no value is supplied for the SessionEnd property of the

@@ -6,9 +6,7 @@ using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
-using Gameboard.Api.Features.Player;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -24,55 +22,43 @@ public sealed class UserActiveChallenges
     public required IEnumerable<ActiveChallenge> Competition { get; set; }
 }
 
-internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveChallengesQuery, UserActiveChallenges>
+internal class GetUserActiveChallengesHandler(
+    IGameEngineService gameEngine,
+    INowService now,
+    IStore store,
+    ITimeWindowService timeWindowService,
+    EntityExistsValidator<GetUserActiveChallengesQuery, Data.User> userExists,
+    IValidatorService<GetUserActiveChallengesQuery> validator
+    ) : IRequestHandler<GetUserActiveChallengesQuery, UserActiveChallenges>
 {
-    private readonly IGameEngineService _gameEngine;
-    private readonly INowService _now;
-    private readonly IStore _store;
-    private readonly ITimeWindowService _timeWindowService;
-    private readonly EntityExistsValidator<GetUserActiveChallengesQuery, Data.User> _userExists;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
-    private readonly IValidatorService<GetUserActiveChallengesQuery> _validator;
-
-    public GetUserActiveChallengesHandler
-    (
-        IGameEngineService gameEngine,
-        INowService now,
-        IStore store,
-        ITimeWindowService timeWindowService,
-        EntityExistsValidator<GetUserActiveChallengesQuery, Data.User> userExists,
-        UserRoleAuthorizer userRoleAuthorizer,
-        IValidatorService<GetUserActiveChallengesQuery> validator
-    )
-    {
-        _gameEngine = gameEngine;
-        _now = now;
-        _store = store;
-        _timeWindowService = timeWindowService;
-        _userExists = userExists;
-        _userRoleAuthorizer = userRoleAuthorizer;
-        _validator = validator;
-    }
+    private readonly IGameEngineService _gameEngine = gameEngine;
+    private readonly INowService _now = now;
+    private readonly IStore _store = store;
+    private readonly ITimeWindowService _timeWindowService = timeWindowService;
+    private readonly EntityExistsValidator<GetUserActiveChallengesQuery, Data.User> _userExists = userExists;
+    private readonly IValidatorService<GetUserActiveChallengesQuery> _validator = validator;
 
     public async Task<UserActiveChallenges> Handle(GetUserActiveChallengesQuery request, CancellationToken cancellationToken)
     {
         // validate
-        _validator.AddValidator(_userExists.UseProperty(m => m.UserId));
-        await _validator.Validate(request, cancellationToken);
-
-        _userRoleAuthorizer
-            .AllowRoles(UserRole.Registrar, UserRole.Admin)
-            .AllowUserId(request.UserId)
-            .Authorize();
+        await _validator
+            .Auth
+            (
+                a => a
+                    .RequirePermissions(PermissionKey.Teams_Observe)
+                    .UnlessUserIdIn(request.UserId)
+            )
+            .AddValidator(_userExists.UseProperty(m => m.UserId))
+            .Validate(request, cancellationToken);
 
         // retrieve stuff (initial pull from DB side eval)
         var user = await _store
-            .List<Data.User>()
+            .WithNoTracking<Data.User>()
             .Select(u => new SimpleEntity { Id = u.Id, Name = u.ApprovedName })
             .SingleOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
 
         var challenges = await _store
-            .List<Data.Challenge>()
+            .WithNoTracking<Data.Challenge>()
                 .Include(c => c.Game)
                 .Include(c => c.Player)
                     .ThenInclude(p => p.User)
@@ -120,7 +106,7 @@ internal class GetUserActiveChallengesHandler : IRequestHandler<GetUserActiveCha
         // load the spec names and set state properties
         var specIds = challenges.Select(c => c.Spec.Id).ToList();
         var specs = await _store
-            .List<Data.ChallengeSpec>()
+            .WithNoTracking<Data.ChallengeSpec>()
             .Where(s => specIds.Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, s => s, cancellationToken);
 

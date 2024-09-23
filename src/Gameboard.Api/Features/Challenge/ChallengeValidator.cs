@@ -1,74 +1,77 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Player;
+using Microsoft.EntityFrameworkCore;
 
-namespace Gameboard.Api.Validators
+namespace Gameboard.Api.Validators;
+
+public class ChallengeValidator(IStore store) : IModelValidator
 {
-    public class ChallengeValidator : IModelValidator
+    private readonly IStore _store = store;
+
+    public Task Validate(object model)
     {
-        private readonly IStore<Data.ChallengeSpec> _specStore;
-        private readonly IChallengeStore _store;
-        private readonly IPlayerStore _playerStore;
+        if (model is Entity)
+            return _validate(model as Entity);
+        if (model is NewChallenge)
+            return _validate(model as NewChallenge);
+        if (model is ChangedChallenge)
+            return _validate(model as ChangedChallenge);
 
-        public ChallengeValidator(IChallengeStore store, IStore<Data.ChallengeSpec> specStore, IPlayerStore playerStore)
-        {
-            _playerStore = playerStore;
-            _specStore = specStore;
-            _store = store;
-        }
+        throw new NotImplementedException();
+    }
 
-        public Task Validate(object model)
-        {
-            if (model is Entity)
-                return _validate(model as Entity);
+    private async Task _validate(Entity model)
+    {
+        if (!await _store.WithNoTracking<Data.Challenge>().AnyAsync(c => c.Id == model.Id))
+            throw new ResourceNotFound<Challenge>(model.Id);
+    }
 
-            if (model is NewChallenge)
-                return _validate(model as NewChallenge);
+    private async Task _validate(NewChallenge model)
+    {
+        if ((await _store.WithNoTracking<Data.Player>().AnyAsync(p => p.Id == model.PlayerId, CancellationToken.None)).Equals(false))
+            throw new ResourceNotFound<Data.Player>(model.PlayerId);
 
-            if (model is ChangedChallenge)
-                return _validate(model as ChangedChallenge);
+        if ((await _store.WithNoTracking<Data.ChallengeSpec>().AnyAsync(s => s.Id == model.SpecId, CancellationToken.None)).Equals(false))
+            throw new ResourceNotFound<Data.ChallengeSpec>(model.SpecId);
 
-            throw new System.NotImplementedException();
-        }
+        var player = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.Id == model.PlayerId)
+            .Select(p => new
+            {
+                p.Id,
+                p.GameId,
+                IsActive = p.SessionBegin >= DateTimeOffset.MinValue &&
+                    p.SessionBegin <= DateTime.UtcNow &&
+                    p.SessionEnd >= DateTime.UtcNow,
+                IsPractice = p.Mode == PlayerMode.Practice,
+            })
+            .SingleAsync();
 
-        private async Task _validate(Entity model)
-        {
-            if ((await _store.Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound<Challenge>(model.Id);
-        }
+        if (!player.IsPractice && !player.IsActive)
+            throw new SessionNotActive(player.Id);
 
-        private async Task _validate(NewChallenge model)
-        {
-            if ((await _playerStore.Exists(model.PlayerId)).Equals(false))
-                throw new ResourceNotFound<Data.Player>(model.PlayerId);
+        var spec = await _store
+            .WithNoTracking<Data.ChallengeSpec>()
+            .Where(cs => cs.Id == model.SpecId)
+            .SingleOrDefaultAsync();
 
-            if ((await _specStore.Exists(model.SpecId)).Equals(false))
-                throw new ResourceNotFound<Data.ChallengeSpec>(model.SpecId);
+        if (spec.GameId != player.GameId)
+            throw new ActionForbidden();
 
-            var player = await _store.DbContext.Players.FindAsync(model.PlayerId);
+        // Note: not checking "already exists" since this is used idempotently
+    }
 
-            if (!player.IsPractice && player.IsLive.Equals(false))
-                throw new SessionNotActive(player.Id);
-
-            var spec = await _store.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
-
-            if (spec.GameId != player.GameId)
-                throw new ActionForbidden();
-
-            // Note: not checking "already exists" since this is used idempotently
-            await Task.CompletedTask;
-        }
-
-        private async Task _validate(ChangedChallenge model)
-        {
-            if ((await _store.Exists(model.Id)).Equals(false))
-                throw new ResourceNotFound<Data.Challenge>(model.Id);
-
-            await Task.CompletedTask;
-        }
+    private async Task _validate(ChangedChallenge model)
+    {
+        if ((await _store.WithNoTracking<Data.Challenge>().AnyAsync(c => c.Id == model.Id, CancellationToken.None)).Equals(false))
+            throw new ResourceNotFound<Data.Challenge>(model.Id);
     }
 }

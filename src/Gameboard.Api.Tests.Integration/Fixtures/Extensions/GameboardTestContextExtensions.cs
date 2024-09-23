@@ -1,8 +1,10 @@
 using Gameboard.Api.Common;
+using Gameboard.Api.Data;
 using Gameboard.Api.Structure.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
 
@@ -50,7 +52,13 @@ internal static class GameboardTestContextExtensions
             .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
     }
 
-    public static HttpClient CreateHttpClientWithAuthRole(this GameboardTestContext testContext, UserRole role)
+    public static HttpClient CreateHttpClientWithActingUser(this WebApplicationFactory<Program> webAppFactory, Action<TestAuthenticationUser>? userBuilder = null)
+    {
+        return webAppFactory
+            .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+    }
+
+    public static HttpClient CreateHttpClientWithAuthRole(this GameboardTestContext testContext, UserRoleKey role)
         => CreateHttpClientWithActingUser(testContext, u => u.Role = role);
 
     public static HttpClient CreateHttpClientWithGraderConfig(this GameboardTestContext testContext, double gradedScore)
@@ -75,11 +83,15 @@ internal static class GameboardTestContextExtensions
 
     public static async Task WithDataState(this GameboardTestContext context, Action<IDataStateBuilder> builderAction)
     {
-        var dbContext = context.GetDbContext();
+        // get a context and prep the db
+        using var dbContext = context.GetValidationDbContext();
+        await dbContext.Database.MigrateAsync();
 
+        // seed requested data state
         var builderInstance = new DataStateBuilder(dbContext);
         builderAction.Invoke(builderInstance);
 
+        // save and go
         await dbContext.SaveChangesAsync();
     }
 }

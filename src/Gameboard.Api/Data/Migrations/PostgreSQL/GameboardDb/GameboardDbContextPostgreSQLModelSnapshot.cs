@@ -17,7 +17,7 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.17")
+                .HasAnnotation("ProductVersion", "8.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -514,6 +514,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -733,10 +736,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
                     b.Property<bool>("IsPublished")
                         .HasColumnType("boolean");
-
-                    b.Property<string>("Key")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("Logo")
                         .HasMaxLength(64)
@@ -1076,6 +1075,38 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.ToTable("SupportSettings");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.SupportSettingsAutoTag", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ConditionType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ConditionValue")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SupportSettingsId")
+                        .IsRequired()
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Tag")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SupportSettingsId");
+
+                    b.ToTable("SupportSettingsAutoTags");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.SystemNotification", b =>
                 {
                     b.Property<string>("Id")
@@ -1091,6 +1122,11 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDismissible")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("MarkdownContent")
                         .IsRequired()
@@ -1635,6 +1671,17 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("UpdatedByUser");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.SupportSettingsAutoTag", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.SupportSettings", "SupportSettings")
+                        .WithMany("AutoTags")
+                        .HasForeignKey("SupportSettingsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SupportSettings");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.SystemNotification", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.User", "CreatedByUser")
@@ -1849,6 +1896,11 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("SponsoredPlayers");
 
                     b.Navigation("SponsoredUsers");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.SupportSettings", b =>
+                {
+                    b.Navigation("AutoTags");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.SystemNotification", b =>

@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Structure.MediatR.Authorizers;
+using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,35 +12,25 @@ namespace Gameboard.Api.Features.SystemNotifications;
 
 public record GetVisibleNotificationsQuery() : IRequest<IEnumerable<ViewSystemNotification>>;
 
-internal class GetVisibleNotificationsHandler : IRequestHandler<GetVisibleNotificationsQuery, IEnumerable<ViewSystemNotification>>
+internal class GetVisibleNotificationsHandler(
+    IActingUserService actingUserService,
+    INowService now,
+    IStore store,
+    ISystemNotificationsService systemNotificationsService,
+    IValidatorService validatorService
+    ) : IRequestHandler<GetVisibleNotificationsQuery, IEnumerable<ViewSystemNotification>>
 {
-    private readonly IActingUserService _actingUserService;
-    private readonly INowService _now;
-    private readonly IStore _store;
-    private readonly ISystemNotificationsService _systemNotificationService;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
-
-    public GetVisibleNotificationsHandler
-    (
-        IActingUserService actingUserService,
-        INowService now,
-        IStore store,
-        ISystemNotificationsService systemNotificationsService,
-        UserRoleAuthorizer userRoleAuthorizer
-    )
-    {
-        _actingUserService = actingUserService;
-        _now = now;
-        _store = store;
-        _systemNotificationService = systemNotificationsService;
-        _userRoleAuthorizer = userRoleAuthorizer;
-    }
+    private readonly IActingUserService _actingUserService = actingUserService;
+    private readonly INowService _now = now;
+    private readonly IStore _store = store;
+    private readonly ISystemNotificationsService _systemNotificationService = systemNotificationsService;
+    private readonly IValidatorService _validatorService = validatorService;
 
     public async Task<IEnumerable<ViewSystemNotification>> Handle(GetVisibleNotificationsQuery request, CancellationToken cancellationToken)
     {
-        _userRoleAuthorizer
-           .AllowRoles(UserRole.Member)
-           .Authorize();
+        await _validatorService
+            .Auth(a => a.RequireAuthentication())
+            .Validate(cancellationToken);
 
         var nowish = _now.Get();
         var actingUserId = _actingUserService.Get().Id;
@@ -50,12 +40,20 @@ internal class GetVisibleNotificationsHandler : IRequestHandler<GetVisibleNotifi
             .Where(n => !n.IsDeleted)
             .Where(n => n.StartsOn == null || nowish > n.StartsOn)
             .Where(n => n.EndsOn == null || nowish < n.EndsOn)
-            .Where(n => !n.Interactions.Any(i => i.UserId == actingUserId && i.DismissedOn != null))
-            .Where(n => !n.Interactions.Any(i => i.UserId == actingUserId && i.SawFullNotificationOn != null))
+            .Where
+            (
+                n =>
+                    !n.IsDismissible ||
+                    (
+                        !n.Interactions.Any(i => i.UserId == actingUserId && i.DismissedOn != null) &&
+                        !n.Interactions.Any(i => i.UserId == actingUserId && i.SawFullNotificationOn != null)
+                    )
+            )
             .Select(entity => new ViewSystemNotification
             {
                 Id = entity.Id,
                 Title = entity.Title,
+                IsDismissible = entity.IsDismissible,
                 MarkdownContent = entity.MarkdownContent,
                 StartsOn = entity.StartsOn,
                 EndsOn = entity.EndsOn,

@@ -1,21 +1,20 @@
 using AutoMapper;
 using Gameboard.Api.Common.Services;
-using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.ApiKeys;
 
 namespace Gameboard.Api.Tests.Unit;
 
 public class ApiKeyServiceTests
 {
-    private ApiKeysService GetSut(ApiKeyOptions? options = null, IRandomService? random = null, IStore<Data.User>? userStore = null) => new
+    private ApiKeysService GetSut(ApiKeyOptions? options = null, IRandomService? random = null, IStore? store = null) => new
     (
         options ?? new ApiKeyOptions { RandomCharactersLength = 15 },
         A.Fake<IGuidService>(),
         A.Fake<IMapper>(),
         A.Fake<INowService>(),
         random ?? A.Fake<IRandomService>(),
-        A.Fake<IApiKeysStore>(),
-        userStore ?? A.Fake<IStore<Data.User>>()
+        store ?? A.Fake<IStore>()
     );
 
     [Theory, InlineAutoData(3)]
@@ -64,13 +63,13 @@ public class ApiKeyServiceTests
     public void GetUserFromApiKey_WithUserAssignedKey_ResolvesUser(string apiKey, IFixture fixture)
     {
         // given
-        var userStore = A.Fake<IStore<Data.User>>();
+        var store = A.Fake<IStore>();
         var fakeUsers = new Data.User[]
         {
             new ()
             {
-                ApiKeys = new Data.ApiKey[]
-                {
+                ApiKeys =
+                [
                     new ()
                     {
                         Id =  fixture.Create<string>(),
@@ -79,13 +78,13 @@ public class ApiKeyServiceTests
                         GeneratedOn = fixture.Create<DateTimeOffset>(),
                         OwnerId = fixture.Create<string>()
                     }
-                },
+                ],
                 Enrollments = Array.Empty<Data.Player>()
             }
         }.BuildMock();
 
-        A.CallTo(() => userStore.ListWithNoTracking()).Returns(fakeUsers);
-        var sut = GetSut(userStore: userStore);
+        A.CallTo(() => store.WithNoTracking<Data.User>()).Returns(fakeUsers);
+        var sut = GetSut(store: store);
 
         // when
         var result = sut.GetUserFromApiKey(apiKey);

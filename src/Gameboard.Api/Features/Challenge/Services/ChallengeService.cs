@@ -19,67 +19,47 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using ServiceStack;
+using Gameboard.Api.Features.Users;
 
 namespace Gameboard.Api.Services;
 
-public partial class ChallengeService : _Service
+public partial class ChallengeService(
+    IActingUserService actingUserService,
+    ConsoleActorMap actorMap,
+    CoreOptions coreOptions,
+    IChallengeStore challengeStore,
+    IChallengeDocsService challengeDocsService,
+    IChallengeSubmissionsService challengeSubmissionsService,
+    IChallengeSyncService challengeSyncService,
+    IGameEngineService gameEngine,
+    IGuidService guids,
+    IJsonService jsonService,
+    ILogger<ChallengeService> logger,
+    IMapper mapper,
+    IMediator mediator,
+    IMemoryCache memCache,
+    INowService now,
+    IUserRolePermissionsService permissionsService,
+    IStore store,
+    ITeamService teamService
+    ) : _Service(logger, mapper, coreOptions)
 {
-    private readonly IActingUserService _actingUserService;
-    private readonly ConsoleActorMap _actorMap;
-    private readonly IChallengeStore _challengeStore;
-    private readonly IGameEngineService _gameEngine;
-    private readonly IGuidService _guids;
-    private readonly IJsonService _jsonService;
-    private readonly IMapper _mapper;
-    private readonly IMediator _mediator;
-    private readonly IMemoryCache _memCache;
-    private readonly INowService _now;
-    private readonly IPlayerStore _playerStore;
-    private readonly IChallengeDocsService _challengeDocsService;
-    private readonly IChallengeSubmissionsService _challengeSubmissionsService;
-    private readonly IChallengeSyncService _challengeSyncService;
-    private readonly IStore _store;
-    private readonly ITeamService _teamService;
-
-    public ChallengeService
-    (
-        IActingUserService actingUserService,
-        ConsoleActorMap actorMap,
-        CoreOptions coreOptions,
-        IChallengeStore challengeStore,
-        IChallengeDocsService challengeDocsService,
-        IChallengeSubmissionsService challengeSubmissionsService,
-        IChallengeSyncService challengeSyncService,
-        IGameEngineService gameEngine,
-        IGuidService guids,
-        IJsonService jsonService,
-        ILogger<ChallengeService> logger,
-        IMapper mapper,
-        IMediator mediator,
-        IMemoryCache memCache,
-        INowService now,
-        IPlayerStore playerStore,
-        IStore store,
-        ITeamService teamService
-    ) : base(logger, mapper, coreOptions)
-    {
-        _actingUserService = actingUserService;
-        _actorMap = actorMap;
-        _challengeStore = challengeStore;
-        _challengeDocsService = challengeDocsService;
-        _challengeSubmissionsService = challengeSubmissionsService;
-        _challengeSyncService = challengeSyncService;
-        _gameEngine = gameEngine;
-        _guids = guids;
-        _jsonService = jsonService;
-        _mapper = mapper;
-        _mediator = mediator;
-        _memCache = memCache;
-        _now = now;
-        _playerStore = playerStore;
-        _store = store;
-        _teamService = teamService;
-    }
+    private readonly IActingUserService _actingUserService = actingUserService;
+    private readonly ConsoleActorMap _actorMap = actorMap;
+    private readonly IChallengeStore _challengeStore = challengeStore;
+    private readonly IGameEngineService _gameEngine = gameEngine;
+    private readonly IGuidService _guids = guids;
+    private readonly IJsonService _jsonService = jsonService;
+    private readonly IMapper _mapper = mapper;
+    private readonly IMediator _mediator = mediator;
+    private readonly IMemoryCache _memCache = memCache;
+    private readonly INowService _now = now;
+    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
+    private readonly IChallengeDocsService _challengeDocsService = challengeDocsService;
+    private readonly IChallengeSubmissionsService _challengeSubmissionsService = challengeSubmissionsService;
+    private readonly IChallengeSyncService _challengeSyncService = challengeSyncService;
+    private readonly IStore _store = store;
+    private readonly ITeamService _teamService = teamService;
 
     public async Task<Challenge> GetOrCreate(NewChallenge model, string actorId, string graderUrl)
     {
@@ -115,7 +95,7 @@ public partial class ChallengeService : _Service
             // var actingUser = _actingUserService.Get();
             var actingUser = await _store.WithNoTracking<Data.User>().SingleOrDefaultAsync(u => u.Id == actorId, cancellationToken);
 
-            if (!actingUser.Role.HasFlag(UserRole.Admin | UserRole.Designer | UserRole.Director | UserRole.Tester))
+            if (!await _permissionsService.Can(PermissionKey.Play_IgnoreExecutionWindow))
                 throw new CantStartBecauseGameExecutionPeriodIsOver(model.SpecId, model.PlayerId, game.GameEnd, now);
         }
 
@@ -185,9 +165,7 @@ public partial class ChallengeService : _Service
 
     public async Task<Challenge> Retrieve(string id)
     {
-        var result = Mapper.Map<Challenge>(
-            await _challengeStore.Load(id)
-        );
+        var result = Mapper.Map<Challenge>(await _challengeStore.Load(id));
 
         return result;
     }
@@ -199,14 +177,17 @@ public partial class ChallengeService : _Service
         await _gameEngine.DeleteGamespace(entity);
     }
 
-    public async Task<bool> UserIsTeamPlayer(string id, string subjectId)
+    public async Task<bool> UserIsPlayingChallenge(string id, string subjectId)
     {
-        var entity = await _challengeStore.Retrieve(id);
+        var challengeTeamId = await _store
+            .WithNoTracking<Data.Challenge>()
+            .Where(c => c.Id == id)
+            .Select(c => c.TeamId)
+            .Distinct()
+            .SingleOrDefaultAsync();
 
-        return await _challengeStore.DbContext.Users.AnyAsync(u =>
-            u.Id == subjectId &&
-            u.Enrollments.Any(e => e.TeamId == entity.TeamId)
-        );
+        var userTeamIds = await _teamService.GetUserTeamIds(subjectId);
+        return userTeamIds.Any(tId => tId == challengeTeamId);
     }
 
     public async Task<ChallengeSummary[]> List(SearchFilter model = null)
@@ -229,23 +210,22 @@ public partial class ChallengeService : _Service
 
         // resolve the players of the challenges that are coming back
         var teamIds = summaries.Select(s => s.TeamId);
-        var teamPlayerMap = await _playerStore
-            .List()
-            .AsNoTracking()
+        var teamPlayerMap = await _store
+            .WithNoTracking<Data.Player>()
             .Where(p => teamIds.Contains(p.TeamId))
             .GroupBy(p => p.TeamId)
             .ToDictionaryAsync(g => g.Key, g => g);
 
         foreach (var summary in summaries)
         {
-            if (teamPlayerMap.ContainsKey(summary.TeamId))
+            if (teamPlayerMap.TryGetValue(summary.TeamId, out IGrouping<string, Data.Player> value))
             {
-                var teamPlayers = teamPlayerMap[summary.TeamId];
+                var teamPlayers = value;
                 summary.Players = teamPlayers.Select(p => _mapper.Map<ChallengePlayer>(p));
             }
             else
             {
-                summary.Players = Array.Empty<ChallengePlayer>();
+                summary.Players = [];
             }
         }
 
@@ -256,7 +236,8 @@ public partial class ChallengeService : _Service
     {
         var q = _challengeStore.List(null);
 
-        var userTeams = await _challengeStore.DbContext.Players
+        var userTeams = await _store
+            .WithNoTracking<Data.Player>()
                 .Where(p => p.UserId == uid && p.TeamId != null && p.TeamId != "")
                 .Select(p => p.TeamId)
                 .ToListAsync();
@@ -275,7 +256,7 @@ public partial class ChallengeService : _Service
 
     public async Task<ArchivedChallenge[]> ListArchived(SearchFilter model)
     {
-        var q = _challengeStore.DbContext.ArchivedChallenges.AsQueryable();
+        var q = _store.WithNoTracking<Data.ArchivedChallenge>();
 
         if (model.Term.NotEmpty())
         {
@@ -305,7 +286,7 @@ public partial class ChallengeService : _Service
         if (entity is not null)
             return Mapper.Map<Challenge>(entity);
 
-        var spec = await _challengeStore.DbContext.ChallengeSpecs.FindAsync(model.SpecId);
+        var spec = await _store.SingleAsync<Data.ChallengeSpec>(model.SpecId, CancellationToken.None);
         var challenge = Mapper.Map<Data.Challenge>(spec);
 
         var result = Mapper.Map<Challenge>(challenge);
@@ -318,7 +299,7 @@ public partial class ChallengeService : _Service
     public async Task<Challenge> StartGamespace(string id, string actorId, CancellationToken cancellationToken)
     {
         var challenge = await _challengeStore.Retrieve(id);
-        var game = await _challengeStore.DbContext.Games.FindAsync(challenge.GameId);
+        var game = await _store.SingleAsync<Data.Game>(challenge.GameId, cancellationToken);
 
         if (await _teamService.IsAtGamespaceLimit(challenge.TeamId, game, cancellationToken))
             throw new GamespaceLimitReached(game.Id, challenge.TeamId);
@@ -340,25 +321,22 @@ public partial class ChallengeService : _Service
         return Mapper.Map<Challenge>(challenge);
     }
 
-    public async Task<Challenge> Grade(GameEngineSectionSubmission model, User actor)
+    public async Task<Challenge> Grade(GameEngineSectionSubmission model, User actor, CancellationToken cancellationToken)
     {
         var now = _now.Get();
         var challenge = await _store
             .WithNoTracking<Data.Challenge>()
-            .SingleAsync(c => c.Id == model.Id);
+            .SingleAsync(c => c.Id == model.Id, cancellationToken);
 
         // have to retrieve game end separately due to a bug with Store (tracked entity issue)
         var gameProperties = await _store
             .WithNoTracking<Data.Game>()
             .Where(g => g.Id == challenge.GameId)
             .Select(g => new { g.PlayerMode, g.GameEnd })
-            .SingleAsync();
-
-        // kludge to stop tracking problems
-        _store.GetDbContext().ChangeTracker.Clear();
+            .SingleAsync(cancellationToken);
 
         // ensure that the game hasn't ended - if it has, we have to bounce this one
-        var canPlayOutsideExecutionWindow = actor.IsAdmin || actor.IsRegistrar || actor.IsDesigner || actor.IsSupport;
+        var canPlayOutsideExecutionWindow = await _permissionsService.Can(PermissionKey.Play_IgnoreExecutionWindow);
         if (!canPlayOutsideExecutionWindow && gameProperties.PlayerMode == PlayerMode.Competition && now > gameProperties.GameEnd)
         {
             await _store.Create(new ChallengeEvent
@@ -394,7 +372,7 @@ public partial class ChallengeService : _Service
             Type = ChallengeEventType.Submission
         });
 
-        GameEngineGameState postGradingState = null;
+        var postGradingState = default(GameEngineGameState);
 
         try
         {
@@ -563,7 +541,7 @@ public partial class ChallengeService : _Service
 
             var mappedChallenge = _mapper.Map<ArchivedChallenge>(challenge);
             mappedChallenge.Submissions = submissions;
-            mappedChallenge.TeamMembers = teamMemberMap.ContainsKey(challenge.TeamId) ? teamMemberMap[challenge.TeamId].ToArray() : Array.Empty<string>();
+            mappedChallenge.TeamMembers = teamMemberMap.TryGetValue(challenge.TeamId, out List<string> value) ? value.ToArray() : [];
 
             return mappedChallenge;
         }).ToArray();
@@ -607,7 +585,8 @@ public partial class ChallengeService : _Service
     public async Task<List<ObserveChallenge>> GetChallengeConsoles(string gameId)
     {
         // retrieve challenges to list
-        var q = _challengeStore.DbContext.Challenges
+        var q = _store
+            .WithNoTracking<Data.Challenge>()
             .Where(c => c.GameId == gameId && c.HasDeployedGamespace)
             .Include(c => c.Player)
             .OrderBy(c => c.Player.Name)

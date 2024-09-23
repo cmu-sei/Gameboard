@@ -1,3 +1,4 @@
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.SystemNotifications;
 
 namespace Gameboard.Api.Tests.Integration;
@@ -18,7 +19,7 @@ public class SystemNotificationsCreateTests : IClassFixture<GameboardTestContext
             state.Add<Data.User>(fixture, u =>
             {
                 u.Id = userId;
-                u.Role = UserRole.Admin;
+                u.Role = UserRoleKey.Admin;
             });
         });
 
@@ -29,6 +30,7 @@ public class SystemNotificationsCreateTests : IClassFixture<GameboardTestContext
             Title = title,
             MarkdownContent = fixture.Create<string>(),
             StartsOn = fixture.Create<DateTimeOffset>(),
+            IsDismissible = true
         };
 
         // when we create it 
@@ -36,13 +38,14 @@ public class SystemNotificationsCreateTests : IClassFixture<GameboardTestContext
             .CreateHttpClientWithActingUser(u =>
             {
                 u.Id = userId;
-                u.Role = UserRole.Admin;
+                u.Role = UserRoleKey.Admin;
             })
             .PostAsync("api/system-notifications", notification.ToJsonBody())
-            .WithContentDeserializedAs<ViewSystemNotification>();
+            .DeserializeResponseAs<ViewSystemNotification>();
 
         // then we should get a sensible result
         result.Title.ShouldBe(title);
+        result.IsDismissible.ShouldBeTrue();
         result.EndsOn.ShouldBeNull();
     }
 }

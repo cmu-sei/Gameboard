@@ -2,6 +2,7 @@ using System.Security.Claims;
 using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Services;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -29,7 +30,7 @@ public class UserClaimsTransformationTests
         A.CallTo(() => store.WithNoTracking<Data.User?>())
             .Returns(Array.Empty<Data.User>().BuildMock());
 
-        var sut = new UserClaimTransformation(cache, mapper, sponsorService, store);
+        var sut = new UserClaimTransformation(cache, mapper, sponsorService, store, A.Fake<IUserRolePermissionsService>());
         var claimsPrincipal = new ClaimsPrincipal();
         claimsPrincipal.AddIdentity(new ClaimsIdentity(new Claim(AppConstants.SubjectClaimName, userId).ToEnumerable()));
 
@@ -40,7 +41,7 @@ public class UserClaimsTransformationTests
         result.Claims.Any(c => c.Type == AppConstants.SubjectClaimName).ShouldBeTrue();
         result.Claims.Any(c => c.Type == AppConstants.NameClaimName).ShouldBeTrue();
         result.Claims.Any(c => c.Type == AppConstants.ApprovedNameClaimName).ShouldBeTrue();
-        result.Claims.Single(c => c.Type == AppConstants.RoleListClaimName).Value.ShouldBe("Member");
+        result.Claims.Single(c => c.Type == AppConstants.RoleClaimName).Value.ShouldBe(UserRoleKey.Member.ToString());
         result.Claims.Single(c => c.Type == AppConstants.SponsorClaimName).Value.ShouldBe(sponsorId);
     }
 }

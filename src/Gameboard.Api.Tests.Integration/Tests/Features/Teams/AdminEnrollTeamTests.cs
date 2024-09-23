@@ -1,15 +1,11 @@
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class AdminEnrollTeamTests : IClassFixture<GameboardTestContext>
+public class AdminEnrollTeamTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>
 {
-    private readonly GameboardTestContext _testContext;
-
-    public AdminEnrollTeamTests(GameboardTestContext testContext)
-    {
-        _testContext = testContext;
-    }
+    private readonly GameboardTestContext _testContext = testContext;
 
     [Theory, GbIntegrationAutoData]
     public async Task EnrollTeam_WithTwoEligiblePlayersAndNoSpecifiedCaptain_Enrolls
@@ -33,14 +29,14 @@ public class AdminEnrollTeamTests : IClassFixture<GameboardTestContext>
             state.Add<Data.User>(fixture, u =>
             {
                 u.Id = firstUserId;
-                u.Role = UserRole.Member;
+                u.Role = UserRoleKey.Member;
                 u.SponsorId = sponsorId;
             });
 
             state.Add<Data.User>(fixture, u =>
             {
                 u.Id = secondUserId;
-                u.Role = UserRole.Member;
+                u.Role = UserRoleKey.Member;
                 u.SponsorId = sponsorId;
             });
 
@@ -54,9 +50,9 @@ public class AdminEnrollTeamTests : IClassFixture<GameboardTestContext>
 
         // when the registrar tries to team them up
         var result = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Registrar)
-            .PostAsync("api/admin/team", new AdminEnrollTeamRequest(gameId, new string[] { firstUserId, secondUserId }).ToJsonBody())
-            .WithContentDeserializedAs<AdminEnrollTeamResponse>();
+            .CreateHttpClientWithAuthRole(UserRoleKey.Support)
+            .PostAsync("api/admin/team", new AdminEnrollTeamRequest(gameId, [firstUserId, secondUserId]).ToJsonBody())
+            .DeserializeResponseAs<AdminEnrollTeamResponse>();
 
         result.GameId.ShouldBe(gameId);
         result.Players.Count().ShouldBe(2);

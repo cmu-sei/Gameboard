@@ -20,7 +20,8 @@ namespace Gameboard.Api
             ILogger<HeaderInspectionMiddleware> logger,
             CoreOptions options,
             IDistributedCache cache
-        ){
+        )
+        {
             _next = next;
             _logger = logger;
             _options = options;
@@ -33,32 +34,21 @@ namespace Gameboard.Api
 
         public async Task Invoke(HttpContext context)
         {
-            if (context.Request.Path.StartsWithSegments("/"+_options.SupportUploadsRequestPath))
+            if (context.Request.Path.StartsWithSegments("/" + _options.SupportUploadsRequestPath))
             {
                 // TODO: May need to change approach for static file requests since the UI with render them with src without token
-                
                 var requestPath = context.Request.Path.ToString();
-                Regex pattern = new Regex($@"{_options.SupportUploadsRequestPath}/(?<ticketId>.*)/.*");
+                Regex pattern = new($@"{_options.SupportUploadsRequestPath}/(?<ticketId>.*)/.*");
                 Match match = pattern.Match(requestPath);
                 var ticketId = match.Groups["ticketId"].Value;
                 var sub = context.User.FindFirst("sub");
-                
+
                 // If there is no user id - this should only happen if a user is not logged in
                 if (sub == null)
                 {
                     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                     return;
                 }
-                // Oddly, this logic blocks all comment attachments; since file blocking appears to work without, it has been commented out.
-                /* var userId = context.User.FindFirst("sub").Value;
-                var key = $"{"file-permit:"}{userId}:{ticketId}";
-                string cachedValue = await _cache.GetStringAsync(key);
-                // If nothing could be found with the unique user ID and ticket ID combination
-                if (cachedValue.IsEmpty())
-                {
-                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    return;
-                }*/
             }
 
             await _next(context);
@@ -70,7 +60,7 @@ namespace Microsoft.AspNetCore.Builder
 {
     public static class FileAuthorizationExtensions
     {
-        public static IApplicationBuilder UseFileProtection (
+        public static IApplicationBuilder UseFileProtection(
             this IApplicationBuilder builder
         )
         {

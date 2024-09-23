@@ -7,18 +7,16 @@ public interface IActingUserService
     User Get();
 }
 
-internal class ActingUserService : IActingUserService
+internal class ActingUserService(
+    BackgroundAsyncTaskContext backgroundTaskContext,
+    IHttpContextAccessor httpContextAccessor
+    ) : IActingUserService
 {
-    private readonly User _actingUser = null;
-
-    public ActingUserService(BackgroundAsyncTaskContext backgroundTaskContext, IHttpContextAccessor httpContextAccessor)
-    {
-        _actingUser = httpContextAccessor?.HttpContext?.User?.ToActor();
-        _actingUser ??= backgroundTaskContext.ActingUser;
-    }
+    private readonly BackgroundAsyncTaskContext _backgroundTaskContext = backgroundTaskContext;
+    private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 
     public User Get()
     {
-        return _actingUser;
+        return _httpContextAccessor?.HttpContext?.Items[AppConstants.RequestContextGameboardUser] as User ?? _backgroundTaskContext?.ActingUser;
     }
 }

@@ -1,18 +1,10 @@
-using System.Net;
-using Gameboard.Api.Features.Games;
-using Gameboard.Api.Features.Player;
 using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class PlayerControllerStartTests : IClassFixture<GameboardTestContext>
+public class PlayerControllerStartTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>
 {
-    private readonly GameboardTestContext _testContext;
-
-    public PlayerControllerStartTests(GameboardTestContext testContext)
-    {
-        _testContext = testContext;
-    }
+    private readonly GameboardTestContext _testContext = testContext;
 
     [Theory, GbIntegrationAutoData]
     public async Task Start_WithClosedExecutionWindow_Throws
@@ -81,8 +73,8 @@ public class PlayerControllerStartTests : IClassFixture<GameboardTestContext>
                 g.SessionMinutes = 120;
                 g.AllowLateStart = false;
 
-                g.Players = new Data.Player[]
-                {
+                g.Players =
+                [
                     new()
                     {
                         Id = playerId,
@@ -90,7 +82,7 @@ public class PlayerControllerStartTests : IClassFixture<GameboardTestContext>
                         TeamId = fixture.Create<string>(),
                         User = new Data.User { Id = userId, SponsorId = sponsorId }
                     }
-                };
+                ];
             });
         });
 
@@ -123,8 +115,8 @@ public class PlayerControllerStartTests : IClassFixture<GameboardTestContext>
                 g.SessionMinutes = 120;
                 g.AllowLateStart = true;
 
-                g.Players = new Data.Player[]
-                {
+                g.Players =
+                [
                     new()
                     {
                         Id = playerId,
@@ -133,7 +125,7 @@ public class PlayerControllerStartTests : IClassFixture<GameboardTestContext>
                         TeamId = teamId,
                         User = new Data.User { Id = userId, SponsorId = sponsorId }
                     }
-                };
+                ];
             });
         });
 
@@ -142,7 +134,7 @@ public class PlayerControllerStartTests : IClassFixture<GameboardTestContext>
         var result = await _testContext
             .CreateHttpClientWithActingUser(u => u.Id = userId)
             .PutAsync($"/api/player/{playerId}/start", startRequest.ToJsonBody())
-            .WithContentDeserializedAs<Player>();
+            .DeserializeResponseAs<Player>();
 
         // the player should have a shortened session window consistent with the remaining execution time
         Math.Round(result.SessionMinutes).ShouldBe(60);

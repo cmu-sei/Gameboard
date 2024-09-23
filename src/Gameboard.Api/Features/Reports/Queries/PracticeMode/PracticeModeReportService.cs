@@ -39,7 +39,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
     {
         // load sponsors - we need them for the report data and they can't be joined
         var sponsors = await _store
-            .List<Data.Sponsor>()
+            .WithNoTracking<Data.Sponsor>()
             .Select(s => s.ToReportViewModel())
             .ToArrayAsync(cancellationToken);
 
@@ -50,7 +50,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
 
         // also load challenge spec data for these challenges (spec can't be joined)
         var specs = await _store
-            .List<Data.ChallengeSpec>()
+            .WithNoTracking<Data.ChallengeSpec>()
             .Include(s => s.Game)
             .Where(s => challenges.Select(c => c.SpecId).Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, s => s, cancellationToken);
@@ -130,7 +130,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
         var tracks = _reportsService.ParseMultiSelectCriteria(parameters.Tracks);
 
         var query = _store
-            .List<Data.Challenge>()
+            .WithNoTracking<Data.Challenge>()
                 .AsSplitQuery()
                 .Include(c => c.Game)
                 .Include(c => c.Player)
@@ -174,7 +174,8 @@ internal class PracticeModeReportService : IPracticeModeReportService
         // like the special PC5 Ship Workspace)
         // 
         // so load all spec ids and add a clause which excludes challenges with orphaned specIds
-        var allSpecIds = await _store.List<Data.ChallengeSpec>()
+        var allSpecIds = await _store
+            .WithNoTracking<Data.ChallengeSpec>()
             .Where(s => !s.IsHidden)
             .Select(s => s.Id)
             .ToArrayAsync(cancellationToken);
@@ -449,9 +450,9 @@ internal class PracticeModeReportService : IPracticeModeReportService
     public async Task<PracticeModeReportPlayerModeSummary> GetPlayerModePerformanceSummary(string userId, bool isPractice, CancellationToken cancellationToken)
     {
         // have to grab the specIds to ensure that no challenges are coming back with orphaned specIds :(
-        var specIds = await _store.List<Data.ChallengeSpec>().Select(s => s.Id).ToArrayAsync(cancellationToken);
+        var specIds = await _store.WithNoTracking<Data.ChallengeSpec>().Select(s => s.Id).ToArrayAsync(cancellationToken);
         var challenges = await _store
-            .List<Data.Challenge>()
+            .WithNoTracking<Data.Challenge>()
                 .Include(c => c.Game)
                 .Include(c => c.Player)
                     .ThenInclude(p => p.User)
@@ -594,7 +595,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
     private async Task<IEnumerable<PracticeModeReportByPlayerModePerformanceChallengeScore>> GetSpecRawScores(IList<string> specIds)
     {
         return await _store
-            .List<Data.Challenge>()
+            .WithNoTracking<Data.Challenge>()
                 .Include(c => c.Game)
             .GroupBy(c => new { c.Id, c.SpecId, IsPractice = c.PlayerMode == PlayerMode.Practice })
             .Select(g => new PracticeModeReportByPlayerModePerformanceChallengeScore

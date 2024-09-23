@@ -6,14 +6,9 @@ using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Validators;
 
-public class TicketValidator : IModelValidator
+public class TicketValidator(IStore store) : IModelValidator
 {
-    private readonly ITicketStore _store;
-
-    public TicketValidator(ITicketStore store)
-    {
-        _store = store;
-    }
+    private readonly IStore _store = store;
 
     public Task Validate(object model)
     {
@@ -26,9 +21,6 @@ public class TicketValidator : IModelValidator
         if (model is ChangedTicket)
             return _validate(model as ChangedTicket);
 
-        if (model is NewTicket)
-            return _validate(model as NewTicket);
-
         if (model is NewTicketComment)
             return _validate(model as NewTicketComment);
 
@@ -38,24 +30,15 @@ public class TicketValidator : IModelValidator
 
     private async Task _validate(Entity model)
     {
-        if ((await _store.Exists(model.Id)).Equals(false))
+        if ((await _store.AnyAsync<Data.Ticket>(t => t.Id == model.Id, default)).Equals(false))
             throw new ResourceNotFound<Ticket>(model.Id);
-
-        await Task.CompletedTask;
-    }
-
-    private async Task _validate(NewTicket model)
-    {
-        // TODO validate that references exist and belong to the requester
-        // see feedback validator for examples
-        // for example, challenge exists and it is part of a player session that the user belongs to
 
         await Task.CompletedTask;
     }
 
     private async Task _validate(Ticket model)
     {
-        if ((await _store.Exists(model.Id)).Equals(false))
+        if ((await _store.AnyAsync<Data.Ticket>(t => t.Id == model.Id, default)).Equals(false))
             throw new ResourceNotFound<Ticket>(model.Id);
 
         await Task.CompletedTask;
@@ -63,7 +46,7 @@ public class TicketValidator : IModelValidator
 
     private async Task _validate(ChangedTicket model)
     {
-        if ((await _store.Exists(model.Id)).Equals(false))
+        if ((await _store.AnyAsync<Data.Ticket>(t => t.Id == model.Id, default)).Equals(false))
             throw new ResourceNotFound<Ticket>(model.Id);
 
         // TODO validate that references exist and belong to the requester
@@ -73,7 +56,7 @@ public class TicketValidator : IModelValidator
 
     private async Task _validate(NewTicketComment model)
     {
-        if ((await _store.Exists(model.TicketId)).Equals(false))
+        if ((await _store.AnyAsync<Data.Ticket>(t => t.Id == model.TicketId, default)).Equals(false))
             throw new ResourceNotFound<Ticket>(model.TicketId);
 
         await Task.CompletedTask;

@@ -8,7 +8,6 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
-using ServiceStack;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -29,28 +28,19 @@ public interface IReportsService
     IEnumerable<string> ParseMultiSelectCriteria(string criteria);
 }
 
-public class ReportsService : IReportsService
+public class ReportsService(
+    INowService now,
+    IPagingService paging,
+    IStore store,
+    ITeamService teamService
+    ) : IReportsService
 {
     private static readonly string MULTI_SELECT_DELIMITER = ",";
 
-    private readonly INowService _now;
-    private readonly IPagingService _paging;
-    private readonly IStore _store;
-    private readonly ITeamService _teamService;
-
-    public ReportsService
-    (
-        INowService now,
-        IPagingService paging,
-        IStore store,
-        ITeamService teamService
-    )
-    {
-        _now = now;
-        _paging = paging;
-        _store = store;
-        _teamService = teamService;
-    }
+    private readonly INowService _now = now;
+    private readonly IPagingService _paging = paging;
+    private readonly IStore _store = store;
+    private readonly ITeamService _teamService = teamService;
 
     public async Task<string> GetDescription(string key)
     {
@@ -67,8 +57,8 @@ public class ReportsService : IReportsService
                 Name = "Challenges",
                 Key = ReportKey.Challenges,
                 Description = "View a summary about the challenges running on Gameboard. See summaries describing scoring and popularity.",
-                ExampleFields = new string[]
-                {
+                ExampleFields =
+                [
                     "Challenge Name",
                     "Game",
                     "Season",
@@ -76,20 +66,20 @@ public class ReportsService : IReportsService
                     "Track",
                     "Scoring Distribution",
                     "Unique players"
-                },
-                ExampleParameters = new string[]
-                {
+                ],
+                ExampleParameters =
+                [
                     "Season",
                     "Series",
                     "Track",
                     "Game"
-                }
+                ]
             },
             new()
             {
                 Name = "Enrollment",
                 Key = ReportKey.Enrollment,
-                Description = "View a summary of player enrollment - who enrolled when, which sponsors do they represent, and how many of them actually played challenges.",
+                Description = "View a summary of player enrollment - who enrolled when, which sponsors they represent, and how many of them actually played challenges.",
                 ExampleFields = new string[]
                 {
                     "Player & Sponsor",
@@ -108,44 +98,56 @@ public class ReportsService : IReportsService
             },
             new()
             {
+                Name = "Feedback",
+                Key = ReportKey.Feedback,
+                Description = "Learn more about how your games are landing with your players. (Requires configuration of feedback in the Game Center.)",
+                ExampleFields =
+                [
+                    "Question Info",
+                    "Response Summary",
+                    "Individual Responses"
+                ],
+                ExampleParameters =
+                [
+                    "Game",
+                    "Sponsor"
+                ]
+            },
+            new()
+            {
                 Name = "Players",
                 Key = ReportKey.Players,
                 Description = "View a summary of your players. See their basic information, their sponsors, and how many challenges they're playing.",
-                ExampleFields = new string[]
-                {
+                ExampleFields =
+                [
                     "Player & Sponsor",
                     "Challenges Deployed",
                     "Distinct Competitions Played"
-                },
-                ExampleParameters = new string[]
-                {
-                    "Creation Date",
-                    "Last Played Date",
-                    "Sponsor"
-                }
+                ],
+                ExampleParameters = []
             },
             new()
             {
                 Name = "Practice Area",
                 Key = ReportKey.PracticeArea,
                 Description = "Check in on players who are spending free time honing their skills on Gameboard. See which challenges are practiced most, success rates, and which players are logging in to practice.",
-                ExampleFields = new string[]
-                {
+                ExampleFields =
+                [
                     "Challenge Performance",
                     "Player Performance",
                     "Scoring",
                     "Trends",
                     "Competitive vs. Practice"
-                },
-                ExampleParameters = new string[]
-                {
+                ],
+                ExampleParameters =
+                [
                     "Practice Date",
                     "Series",
                     "Track",
                     "Season",
                     "Game",
                     "Sponsor"
-                }
+                ]
             },
             new()
             {
@@ -171,22 +173,22 @@ public class ReportsService : IReportsService
                 Name = "Support",
                 Key = ReportKey.Support,
                 Description = "View a summary of the support tickets that have been created in Gameboard, including closer looks at submission times, ticket categories, and associated challenges.",
-                ExampleFields = new string[]
-                {
+                ExampleFields =
+                [
                     "Summary Info",
                     "Status",
                     "Label",
                     "Challenge",
                     "Time Windows",
                     "Assignment Info"
-                },
-                ExampleParameters = new string[]
-                {
+                ],
+                ExampleParameters =
+                [
                     "Status & Label",
                     "Game & Challenge",
                     "Creation Date",
                     "Time Since Opened / Updated",
-                }
+                ]
             },
         };
 
@@ -204,7 +206,7 @@ public class ReportsService : IReportsService
     public async Task<IDictionary<string, ReportTeamViewModel>> GetTeamsByPlayerIds(IEnumerable<string> playerIds, CancellationToken cancellationToken)
     {
         var teamPlayers = await _store
-            .List<Data.Player>()
+            .WithNoTracking<Data.Player>()
                 .Include(p => p.Sponsor)
             .Where(p => playerIds.Contains(p.Id))
             .ToArrayAsync(cancellationToken);
@@ -236,12 +238,13 @@ public class ReportsService : IReportsService
 
     public async Task<IEnumerable<SimpleEntity>> ListChallengeSpecs(string gameId)
     {
-        var query = _store.List<Data.ChallengeSpec>();
+        var query = _store.WithNoTracking<Data.ChallengeSpec>();
 
         if (gameId.NotEmpty())
             query = query.Where(c => c.GameId == gameId);
 
         return await query.Select(c => new SimpleEntity { Id = c.Id, Name = c.Name })
+            .Distinct()
             .OrderBy(s => s.Name)
             .ToArrayAsync();
     }
@@ -253,13 +256,13 @@ public class ReportsService : IReportsService
         => GetGameStringPropertyOptions(g => g.Division);
 
     public async Task<IEnumerable<SimpleEntity>> ListGames()
-        => await _store.List<Data.Game>()
+        => await _store.WithNoTracking<Data.Game>()
             .Select(g => new SimpleEntity { Id = g.Id, Name = g.Name })
             .OrderBy(g => g.Name)
             .ToArrayAsync();
 
     public async Task<IEnumerable<ReportSponsorViewModel>> ListSponsors()
-        => await _store.List<Data.Sponsor>()
+        => await _store.WithNoTracking<Data.Sponsor>()
             .Select(s => new ReportSponsorViewModel
             {
                 Id = s.Id,
@@ -274,7 +277,7 @@ public class ReportsService : IReportsService
 
     public async Task<IEnumerable<string>> ListTicketStatuses()
     {
-        return await _store.List<Data.Ticket>()
+        return await _store.WithNoTracking<Data.Ticket>()
             .Select(t => t.Status)
             .Distinct()
             .OrderBy(t => t)
@@ -334,7 +337,7 @@ public class ReportsService : IReportsService
         =>
         (
             await _store
-                .List<Data.Game>()
+                .WithNoTracking<Data.Game>()
                 .Select(property)
                 .Distinct()
                 // catch as many blanks as we can here, but have to use

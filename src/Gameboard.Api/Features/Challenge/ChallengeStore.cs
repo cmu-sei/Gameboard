@@ -15,18 +15,14 @@ public interface IChallengeStore : IStore<Challenge>
     Task<Data.Challenge> Load(NewChallenge model);
     Task<Data.Challenge> Load(string id);
     Task UpdateEtd(string specId);
-
-    // Want to obselete this, but it causes a compiler warning
-    // [Obsolete("To update a team's challenge score, use MediatR to send an UpdateTeamChallengeScore command.")]
-    Task UpdateTeam(string teamId);
 }
 
-public class ChallengeStore : Store<Challenge>, IChallengeStore
+public class ChallengeStore(
+    IGuidService guids,
+    GameboardDbContext dbContext,
+    IStore store) : Store<Challenge>(dbContext, guids), IChallengeStore
 {
-    public ChallengeStore(
-        IGuidService guids,
-        GameboardDbContext dbContext) : base(dbContext, guids)
-    { }
+    private readonly IStore _store = store;
 
     public override IQueryable<Challenge> List(string term)
     {
@@ -56,13 +52,15 @@ public class ChallengeStore : Store<Challenge>, IChallengeStore
     {
         return await DbSet
             .Include(c => c.Events)
-            .FirstOrDefaultAsync(c => c.Id == id)
-        ;
+            .FirstOrDefaultAsync(c => c.Id == id);
     }
 
     public async Task<Challenge> Load(NewChallenge model)
     {
-        var player = await DbContext.Players.FindAsync(model.PlayerId);
+        var player = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.Id == model.PlayerId)
+            .SingleOrDefaultAsync<Data.Player>();
 
         return await DbSet
             .Include(c => c.Player)
@@ -88,59 +86,12 @@ public class ChallengeStore : Store<Challenge>, IChallengeStore
             m.Started.Subtract(m.Created).TotalSeconds
         );
 
-        await DbContext
-            .ChallengeSpecs
+        await _store
+            .WithNoTracking<Data.ChallengeSpec>()
             .Where(s => s.Id == specId)
             .ExecuteUpdateAsync
             (
                 s => s.SetProperty(s => s.AverageDeploySeconds, avg)
             );
-    }
-
-    public async Task UpdateTeam(string id)
-    {
-        var challenges = await DbSet.Where(c => c.TeamId == id).ToArrayAsync();
-
-        int score = (int)challenges.Sum(c => c.Score);
-        long time = challenges.Sum(c => c.Duration);
-        int complete = challenges.Count(c => c.Result == ChallengeResult.Success);
-        int partial = challenges.Count(c => c.Result == ChallengeResult.Partial);
-
-        var players = await DbContext.Players.Where(p => p.TeamId == id).ToArrayAsync();
-
-        foreach (var p in players)
-        {
-            p.Score = score;
-            p.Time = time;
-            p.CorrectCount = complete;
-            p.PartialCount = partial;
-        }
-
-        await DbContext.SaveChangesAsync();
-
-        // TODO: consider queuing this for a background process
-        await UpdateRanks(players.First().GameId);
-    }
-
-    private async Task UpdateRanks(string gameId)
-    {
-        var players = await DbContext.Players
-            .Where(p => p.GameId == gameId)
-            .OrderByDescending(p => p.Score)
-            .ThenBy(p => p.Time)
-            .ThenByDescending(p => p.CorrectCount)
-            .ThenByDescending(p => p.PartialCount)
-            .ToArrayAsync()
-        ;
-        int rank = 0;
-
-        foreach (var team in players.GroupBy(p => p.TeamId))
-        {
-            rank += 1;
-            foreach (var player in team)
-                player.Rank = rank;
-        }
-
-        await DbContext.SaveChangesAsync();
     }
 }

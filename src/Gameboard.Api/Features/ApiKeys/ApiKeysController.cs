@@ -1,41 +1,27 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Gameboard.Api.Controllers;
-using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.ApiKeys;
 
-public class ApiKeysController : _Controller
+public class ApiKeysController(
+    IApiKeysService apiKeyService,
+    IUserRolePermissionsService permissionsService,
+    ApiKeysValidator validator
+    )
 {
-    private readonly IApiKeysService _apiKeyService;
-
-    public ApiKeysController
-    (
-        ILogger<ApiKeysController> logger,
-        IDistributedCache cache,
-        ApiKeysValidator validator,
-        IApiKeysService apiKeyService
-    ) : base(logger, cache, validator)
-    {
-        _apiKeyService = apiKeyService;
-    }
+    private readonly IApiKeysService _apiKeyService = apiKeyService;
+    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
+    private readonly ApiKeysValidator _validator = validator;
 
     [HttpPost("api/api-keys")]
     [Authorize]
     public async Task<CreateApiKeyResult> CreateApiKey([FromBody] NewApiKey newApiKey)
     {
-        AuthorizeAny
-        (
-            () => Actor.IsAdmin,
-            () => Actor.IsRegistrar
-        );
-
-        await Validate(newApiKey);
-
+        await Authorize();
+        await _validator.Validate(newApiKey);
         return await _apiKeyService.Create(newApiKey);
     }
 
@@ -43,14 +29,7 @@ public class ApiKeysController : _Controller
     [Authorize]
     public async Task<IEnumerable<ApiKeyViewModel>> ListApiKeys(string userId)
     {
-        AuthorizeAny
-        (
-            () => Actor.IsAdmin,
-            () => Actor.IsRegistrar
-        );
-
-        await Validate(new ListApiKeysRequest { UserId = userId });
-
+        await Authorize();
         return await _apiKeyService.ListKeys(userId);
     }
 
@@ -58,14 +37,14 @@ public class ApiKeysController : _Controller
     [Authorize]
     public async Task DeleteApiKey(string keyId)
     {
-        AuthorizeAny
-        (
-            () => Actor.IsAdmin,
-            () => Actor.IsRegistrar
-        );
-
-        await Validate(new DeleteApiKeyRequest { ApiKeyId = keyId });
-
+        await Authorize();
+        await _validator.Validate(new DeleteApiKeyRequest { ApiKeyId = keyId });
         await _apiKeyService.Delete(keyId);
+    }
+
+    private async Task Authorize()
+    {
+        if (!await _permissionsService.Can(PermissionKey.ApiKeys_CreateRevoke))
+            throw new ActionForbidden();
     }
 }

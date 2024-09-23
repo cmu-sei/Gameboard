@@ -12,4 +12,5 @@ public class Extension : IEntity
     public ExtensionType Type { get; set; }
     public string HostUrl { get; set; }
     public string Token { get; set; }
+    public bool IsEnabled { get; set; }
 }

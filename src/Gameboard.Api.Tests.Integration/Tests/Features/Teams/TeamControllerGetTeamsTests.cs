@@ -1,11 +1,11 @@
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
 
 namespace Gameboard.Api.Tests.Integration.Teams;
 
-public class TeamControllerGetTeamsTests : IClassFixture<GameboardTestContext>
+public class TeamControllerGetTeamsTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>
 {
-    private readonly GameboardTestContext _testContext;
-    public TeamControllerGetTeamsTests(GameboardTestContext testContext) => _testContext = testContext;
+    private readonly GameboardTestContext _testContext = testContext;
 
     [Theory, GbIntegrationAutoData]
     public async Task GetTeams_WithSingleTeamOfTwo_ReturnsExpected
@@ -46,9 +46,9 @@ public class TeamControllerGetTeamsTests : IClassFixture<GameboardTestContext>
 
         // when we ask for the team by Id
         var result = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Observer)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Support)
             .GetAsync($"api/team/{teamId}")
-            .WithContentDeserializedAs<Team>();
+            .DeserializeResponseAs<Team>();
 
         // we should get back one team with two members
         result.TeamId.ShouldBe(teamId);
@@ -97,9 +97,9 @@ public class TeamControllerGetTeamsTests : IClassFixture<GameboardTestContext>
 
         // when we ask for the team by Id
         var result = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Support)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Support)
             .GetAsync($"api/admin/team/search?ids={teamId},{otherTeamId}")
-            .WithContentDeserializedAs<IEnumerable<Team>>();
+            .DeserializeResponseAs<IEnumerable<Team>>();
 
         // we should get back two tames
         result.Count().ShouldBe(2);

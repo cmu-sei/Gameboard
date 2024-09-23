@@ -8,20 +8,13 @@ namespace Gameboard.Api.Features.GameEngine;
 
 public record GetGameStateQuery(string TeamId) : IRequest<IEnumerable<GameEngineGameState>>;
 
-internal class GetGameStateHandler : IRequestHandler<GetGameStateQuery, IEnumerable<GameEngineGameState>>
+internal class GetGameStateHandler(
+    IGameEngineStore gameEngineStore,
+    IGameboardRequestValidator<GetGameStateQuery> validator
+    ) : IRequestHandler<GetGameStateQuery, IEnumerable<GameEngineGameState>>
 {
-    private readonly IGameEngineStore _gameEngineStore;
-    private readonly IGameboardRequestValidator<GetGameStateQuery> _validator;
-
-    public GetGameStateHandler
-    (
-        IGameEngineStore gameEngineStore,
-        IGameboardRequestValidator<GetGameStateQuery> validator
-    )
-    {
-        _gameEngineStore = gameEngineStore;
-        _validator = validator;
-    }
+    private readonly IGameEngineStore _gameEngineStore = gameEngineStore;
+    private readonly IGameboardRequestValidator<GetGameStateQuery> _validator = validator;
 
     public async Task<IEnumerable<GameEngineGameState>> Handle(GetGameStateQuery request, CancellationToken cancellationToken)
     {

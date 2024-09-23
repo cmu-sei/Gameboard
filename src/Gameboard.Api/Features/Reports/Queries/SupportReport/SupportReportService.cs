@@ -18,32 +18,21 @@ public interface ISupportReportService
     Task<IEnumerable<SupportReportRecord>> QueryRecords(SupportReportParameters parameters);
 }
 
-internal class SupportReportService : ISupportReportService
+internal class SupportReportService(
+    IJsonService jsonService,
+    IMapper mapper,
+    INowService now,
+    IReportsService reportsService,
+    IStore store,
+    TicketService ticketService
+    ) : ISupportReportService
 {
-    private readonly IJsonService _jsonService;
-    private readonly IMapper _mapper;
-    private readonly INowService _now;
-    private readonly IReportsService _reportsService;
-    private readonly TicketService _ticketService;
-    private readonly ITicketStore _ticketStore;
-
-    public SupportReportService
-    (
-        IJsonService jsonService,
-        IMapper mapper,
-        INowService now,
-        IReportsService reportsService,
-        TicketService ticketService,
-        ITicketStore ticketStore
-    )
-    {
-        _jsonService = jsonService;
-        _mapper = mapper;
-        _now = now;
-        _reportsService = reportsService;
-        _ticketService = ticketService;
-        _ticketStore = ticketStore;
-    }
+    private readonly IJsonService _jsonService = jsonService;
+    private readonly IMapper _mapper = mapper;
+    private readonly INowService _now = now;
+    private readonly IReportsService _reportsService = reportsService;
+    private readonly IStore _store = store;
+    private readonly TicketService _ticketService = ticketService;
 
     public SupportReportStatSummary GetStatSummary(IEnumerable<SupportReportRecord> records)
     {
@@ -131,8 +120,8 @@ internal class SupportReportService : ISupportReportService
         var labels = _reportsService.ParseMultiSelectCriteria(parameters.Labels);
         var statuses = _reportsService.ParseMultiSelectCriteria(parameters.Statuses);
 
-        var query = _ticketStore
-            .ListWithNoTracking()
+        var query = _store
+            .WithNoTracking<Data.Ticket>()
             .AsSplitQuery()
             .Include(t => t.Assignee)
             .Include(t => t.Challenge)

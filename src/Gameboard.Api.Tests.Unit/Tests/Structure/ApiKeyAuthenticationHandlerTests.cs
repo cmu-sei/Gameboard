@@ -1,7 +1,6 @@
 using System.Text.Encodings.Web;
 using Gameboard.Api.Features.ApiKeys;
 using Gameboard.Api.Structure.Auth;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -17,7 +16,6 @@ public class ApiKeyAuthenticationHandlerTests
         A.Fake<IOptionsMonitor<ApiKeyAuthenticationOptions>>(),
         A.Fake<ILoggerFactory>(),
         A.Fake<UrlEncoder>(),
-        A.Fake<ISystemClock>(),
         A.Fake<IApiKeysService>()
     );
 

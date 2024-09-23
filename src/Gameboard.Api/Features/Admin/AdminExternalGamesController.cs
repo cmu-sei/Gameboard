@@ -8,15 +8,10 @@ using Microsoft.AspNetCore.Mvc;
 namespace Gameboard.Api.Features.Admin;
 
 [Route("api/admin/games/external")]
-[Authorize(AppConstants.AdminPolicy)]
-public class AdminExternalGamesController : ControllerBase
+[Authorize]
+public class AdminExternalGamesController(IMediator mediator) : ControllerBase
 {
-    private readonly IMediator _mediator;
-
-    public AdminExternalGamesController(IMediator mediator)
-    {
-        _mediator = mediator;
-    }
+    private readonly IMediator _mediator = mediator;
 
     [HttpGet("{gameId}")]
     public Task<ExternalGameState> GetExternalGameAdminContext([FromRoute] string gameId)

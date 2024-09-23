@@ -5,14 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTestContext>
+public class ChallengeControllerGradeAutoBonusTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>
 {
-    private readonly GameboardTestContext _testContext;
-
-    public ChallengeControllerGradeAutoBonusTests(GameboardTestContext testContext)
-    {
-        _testContext = testContext;
-    }
+    private readonly GameboardTestContext _testContext = testContext;
 
     [Theory, GbIntegrationAutoData]
     public async Task Grade_WithSingleUnawardedSolveRankBonus_AwardsBonus
@@ -74,22 +69,24 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
         await _testContext
             .CreateHttpClientWithGraderConfig(100, graderKey)
             .PutAsync("/api/challenge/grade", submission.ToJsonBody())
-            .WithContentDeserializedAs<Api.Challenge>();
+            .DeserializeResponseAs<Api.Challenge>();
 
         // tricky to validate this - the endpoint is pinned to returning a challenge state, which doesn't include bonuses yet.
         // have to go to the DB to minimize false positives
-        var awardedBonus = await _testContext
-            .GetDbContext()
-            .AwardedChallengeBonuses
-            .Include(b => b.ChallengeBonus)
-            .Include(b => b.Challenge)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(b => b.ChallengeId == challengeId);
+        await _testContext.ValidateStoreStateAsync(async db =>
+        {
+            var awardedBonus = await db
+                .AwardedChallengeBonuses
+                .Include(b => b.ChallengeBonus)
+                .Include(b => b.Challenge)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(b => b.ChallengeId == challengeId);
 
-        // then
-        awardedBonus.ShouldNotBeNull();
-        awardedBonus.ChallengeBonus.PointValue.ShouldBe(bonusPoints);
-        awardedBonus.Challenge.Score.ShouldBe(baseScore);
+            // then
+            awardedBonus.ShouldNotBeNull();
+            awardedBonus.ChallengeBonus.PointValue.ShouldBe(bonusPoints);
+            awardedBonus.Challenge.Score.ShouldBe(baseScore);
+        });
     }
 
     [Theory, GbIntegrationAutoData]
@@ -121,15 +118,15 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
                         spec.Id = challengeSpecId;
                         spec.GameId = gameId;
                         spec.Points = fullSolveScore;
-                        spec.Bonuses = new List<Data.ChallengeBonus>
-                        {
+                        spec.Bonuses =
+                        [
                             new ChallengeBonusCompleteSolveRank
                             {
                                 Id = bonusId,
                                 PointValue = bonus,
                                 SolveRank = 1
                             }
-                        };
+                        ];
                     }).ToCollection();
 
                     g.Challenges = state.Build<Data.Challenge>(fixture, c =>
@@ -155,12 +152,12 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
         await _testContext
             .CreateHttpClientWithGraderConfig(partialSolveScore, graderKey)
             .PutAsync("/api/challenge/grade", submission.ToJsonBody())
-            .WithContentDeserializedAs<Challenge>();
+            .DeserializeResponseAs<Challenge>();
 
         // tricky to validate this - the endpoint is pinned to returning a challenge state, which doesn't include bonuses yet.
         // have to go to the DB to minimize false positives
         var awardedBonus = await _testContext
-            .GetDbContext()
+            .GetValidationDbContext()
             .AwardedChallengeBonuses
             .Include(b => b.ChallengeBonus)
             .AsNoTracking()
@@ -201,8 +198,8 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
                         spec.Id = challengeSpecId;
                         spec.GameId = gameId;
                         spec.Points = baseScore;
-                        spec.Bonuses = new List<Data.ChallengeBonus>
-                        {
+                        spec.Bonuses =
+                        [
                             state.Build<ChallengeBonusCompleteSolveRank>(fixture, cb =>
                             {
                                 cb.Id = awardedBonusId;
@@ -214,12 +211,12 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
                                 cb.PointValue = unawardedBonusPoints;
                                 cb.SolveRank = 2;
                             })
-                        };
+                        ];
                     }).ToCollection();
 
                     // 2 teams, one with the first bonus already awarded
-                    g.Players = new List<Data.Player>()
-                    {
+                    g.Players =
+                    [
                         state.Build<Data.Player>(fixture, p =>
                         {
                             p.TeamId = awardedTeamId;
@@ -231,7 +228,7 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
                                 c.Points = baseScore;
                                 c.Score = baseScore;
                                 c.SpecId = challengeSpecId;
-                                c.AwardedBonuses = state.Build<Data.AwardedChallengeBonus>(fixture, b => b.ChallengeBonusId = awardedBonusId).ToCollection();
+                                c.AwardedBonuses = state.Build<AwardedChallengeBonus>(fixture, b => b.ChallengeBonusId = awardedBonusId).ToCollection();
                                 c.TeamId = awardedTeamId;
                             }).ToCollection();
                         }),
@@ -252,20 +249,9 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
                                 c.TeamId = unawardedTeamId;
                             }).ToCollection();
                         })
-                    };
+                    ];
                 });
             });
-
-        var debug = await _testContext.GetDbContext()
-            .Games
-            .AsNoTracking()
-            .Where(g => g.Id == gameId)
-            .Include(g => g.Players)
-            .Include(g => g.Specs)
-                .ThenInclude(s => s.Bonuses)
-            .Include(g => g.Challenges)
-                .ThenInclude(c => c.AwardedBonuses)
-            .ToArrayAsync();
 
         var submission = fixture.Create<GameEngineSectionSubmission>();
         submission.Id = unawardedChallengeId;
@@ -274,12 +260,12 @@ public class ChallengeControllerGradeAutoBonusTests : IClassFixture<GameboardTes
         await _testContext
             .CreateHttpClientWithGraderConfig(baseScore, graderKey)
             .PutAsync("/api/challenge/grade", submission.ToJsonBody())
-            .WithContentDeserializedAs<Api.Challenge>();
+            .DeserializeResponseAs<Challenge>();
 
         // tricky to validate this - the endpoint is pinned to returning a challenge state, which doesn't include bonuses yet.
         // have to go to the DB to minimize false positives
-        var awardedBonus = await _testContext
-            .GetDbContext()
+        var dbContext = _testContext.GetValidationDbContext();
+        var awardedBonus = await dbContext
             .AwardedChallengeBonuses
             .Include(b => b.ChallengeBonus)
             .AsNoTracking()

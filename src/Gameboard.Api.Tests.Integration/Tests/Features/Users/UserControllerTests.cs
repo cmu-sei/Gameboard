@@ -1,3 +1,5 @@
+using Gameboard.Api.Data;
+
 namespace Gameboard.Api.Tests.Integration.Users;
 
 public class UserControllerTests : IClassFixture<GameboardTestContext>
@@ -24,7 +26,7 @@ public class UserControllerTests : IClassFixture<GameboardTestContext>
         var result = await _testContext
             .CreateHttpClientWithActingUser(u => u.Id = userId)
             .PostAsync("api/user", newUser.ToJsonBody())
-            .WithContentDeserializedAs<TryCreateUserResult>();
+            .DeserializeResponseAs<TryCreateUserResult>();
 
         // then
         result?.User.Id.ShouldBe(userId);
@@ -46,9 +48,9 @@ public class UserControllerTests : IClassFixture<GameboardTestContext>
 
         // when 
         var result = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Registrar)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Admin)
             .PostAsync("api/user", newUser.ToJsonBody())
-            .WithContentDeserializedAs<TryCreateUserResult>();
+            .DeserializeResponseAs<TryCreateUserResult>();
 
         // then
         result?.IsNewUser.ShouldBeFalse();

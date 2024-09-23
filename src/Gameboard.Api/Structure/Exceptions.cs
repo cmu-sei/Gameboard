@@ -12,11 +12,6 @@ namespace Gameboard.Api
         internal MissingRequiredInput(string inputName, T input) : base($"""Your input for "{inputName}" was either missing or incorrectly formed (found \"{input}\").""") { }
     }
 
-    internal class AdminImpersonationFail : GameboardException
-    {
-        internal AdminImpersonationFail(string userId, UserRole roles) : base($"Acting user {userId} attempted to execute this request as an admin but is not one (roles: {roles})") { }
-    }
-
     internal class AlreadyRegistered : GameboardValidationException
     {
         internal AlreadyRegistered(string userId, string gameId) : base($"Player {userId} is already registered for game {gameId}.") { }
@@ -32,23 +27,7 @@ namespace Gameboard.Api
         internal InvalidParameterValue(string parameterName, string ruleDescription, T value) : base($"""Parameter "{parameterName}" requires a value which complies with: "{ruleDescription}". Its value was "{value}". """) { }
     }
 
-    internal class MissingRequiredDate : GameboardValidationException
-    {
-        public MissingRequiredDate(string propertyName) : base($"The date property {propertyName} is required.") { }
-    }
-
-    internal class NotYetRegistered : GameboardException
-    {
-        internal NotYetRegistered(string playerId, string gameId)
-            : base($"User {playerId} hasn't yet registered for game {gameId}.") { }
-    }
-
-    internal class RegistrationIsClosed : GameboardException
-    {
-        internal RegistrationIsClosed(string gameId, string addlMessage = null) :
-            base($"Registration for game {gameId} is closed.{(addlMessage.NotEmpty() ? $" [{addlMessage}]" : string.Empty)}")
-        { }
-    }
+    internal class MissingRequiredDate(string propertyName) : GameboardValidationException($"The date property {propertyName} is required.") { }
 
     internal class ResourceAlreadyExists<T> : GameboardException where T : class, IEntity
     {
@@ -61,12 +40,6 @@ namespace Gameboard.Api
     {
         internal ResourceNotFound(string id, string addlMessage = null)
             : base($"Couldn't find resource {id} of type {typeof(T).Name}.{(addlMessage.NotEmpty() ? $" [{addlMessage}]" : string.Empty)}") { }
-    }
-
-    internal class RequiresSameSponsor : GameboardException
-    {
-        internal RequiresSameSponsor(string gameId, string managerPlayerId, string managerSponsor, string playerId, string playerSponsor)
-            : base($"Game {gameId} requires that all players have the same sponsor. The inviting player {managerPlayerId} has sponsor {managerSponsor}, while player {playerId} has sponsor {playerSponsor}.") { }
     }
 
     internal class SimpleValidatorException : GameboardValidationException

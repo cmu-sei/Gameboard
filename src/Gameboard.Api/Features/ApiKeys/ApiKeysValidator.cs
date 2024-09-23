@@ -1,38 +1,27 @@
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Users;
-using Gameboard.Api.Services;
-using Gameboard.Api.Validators;
 
 namespace Gameboard.Api.Features.ApiKeys;
 
-public class ApiKeysValidator : IModelValidator
+public class ApiKeysValidator(IStore store, INowService now) : IModelValidator
 {
-    private readonly INowService _now;
-    private readonly IApiKeysStore _store;
-    private readonly UserValidator _userValidator;
-
-    public ApiKeysValidator(IApiKeysStore store, INowService now, UserValidator userValidator)
-    {
-        _now = now;
-        _store = store;
-        _userValidator = userValidator;
-    }
+    private readonly INowService _now = now;
+    private readonly IStore _store = store;
 
     public Task Validate(object model)
     {
         if (model is DeleteApiKeyRequest)
-            return _validate(model as DeleteApiKeyRequest);
+            return Validate(model as DeleteApiKeyRequest);
         if (model is NewApiKey)
-            return _validate(model as NewApiKey);
-        if (model is ListApiKeysRequest)
-            return _validate(model as ListApiKeysRequest);
+            return Validate(model as NewApiKey);
 
         throw new ValidationTypeFailure<ApiKeysValidator>(model.GetType());
     }
 
-    private async Task _validate(NewApiKey model)
+    private async Task Validate(NewApiKey model)
     {
         if (string.IsNullOrWhiteSpace(model.Name))
             throw new ApiKeyNoName();
@@ -40,17 +29,13 @@ public class ApiKeysValidator : IModelValidator
         if (model.ExpiresOn.HasValue && model.ExpiresOn < _now.Get())
             throw new IllegalApiKeyExpirationDate(model.ExpiresOn.GetValueOrDefault(), _now.Get());
 
-        await _userValidator.Validate(new Entity { Id = model.UserId });
+        if (!await _store.AnyAsync<Data.User>(u => u.Id == model.UserId, default))
+            throw new ResourceNotFound<Data.User>(model.UserId);
     }
 
-    private async Task _validate(DeleteApiKeyRequest request)
+    private async Task Validate(DeleteApiKeyRequest request)
     {
-        if ((await _store.Exists(request.ApiKeyId)).Equals(false))
+        if (!await _store.AnyAsync<ApiKey>(k => k.Id == request.ApiKeyId, CancellationToken.None))
             throw new ResourceNotFound<ApiKey>(request.ApiKeyId);
-    }
-
-    private async Task _validate(ListApiKeysRequest request)
-    {
-        await _userValidator.Validate(new Entity { Id = request.UserId });
     }
 }

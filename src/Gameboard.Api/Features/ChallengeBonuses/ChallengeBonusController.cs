@@ -9,14 +9,9 @@ namespace Gameboard.Api.Features.ChallengeBonuses;
 
 [Route("api")]
 [Authorize]
-public class ChallengeBonusController : ControllerBase
+public class ChallengeBonusController(IMediator mediator) : ControllerBase()
 {
-    private readonly IMediator _mediator;
-
-    public ChallengeBonusController(IMediator mediator) : base()
-    {
-        _mediator = mediator;
-    }
+    private readonly IMediator _mediator = mediator;
 
     [HttpPut("game/{gameId}/bonus/config")]
     public Task<GameScoringConfig> ConfigureAutomaticBonusesForGame([FromRoute] string gameId, [FromBody] GameAutomaticBonusesConfig config)

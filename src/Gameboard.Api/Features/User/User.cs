@@ -2,19 +2,21 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 
 namespace Gameboard.Api;
 
-public class User : IUserViewModel
+public class User
 {
     public string Id { get; set; }
     public string Name { get; set; }
     public string NameStatus { get; set; }
     public string ApprovedName { get; set; }
-    public UserRole Role { get; set; }
+    public UserRoleKey? Role { get; set; }
+    public IEnumerable<PermissionKey> RolePermissions { get; set; } = [];
     public Player[] Enrollments { get; set; }
     public DateTimeOffset CreatedOn { get; set; }
     public DateTimeOffset? LastLoginDate { get; set; }
@@ -23,14 +25,6 @@ public class User : IUserViewModel
     public bool HasDefaultSponsor { get; set; }
     public string SponsorId { get; set; }
     public Sponsor Sponsor { get; set; }
-
-    public bool IsAdmin => Role.HasFlag(UserRole.Admin);
-    public bool IsDirector => Role.HasFlag(UserRole.Director);
-    public bool IsRegistrar => Role.HasFlag(UserRole.Registrar);
-    public bool IsDesigner => Role.HasFlag(UserRole.Designer);
-    public bool IsTester => Role.HasFlag(UserRole.Tester);
-    public bool IsObserver => Role.HasFlag(UserRole.Observer);
-    public bool IsSupport => Role.HasFlag(UserRole.Support);
 }
 
 public class NewUser
@@ -40,14 +34,14 @@ public class NewUser
     public bool UnsetDefaultSponsorFlag { get; set; }
 }
 
-public class ChangedUser
+public class UpdateUser
 {
     public string Id { get; set; }
     public string Name { get; set; }
     public string NameStatus { get; set; }
     public string ApprovedName { get; set; }
     public string SponsorId { get; set; }
-    public UserRole? Role { get; set; }
+    public UserRoleKey? Role { get; set; }
     public bool? PlayAudioOnBrowserNotification { get; set; }
 }
 
@@ -68,7 +62,7 @@ public class TeamMember
 
 public class UserSearch : SearchFilter
 {
-    public const string UserRoleFilter = "roles";
+    public const string UserRoleFilter = "elevated-role";
     public const string NamePendingFilter = "pending";
     public const string NameDisallowedFilter = "disallowed";
     public string EligibleForGameId { get; set; }
@@ -83,13 +77,13 @@ public class UserSettings
     public bool PlayAudioOnBrowserNotification { get; set; }
 }
 
-public class UserSimple : IUserViewModel
+public class UserSimple
 {
     public string Id { get; set; }
     public string ApprovedName { get; set; }
 }
 
-public class UserOnly : IUserViewModel
+public class UserOnly
 {
     public string Id { get; set; }
     public string Name { get; set; }
@@ -99,13 +93,7 @@ public class UserOnly : IUserViewModel
     public DateTimeOffset CreatedOn { get; set; }
     public DateTimeOffset? LastLoginDate { get; set; }
     public int LoginCount { get; set; }
-    public UserRole Role { get; set; }
-}
-
-public interface IUserViewModel
-{
-    public string Id { get; set; }
-    public string ApprovedName { get; set; }
+    public UserRoleKey Role { get; set; }
 }
 
 public class TryCreateUserResult

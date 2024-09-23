@@ -167,6 +167,5 @@ internal class GetScoreboardHandler : IRequestHandler<GetScoreboardQuery, Scoreb
             .Where(s => s.GameId == gameId)
             .OrderBy(s => s.Rank)
             .Where(s => s.ScoreOverall > 0)
-            .Where(s => s.Rank != 0)
             .ToArrayAsync(cancellationToken);
 }

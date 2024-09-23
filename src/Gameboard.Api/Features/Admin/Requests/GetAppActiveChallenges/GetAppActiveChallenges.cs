@@ -4,7 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
-using Gameboard.Api.Structure.MediatR.Authorizers;
+using Gameboard.Api.Features.Users;
+using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,32 +17,23 @@ public sealed record GetAppActiveChallengesResponse
     IEnumerable<AppActiveChallengeSpec> Specs
 );
 
-internal class GetAppActiveChallengesHandler : IRequestHandler<GetAppActiveChallengesQuery, GetAppActiveChallengesResponse>
+internal class GetAppActiveChallengesHandler(
+    IAppService appOverviewService,
+    IStore store,
+    ITeamService teamService,
+    IValidatorService validatorService
+    ) : IRequestHandler<GetAppActiveChallengesQuery, GetAppActiveChallengesResponse>
 {
-    private readonly IAppService _appOverviewService;
-    private readonly IStore _store;
-    private readonly ITeamService _teamService;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
-
-    public GetAppActiveChallengesHandler
-    (
-        IAppService appOverviewService,
-        IStore store,
-        ITeamService teamService,
-        UserRoleAuthorizer userRoleAuthorizer
-    )
-    {
-        _appOverviewService = appOverviewService;
-        _store = store;
-        _teamService = teamService;
-        _userRoleAuthorizer = userRoleAuthorizer;
-    }
+    private readonly IAppService _appOverviewService = appOverviewService;
+    private readonly IStore _store = store;
+    private readonly ITeamService _teamService = teamService;
+    private readonly IValidatorService _validatorService = validatorService;
 
     public async Task<GetAppActiveChallengesResponse> Handle(GetAppActiveChallengesQuery request, CancellationToken cancellationToken)
     {
-        _userRoleAuthorizer
-            .AllowRoles(UserRole.Observer, UserRole.Tester, UserRole.Designer, UserRole.Director, UserRole.Registrar, UserRole.Support)
-            .Authorize();
+        await _validatorService
+            .Auth(config => config.RequirePermissions(PermissionKey.Admin_View))
+            .Validate(cancellationToken);
 
         var challenges = await _appOverviewService
             .GetActiveChallenges()

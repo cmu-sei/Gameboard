@@ -18,7 +18,8 @@ namespace Microsoft.Extensions.DependencyInjection
             ForwardHeaderOptions options
         )
         {
-            services.Configure<ForwardedHeadersOptions>(config => {
+            services.Configure<ForwardedHeadersOptions>(config =>
+            {
 
                 if (Enum.TryParse(
                     options.TargetHeaders ?? "None",
@@ -40,7 +41,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 if (string.IsNullOrEmpty(nets))
                     nets = "10.0.0.0/8 172.16.0.0/12 192.168.0.0/24 ::ffff:a00:0/104 ::ffff:ac10:0/108 ::ffff:c0a8:0/120";
 
-                foreach (string item in nets.Split(new char[] { ' ', ','}, StringSplitOptions.RemoveEmptyEntries))
+                foreach (string item in nets.Split(new char[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries))
                 {
                     string[] net = item.Split('/');
 
@@ -48,13 +49,13 @@ namespace Microsoft.Extensions.DependencyInjection
                         && int.TryParse(net.Last(), out int prefix)
                     )
                     {
-                        config.KnownNetworks.Add(new IPNetwork(ipaddr, prefix));
+                        config.KnownNetworks.Add(new AspNetCore.HttpOverrides.IPNetwork(ipaddr, prefix));
                     }
                 }
 
                 if (!string.IsNullOrEmpty(options.KnownProxies))
                 {
-                    foreach (string ip in options.KnownProxies.Split(new char[] { ' ', ','}, StringSplitOptions.RemoveEmptyEntries))
+                    foreach (string ip in options.KnownProxies.Split(new char[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries))
                     {
                         if (IPAddress.TryParse(ip, out IPAddress ipaddr))
                         {

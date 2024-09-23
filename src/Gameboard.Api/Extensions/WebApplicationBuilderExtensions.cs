@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Data;
 using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
@@ -20,12 +21,12 @@ internal static class WebApplicationBuilderExtensions
 
         settings.Cache.SharedFolder = Path.Combine(
             builder.Environment.ContentRootPath,
-            settings.Cache.SharedFolder ?? ""
+            settings.Cache.SharedFolder ?? string.Empty
         );
 
         settings.Core.ImageFolder = Path.Combine(
             builder.Environment.ContentRootPath,
-            settings.Core.ImageFolder ?? ""
+            settings.Core.ImageFolder ?? string.Empty
         );
 
         settings.Core.WebHostRoot = builder.Environment.ContentRootPath;
@@ -61,7 +62,7 @@ internal static class WebApplicationBuilderExtensions
         return settings;
     }
 
-    public static void ConfigureServices(this WebApplicationBuilder builder, AppSettings settings, ILogger logger)
+    public static void ConfigureServices(this WebApplicationBuilder builder, AppSettings settings)
     {
         var services = builder.Services;
 
@@ -84,7 +85,7 @@ internal static class WebApplicationBuilderExtensions
         services
             .AddSingleton(_ => settings.Core)
             .AddSingleton(_ => settings.Crucible)
-            .AddGameboardData(settings.Database.Provider, settings.Database.ConnectionString)
+            .AddGameboardData(builder.Environment, settings.Database)
             .AddGameboardMediatR()
             .AddGameboardServices(settings)
             .AddConfiguredHttpClients(settings.Core)

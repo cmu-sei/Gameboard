@@ -14,35 +14,25 @@ namespace Gameboard.Api.Features.Sponsors;
 
 public record SetSponsorAvatarCommand(string SponsorId, IFormFile AvatarFile, User ActingUser) : IRequest<string>;
 
-internal class SetSponsorAvatarHandler : IRequestHandler<SetSponsorAvatarCommand, string>
+internal class SetSponsorAvatarHandler(
+    CoreOptions coreOptions,
+    ContentTypeValidator<SetSponsorAvatarCommand> legalAvatarType,
+    EntityExistsValidator<SetSponsorAvatarCommand, Data.Sponsor> sponsorExists,
+    SponsorService sponsorService,
+    IStore store,
+    IValidatorService<SetSponsorAvatarCommand> validatorService
+    ) : IRequestHandler<SetSponsorAvatarCommand, string>
 {
-    private readonly CoreOptions _coreOptions;
-    private readonly ContentTypeValidator<SetSponsorAvatarCommand> _legalAvatarType;
-    private readonly EntityExistsValidator<SetSponsorAvatarCommand, Data.Sponsor> _sponsorExists;
-    private readonly SponsorService _sponsorService;
-    private readonly IStore _store;
-    private readonly IValidatorService<SetSponsorAvatarCommand> _validatorService;
-
-    public SetSponsorAvatarHandler
-    (
-        CoreOptions coreOptions,
-        ContentTypeValidator<SetSponsorAvatarCommand> legalAvatarType,
-        EntityExistsValidator<SetSponsorAvatarCommand, Data.Sponsor> sponsorExists,
-        SponsorService sponsorService,
-        IStore store,
-        IValidatorService<SetSponsorAvatarCommand> validatorService
-    )
-    {
-        _coreOptions = coreOptions;
-        _legalAvatarType = legalAvatarType;
-        _sponsorExists = sponsorExists;
-        _sponsorService = sponsorService;
-        _store = store;
-        _validatorService = validatorService;
-    }
+    private readonly CoreOptions _coreOptions = coreOptions;
+    private readonly ContentTypeValidator<SetSponsorAvatarCommand> _legalAvatarType = legalAvatarType;
+    private readonly EntityExistsValidator<SetSponsorAvatarCommand, Data.Sponsor> _sponsorExists = sponsorExists;
+    private readonly SponsorService _sponsorService = sponsorService;
+    private readonly IStore _store = store;
+    private readonly IValidatorService<SetSponsorAvatarCommand> _validatorService = validatorService;
 
     public async Task<string> Handle(SetSponsorAvatarCommand request, CancellationToken cancellationToken)
     {
+        _validatorService.Auth(c => c.RequirePermissions(Users.PermissionKey.Sponsors_CreateEdit));
         _validatorService.AddValidator(_sponsorExists.UseProperty(r => r.SponsorId));
         _validatorService.AddValidator
         (

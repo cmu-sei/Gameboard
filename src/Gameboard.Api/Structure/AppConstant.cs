@@ -12,10 +12,6 @@ public static class AppConstants
     public const string ApprovedNameClaimName = "verified_name";
     public const string SponsorClaimName = "sponsor";
     public const string RoleClaimName = "role";
-    public const string RoleListClaimName = "rolelist";
-    public const string RegistrarPolicy = "RegistrarPolicy";
-    public const string DesignerPolicy = "DesignerPolicy";
-    public const string AdminPolicy = "AdminPolicy";
     public const string ConsolePolicy = "ConsolePolicy";
     public const string HubPolicy = "HubPolicy";
     public const string TicketOnlyPolicy = "TicketOnlyPolicy";
@@ -28,15 +24,8 @@ public static class AppConstants
     public const string NameStatusNotUnique = "not_unique";
     public const string InternalSupportChannel = "internal_support";
     public const string ApiKeyAuthPolicy = "ApiKeyAuthPolicy";
+    public const string RequestContextGameboardGraderForChallengeId = nameof(RequestContextGameboardGraderForChallengeId);
+    public const string RequestContextGameboardUser = nameof(RequestContextGameboardUser);
 
     public static readonly DateTimeOffset NULL_DATE = DateTimeOffset.MinValue;
-
-    public const UserRole AllRoles =
-        UserRole.Admin |
-        UserRole.Director |
-        UserRole.Registrar |
-        UserRole.Designer |
-        UserRole.Tester |
-        UserRole.Observer |
-        UserRole.Support;
 }

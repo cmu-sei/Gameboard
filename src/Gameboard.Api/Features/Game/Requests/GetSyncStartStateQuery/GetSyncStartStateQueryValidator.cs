@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Features.Games.Validators;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
@@ -11,6 +12,7 @@ internal class GetSyncStartStateQueryValidator : IGameboardRequestValidator<GetS
 {
     private readonly EntityExistsValidator<GetSyncStartStateQuery, Data.Game> _gameExists;
     private readonly IGameService _gameService;
+    private readonly IUserRolePermissionsService _permissionsServivce;
     private readonly UserIsPlayingGameValidator<GetSyncStartStateQuery> _userIsPlayingGame;
     private readonly IValidatorService<GetSyncStartStateQuery> _validatorService;
 
@@ -18,12 +20,14 @@ internal class GetSyncStartStateQueryValidator : IGameboardRequestValidator<GetS
     (
         EntityExistsValidator<GetSyncStartStateQuery, Data.Game> gameExists,
         IGameService gameService,
+        IUserRolePermissionsService permissionsService,
         UserIsPlayingGameValidator<GetSyncStartStateQuery> userIsPlayingGame,
         IValidatorService<GetSyncStartStateQuery> validatorService
     )
     {
         _gameExists = gameExists;
         _gameService = gameService;
+        _permissionsServivce = permissionsService;
         _userIsPlayingGame = userIsPlayingGame;
         _validatorService = validatorService;
     }
@@ -33,13 +37,16 @@ internal class GetSyncStartStateQueryValidator : IGameboardRequestValidator<GetS
         // game must exist
         _validatorService.AddValidator(_gameExists.UseProperty(r => r.GameId));
 
-        // user must have registered for the game
-        _validatorService.AddValidator
-        (
-            _userIsPlayingGame
-                .UseGameIdProperty(r => r.GameId)
-                .UseUserIdProperty(r => r.ActingUser)
-        );
+        // user must have registered for the game (or be able to observe)
+        if (!await _permissionsServivce.Can(PermissionKey.Teams_Observe))
+        {
+            _validatorService.AddValidator
+            (
+                _userIsPlayingGame
+                    .UseGameIdProperty(r => r.GameId)
+                    .UseUserProperty(r => r.ActingUser)
+            );
+        }
 
         // game must be a sync start game
         _validatorService.AddValidator(async (request, context) =>

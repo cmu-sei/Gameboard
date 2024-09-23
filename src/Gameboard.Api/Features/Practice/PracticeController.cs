@@ -8,20 +8,13 @@ namespace Gameboard.Api.Features.Practice;
 
 [Authorize]
 [Route("/api/practice")]
-public class PracticeController : ControllerBase
+public class PracticeController(
+    IActingUserService actingUserService,
+    IMediator mediator
+    ) : ControllerBase
 {
-    private readonly IActingUserService _actingUserService;
-    private readonly IMediator _mediator;
-
-    public PracticeController
-    (
-        IActingUserService actingUserService,
-        IMediator mediator
-    )
-    {
-        _actingUserService = actingUserService;
-        _mediator = mediator;
-    }
+    private readonly IActingUserService _actingUserService = actingUserService;
+    private readonly IMediator _mediator = mediator;
 
     /// <summary>
     /// Search challenges within games that have been set to Practice mode.

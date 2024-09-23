@@ -1,16 +1,12 @@
 using Gameboard.Api.Common;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
 
 namespace Gameboard.Api.Tests.Integration;
 
-public class PlayerControllerGetTeamsTests : IClassFixture<GameboardTestContext>
+public class PlayerControllerGetTeamsTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>
 {
-    private readonly GameboardTestContext _testContext;
-
-    public PlayerControllerGetTeamsTests(GameboardTestContext testContext)
-    {
-        _testContext = testContext;
-    }
+    private readonly GameboardTestContext _testContext = testContext;
 
     [Theory, GbIntegrationAutoData]
     public async Task GetTeams_OnNormalRequest_DoesntThrow(string gameId, IFixture fixture)
@@ -33,9 +29,9 @@ public class PlayerControllerGetTeamsTests : IClassFixture<GameboardTestContext>
 
         // when the game's teams are requested
         var result = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Registrar)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Support)
             .GetAsync($"/api/teams/{gameId}")
-            .WithContentDeserializedAs<TeamSummary[]>();
+            .DeserializeResponseAs<TeamSummary[]>();
 
         // then we should get a list with one team in it
         result.ShouldNotBeNull();

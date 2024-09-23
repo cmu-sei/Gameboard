@@ -1,7 +1,6 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -11,19 +10,14 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Services
 {
-    public class ChallengeGateService : _Service
+    public class ChallengeGateService(
+        ILogger<ChallengeGateService> logger,
+        IMapper mapper,
+        CoreOptions options,
+        IStore<Data.ChallengeGate> store
+        ) : _Service(logger, mapper, options)
     {
-        IStore<Data.ChallengeGate> Store { get; }
-
-        public ChallengeGateService(
-            ILogger<ChallengeGateService> logger,
-            IMapper mapper,
-            CoreOptions options,
-            IStore<Data.ChallengeGate> store
-        ) : base(logger, mapper, options)
-        {
-            Store = store;
-        }
+        IStore<Data.ChallengeGate> Store { get; } = store;
 
         public async Task<ChallengeGate> AddOrUpdate(NewChallengeGate model)
         {
@@ -61,15 +55,13 @@ namespace Gameboard.Api.Services
             await Store.Update(entity);
         }
 
-        public async Task Delete(string id)
-        {
-            await Store.Delete(id);
-        }
+        public Task Delete(string id)
+            => Store.Delete(id);
 
         internal async Task<ChallengeGate[]> List(string id)
         {
             if (id.IsEmpty())
-                return Array.Empty<ChallengeGate>();
+                return [];
 
             return
                 await Mapper.ProjectTo<ChallengeGate>(

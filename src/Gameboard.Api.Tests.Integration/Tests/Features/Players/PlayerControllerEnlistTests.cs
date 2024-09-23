@@ -1,13 +1,8 @@
 namespace Gameboard.Api.Tests.Integration;
 
-public class PlayerControllerEnlistTests : IClassFixture<GameboardTestContext>
+public class PlayerControllerEnlistTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>
 {
-    private readonly GameboardTestContext _testContext;
-
-    public PlayerControllerEnlistTests(GameboardTestContext testContext)
-    {
-        _testContext = testContext;
-    }
+    private readonly GameboardTestContext _testContext = testContext;
 
     [Theory, GbIntegrationAutoData]
     public async Task Enlist_WithValidConfig_AddsToTeam
@@ -26,8 +21,9 @@ public class PlayerControllerEnlistTests : IClassFixture<GameboardTestContext>
             var game = state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
-                g.Players = new List<Data.Player>
-                {
+                g.MaxTeamSize = 2;
+                g.Players =
+                [
                     // the person doing the inviting
                     state.Build<Data.Player>(fixture, p =>
                     {
@@ -43,7 +39,7 @@ public class PlayerControllerEnlistTests : IClassFixture<GameboardTestContext>
                         p.Game = new Data.Game { Id = gameId };
                         p.User = state.Build<Data.User>(fixture, u => u.Id = joiningUserId);
                     })
-                };
+                ];
             });
         });
 
@@ -56,7 +52,7 @@ public class PlayerControllerEnlistTests : IClassFixture<GameboardTestContext>
                 PlayerId = joiningPlayerId,
                 UserId = joiningUserId
             }.ToJsonBody())
-            .WithContentDeserializedAs<Player>();
+            .DeserializeResponseAs<Player>();
 
         // the returned player should have the same teamId was the one held by the captain
         result.TeamId.ShouldBe(teamId);

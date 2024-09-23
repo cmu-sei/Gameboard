@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Authorizers;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -14,37 +13,24 @@ namespace Gameboard.Api.Features.Admin;
 
 public sealed record GetPlayersCsvExportQuery(string GameId, IEnumerable<string> TeamIds) : IRequest<GetPlayersCsvExportResponse>;
 
-internal sealed class GetPlayersCsvExportHandler : IRequestHandler<GetPlayersCsvExportQuery, GetPlayersCsvExportResponse>
+internal sealed class GetPlayersCsvExportHandler(
+    IStore store,
+    EntityExistsValidator<GetPlayersCsvExportQuery, Data.Game> gameExists,
+    TeamExistsValidator<GetPlayersCsvExportQuery> teamsExist,
+    IValidatorService<GetPlayersCsvExportQuery> validatorService
+    ) : IRequestHandler<GetPlayersCsvExportQuery, GetPlayersCsvExportResponse>
 {
-    private readonly IStore _store;
-    private readonly EntityExistsValidator<GetPlayersCsvExportQuery, Data.Game> _gameExists;
-    private readonly TeamExistsValidator<GetPlayersCsvExportQuery> _teamsExist;
-    private readonly UserRoleAuthorizer _userRoleAuth;
-    private readonly IValidatorService<GetPlayersCsvExportQuery> _validatorService;
-
-    public GetPlayersCsvExportHandler
-    (
-        IStore store,
-        EntityExistsValidator<GetPlayersCsvExportQuery, Data.Game> gameExists,
-        UserRoleAuthorizer userRoleAuth,
-        TeamExistsValidator<GetPlayersCsvExportQuery> teamsExist,
-        IValidatorService<GetPlayersCsvExportQuery> validatorService
-    )
-    {
-        _gameExists = gameExists;
-        _store = store;
-        _teamsExist = teamsExist;
-        _userRoleAuth = userRoleAuth;
-        _validatorService = validatorService;
-    }
+    private readonly IStore _store = store;
+    private readonly EntityExistsValidator<GetPlayersCsvExportQuery, Data.Game> _gameExists = gameExists;
+    private readonly TeamExistsValidator<GetPlayersCsvExportQuery> _teamsExist = teamsExist;
+    private readonly IValidatorService<GetPlayersCsvExportQuery> _validatorService = validatorService;
 
     public async Task<GetPlayersCsvExportResponse> Handle(GetPlayersCsvExportQuery request, CancellationToken cancellationToken)
     {
         // authorize/validate
-        _userRoleAuth.AllowAllElevatedRoles();
-        _userRoleAuth.Authorize();
-
-        _validatorService.AddValidator(_gameExists.UseProperty(r => r.GameId));
+        _validatorService
+            .Auth(c => c.RequirePermissions(Users.PermissionKey.Admin_View))
+            .AddValidator(_gameExists.UseProperty(r => r.GameId));
 
         var teamIds = request.TeamIds?.Where(t => t.IsNotEmpty()).Distinct().ToArray();
         if (teamIds is not null && teamIds.Any())

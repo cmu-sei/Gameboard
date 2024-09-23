@@ -12,23 +12,15 @@ namespace Gameboard.Api.Features.Certificates;
 
 [Authorize]
 [Route("/api/user")]
-public class CertificatesController : ControllerBase
+public class CertificatesController(
+    IActingUserService actingUser,
+    IHtmlToImageService htmlToImage,
+    IMediator mediator
+    ) : ControllerBase
 {
-    private readonly IActingUserService _actingUser;
-    private readonly IHtmlToImageService _htmlToImage;
-    private readonly IMediator _mediator;
-
-    public CertificatesController
-    (
-        IActingUserService actingUser,
-        IHtmlToImageService htmlToImage,
-        IMediator mediator
-    )
-    {
-        _actingUser = actingUser;
-        _htmlToImage = htmlToImage;
-        _mediator = mediator;
-    }
+    private readonly IActingUserService _actingUser = actingUser;
+    private readonly IHtmlToImageService _htmlToImage = htmlToImage;
+    private readonly IMediator _mediator = mediator;
 
     [HttpGet]
     [Route("{userId}/certificates/practice")]

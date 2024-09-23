@@ -10,20 +10,13 @@ namespace Gameboard.Api.Features.Reports;
 
 [Authorize]
 [Route("/api/reports")]
-public class ReportsController : ControllerBase
+public class ReportsController(
+    IMediator mediator,
+    IReportsService service
+    ) : ControllerBase
 {
-    private readonly IMediator _mediator;
-    private readonly IReportsService _service;
-
-    public ReportsController
-    (
-        IMediator mediator,
-        IReportsService service
-    )
-    {
-        _mediator = mediator;
-        _service = service;
-    }
+    private readonly IMediator _mediator = mediator;
+    private readonly IReportsService _service = service;
 
     [HttpGet]
     public async Task<IEnumerable<ReportViewModel>> List()
@@ -48,6 +41,10 @@ public class ReportsController : ControllerBase
     [HttpGet("enrollment/by-game")]
     public Task<ReportResults<EnrollmentReportByGameRecord>> GetEnrollmentReportByGame([FromQuery] EnrollmentReportParameters parameters, [FromQuery] PagingArgs pagingArgs)
         => _mediator.Send(new EnrollmentReportByGameQuery(parameters, pagingArgs));
+
+    [HttpGet("feedback")]
+    public Task<FeedbackGameReportResults> GetFeedbackGameReport([FromQuery] GetFeedbackGameReportQuery query)
+        => _mediator.Send(query);
 
     [HttpGet("players")]
     public Task<ReportResults<PlayersReportStatSummary, PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportParameters parameters, [FromQuery] PagingArgs pagingArgs)

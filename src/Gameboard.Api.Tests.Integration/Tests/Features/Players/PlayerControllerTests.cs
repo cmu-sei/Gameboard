@@ -1,16 +1,13 @@
+using Gameboard.Api.Data;
+
 namespace Gameboard.Api.Tests.Integration;
 
-public class PlayerControllerTests : IClassFixture<GameboardTestContext>
+public class PlayerControllerTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>
 {
-    private readonly GameboardTestContext _testContext;
-
-    public PlayerControllerTests(GameboardTestContext testContext)
-    {
-        _testContext = testContext;
-    }
+    private readonly GameboardTestContext _testContext = testContext;
 
     [Theory, GbIntegrationAutoData]
-    public async Task Update_WhenNameNotUniqueInGame_SetsNameNotUnique(IFixture fixture)
+    public async Task Update_WhenNameNotUniqueInGame_SetsNameNotUnique(IFixture fixture, string playerAId, string playerBId)
     {
         // given
         await _testContext
@@ -18,28 +15,27 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext>
             {
                 state.Add<Data.Game>(fixture, g =>
                 {
-                    g.Players = new List<Data.Player>
-                    {
+                    g.Players =
+                    [
                         state.Build<Data.Player>(fixture, p =>
                         {
-                            p.Id = "PlayerA";
+                            p.Id = playerAId;
                             p.Name = "A";
                             p.TeamId = "team A";
                         }),
-
                         state.Build<Data.Player>(fixture, p =>
                         {
-                            p.Id = "PlayerB";
+                            p.Id = playerBId;
                             p.Name = "B";
                             p.TeamId = "team B";
                         })
-                    };
+                    ];
                 });
             });
 
         var sutParams = new ChangedPlayer
         {
-            Id = "PlayerB",
+            Id = playerBId,
             // tries to update `playerB` to have the same name as `playerA`
             Name = "A",
             ApprovedName = "B"
@@ -47,9 +43,9 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext>
 
         // when
         var updatedPlayer = await _testContext
-            .CreateHttpClientWithAuthRole(UserRole.Admin)
+            .CreateHttpClientWithAuthRole(UserRoleKey.Admin)
             .PutAsync("/api/player", sutParams.ToJsonBody())
-            .WithContentDeserializedAs<Player>();
+            .DeserializeResponseAs<Player>();
 
         // assert
         updatedPlayer?.NameStatus.ShouldBe(AppConstants.NameStatusNotUnique);
@@ -75,8 +71,8 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext>
             {
                 g.GameEnd = now - TimeSpan.FromDays(1);
                 g.CertificateTemplate = "This is a template with a {{player_count}}.";
-                g.Players = new List<Data.Player>
-                {
+                g.Players =
+                [
                     // i almost broke my brain trying to get GbIntegrationAutoData to work with
                     // inline autodata, so I'm just doing two checks here
                     state.Build<Data.Player>(fixture, p =>
@@ -97,7 +93,7 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext>
                         p.TeamId = "teamId";
                         p.Score = score;
                     })
-                };
+                ];
             });
         });
 
@@ -106,7 +102,7 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext>
         // when
         var certs = await httpClient
             .GetAsync("/api/certificates")
-            .WithContentDeserializedAs<IEnumerable<PlayerCertificate>>();
+            .DeserializeResponseAs<IEnumerable<PlayerCertificate>>();
 
         // then
         certs?.Count().ShouldBe(1);
@@ -162,7 +158,7 @@ public class PlayerControllerTests : IClassFixture<GameboardTestContext>
         // when
         var certsResponse = await httpClient
             .GetAsync("/api/certificates")
-            .WithContentDeserializedAs<IEnumerable<PlayerCertificate>>();
+            .DeserializeResponseAs<IEnumerable<PlayerCertificate>>();
 
         // then
         var certs = certsResponse.ToArray();

@@ -15,33 +15,22 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Services;
 
-public class ChallengeSpecService : _Service
+public class ChallengeSpecService(
+    IJsonService jsonService,
+    ILogger<ChallengeSpecService> logger,
+    IMapper mapper,
+    INowService now,
+    ISlugService slug,
+    CoreOptions options,
+    IStore store,
+    IGameEngineService gameEngine
+    ) : _Service(logger, mapper, options)
 {
-    private readonly IJsonService _jsonService;
-    private readonly INowService _now;
-    private readonly ISlugService _slug;
-    private readonly IStore _store;
-
-    IGameEngineService GameEngine { get; }
-
-    public ChallengeSpecService
-    (
-        IJsonService jsonService,
-        ILogger<ChallengeSpecService> logger,
-        IMapper mapper,
-        INowService now,
-        ISlugService slug,
-        CoreOptions options,
-        IStore store,
-        IGameEngineService gameEngine
-    ) : base(logger, mapper, options)
-    {
-        _jsonService = jsonService;
-        _now = now;
-        _slug = slug;
-        _store = store;
-        GameEngine = gameEngine;
-    }
+    private readonly IGameEngineService _gameEngine = gameEngine;
+    private readonly IJsonService _jsonService = jsonService;
+    private readonly INowService _now = now;
+    private readonly ISlugService _slug = slug;
+    private readonly IStore _store = store;
 
     public async Task<ChallengeSpec> AddOrUpdate(NewChallengeSpec model)
     {
@@ -93,9 +82,25 @@ public class ChallengeSpecService : _Service
         return Mapper.Map<ChallengeSpec>(entity);
     }
 
+    public async Task<IEnumerable<GameChallengeSpecs>> ListByGame()
+    {
+        return await _store
+            .WithNoTracking<Data.ChallengeSpec>()
+            .Where(s => !s.IsHidden)
+            .Select(s => new
+            {
+                ChallengeSpec = new SimpleEntity { Id = s.Id, Name = s.Name },
+                Game = new SimpleEntity { Id = s.GameId, Name = s.Game.Name },
+            })
+            .GroupBy(s => s.Game)
+            .Select(gr => new GameChallengeSpecs { Game = gr.Key, ChallengeSpecs = gr.Select(thing => thing.ChallengeSpec).OrderBy(s => s.Name).ToArray() })
+            .OrderBy(v => v.Game.Name)
+            .ToArrayAsync();
+    }
+
     public async Task<IOrderedEnumerable<ChallengeSpecQuestionPerformance>> GetQuestionPerformance(string challengeSpecId, CancellationToken cancellationToken)
     {
-        var results = await GetQuestionPerformance(new string[] { challengeSpecId }, cancellationToken);
+        var results = await GetQuestionPerformance([challengeSpecId], cancellationToken);
         if (!results.Any())
             throw new ArgumentException($"Couldn't load performance for specId {challengeSpecId}", nameof(challengeSpecId));
 
@@ -191,7 +196,7 @@ public class ChallengeSpecService : _Service
         => _store.Delete<Data.ChallengeSpec>(id);
 
     public Task<ExternalSpec[]> List(SearchFilter model)
-        => GameEngine.ListSpecs(model);
+        => _gameEngine.ListGameEngineSpecs(model);
 
     public async Task<IEnumerable<BoardSpec>> ListGameSpecs(string gameId)
         => await Mapper.ProjectTo<BoardSpec>
@@ -249,7 +254,7 @@ public class ChallengeSpecService : _Service
 
     internal async Task<IDictionary<string, ExternalSpec>> LoadExternalSpecsForSync()
     {
-        return (await GameEngine.ListSpecs(new SearchFilter()))
+        return (await _gameEngine.ListGameEngineSpecs(new SearchFilter()))
             .ToDictionary(o => o.ExternalId);
     }
 

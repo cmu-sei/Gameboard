@@ -36,6 +36,12 @@ public class ChallengeSpec : SpecDetail
     public string GameId { get; set; }
 }
 
+public class GameChallengeSpecs
+{
+    public required SimpleEntity Game { get; set; }
+    public required IEnumerable<SimpleEntity> ChallengeSpecs { get; set; }
+}
+
 public class NewChallengeSpec : SpecDetail
 {
     public string GameId { get; set; }

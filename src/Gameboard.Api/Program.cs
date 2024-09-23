@@ -2,7 +2,6 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using Gameboard.Api;
 using Gameboard.Api.Common.Services;
@@ -22,7 +21,7 @@ startupLogger.LogInformation("Welcome to Gameboard!");
 // load and resolve settings
 startupLogger.LogInformation("Configuring Gameboard app...");
 var envname = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-var appSettingsPath = Environment.GetEnvironmentVariable("APPSETTINGS_PATH") ?? "./conf/appsettings.conf";
+var appSettingsPath = Environment.GetEnvironmentVariable("APPSETTINGS_PATH") ?? "conf/appsettings.conf";
 ConfToEnv.Load("appsettings.conf");
 ConfToEnv.Load($"appsettings.{envname}.conf");
 ConfToEnv.Load(appSettingsPath);
@@ -33,32 +32,16 @@ startupLogger.LogInformation(message: $"Starting Gameboard in {builder.Environme
 
 // load settings and configure services
 var settings = builder.BuildAppSettings(startupLogger);
-builder.ConfigureServices(settings, startupLogger);
-
-// launch db if db only 
-var dbOnly = args.ToList().Contains("--dbonly")
-    || Environment.GetEnvironmentVariable("GAMEBOARD_DBONLY")?.ToLower() == "true";
-
-if (dbOnly)
-{
-    builder.Logging.ClearProviders();
-    builder.Logging.AddConsole();
-
-    var dbOnlyApp = builder.Build();
-    dbOnlyApp.Logger.LogInformation("Starting the app in dbonly mode...");
-    dbOnlyApp.Logger.LogInformation($"Connection string: {settings.Database.ConnectionString}");
-    dbOnlyApp.InitializeDatabase(settings, dbOnlyApp.Logger);
-    dbOnlyApp.Logger.LogInformation("DB initialized.");
-
-    return;
-}
+builder.ConfigureServices(settings);
 
 // build and configure app
 var app = builder.Build();
 app
     .InitializeDatabase(settings, app.Logger)
-    .ConfigureGameboard(settings)
-    .DoStartupTasks(app.Logger);
+    .ConfigureGameboard(settings);
+
+// run startup stuff (like syncing challenge data with the game engines, etc.)
+await app.DoStartupTasks(app.Logger);
 
 // start!
 startupLogger.LogInformation("Let the games begin!");

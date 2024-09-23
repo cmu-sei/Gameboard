@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Structure.MediatR.Authorizers;
+using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,26 +15,19 @@ public sealed class GetExternalGameHostsResponse
 
 public sealed record GetExternalGameHostsQuery() : IRequest<GetExternalGameHostsResponse>;
 
-internal sealed class GetExternalGameHostsHandler : IRequestHandler<GetExternalGameHostsQuery, GetExternalGameHostsResponse>
+internal sealed class GetExternalGameHostsHandler(
+    IExternalGameHostService externalGameHostService,
+    IValidatorService validatorService
+    ) : IRequestHandler<GetExternalGameHostsQuery, GetExternalGameHostsResponse>
 {
-    private readonly IExternalGameHostService _externalGameHostService;
-    private readonly UserRoleAuthorizer _userRoleAuthorizer;
-
-    public GetExternalGameHostsHandler
-    (
-        IExternalGameHostService externalGameHostService,
-        UserRoleAuthorizer userRoleAuthorizer
-    )
-    {
-        _externalGameHostService = externalGameHostService;
-        _userRoleAuthorizer = userRoleAuthorizer;
-    }
+    private readonly IExternalGameHostService _externalGameHostService = externalGameHostService;
+    private readonly IValidatorService _validatorService = validatorService;
 
     public async Task<GetExternalGameHostsResponse> Handle(GetExternalGameHostsQuery request, CancellationToken cancellationToken)
     {
-        _userRoleAuthorizer
-            .AllowAllElevatedRoles()
-            .Authorize();
+        await _validatorService
+            .Auth(config => config.RequirePermissions(Users.PermissionKey.Games_CreateEditDelete))
+            .Validate(cancellationToken);
 
         return new GetExternalGameHostsResponse
         {

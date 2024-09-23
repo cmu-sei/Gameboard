@@ -50,7 +50,8 @@ internal sealed class GetSiteUsageReportPlayersHandler : IRequestHandler<GetSite
         paging.PageNumber ??= 0;
         paging.PageSize ??= 20;
 
-        var challengeIdUserIdMaps = await _challengeService.GetChallengeUserMaps(_reportService.GetBaseQuery(request.ReportParameters), cancellationToken);
+        var challengeIdUserIdMaps = await _challengeService
+            .GetChallengeUserMaps(_reportService.GetBaseQuery(request.ReportParameters), cancellationToken);
         var challengeQuery = _store
             .WithNoTracking<Data.Challenge>()
             .Where(c => challengeIdUserIdMaps.ChallengeIdUserIds.Keys.Contains(c.Id))

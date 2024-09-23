@@ -19,8 +19,8 @@ namespace Gameboard.Api.Services
                 .ForMember(s => s.Name, opt => opt.MapFrom(u => u.ApprovedName));
             CreateMap<User, Data.User>();
             CreateMap<NewUser, Data.User>();
-            CreateMap<ChangedUser, SelfChangedUser>();
-            CreateMap<ChangedUser, Data.User>();
+            CreateMap<UpdateUser, SelfChangedUser>();
+            CreateMap<UpdateUser, Data.User>();
             CreateMap<SelfChangedUser, Data.User>();
         }
     }

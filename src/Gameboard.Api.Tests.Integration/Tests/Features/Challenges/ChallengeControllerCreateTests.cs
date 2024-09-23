@@ -52,7 +52,7 @@ public class ChallengeControllerCreateTests : IClassFixture<GameboardTestContext
         var challenge = await _testContext
             .CreateHttpClientWithActingUser(u => u.Id = userId)
             .PostAsync("/api/challenge", model.ToJsonBody())
-            .WithContentDeserializedAs<Api.Challenge>();
+            .DeserializeResponseAs<Api.Challenge>();
 
         // assert
         challenge?.Name.ShouldBe(specName);

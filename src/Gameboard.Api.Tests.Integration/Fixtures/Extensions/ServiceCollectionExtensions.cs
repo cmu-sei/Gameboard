@@ -2,10 +2,11 @@ namespace Gameboard.Api.Tests.Integration.Fixtures;
 
 public static class ServiceCollectionExtensions
 {
-    public static void RemoveService<I>(this IServiceCollection services) where I : class
+    public static IServiceCollection RemoveService<I>(this IServiceCollection services) where I : class
     {
         var existingService = FindService<I>(services);
         if (existingService != null) services.Remove(existingService);
+        return services;
     }
 
     public static void RemoveServices<I>(this IServiceCollection services) where I : class
@@ -22,7 +23,7 @@ public static class ServiceCollectionExtensions
         if (existingService != null) services.Remove(existingService);
     }
 
-    public static void ReplaceService<I, C>(this IServiceCollection services, bool allowMultipleReplace = false) where I : class where C : class, I
+    public static IServiceCollection ReplaceService<I, C>(this IServiceCollection services, bool allowMultipleReplace = false) where I : class where C : class, I
     {
         if (allowMultipleReplace)
         {
@@ -34,6 +35,7 @@ public static class ServiceCollectionExtensions
         }
 
         services.AddScoped<I, C>();
+        return services;
     }
 
     public static void ReplaceService<I, C>(this IServiceCollection services, C replacement) where I : class where C : class, I

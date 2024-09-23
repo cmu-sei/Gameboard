@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
+using Gameboard.Api.Common.Services;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Services;
 using Gameboard.Api.Validators;
@@ -17,28 +19,23 @@ using Microsoft.Extensions.Logging;
 namespace Gameboard.Api.Controllers;
 
 [Authorize]
-public class TicketController : _Controller
+public class TicketController(
+    IActingUserService actingUserService,
+    ILogger<ChallengeController> logger,
+    IDistributedCache cache,
+    TicketValidator validator,
+    CoreOptions options,
+    IUserRolePermissionsService permissionsService,
+    TicketService ticketService,
+    IHubContext<AppHub, IAppHubEvent> hub,
+    IMapper mapper
+    ) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
-    TicketService TicketService { get; }
-    public CoreOptions Options { get; }
-    IHubContext<AppHub, IAppHubEvent> Hub { get; }
-    IMapper Mapper { get; }
-
-    public TicketController(
-        ILogger<ChallengeController> logger,
-        IDistributedCache cache,
-        TicketValidator validator,
-        CoreOptions options,
-        TicketService ticketService,
-        IHubContext<AppHub, IAppHubEvent> hub,
-        IMapper mapper
-    ) : base(logger, cache, validator)
-    {
-        TicketService = ticketService;
-        Options = options;
-        Hub = hub;
-        Mapper = mapper;
-    }
+    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
+    TicketService TicketService { get; } = ticketService;
+    public CoreOptions Options { get; } = options;
+    IHubContext<AppHub, IAppHubEvent> Hub { get; } = hub;
+    IMapper Mapper { get; } = mapper;
 
     /// <summary>
     /// Gets ticket details
@@ -49,16 +46,10 @@ public class TicketController : _Controller
     [Authorize]
     public async Task<Ticket> Retrieve([FromRoute] int id)
     {
-        AuthorizeAny(
-            () => Actor.IsObserver,
-            () => TicketService.IsOwnerOrTeamMember(id, Actor.Id).Result
-        );
-
-        await Cache.SetStringAsync
+        await AuthorizeAny
         (
-            $"{"file-permit:"}{Actor.Id}:{id}",
-            "true",
-            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = new TimeSpan(0, 15, 0) }
+            () => _permissionsService.Can(PermissionKey.Support_ViewTickets),
+            () => TicketService.IsOwnerOrTeamMember(id, Actor.Id)
         );
 
         return await TicketService.Retrieve(id);
@@ -74,7 +65,6 @@ public class TicketController : _Controller
     [Authorize]
     public async Task<Ticket> Create([FromForm] NewTicket model)
     {
-        await Validate(model);
         var result = await TicketService.Create(model);
         await Notify(Mapper.Map<TicketNotification>(result), EventAction.Created);
         return result;
@@ -89,17 +79,16 @@ public class TicketController : _Controller
     [Authorize]
     public async Task<Ticket> Update([FromBody] ChangedTicket model)
     {
-        AuthorizeAny(
-            () => Actor.IsSupport,
-            () => TicketService.UserCanUpdate(model.Id, Actor.Id).Result
-        );
+        var isTicketAdmin = await _permissionsService.Can(PermissionKey.Support_ManageTickets);
+        if (!isTicketAdmin)
+            await Authorize(TicketService.UserCanUpdate(model.Id, Actor.Id));
 
         await Validate(model);
 
         // Retrieve the previous ticket result for comparison soon
         var prevTicket = await TicketService.Retrieve(model.Id);
 
-        var result = await TicketService.Update(model, Actor.Id, Actor.IsSupport);
+        var result = await TicketService.Update(model, Actor.Id, isTicketAdmin);
         // Ignore labels being different
         if (result.Label != prevTicket.Label) prevTicket.LastUpdated = result.LastUpdated;
 
@@ -117,8 +106,8 @@ public class TicketController : _Controller
     /// <returns></returns>
     [HttpGet("/api/ticket/list")]
     [Authorize]
-    public Task<IEnumerable<TicketSummary>> List([FromQuery] TicketSearchFilter model)
-        => TicketService.List(model, Actor.Id, Actor.IsSupport || Actor.IsObserver);
+    public async Task<IEnumerable<TicketSummary>> List([FromQuery] TicketSearchFilter model)
+        => await TicketService.List(model, Actor.Id, await _permissionsService.Can(PermissionKey.Support_ViewTickets));
 
     /// <summary>
     /// Create new ticket comment
@@ -129,10 +118,10 @@ public class TicketController : _Controller
     [Authorize]
     public async Task<TicketActivity> AddComment([FromForm] NewTicketComment model)
     {
-        AuthorizeAny(
-            () => Actor.IsObserver,
-            () => Actor.IsSupport,
-            () => TicketService.IsOwnerOrTeamMember(model.TicketId, Actor.Id).Result
+        await AuthorizeAny
+        (
+            () => _permissionsService.Can(PermissionKey.Support_ManageTickets),
+            () => TicketService.IsOwnerOrTeamMember(model.TicketId, Actor.Id)
         );
 
         await Validate(model);
@@ -152,11 +141,7 @@ public class TicketController : _Controller
     [Authorize]
     public async Task<string[]> ListLabels([FromQuery] SearchFilter model)
     {
-        AuthorizeAny(
-            () => Actor.IsSupport,
-            () => Actor.IsObserver
-        );
-
+        await Authorize(_permissionsService.Can(PermissionKey.Support_ViewTickets));
         return await TicketService.ListLabels(model);
     }
 
