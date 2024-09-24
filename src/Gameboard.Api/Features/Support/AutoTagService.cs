@@ -46,6 +46,8 @@ internal sealed class AutoTagService(IStore store) : IAutoTagService
             })
             .SingleAsync(cancellationToken);
 
+        var playerModeValue = (int)challengeData.PlayerMode;
+
         var autoTagConfig = await _store
             .WithNoTracking<SupportSettingsAutoTag>()
             .Where(t => t.IsEnabled)
@@ -54,7 +56,7 @@ internal sealed class AutoTagService(IStore store) : IAutoTagService
                 t =>
                     (t.ConditionType == SupportSettingsAutoTagConditionType.ChallengeSpecId && t.ConditionValue == challengeData.SpecId) ||
                     (t.ConditionType == SupportSettingsAutoTagConditionType.GameId && t.ConditionValue == challengeData.GameId) ||
-                    (t.ConditionType == SupportSettingsAutoTagConditionType.PlayerMode && t.ConditionValue == challengeData.PlayerMode.ToString()) ||
+                    (t.ConditionType == SupportSettingsAutoTagConditionType.PlayerMode && t.ConditionValue == playerModeValue.ToString()) ||
                     (t.ConditionType == SupportSettingsAutoTagConditionType.SponsorId && teamSponsorIds.Contains(t.ConditionValue))
             )
             .Select(t => new

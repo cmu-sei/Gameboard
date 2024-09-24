@@ -61,14 +61,14 @@ public class GameEngineService(
             case GameEngineType.TopoMojo:
                 var topoState = await Mojo.RegisterGamespaceAsync(new GamespaceRegistration
                 {
-                    Players = new RegistrationPlayer[]
-                    {
+                    Players =
+                    [
                         new()
                         {
                             SubjectId = registration.Player.TeamId,
                             SubjectName = registration.Player.ApprovedName
                         }
-                    },
+                    ],
                     ResourceId = registration.ChallengeSpec.ExternalId,
                     Variant = registration.Variant,
                     Points = registration.ChallengeSpec.Points,
@@ -240,12 +240,19 @@ public class GameEngineService(
                 tasks.Add(mojoTask);
             }
 
-            crucibleTask = _crucible.ListSpecs();
-            tasks.Add(crucibleTask);
+            if (_crucible.IsEnabled())
+            {
+                crucibleTask = _crucible.ListSpecs();
+                tasks.Add(crucibleTask);
+            }
 
             await Task.WhenAll(tasks);
         }
-        catch (Exception) { }
+        catch (Exception ex)
+        {
+            Logger.LogCritical($"Couldn't reach the game engine: {ex.GetType().Name}: {ex.Message}");
+            throw;
+        }
 
         if (mojoTask != null && mojoTask.IsCompletedSuccessfully)
         {
