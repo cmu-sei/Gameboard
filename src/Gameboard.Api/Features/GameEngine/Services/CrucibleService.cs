@@ -20,6 +20,7 @@ public interface ICrucibleService
 {
     Task CompleteGamespace(Data.Challenge entity);
     Task<GameEngineGameState> GradeChallenge(string challengeId, GameEngineSectionSubmission model);
+    bool IsEnabled();
     Task<ExternalSpec[]> ListSpecs();
     Task<GameEngineGameState> PreviewGamespace(string externalId);
     Task<GameEngineGameState> RegisterGamespace(Data.ChallengeSpec spec, Data.Game game, Data.Player player, Data.Challenge entity);
@@ -40,6 +41,9 @@ public class CrucibleService(
     ILockService LockService { get; } = lockService;
 
     private readonly IStore _store = store;
+
+    public bool IsEnabled()
+        => CrucibleOptions.Enabled;
 
     public async Task<GameEngineGameState> RegisterGamespace(Data.ChallengeSpec spec, Data.Game game, Data.Player player, Data.Challenge entity)
     {
@@ -187,7 +191,7 @@ public class CrucibleService(
     public async Task<ExternalSpec[]> ListSpecs()
     {
         if (!CrucibleOptions.Enabled)
-            return Array.Empty<ExternalSpec>();
+            return [];
 
         var eventTemplates = await Alloy.GetEventTemplatesAsync();
         return Mapper.Map<ExternalSpec[]>(eventTemplates);
