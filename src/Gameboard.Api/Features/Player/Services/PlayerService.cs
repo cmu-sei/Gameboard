@@ -574,7 +574,7 @@ public class PlayerService
 
         foreach (var team in teams)
         {
-            string newId = _guids.GetGuid();
+            string newId = _guids.Generate();
             // compute complete score, including bonuses
             var teamScore = await _scores.GetTeamScore(team.Key, CancellationToken.None);
 
@@ -786,7 +786,7 @@ public class PlayerService
             Role = PlayerRole.Manager,
             SessionMinutes = duration,
             SponsorId = user.SponsorId,
-            TeamId = GuidService.GetGuid(),
+            TeamId = GuidService.Generate(),
             UserId = model.UserId,
             WhenCreated = _now.Get()
         };

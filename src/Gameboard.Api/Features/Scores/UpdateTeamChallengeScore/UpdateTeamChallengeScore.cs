@@ -83,7 +83,7 @@ internal class UpdateTeamChallengeBaseScoreHandler(
             {
                 await _store.Create(new AwardedChallengeBonus
                 {
-                    Id = _guidService.GetGuid(),
+                    Id = _guidService.Generate(),
                     ChallengeBonusId = availableBonuses.First().Id,
                     ChallengeId = updateChallenge.Id
                 });

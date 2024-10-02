@@ -52,6 +52,7 @@ public class ChallengeSummary
 
 public class ActiveChallenge
 {
+    public required string Id { get; set; }
     public required ActiveChallengeSpec Spec { get; set; }
     public required SimpleEntity Game { get; set; }
     public required SimpleEntity Player { get; set; }

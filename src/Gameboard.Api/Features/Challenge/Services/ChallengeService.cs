@@ -100,7 +100,7 @@ public partial class ChallengeService(
         }
 
         var lockkey = $"{player.TeamId}{model.SpecId}";
-        var lockval = _guids.GetGuid();
+        var lockval = _guids.Generate();
         var locked = _memCache.GetOrCreate(lockkey, entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
@@ -341,7 +341,7 @@ public partial class ChallengeService(
         {
             await _store.Create(new ChallengeEvent
             {
-                Id = _guids.GetGuid(),
+                Id = _guids.Generate(),
                 ChallengeId = challenge.Id,
                 UserId = actor?.Id ?? null,
                 TeamId = challenge.TeamId,
@@ -364,7 +364,7 @@ public partial class ChallengeService(
         // log the appropriate event
         await _store.Create(new ChallengeEvent
         {
-            Id = _guids.GetGuid(),
+            Id = _guids.Generate(),
             ChallengeId = challenge.Id,
             UserId = actor?.Id ?? null,
             TeamId = challenge.TeamId,
@@ -383,7 +383,7 @@ public partial class ChallengeService(
             Logger.LogInformation($"Rejected a submission for challenge {challenge.Id}: the gamespace is expired.");
             var challengeEvent = new ChallengeEvent
             {
-                Id = _guids.GetGuid(),
+                Id = _guids.Generate(),
                 ChallengeId = challenge.Id,
                 UserId = actor?.Id ?? null,
                 TeamId = challenge.TeamId,
@@ -403,7 +403,7 @@ public partial class ChallengeService(
         await _challengeSyncService.Sync(challenge, postGradingState, actor.Id, CancellationToken.None);
 
         // update the team score and award automatic bonuses
-        var updatedScore = await _mediator.Send(new UpdateTeamChallengeBaseScoreCommand(challenge.Id, challenge.Score));
+        var updatedScore = await _mediator.Send(new UpdateTeamChallengeBaseScoreCommand(challenge.Id, challenge.Score), cancellationToken);
 
         // update the challenge object with the score (note that we omit bonuses here because we want the 
         // score in the players table only to count base completion score for now
@@ -433,13 +433,7 @@ public partial class ChallengeService(
                 await _teamService.EndSession(challenge.TeamId, actor, CancellationToken.None);
             }
 
-            // also for the practice area:
-            // if they've consumed all of their attempts for a challenge, we proactively end their session as well
-            var typedState = await _gameEngine.GetChallengeState(challenge.GameEngineType, challenge.State);
-            if (typedState.Challenge.Attempts >= typedState.Challenge.MaxAttempts)
-            {
-                await _teamService.EndSession(challenge.TeamId, actor, CancellationToken.None);
-            }
+            // note that we DON'T care about attempt counts for practice - they can try as much as they like
         }
 
         return Mapper.Map<Challenge>(challenge);
@@ -709,7 +703,7 @@ public partial class ChallengeService(
         int variant
     )
     {
-        var graderKey = _guids.GetGuid();
+        var graderKey = _guids.Generate();
         var challenge = Mapper.Map<Data.Challenge>(newChallenge);
         Mapper.Map(spec, challenge);
         challenge.PlayerId = player.Id;
@@ -739,15 +733,24 @@ public partial class ChallengeService(
         challenge.HasDeployedGamespace = state.IsActive;
         challenge.State = _jsonService.Serialize(state);
         challenge.StartTime = state.StartTime;
-        challenge.EndTime = state.EndTime;
         challenge.LastSyncTime = _now.Get();
+
+        // even if a specific end time isn't set, use the expiration time instead
+        if (state.EndTime.IsNotEmpty())
+        {
+            challenge.EndTime = state.EndTime;
+        }
+        else if (state.ExpirationTime.IsNotEmpty())
+        {
+            challenge.EndTime = state.ExpirationTime;
+        }
 
         challenge.Events.Add(new ChallengeEvent
         {
-            Id = _guids.GetGuid(),
+            Id = _guids.Generate(),
             UserId = actorUserId,
             TeamId = challenge.TeamId,
-            Timestamp = DateTimeOffset.UtcNow,
+            Timestamp = _now.Get(),
             Type = ChallengeEventType.Started
         });
 

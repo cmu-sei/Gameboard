@@ -48,7 +48,7 @@ public class Store<TEntity> : IStore<TEntity> where TEntity : class, IEntity
     public virtual async Task<TEntity> Create(TEntity entity)
     {
         if (string.IsNullOrWhiteSpace(entity.Id))
-            entity.Id = _guids.GetGuid();
+            entity.Id = _guids.Generate();
 
         _dbContext.Add(entity);
         await _dbContext.SaveChangesAsync();
@@ -60,7 +60,7 @@ public class Store<TEntity> : IStore<TEntity> where TEntity : class, IEntity
     {
         foreach (var entity in range)
             if (string.IsNullOrWhiteSpace(entity.Id))
-                entity.Id = _guids.GetGuid();
+                entity.Id = _guids.Generate();
 
         _dbContext.AddRange(range);
 

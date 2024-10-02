@@ -53,10 +53,10 @@ public class Challenge : IEntity
     public Player Player { get; set; }
 
     // Control delete behavior with relationships
-    public ICollection<AwardedChallengeBonus> AwardedBonuses { get; set; } = new List<AwardedChallengeBonus>();
-    public ICollection<ManualChallengeBonus> AwardedManualBonuses { get; set; } = new List<ManualChallengeBonus>();
-    public ICollection<ChallengeEvent> Events { get; set; } = new List<ChallengeEvent>();
-    public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
-    public ICollection<ChallengeSubmission> Submissions { get; set; } = new List<ChallengeSubmission>();
-    public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
+    public ICollection<AwardedChallengeBonus> AwardedBonuses { get; set; } = [];
+    public ICollection<ManualChallengeBonus> AwardedManualBonuses { get; set; } = [];
+    public ICollection<ChallengeEvent> Events { get; set; } = [];
+    public ICollection<Feedback> Feedback { get; set; } = [];
+    public ICollection<ChallengeSubmission> Submissions { get; set; } = [];
+    public ICollection<Ticket> Tickets { get; set; } = [];
 }
