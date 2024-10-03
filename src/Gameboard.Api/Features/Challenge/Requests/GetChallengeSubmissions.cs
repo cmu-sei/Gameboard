@@ -21,26 +21,15 @@ public sealed class GetChallengeSubmissionsResponse
 
 public record GetChallengeSubmissionsQuery(string ChallengeId) : IRequest<GetChallengeSubmissionsResponse>;
 
-internal class GetChallengeSubmissionsHandler : IRequestHandler<GetChallengeSubmissionsQuery, GetChallengeSubmissionsResponse>
+internal class GetChallengeSubmissionsHandler(
+    IJsonService jsonService,
+    IStore store,
+    IGameboardRequestValidator<GetChallengeSubmissionsQuery> validatorService
+    ) : IRequestHandler<GetChallengeSubmissionsQuery, GetChallengeSubmissionsResponse>
 {
-    private readonly IActingUserService _actingUserService;
-    private readonly IJsonService _jsonService;
-    private readonly IStore _store;
-    private readonly IGameboardRequestValidator<GetChallengeSubmissionsQuery> _validatorService;
-
-    public GetChallengeSubmissionsHandler
-    (
-        IActingUserService actingUserService,
-        IJsonService jsonService,
-        IStore store,
-        IGameboardRequestValidator<GetChallengeSubmissionsQuery> validatorService
-    )
-    {
-        _actingUserService = actingUserService;
-        _jsonService = jsonService;
-        _store = store;
-        _validatorService = validatorService;
-    }
+    private readonly IJsonService _jsonService = jsonService;
+    private readonly IStore _store = store;
+    private readonly IGameboardRequestValidator<GetChallengeSubmissionsQuery> _validatorService = validatorService;
 
     public async Task<GetChallengeSubmissionsResponse> Handle(GetChallengeSubmissionsQuery request, CancellationToken cancellationToken)
     {

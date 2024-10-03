@@ -268,7 +268,7 @@ internal class ExternalGameService : IExternalGameService,
         // then create an entry for each team in this game
         await _store.SaveAddRange(teamGameIds.Select(teamIdGameId => new ExternalGameTeam
         {
-            Id = _guids.GetGuid(),
+            Id = _guids.Generate(),
             GameId = teamIdGameId.Value.Single(),
             TeamId = teamIdGameId.Key,
             DeployStatus = ExternalGameDeployStatus.NotStarted

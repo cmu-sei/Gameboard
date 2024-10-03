@@ -15,7 +15,8 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Api.Services;
 
-public class UserService(
+public class UserService
+(
     INowService now,
     SponsorService sponsorService,
     IStore store,
@@ -203,21 +204,19 @@ public class UserService(
 
     public async Task Delete(string id)
     {
-        await _userStore.Delete(id);
+        await _store.Delete<Data.User>(id);
         _localcache.Remove(id);
     }
 
     public async Task<IEnumerable<UserOnly>> List<TProject>(UserSearch model) where TProject : class
     {
-        var q = _userStore
-            .List(model.Term)
-            .AsNoTracking()
-            .Include(u => u.Sponsor).Where(u => true);
+        var query = _store
+            .WithNoTracking<Data.User>();
 
         if (model.Term.NotEmpty())
         {
             model.Term = model.Term.ToLower();
-            q = q.Where(u =>
+            query = query.Where(u =>
                 u.Id.StartsWith(model.Term) ||
                 u.Name.ToLower().Contains(model.Term) ||
                 u.ApprovedName.ToLower().Contains(model.Term)
@@ -225,34 +224,66 @@ public class UserService(
         }
 
         if (model.WantsRoles)
-            q = q.Where(u => ((int)u.Role) > 0);
+            query = query.Where(u => ((int)u.Role) > 0);
 
         if (model.WantsPending)
-            q = q.Where(u => u.NameStatus.Equals(AppConstants.NameStatusPending) && u.Name != u.ApprovedName);
+            query = query.Where(u => u.NameStatus.Equals(AppConstants.NameStatusPending) && u.Name != u.ApprovedName);
 
         if (model.WantsDisallowed)
-            q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus) && !u.NameStatus.Equals(AppConstants.NameStatusPending));
+            query = query.Where(u => !string.IsNullOrEmpty(u.NameStatus) && !u.NameStatus.Equals(AppConstants.NameStatusPending));
 
         if (model.EligibleForGameId.IsNotEmpty())
-            q = q.Where(u => !u.Enrollments.Any(p => p.GameId == model.EligibleForGameId && p.Mode == PlayerMode.Competition && p.Game.PlayerMode == PlayerMode.Competition));
+            query = query.Where(u => !u.Enrollments.Any(p => p.GameId == model.EligibleForGameId && p.Mode == PlayerMode.Competition && p.Game.PlayerMode == PlayerMode.Competition));
 
         if (model.ExcludeIds.IsNotEmpty())
         {
             var splitIds = model.ExcludeIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (splitIds.Length != 0)
-                q = q.Where(u => !splitIds.Contains(u.Id));
+                query = query.Where(u => !splitIds.Contains(u.Id));
         }
 
-        q = q.OrderBy(p => p.ApprovedName);
-        q = q.Skip(model.Skip);
+        if (model.Sort.Contains("lastLogin", StringComparison.CurrentCultureIgnoreCase))
+        {
+            query = query.Sort(u => u.LastLoginDate, model.SortDirection);
+        }
+        else if (model.Sort.Contains("createdOn"))
+        {
+            query = query.Sort(u => u.CreatedOn, model.SortDirection);
+        }
+        else
+        {
+            query = query.Sort(u => u.ApprovedName, model.SortDirection);
+        }
+
+        query = query.Skip(model.Skip);
 
         if (model.Take > 0)
-            q = q.Take(model.Take);
+            query = query.Take(model.Take);
 
-        return await _mapper.ProjectTo<UserOnly>(q).ToArrayAsync();
+        return await query.Select(u => new UserOnly
+        {
+            Id = u.Id,
+            Name = u.Name,
+            NameStatus = u.NameStatus,
+            ApprovedName = u.ApprovedName,
+            Sponsor = new SponsorWithParentSponsor
+            {
+                Id = u.SponsorId,
+                Name = u.Sponsor.Name,
+                Logo = u.Sponsor.Logo,
+                ParentSponsor = u.Sponsor.ParentSponsorId == null ? null : new Sponsor
+                {
+                    Id = u.Sponsor.ParentSponsorId,
+                    Name = u.Sponsor.ParentSponsor.Name,
+                    Logo = u.Sponsor.ParentSponsor.Logo,
+                    ParentSponsorId = u.Sponsor.ParentSponsorId
+                }
+            }
+        })
+        .ToArrayAsync();
     }
 
-    public async Task<UserSimple[]> ListSupport(SearchFilter model)
+    public async Task<SimpleEntity[]> ListSupport(SearchFilter model)
     {
         var q = _userStore.List(model.Term);
 
@@ -271,7 +302,7 @@ public class UserService(
             );
         }
 
-        return await _mapper.ProjectTo<UserSimple>(q).ToArrayAsync();
+        return await _mapper.ProjectTo<SimpleEntity>(q).ToArrayAsync();
     }
 
     private async Task<User> BuildUserDto(Data.User user)

@@ -230,12 +230,12 @@ public class GameService(
         if (entity is not null)
             return yaml.Serialize(entity);
 
-        entity = new Data.Game { Id = _guids.GetGuid() };
+        entity = new Data.Game { Id = _guids.Generate() };
 
         for (int i = 0; i < model.GenerateSpecCount; i++)
             entity.Specs.Add(new Data.ChallengeSpec
             {
-                Id = _guids.GetGuid(),
+                Id = _guids.Generate(),
                 GameId = entity.Id
             });
 
@@ -354,25 +354,28 @@ public class GameService(
 
     private IQueryable<Data.Game> BuildSearchQuery(GameSearchFilter model, bool canViewUnpublished = false)
     {
-        var q = _store.WithNoTracking<Data.Game>();
         var now = _now.Get();
+        var q = _store
+            .WithNoTracking<Data.Game>();
 
         if (!string.IsNullOrEmpty(model.Term))
         {
             var term = model.Term.ToLower();
 
-            q = q.Where(t =>
-                t.Name.ToLower().Contains(term) ||
-                t.Season.ToLower().Contains(term) ||
-                t.Track.ToLower().Contains(term) ||
-                t.Division.ToLower().Contains(term) ||
-                t.Competition.ToLower().Contains(term) ||
-                t.Sponsor.ToLower().Contains(term) ||
-                t.Mode.ToLower().Contains(term) ||
-                t.Id.ToLower().StartsWith(term) ||
-                t.CardText1.ToLower().Contains(term) ||
-                t.CardText2.ToLower().Contains(term) ||
-                t.CardText3.ToLower().Contains(term)
+            q = q.Where
+            (
+                t =>
+                    t.Name.ToLower().Contains(term) ||
+                    t.Season.ToLower().Contains(term) ||
+                    t.Track.ToLower().Contains(term) ||
+                    t.Division.ToLower().Contains(term) ||
+                    t.Competition.ToLower().Contains(term) ||
+                    t.Sponsor.ToLower().Contains(term) ||
+                    t.Mode.ToLower().Contains(term) ||
+                    t.Id.ToLower().StartsWith(term) ||
+                    t.CardText1.ToLower().Contains(term) ||
+                    t.CardText2.ToLower().Contains(term) ||
+                    t.CardText3.ToLower().Contains(term)
             );
         }
 

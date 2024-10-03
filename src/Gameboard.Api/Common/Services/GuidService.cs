@@ -4,7 +4,7 @@ namespace Gameboard.Api.Common.Services;
 
 public interface IGuidService
 {
-    string GetGuid();
+    string Generate();
 }
 
 internal class GuidService : IGuidService
@@ -15,7 +15,7 @@ internal class GuidService : IGuidService
         return Guid.NewGuid().ToString("n");
     }
 
-    public string GetGuid()
+    public string Generate()
     {
         return StaticGenerateGuid();
     }

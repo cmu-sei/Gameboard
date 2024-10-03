@@ -61,9 +61,9 @@ public class TicketSummary
     public DateTimeOffset Created { get; set; }
     public DateTimeOffset LastUpdated { get; set; }
 
-    public UserSimple Requester { get; set; }
-    public UserSimple Assignee { get; set; }
-    public UserSimple Creator { get; set; }
+    public SimpleEntity Requester { get; set; }
+    public SimpleEntity Assignee { get; set; }
+    public SimpleEntity Creator { get; set; }
     public ChallengeSummary Challenge { get; set; }
 }
 
@@ -223,7 +223,7 @@ public class TicketNotification
 public sealed class TicketUser
 {
     public required string Id { get; set; }
-    public required string ApprovedName { get; set; }
+    public required string Name { get; set; }
     public required bool IsSupportPersonnel { get; set; }
 }
 

@@ -59,7 +59,7 @@ internal class Store(IGuidService guids, GameboardDbContext dbContext) : IStore
     public async Task<TEntity> Create<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity
     {
         if (entity.Id.IsEmpty())
-            entity.Id = _guids.GetGuid();
+            entity.Id = _guids.Generate();
 
         if (!_dbContext.Set<TEntity>().Any(e => e == entity))
             await _dbContext.AddAsync(entity, cancellationToken);

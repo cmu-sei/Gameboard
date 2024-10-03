@@ -42,7 +42,7 @@ internal class ApiKeysService(
 
         var entity = new ApiKey
         {
-            Id = _guids.GetGuid(),
+            Id = _guids.Generate(),
             Name = newApiKey.Name,
             GeneratedOn = _now.Get(),
             ExpiresOn = newApiKey.ExpiresOn,

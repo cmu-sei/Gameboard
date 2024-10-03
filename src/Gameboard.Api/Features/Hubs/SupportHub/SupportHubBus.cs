@@ -125,7 +125,7 @@ internal class SupportHubBus : ISupportHubBus, IGameboardHubService
             CreatedBy = new SimpleEntity
             {
                 Id = ticket.CreatorId,
-                Name = ticket.Creator.ApprovedName
+                Name = ticket.Creator?.Name
             }
         };
     }
