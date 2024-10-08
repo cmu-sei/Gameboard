@@ -735,14 +735,19 @@ public partial class ChallengeService(
         challenge.StartTime = state.StartTime;
         challenge.LastSyncTime = _now.Get();
 
-        // even if a specific end time isn't set, use the expiration time instead
-        if (state.EndTime.IsNotEmpty())
+        // if we haven't already resolved the endtime
+        if (challenge.EndTime.IsEmpty())
         {
-            challenge.EndTime = state.EndTime;
-        }
-        else if (state.ExpirationTime.IsNotEmpty())
-        {
-            challenge.EndTime = state.ExpirationTime;
+            // prefer the state's end time
+            if (state.EndTime.IsNotEmpty())
+            {
+                challenge.EndTime = state.EndTime;
+            }
+            // but fall back on the expiration time
+            else if (state.ExpirationTime.IsNotEmpty())
+            {
+                challenge.EndTime = state.ExpirationTime;
+            }
         }
 
         challenge.Events.Add(new ChallengeEvent
