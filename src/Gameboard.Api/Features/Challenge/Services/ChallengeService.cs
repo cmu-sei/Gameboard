@@ -14,16 +14,17 @@ using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.Scores;
+using Gameboard.Api.Features.Users;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using ServiceStack;
-using Gameboard.Api.Features.Users;
 
 namespace Gameboard.Api.Services;
 
-public partial class ChallengeService(
+public partial class ChallengeService
+(
     IActingUserService actingUserService,
     ConsoleActorMap actorMap,
     CoreOptions coreOptions,
@@ -42,7 +43,7 @@ public partial class ChallengeService(
     IUserRolePermissionsService permissionsService,
     IStore store,
     ITeamService teamService
-    ) : _Service(logger, mapper, coreOptions)
+) : _Service(logger, mapper, coreOptions)
 {
     private readonly IActingUserService _actingUserService = actingUserService;
     private readonly ConsoleActorMap _actorMap = actorMap;
