@@ -49,7 +49,7 @@ internal class SetPracticeCertificateIsPublishedHandler : IRequestHandler<SetPra
         {
             var publish = new PublishedPracticeCertificate
             {
-                Id = _guidService.GetGuid(),
+                Id = _guidService.Generate(),
                 OwnerUserId = request.ActingUser.Id,
                 PublishedOn = _nowService.Get(),
                 Mode = PublishedCertificateMode.Practice,

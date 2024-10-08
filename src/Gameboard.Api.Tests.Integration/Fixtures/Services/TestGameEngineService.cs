@@ -96,7 +96,7 @@ public class TestGameEngineService : IGameEngineService
     {
         return Task.FromResult(new GameEngineGameState
         {
-            Id = _guids.GetGuid(),
+            Id = _guids.Generate(),
             Name = registration.Challenge.Name,
             ManagerId = registration.Player.Id,
             ManagerName = registration.Player.ApprovedName,
@@ -108,7 +108,7 @@ public class TestGameEngineService : IGameEngineService
             ExpirationTime = DateTimeOffset.UtcNow.AddHours(8),
             Vms = new GameEngineVmState
             {
-                Id = _guids.GetGuid(),
+                Id = _guids.Generate(),
                 Name = "VM1",
                 IsolationId = registration.ChallengeSpec.Id,
                 IsRunning = true,

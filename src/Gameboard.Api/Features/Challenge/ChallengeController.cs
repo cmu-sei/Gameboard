@@ -19,353 +19,352 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 
-namespace Gameboard.Api.Controllers
+namespace Gameboard.Api.Controllers;
+
+[Authorize]
+public class ChallengeController
+(
+    IActingUserService actingUserService,
+    IChallengeGraderUrlService challengeGraderUrlService,
+    ILogger<ChallengeController> logger,
+    IDistributedCache cache,
+    ChallengeValidator validator,
+    ChallengeService challengeService,
+    IMediator mediator,
+    IUserRolePermissionsService permissionsService,
+    PlayerService playerService,
+    IHubContext<AppHub, IAppHubEvent> hub,
+    ConsoleActorMap actormap
+    ) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
-    [Authorize]
-    public class ChallengeController
-    (
-        IActingUserService actingUserService,
-        IChallengeGraderUrlService challengeGraderUrlService,
-        ILogger<ChallengeController> logger,
-        IDistributedCache cache,
-        ChallengeValidator validator,
-        ChallengeService challengeService,
-        IMediator mediator,
-        IUserRolePermissionsService permissionsService,
-        PlayerService playerService,
-        IHubContext<AppHub, IAppHubEvent> hub,
-        ConsoleActorMap actormap
-        ) : GameboardLegacyController(actingUserService, logger, cache, validator)
+    private readonly IChallengeGraderUrlService _challengeGraderUrlService = challengeGraderUrlService;
+    private readonly IMediator _mediator = mediator;
+    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
+
+    ChallengeService ChallengeService { get; } = challengeService;
+    PlayerService PlayerService { get; } = playerService;
+    IHubContext<AppHub, IAppHubEvent> Hub { get; } = hub;
+    ConsoleActorMap ActorMap { get; } = actormap;
+
+    /// <summary>
+    /// Create new challenge instance
+    /// </summary>
+    /// <remarks>Idempotent method to retrieve or create challenge state</remarks>
+    /// <param name="model">NewChallenge</param>
+    /// <returns>Challenge</returns>
+    [HttpPost("api/challenge")]
+    public async Task<Challenge> Create([FromBody] NewChallenge model)
     {
-        private readonly IChallengeGraderUrlService _challengeGraderUrlService = challengeGraderUrlService;
-        private readonly IMediator _mediator = mediator;
-        private readonly IUserRolePermissionsService _permissionsService = permissionsService;
+        await AuthorizeAny
+        (
+            () => _permissionsService.Can(PermissionKey.Teams_DeployGameResources),
+            () => IsSelf(model.PlayerId)
+        );
+        await Validate(model);
 
-        ChallengeService ChallengeService { get; } = challengeService;
-        PlayerService PlayerService { get; } = playerService;
-        IHubContext<AppHub, IAppHubEvent> Hub { get; } = hub;
-        ConsoleActorMap ActorMap { get; } = actormap;
+        if (!await _permissionsService.Can(PermissionKey.Play_ChooseChallengeVariant))
+            model.Variant = 0;
 
-        /// <summary>
-        /// Create new challenge instance
-        /// </summary>
-        /// <remarks>Idempotent method to retrieve or create challenge state</remarks>
-        /// <param name="model">NewChallenge</param>
-        /// <returns>Challenge</returns>
-        [HttpPost("api/challenge")]
-        public async Task<Challenge> Create([FromBody] NewChallenge model)
-        {
-            await AuthorizeAny
-            (
-                () => _permissionsService.Can(PermissionKey.Teams_DeployGameResources),
-                () => IsSelf(model.PlayerId)
-            );
-            await Validate(model);
+        var graderUrl = _challengeGraderUrlService.BuildGraderUrl();
+        var result = await ChallengeService.GetOrCreate(model, Actor.Id, graderUrl);
 
-            if (!await _permissionsService.Can(PermissionKey.Play_ChooseChallengeVariant))
-                model.Variant = 0;
+        await Hub.Clients.Group(result.TeamId).ChallengeEvent(
+            new HubEvent<Challenge>
+            {
+                Model = result,
+                Action = EventAction.Updated,
+                ActingUser = Actor.ToSimpleEntity()
+            });
 
-            var graderUrl = _challengeGraderUrlService.BuildGraderUrl();
-            var result = await ChallengeService.GetOrCreate(model, Actor.Id, graderUrl);
+        return result;
+    }
 
-            await Hub.Clients.Group(result.TeamId).ChallengeEvent(
-                new HubEvent<Challenge>
-                {
-                    Model = result,
-                    Action = EventAction.Updated,
-                    ActingUser = Actor.ToSimpleEntity()
-                });
+    /// <summary>
+    /// Retrieve challenge
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
+    [HttpGet("api/challenge/{id}")]
+    public async Task<Challenge> Retrieve([FromRoute] string id)
+    {
+        await AuthorizeAny
+        (
+            () => _permissionsService.Can(PermissionKey.Teams_Observe),
+            () => ChallengeService.UserIsPlayingChallenge(id, Actor.Id)
+        );
 
-            return result;
-        }
+        await Validate(new Entity { Id = id });
 
-        /// <summary>
-        /// Retrieve challenge
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        [HttpGet("api/challenge/{id}")]
-        public async Task<Challenge> Retrieve([FromRoute] string id)
-        {
-            await AuthorizeAny
-            (
-                () => _permissionsService.Can(PermissionKey.Teams_Observe),
-                () => ChallengeService.UserIsPlayingChallenge(id, Actor.Id)
-            );
+        return await ChallengeService.Retrieve(id);
+    }
 
-            await Validate(new Entity { Id = id });
+    /// <summary>
+    /// Retrieve challenge preview
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpPost("api/challenge/preview")]
+    public async Task<Challenge> Preview([FromBody] NewChallenge model)
+    {
+        await Authorize(IsSelf(model.PlayerId));
+        await Validate(model);
 
-            return await ChallengeService.Retrieve(id);
-        }
+        return await ChallengeService.Preview(model);
+    }
 
-        /// <summary>
-        /// Retrieve challenge preview
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpPost("api/challenge/preview")]
-        public async Task<Challenge> Preview([FromBody] NewChallenge model)
-        {
-            await Authorize(IsSelf(model.PlayerId));
-            await Validate(model);
+    /// <summary>
+    /// Start a  challenge gamespace
+    /// </summary>
+    /// <param name="model"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPut("/api/challenge/start")]
+    public async Task<Challenge> StartGamespace([FromBody] ChangedChallenge model, CancellationToken cancellationToken)
+    {
+        await AuthorizeAny
+        (
+            () => _permissionsService.Can(PermissionKey.Teams_DeployGameResources),
+            () => ChallengeService.UserIsPlayingChallenge(model.Id, Actor.Id)
+        );
 
-            return await ChallengeService.Preview(model);
-        }
+        await Validate(model);
 
-        /// <summary>
-        /// Start a  challenge gamespace
-        /// </summary>
-        /// <param name="model"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        [HttpPut("/api/challenge/start")]
-        public async Task<Challenge> StartGamespace([FromBody] ChangedChallenge model, CancellationToken cancellationToken)
-        {
-            await AuthorizeAny
-            (
-                () => _permissionsService.Can(PermissionKey.Teams_DeployGameResources),
-                () => ChallengeService.UserIsPlayingChallenge(model.Id, Actor.Id)
-            );
+        var result = await ChallengeService.StartGamespace(model.Id, Actor.Id, cancellationToken);
 
-            await Validate(model);
+        await Hub.Clients.Group(result.TeamId).ChallengeEvent
+        (
+            new HubEvent<Challenge>
+            {
+                Model = result,
+                Action = EventAction.Updated,
+                ActingUser = Actor.ToSimpleEntity()
+            }
+        );
 
-            var result = await ChallengeService.StartGamespace(model.Id, Actor.Id, cancellationToken);
+        return result;
+    }
 
-            await Hub.Clients.Group(result.TeamId).ChallengeEvent
-            (
-                new HubEvent<Challenge>
-                {
-                    Model = result,
-                    Action = EventAction.Updated,
-                    ActingUser = Actor.ToSimpleEntity()
-                }
-            );
+    /// <summary>
+    /// Stop a challenge gamespace
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpPut("/api/challenge/stop")]
+    public async Task<Challenge> StopGamespace([FromBody] ChangedChallenge model)
+    {
+        await AuthorizeAny
+        (
+            () => _permissionsService.Can(PermissionKey.Teams_DeployGameResources),
+            () => ChallengeService.UserIsPlayingChallenge(model.Id, Actor.Id)
+        );
 
-            return result;
-        }
+        await Validate(new Entity { Id = model.Id });
 
-        /// <summary>
-        /// Stop a challenge gamespace
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpPut("/api/challenge/stop")]
-        public async Task<Challenge> StopGamespace([FromBody] ChangedChallenge model)
-        {
-            await AuthorizeAny
-            (
-                () => _permissionsService.Can(PermissionKey.Teams_DeployGameResources),
-                () => ChallengeService.UserIsPlayingChallenge(model.Id, Actor.Id)
-            );
+        var result = await ChallengeService.StopGamespace(model.Id, Actor.Id);
 
-            await Validate(new Entity { Id = model.Id });
+        await Hub.Clients.Group(result.TeamId).ChallengeEvent
+        (
+            new HubEvent<Challenge>
+            {
+                Model = result,
+                Action = EventAction.Updated,
+                ActingUser = Actor.ToSimpleEntity()
+            }
+        );
 
-            var result = await ChallengeService.StopGamespace(model.Id, Actor.Id);
+        return result;
+    }
 
-            await Hub.Clients.Group(result.TeamId).ChallengeEvent
-            (
-                new HubEvent<Challenge>
-                {
-                    Model = result,
-                    Action = EventAction.Updated,
-                    ActingUser = Actor.ToSimpleEntity()
-                }
-            );
+    /// <summary>
+    /// Grade a challenge
+    /// </summary>
+    /// <param name="model"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPost("/api/challenge/grade")]
+    [HttpPut("/api/challenge/grade")]
+    [Authorize(AppConstants.GraderPolicy)]
+    public async Task<Challenge> Grade([FromBody] GameEngineSectionSubmission model, CancellationToken cancellationToken)
+    {
+        await AuthorizeAny
+        (
+            // this is set by _Controller if the caller authenticated with a grader key
+            () => Task.FromResult(AuthenticatedGraderForChallengeId == model.Id),
+            // these are set if the caller authenticated with standard JWT
+            () => _permissionsService.Can(PermissionKey.Teams_DeployGameResources),
+            () => ChallengeService.UserIsPlayingChallenge(model.Id, Actor.Id)
+        );
 
-            return result;
-        }
+        await Validate(new Entity { Id = model.Id });
 
-        /// <summary>
-        /// Grade a challenge
-        /// </summary>
-        /// <param name="model"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        [HttpPost("/api/challenge/grade")]
-        [HttpPut("/api/challenge/grade")]
-        [Authorize(AppConstants.GraderPolicy)]
-        public async Task<Challenge> Grade([FromBody] GameEngineSectionSubmission model, CancellationToken cancellationToken)
-        {
-            await AuthorizeAny
-            (
-                // this is set by _Controller if the caller authenticated with a grader key
-                () => Task.FromResult(AuthenticatedGraderForChallengeId == model.Id),
-                // these are set if the caller authenticated with standard JWT
-                () => _permissionsService.Can(PermissionKey.Teams_DeployGameResources),
-                () => ChallengeService.UserIsPlayingChallenge(model.Id, Actor.Id)
-            );
+        var result = await ChallengeService.Grade(model, Actor, cancellationToken);
 
-            await Validate(new Entity { Id = model.Id });
+        await Hub.Clients.Group(result.TeamId).ChallengeEvent(
+            new HubEvent<Challenge>
+            {
+                Model = result,
+                Action = EventAction.Updated,
+                ActingUser = Actor.ToSimpleEntity()
+            }
+        );
 
-            var result = await ChallengeService.Grade(model, Actor, cancellationToken);
+        return result;
+    }
 
-            await Hub.Clients.Group(result.TeamId).ChallengeEvent(
-                new HubEvent<Challenge>
-                {
-                    Model = result,
-                    Action = EventAction.Updated,
-                    ActingUser = Actor.ToSimpleEntity()
-                }
-            );
+    /// <summary>
+    /// Regrade a challenge
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpPut("/api/challenge/regrade")]
+    public async Task<Challenge> Regrade([FromBody] Entity model)
+    {
+        await Authorize(_permissionsService.Can(PermissionKey.Scores_RegradeAndRerank));
+        await Validate(model);
+        var result = await ChallengeService.Regrade(model.Id);
 
-            return result;
-        }
+        await Hub.Clients.Group(result.TeamId).ChallengeEvent
+        (
+            new HubEvent<Challenge>
+            {
+                Model = result,
+                Action = EventAction.Updated,
+                ActingUser = Actor.ToSimpleEntity()
+            });
 
-        /// <summary>
-        /// Regrade a challenge
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpPut("/api/challenge/regrade")]
-        public async Task<Challenge> Regrade([FromBody] Entity model)
-        {
-            await Authorize(_permissionsService.Can(PermissionKey.Scores_RegradeAndRerank));
-            await Validate(model);
-            var result = await ChallengeService.Regrade(model.Id);
+        return result;
+    }
 
-            await Hub.Clients.Group(result.TeamId).ChallengeEvent
-            (
-                new HubEvent<Challenge>
-                {
-                    Model = result,
-                    Action = EventAction.Updated,
-                    ActingUser = Actor.ToSimpleEntity()
-                });
+    /// <summary>
+    /// ReGrade a challenge
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
+    [HttpGet("/api/challenge/{id}/audit")]
+    public async Task<IEnumerable<GameEngineSectionSubmission>> Audit([FromRoute] string id)
+    {
+        await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
+        await Validate(new Entity { Id = id });
+        return await ChallengeService.Audit(id);
+    }
 
-            return result;
-        }
+    /// <summary>
+    /// Console action (ticket, reset)
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpPost("/api/challenge/console")]
+    [Authorize(AppConstants.ConsolePolicy)]
+    public async Task<ConsoleSummary> GetConsole([FromBody] ConsoleRequest model)
+    {
+        await Validate(new Entity { Id = model.SessionId });
+        var isTeamMember = await ChallengeService.UserIsPlayingChallenge(model.SessionId, Actor.Id);
+        Logger.LogInformation($"Console access attempt ({model.Id} / {Actor.Id}): User {Actor.Id}, roles {Actor.Role}, on team = {isTeamMember} .");
 
-        /// <summary>
-        /// ReGrade a challenge
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        [HttpGet("/api/challenge/{id}/audit")]
-        public async Task<IEnumerable<GameEngineSectionSubmission>> Audit([FromRoute] string id)
-        {
+        if (!isTeamMember)
             await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
-            await Validate(new Entity { Id = id });
-            return await ChallengeService.Audit(id);
-        }
 
-        /// <summary>
-        /// Console action (ticket, reset)
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpPost("/api/challenge/console")]
-        [Authorize(AppConstants.ConsolePolicy)]
-        public async Task<ConsoleSummary> GetConsole([FromBody] ConsoleRequest model)
-        {
-            await Validate(new Entity { Id = model.SessionId });
-            var isTeamMember = await ChallengeService.UserIsPlayingChallenge(model.SessionId, Actor.Id);
-            Logger.LogInformation($"Console access attempt ({model.Id} / {Actor.Id}): User {Actor.Id}, roles {Actor.Role}, on team = {isTeamMember} .");
+        Logger.LogInformation($"""Console access attempt ({model.Id} / {Actor.Id}): Allowed.""");
+        var result = await ChallengeService.GetConsole(model, isTeamMember.Equals(false));
 
-            if (!isTeamMember)
-                await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
+        if (isTeamMember)
+            ActorMap.Update(await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.ApprovedName));
 
-            Logger.LogInformation($"""Console access attempt ({model.Id} / {Actor.Id}): Allowed.""");
-            var result = await ChallengeService.GetConsole(model, isTeamMember.Equals(false));
+        return result;
+    }
 
-            if (isTeamMember)
-                ActorMap.Update(await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.ApprovedName));
+    /// <summary>
+    /// Console action (ticket, reset)
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpPut("/api/challenge/console")]
+    [Authorize(AppConstants.ConsolePolicy)]
+    public async Task SetConsoleActor([FromBody] ConsoleRequest model)
+    {
+        await Validate(new Entity { Id = model.SessionId });
 
-            return result;
-        }
+        var isTeamMember = await ChallengeService.UserIsPlayingChallenge(model.SessionId, Actor.Id);
+        if (isTeamMember)
+            ActorMap.Update(await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.ApprovedName));
+    }
 
-        /// <summary>
-        /// Console action (ticket, reset)
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpPut("/api/challenge/console")]
-        [Authorize(AppConstants.ConsolePolicy)]
-        public async Task SetConsoleActor([FromBody] ConsoleRequest model)
-        {
-            await Validate(new Entity { Id = model.SessionId });
+    [HttpGet("/api/challenge/consoles")]
+    public async Task<List<ObserveChallenge>> FindConsoles([FromQuery] string gid)
+    {
+        await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
+        return await ChallengeService.GetChallengeConsoles(gid);
+    }
 
-            var isTeamMember = await ChallengeService.UserIsPlayingChallenge(model.SessionId, Actor.Id);
-            if (isTeamMember)
-                ActorMap.Update(await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.ApprovedName));
-        }
+    [HttpGet("/api/challenge/consoleactors")]
+    public async Task<ConsoleActor[]> GetConsoleActors([FromQuery] string gid)
+    {
+        await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
+        return ChallengeService.GetConsoleActors(gid);
+    }
 
-        [HttpGet("/api/challenge/consoles")]
-        public async Task<List<ObserveChallenge>> FindConsoles([FromQuery] string gid)
-        {
-            await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
-            return await ChallengeService.GetChallengeConsoles(gid);
-        }
+    [HttpGet("/api/challenge/consoleactor")]
+    [Authorize(AppConstants.ConsolePolicy)]
+    public async Task<ConsoleActor> GetConsoleActor([FromQuery] string uid)
+    {
+        await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
+        return ChallengeService.GetConsoleActor(uid);
+    }
 
-        [HttpGet("/api/challenge/consoleactors")]
-        public async Task<ConsoleActor[]> GetConsoleActors([FromQuery] string gid)
-        {
-            await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
-            return ChallengeService.GetConsoleActors(gid);
-        }
+    [HttpGet("api/challenge/{challengeId}/solution-guide")]
+    public Task<ChallengeSolutionGuide> GetSolutionGuide([FromRoute] string challengeId)
+        => _mediator.Send(new GetChallengeSolutionGuideQuery(challengeId));
 
-        [HttpGet("/api/challenge/consoleactor")]
-        [Authorize(AppConstants.ConsolePolicy)]
-        public async Task<ConsoleActor> GetConsoleActor([FromQuery] string uid)
-        {
-            await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
-            return ChallengeService.GetConsoleActor(uid);
-        }
+    [HttpGet("api/challenge/{challengeId}/submissions")]
+    public Task<GetChallengeSubmissionsResponse> GetSubmissions([FromRoute] string challengeId)
+        => _mediator.Send(new GetChallengeSubmissionsQuery(challengeId));
 
-        [HttpGet("api/challenge/{challengeId}/solution-guide")]
-        public Task<ChallengeSolutionGuide> GetSolutionGuide([FromRoute] string challengeId)
-            => _mediator.Send(new GetChallengeSolutionGuideQuery(challengeId));
+    [HttpPut("api/challenge/{challengeId}/submissions/pending")]
+    public Task UpdatePendingSubmission([FromRoute] string challengeId, [FromBody] ChallengeSubmissionAnswers submission)
+        => _mediator.Send(new SaveChallengePendingSubmissionCommand(challengeId, submission));
 
-        [HttpGet("api/challenge/{challengeId}/submissions")]
-        public Task<GetChallengeSubmissionsResponse> GetSubmissions([FromRoute] string challengeId)
-            => _mediator.Send(new GetChallengeSubmissionsQuery(challengeId));
+    /// <summary>
+    /// Find challenges
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpGet("/api/challenges")]
+    public async Task<ChallengeSummary[]> List([FromQuery] SearchFilter model)
+    {
+        await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
+        return await ChallengeService.List(model);
+    }
 
-        [HttpPut("api/challenge/{challengeId}/submissions/pending")]
-        public Task UpdatePendingSubmission([FromRoute] string challengeId, [FromBody] ChallengeSubmissionAnswers submission)
-            => _mediator.Send(new SaveChallengePendingSubmissionCommand(challengeId, submission));
+    /// <summary>
+    /// Find challenges by user
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpGet("/api/userchallenges")]
+    public async Task<ChallengeOverview[]> ListByUser([FromQuery] ChallengeSearchFilter model)
+    {
+        var userCanObserve = await _permissionsService.Can(PermissionKey.Teams_Observe);
+        // if not sudo or not specified, search use Actor.Id as uid in filtering
+        if (!userCanObserve || model.uid.IsEmpty())
+            model.uid = Actor.Id;
 
-        /// <summary>
-        /// Find challenges
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpGet("/api/challenges")]
-        public async Task<ChallengeSummary[]> List([FromQuery] SearchFilter model)
-        {
-            await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
-            return await ChallengeService.List(model);
-        }
+        return await ChallengeService.ListByUser(model.uid);
+    }
 
-        /// <summary>
-        /// Find challenges by user
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpGet("/api/userchallenges")]
-        public async Task<ChallengeOverview[]> ListByUser([FromQuery] ChallengeSearchFilter model)
-        {
-            var userCanObserve = await _permissionsService.Can(PermissionKey.Teams_Observe);
-            // if not sudo or not specified, search use Actor.Id as uid in filtering
-            if (!userCanObserve || model.uid.IsEmpty())
-                model.uid = Actor.Id;
+    /// <summary>
+    /// Find archived challenges
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpGet("/api/challenges/archived")]
+    public async Task<ArchivedChallenge[]> ListArchived([FromQuery] SearchFilter model)
+    {
+        await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
+        return await ChallengeService.ListArchived(model);
+    }
 
-            return await ChallengeService.ListByUser(model.uid);
-        }
-
-        /// <summary>
-        /// Find archived challenges
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpGet("/api/challenges/archived")]
-        public async Task<ArchivedChallenge[]> ListArchived([FromQuery] SearchFilter model)
-        {
-            await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
-            return await ChallengeService.ListArchived(model);
-        }
-
-        private async Task<bool> IsSelf(string playerId)
-        {
-            return await PlayerService.MapId(playerId) == Actor.Id;
-        }
+    private async Task<bool> IsSelf(string playerId)
+    {
+        return await PlayerService.MapId(playerId) == Actor.Id;
     }
 }

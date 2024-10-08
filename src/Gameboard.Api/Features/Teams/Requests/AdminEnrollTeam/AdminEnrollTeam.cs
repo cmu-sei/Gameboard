@@ -63,7 +63,7 @@ internal class AdminEnrollTeamHandler : IRequestHandler<AdminEnrollTeamRequest, 
         var actingUser = _actingUserService.Get();
 
         // enlist all and retain the ids
-        var teamUpCode = _guids.GetGuid();
+        var teamUpCode = _guids.Generate();
         var createdPlayers = new List<Api.Player>();
         Api.Player captainPlayer = null;
 

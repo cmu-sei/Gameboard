@@ -3,7 +3,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Text.Json.Serialization;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Users;
 
@@ -77,23 +79,17 @@ public class UserSettings
     public bool PlayAudioOnBrowserNotification { get; set; }
 }
 
-public class UserSimple
-{
-    public string Id { get; set; }
-    public string ApprovedName { get; set; }
-}
-
 public class UserOnly
 {
-    public string Id { get; set; }
-    public string Name { get; set; }
-    public string NameStatus { get; set; }
-    public string ApprovedName { get; set; }
-    public Sponsor Sponsor { get; set; }
-    public DateTimeOffset CreatedOn { get; set; }
-    public DateTimeOffset? LastLoginDate { get; set; }
-    public int LoginCount { get; set; }
-    public UserRoleKey Role { get; set; }
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required string NameStatus { get; set; }
+    public required string ApprovedName { get; set; }
+    public required SponsorWithParentSponsor Sponsor { get; set; }
+    public required DateTimeOffset CreatedOn { get; set; }
+    public required DateTimeOffset? LastLoginDate { get; set; }
+    public required int LoginCount { get; set; }
+    public required UserRoleKey Role { get; set; }
 }
 
 public class TryCreateUserResult
@@ -106,6 +102,8 @@ public class TryCreateUsersRequest
 {
     public required bool AllowSubsetCreation { get; set; }
     public string EnrollInGameId { get; set; }
+    [TypeConverter(typeof(JsonStringEnumConverter))]
+    public UserRoleKey Role { get; set; } = UserRoleKey.Member;
     public required string SponsorId { get; set; }
     public required bool UnsetDefaultSponsorFlag { get; set; }
     public required IEnumerable<string> UserIds { get; set; }

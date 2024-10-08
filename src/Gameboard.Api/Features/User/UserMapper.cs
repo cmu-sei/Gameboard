@@ -13,7 +13,6 @@ namespace Gameboard.Api.Services
 
             CreateMap<Data.User, User>();
             CreateMap<Data.User, TeamMember>();
-            CreateMap<Data.User, UserSimple>();
             CreateMap<Data.User, UserOnly>();
             CreateMap<Data.User, SimpleEntity>()
                 .ForMember(s => s.Name, opt => opt.MapFrom(u => u.ApprovedName));

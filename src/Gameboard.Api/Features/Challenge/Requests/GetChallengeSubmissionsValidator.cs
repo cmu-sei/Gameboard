@@ -6,34 +6,21 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
-using Gameboard.Api.Structure.MediatR.Validators;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Challenges;
 
-internal class GetChallengeSubmissionsValidator : IGameboardRequestValidator<GetChallengeSubmissionsQuery>
+internal class GetChallengeSubmissionsValidator(
+    IActingUserService actingUserService,
+    IUserRolePermissionsService permissionsService,
+    IStore store,
+    IValidatorService<GetChallengeSubmissionsQuery> validatorService
+    ) : IGameboardRequestValidator<GetChallengeSubmissionsQuery>
 {
-    private readonly IActingUserService _actingUserService;
-    private readonly EntityExistsValidator<GetChallengeSubmissionsQuery, Data.Challenge> _challengeExists;
-    private readonly IUserRolePermissionsService _permissionsService;
-    private readonly IStore _store;
-    private readonly IValidatorService<GetChallengeSubmissionsQuery> _validatorService;
-
-    public GetChallengeSubmissionsValidator
-    (
-        IActingUserService actingUserService,
-        EntityExistsValidator<GetChallengeSubmissionsQuery, Data.Challenge> challengeExists,
-        IUserRolePermissionsService permissionsService,
-        IStore store,
-        IValidatorService<GetChallengeSubmissionsQuery> validatorService
-    )
-    {
-        _actingUserService = actingUserService;
-        _challengeExists = challengeExists;
-        _permissionsService = permissionsService;
-        _store = store;
-        _validatorService = validatorService;
-    }
+    private readonly IActingUserService _actingUserService = actingUserService;
+    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
+    private readonly IStore _store = store;
+    private readonly IValidatorService<GetChallengeSubmissionsQuery> _validatorService = validatorService;
 
     public async Task Validate(GetChallengeSubmissionsQuery request, CancellationToken cancellationToken)
     {

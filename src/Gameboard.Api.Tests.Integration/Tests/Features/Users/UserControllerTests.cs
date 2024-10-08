@@ -2,14 +2,9 @@ using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Tests.Integration.Users;
 
-public class UserControllerTests : IClassFixture<GameboardTestContext>
+public class UserControllerTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>
 {
-    private readonly GameboardTestContext _testContext;
-
-    public UserControllerTests(GameboardTestContext testContext)
-    {
-        _testContext = testContext;
-    }
+    private readonly GameboardTestContext _testContext = testContext;
 
     [Theory, GbIntegrationAutoData]
     public async Task Create_WhenDoesntExist_IsCreatedWithIdAndIsNewUser(string userId, IFixture fixture)

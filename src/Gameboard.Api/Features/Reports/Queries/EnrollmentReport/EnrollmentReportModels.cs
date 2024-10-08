@@ -8,6 +8,7 @@ public class EnrollmentReportParameters
     public DateTimeOffset? EnrollDateStart { get; set; }
     public DateTimeOffset? EnrollDateEnd { get; set; }
     public string Games { get; set; }
+    public EnrollmentReportLineChartPeriod? TrendPeriod { get; set; }
     public string Seasons { get; set; }
     public string Series { get; set; }
     public string Sponsors { get; set; }
@@ -125,6 +126,22 @@ public class EnrollmentReportManualChallengeBonus
 {
     public required string Description { get; set; }
     public required double Points { get; set; }
+}
+
+public sealed class EnrollmentReportLineChartResponse
+{
+    public required IDictionary<DateTimeOffset, EnrollmentReportLineChartGroup> PlayerGroups { get; set; }
+    public required EnrollmentReportLineChartPeriod PeriodType { get; set; }
+    public required DateTimeOffset PeriodStart { get; set; }
+    public required DateTimeOffset PeriodEnd { get; set; }
+}
+
+public enum EnrollmentReportLineChartPeriod
+{
+    All,
+    Day,
+    Week,
+    Month,
 }
 
 public sealed class EnrollmentReportLineChartGroup

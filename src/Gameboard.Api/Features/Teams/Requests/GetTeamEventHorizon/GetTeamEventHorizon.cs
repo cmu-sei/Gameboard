@@ -106,7 +106,7 @@ internal class GetTeamEventHorizonHandler : IRequestHandler<GetTeamEventHorizonQ
             {
                 // we present these with an Id because the client needs to be able
                 // to differentiate between events, but we don't have a real representation of this
-                Id = _guidService.GetGuid(),
+                Id = _guidService.Generate(),
                 ChallengeId = c.Id,
                 Type = EventHorizonEventType.ChallengeStarted,
                 Timestamp = c.StartTime

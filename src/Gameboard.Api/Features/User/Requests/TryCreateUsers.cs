@@ -15,35 +15,24 @@ namespace Gameboard.Api.Features.Users;
 
 public sealed record TryCreateUsersCommand(TryCreateUsersRequest Request) : IRequest<TryCreateUsersResponse>;
 
-internal sealed class TryCreateUsersHandler : IRequestHandler<TryCreateUsersCommand, TryCreateUsersResponse>
+internal sealed class TryCreateUsersHandler
+(
+    IActingUserService actingUserService,
+    EntityExistsValidator<TryCreateUsersCommand, Data.Game> gameExists,
+    PlayerService playerService,
+    EntityExistsValidator<TryCreateUsersCommand, Data.Sponsor> sponsorExists,
+    IStore store,
+    UserService userService,
+    IValidatorService<TryCreateUsersCommand> validator
+    ) : IRequestHandler<TryCreateUsersCommand, TryCreateUsersResponse>
 {
-    private readonly IActingUserService _actingUserService;
-    private readonly EntityExistsValidator<TryCreateUsersCommand, Data.Game> _gameExists;
-    private readonly PlayerService _playerService;
-    private readonly EntityExistsValidator<TryCreateUsersCommand, Data.Sponsor> _sponsorExists;
-    private readonly IStore _store;
-    private readonly UserService _userService;
-    private readonly IValidatorService<TryCreateUsersCommand> _validator;
-
-    public TryCreateUsersHandler
-    (
-        IActingUserService actingUserService,
-        EntityExistsValidator<TryCreateUsersCommand, Data.Game> gameExists,
-        PlayerService playerService,
-        EntityExistsValidator<TryCreateUsersCommand, Data.Sponsor> sponsorExists,
-        IStore store,
-        UserService userService,
-        IValidatorService<TryCreateUsersCommand> validator
-    )
-    {
-        _actingUserService = actingUserService;
-        _gameExists = gameExists;
-        _playerService = playerService;
-        _sponsorExists = sponsorExists;
-        _store = store;
-        _userService = userService;
-        _validator = validator;
-    }
+    private readonly IActingUserService _actingUserService = actingUserService;
+    private readonly EntityExistsValidator<TryCreateUsersCommand, Data.Game> _gameExists = gameExists;
+    private readonly PlayerService _playerService = playerService;
+    private readonly EntityExistsValidator<TryCreateUsersCommand, Data.Sponsor> _sponsorExists = sponsorExists;
+    private readonly IStore _store = store;
+    private readonly UserService _userService = userService;
+    private readonly IValidatorService<TryCreateUsersCommand> _validator = validator;
 
     public async Task<TryCreateUsersResponse> Handle(TryCreateUsersCommand request, CancellationToken cancellationToken)
     {
@@ -54,17 +43,17 @@ internal sealed class TryCreateUsersHandler : IRequestHandler<TryCreateUsersComm
         if (!request.Request.AllowSubsetCreation)
         {
             _validator.AddValidator(async (req, ctx) =>
-        {
-            var userIds = req.Request.UserIds.ToArray();
-            var existingUserIds = await _store
-                .WithNoTracking<Data.User>()
-                .Where(u => userIds.Contains(u.Id))
-                .Select(u => u.Id)
-                .ToArrayAsync(cancellationToken);
+            {
+                var userIds = req.Request.UserIds.ToArray();
+                var existingUserIds = await _store
+                    .WithNoTracking<Data.User>()
+                    .Where(u => userIds.Contains(u.Id))
+                    .Select(u => u.Id)
+                    .ToArrayAsync(cancellationToken);
 
-            if (existingUserIds.Length != 0)
-                ctx.AddValidationException(new CantCreateExistingUsers(existingUserIds));
-        });
+                if (existingUserIds.Length != 0)
+                    ctx.AddValidationException(new CantCreateExistingUsers(existingUserIds));
+            });
         }
 
         if (request.Request.EnrollInGameId.IsNotEmpty())

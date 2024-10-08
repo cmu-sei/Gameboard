@@ -49,7 +49,7 @@ internal class SetCompetitiveCertificateIsPublishedHandler : IRequestHandler<Set
         {
             var publish = new PublishedCompetitiveCertificate
             {
-                Id = _guidService.GetGuid(),
+                Id = _guidService.Generate(),
                 OwnerUserId = request.ActingUser.Id,
                 PublishedOn = _nowService.Get(),
                 GameId = request.GameId

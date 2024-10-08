@@ -22,14 +22,15 @@ public sealed class UserActiveChallenges
     public required IEnumerable<ActiveChallenge> Competition { get; set; }
 }
 
-internal class GetUserActiveChallengesHandler(
+internal class GetUserActiveChallengesHandler
+(
     IGameEngineService gameEngine,
     INowService now,
     IStore store,
     ITimeWindowService timeWindowService,
     EntityExistsValidator<GetUserActiveChallengesQuery, Data.User> userExists,
     IValidatorService<GetUserActiveChallengesQuery> validator
-    ) : IRequestHandler<GetUserActiveChallengesQuery, UserActiveChallenges>
+) : IRequestHandler<GetUserActiveChallengesQuery, UserActiveChallenges>
 {
     private readonly IGameEngineService _gameEngine = gameEngine;
     private readonly INowService _now = now;
@@ -68,6 +69,7 @@ internal class GetUserActiveChallengesHandler(
             .OrderByDescending(c => c.Player.SessionEnd)
             .Select(c => new
             {
+                c.Id,
                 // have to join spec separately later to get the names/other properties
                 Spec = new ActiveChallengeSpec
                 {
@@ -113,31 +115,32 @@ internal class GetUserActiveChallengesHandler(
         // now do client side eval
         foreach (var challenge in challenges)
         {
-            if (specs.ContainsKey(challenge.Spec.Id))
+            if (specs.TryGetValue(challenge.Spec.Id, out Data.ChallengeSpec value))
             {
-                challenge.Spec.Name = specs[challenge.Spec.Id].Name;
-                challenge.Spec.Tag = specs[challenge.Spec.Id].Tag;
-                challenge.Spec.AverageDeploySeconds = specs[challenge.Spec.Id].AverageDeploySeconds;
+                challenge.Spec.Name = value.Name;
+                challenge.Spec.Tag = value.Tag;
+                challenge.Spec.AverageDeploySeconds = value.AverageDeploySeconds;
             }
 
             // we need the state json as an object so we don't lose our minds and to make some decisions
             var state = await _gameEngine.GetChallengeState(challenge.GameEngineType, challenge.State);
 
             // set attempt info
-            challenge.ScoreAndAttemptsState.Attempts = state.Challenge.Attempts;
-            challenge.ScoreAndAttemptsState.MaxAttempts = state.Challenge.MaxAttempts > 0 ? state.Challenge.MaxAttempts : null;
+            challenge.ScoreAndAttemptsState.Attempts = state.Challenge?.Attempts ?? 0;
+            challenge.ScoreAndAttemptsState.MaxAttempts = state.Challenge?.MaxAttempts > 0 ? state.Challenge?.MaxAttempts : null;
 
             // currently, topomojo sends an empty VM list when the vms are turned off, so we use this to 
             // proxy whether the challenge is deployed. hopefully topo will eventually send VMs with
             // isRunning = false when asked, so we're making these separate concepts on the API surface
-            challenge.ChallengeDeployment.IsDeployed = state.Vms.Any();
-            challenge.ChallengeDeployment.Vms = state.Vms;
+            challenge.ChallengeDeployment.IsDeployed = state?.Vms.Any() ?? false;
+            challenge.ChallengeDeployment.Vms = state.Vms ?? [];
             // now that we have the state, we can also read the final challenge document (which may different than the spec due to transforms or etc.)
             challenge.ChallengeDeployment.Markdown = state.Markdown;
         }
 
         var typedChallenges = challenges.Select(c => new ActiveChallenge
         {
+            Id = c.Id,
             Spec = c.Spec,
             Game = c.Game,
             Player = c.Player,

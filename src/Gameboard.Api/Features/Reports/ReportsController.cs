@@ -35,7 +35,7 @@ public class ReportsController(
         => _mediator.Send(new EnrollmentReportSummaryStatsQuery(parameters));
 
     [HttpGet("enrollment/trend")]
-    public Task<IDictionary<DateTimeOffset, EnrollmentReportLineChartGroup>> GetEnrollmentReportLineChart([FromQuery] EnrollmentReportParameters parameters)
+    public Task<EnrollmentReportLineChartResponse> GetEnrollmentReportLineChart([FromQuery] EnrollmentReportParameters parameters)
         => _mediator.Send(new EnrollmentReportLineChartQuery(parameters));
 
     [HttpGet("enrollment/by-game")]

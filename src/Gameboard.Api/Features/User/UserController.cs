@@ -150,10 +150,9 @@ public class UserController(
     /// Find users
     /// </summary>
     /// <param name="model"></param>
-    /// <param name="cancellationToken"></param>
     /// <returns>UserOnly[]</returns>
     [HttpGet("/api/users")]
-    public async Task<IEnumerable<UserOnly>> List([FromQuery] UserSearch model, CancellationToken cancellationToken)
+    public async Task<IEnumerable<UserOnly>> List([FromQuery] UserSearch model)
     {
         await Authorize(_permissionsService.Can(PermissionKey.Admin_View));
         return await UserService.List<UserOnly>(model);
@@ -165,7 +164,7 @@ public class UserController(
     /// <param name="model"></param>
     /// <returns>User[]</returns>
     [HttpGet("/api/users/support")]
-    public async Task<UserSimple[]> ListSupport([FromQuery] SearchFilter model)
+    public async Task<SimpleEntity[]> ListSupport([FromQuery] SearchFilter model)
     {
         await Authorize(_permissionsService.Can(PermissionKey.Support_ManageTickets));
         return await UserService.ListSupport(model);
@@ -179,7 +178,7 @@ public class UserController(
     [HttpPost("/api/user/ticket")]
     public async Task<IActionResult> GetTicket()
     {
-        string ticket = _guids.GetGuid();
+        string ticket = _guids.Generate();
 
         await Cache.SetStringAsync(
             $"{TicketAuthentication.TicketCachePrefix}{ticket}",

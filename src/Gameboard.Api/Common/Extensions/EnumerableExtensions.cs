@@ -21,16 +21,16 @@ public static class EnumerableExtensions
         return enumerable.OrderBy(orderBy);
     }
 
-    public static IOrderedQueryable<TSort> Sort<TSort, TKey>(this IOrderedQueryable<TSort> query, Expression<Func<TSort, TKey>> orderBy, SortDirection sortDirection = SortDirection.Asc)
+    public static IOrderedQueryable<TSort> Sort<TSort, TKey>(this IQueryable<TSort> query, Expression<Func<TSort, TKey>> orderBy, SortDirection? sortDirection = SortDirection.Asc)
     {
-        if (sortDirection == SortDirection.Asc)
-            return query.OrderBy(orderBy);
+        if (sortDirection == SortDirection.Desc)
+            return query.OrderByDescending(orderBy);
 
-        return query.OrderByDescending(orderBy);
+        return query.OrderBy(orderBy);
     }
 
     public static IEnumerable<T> ToEnumerable<T>(this T thing)
-        => new T[] { thing };
+        => [thing];
 
     // for logging
     public static string ToDelimited(this IEnumerable<string> enumerable, string delimiter = ", ")

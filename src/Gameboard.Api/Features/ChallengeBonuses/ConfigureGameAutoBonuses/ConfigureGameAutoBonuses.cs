@@ -83,7 +83,7 @@ internal class ConfigureGameAutoBonusesHandler(
     {
         var newBonusEntities = bonuses.Select(b => new Data.ChallengeBonusCompleteSolveRank
         {
-            Id = _guids.GetGuid(),
+            Id = _guids.Generate(),
             Description = b.Description,
             PointValue = b.PointValue,
             SolveRank = b.SolveRank,

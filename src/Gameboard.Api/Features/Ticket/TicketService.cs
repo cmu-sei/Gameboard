@@ -20,21 +20,22 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Services;
 
-public class TicketService(
-        IActingUserService actingUserService,
-        IAutoTagService autoTagService,
-        IFileUploadService fileUploadService,
-        IGuidService guids,
-        ILogger<TicketService> logger,
-        IMapper mapper,
-        IMediator mediator,
-        INowService now,
-        CoreOptions options,
-        IUserRolePermissionsService permissionsService,
-        IStore store,
-        ISupportHubBus supportHubBus,
-        ITeamService teamService
-        ) : _Service(logger, mapper, options)
+public class TicketService
+(
+    IActingUserService actingUserService,
+    IAutoTagService autoTagService,
+    IFileUploadService fileUploadService,
+    IGuidService guids,
+    ILogger<TicketService> logger,
+    IMapper mapper,
+    IMediator mediator,
+    INowService now,
+    CoreOptions options,
+    IUserRolePermissionsService permissionsService,
+    IStore store,
+    ISupportHubBus supportHubBus,
+    ITeamService teamService
+) : _Service(logger, mapper, options)
 {
     private readonly IActingUserService _actingUserService = actingUserService;
     private readonly IAutoTagService _autoTagService = autoTagService;
@@ -68,7 +69,8 @@ public class TicketService(
             var prefix = Options.KeyPrefix.ToLower() + "-";
             q = q.Where
             (
-                t => t.Summary.ToLower().Contains(term) ||
+                t =>
+                    t.Summary.ToLower().Contains(term) ||
                     t.Label.ToLower().Contains(term) ||
                     (prefix + t.Key.ToString()).Contains(term) ||
                     t.Requester.ApprovedName.ToLower().Contains(term) ||
@@ -79,7 +81,6 @@ public class TicketService(
                     t.TeamId.ToLower().Contains(term) ||
                     t.PlayerId.ToLower().Contains(term) ||
                     t.RequesterId.ToLower().Contains(term)
-
             );
         }
 
@@ -119,7 +120,7 @@ public class TicketService(
         entity.LastUpdated = timestamp;
 
         // generate the insertion guid now so we can use it for file uploads
-        entity.Id = _guids.GetGuid();
+        entity.Id = _guids.Generate();
 
         // upload files
         var uploads = await _fileUploadService.Upload(Path.Combine(Options.SupportUploadsFolder, entity.Id), model.Uploads);
@@ -331,7 +332,7 @@ public class TicketService(
 
         var commentActivity = new Data.TicketActivity
         {
-            Id = _guids.GetGuid(),
+            Id = _guids.Generate(),
             UserId = actorId,
             Message = model.Message,
             Type = ActivityType.Comment,
@@ -454,14 +455,13 @@ public class TicketService(
 
     public async Task<bool> UserCanUpdate(string ticketId, string userId)
     {
-        var ticket = await BuildTicketSearchQuery(ticketId).SingleAsync();
+        var ticket = await BuildTicketSearchQuery(ticketId).SingleOrDefaultAsync();
         if (ticket == null)
             return false;
 
         var updateUntilTime = DateTimeOffset.UtcNow.Add(new TimeSpan(0, -5, 0));
-        if (ticket.RequesterId == userId && ticket.Created > updateUntilTime)
-            return true;
-        return false;
+
+        return ticket.RequesterId == userId && ticket.Created > updateUntilTime;
     }
 
     internal IEnumerable<string> TransformTicketLabels(string labels)
@@ -469,12 +469,11 @@ public class TicketService(
         if (labels.IsEmpty())
             return [];
 
-        return labels.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries);
+        return labels.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
     private async Task UpdatedSessionContext(Data.Ticket entity)
     {
-
         if (!entity.ChallengeId.IsEmpty())
         {
             var challenge = await _store
@@ -530,7 +529,7 @@ public class TicketService(
         {
             var statusActivity = new Data.TicketActivity
             {
-                Id = _guids.GetGuid(),
+                Id = _guids.Generate(),
                 UserId = actorId,
                 Status = entity.Status,
                 Type = ActivityType.StatusChange,
@@ -542,7 +541,7 @@ public class TicketService(
         {
             var assigneeActivity = new Data.TicketActivity
             {
-                Id = _guids.GetGuid(),
+                Id = _guids.Generate(),
                 UserId = actorId,
                 AssigneeId = entity.AssigneeId,
                 Type = ActivityType.AssigneeChange,
@@ -593,7 +592,7 @@ public class TicketService(
 
         return new TicketUser()
         {
-            ApprovedName = user.ApprovedName,
+            Name = user.ApprovedName,
             Id = user.Id,
             IsSupportPersonnel = await _permissionsService.Can(PermissionKey.Support_ManageTickets),
         };

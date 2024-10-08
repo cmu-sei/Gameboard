@@ -13,6 +13,16 @@ public class TicketMapper : Profile
 
     public TicketMapper()
     {
+        JsonOptions = new JsonSerializerOptions
+        {
+            AllowTrailingCommas = true,
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+        JsonOptions.Converters.Add(
+            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
+        );
+
         CreateMap<string[], string>()
             .ConvertUsing(arr => JsonSerializer.Serialize(arr, JsonOptions));
 
@@ -21,9 +31,19 @@ public class TicketMapper : Profile
                 JsonSerializer.Deserialize<string[]>(s.Attachments, JsonOptions))
             );
 
+        CreateMap<Data.User, TicketUser>()
+            .ForMember(d => d.IsSupportPersonnel, opt => opt.Ignore())
+            .ForMember(d => d.Name, opt => opt.MapFrom(s => s.ApprovedName ?? s.Name));
+
         CreateMap<Ticket, Data.Ticket>();
         CreateMap<Ticket, TicketSummary>();
-        CreateMap<Data.Ticket, TicketSummary>();
+        CreateMap<Data.Ticket, TicketSummary>()
+            .AfterMap((s, d) =>
+            {
+                d.Assignee.Name = s.Assignee?.ApprovedName;
+                d.Creator.Name = s.Creator?.ApprovedName;
+                d.Requester.Name = s.Requester?.ApprovedName;
+            });
 
         CreateMap<NewTicket, SelfNewTicket>();
 
@@ -35,24 +55,11 @@ public class TicketMapper : Profile
         CreateMap<SelfChangedTicket, Data.Ticket>();
 
         CreateMap<Data.TicketActivity, TicketActivity>()
-            .ForMember(d => d.Attachments, opt => opt.MapFrom(s =>
-                JsonSerializer.Deserialize<string[]>(s.Attachments, JsonOptions))
-            )
+            .ForMember(d => d.Attachments, opt => opt.MapFrom(s => JsonSerializer.Deserialize<string[]>(s.Attachments, JsonOptions)))
+            .ForMember(d => d.User, opt => opt.MapFrom(s => s.User))
         ;
 
         CreateMap<Ticket, TicketNotification>();
         CreateMap<TicketActivity, TicketNotification>();
-        CreateMap<Data.User, TicketUser>()
-            .ForMember(d => d.IsSupportPersonnel, opt => opt.Ignore());
-
-        JsonOptions = new JsonSerializerOptions
-        {
-            AllowTrailingCommas = true,
-            WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-        JsonOptions.Converters.Add(
-            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
-        );
     }
 }
