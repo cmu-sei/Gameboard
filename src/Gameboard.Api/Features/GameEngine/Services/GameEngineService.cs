@@ -188,14 +188,12 @@ public class GameEngineService(
     }
 
     public IEnumerable<GameEngineGamespaceVm> GetGamespaceVms(GameEngineGameState state)
-    {
-        return state.Vms.Select(vm => new GameEngineGamespaceVm
+        => state.Vms.Select(vm => new GameEngineGamespaceVm
         {
             Id = vm.Id,
             Name = vm.Name,
             Url = _vmUrlResolver.ResolveUrl(vm)
-        });
-    }
+        }).ToArray();
 
     public async Task<IEnumerable<GameEngineSectionSubmission>> AuditChallenge(Data.Challenge entity)
     {
