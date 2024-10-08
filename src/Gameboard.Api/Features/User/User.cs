@@ -81,15 +81,15 @@ public class UserSettings
 
 public class UserOnly
 {
-    public string Id { get; set; }
-    public string Name { get; set; }
-    public string NameStatus { get; set; }
-    public string ApprovedName { get; set; }
-    public SponsorWithParentSponsor Sponsor { get; set; }
-    public DateTimeOffset CreatedOn { get; set; }
-    public DateTimeOffset? LastLoginDate { get; set; }
-    public int LoginCount { get; set; }
-    public UserRoleKey Role { get; set; }
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required string NameStatus { get; set; }
+    public required string ApprovedName { get; set; }
+    public required SponsorWithParentSponsor Sponsor { get; set; }
+    public required DateTimeOffset CreatedOn { get; set; }
+    public required DateTimeOffset? LastLoginDate { get; set; }
+    public required int LoginCount { get; set; }
+    public required UserRoleKey Role { get; set; }
 }
 
 public class TryCreateUserResult

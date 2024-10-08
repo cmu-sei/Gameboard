@@ -14,16 +14,17 @@ using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.Scores;
+using Gameboard.Api.Features.Users;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using ServiceStack;
-using Gameboard.Api.Features.Users;
 
 namespace Gameboard.Api.Services;
 
-public partial class ChallengeService(
+public partial class ChallengeService
+(
     IActingUserService actingUserService,
     ConsoleActorMap actorMap,
     CoreOptions coreOptions,
@@ -42,7 +43,7 @@ public partial class ChallengeService(
     IUserRolePermissionsService permissionsService,
     IStore store,
     ITeamService teamService
-    ) : _Service(logger, mapper, coreOptions)
+) : _Service(logger, mapper, coreOptions)
 {
     private readonly IActingUserService _actingUserService = actingUserService;
     private readonly ConsoleActorMap _actorMap = actorMap;
@@ -177,16 +178,16 @@ public partial class ChallengeService(
         await _gameEngine.DeleteGamespace(entity);
     }
 
-    public async Task<bool> UserIsPlayingChallenge(string id, string subjectId)
+    public async Task<bool> UserIsPlayingChallenge(string challengeId, string userId)
     {
         var challengeTeamId = await _store
             .WithNoTracking<Data.Challenge>()
-            .Where(c => c.Id == id)
+            .Where(c => c.Id == challengeId)
             .Select(c => c.TeamId)
             .Distinct()
             .SingleOrDefaultAsync();
 
-        var userTeamIds = await _teamService.GetUserTeamIds(subjectId);
+        var userTeamIds = await _teamService.GetUserTeamIds(userId);
         return userTeamIds.Any(tId => tId == challengeTeamId);
     }
 
@@ -735,14 +736,19 @@ public partial class ChallengeService(
         challenge.StartTime = state.StartTime;
         challenge.LastSyncTime = _now.Get();
 
-        // even if a specific end time isn't set, use the expiration time instead
-        if (state.EndTime.IsNotEmpty())
+        // if we haven't already resolved the endtime
+        if (challenge.EndTime.IsEmpty())
         {
-            challenge.EndTime = state.EndTime;
-        }
-        else if (state.ExpirationTime.IsNotEmpty())
-        {
-            challenge.EndTime = state.ExpirationTime;
+            // prefer the state's end time
+            if (state.EndTime.IsNotEmpty())
+            {
+                challenge.EndTime = state.EndTime;
+            }
+            // but fall back on the expiration time
+            else if (state.ExpirationTime.IsNotEmpty())
+            {
+                challenge.EndTime = state.ExpirationTime;
+            }
         }
 
         challenge.Events.Add(new ChallengeEvent

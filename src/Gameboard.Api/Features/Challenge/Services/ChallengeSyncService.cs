@@ -126,7 +126,8 @@ internal class ChallengeSyncService : IChallengeSyncService
                     (
                         up => up
                             .SetProperty(c => c.LastSyncTime, now)
-                            .SetProperty(c => c.EndTime, c => playerSessionEnds.ContainsKey(challenge.PlayerId) ? playerSessionEnds[challenge.PlayerId] : c.EndTime)
+                            .SetProperty(c => c.EndTime, c => playerSessionEnds.ContainsKey(challenge.PlayerId) ? playerSessionEnds[challenge.PlayerId] : c.EndTime),
+                        cancellationToken
                     );
             }
             catch (Exception ex)

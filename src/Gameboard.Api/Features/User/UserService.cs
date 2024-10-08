@@ -266,6 +266,10 @@ public class UserService
             Name = u.Name,
             NameStatus = u.NameStatus,
             ApprovedName = u.ApprovedName,
+            CreatedOn = u.CreatedOn,
+            LastLoginDate = u.LastLoginDate,
+            LoginCount = u.LoginCount,
+            Role = u.Role,
             Sponsor = new SponsorWithParentSponsor
             {
                 Id = u.SponsorId,
