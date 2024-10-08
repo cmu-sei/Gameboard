@@ -178,16 +178,16 @@ public partial class ChallengeService
         await _gameEngine.DeleteGamespace(entity);
     }
 
-    public async Task<bool> UserIsPlayingChallenge(string id, string subjectId)
+    public async Task<bool> UserIsPlayingChallenge(string challengeId, string userId)
     {
         var challengeTeamId = await _store
             .WithNoTracking<Data.Challenge>()
-            .Where(c => c.Id == id)
+            .Where(c => c.Id == challengeId)
             .Select(c => c.TeamId)
             .Distinct()
             .SingleOrDefaultAsync();
 
-        var userTeamIds = await _teamService.GetUserTeamIds(subjectId);
+        var userTeamIds = await _teamService.GetUserTeamIds(userId);
         return userTeamIds.Any(tId => tId == challengeTeamId);
     }
 
