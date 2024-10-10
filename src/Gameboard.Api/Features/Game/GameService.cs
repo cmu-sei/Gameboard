@@ -134,10 +134,8 @@ public class GameService(
 
     public async Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false)
     {
-        var games = await BuildSearchQuery(model, sudo)
-            .ToArrayAsync();
+        var games = await BuildSearchQuery(model, sudo).ToArrayAsync();
 
-        // Use Map instead of 'Mapper.ProjectTo<Game>' to support YAML parsing in automapper
         return Mapper.Map<IEnumerable<Game>>(games);
     }
 

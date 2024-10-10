@@ -224,10 +224,6 @@ public class GameEngineService(
                     "",             // audience
                     "",             // scope
                     1,              // doc
-                    null,           // wants audience?
-                    null,           // wants managed?
-                    null,           // wants doc?
-                    null,           // wants partial doc?
                     model.Term,
                     model.Skip,
                     model.Take,
