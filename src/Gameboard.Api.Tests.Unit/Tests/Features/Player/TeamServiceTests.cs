@@ -18,7 +18,6 @@ public class TeamServiceTests
         var sut = new TeamService
         (
             A.Fake<IActingUserService>(),
-            A.Fake<ICacheService>(),
             A.Fake<IGameEngineService>(),
             A.Fake<IMapper>(),
             A.Fake<IMediator>(),

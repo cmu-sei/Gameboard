@@ -42,44 +42,26 @@ public interface ITeamService
     Task SetSessionWindow(IEnumerable<string> teamIds, CalculatedSessionWindow sessionWindow, CancellationToken cancellationToken);
 }
 
-internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNotification>
+internal class TeamService
+(
+    IActingUserService actingUserService,
+    IGameEngineService gameEngine,
+    IMapper mapper,
+    IMediator mediator,
+    INowService now,
+    IInternalHubBus teamHubService,
+    IPracticeService practiceService,
+    IStore store
+    ) : ITeamService
 {
-    private readonly IActingUserService _actingUserService;
-    private readonly ICacheService _cacheService;
-    private readonly IGameEngineService _gameEngine;
-    private readonly IMapper _mapper;
-    private readonly IMediator _mediator;
-    private readonly INowService _now;
-    private readonly IInternalHubBus _hubBus;
-    private readonly IPracticeService _practiceService;
-    private readonly IStore _store;
-
-    public TeamService
-    (
-        IActingUserService actingUserService,
-        ICacheService cacheService,
-        IGameEngineService gameEngine,
-        IMapper mapper,
-        IMediator mediator,
-        INowService now,
-        IInternalHubBus teamHubService,
-        IPracticeService practiceService,
-        IStore store
-    )
-    {
-        _actingUserService = actingUserService;
-        _cacheService = cacheService;
-        _gameEngine = gameEngine;
-        _mapper = mapper;
-        _mediator = mediator;
-        _now = now;
-        _practiceService = practiceService;
-        _store = store;
-        _hubBus = teamHubService;
-    }
-
-    public Task Handle(UserJoinedTeamNotification notification, CancellationToken cancellationToken)
-        => Task.Run(() => _cacheService.Invalidate(GetUserTeamIdsCacheKey(notification.UserId)), cancellationToken);
+    private readonly IActingUserService _actingUserService = actingUserService;
+    private readonly IGameEngineService _gameEngine = gameEngine;
+    private readonly IMapper _mapper = mapper;
+    private readonly IMediator _mediator = mediator;
+    private readonly INowService _now = now;
+    private readonly IInternalHubBus _hubBus = teamHubService;
+    private readonly IPracticeService _practiceService = practiceService;
+    private readonly IStore _store = store;
 
     public async Task<IEnumerable<Api.Player>> AddPlayers(string teamId, CancellationToken cancellationToken, params string[] playerIds)
     {
@@ -399,22 +381,13 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
     }
 
     public Task<string[]> GetUserTeamIds(string userId)
-        => _cacheService.GetOrCreateAsync
-        (
-            GetUserTeamIdsCacheKey(userId),
-            async entry =>
-            {
-                var userTeamIds = await _store
-                    .WithNoTracking<Data.Player>()
-                    .Where(p => p.UserId == userId)
-                    .Select(p => p.TeamId)
-                    .Distinct()
-                    .ToArrayAsync();
+        => _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.UserId == userId)
+            .Select(p => p.TeamId)
+            .Distinct()
+            .ToArrayAsync();
 
-                entry.Value = userTeamIds;
-                return userTeamIds;
-            }
-        );
 
     public async Task<bool> IsAtGamespaceLimit(string teamId, Data.Game game, CancellationToken cancellationToken)
     {
@@ -583,7 +556,4 @@ internal class TeamService : ITeamService, INotificationHandler<UserJoinedTeamNo
             Actor = actor
         };
     }
-
-    private string GetUserTeamIdsCacheKey(string userId)
-        => $"UserTeamIds:{userId}";
 }
