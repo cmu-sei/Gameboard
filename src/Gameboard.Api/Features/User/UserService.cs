@@ -242,17 +242,28 @@ public class UserService
                 query = query.Where(u => !splitIds.Contains(u.Id));
         }
 
-        if (model.Sort.Contains("lastLogin", StringComparison.CurrentCultureIgnoreCase))
+        var sorted = false;
+        if (model.Sort.IsNotEmpty())
         {
-            query = query.Sort(u => u.LastLoginDate, model.SortDirection);
+            if (model.Sort.Contains("lastLogin", StringComparison.CurrentCultureIgnoreCase))
+            {
+                query = query.Sort(u => u.LastLoginDate, model.SortDirection);
+            }
+            else if (model.Sort.Contains("createdOn"))
+            {
+                query = query.Sort(u => u.CreatedOn, model.SortDirection);
+            }
+            else
+            {
+                query.Sort(u => u.ApprovedName, model.SortDirection);
+            }
+
+            sorted = true;
         }
-        else if (model.Sort.Contains("createdOn"))
+
+        if (!sorted)
         {
-            query = query.Sort(u => u.CreatedOn, model.SortDirection);
-        }
-        else
-        {
-            query = query.Sort(u => u.ApprovedName, model.SortDirection);
+            query = query.Sort(u => u.ApprovedName);
         }
 
         query = query.Skip(model.Skip);

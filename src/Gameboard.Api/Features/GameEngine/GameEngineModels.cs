@@ -93,14 +93,13 @@ public class GameEngineChallengeView
 
 public class GameEngineQuestionView
 {
-    [Required] public string Answer { get; set; }
-    public string Example { get; set; }
+    public required string Text { get; set; }
+    public string Answer { get; set; }
     public string Hint { get; set; }
-    [Required] public bool IsCorrect { get; set; }
-    [Required] public bool IsGraded { get; set; }
-    [Required] public float Penalty { get; set; }
-    [Required] public string Text { get; set; }
-    [Required] public float Weight { get; set; }
+    public string Example { get; set; }
+    public required float Weight { get; set; }
+    public required bool IsCorrect { get; set; }
+    public required bool IsGraded { get; set; }
 }
 
 public class GameEngineSectionSubmission
