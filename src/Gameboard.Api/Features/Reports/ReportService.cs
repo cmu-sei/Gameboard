@@ -74,9 +74,9 @@ namespace Gameboard.Api.Services
 
         internal Task<GameSponsorReport> GetGameSponsorsStats(string gameId)
         {
-            List<GameSponsorStat> gameSponsorStats = new List<GameSponsorStat>();
+            var gameSponsorStats = new List<GameSponsorStat>();
 
-            if (string.IsNullOrWhiteSpace(gameId))
+            if (gameId.IsEmpty())
                 throw new ArgumentNullException("Invalid game id");
 
             var game = _store

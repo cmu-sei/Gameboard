@@ -72,6 +72,19 @@ public partial class ChallengeService
         return await Create(model, actorId, graderUrl, CancellationToken.None);
     }
 
+    public IEnumerable<string> GetTags(Data.ChallengeSpec spec)
+    {
+        if (spec.Tags.IsEmpty())
+            return [];
+
+        return CommonRegexes
+            .WhitespaceGreedy
+            .Split(spec.Tags)
+            .Select(m => m.Trim().ToLower())
+            .Where(m => m.IsNotEmpty())
+            .ToArray();
+    }
+
     public async Task<Challenge> Create(NewChallenge model, string actorId, string graderUrl, CancellationToken cancellationToken)
     {
         var now = _now.Get();
