@@ -166,7 +166,7 @@ internal class EnrollmentReportService(
                 PlayTime = new EnrollmentReportPlayTimeViewModel
                 {
                     Start = p.SessionBegin.HasValue() ? p.SessionBegin : null,
-                    DurationMs = p.Time > 0 ? p.Time : null,
+                    DurationMs = p.SessionBegin.HasValue() ? p.Time : null,
                     End = (p.SessionBegin.HasValue() && p.Time > 0) ? p.SessionBegin.AddMilliseconds(p.Time) : null
                 },
                 Challenges = challenges,
