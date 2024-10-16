@@ -222,8 +222,10 @@ internal partial class PracticeModeReportService : IPracticeModeReportService
                 var tags = Array.Empty<string>();
                 if (spec.Tags.IsNotEmpty())
                 {
-                    var specTags = Whitespace().Split(spec.Tags).Select(m => m.Trim().ToLower()).ToArray();
-                    // var specTags = WhitespaceGreedy().Split(spec.Tags).Select(t => t.Trim().ToLower()).ToArray();
+                    var specTags = Regex
+                        .Split(spec.Tags, @"\s+", RegexOptions.Multiline)
+                        .Select(m => m.Trim().ToLower())
+                        .ToArray();
                     tags = visibleTags.Intersect(specTags).ToArray();
                 }
 

@@ -60,9 +60,3 @@ public enum SortDirection
     Asc,
     Desc
 }
-
-public static partial class AppRegexes
-{
-    [GeneratedRegex(@"/s+", RegexOptions.Multiline)]
-    public static partial Regex WhitespaceGreedy();
-}
