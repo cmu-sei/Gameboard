@@ -71,6 +71,8 @@ public sealed class EnrollmentReportStatSummary
     public required int DistinctSponsorCount { get; set; }
     public required EnrollmentReportStatSummarySponsorPlayerCount SponsorWithMostPlayers { get; set; }
     public required int DistinctTeamCount { get; set; }
+    public required double TeamsWithNoSessionCount { get; set; }
+    public required double TeamsWithNoStartedChallengeCount { get; set; }
 }
 
 public sealed class EnrollmentReportStatSummarySponsorPlayerCount

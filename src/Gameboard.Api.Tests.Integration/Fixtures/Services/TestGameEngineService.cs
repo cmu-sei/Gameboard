@@ -101,7 +101,7 @@ public class TestGameEngineService : IGameEngineService
             ManagerId = registration.Player.Id,
             ManagerName = registration.Player.ApprovedName,
             IsActive = true,
-            Players = new GameEnginePlayer[] { _mapper.Map<GameEnginePlayer>(registration.Player) },
+            Players = [_mapper.Map<GameEnginePlayer>(registration.Player)],
             WhenCreated = DateTimeOffset.UtcNow,
             StartTime = DateTimeOffset.UtcNow,
             EndTime = DateTimeOffset.UtcNow.AddHours(8),
@@ -128,7 +128,10 @@ public class TestGameEngineService : IGameEngineService
                 {
                     Answer = "test answer",
                     IsCorrect = false,
-                    IsGraded = false
+                    IsGraded = false,
+                    Hint = string.Empty,
+                    Text = "",
+                    Weight = 1
                 }.ToCollection()
             }
         });

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Gameboard.Api.Features.Challenges;
@@ -89,6 +88,10 @@ public class ReportsController(
     [HttpGet("parameter/challenge-specs/{gameId?}")]
     public Task<IEnumerable<SimpleEntity>> GetChallengeSpecs(string gameId = null)
         => _service.ListChallengeSpecs(gameId);
+
+    [HttpGet("parameter/challenge-tags")]
+    public Task<IEnumerable<string>> GetChallengeTags()
+        => _service.ListChallengeTags();
 
     [HttpGet("parameter/games")]
     public Task<IEnumerable<SimpleEntity>> GetGames()

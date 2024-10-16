@@ -118,6 +118,8 @@ public class CrucibleService(
             Text = "Answer the questions",
             Questions = questions.Select(q => new GameEngineQuestionView
             {
+                IsCorrect = false,
+                IsGraded = false,
                 Text = q.Text,
                 Weight = q.Weight
             })

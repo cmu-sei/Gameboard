@@ -6,8 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
+using Gameboard.Api.Features.Practice;
 using Microsoft.EntityFrameworkCore;
-using ServiceStack;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -17,22 +17,18 @@ public interface IChallengesReportService
     ChallengesReportStatSummary GetStatSummary(IEnumerable<ChallengesReportRecord> records);
 }
 
-internal class ChallengesReportService : IChallengesReportService
+internal class ChallengesReportService(IPracticeService practiceService, IReportsService reportsService, IStore store) : IChallengesReportService
 {
-    private readonly IReportsService _reportsService;
-    private readonly IStore _store;
-
-    public ChallengesReportService(IReportsService reportsService, IStore store)
-    {
-        _reportsService = reportsService;
-        _store = store;
-    }
+    private readonly IPracticeService _practiceService = practiceService;
+    private readonly IReportsService _reportsService = reportsService;
+    private readonly IStore _store = store;
 
     public async Task<IEnumerable<ChallengesReportRecord>> GetRawResults(ChallengesReportParameters parameters, CancellationToken cancellationToken)
     {
         var gamesCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Games);
         var seasonsCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Seasons);
         var seriesCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Series);
+        var tagsCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Tags);
         var tracksCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Tracks);
 
         var query = _store
@@ -78,9 +74,15 @@ internal class ChallengesReportService : IChallengesReportService
                 cs.Game.MaxTeamSize,
                 PlayerModeCurrent = cs.Game.PlayerMode,
                 cs.Points,
-                cs.Tags
+                Tags = cs.Tags != null ? cs.Tags.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) : Array.Empty<string>()
             })
             .ToArrayAsync(cancellationToken);
+
+        // the tags are really messy to evaluate server-side because they're not relational, so do here for now
+        if (tagsCriteria.Any())
+        {
+            specs = specs.Where(s => tagsCriteria.Intersect(s.Tags).Any()).ToArray();
+        }
 
         var specIds = specs.Select(cs => cs.Id).ToArray();
 
@@ -134,9 +136,14 @@ internal class ChallengesReportService : IChallengesReportService
                     .Count()
             }, cancellationToken);
 
+        // we currently restrict tags we show on challenges (to avoid polluting the UI with internal tags).
+        // the non-awesome part of this is that we do it using the practice settings, because that's where we needed it first
+        var visibleTags = await _practiceService.GetVisibleChallengeTags(specs.SelectMany(s => s.Tags), cancellationToken);
+
         var preSortResults = specs.Select(cs =>
         {
             var aggregations = specAggregations.ContainsKey(cs.Id) ? specAggregations[cs.Id] : null;
+            var tags = (cs.Tags.IsEmpty() ? [] : cs.Tags).Where(visibleTags.Contains).ToArray();
 
             return new ChallengesReportRecord
             {
@@ -152,7 +159,7 @@ internal class ChallengesReportService : IChallengesReportService
                 },
                 PlayerModeCurrent = cs.PlayerModeCurrent,
                 Points = cs.Points,
-                Tags = cs.Tags.IsNotEmpty() ? cs.Tags.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) : Array.Empty<string>(),
+                Tags = tags,
                 AvgCompleteSolveTimeMs = aggregations?.AvgCompleteSolveTimeMs,
                 AvgScore = aggregations?.AvgScore,
                 DeployCompetitiveCount = aggregations is not null ? aggregations.DeployCompetitiveCount : 0,

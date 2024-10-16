@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Collections.Generic;
+using System.Linq;
 using AutoMapper;
 using Gameboard.Api.Features.Teams;
 
@@ -13,7 +14,15 @@ public class PlayerMapper : Profile
     {
         CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
         CreateMap<Data.Player, Player>();
-        CreateMap<Data.Player, BoardPlayer>();
+        CreateMap<Data.Player, BoardPlayer>()
+            .AfterMap((s, d) =>
+            {
+                if (s.Challenges.IsNotEmpty())
+                {
+                    d.CorrectCount = s.Challenges.Where(c => c.Result == ChallengeResult.Success).Count();
+                    d.PartialCount = s.Challenges.Where(c => c.Result == ChallengeResult.Partial).Count();
+                }
+            });
         CreateMap<Data.Player, SimpleEntity>()
             .ForMember(d => d.Name, o => o.MapFrom(p => p.ApprovedName));
         CreateMap<Data.Player, Standing>();

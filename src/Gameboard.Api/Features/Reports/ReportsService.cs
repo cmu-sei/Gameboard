@@ -19,6 +19,7 @@ public interface IReportsService
     Task<IDictionary<string, ReportTeamViewModel>> GetTeamsByPlayerIds(IEnumerable<string> playerIds, CancellationToken cancellationToken);
     Task<IEnumerable<ReportViewModel>> List();
     Task<IEnumerable<SimpleEntity>> ListChallengeSpecs(string gameId = null);
+    Task<IEnumerable<string>> ListChallengeTags();
     Task<IEnumerable<SimpleEntity>> ListGames();
     Task<IEnumerable<string>> ListSeasons();
     Task<IEnumerable<string>> ListSeries();
@@ -80,21 +81,21 @@ public class ReportsService(
                 Name = "Enrollment",
                 Key = ReportKey.Enrollment,
                 Description = "View a summary of player enrollment - who enrolled when, which sponsors they represent, and how many of them actually played challenges.",
-                ExampleFields = new string[]
-                {
+                ExampleFields =
+                [
                     "Player & Sponsor",
                     "Games Enrolled",
                     "Challenge Performance",
-                },
-                ExampleParameters = new string[]
-                {
+                ],
+                ExampleParameters =
+                [
                     "Season",
                     "Series",
                     "Sponsor",
                     "Track",
                     "Game",
                     "Enrollment Date Range",
-                }
+                ]
             },
             new()
             {
@@ -155,18 +156,18 @@ public class ReportsService(
                 Key = ReportKey.SiteUsage,
                 Description = "View a high-level overview of how the app is being used, optionally filtered by date range and user sponsor.",
                 IsExportable = false,
-                ExampleFields = new string[]
-                {
+                ExampleFields =
+                [
                     "Avg. Completed Challenges Per Player",
                     "Competitive vs. Practice",
                     "Deployed Challenge Count",
                     "Unique Sponsors"
-                },
-                ExampleParameters = new string[]
-                {
+                ],
+                ExampleParameters =
+                [
                     "Activity Start / End Dates",
                     "Sponsor"
-                }
+                ]
             },
             new()
             {
@@ -247,6 +248,21 @@ public class ReportsService(
             .Distinct()
             .OrderBy(s => s.Name)
             .ToArrayAsync();
+    }
+
+    public async Task<IEnumerable<string>> ListChallengeTags()
+    {
+        var distinctTagStrings = await _store
+            .WithNoTracking<Data.ChallengeSpec>()
+            .Where(cs => cs.Tags != null)
+            .Select(cs => cs.Tags.Trim())
+            .Distinct()
+            .ToArrayAsync();
+
+        return distinctTagStrings
+            .SelectMany(s => s.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Distinct()
+            .OrderBy(s => s);
     }
 
     public Task<IEnumerable<string>> ListSeasons()

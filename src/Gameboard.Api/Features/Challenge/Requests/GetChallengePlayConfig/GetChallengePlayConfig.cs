@@ -93,12 +93,30 @@ internal sealed class GetChallengePlayConfigHandler(
                 TimeStart = challengeData.StartTime.ToUniversalTime().ToUnixTimeMilliseconds(),
                 TeamId = challengeData.TeamId,
 
-                Questions = challengeState.Challenge.Questions.Select(q => new ChallengePlayConfigQuestion
+                Sections = [new ChallengePlayConfigSection
                 {
-                    PreviousResponses = [],
-                    SampleAnswer = q.Hint,
-                    Text = q.Text
-                })
+                    Name = challengeData.Name,
+                    PreReqPrevSection = 0,
+                    PreReqTotal = 0,
+                    Questions = challengeState.Challenge.Questions.Select(q => new ChallengePlayConfigQuestion
+                    {
+                        PreviousResponses = [],
+                        SampleAnswer = q.Hint,
+                        Text = q.Text
+                    })
+                }]
+                // Sections = challengeState.Challenge(s => new ChallengePlayConfigSection
+                // {
+                //     Name = s.,
+                //     PreReqPrevSection = s.PreReqPrevSection,
+                //     PreReqTotal = s.PreReqTotal,
+                //     Questions = s.Questions.Select(q => new ChallengePlayConfigQuestion
+                //     {
+                //         PreviousResponses = [],
+                //         SampleAnswer = q.Hint,
+                //         Text = q.Text
+                //     })
+                // })
             }
         };
     }

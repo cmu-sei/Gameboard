@@ -13,13 +13,21 @@ public sealed class ChallengePlayConfig
     public required int AttemptsUsed { get; set; }
     public required int? AttemptsMax { get; set; }
     public required bool IsPractice { get; set; }
-    public required IEnumerable<ChallengePlayConfigQuestion> Questions { get; set; }
+    public required IEnumerable<ChallengePlayConfigSection> Sections { get; set; }
     public required double ScoreMax { get; set; }
     public required double Score { get; set; }
     public required ChallengeSolutionGuide SolutionGuide { get; set; }
     public required long? TimeEnd { get; set; }
     public required long TimeStart { get; set; }
     public required string TeamId { get; set; }
+}
+
+public sealed class ChallengePlayConfigSection
+{
+    public required string Name { get; set; }
+    public required double PreReqPrevSection { get; set; }
+    public required double PreReqTotal { get; set; }
+    public required IEnumerable<ChallengePlayConfigQuestion> Questions { get; set; }
 }
 
 public sealed class ChallengePlayConfigQuestion

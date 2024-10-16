@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Data;
 
-public class GameboardDbContext : DbContext
+public class GameboardDbContext(DbContextOptions options) : DbContext(options)
 {
-    public GameboardDbContext(DbContextOptions options) : base(options) { }
-
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

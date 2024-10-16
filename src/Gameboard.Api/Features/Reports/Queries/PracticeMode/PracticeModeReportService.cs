@@ -5,7 +5,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Practice;
+using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
+using ServiceStack;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -19,13 +22,18 @@ public interface IPracticeModeReportService
     Task<PracticeModeReportPlayerModeSummary> GetPlayerModePerformanceSummary(string userId, bool isPractice, CancellationToken cancellationToken);
 }
 
-internal class PracticeModeReportService : IPracticeModeReportService
+internal class PracticeModeReportService
+(
+    ChallengeService challengeService,
+    IPracticeService practiceService,
+    IReportsService reportsService,
+    IStore store
+) : IPracticeModeReportService
 {
-    private readonly IReportsService _reportsService;
-    private readonly IStore _store;
-
-    public PracticeModeReportService(IReportsService reportsService, IStore store)
-        => (_reportsService, _store) = (reportsService, store);
+    private readonly ChallengeService _challengeService = challengeService;
+    private readonly IPracticeService _practiceService = practiceService;
+    private readonly IReportsService _reportsService = reportsService;
+    private readonly IStore _store = store;
 
     private sealed class PracticeModeReportUngroupedResults
     {
@@ -189,6 +197,10 @@ internal class PracticeModeReportService : IPracticeModeReportService
         // the "false" argument here excludes competitive records (this grouping only looks at practice challenges)
         var ungroupedResults = await BuildUngroupedResults(parameters, false, cancellationToken);
 
+        // get tags that we want to display
+        var visibleTags = await _practiceService.GetVisibleChallengeTags(cancellationToken);
+
+
         var records = ungroupedResults
             .Challenges
             .GroupBy(c => c.SpecId)
@@ -196,6 +208,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
             {
                 var attempts = g.ToList();
                 var spec = ungroupedResults.Specs[g.Key];
+                var specTags = _challengeService.GetTags(spec);
 
                 var sponsorIdsPlayed = attempts.Select(a => a.Player.Sponsor.Id).Distinct();
                 var sponsorsPlayed = ungroupedResults
@@ -211,7 +224,6 @@ internal class PracticeModeReportService : IPracticeModeReportService
                     Sponsor = s,
                     Performance = BuildChallengePerformance(attempts, s)
                 });
-
                 return new PracticeModeByChallengeReportRecord
                 {
                     Id = spec.Id,
@@ -228,6 +240,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
                     MaxPossibleScore = spec.Points,
                     AvgScore = attempts.Select(a => a.Score).Average(),
                     Description = spec.Description,
+                    Tags = specTags.Intersect(visibleTags).ToArray(),
                     Text = spec.Text,
                     SponsorsPlayed = sponsorsPlayed,
                     OverallPerformance = performanceOverall,
