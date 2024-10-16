@@ -19,6 +19,8 @@ public interface IPracticeService
     Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, DateTimeOffset currentSessionEnd, CancellationToken cancellationToken);
     Task<PracticeModeSettingsApiModel> GetSettings(CancellationToken cancellationToken);
     Task<Data.Player> GetUserActivePracticeSession(string userId, CancellationToken cancellationToken);
+    Task<IEnumerable<string>> GetVisibleChallengeTags(CancellationToken cancellationToken);
+    Task<IEnumerable<string>> GetVisibleChallengeTags(IEnumerable<string> requestedTags, CancellationToken cancellationToken);
     IEnumerable<string> UnescapeSuggestedSearches(string input);
 }
 
@@ -29,38 +31,35 @@ public enum CanPlayPracticeChallengeResult
     Yes
 }
 
-internal class PracticeService : IPracticeService
+internal partial class PracticeService
+(
+    IMapper mapper,
+    INowService now,
+    ISlugService slugService,
+    IStore store
+) : IPracticeService
 {
-    private readonly IMapper _mapper;
-    private readonly INowService _now;
-    private readonly IStore _store;
-
-    public PracticeService
-    (
-        IMapper mapper,
-        INowService now,
-        IStore store
-    )
-    {
-        _mapper = mapper;
-        _now = now;
-        _store = store;
-    }
+    private readonly IMapper _mapper = mapper;
+    private readonly INowService _now = now;
+    private readonly ISlugService _slugService = slugService;
+    private readonly IStore _store = store;
 
     // To avoid needing a table that literally just displays a list of strings, we store the list of suggested searches as a 
     // newline-delimited string in the PracticeModeSettings table (which has only one record). 
     public string EscapeSuggestedSearches(IEnumerable<string> input)
-        => string.Join(Environment.NewLine, input.Select(search => search.Trim()));
+        => string.Join(Environment.NewLine, input.Select(search => _slugService.Get(search.Trim())));
 
     // same deal here - split on newline
     public IEnumerable<string> UnescapeSuggestedSearches(string input)
     {
         if (input.IsEmpty())
-            return Array.Empty<string>();
+            return [];
 
-        return input
-            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
-            .Select(search => search.Trim())
+        return AppRegexes
+            .WhitespaceGreedy()
+            .Split(input)
+            .Select(m => m.Trim().ToLower())
+            .Where(m => m.IsNotEmpty())
             .ToArray();
     }
 
@@ -121,7 +120,7 @@ internal class PracticeService : IPracticeService
                 CertificateHtmlTemplate = null,
                 DefaultPracticeSessionLengthMinutes = 60,
                 IntroTextMarkdown = null,
-                SuggestedSearches = Array.Empty<string>()
+                SuggestedSearches = []
             };
         }
 
@@ -129,6 +128,18 @@ internal class PracticeService : IPracticeService
         apiModel.SuggestedSearches = UnescapeSuggestedSearches(settings.SuggestedSearches);
 
         return apiModel;
+    }
+
+    public async Task<IEnumerable<string>> GetVisibleChallengeTags(CancellationToken cancellationToken)
+    {
+        var settings = await GetSettings(cancellationToken);
+        return settings.SuggestedSearches;
+    }
+
+    public async Task<IEnumerable<string>> GetVisibleChallengeTags(IEnumerable<string> requestedTags, CancellationToken cancellationToken)
+    {
+        var settings = await GetSettings(cancellationToken);
+        return requestedTags.Select(t => t.ToLower()).Intersect(settings.SuggestedSearches).ToArray();
     }
 
     private async Task<IEnumerable<string>> GetActiveSessionUsers()

@@ -1,4 +1,5 @@
 using System;
+using System.Text.RegularExpressions;
 
 namespace Gameboard.Api.Common;
 
@@ -58,4 +59,10 @@ public enum SortDirection
 {
     Asc,
     Desc
+}
+
+public static partial class AppRegexes
+{
+    [GeneratedRegex(@"/s+", RegexOptions.Multiline)]
+    public static partial Regex WhitespaceGreedy();
 }

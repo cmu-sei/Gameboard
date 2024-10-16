@@ -72,7 +72,7 @@ namespace Gameboard.Api
     public class AlreadyExists : Exception { }
     public class ChallengeLocked : Exception { }
     public class ChallengeStartPending : Exception { }
-    public class InvalideFeedbackFormat : Exception { }
+    public class InvalidFeedbackFormat : Exception { }
     public class PlayerIsntInGame : Exception { }
     public class InvalidPlayerMode : Exception { }
     public class MissingRequiredField : Exception { }
