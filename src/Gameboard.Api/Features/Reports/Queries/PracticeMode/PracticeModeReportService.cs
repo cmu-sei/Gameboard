@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
@@ -8,7 +9,6 @@ using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
-using ServiceStack;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -200,7 +200,6 @@ internal class PracticeModeReportService
         // get tags that we want to display
         var visibleTags = await _practiceService.GetVisibleChallengeTags(cancellationToken);
 
-
         var records = ungroupedResults
             .Challenges
             .GroupBy(c => c.SpecId)
@@ -224,6 +223,7 @@ internal class PracticeModeReportService
                     Sponsor = s,
                     Performance = BuildChallengePerformance(attempts, s)
                 });
+
                 return new PracticeModeByChallengeReportRecord
                 {
                     Id = spec.Id,
