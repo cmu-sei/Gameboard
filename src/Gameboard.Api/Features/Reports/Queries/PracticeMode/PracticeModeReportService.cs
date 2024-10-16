@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Practice;
 using Microsoft.EntityFrameworkCore;
+using ServiceStack;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -19,13 +22,14 @@ public interface IPracticeModeReportService
     Task<PracticeModeReportPlayerModeSummary> GetPlayerModePerformanceSummary(string userId, bool isPractice, CancellationToken cancellationToken);
 }
 
-internal class PracticeModeReportService : IPracticeModeReportService
+internal partial class PracticeModeReportService : IPracticeModeReportService
 {
+    private readonly IPracticeService _practiceService;
     private readonly IReportsService _reportsService;
     private readonly IStore _store;
 
-    public PracticeModeReportService(IReportsService reportsService, IStore store)
-        => (_reportsService, _store) = (reportsService, store);
+    public PracticeModeReportService(IPracticeService practiceService, IReportsService reportsService, IStore store)
+        => (_practiceService, _reportsService, _store) = (practiceService, reportsService, store);
 
     private sealed class PracticeModeReportUngroupedResults
     {
@@ -189,6 +193,9 @@ internal class PracticeModeReportService : IPracticeModeReportService
         // the "false" argument here excludes competitive records (this grouping only looks at practice challenges)
         var ungroupedResults = await BuildUngroupedResults(parameters, false, cancellationToken);
 
+        // get tags that we want to display
+        var visibleTags = await _practiceService.GetVisibleChallengeTags(cancellationToken);
+
         var records = ungroupedResults
             .Challenges
             .GroupBy(c => c.SpecId)
@@ -212,6 +219,16 @@ internal class PracticeModeReportService : IPracticeModeReportService
                     Performance = BuildChallengePerformance(attempts, s)
                 });
 
+                var tags = Array.Empty<string>();
+                if (spec.Tags.IsNotEmpty())
+                {
+                    var specTags = Regex
+                        .Split(spec.Tags, @"\s+", RegexOptions.Multiline)
+                        .Select(m => m.Trim().ToLower())
+                        .ToArray();
+                    tags = visibleTags.Intersect(specTags).ToArray();
+                }
+
                 return new PracticeModeByChallengeReportRecord
                 {
                     Id = spec.Id,
@@ -228,6 +245,7 @@ internal class PracticeModeReportService : IPracticeModeReportService
                     MaxPossibleScore = spec.Points,
                     AvgScore = attempts.Select(a => a.Score).Average(),
                     Description = spec.Description,
+                    Tags = tags,
                     Text = spec.Text,
                     SponsorsPlayed = sponsorsPlayed,
                     OverallPerformance = performanceOverall,

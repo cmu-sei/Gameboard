@@ -6,8 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
+using Gameboard.Api.Features.Practice;
 using Microsoft.EntityFrameworkCore;
-using ServiceStack;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -17,8 +17,9 @@ public interface IChallengesReportService
     ChallengesReportStatSummary GetStatSummary(IEnumerable<ChallengesReportRecord> records);
 }
 
-internal class ChallengesReportService(IReportsService reportsService, IStore store) : IChallengesReportService
+internal class ChallengesReportService(IPracticeService practiceService, IReportsService reportsService, IStore store) : IChallengesReportService
 {
+    private readonly IPracticeService _practiceService = practiceService;
     private readonly IReportsService _reportsService = reportsService;
     private readonly IStore _store = store;
 
@@ -135,9 +136,14 @@ internal class ChallengesReportService(IReportsService reportsService, IStore st
                     .Count()
             }, cancellationToken);
 
+        // we currently restrict tags we show on challenges (to avoid polluting the UI with internal tags).
+        // the non-awesome part of this is that we do it using the practice settings, because that's where we needed it first
+        var visibleTags = await _practiceService.GetVisibleChallengeTags(specs.SelectMany(s => s.Tags), cancellationToken);
+
         var preSortResults = specs.Select(cs =>
         {
             var aggregations = specAggregations.ContainsKey(cs.Id) ? specAggregations[cs.Id] : null;
+            var tags = (cs.Tags.IsEmpty() ? [] : cs.Tags).Where(visibleTags.Contains).ToArray();
 
             return new ChallengesReportRecord
             {
@@ -153,7 +159,7 @@ internal class ChallengesReportService(IReportsService reportsService, IStore st
                 },
                 PlayerModeCurrent = cs.PlayerModeCurrent,
                 Points = cs.Points,
-                Tags = cs.Tags.IsNotEmpty() ? cs.Tags : [],
+                Tags = tags,
                 AvgCompleteSolveTimeMs = aggregations?.AvgCompleteSolveTimeMs,
                 AvgScore = aggregations?.AvgScore,
                 DeployCompetitiveCount = aggregations is not null ? aggregations.DeployCompetitiveCount : 0,

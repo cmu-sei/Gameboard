@@ -141,7 +141,7 @@ namespace Gameboard.Api.Services
             {
                 var valid = await FeedbackMatchesTemplate(model.Questions, model.GameId, model.ChallengeId);
                 if (!valid)
-                    throw new InvalideFeedbackFormat();
+                    throw new InvalidFeedbackFormat();
             }
 
             if (entity is not null)
@@ -293,7 +293,7 @@ namespace Gameboard.Api.Services
             var feedbackTemplate = GetTemplate(challengeId.IsEmpty(), game);
 
             if (feedbackTemplate.Length != feedback.Length)
-                throw new InvalideFeedbackFormat();
+                throw new InvalidFeedbackFormat();
 
             var templateMap = new Dictionary<string, QuestionTemplate>();
             foreach (QuestionTemplate q in feedbackTemplate) { templateMap.Add(q.Id, q); }
@@ -302,19 +302,19 @@ namespace Gameboard.Api.Services
             {
                 var template = templateMap.GetValueOrDefault(q.Id, null);
                 if (template == null) // user submitted id that isn't in game template
-                    throw new InvalideFeedbackFormat();
+                    throw new InvalidFeedbackFormat();
                 if (template.Required && q.Answer.IsEmpty()) // requirement config is not met
                     throw new MissingRequiredField();
                 if (q.Answer.IsEmpty()) // don't validate answer is null/empty, if not required
                     continue;
                 if (template.Type == "text" && q.Answer.Length > 2000) // universal character limit per text question 
-                    throw new InvalideFeedbackFormat();
+                    throw new InvalidFeedbackFormat();
                 if (template.Type == "likert") // because all likert options are ints, parse and check range with max config
                 {
                     int answerInt;
                     bool isInt = Int32.TryParse(q.Answer, out answerInt);
                     if (!isInt || answerInt < template.Min || answerInt > template.Max) // parsing failed or outside of range
-                        throw new InvalideFeedbackFormat();
+                        throw new InvalidFeedbackFormat();
                 }
             }
             return true;
