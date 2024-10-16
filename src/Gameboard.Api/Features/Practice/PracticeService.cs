@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -56,8 +55,9 @@ internal partial class PracticeService
         if (input.IsEmpty())
             return [];
 
-        return Regex
-            .Split(input, @"/s+", RegexOptions.Multiline)
+        return CommonRegexes
+            .WhitespaceGreedy
+            .Split(input)
             .Select(m => m.Trim().ToLower())
             .Where(m => m.IsNotEmpty())
             .ToArray();
