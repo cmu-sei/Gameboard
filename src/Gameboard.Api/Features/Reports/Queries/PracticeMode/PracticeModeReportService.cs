@@ -312,6 +312,9 @@ internal class PracticeModeReportService
         // alias the specs dictionary for convenience later
         var specs = ungroupedResults.Specs;
 
+        // screen out invisible tags 
+        var visibleTags = await _practiceService.GetVisibleChallengeTags(cancellationToken);
+
         // translate to records
         var records = groupByPlayerAndChallengeSpec.Select(c => new PracticeModeByUserReportRecord
         {
@@ -343,7 +346,8 @@ internal class PracticeModeReportService
                     Season = specs[c.Key.SpecId].Game.Season,
                     Track = specs[c.Key.SpecId].Game.Track
                 },
-                MaxPossibleScore = specs[c.Key.SpecId].Points
+                MaxPossibleScore = specs[c.Key.SpecId].Points,
+                Tags = visibleTags.Intersect(_challengeService.GetTags(specs[c.Key.SpecId]))
             },
             Attempts = c
                 .ToList()

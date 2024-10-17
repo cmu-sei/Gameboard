@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Features.Challenges;
 using MediatR;
@@ -90,8 +91,8 @@ public class ReportsController(
         => _service.ListChallengeSpecs(gameId);
 
     [HttpGet("parameter/challenge-tags")]
-    public Task<IEnumerable<string>> GetChallengeTags()
-        => _service.ListChallengeTags();
+    public Task<IEnumerable<string>> GetChallengeTags(CancellationToken cancellationToken)
+        => _service.ListChallengeTags(cancellationToken);
 
     [HttpGet("parameter/games")]
     public Task<IEnumerable<SimpleEntity>> GetGames()
