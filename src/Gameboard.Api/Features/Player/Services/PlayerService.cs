@@ -413,6 +413,10 @@ public class PlayerService
         var mapped = _mapper.Map<BoardPlayer>(result);
         mapped.ChallengeDocUrl = CoreOptions.ChallengeDocUrl;
 
+        // get fully computed score
+        var score = await _scores.GetTeamScore(result.TeamId, CancellationToken.None);
+        mapped.Score = (int)Math.Floor(score.OverallScore.TotalScore);
+
         // handle relative urls in challenge text
         if (mapped.Challenges is not null)
         {
