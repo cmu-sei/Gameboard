@@ -544,7 +544,7 @@ public partial class ChallengeService
             }
             catch (Exception ex)
             {
-                Logger.LogWarning($"Exception thrown during attempted cleanup of gamespace (type: {ex.GetType().Name}, message: {ex.Message})", ex);
+                Logger.LogWarning($"Exception thrown during attempted cleanup of gamespace (type: {ex.GetType().Name}, message: {ex.Message})");
             }
 
             var mappedChallenge = _mapper.Map<ArchivedChallenge>(challenge);
