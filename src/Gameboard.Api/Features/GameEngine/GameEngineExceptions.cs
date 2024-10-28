@@ -3,6 +3,8 @@ using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.GameEngine;
 
+internal class GameEngineException(string message, Exception innerEx) : GameboardException(message, innerEx) { }
+
 internal class GradingFailed : GameboardException
 {
     public GradingFailed(string challengeId, Exception innerException) : base($"Grading failed for challenge {challengeId}: {innerException?.Message}", innerException) { }

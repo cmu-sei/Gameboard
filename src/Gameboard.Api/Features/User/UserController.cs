@@ -143,7 +143,7 @@ public class UserController(
     /// <param name="userId"></param>
     /// <returns></returns>
     [HttpGet("/api/user/{userId}/challenges/active")]
-    public Task<UserActiveChallenges> GetUserActiveChallenges([FromRoute] string userId)
+    public Task<GetUserActiveChallengesResponse> GetUserActiveChallenges([FromRoute] string userId)
             => _mediator.Send(new GetUserActiveChallengesQuery(userId));
 
     /// <summary>

@@ -14,14 +14,9 @@ public interface ITestGradingResultService
     GameEngineGameState Get(Data.Challenge challenge);
 }
 
-internal class TestGradingResultService : ITestGradingResultService
+internal class TestGradingResultService(TestGradingResultServiceConfiguration config) : ITestGradingResultService
 {
-    private readonly TestGradingResultServiceConfiguration _config;
-
-    public TestGradingResultService(TestGradingResultServiceConfiguration config)
-    {
-        _config = config;
-    }
+    private readonly TestGradingResultServiceConfiguration _config = config;
 
     public GameEngineGameState Get(Data.Challenge challenge)
     {

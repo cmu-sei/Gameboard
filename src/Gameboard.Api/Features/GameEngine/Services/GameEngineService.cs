@@ -11,6 +11,10 @@ using TopoMojo.Api.Client;
 using Gameboard.Api.Services;
 using Gameboard.Api.Common.Services;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading;
+using ServiceStack.Text;
 
 namespace Gameboard.Api.Features.GameEngine;
 
@@ -23,6 +27,7 @@ public interface IGameEngineService
     Task DeleteGamespace(string id, GameEngineType gameEngineType);
     Task ExtendSession(Data.Challenge entity, DateTimeOffset sessionEnd);
     Task ExtendSession(string challengeId, DateTimeOffset sessionEnd, GameEngineType gameEngineType);
+    Task<GameEngineChallengeProgressView> GetChallengeProgress(string challengeId, GameEngineType gameEngineType, CancellationToken cancellationToken);
     Task<GameEngineGameState> GetChallengeState(GameEngineType gameEngineType, string stateJson);
     Task<ConsoleSummary> GetConsole(Data.Challenge entity, ConsoleRequest model, bool observer);
     Task<GameEngineGameState> GetPreview(Data.ChallengeSpec spec);
@@ -41,8 +46,9 @@ public class GameEngineService(
     ILogger<GameEngineService> logger,
     IMapper mapper,
     CoreOptions options,
-    ITopoMojoApiClient mojo,
     IAlloyApiClient alloy,
+    IHttpClientFactory httpClientFactory,
+    ITopoMojoApiClient mojo,
     ICrucibleService crucible,
     IVmUrlResolver vmUrlResolver
     ) : _Service(logger, mapper, options), IGameEngineService
@@ -51,6 +57,7 @@ public class GameEngineService(
     IAlloyApiClient Alloy { get; } = alloy;
 
     private readonly ICrucibleService _crucible = crucible;
+    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly IJsonService _jsonService = jsonService;
     private readonly IVmUrlResolver _vmUrlResolver = vmUrlResolver;
 
@@ -357,4 +364,44 @@ public class GameEngineService(
             _ => throw new NotImplementedException(),
         };
     }
+
+    public async Task<GameEngineChallengeProgressView> GetChallengeProgress(string challengeId, GameEngineType gameEngineType, CancellationToken cancellationToken)
+    {
+        switch (gameEngineType)
+        {
+            case GameEngineType.TopoMojo:
+                // right now, the release version of the topo client doesn't have the .LoadGamespaceChallengeProgressAsync signature
+                // (because it's still in dev), so I'm injecting an http client factory that issues the request until it's released
+                // return await Mojo.LoadGamespaceChallengeProgressAsync(challengeId);
+
+                var client = _httpClientFactory.CreateClient("topo");
+                var response = await client.GetAsync($"api/gamespace/{challengeId}/challenge/progress", cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                    throw new GameEngineException($"Error {response.StatusCode} occurred requesting challenge progress for challenge {challengeId}", new Exception(response.ReasonPhrase));
+
+                var progress = await response.Content.ReadFromJsonAsync<GameEngineChallengeProgressView>(cancellationToken);
+
+                // topo doesn't currently compute a per-section or per-question max/current score, so we can do that here
+                foreach (var section in progress.Variant.Sections)
+                {
+                    section.Score = EngineWeightToScore(section.Questions.Where(q => q.IsCorrect).Select(q => q.Weight).Sum(), progress.MaxPoints);
+                    section.TotalWeight = section.Questions.Sum(q => q.Weight);
+                    section.ScoreMax = EngineWeightToScore(section.TotalWeight, progress.MaxPoints);
+
+                    foreach (var question in section.Questions)
+                    {
+                        question.ScoreMax = EngineWeightToScore(question.Weight, progress.MaxPoints);
+                        question.ScoreCurrent = question.IsCorrect ? question.ScoreMax : 0;
+                    }
+                }
+
+                return progress;
+            default:
+                throw new NotImplementedException();
+        }
+    }
+
+    private double EngineWeightToScore(double weight, double maxScore)
+        => Math.Round(weight * maxScore, 0, MidpointRounding.AwayFromZero);
 }

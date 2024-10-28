@@ -8,7 +8,7 @@ namespace Gameboard.Api.Data;
 // in the ChallengeSubmissions entity has an array of these in the Answers column, 
 // where we track each set of answers submitted for a challenge.
 // 
-// WHY THIS ISN'T HANDLED WITH A JSON COLUMN
+// WHY THIS ISN'T HANDLED WITH A JSON COLUMN?
 // The ideal way to store JSON in a database, of course, is to use the provider's
 // implementation of JSON columns. We couldn't do this at the time of implementation
 // because the API surfaces for MSSQL and Postgres were not equivalent (pre .net 8.0).

@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using Gameboard.Api.Features.GameEngine;
-using Gameboard.Api.Features.Player;
 
 namespace Gameboard.Api;
 
@@ -50,37 +49,27 @@ public class ChallengeSummary
     public bool IsActive { get; set; }
 }
 
-public class ActiveChallenge
-{
-    public required string Id { get; set; }
-    public required ActiveChallengeSpec Spec { get; set; }
-    public required SimpleEntity Game { get; set; }
-    public required SimpleEntity Player { get; set; }
-    public required SimpleEntity User { get; set; }
-    public required ActiveChallengeDeployment ChallengeDeployment { get; set; }
-    public required string TeamId { get; set; }
-    public required TimeWindow Session { get; set; }
-    public required PlayerMode PlayerMode { get; set; }
-    public required ActiveChallengeScoreAndAttemptsState ScoreAndAttemptsState { get; set; }
-}
-
-public sealed class ActiveChallengeSpec
+public class UserActiveChallenge
 {
     public required string Id { get; set; }
     public required string Name { get; set; }
-    public required string Tag { get; set; }
-    public required int AverageDeploySeconds { get; set; }
-}
-
-public class ActiveChallengeDeployment
-{
-    public required string ChallengeId { get; set; }
+    public required long? EndsAt { get; set; }
+    public required SimpleEntity Game { get; set; }
     public required bool IsDeployed { get; set; }
     public required string Markdown { get; set; }
-    public required IEnumerable<GameEngineVmState> Vms { get; set; }
+    public required PlayerMode Mode { get; set; }
+    public required SimpleEntity Team { get; set; }
+    public required UserActiveChallengeScoreAndAttemptsState ScoreAndAttemptsState { get; set; }
+    public required IEnumerable<UserActiveChallengeVm> Vms { get; set; }
 }
 
-public class ActiveChallengeScoreAndAttemptsState
+public class UserActiveChallengeVm
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+}
+
+public class UserActiveChallengeScoreAndAttemptsState
 {
     public required int Attempts { get; set; }
     public required int? MaxAttempts { get; set; }

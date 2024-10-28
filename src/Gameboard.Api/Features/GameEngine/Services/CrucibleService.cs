@@ -120,6 +120,8 @@ public class CrucibleService(
             {
                 IsCorrect = false,
                 IsGraded = false,
+                ScoreCurrent = 0,
+                ScoreMax = q.Weight * entity.Points,
                 Text = q.Text,
                 Weight = q.Weight
             })
@@ -179,6 +181,8 @@ public class CrucibleService(
                 Answer = qv.Answer,
                 IsCorrect = qv.IsCorrect,
                 IsGraded = qv.IsGraded,
+                ScoreCurrent = qv.IsCorrect ? qv.Weight * state.Challenge.MaxPoints : 0,
+                ScoreMax = qv.Weight * state.Challenge.MaxPoints,
                 Text = qv.Text,
                 Weight = qv.Weight
             });

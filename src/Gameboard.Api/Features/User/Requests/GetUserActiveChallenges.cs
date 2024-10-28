@@ -13,13 +13,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Users;
 
-public record GetUserActiveChallengesQuery(string UserId) : IRequest<UserActiveChallenges>;
+public record GetUserActiveChallengesQuery(string UserId) : IRequest<GetUserActiveChallengesResponse>;
 
-public sealed class UserActiveChallenges
+public sealed class GetUserActiveChallengesResponse
 {
     public required SimpleEntity User { get; set; }
-    public required IEnumerable<ActiveChallenge> Practice { get; set; }
-    public required IEnumerable<ActiveChallenge> Competition { get; set; }
+    public required IEnumerable<UserActiveChallenge> Challenges { get; set; }
 }
 
 internal class GetUserActiveChallengesHandler
@@ -27,19 +26,17 @@ internal class GetUserActiveChallengesHandler
     IGameEngineService gameEngine,
     INowService now,
     IStore store,
-    ITimeWindowService timeWindowService,
     EntityExistsValidator<GetUserActiveChallengesQuery, Data.User> userExists,
     IValidatorService<GetUserActiveChallengesQuery> validator
-) : IRequestHandler<GetUserActiveChallengesQuery, UserActiveChallenges>
+) : IRequestHandler<GetUserActiveChallengesQuery, GetUserActiveChallengesResponse>
 {
     private readonly IGameEngineService _gameEngine = gameEngine;
     private readonly INowService _now = now;
     private readonly IStore _store = store;
-    private readonly ITimeWindowService _timeWindowService = timeWindowService;
     private readonly EntityExistsValidator<GetUserActiveChallengesQuery, Data.User> _userExists = userExists;
     private readonly IValidatorService<GetUserActiveChallengesQuery> _validator = validator;
 
-    public async Task<UserActiveChallenges> Handle(GetUserActiveChallengesQuery request, CancellationToken cancellationToken)
+    public async Task<GetUserActiveChallengesResponse> Handle(GetUserActiveChallengesQuery request, CancellationToken cancellationToken)
     {
         // validate
         await _validator
@@ -70,97 +67,67 @@ internal class GetUserActiveChallengesHandler
             .Select(c => new
             {
                 c.Id,
-                // have to join spec separately later to get the names/other properties
-                Spec = new ActiveChallengeSpec
-                {
-                    Id = c.SpecId,
-                    Name = null,
-                    Tag = null,
-                    AverageDeploySeconds = 0,
-                },
+                c.Name,
                 Game = new SimpleEntity { Id = c.GameId, Name = c.Game.Name },
                 c.GameEngineType,
-                Player = new SimpleEntity { Id = c.PlayerId, Name = c.Player.ApprovedName },
-                User = new SimpleEntity { Id = c.Player.UserId, Name = c.Player.User.ApprovedName },
-                ChallengeDeployment = new ActiveChallengeDeployment
-                {
-                    ChallengeId = c.Id,
-                    // these are dummy values we'll fill out below (can't do it here because we're on the db server side during the query)
-                    Markdown = string.Empty,
-                    IsDeployed = false,
-                    Vms = Array.Empty<GameEngineVmState>()
-                },
-                c.Player.TeamId,
-                Session = _timeWindowService.CreateWindow(_now.Get(), c.Player.SessionBegin, c.Player.SessionEnd),
+                EndTime = c.EndTime == DateTimeOffset.MinValue ? default(DateTimeOffset?) : c.EndTime,
+                c.State,
                 c.PlayerMode,
-                // additional dummy values - we'll get the real attempts and stuff from state
-                ScoreAndAttemptsState = new ActiveChallengeScoreAndAttemptsState
-                {
-                    Score = new decimal(c.Score),
-                    MaxPossibleScore = c.Points,
-                    Attempts = 0,
-                    MaxAttempts = null
-                },
-                c.State
+                c.TeamId,
+                c.Score,
+                c.Points
             })
-            .ToListAsync(cancellationToken);
+            .ToArrayAsync(cancellationToken);
 
-        // load the spec names and set state properties
-        var specIds = challenges.Select(c => c.Spec.Id).ToList();
-        var specs = await _store
-            .WithNoTracking<Data.ChallengeSpec>()
-            .Where(s => specIds.Contains(s.Id))
-            .ToDictionaryAsync(s => s.Id, s => s, cancellationToken);
+        var challengeScoreAttemptsStates = new Dictionary<string, UserActiveChallengeScoreAndAttemptsState>();
+        var challengeStates = new Dictionary<string, GameEngineGameState>();
+        var teamIds = new List<string>();
 
-        // now do client side eval
         foreach (var challenge in challenges)
         {
-            if (specs.TryGetValue(challenge.Spec.Id, out Data.ChallengeSpec value))
-            {
-                challenge.Spec.Name = value.Name;
-                challenge.Spec.Tag = value.Tag;
-                challenge.Spec.AverageDeploySeconds = value.AverageDeploySeconds;
-            }
-
-            // we need the state json as an object so we don't lose our minds and to make some decisions
             var state = await _gameEngine.GetChallengeState(challenge.GameEngineType, challenge.State);
+            challengeStates.Add(challenge.Id, state);
+            challengeScoreAttemptsStates.Add(challenge.Id, new UserActiveChallengeScoreAndAttemptsState
+            {
+                Attempts = state.Challenge?.Attempts ?? 0,
+                MaxAttempts = (state.Challenge?.MaxAttempts ?? 0) > 0 ? state.Challenge.MaxAttempts : null,
+                Score = (decimal)Math.Round(challenge.Score),
+                MaxPossibleScore = challenge.Points
 
-            // set attempt info
-            challenge.ScoreAndAttemptsState.Attempts = state.Challenge?.Attempts ?? 0;
-            challenge.ScoreAndAttemptsState.MaxAttempts = state.Challenge?.MaxAttempts > 0 ? state.Challenge?.MaxAttempts : null;
-
-            // currently, topomojo sends an empty VM list when the vms are turned off, so we use this to 
-            // proxy whether the challenge is deployed. hopefully topo will eventually send VMs with
-            // isRunning = false when asked, so we're making these separate concepts on the API surface
-            challenge.ChallengeDeployment.IsDeployed = state?.Vms.Any() ?? false;
-            challenge.ChallengeDeployment.Vms = state.Vms ?? [];
-            // now that we have the state, we can also read the final challenge document (which may different than the spec due to transforms or etc.)
-            challenge.ChallengeDeployment.Markdown = state.Markdown;
+            });
+            teamIds.Add(challenge.TeamId);
         }
+        teamIds = teamIds.Distinct().ToList();
 
-        var typedChallenges = challenges.Select(c => new ActiveChallenge
+        var teams = await _store.WithNoTracking<Data.Player>()
+            .Where(p => teamIds.Contains(p.TeamId))
+            .Where(p => p.Role == PlayerRole.Manager)
+            .Select(p => new SimpleEntity { Id = p.TeamId, Name = p.ApprovedName })
+            .GroupBy(p => p.Id)
+            .ToDictionaryAsync(gr => gr.Key, gr => gr.FirstOrDefault()?.Name, cancellationToken);
+
+        var typedChallenges = challenges.Select(c => new UserActiveChallenge
         {
             Id = c.Id,
-            Spec = c.Spec,
+            Name = c.Name,
             Game = c.Game,
-            Player = c.Player,
-            User = c.User,
-            ChallengeDeployment = c.ChallengeDeployment,
-            TeamId = c.TeamId,
-            PlayerMode = c.PlayerMode,
-            ScoreAndAttemptsState = c.ScoreAndAttemptsState,
-            Session = c.Session
+            Team = new SimpleEntity { Id = c.TeamId, Name = teams[c.TeamId] },
+            Mode = c.PlayerMode,
+            EndsAt = c.EndTime?.ToUnixTimeMilliseconds() ?? null,
+            IsDeployed = challengeStates[c.Id].Vms?.Any() ?? false,
+            Markdown = challengeStates[c.Id].Markdown,
+            ScoreAndAttemptsState = challengeScoreAttemptsStates[c.Id],
+            Vms = challengeStates[c.Id].Vms.Select(v => new UserActiveChallengeVm { Id = v.Id, Name = v.Name }).ToArray()
         })
         // now that we have info about points and attempts, we can reason about whether we should return
         // challenges that are maxed out on score or guesses
         .Where(c => c.ScoreAndAttemptsState.Score < c.ScoreAndAttemptsState.MaxPossibleScore)
         .Where(c => c.ScoreAndAttemptsState.MaxAttempts is null || c.ScoreAndAttemptsState.Attempts < c.ScoreAndAttemptsState.MaxAttempts);
 
-        return new UserActiveChallenges
+        return new GetUserActiveChallengesResponse
         {
             User = user,
-            Competition = typedChallenges.Where(c => c.PlayerMode == PlayerMode.Competition),
-            Practice = typedChallenges.Where(c => c.PlayerMode == PlayerMode.Practice)
+            Challenges = typedChallenges
         };
     }
 }

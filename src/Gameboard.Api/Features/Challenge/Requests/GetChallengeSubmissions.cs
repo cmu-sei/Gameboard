@@ -19,13 +19,14 @@ public sealed class GetChallengeSubmissionsResponse
     public IEnumerable<ChallengeSubmissionViewModel> SubmittedAnswers { get; set; }
 }
 
-public record GetChallengeSubmissionsQuery(string ChallengeId) : IRequest<GetChallengeSubmissionsResponse>;
+public record GetChallengeSubmissionsQuery(string ChallengeId, int SectionIndex = 0) : IRequest<GetChallengeSubmissionsResponse>;
 
-internal class GetChallengeSubmissionsHandler(
+internal class GetChallengeSubmissionsHandler
+(
     IJsonService jsonService,
     IStore store,
     IGameboardRequestValidator<GetChallengeSubmissionsQuery> validatorService
-    ) : IRequestHandler<GetChallengeSubmissionsQuery, GetChallengeSubmissionsResponse>
+) : IRequestHandler<GetChallengeSubmissionsQuery, GetChallengeSubmissionsResponse>
 {
     private readonly IJsonService _jsonService = jsonService;
     private readonly IStore _store = store;
@@ -40,8 +41,8 @@ internal class GetChallengeSubmissionsHandler(
         // both are strings that are secretly JSON, for Reasons (see JsonEntities.cs)
         // The Challenges table has up to one instance per record, and the 
         // ChallengeSubmissions table has exactly one per record. Each represents
-        // a section index (corresponding to Topomojo's Question Sets, and nearly
-        // always 0) and an array of string answers.
+        // a section index (corresponding to Topomojo's Question Sets and an array of 
+        // string answers.
         var rawSubmissionData = await _store
             .WithNoTracking<Data.Challenge>()
             .Include(c => c.Submissions.OrderBy(s => s.SubmittedOn))

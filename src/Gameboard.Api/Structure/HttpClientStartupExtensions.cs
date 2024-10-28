@@ -19,21 +19,34 @@ namespace Microsoft.Extensions.DependencyInjection
             CoreOptions config
         )
         {
-            services
-                .AddHttpClient<ITopoMojoApiClient, TopoMojoApiClient>()
-                    .ConfigureHttpClient(client =>
-                    {
-                        client.BaseAddress = new Uri(config.GameEngineUrl);
-                        client.DefaultRequestHeaders.Add("x-api-key", config.GameEngineClientSecret);
-                        client.DefaultRequestHeaders.Add("x-api-client", config.GameEngineClientName);
-                        client.Timeout = TimeSpan.FromSeconds(300);
-                    })
-                    .AddPolicyHandler(
-                        HttpPolicyExtensions.HandleTransientHttpError()
-                        .OrResult(msg => msg.StatusCode == System.Net.HttpStatusCode.NotFound)
-                        .WaitAndRetryAsync(config.GameEngineMaxRetries, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)))
-                    )
-                ;
+            services.AddHttpClient<ITopoMojoApiClient, TopoMojoApiClient>()
+            .ConfigureHttpClient(client =>
+            {
+                client.BaseAddress = new Uri(config.GameEngineUrl);
+                client.DefaultRequestHeaders.Add("x-api-key", config.GameEngineClientSecret);
+                client.DefaultRequestHeaders.Add("x-api-client", config.GameEngineClientName);
+                client.Timeout = TimeSpan.FromSeconds(300);
+            })
+            .AddPolicyHandler(
+                HttpPolicyExtensions.HandleTransientHttpError()
+                .OrResult(msg => msg.StatusCode == System.Net.HttpStatusCode.NotFound)
+                .WaitAndRetryAsync(config.GameEngineMaxRetries, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)))
+            );
+
+            services.AddHttpClient("topo", client =>
+            {
+                client.BaseAddress = new Uri(config.GameEngineUrl);
+                client.DefaultRequestHeaders.Add("x-api-key", config.GameEngineClientSecret);
+                client.DefaultRequestHeaders.Add("x-api-client", config.GameEngineClientName);
+                client.Timeout = TimeSpan.FromSeconds(300);
+            })
+            .AddPolicyHandler
+            (
+                HttpPolicyExtensions.HandleTransientHttpError()
+                .OrResult(msg => msg.StatusCode == System.Net.HttpStatusCode.NotFound)
+                .WaitAndRetryAsync(config.GameEngineMaxRetries, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)))
+            );
+
             services.AddHttpClient("identity", client =>
             {
                 // Workaround to avoid TaskCanceledException after several retries. TODO: find a better way to handle this.
