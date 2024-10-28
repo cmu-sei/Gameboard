@@ -72,6 +72,7 @@ public sealed class PracticeModeByUserReportChallenge
     public required string Name { get; set; }
     public required ReportGameViewModel Game { get; set; }
     public required double MaxPossibleScore { get; set; }
+    public required IEnumerable<string> Tags { get; set; }
 }
 
 public sealed class PracticeModeReportAttempt
@@ -104,6 +105,7 @@ public sealed class PracticeModeByChallengeReportRecord : IPracticeModeReportRec
     public required double MaxPossibleScore { get; set; }
     public required double AvgScore { get; set; }
     public required string Description { get; set; }
+    public required IEnumerable<string> Tags { get; set; }
     public required string Text { get; set; }
     public required IEnumerable<ReportSponsorViewModel> SponsorsPlayed { get; set; }
     public required PracticeModeReportByChallengePerformance OverallPerformance { get; set; }

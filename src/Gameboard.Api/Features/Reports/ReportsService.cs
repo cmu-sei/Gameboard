@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,7 +20,7 @@ public interface IReportsService
     Task<IDictionary<string, ReportTeamViewModel>> GetTeamsByPlayerIds(IEnumerable<string> playerIds, CancellationToken cancellationToken);
     Task<IEnumerable<ReportViewModel>> List();
     Task<IEnumerable<SimpleEntity>> ListChallengeSpecs(string gameId = null);
-    Task<IEnumerable<string>> ListChallengeTags();
+    Task<IEnumerable<string>> ListChallengeTags(CancellationToken cancellationToken);
     Task<IEnumerable<SimpleEntity>> ListGames();
     Task<IEnumerable<string>> ListSeasons();
     Task<IEnumerable<string>> ListSeries();
@@ -32,6 +33,7 @@ public interface IReportsService
 public class ReportsService(
     INowService now,
     IPagingService paging,
+    IPracticeService practiceService,
     IStore store,
     ITeamService teamService
     ) : IReportsService
@@ -40,6 +42,7 @@ public class ReportsService(
 
     private readonly INowService _now = now;
     private readonly IPagingService _paging = paging;
+    private readonly IPracticeService _practiceService = practiceService;
     private readonly IStore _store = store;
     private readonly ITeamService _teamService = teamService;
 
@@ -250,20 +253,8 @@ public class ReportsService(
             .ToArrayAsync();
     }
 
-    public async Task<IEnumerable<string>> ListChallengeTags()
-    {
-        var distinctTagStrings = await _store
-            .WithNoTracking<Data.ChallengeSpec>()
-            .Where(cs => cs.Tags != null)
-            .Select(cs => cs.Tags.Trim())
-            .Distinct()
-            .ToArrayAsync();
-
-        return distinctTagStrings
-            .SelectMany(s => s.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            .Distinct()
-            .OrderBy(s => s);
-    }
+    public Task<IEnumerable<string>> ListChallengeTags(CancellationToken cancellationToken)
+        => _practiceService.GetVisibleChallengeTags(cancellationToken);
 
     public Task<IEnumerable<string>> ListSeasons()
         => GetGameStringPropertyOptions(g => g.Season);
@@ -303,7 +294,7 @@ public class ReportsService(
     public IEnumerable<string> ParseMultiSelectCriteria(string criteria)
     {
         if (criteria.IsEmpty())
-            return Array.Empty<string>();
+            return [];
 
         return criteria
             .ToLower()

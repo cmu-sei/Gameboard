@@ -72,6 +72,19 @@ public partial class ChallengeService
         return await Create(model, actorId, graderUrl, CancellationToken.None);
     }
 
+    public IEnumerable<string> GetTags(Data.ChallengeSpec spec)
+    {
+        if (spec.Tags.IsEmpty())
+            return [];
+
+        return CommonRegexes
+            .WhitespaceGreedy
+            .Split(spec.Tags)
+            .Select(m => m.Trim().ToLower())
+            .Where(m => m.IsNotEmpty())
+            .ToArray();
+    }
+
     public async Task<Challenge> Create(NewChallenge model, string actorId, string graderUrl, CancellationToken cancellationToken)
     {
         var now = _now.Get();
@@ -531,7 +544,7 @@ public partial class ChallengeService
             }
             catch (Exception ex)
             {
-                Logger.LogWarning($"Exception thrown during attempted cleanup of gamespace (type: {ex.GetType().Name}, message: {ex.Message})", ex);
+                Logger.LogWarning($"Exception thrown during attempted cleanup of gamespace (type: {ex.GetType().Name}, message: {ex.Message})");
             }
 
             var mappedChallenge = _mapper.Map<ArchivedChallenge>(challenge);
