@@ -52,7 +52,7 @@ public class ChallengeStore(
     {
         return await DbSet
             .Include(c => c.Events)
-            .FirstOrDefaultAsync(c => c.Id == id);
+            .SingleOrDefaultAsync(c => c.Id == id);
     }
 
     public async Task<Challenge> Load(NewChallenge model)
@@ -60,7 +60,7 @@ public class ChallengeStore(
         var player = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => p.Id == model.PlayerId)
-            .SingleOrDefaultAsync<Data.Player>();
+            .SingleOrDefaultAsync();
 
         return await DbSet
             .Include(c => c.Player)

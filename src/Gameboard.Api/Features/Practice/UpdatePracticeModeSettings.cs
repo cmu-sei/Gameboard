@@ -56,29 +56,20 @@ internal class UpdatePracticeModeSettingsValidator : IGameboardRequestValidator<
 
 public record UpdatePracticeModeSettingsCommand(PracticeModeSettingsApiModel Settings, User ActingUser) : IRequest;
 
-internal class UpdatePracticeModeSettingsHandler : IRequestHandler<UpdatePracticeModeSettingsCommand>
+internal class UpdatePracticeModeSettingsHandler
+(
+    IMapper mapper,
+    INowService now,
+    IPracticeService practiceService,
+    IStore store,
+    IGameboardRequestValidator<UpdatePracticeModeSettingsCommand> requestValidator
+) : IRequestHandler<UpdatePracticeModeSettingsCommand>
 {
-    private readonly IMapper _mapper;
-    private readonly INowService _now;
-    private readonly IPracticeService _practiceService;
-    private readonly IStore _store;
-    private readonly IGameboardRequestValidator<UpdatePracticeModeSettingsCommand> _requestValidator;
-
-    public UpdatePracticeModeSettingsHandler
-    (
-        IMapper mapper,
-        INowService now,
-        IPracticeService practiceService,
-        IStore store,
-        IGameboardRequestValidator<UpdatePracticeModeSettingsCommand> requestValidator
-    )
-    {
-        _mapper = mapper;
-        _now = now;
-        _practiceService = practiceService;
-        _store = store;
-        _requestValidator = requestValidator;
-    }
+    private readonly IMapper _mapper = mapper;
+    private readonly INowService _now = now;
+    private readonly IPracticeService _practiceService = practiceService;
+    private readonly IStore _store = store;
+    private readonly IGameboardRequestValidator<UpdatePracticeModeSettingsCommand> _requestValidator = requestValidator;
 
     public async Task Handle(UpdatePracticeModeSettingsCommand request, CancellationToken cancellationToken)
     {
@@ -86,6 +77,8 @@ internal class UpdatePracticeModeSettingsHandler : IRequestHandler<UpdatePractic
 
         var currentSettings = await _store.FirstOrDefaultAsync<PracticeModeSettings>(cancellationToken);
         var updatedSettings = _mapper.Map<PracticeModeSettings>(request.Settings);
+
+        updatedSettings.AttemptLimit = request.Settings.AttemptLimit;
         updatedSettings.SuggestedSearches = _practiceService.EscapeSuggestedSearches(request.Settings.SuggestedSearches);
         updatedSettings.Id = currentSettings.Id;
         updatedSettings.UpdatedOn = _now.Get();

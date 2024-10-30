@@ -7,6 +7,7 @@ namespace Gameboard.Api.Features.GameEngine;
 
 public class GameEngineChallengeRegistration
 {
+    public required int AttemptLimit { get; set; }
     public required Data.Challenge Challenge { get; set; }
     public required Data.ChallengeSpec ChallengeSpec { get; set; }
     public required Data.Game Game { get; set; }

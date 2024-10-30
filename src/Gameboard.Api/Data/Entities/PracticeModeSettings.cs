@@ -5,6 +5,7 @@ namespace Gameboard.Api.Data;
 public class PracticeModeSettings : IEntity
 {
     public string Id { get; set; }
+    public int? AttemptLimit { get; set; }
     public string CertificateHtmlTemplate { get; set; }
     public int DefaultPracticeSessionLengthMinutes { get; set; }
     public string IntroTextMarkdown { get; set; }

@@ -55,6 +55,7 @@ public class UserActiveChallenge
     public required string Name { get; set; }
     public required long? EndsAt { get; set; }
     public required SimpleEntity Game { get; set; }
+    public required SimpleEntity Spec { get; set; }
     public required bool IsDeployed { get; set; }
     public required string Markdown { get; set; }
     public required PlayerMode Mode { get; set; }

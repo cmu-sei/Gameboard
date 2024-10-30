@@ -14,7 +14,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading;
-using ServiceStack.Text;
 
 namespace Gameboard.Api.Features.GameEngine;
 
@@ -41,7 +40,8 @@ public interface IGameEngineService
     Task<GameEngineGameState> StopGamespace(Data.Challenge entity);
 }
 
-public class GameEngineService(
+public class GameEngineService
+(
     IJsonService jsonService,
     ILogger<GameEngineService> logger,
     IMapper mapper,
@@ -51,7 +51,7 @@ public class GameEngineService(
     ITopoMojoApiClient mojo,
     ICrucibleService crucible,
     IVmUrlResolver vmUrlResolver
-    ) : _Service(logger, mapper, options), IGameEngineService
+) : _Service(logger, mapper, options), IGameEngineService
 {
     ITopoMojoApiClient Mojo { get; } = mojo;
     IAlloyApiClient Alloy { get; } = alloy;
@@ -79,7 +79,7 @@ public class GameEngineService(
                     ResourceId = registration.ChallengeSpec.ExternalId,
                     Variant = registration.Variant,
                     Points = registration.ChallengeSpec.Points,
-                    MaxAttempts = registration.Game.MaxAttempts,
+                    MaxAttempts = registration.AttemptLimit,
                     StartGamespace = registration.StartGamespace,
                     ExpirationTime = registration.Player.SessionEnd,
                     GraderKey = registration.GraderKey,
@@ -89,7 +89,7 @@ public class GameEngineService(
 
                 return Mapper.Map<GameEngineGameState>(topoState);
             case GameEngineType.Crucible:
-                return await _crucible.RegisterGamespace(registration.ChallengeSpec, registration.Game, registration.Player, registration.Challenge);
+                return await _crucible.RegisterGamespace(registration.ChallengeSpec, registration.Game, registration.Player, registration.Challenge, registration.AttemptLimit);
             default:
                 throw new NotImplementedException();
         }
@@ -385,16 +385,20 @@ public class GameEngineService(
                 // topo doesn't currently compute a per-section or per-question max/current score, so we can do that here
                 foreach (var section in progress.Variant.Sections)
                 {
-                    section.Score = EngineWeightToScore(section.Questions.Where(q => q.IsCorrect).Select(q => q.Weight).Sum(), progress.MaxPoints);
+                    section.Score = EngineWeightToScore(section.Questions.Where(q => q.IsCorrect).Select(q => q.Weight).Sum(), progress.MaxPoints) ?? 0;
                     section.TotalWeight = section.Questions.Sum(q => q.Weight);
-                    section.ScoreMax = EngineWeightToScore(section.TotalWeight, progress.MaxPoints);
+                    section.ScoreMax = EngineWeightToScore(section.TotalWeight, progress.MaxPoints) ?? 0;
 
                     foreach (var question in section.Questions)
                     {
-                        question.ScoreMax = EngineWeightToScore(question.Weight, progress.MaxPoints);
+                        question.ScoreMax = EngineWeightToScore(question.Weight, progress.MaxPoints) ?? 0;
                         question.ScoreCurrent = question.IsCorrect ? question.ScoreMax : 0;
                     }
                 }
+
+                // we can also make the weights of the prereqs more readable
+                progress.NextSectionPreReqThisSection = EngineWeightToScore(progress.NextSectionPreReqThisSection, progress.MaxPoints);
+                progress.NextSectionPreReqTotal = EngineWeightToScore(progress.NextSectionPreReqTotal, progress.MaxPoints);
 
                 return progress;
             default:
@@ -402,6 +406,11 @@ public class GameEngineService(
         }
     }
 
-    private double EngineWeightToScore(double weight, double maxScore)
-        => Math.Round(weight * maxScore, 0, MidpointRounding.AwayFromZero);
+    private double? EngineWeightToScore(double? weight, double maxScore)
+    {
+        if (weight is null)
+            return null;
+
+        return Math.Round(weight.Value * maxScore, 0, MidpointRounding.AwayFromZero);
+    }
 }

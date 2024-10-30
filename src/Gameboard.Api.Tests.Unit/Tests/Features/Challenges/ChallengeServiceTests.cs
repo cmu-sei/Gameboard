@@ -1,7 +1,6 @@
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Data.Abstractions;
 using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Practice;
@@ -9,8 +8,6 @@ using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.Users;
 using Gameboard.Api.Services;
 using MediatR;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
@@ -50,14 +47,14 @@ public class ChallengeServiceTests
             SpecId = specId
         };
 
-        var fakePlayer = new Api.Data.Player
+        var fakePlayer = new Data.Player
         {
             Id = playerId,
             GameId = gameId,
             TeamId = teamId
         };
 
-        var fakeGame = new Api.Data.Game
+        var fakeGame = new Data.Game
         {
             Id = gameId,
             MaxTeamSize = 1,
@@ -77,7 +74,8 @@ public class ChallengeServiceTests
             (
                 new GameEngineChallengeRegistration
                 {
-                    Challenge = new Api.Data.Challenge { },
+                    AttemptLimit = 0,
+                    Challenge = new Data.Challenge { },
                     ChallengeSpec = fakeSpec,
                     Game = fakeGame,
                     Player = fakePlayer,
@@ -117,6 +115,7 @@ public class ChallengeServiceTests
             A.Fake<IMediator>(),
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
+            A.Fake<IPracticeService>(),
             A.Fake<IUserRolePermissionsService>(),
             A.Fake<IStore>(),
             A.Fake<ITeamService>()
@@ -199,7 +198,8 @@ public class ChallengeServiceTests
             (
                 new GameEngineChallengeRegistration
                 {
-                    Challenge = new Api.Data.Challenge { },
+                    AttemptLimit = 0,
+                    Challenge = new Data.Challenge { },
                     ChallengeSpec = fakeSpec,
                     Game = fakeGame,
                     Player = fakePlayer,
@@ -239,6 +239,7 @@ public class ChallengeServiceTests
             A.Fake<IMediator>(),
             A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
+            A.Fake<IPracticeService>(),
             A.Fake<IUserRolePermissionsService>(),
             A.Fake<IStore>(),
             A.Fake<ITeamService>()

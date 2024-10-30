@@ -20,6 +20,12 @@ public static class DateTimeOffsetExtensions
     public static bool IsEmpty(this DateTimeOffset? ts)
         => !ts.HasValue || IsEmpty(ts.Value);
 
+    public static long? ToEpochMs(this DateTimeOffset ts)
+        => ToEpochMs(new DateTimeOffset?(ts));
+
+    public static long? ToEpochMs(this DateTimeOffset? ts)
+        => ts.HasValue && ts.Value > DateTimeOffset.MinValue ? ts.Value.ToUnixTimeMilliseconds() : null;
+
     // public static bool WhereIsNotEmpty<TEntity>(this IQueryable<TEntity> query, Expression<Func<TEntity, DateTimeOffset>> propertyExpression)
     // {
     //     var entityPropertyParameter = Expression.Parameter(typeof(TEntity));

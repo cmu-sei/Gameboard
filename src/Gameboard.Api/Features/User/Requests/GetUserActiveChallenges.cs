@@ -68,6 +68,7 @@ internal class GetUserActiveChallengesHandler
             {
                 c.Id,
                 c.Name,
+                c.SpecId,
                 Game = new SimpleEntity { Id = c.GameId, Name = c.Game.Name },
                 c.GameEngineType,
                 EndTime = c.EndTime == DateTimeOffset.MinValue ? default(DateTimeOffset?) : c.EndTime,
@@ -93,7 +94,6 @@ internal class GetUserActiveChallengesHandler
                 MaxAttempts = (state.Challenge?.MaxAttempts ?? 0) > 0 ? state.Challenge.MaxAttempts : null,
                 Score = (decimal)Math.Round(challenge.Score),
                 MaxPossibleScore = challenge.Points
-
             });
             teamIds.Add(challenge.TeamId);
         }
@@ -111,6 +111,7 @@ internal class GetUserActiveChallengesHandler
             Id = c.Id,
             Name = c.Name,
             Game = c.Game,
+            Spec = new SimpleEntity { Id = c.SpecId, Name = c.Name },
             Team = new SimpleEntity { Id = c.TeamId, Name = teams[c.TeamId] },
             Mode = c.PlayerMode,
             EndsAt = c.EndTime?.ToUnixTimeMilliseconds() ?? null,

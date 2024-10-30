@@ -20,6 +20,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using ServiceStack;
+using Gameboard.Api.Features.Practice;
 
 namespace Gameboard.Api.Services;
 
@@ -40,6 +41,7 @@ public partial class ChallengeService
     IMediator mediator,
     IMemoryCache memCache,
     INowService now,
+    IPracticeService practiceService,
     IUserRolePermissionsService permissionsService,
     IStore store,
     ITeamService teamService
@@ -55,6 +57,7 @@ public partial class ChallengeService
     private readonly IMediator _mediator = mediator;
     private readonly IMemoryCache _memCache = memCache;
     private readonly INowService _now = now;
+    private readonly IPracticeService _practiceService = practiceService;
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
     private readonly IChallengeDocsService _challengeDocsService = challengeDocsService;
     private readonly IChallengeSubmissionsService _challengeSubmissionsService = challengeSubmissionsService;
@@ -395,6 +398,7 @@ public partial class ChallengeService
         catch (SubmissionIsForExpiredGamespace)
         {
             Logger.LogInformation($"Rejected a submission for challenge {challenge.Id}: the gamespace is expired.");
+
             var challengeEvent = new ChallengeEvent
             {
                 Id = _guids.Generate(),
@@ -439,15 +443,24 @@ public partial class ChallengeService
             );
         }
 
+        // in practice, we sometimes proactively end the session
         if (challenge.PlayerMode == PlayerMode.Practice)
         {
             if (challenge.Score >= challenge.Points)
             {
-                // in the practice area, we proactively end their session if they complete the challenge
+                // if they complete the challenge
                 await _teamService.EndSession(challenge.TeamId, actor, CancellationToken.None);
             }
+            else
+            {
+                var settings = await _practiceService.GetSettings(cancellationToken);
 
-            // note that we DON'T care about attempt counts for practice - they can try as much as they like
+                // or if the practice area has an attempt limit and it's been exceeded
+                if (settings.AttemptLimit is not null && postGradingState.Challenge.Attempts > settings.AttemptLimit)
+                {
+                    await _teamService.EndSession(challenge.TeamId, actor, cancellationToken);
+                }
+            }
         }
 
         return Mapper.Map<Challenge>(challenge);
@@ -660,7 +673,7 @@ public partial class ChallengeService
                 if (challengeIdUserIds.TryGetValue(cId, out IEnumerable<string> userIds))
                     _ = userIds.Append(kv.Key);
                 else
-                    challengeIdUserIds[cId] = new List<string> { kv.Key };
+                    challengeIdUserIds[cId] = [kv.Key];
 
         return new ChallengeIdUserIdMap
         {
@@ -726,8 +739,16 @@ public partial class ChallengeService
         challenge.PlayerMode = game.PlayerMode;
         challenge.WhenCreated = _now.Get();
 
+        var attemptLimit = game.MaxAttempts;
+        if (game.PlayerMode == PlayerMode.Practice)
+        {
+            var settings = await _practiceService.GetSettings(CancellationToken.None);
+            attemptLimit = settings.AttemptLimit ?? 0;
+        }
+
         var state = await _gameEngine.RegisterGamespace(new GameEngineChallengeRegistration
         {
+            AttemptLimit = attemptLimit,
             Challenge = challenge,
             ChallengeSpec = spec,
             Game = game,
