@@ -45,8 +45,8 @@ public class UserService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(model.Id);
 
-        var entity = await _userStore
-            .ListWithNoTracking()
+        var entity = await _store
+            .WithNoTracking<Data.User>()
                 .Include(u => u.Sponsor)
             .SingleOrDefaultAsync(u => u.Id == model.Id);
 
@@ -62,11 +62,11 @@ public class UserService
         entity = _mapper.Map<Data.User>(model);
 
         // first user gets admin
-        if (!await _userStore.AnyAsync(u => u.Id != model.Id))
+        if (!await _store.WithNoTracking<Data.User>().AnyAsync(u => u.Id != model.Id))
             entity.Role = UserRoleKey.Admin;
 
         // record creation date and first login
-        if (entity.CreatedOn.DoesntHaveValue())
+        if (entity.CreatedOn.IsEmpty())
         {
             entity.CreatedOn = _now.Get();
             entity.LastLoginDate = entity.CreatedOn;
@@ -89,11 +89,11 @@ public class UserService
         var i = 0;
         do
         {
-            entity.ApprovedName = _namesvc.GetRandomName();
+            entity.ApprovedName = model.DefaultName.IsEmpty() ? _namesvc.GetRandomName() : model.DefaultName.Trim();
             entity.Name = entity.ApprovedName;
 
             // check uniqueness
-            found = await _userStore.AnyAsync(p => p.Id != entity.Id && p.Name == entity.Name);
+            found = await _userStore.AnyAsync(p => p.Id != entity.Id && p.ApprovedName == entity.Name);
         } while (found && i++ < 20);
 
         await _userStore.Create(entity);
@@ -169,10 +169,10 @@ public class UserService
 
             // if the name is in use, change the namestatus to reflect this fact
             // check uniqueness
-            var found = await _userStore.DbSet.AnyAsync(p =>
-                p.Id != entity.Id &&
-                p.Name == entity.Name
-            );
+            var found = await _store.WithNoTracking<Data.User>()
+                .Where(p => p.Id != entity.Id)
+                .Where(p => p.Name == entity.Name)
+                .AnyAsync();
 
             if (found)
                 entity.NameStatus = AppConstants.NameStatusNotUnique;
@@ -300,9 +300,9 @@ public class UserService
 
     public async Task<SimpleEntity[]> ListSupport(SearchFilter model)
     {
-        var q = _userStore.List(model.Term);
-
         var roles = await _permissionsService.GetRolesWithPermission(PermissionKey.Support_ManageTickets);
+
+        var q = _store.WithNoTracking<Data.User>();
         q = q.Where(u => roles.Contains(u.Role));
 
         if (model.Term.NotEmpty())

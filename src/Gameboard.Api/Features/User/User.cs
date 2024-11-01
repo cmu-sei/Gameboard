@@ -32,6 +32,7 @@ public class User
 public class NewUser
 {
     public required string Id { get; set; }
+    public string DefaultName { get; set; }
     public string SponsorId { get; set; }
     public bool UnsetDefaultSponsorFlag { get; set; }
 }

@@ -12,10 +12,12 @@ namespace Gameboard.Api.Features.Games;
 
 public record UpdatePlayerReadyStateCommand(string PlayerId, bool IsReady, User Actor) : IRequest;
 
-internal class UpdatePlayerReadyStateCommandHandler(
+internal class UpdatePlayerReadyStateCommandHandler
+(
     IStore store,
     ISyncStartGameService syncStartGameService,
-    IValidatorService validatorService) : IRequestHandler<UpdatePlayerReadyStateCommand>
+    IValidatorService validatorService
+) : IRequestHandler<UpdatePlayerReadyStateCommand>
 {
     private readonly IStore _store = store;
     private readonly ISyncStartGameService _syncStartGameService = syncStartGameService;
@@ -36,7 +38,8 @@ internal class UpdatePlayerReadyStateCommandHandler(
                     .RequirePermissions(PermissionKey.Teams_SetSyncStartReady)
                     .UnlessUserIdIn(player?.UserId)
 
-            ).AddValidator(ctx =>
+            )
+            .AddValidator(ctx =>
             {
                 if (player == null)
                     ctx.AddValidationException(new ResourceNotFound<Data.Player>(request.PlayerId));

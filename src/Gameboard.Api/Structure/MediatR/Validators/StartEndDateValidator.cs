@@ -36,13 +36,13 @@ internal class StartEndDateValidator<TModel> : IGameboardValidator<TModel>
             var startDateValue = StartDateProperty(model);
             var endDateValue = EndDateProperty(model);
 
-            if (StartDateRequired && (startDateValue == null || startDateValue.Value.DoesntHaveValue()))
+            if (StartDateRequired && startDateValue.IsEmpty())
                 return Task.FromResult<GameboardValidationException>(new MissingRequiredDate(nameof(StartDate)));
 
-            if (EndDateRequired && (endDateValue == null || endDateValue.Value.DoesntHaveValue()))
+            if (EndDateRequired && endDateValue.IsEmpty())
                 return Task.FromResult<GameboardValidationException>(new MissingRequiredDate(nameof(EndDate)));
 
-            if (startDateValue != null && startDateValue.Value.HasValue() && endDateValue != null && endDateValue.Value.HasValue() && startDateValue > endDateValue)
+            if (startDateValue.IsNotEmpty() && endDateValue.IsNotEmpty() && startDateValue > endDateValue)
                 return Task.FromResult<GameboardValidationException>(new StartDateOccursAfterEndDate(startDateValue.Value, endDateValue.Value));
 
             return Task.FromResult<GameboardValidationException>(null);
