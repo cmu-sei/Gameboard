@@ -19,7 +19,6 @@ using Gameboard.Api.Features.Users;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Gameboard.Api.Common.Services;
-using System.ComponentModel;
 using System.Threading;
 
 namespace Gameboard.Api.Controllers;
@@ -72,7 +71,7 @@ public class UserController(
 
     [HttpPut("api/user/{userId}/name")]
     public Task<RequestNameChangeResponse> RequestNameChange([FromRoute] string userId, [FromBody] RequestNameChangeRequest request, CancellationToken ct)
-        => _mediator.Send(new RequestNameChangeCommand(userId, request.RequestedName), ct);
+        => _mediator.Send(new RequestNameChangeCommand(userId, request), ct);
 
     [HttpPost("api/users")]
     public Task<TryCreateUsersResponse> TryCreateMany([FromBody] TryCreateUsersRequest request)

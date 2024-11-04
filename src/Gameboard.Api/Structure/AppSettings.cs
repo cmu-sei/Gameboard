@@ -173,8 +173,8 @@ public class CoreOptions
     public string GameEngineClientSecret { get; set; }
     public int GameEngineMaxRetries { get; set; } = 2;
     public bool MojoEnabled { get; set; } = true;
-    public bool NameChangesAllow { get; set; } = true;
-    public bool NameChangesRequireApproval { get; set; } = true;
+    public bool NameChangeIsEnabled { get; set; } = true;
+    public bool NameChangeRequiresApproval { get; set; } = true;
     public bool NamesImportFromIdp { get; set; } = false;
     public string ImageFolder { get; set; } = "wwwroot/img";
     public string DocFolder { get; set; } = "wwwroot/doc";

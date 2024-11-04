@@ -5,6 +5,7 @@ namespace Gameboard.Api.Features.Users;
 public sealed class RequestNameChangeRequest
 {
     public required string RequestedName { get; set; }
+    public string Status { get; set; }
 }
 
 public sealed class RequestNameChangeResponse
