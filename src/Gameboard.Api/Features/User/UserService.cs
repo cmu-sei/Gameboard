@@ -151,40 +151,6 @@ public class UserService
             entity.PlayAudioOnBrowserNotification = model.PlayAudioOnBrowserNotification.Value;
         }
 
-        // if we're editing the (not-approved) name...
-        if (model.Name.NotEmpty() && entity.Name != model.Name)
-        {
-            entity.Name = model.Name.Trim();
-
-            // sudoers change names without the "pending" step
-            entity.NameStatus = canAdminUsers ? entity.NameStatus : AppConstants.NameStatusPending;
-            // and they automatically copy the requested name to the approved name
-            entity.ApprovedName = canAdminUsers ? entity.Name : entity.ApprovedName;
-
-            // after shuffling the name, approved name, and status, check to ensure
-            // that the name and approved name are different. if they're the same,
-            // they're not in pending status (because the name is approved)
-            if (entity.Name == entity.ApprovedName && entity.NameStatus == AppConstants.NameStatusPending)
-                entity.NameStatus = string.Empty;
-
-            // if the name is in use, change the namestatus to reflect this fact
-            // check uniqueness
-            var found = await _store.WithNoTracking<Data.User>()
-                .Where(p => p.Id != entity.Id)
-                .Where(p => p.Name == entity.Name)
-                .AnyAsync();
-
-            if (found)
-                entity.NameStatus = AppConstants.NameStatusNotUnique;
-        }
-
-        // only sudoers can approve names
-        if (canAdminUsers && model.ApprovedName.NotEmpty())
-        {
-            entity.ApprovedName = model.ApprovedName;
-            entity.NameStatus = null;
-        }
-
         await _userStore.Update(entity);
         _localcache.Remove(entity.Id);
 
