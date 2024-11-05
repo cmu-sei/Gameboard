@@ -15,13 +15,15 @@ using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Services;
 
-public class ChallengeSpecService(
+public class ChallengeSpecService
+(
     IJsonService jsonService,
     ILogger<ChallengeSpecService> logger,
     IMapper mapper,
     INowService now,
     ISlugService slug,
     CoreOptions options,
+    Random random,
     IStore store,
     IGameEngineService gameEngine
     ) : _Service(logger, mapper, options)
@@ -29,6 +31,7 @@ public class ChallengeSpecService(
     private readonly IGameEngineService _gameEngine = gameEngine;
     private readonly IJsonService _jsonService = jsonService;
     private readonly INowService _now = now;
+    private readonly Random _random = random;
     private readonly ISlugService _slug = slug;
     private readonly IStore _store = store;
 
@@ -51,6 +54,19 @@ public class ChallengeSpecService(
         else
         {
             entity = Mapper.Map<Data.ChallengeSpec>(model);
+
+            // default semi-random coords so they don't stack up
+            if (entity.X == 0 && entity.Y == 0)
+            {
+                entity.X = (float)Decimal.Divide(_random.Next(50) + 25, 100);
+                entity.Y = (float)Decimal.Divide(_random.Next(50) + 25, 100);
+            }
+
+            // point value must be non-negative and defaults to 100
+            if (entity.Points <= 0)
+            {
+                entity.Points = 100;
+            }
 
             if (entity.Tag.IsEmpty())
             {

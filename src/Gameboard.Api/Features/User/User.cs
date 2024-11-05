@@ -32,6 +32,7 @@ public class User
 public class NewUser
 {
     public required string Id { get; set; }
+    public string DefaultName { get; set; }
     public string SponsorId { get; set; }
     public bool UnsetDefaultSponsorFlag { get; set; }
 }
@@ -39,9 +40,6 @@ public class NewUser
 public class UpdateUser
 {
     public string Id { get; set; }
-    public string Name { get; set; }
-    public string NameStatus { get; set; }
-    public string ApprovedName { get; set; }
     public string SponsorId { get; set; }
     public UserRoleKey? Role { get; set; }
     public bool? PlayAudioOnBrowserNotification { get; set; }

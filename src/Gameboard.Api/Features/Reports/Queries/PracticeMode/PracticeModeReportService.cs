@@ -548,8 +548,8 @@ internal class PracticeModeReportService
                 MaxPossibleScore = c.Points,
                 PctMaxPointsScored = c.GetPercentMaxPointsScored(),
                 ScorePercentile = (double?)CalculatePlayerChallengePercentile(c.Id, c.SpecId, c.Score, c.Game.IsPracticeMode, rawScores),
-                SessionStart = c.StartTime.HasValue() ? c.StartTime : null,
-                SessionEnd = c.EndTime.HasValue() ? c.EndTime : null
+                SessionStart = c.StartTime.IsNotEmpty() ? c.StartTime : null,
+                SessionEnd = c.EndTime.IsNotEmpty() ? c.EndTime : null
             };
         });
     }

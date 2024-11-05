@@ -58,8 +58,6 @@ public class UserControllerUpdateTests : IClassFixture<GameboardTestContext>
         var changedUser = new UpdateUser
         {
             Id = userId,
-            Name = userName,
-            ApprovedName = userName,
             SponsorId = newSponsorId
         };
 

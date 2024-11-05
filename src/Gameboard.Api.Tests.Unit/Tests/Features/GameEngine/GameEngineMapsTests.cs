@@ -41,8 +41,8 @@ public class GameEngineMapsTests
             Markdown = "Here is some markdown _stuff_.",
             Audience = "gameboard",
             LaunchpointUrl = "https://google.com",
-            Players = new TopoMojo.Api.Client.Player[]
-            {
+            Players =
+            [
                 new()
                 {
                     GamespaceId = "33b9cf31-8686-4d95-b5a8-9fb1b7f8ce71",
@@ -51,14 +51,14 @@ public class GameEngineMapsTests
                     Permission = TopoMojo.Api.Client.Permission.None,
                     IsManager = true
                 }
-            },
+            ],
             WhenCreated = DateTimeOffset.UtcNow,
             StartTime = DateTimeOffset.UtcNow,
             EndTime = DateTimeOffset.UtcNow.AddMinutes(60),
             ExpirationTime = DateTime.UtcNow.AddMinutes(60),
             IsActive = true,
-            Vms = new TopoMojo.Api.Client.VmState[]
-            {
+            Vms =
+            [
                 new ()
                 {
                     Id = "10fccb66-6916-45e2-9a39-188d3a692d4a",
@@ -75,7 +75,7 @@ public class GameEngineMapsTests
                     IsRunning = true,
                     IsVisible = false
                 },
-            },
+            ],
             Challenge = new TopoMojo.Api.Client.ChallengeView
             {
                 Text = "A challenging challenge",
@@ -88,8 +88,8 @@ public class GameEngineMapsTests
                 SectionScore = 50,
                 SectionText = "The best one",
                 LastScoreTime = DateTimeOffset.UtcNow.AddMinutes(5),
-                Questions = new TopoMojo.Api.Client.QuestionView[]
-                {
+                Questions =
+                [
                     new TopoMojo.Api.Client.QuestionView
                     {
                         Text = "What is your quest?",
@@ -101,7 +101,7 @@ public class GameEngineMapsTests
                         IsCorrect = false,
                         IsGraded = true
                     }
-                }
+                ]
             }
         };
 

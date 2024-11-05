@@ -5,8 +5,8 @@ namespace Gameboard.Api;
 
 public enum PlayerRole
 {
-    Member,
-    Manager
+    Member = 0,
+    Manager = 1
 }
 
 public enum PlayerMode

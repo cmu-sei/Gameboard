@@ -23,7 +23,7 @@ public interface ICrucibleService
     bool IsEnabled();
     Task<ExternalSpec[]> ListSpecs();
     Task<GameEngineGameState> PreviewGamespace(string externalId);
-    Task<GameEngineGameState> RegisterGamespace(Data.ChallengeSpec spec, Data.Game game, Data.Player player, Data.Challenge entity);
+    Task<GameEngineGameState> RegisterGamespace(Data.ChallengeSpec spec, Data.Game game, Data.Player player, Data.Challenge entity, int attemptLimit);
 }
 
 public class CrucibleService(
@@ -45,7 +45,7 @@ public class CrucibleService(
     public bool IsEnabled()
         => CrucibleOptions.Enabled;
 
-    public async Task<GameEngineGameState> RegisterGamespace(Data.ChallengeSpec spec, Data.Game game, Data.Player player, Data.Challenge entity)
+    public async Task<GameEngineGameState> RegisterGamespace(Data.ChallengeSpec spec, Data.Game game, Data.Player player, Data.Challenge entity, int attemptLimit)
     {
         var whenCreated = DateTimeOffset.UtcNow;
         var additionalUserIds = new List<Guid>();
@@ -108,7 +108,7 @@ public class CrucibleService(
         state.Challenge = new()
         {
             Attempts = 0,
-            MaxAttempts = 10,
+            MaxAttempts = attemptLimit,
             MaxPoints = entity.Points,
             Score = 0,
             SectionCount = 0,
@@ -120,6 +120,8 @@ public class CrucibleService(
             {
                 IsCorrect = false,
                 IsGraded = false,
+                ScoreCurrent = 0,
+                ScoreMax = q.Weight * entity.Points,
                 Text = q.Text,
                 Weight = q.Weight
             })
@@ -179,6 +181,8 @@ public class CrucibleService(
                 Answer = qv.Answer,
                 IsCorrect = qv.IsCorrect,
                 IsGraded = qv.IsGraded,
+                ScoreCurrent = qv.IsCorrect ? qv.Weight * state.Challenge.MaxPoints : 0,
+                ScoreMax = qv.Weight * state.Challenge.MaxPoints,
                 Text = qv.Text,
                 Weight = qv.Weight
             });

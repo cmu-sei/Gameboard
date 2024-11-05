@@ -970,6 +970,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<int?>("AttemptLimit")
+                        .HasColumnType("int");
+
                     b.Property<string>("CertificateHtmlTemplate")
                         .HasColumnType("nvarchar(max)");
 

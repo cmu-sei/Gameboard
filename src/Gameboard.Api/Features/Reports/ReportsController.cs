@@ -10,10 +10,7 @@ namespace Gameboard.Api.Features.Reports;
 
 [Authorize]
 [Route("/api/reports")]
-public class ReportsController(
-    IMediator mediator,
-    IReportsService service
-    ) : ControllerBase
+public class ReportsController(IMediator mediator, IReportsService service) : ControllerBase
 {
     private readonly IMediator _mediator = mediator;
     private readonly IReportsService _service = service;

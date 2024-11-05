@@ -16,17 +16,6 @@ namespace Gameboard.Api
                 .Replace("-", "")
                 .ToLower();
 
-
-        public static bool HasValue(this DateTimeOffset ts)
-        {
-            return ts.Year > 1;
-        }
-
-        public static bool DoesntHaveValue(this DateTimeOffset ts)
-        {
-            return !HasValue(ts);
-        }
-
         public static string Tag(this string s)
         {
             if (s.NotEmpty())

@@ -15,8 +15,4 @@ public class GameEngineController(IMediator mediator) : ControllerBase
     [HttpGet("state")]
     public async Task<IEnumerable<GameEngineGameState>> GetGameStates(string teamId)
         => await _mediator.Send(new GetGameStateQuery(teamId));
-
-    [HttpGet("submissions")]
-    public async Task<IEnumerable<GameEngineSectionSubmission>> GetSubmissions(string teamId, string challengeId)
-        => await _mediator.Send(new GetSubmissionsQuery(teamId, challengeId));
 }

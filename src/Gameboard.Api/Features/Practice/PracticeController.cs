@@ -26,6 +26,10 @@ public class PracticeController(
     public Task<SearchPracticeChallengesResult> Browse([FromQuery] SearchFilter model)
         => _mediator.Send(new SearchPracticeChallengesQuery(model));
 
+    [HttpGet("session")]
+    public Task<PracticeSession> GetPracticeSession()
+        => _mediator.Send(new GetPracticeSessionQuery(_actingUserService.Get().Id));
+
     [HttpGet]
     [Route("settings")]
     [AllowAnonymous]

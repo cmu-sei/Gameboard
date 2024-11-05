@@ -126,6 +126,12 @@ public class TeamPlayer
     public bool IsManager => Role == PlayerRole.Manager;
 }
 
+public sealed class TeamSessionUpdate
+{
+    public required string Id { get; set; }
+    public required long SessionEndsAt { get; set; }
+}
+
 public class NotificationHubTeamSessionEvent
 {
     public required string TeamId { get; set; }

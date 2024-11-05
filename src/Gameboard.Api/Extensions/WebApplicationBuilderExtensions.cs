@@ -123,7 +123,7 @@ internal static class WebApplicationBuilderExtensions
                     | HttpLoggingFields.RequestBody;
                 logging.RequestBodyLogLimit = settings.Logging.RequestBodyLogLimit;
                 logging.ResponseBodyLogLimit = settings.Logging.ResponseBodyLogLimit;
-                logging.MediaTypeOptions.AddText("application/json");
+                logging.MediaTypeOptions.AddText(MimeTypes.ApplicationJson);
             });
         }
     }

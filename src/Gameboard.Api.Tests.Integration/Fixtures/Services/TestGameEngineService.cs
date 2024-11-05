@@ -57,20 +57,23 @@ public class TestGameEngineService : IGameEngineService
         return Task.CompletedTask;
     }
 
+    public Task<GameEngineChallengeProgressView> GetChallengeProgress(string challengeId, GameEngineType gameEngineType, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<GameEngineGameState> GetChallengeState(GameEngineType gameEngineType, string stateJson)
     {
         return Task.FromResult(new GameEngineGameState());
     }
 
-    public Task<ConsoleSummary> GetConsole(Api.Data.Challenge entity, ConsoleRequest model, bool observer)
+    public Task<ConsoleSummary> GetConsole(Data.Challenge entity, ConsoleRequest model, bool observer)
     {
         return Task.FromResult(new ConsoleSummary { });
     }
 
     public IEnumerable<GameEngineGamespaceVm> GetGamespaceVms(GameEngineGameState state)
-    {
-        return Array.Empty<GameEngineGamespaceVm>();
-    }
+        => [];
 
     public Task<GameEngineGameState> GetPreview(Data.ChallengeSpec spec)
     {
@@ -130,6 +133,8 @@ public class TestGameEngineService : IGameEngineService
                     IsCorrect = false,
                     IsGraded = false,
                     Hint = string.Empty,
+                    ScoreCurrent = 0,
+                    ScoreMax = 50,
                     Text = "",
                     Weight = 1
                 }.ToCollection()

@@ -1,5 +1,4 @@
 using System;
-using System.Text.RegularExpressions;
 
 namespace Gameboard.Api.Common;
 
@@ -15,6 +14,12 @@ public sealed class DateRange
         Start = start;
         End = end;
     }
+}
+
+public sealed class TimestampRange
+{
+    public required long? Start { get; set; }
+    public required long? End { get; set; }
 }
 
 public sealed class GameCardContext

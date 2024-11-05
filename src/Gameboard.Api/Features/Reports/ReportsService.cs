@@ -94,8 +94,8 @@ public class ReportsService(
                 [
                     "Season",
                     "Series",
-                    "Sponsor",
                     "Track",
+                    "Sponsor",
                     "Game",
                     "Enrollment Date Range",
                 ]
@@ -128,7 +128,16 @@ public class ReportsService(
                     "Challenges Deployed",
                     "Distinct Competitions Played"
                 ],
-                ExampleParameters = []
+                ExampleParameters =
+                [
+                    "Season",
+                    "Series",
+                    "Track",
+                    "Game",
+                    "Account Created",
+                    "Last Played",
+                    "Sponsor"
+                ]
             },
             new()
             {

@@ -13,6 +13,8 @@ public interface IValidatorService
     IValidatorService AddValidator(IGameboardValidator validator);
     IValidatorService AddValidator(Action<RequestValidationContext> validationAction);
     IValidatorService AddValidator(Func<RequestValidationContext, Task> validationTask);
+    IValidatorService AddValidator(bool condition, GameboardValidationException ex);
+    IValidatorService AddValidator(Func<Task<bool>> condition, GameboardValidationException ex);
     IValidatorService Auth(Action<IUserRolePermissionsValidator> configBuilder);
     Task Validate(CancellationToken cancellationToken);
 }
@@ -38,6 +40,34 @@ internal class ValidatorService(IActingUserService actingUserService, UserRolePe
     public IValidatorService AddValidator(Func<RequestValidationContext, Task> validationTask)
     {
         _validationTasks.Add(validationTask);
+        return this;
+    }
+
+    public IValidatorService AddValidator(bool condition, GameboardValidationException ex)
+    {
+        _validationTasks.Add(ctx =>
+        {
+            if (condition)
+            {
+                ctx.AddValidationException(ex);
+            }
+
+            return Task.CompletedTask;
+        });
+
+        return this;
+    }
+
+    public IValidatorService AddValidator(Func<Task<bool>> condition, GameboardValidationException ex)
+    {
+        _validationTasks.Add(async ctx =>
+        {
+            if (await condition())
+            {
+                ctx.AddValidationException(ex);
+            }
+        });
+
         return this;
     }
 

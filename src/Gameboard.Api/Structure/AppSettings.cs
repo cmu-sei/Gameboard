@@ -23,6 +23,19 @@ public class AppSettings
     public CrucibleOptions Crucible { get; set; } = new CrucibleOptions();
 }
 
+public class ApiKeyOptions
+{
+    public int BytesOfRandomness { get; set; } = 32;
+    public int RandomCharactersLength { get; set; } = 36;
+}
+
+public sealed class BehaviorSettings
+{
+    public required bool NameChangesAllow { get; set; } = true;
+    public required bool NameChangesRequireApproval { get; set; } = true;
+    public required bool NamesImportFromIdp { get; set; } = true;
+}
+
 public class LoggingSettings
 {
     public bool EnableHttpLogging { get; set; } = false;
@@ -36,12 +49,6 @@ public class LoggingSettings
     /// The maximum number of bytes logged for the response body (in bytes).
     /// </summary>
     public int ResponseBodyLogLimit { get; set; } = 32000;
-}
-
-public class ApiKeyOptions
-{
-    public int BytesOfRandomness { get; set; } = 32;
-    public int RandomCharactersLength { get; set; } = 36;
 }
 
 public class OidcOptions
@@ -166,6 +173,9 @@ public class CoreOptions
     public string GameEngineClientSecret { get; set; }
     public int GameEngineMaxRetries { get; set; } = 2;
     public bool MojoEnabled { get; set; } = true;
+    public bool NameChangeIsEnabled { get; set; } = true;
+    public bool NameChangeRequiresApproval { get; set; } = true;
+    public bool NamesImportFromIdp { get; set; } = false;
     public string ImageFolder { get; set; } = "wwwroot/img";
     public string DocFolder { get; set; } = "wwwroot/doc";
     public string SupportUploadsRequestPath { get; set; } = "supportfiles";
@@ -202,10 +212,10 @@ public class Defaults
     public static string ShiftTimezoneFallback { get; set; } = "Eastern Standard Time";
     // The support shifts; each string[] is the shift start time and the shift end time
     public string[][] ShiftStrings { get; set; }
-    public static string[][] ShiftStringsFallback { get; } = new string[][] {
-            new string[] { "8:00 AM", "4:00 PM" },
-            new string[] { "4:00 PM", "11:00 PM" }
-        };
+    public static string[][] ShiftStringsFallback { get; } = [
+        ["8:00 AM", "4:00 PM"],
+        ["4:00 PM", "11:00 PM"]
+    ];
     // Get date-formatted versions of the shifts
     public DateTimeOffset[][] Shifts { get; set; }
     public static DateTimeOffset[][] ShiftsFallback { get; set; } = GetShifts(ShiftStringsFallback);

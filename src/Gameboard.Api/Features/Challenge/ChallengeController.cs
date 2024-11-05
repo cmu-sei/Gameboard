@@ -311,6 +311,10 @@ public class ChallengeController
         return ChallengeService.GetConsoleActor(uid);
     }
 
+    [HttpGet("api/challenge/{challengeId}/progress")]
+    public Task<GetChallengeProgressResponse> GetProgress([FromRoute] string challengeId)
+        => _mediator.Send(new GetChallengeProgressQuery(challengeId));
+
     [HttpGet("api/challenge/{challengeId}/solution-guide")]
     public Task<ChallengeSolutionGuide> GetSolutionGuide([FromRoute] string challengeId)
         => _mediator.Send(new GetChallengeSolutionGuideQuery(challengeId));

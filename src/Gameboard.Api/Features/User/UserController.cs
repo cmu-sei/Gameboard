@@ -69,6 +69,10 @@ public class UserController(
         return result;
     }
 
+    [HttpPut("api/user/{userId}/name")]
+    public Task<RequestNameChangeResponse> RequestNameChange([FromRoute] string userId, [FromBody] RequestNameChangeRequest request, CancellationToken ct)
+        => _mediator.Send(new RequestNameChangeCommand(userId, request), ct);
+
     [HttpPost("api/users")]
     public Task<TryCreateUsersResponse> TryCreateMany([FromBody] TryCreateUsersRequest request)
         => _mediator.Send(new TryCreateUsersCommand(request));
@@ -143,7 +147,7 @@ public class UserController(
     /// <param name="userId"></param>
     /// <returns></returns>
     [HttpGet("/api/user/{userId}/challenges/active")]
-    public Task<UserActiveChallenges> GetUserActiveChallenges([FromRoute] string userId)
+    public Task<GetUserActiveChallengesResponse> GetUserActiveChallenges([FromRoute] string userId)
             => _mediator.Send(new GetUserActiveChallengesQuery(userId));
 
     /// <summary>

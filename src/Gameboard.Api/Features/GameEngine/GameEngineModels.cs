@@ -7,6 +7,7 @@ namespace Gameboard.Api.Features.GameEngine;
 
 public class GameEngineChallengeRegistration
 {
+    public required int AttemptLimit { get; set; }
     public required Data.Challenge Challenge { get; set; }
     public required Data.ChallengeSpec ChallengeSpec { get; set; }
     public required Data.Game Game { get; set; }
@@ -88,7 +89,42 @@ public class GameEngineChallengeView
     [Required] public double SectionScore { get; set; }
     public string SectionText { get; set; }
     [Required] public DateTimeOffset LastScoreTime { get; set; }
-    [Required] public IEnumerable<GameEngineQuestionView> Questions { get; set; }
+    [Required]
+    public IEnumerable<GameEngineQuestionView> Questions { get; set; } = [];
+}
+
+public sealed class GameEngineChallengeProgressView
+{
+    public required string Id { get; set; }
+    public required int Attempts { get; set; }
+    public required long ExpiresAtTimestamp { get; set; }
+    public required int MaxAttempts { get; set; }
+    public required int MaxPoints { get; set; }
+    public required DateTimeOffset? LastScoreTime { get; set; }
+    public required double? NextSectionPreReqThisSection { get; set; }
+    public required double? NextSectionPreReqTotal { get; set; }
+    public required double Score { get; set; }
+    public required GameEngineVariantView Variant { get; set; }
+    public required string Text { get; set; }
+}
+
+public sealed class GameEngineVariantView
+{
+    public required string Text { get; set; }
+    public required ICollection<GameEngineSectionView> Sections { get; set; } = [];
+    public required int TotalSectionCount { get; set; }
+}
+
+public sealed class GameEngineSectionView
+{
+    public string Name { get; set; }
+    public double PreReqPrevSection { get; set; }
+    public double PreReqTotal { get; set; }
+    public double Score { get; set; }
+    public double ScoreMax { get; set; }
+    public string Text { get; set; }
+    public double TotalWeight { get; set; }
+    public ICollection<GameEngineQuestionView> Questions { get; set; } = [];
 }
 
 public class GameEngineQuestionView
@@ -97,6 +133,8 @@ public class GameEngineQuestionView
     public string Answer { get; set; }
     public string Hint { get; set; }
     public string Example { get; set; }
+    public double ScoreCurrent { get; set; }
+    public double ScoreMax { get; set; }
     public required float Weight { get; set; }
     public required bool IsCorrect { get; set; }
     public required bool IsGraded { get; set; }

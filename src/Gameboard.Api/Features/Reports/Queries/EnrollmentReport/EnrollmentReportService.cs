@@ -144,7 +144,7 @@ internal class EnrollmentReportService(
                 {
                     Id = p.Id,
                     Name = p.ApprovedName,
-                    EnrollDate = p.WhenCreated.HasValue() ? p.WhenCreated : null,
+                    EnrollDate = p.WhenCreated.IsNotEmpty() ? p.WhenCreated : null,
                     Sponsor = p.Sponsor.ToReportViewModel()
                 },
                 Game = new ReportGameViewModel
@@ -165,9 +165,9 @@ internal class EnrollmentReportService(
                 },
                 PlayTime = new EnrollmentReportPlayTimeViewModel
                 {
-                    Start = p.SessionBegin.HasValue() ? p.SessionBegin : null,
-                    DurationMs = p.SessionBegin.HasValue() ? p.Time : null,
-                    End = (p.SessionBegin.HasValue() && p.Time > 0) ? p.SessionBegin.AddMilliseconds(p.Time) : null
+                    Start = p.SessionBegin.IsNotEmpty() ? p.SessionBegin : null,
+                    DurationMs = p.SessionBegin.IsNotEmpty() ? p.Time : null,
+                    End = (p.SessionBegin.IsNotEmpty() && p.Time > 0) ? p.SessionBegin.AddMilliseconds(p.Time) : null
                 },
                 Challenges = challenges,
                 ChallengeCount = challenges.Length,
@@ -249,7 +249,7 @@ internal class EnrollmentReportService(
             DeployDate = c.WhenCreated,
             StartDate = c.StartTime,
             EndDate = c.EndTime,
-            DurationMs = c.StartTime.HasValue() && c.EndTime.HasValue() ? c.EndTime.Subtract(c.StartTime).TotalMilliseconds : null,
+            DurationMs = c.StartTime.IsNotEmpty() && c.EndTime.IsNotEmpty() ? c.EndTime.Subtract(c.StartTime).TotalMilliseconds : null,
             Result = ChallengeExtensions.GetResult(c.Score, c.MaxPossiblePoints),
             ManualChallengeBonuses = c.ManualChallengeBonuses,
             Score = c.Score,

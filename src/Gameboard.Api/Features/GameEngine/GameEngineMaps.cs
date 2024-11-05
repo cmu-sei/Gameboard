@@ -64,7 +64,13 @@ public class GameEngineMaps : Profile
         CreateMap<TopoMojo.Api.Client.GameState, GameEngineGameState>();
         CreateMap<TopoMojo.Api.Client.Permission, GameEnginePlayerPermission>();
         CreateMap<TopoMojo.Api.Client.Player, GameEnginePlayer>();
-        CreateMap<TopoMojo.Api.Client.QuestionView, GameEngineQuestionView>();
+
+        // for now, we ignore these, because we only consume them for one endpoint
+        // and perform calculations in the GameEngineService to set them
+        CreateMap<TopoMojo.Api.Client.QuestionView, GameEngineQuestionView>()
+            .ForMember(d => d.ScoreCurrent, opt => opt.Ignore())
+            .ForMember(d => d.ScoreMax, opt => opt.Ignore());
+
         CreateMap<TopoMojo.Api.Client.VmState, GameEngineVmState>();
         CreateMap<TopoMojo.Api.Client.ChallengeView, GameEngineChallengeView>();
         CreateMap<TopoMojo.Api.Client.SectionSubmission, GameEngineSectionSubmission>();

@@ -45,12 +45,13 @@ public class TeamController(
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPut("session")]
-    public Task UpdateSession([FromBody] SessionChangeRequest model, CancellationToken cancellationToken)
+    public async Task<TeamSessionUpdate> UpdateSession([FromBody] SessionChangeRequest model, CancellationToken cancellationToken)
     {
         if (model.SessionEnd is null)
-            return _mediator.Send(new EndTeamSessionCommand(model.TeamId, _actingUserService.Get()), cancellationToken);
+            return await _mediator.Send(new EndTeamSessionCommand(model.TeamId, _actingUserService.Get()), cancellationToken);
         else
-            return _teamService.ExtendSession
+        {
+            var player = await _teamService.ExtendSession
             (
                 new ExtendTeamSessionRequest
                 {
@@ -60,6 +61,9 @@ public class TeamController(
                 },
                 cancellationToken
             );
+
+            return new TeamSessionUpdate { Id = model.TeamId, SessionEndsAt = player.SessionEnd.ToUnixTimeMilliseconds() };
+        }
     }
 
     [HttpGet("{teamId}/play-state")]

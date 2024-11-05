@@ -11,6 +11,9 @@ using TopoMojo.Api.Client;
 using Gameboard.Api.Services;
 using Gameboard.Api.Common.Services;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading;
 
 namespace Gameboard.Api.Features.GameEngine;
 
@@ -23,6 +26,7 @@ public interface IGameEngineService
     Task DeleteGamespace(string id, GameEngineType gameEngineType);
     Task ExtendSession(Data.Challenge entity, DateTimeOffset sessionEnd);
     Task ExtendSession(string challengeId, DateTimeOffset sessionEnd, GameEngineType gameEngineType);
+    Task<GameEngineChallengeProgressView> GetChallengeProgress(string challengeId, GameEngineType gameEngineType, CancellationToken cancellationToken);
     Task<GameEngineGameState> GetChallengeState(GameEngineType gameEngineType, string stateJson);
     Task<ConsoleSummary> GetConsole(Data.Challenge entity, ConsoleRequest model, bool observer);
     Task<GameEngineGameState> GetPreview(Data.ChallengeSpec spec);
@@ -36,21 +40,24 @@ public interface IGameEngineService
     Task<GameEngineGameState> StopGamespace(Data.Challenge entity);
 }
 
-public class GameEngineService(
+public class GameEngineService
+(
     IJsonService jsonService,
     ILogger<GameEngineService> logger,
     IMapper mapper,
     CoreOptions options,
-    ITopoMojoApiClient mojo,
     IAlloyApiClient alloy,
+    IHttpClientFactory httpClientFactory,
+    ITopoMojoApiClient mojo,
     ICrucibleService crucible,
     IVmUrlResolver vmUrlResolver
-    ) : _Service(logger, mapper, options), IGameEngineService
+) : _Service(logger, mapper, options), IGameEngineService
 {
     ITopoMojoApiClient Mojo { get; } = mojo;
     IAlloyApiClient Alloy { get; } = alloy;
 
     private readonly ICrucibleService _crucible = crucible;
+    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly IJsonService _jsonService = jsonService;
     private readonly IVmUrlResolver _vmUrlResolver = vmUrlResolver;
 
@@ -72,7 +79,7 @@ public class GameEngineService(
                     ResourceId = registration.ChallengeSpec.ExternalId,
                     Variant = registration.Variant,
                     Points = registration.ChallengeSpec.Points,
-                    MaxAttempts = registration.Game.MaxAttempts,
+                    MaxAttempts = registration.AttemptLimit,
                     StartGamespace = registration.StartGamespace,
                     ExpirationTime = registration.Player.SessionEnd,
                     GraderKey = registration.GraderKey,
@@ -82,7 +89,7 @@ public class GameEngineService(
 
                 return Mapper.Map<GameEngineGameState>(topoState);
             case GameEngineType.Crucible:
-                return await _crucible.RegisterGamespace(registration.ChallengeSpec, registration.Game, registration.Player, registration.Challenge);
+                return await _crucible.RegisterGamespace(registration.ChallengeSpec, registration.Game, registration.Player, registration.Challenge, registration.AttemptLimit);
             default:
                 throw new NotImplementedException();
         }
@@ -356,5 +363,54 @@ public class GameEngineService(
             }),
             _ => throw new NotImplementedException(),
         };
+    }
+
+    public async Task<GameEngineChallengeProgressView> GetChallengeProgress(string challengeId, GameEngineType gameEngineType, CancellationToken cancellationToken)
+    {
+        switch (gameEngineType)
+        {
+            case GameEngineType.TopoMojo:
+                // right now, the release version of the topo client doesn't have the .LoadGamespaceChallengeProgressAsync signature
+                // (because it's still in dev), so I'm injecting an http client factory that issues the request until it's released
+                // return await Mojo.LoadGamespaceChallengeProgressAsync(challengeId);
+
+                var client = _httpClientFactory.CreateClient("topo");
+                var response = await client.GetAsync($"api/gamespace/{challengeId}/challenge/progress", cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                    throw new GameEngineException($"Error {response.StatusCode} occurred requesting challenge progress for challenge {challengeId}", new Exception(response.ReasonPhrase));
+
+                var progress = await response.Content.ReadFromJsonAsync<GameEngineChallengeProgressView>(cancellationToken);
+
+                // topo doesn't currently compute a per-section or per-question max/current score, so we can do that here
+                foreach (var section in progress.Variant.Sections)
+                {
+                    section.Score = EngineWeightToScore(section.Questions.Where(q => q.IsCorrect).Select(q => q.Weight).Sum(), progress.MaxPoints) ?? 0;
+                    section.TotalWeight = section.Questions.Sum(q => q.Weight);
+                    section.ScoreMax = EngineWeightToScore(section.TotalWeight, progress.MaxPoints) ?? 0;
+
+                    foreach (var question in section.Questions)
+                    {
+                        question.ScoreMax = EngineWeightToScore(question.Weight, progress.MaxPoints) ?? 0;
+                        question.ScoreCurrent = question.IsCorrect ? question.ScoreMax : 0;
+                    }
+                }
+
+                // we can also make the weights of the prereqs more readable
+                progress.NextSectionPreReqThisSection = EngineWeightToScore(progress.NextSectionPreReqThisSection, progress.MaxPoints);
+                progress.NextSectionPreReqTotal = EngineWeightToScore(progress.NextSectionPreReqTotal, progress.MaxPoints);
+
+                return progress;
+            default:
+                throw new NotImplementedException();
+        }
+    }
+
+    private double? EngineWeightToScore(double? weight, double maxScore)
+    {
+        if (weight is null)
+            return null;
+
+        return Math.Round(weight.Value * maxScore, 0, MidpointRounding.AwayFromZero);
     }
 }

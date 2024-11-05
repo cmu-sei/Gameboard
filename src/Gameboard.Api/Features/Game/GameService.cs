@@ -170,13 +170,16 @@ public class GameService(
 
     public async Task<ChallengeSpec[]> RetrieveChallengeSpecs(string id)
     {
-        return await Mapper.ProjectTo<ChallengeSpec>
+        var results = await Mapper.ProjectTo<ChallengeSpec>
         (
             _store
                 .WithNoTracking<Data.ChallengeSpec>()
                 .Where(s => s.GameId == id)
-                .OrderBy(s => s.Name)
-        ).ToArrayAsync();
+        )
+        .OrderBy(s => s.Name)
+        .ToArrayAsync();
+
+        return results;
     }
 
     public async Task<SessionForecast[]> SessionForecast(string id)
