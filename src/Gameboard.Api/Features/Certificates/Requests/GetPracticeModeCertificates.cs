@@ -10,23 +10,16 @@ namespace Gameboard.Api.Features.Practice;
 
 public record GetPracticeModeCertificatesQuery(string CertificateOwnerUserId, User ActingUser) : IRequest<IEnumerable<PracticeModeCertificate>>;
 
-internal class GetPracticeModeCertificatesHandler : IRequestHandler<GetPracticeModeCertificatesQuery, IEnumerable<PracticeModeCertificate>>
+internal class GetPracticeModeCertificatesHandler
+(
+    ICertificatesService certificatesService,
+    EntityExistsValidator<GetPracticeModeCertificatesQuery, Data.User> userExists,
+    IValidatorService<GetPracticeModeCertificatesQuery> validatorService
+) : IRequestHandler<GetPracticeModeCertificatesQuery, IEnumerable<PracticeModeCertificate>>
 {
-    private readonly ICertificatesService _certificatesService;
-    private readonly EntityExistsValidator<GetPracticeModeCertificatesQuery, Data.User> _userExists;
-    private readonly IValidatorService<GetPracticeModeCertificatesQuery> _validatorService;
-
-    public GetPracticeModeCertificatesHandler
-    (
-        ICertificatesService certificatesService,
-        EntityExistsValidator<GetPracticeModeCertificatesQuery, Data.User> userExists,
-        IValidatorService<GetPracticeModeCertificatesQuery> validatorService
-    )
-    {
-        _certificatesService = certificatesService;
-        _userExists = userExists;
-        _validatorService = validatorService;
-    }
+    private readonly ICertificatesService _certificatesService = certificatesService;
+    private readonly EntityExistsValidator<GetPracticeModeCertificatesQuery, Data.User> _userExists = userExists;
+    private readonly IValidatorService<GetPracticeModeCertificatesQuery> _validatorService = validatorService;
 
     public async Task<IEnumerable<PracticeModeCertificate>> Handle(GetPracticeModeCertificatesQuery request, CancellationToken cancellationToken)
     {
