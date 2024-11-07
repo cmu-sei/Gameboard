@@ -13,14 +13,15 @@ namespace Gameboard.Api.Features.Practice;
 
 public record GetPracticeModeCertificateHtmlQuery(string ChallengeSpecId, string CertificateOwnerUserId, User ActingUser, string RequestedName) : IRequest<string>;
 
-internal class GetPracticeModeCertificateHtmlHandler(
+internal class GetPracticeModeCertificateHtmlHandler
+(
     EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> actingUserExists,
     EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> certificateOwnerExists,
     ICertificatesService certificatesService,
     CoreOptions coreOptions,
     IPracticeService practiceService,
     IValidatorService<GetPracticeModeCertificateHtmlQuery> validatorService
-    ) : IRequestHandler<GetPracticeModeCertificateHtmlQuery, string>
+) : IRequestHandler<GetPracticeModeCertificateHtmlQuery, string>
 {
     private readonly ICertificatesService _certificatesService = certificatesService;
     private readonly CoreOptions _coreOptions = coreOptions;
