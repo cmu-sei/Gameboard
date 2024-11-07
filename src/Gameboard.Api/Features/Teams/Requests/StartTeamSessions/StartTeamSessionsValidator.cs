@@ -14,38 +14,26 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Teams;
 
-internal class StartTeamSessionsValidator : IGameboardRequestValidator<StartTeamSessionsCommand>
+internal class StartTeamSessionsValidator
+(
+    IActingUserService actingUserService,
+    IGameService gameService,
+    IGameModeServiceFactory gameModeServiceFactory,
+    INowService now,
+    IUserRolePermissionsService permissionsService,
+    ISessionWindowCalculator sessionWindow,
+    IStore store,
+    IValidatorService<StartTeamSessionsCommand> validatorService
+) : IGameboardRequestValidator<StartTeamSessionsCommand>
 {
-    private readonly User _actingUser;
-    private readonly IGameModeServiceFactory _gameModeServiceFactory;
-    private readonly IGameService _gameService;
-    private readonly INowService _now;
-    private readonly IUserRolePermissionsService _permissionsService;
-    private readonly ISessionWindowCalculator _sessionWindow;
-    private readonly IStore _store;
-    private readonly IValidatorService<StartTeamSessionsCommand> _validatorService;
-
-    public StartTeamSessionsValidator
-    (
-        IActingUserService actingUserService,
-        IGameService gameService,
-        IGameModeServiceFactory gameModeServiceFactory,
-        INowService now,
-        IUserRolePermissionsService permissionsService,
-        ISessionWindowCalculator sessionWindow,
-        IStore store,
-        IValidatorService<StartTeamSessionsCommand> validatorService
-    )
-    {
-        _actingUser = actingUserService.Get();
-        _gameModeServiceFactory = gameModeServiceFactory;
-        _gameService = gameService;
-        _now = now;
-        _permissionsService = permissionsService;
-        _sessionWindow = sessionWindow;
-        _store = store;
-        _validatorService = validatorService;
-    }
+    private readonly User _actingUser = actingUserService.Get();
+    private readonly IGameModeServiceFactory _gameModeServiceFactory = gameModeServiceFactory;
+    private readonly IGameService _gameService = gameService;
+    private readonly INowService _now = now;
+    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
+    private readonly ISessionWindowCalculator _sessionWindow = sessionWindow;
+    private readonly IStore _store = store;
+    private readonly IValidatorService<StartTeamSessionsCommand> _validatorService = validatorService;
 
     public async Task Validate(StartTeamSessionsCommand request, CancellationToken cancellationToken)
     {

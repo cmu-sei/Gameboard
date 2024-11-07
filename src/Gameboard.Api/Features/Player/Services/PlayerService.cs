@@ -219,7 +219,7 @@ public class PlayerService
             .WithNoTracking<Data.Player>()
             .SingleOrDefaultAsync(p => p.Id == model.PlayerId);
 
-        var result = await _mediator.Send(new StartTeamSessionsCommand(new string[] { startingPlayer.TeamId }));
+        var result = await _mediator.Send(new StartTeamSessionsCommand([startingPlayer.TeamId]));
 
         // also set the starting player's properties because we'll use them as a return
         var teamStartResult = result.Teams[startingPlayer.TeamId];
