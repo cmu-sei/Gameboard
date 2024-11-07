@@ -78,6 +78,7 @@ public class TeamControllerStartTeamSessionTests(GameboardTestContext testContex
                         p.Id = fixture.Create<string>();
                         p.Role = PlayerRole.Member;
                         p.TeamId = teamId;
+                        p.User = state.Build<Data.User>(fixture, u => u.Id = userId);
                     })
                 ]
             });
