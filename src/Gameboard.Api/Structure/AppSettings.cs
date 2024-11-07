@@ -29,13 +29,6 @@ public class ApiKeyOptions
     public int RandomCharactersLength { get; set; } = 36;
 }
 
-public sealed class BehaviorSettings
-{
-    public required bool NameChangesAllow { get; set; } = true;
-    public required bool NameChangesRequireApproval { get; set; } = true;
-    public required bool NamesImportFromIdp { get; set; } = true;
-}
-
 public class LoggingSettings
 {
     public bool EnableHttpLogging { get; set; } = false;
