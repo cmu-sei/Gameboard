@@ -151,7 +151,6 @@ public partial class ChallengeService
         catch (Exception ex)
         {
             Logger.LogWarning(message: $"Challenge registration failure: {ex.GetType().Name} -- {ex.Message}");
-            ExceptionDispatchInfo.Capture(ex.InnerException ?? ex).Throw();
             throw;
         }
         finally

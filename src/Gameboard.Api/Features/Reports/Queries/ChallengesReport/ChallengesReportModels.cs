@@ -31,6 +31,9 @@ public sealed class ChallengesReportRecord
     public required int DeployCompetitiveCount { get; set; }
     public required int DeployPracticeCount { get; set; }
     public required int DistinctPlayerCount { get; set; }
+    public required int PracticeSolveZeroCount { get; set; }
+    public required int PracticeSolvePartialCount { get; set; }
+    public required int PracticeSolveCompleteCount { get; set; }
     public required int SolveZeroCount { get; set; }
     public required int SolvePartialCount { get; set; }
     public required int SolveCompleteCount { get; set; }
@@ -70,10 +73,20 @@ public sealed class ChallengesReportExportRecord
     public required int DeployCompetitiveCount { get; set; }
     public required int DeployPracticeCount { get; set; }
     public required int DistinctPlayerCount { get; set; }
+
+    // these solve counts are for competitive
     public required int SolveZeroCount { get; set; }
     public required int SolvePartialCount { get; set; }
     public required int SolveCompleteCount { get; set; }
     public required double? SolveZeroPct { get; set; }
     public required double? SolvePartialPct { get; set; }
     public required double? SolveCompletePct { get; set; }
+
+    // these are for practice
+    public required int PracticeSolveZeroCount { get; set; }
+    public required int PracticeSolvePartialCount { get; set; }
+    public required int PracticeSolveCompleteCount { get; set; }
+    public required double? PracticeSolveZeroPct { get; set; }
+    public required double? PracticeSolvePartialPct { get; set; }
+    public required double? PracticeSolveCompletePct { get; set; }
 }

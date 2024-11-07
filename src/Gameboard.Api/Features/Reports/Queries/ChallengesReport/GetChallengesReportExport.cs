@@ -10,20 +10,14 @@ namespace Gameboard.Api.Features.Reports;
 
 public record GetChallengesReportExportQuery(ChallengesReportParameters Parameters) : IRequest<IEnumerable<ChallengesReportExportRecord>>, IReportQuery;
 
-internal class GetChallengesReportExportHandler : IRequestHandler<GetChallengesReportExportQuery, IEnumerable<ChallengesReportExportRecord>>
+internal class GetChallengesReportExportHandler
+(
+    IChallengesReportService challengesReportService,
+    ReportsQueryValidator validator
+) : IRequestHandler<GetChallengesReportExportQuery, IEnumerable<ChallengesReportExportRecord>>
 {
-    private readonly IChallengesReportService _challengesReportService;
-    private readonly ReportsQueryValidator _reportsQueryValidator;
-
-    public GetChallengesReportExportHandler
-    (
-        IChallengesReportService challengesReportService,
-        ReportsQueryValidator validator
-    )
-    {
-        _challengesReportService = challengesReportService;
-        _reportsQueryValidator = validator;
-    }
+    private readonly IChallengesReportService _challengesReportService = challengesReportService;
+    private readonly ReportsQueryValidator _reportsQueryValidator = validator;
 
     public async Task<IEnumerable<ChallengesReportExportRecord>> Handle(GetChallengesReportExportQuery request, CancellationToken cancellationToken)
     {
@@ -48,6 +42,12 @@ internal class GetChallengesReportExportHandler : IRequestHandler<GetChallengesR
             DeployCompetitiveCount = r.DeployCompetitiveCount,
             DeployPracticeCount = r.DeployPracticeCount,
             DistinctPlayerCount = r.DistinctPlayerCount,
+            PracticeSolveZeroCount = r.PracticeSolveZeroCount,
+            PracticeSolvePartialCount = r.PracticeSolvePartialCount,
+            PracticeSolveCompleteCount = r.PracticeSolveCompleteCount,
+            PracticeSolveZeroPct = r.DeployPracticeCount > 0 ? ((double)r.PracticeSolveZeroCount / r.DeployPracticeCount) : null,
+            PracticeSolvePartialPct = r.DeployPracticeCount > 0 ? ((double)r.PracticeSolvePartialCount / r.DeployPracticeCount) : null,
+            PracticeSolveCompletePct = r.DeployPracticeCount > 0 ? ((double)r.PracticeSolveCompleteCount / r.DeployPracticeCount) : null,
             SolveZeroCount = r.SolveZeroCount,
             SolvePartialCount = r.SolvePartialCount,
             SolveCompleteCount = r.SolveCompleteCount,

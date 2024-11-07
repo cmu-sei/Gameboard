@@ -13,32 +13,22 @@ namespace Gameboard.Api.Features.Practice;
 
 public record SearchPracticeChallengesQuery(SearchFilter Filter) : IRequest<SearchPracticeChallengesResult>;
 
-internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeChallengesQuery, SearchPracticeChallengesResult>
+internal class SearchPracticeChallengesHandler
+(
+    IChallengeDocsService challengeDocsService,
+    IMapper mapper,
+    IPagingService pagingService,
+    IPracticeService practiceService,
+    ISlugService slugger,
+    IStore store
+) : IRequestHandler<SearchPracticeChallengesQuery, SearchPracticeChallengesResult>
 {
-    private readonly IChallengeDocsService _challengeDocsService;
-    private readonly IMapper _mapper;
-    private readonly IPagingService _pagingService;
-    private readonly IPracticeService _practiceService;
-    private readonly ISlugService _slugger;
-    private readonly IStore _store;
-
-    public SearchPracticeChallengesHandler
-    (
-        IChallengeDocsService challengeDocsService,
-        IMapper mapper,
-        IPagingService pagingService,
-        IPracticeService practiceService,
-        ISlugService slugger,
-        IStore store
-    )
-    {
-        _challengeDocsService = challengeDocsService;
-        _mapper = mapper;
-        _pagingService = pagingService;
-        _practiceService = practiceService;
-        _slugger = slugger;
-        _store = store;
-    }
+    private readonly IChallengeDocsService _challengeDocsService = challengeDocsService;
+    private readonly IMapper _mapper = mapper;
+    private readonly IPagingService _pagingService = pagingService;
+    private readonly IPracticeService _practiceService = practiceService;
+    private readonly ISlugService _slugger = slugger;
+    private readonly IStore _store = store;
 
     public async Task<SearchPracticeChallengesResult> Handle(SearchPracticeChallengesQuery request, CancellationToken cancellationToken)
     {
@@ -100,6 +90,7 @@ internal class SearchPracticeChallengesHandler : IRequestHandler<SearchPracticeC
                     s.Name.ToLower().Contains(term) ||
                     s.Description.ToLower().Contains(term) ||
                     s.Game.Name.ToLower().Contains(term) ||
+                    s.Game.Id.ToLower() == term ||
                     s.Text.ToLower().Contains(term) ||
                     (s.Tags.Contains(sluggedTerm) && sluggedSuggestedSearches.Contains(sluggedTerm))
             );

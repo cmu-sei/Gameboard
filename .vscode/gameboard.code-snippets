@@ -31,6 +31,7 @@
 			"}"
 		]
 	},
+	
 	"Create Gameboard Integration Test Suite": {
 		"scope": "csharp",
 		"description": "Create a Gameboard integration test suite",
@@ -38,12 +39,10 @@
 		"body": [
 			"namespace Gameboard.Api.Tests.Integration;",
 			"",
-			"public class ${0:Some}ControllerTests : IClassFixture<GameboardTestContext>",
+			"public class ${0:Some}ControllerTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>",
 			"{",
-			"\tprivate readonly GameboardTestContext _testContext;",
+			"\tprivate readonly GameboardTestContext _testContext = testContext;",
 			"",
-			"\tpublic ${0:Some}ControllerTests(GameboardTestContext testContext",
-			"\t\t=> _testContext = testContext;",
 			"}"
 		]
 	}

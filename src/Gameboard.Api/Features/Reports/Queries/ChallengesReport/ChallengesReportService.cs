@@ -50,8 +50,8 @@ internal class ChallengesReportService(IPracticeService practiceService, IReport
             query = query.Where(cs => tracksCriteria.Contains(cs.Game.Track.ToLower()));
 
         // the date filters apply to challenges, not to specs
-        DateTimeOffset? startDateStart = parameters.StartDateStart.HasValue ? parameters.StartDateStart.Value.ToUniversalTime() : null;
-        DateTimeOffset? startDateEnd = parameters.StartDateEnd.HasValue ? parameters.StartDateEnd.Value.ToEndDate().ToUniversalTime() : null;
+        var startDateStart = parameters.StartDateStart.HasValue ? parameters.StartDateStart.Value.ToUniversalTime() : default(DateTimeOffset?);
+        var startDateEnd = parameters.StartDateEnd.HasValue ? parameters.StartDateEnd.Value.ToEndDate().ToUniversalTime() : default(DateTimeOffset?);
         Expression<Func<Data.Challenge, bool>> startDateCondition = c => true;
         Expression<Func<Data.Challenge, bool>> endDateCondition = c => true;
 
@@ -122,18 +122,30 @@ internal class ChallengesReportService(IPracticeService practiceService, IReport
                     .Select(p => p.UserId)
                     .Distinct()
                     .Count(),
-                SolveZeroCount = group
+                CompetitiveSolveZeroCount = group
                     .Where(c => c.Score == 0)
                     .Where(c => c.PlayerMode == PlayerMode.Competition)
                     .Count(),
-                SolvePartialCount = group
+                CompetitiveSolvePartialCount = group
                     .Where(c => c.Score > 0 && c.Score < c.Points)
                     .Where(c => c.PlayerMode == PlayerMode.Competition)
                     .Count(),
-                SolveCompleteCount = group
+                CompetitiveSolveCompleteCount = group
                     .Where(c => c.Score >= c.Points)
                     .Where(c => c.PlayerMode == PlayerMode.Competition)
-                    .Count()
+                    .Count(),
+                PracticeSolveZeroCount = group
+                    .Where(c => c.Score == 0)
+                    .Where(c => c.PlayerMode == PlayerMode.Practice)
+                    .Count(),
+                PracticeSolvePartialCount = group
+                    .Where(c => c.Score > 0 && c.Score < c.Points)
+                    .Where(c => c.PlayerMode == PlayerMode.Practice)
+                    .Count(),
+                PracticeSolveCompleteCount = group
+                    .Where(c => c.Score >= c.Points)
+                    .Where(c => c.PlayerMode == PlayerMode.Practice)
+                    .Count(),
             }, cancellationToken);
 
         // we currently restrict tags we show on challenges (to avoid polluting the UI with internal tags).
@@ -162,12 +174,15 @@ internal class ChallengesReportService(IPracticeService practiceService, IReport
                 Tags = tags,
                 AvgCompleteSolveTimeMs = aggregations?.AvgCompleteSolveTimeMs,
                 AvgScore = aggregations?.AvgScore,
-                DeployCompetitiveCount = aggregations is not null ? aggregations.DeployCompetitiveCount : 0,
-                DeployPracticeCount = aggregations is not null ? aggregations.DeployPracticeCount : 0,
-                DistinctPlayerCount = aggregations is not null ? aggregations.DistinctPlayerCount : 0,
-                SolveZeroCount = aggregations is not null ? aggregations.SolveZeroCount : 0,
-                SolvePartialCount = aggregations is not null ? aggregations.SolvePartialCount : 0,
-                SolveCompleteCount = aggregations is not null ? aggregations.SolveCompleteCount : 0
+                DeployCompetitiveCount = aggregations?.DeployCompetitiveCount ?? 0,
+                DeployPracticeCount = aggregations?.DeployPracticeCount ?? 0,
+                DistinctPlayerCount = aggregations?.DistinctPlayerCount ?? 0,
+                PracticeSolveZeroCount = aggregations?.PracticeSolveZeroCount ?? 0,
+                PracticeSolvePartialCount = aggregations?.PracticeSolvePartialCount ?? 0,
+                PracticeSolveCompleteCount = aggregations?.PracticeSolveCompleteCount ?? 0,
+                SolveZeroCount = aggregations?.CompetitiveSolveZeroCount ?? 0,
+                SolvePartialCount = aggregations?.CompetitiveSolvePartialCount ?? 0,
+                SolveCompleteCount = aggregations?.CompetitiveSolveCompleteCount ?? 0
             };
         });
 
