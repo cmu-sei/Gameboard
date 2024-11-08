@@ -49,6 +49,7 @@ public class TeamControllerStartTeamSessionTests(GameboardTestContext testContex
         string gameId,
         string playerId,
         string userId,
+        string teamId,
         IFixture fixture
     )
     {
@@ -68,12 +69,15 @@ public class TeamControllerStartTeamSessionTests(GameboardTestContext testContex
                     state.Build<Data.Player>(fixture, p =>
                     {
                         p.Id = playerId;
+                        p.Role = PlayerRole.Manager;
+                        p.TeamId = teamId;
                         p.User = state.Build<Data.User>(fixture, u => u.Id = userId);
                     }),
                     state.Build<Data.Player>(fixture, p =>
                     {
-                        p.Id = playerId;
-                        p.User = state.Build<Data.User>(fixture, u => u.Id = userId);
+                        p.Id = fixture.Create<string>();
+                        p.Role = PlayerRole.Member;
+                        p.TeamId = teamId;
                     })
                 ]
             });
@@ -84,5 +88,7 @@ public class TeamControllerStartTeamSessionTests(GameboardTestContext testContex
             .CreateHttpClientWithActingUser(u => u.Id = userId)
             .PutAsync($"api/player/{playerId}/start", null)
             .DeserializeResponseAs<Player>();
+
+        // 
     }
 }
