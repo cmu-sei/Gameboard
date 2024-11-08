@@ -15,6 +15,7 @@ internal static class AssertionExtensions
         var response = await request;
         var responseContent = await response.Content.ReadAsStringAsync();
 
+
         if (!IsExceptionString<T>(responseContent))
             throw new WrongExceptionType(typeof(T), responseContent);
     }

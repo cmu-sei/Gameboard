@@ -20,7 +20,8 @@ namespace Gameboard.Api.Features.Teams;
 
 public record StartTeamSessionsCommand(IEnumerable<string> TeamIds) : IRequest<StartTeamSessionsResult>;
 
-internal sealed class StartTeamSessionsHandler(
+internal sealed class StartTeamSessionsHandler
+(
     IActingUserService actingUserService,
     IExternalGameHostService externalGameHostService,
     IGameModeServiceFactory gameModeServiceFactory,
@@ -35,7 +36,7 @@ internal sealed class StartTeamSessionsHandler(
     ITeamService teamService,
     IUserRolePermissionsService permissionsService,
     IGameboardRequestValidator<StartTeamSessionsCommand> validator
-    ) : IRequestHandler<StartTeamSessionsCommand, StartTeamSessionsResult>
+) : IRequestHandler<StartTeamSessionsCommand, StartTeamSessionsResult>
 {
     private readonly User _actingUser = actingUserService.Get();
     private readonly IExternalGameHostService _externalGameHostService = externalGameHostService;
@@ -59,7 +60,7 @@ internal sealed class StartTeamSessionsHandler(
         // throw on cancel request so we can clean up the debris
         cancellationToken.ThrowIfCancellationRequested();
 
-        _logger.LogInformation($"Gathering data for game start (teams: {request.TeamIds.ToDelimited()})", "resolving game...");
+        _logger.LogInformation($"Gathering data for game start (teams: {request.TeamIds.ToDelimited()})");
         var teams = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => request.TeamIds.Contains(p.TeamId))
