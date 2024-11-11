@@ -89,6 +89,7 @@ public class TeamControllerStartTeamSessionTests(GameboardTestContext testContex
             .PutAsync($"api/player/{playerId}/start", null)
             .DeserializeResponseAs<Player>();
 
-        // 
+        // then we should get a player back with a nonempty session start
+        result.SessionBegin.ShouldBeGreaterThan(DateTimeOffset.MinValue);
     }
 }
