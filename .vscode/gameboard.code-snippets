@@ -4,6 +4,7 @@
 		"scope": "csharp",
 		"description": "Create a Gameboard unit test suite",
 		"prefix": "test-suite-unit",
+		"isFileTemplate": true,
 		"body": [
 			"namespace Gameboard.Api.Tests.Unit;",
 			"",
@@ -17,7 +18,6 @@
 		"scope": "csharp",
 		"description": "Start a new Gameboard unit test",
 		"prefix": "test-unit",
-		"isFileTemplate": true,
 		"body": [
 			"[${0:Theory}, ${1:GameboardAutoData}]",
 			"public async Task ${TM_FILENAME/Tests\\.cs//g}_$2_$3(IFixture fixture)",

@@ -14,14 +14,15 @@ using Gameboard.Api.Features.Users;
 namespace Gameboard.Api.Controllers;
 
 [Authorize]
-public class FeedbackController(
-        IActingUserService actingUserService,
-        ILogger<ChallengeController> logger,
-        IDistributedCache cache,
-        FeedbackValidator validator,
-        FeedbackService feedbackService,
-        IUserRolePermissionsService permissionsService
-        ) : GameboardLegacyController(actingUserService, logger, cache, validator)
+public class FeedbackController
+(
+    IActingUserService actingUserService,
+    ILogger<ChallengeController> logger,
+    IDistributedCache cache,
+    FeedbackValidator validator,
+    FeedbackService feedbackService,
+    IUserRolePermissionsService permissionsService
+    ) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
     FeedbackService FeedbackService { get; } = feedbackService;

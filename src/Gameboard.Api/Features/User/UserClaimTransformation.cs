@@ -80,6 +80,11 @@ public class UserClaimTransformation
             new(AppConstants.SponsorClaimName, user.SponsorId)
         };
 
+        foreach (var permission in user.RolePermissions)
+        {
+            claims.Add(new())
+        }
+
         return new ClaimsPrincipal
         (
             new ClaimsIdentity
