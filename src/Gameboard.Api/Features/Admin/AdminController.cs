@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Gameboard.Api.Features.Admin;
 
+[ApiController]
 [Route("api/admin")]
 public class AdminController(IMediator mediator, IActingUserService actingUserService) : ControllerBase
 {

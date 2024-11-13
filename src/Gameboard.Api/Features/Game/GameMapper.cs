@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using AutoMapper;
+using Gameboard.Api.Features.Feedback;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 

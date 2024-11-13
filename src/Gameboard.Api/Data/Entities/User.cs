@@ -25,6 +25,7 @@ public class User : IEntity
     public string SponsorId { get; set; }
     public Sponsor Sponsor { get; set; }
     public ICollection<ApiKey> ApiKeys { get; set; } = [];
+    public ICollection<FeedbackTemplate> CreatedFeedbackTemplates { get; set; } = [];
     public ICollection<SystemNotification> CreatedSystemNotifications { get; set; } = [];
     public ICollection<Player> Enrollments { get; set; } = [];
     public ICollection<ManualBonus> EnteredManualBonuses { get; set; } = [];

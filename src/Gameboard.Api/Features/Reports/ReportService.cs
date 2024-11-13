@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Feedback;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 

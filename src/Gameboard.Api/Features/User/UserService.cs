@@ -63,7 +63,9 @@ public class UserService
 
         // first user gets admin
         if (!await _store.WithNoTracking<Data.User>().AnyAsync(u => u.Id != model.Id))
+        {
             entity.Role = UserRoleKey.Admin;
+        }
 
         // record creation date and first login
         if (entity.CreatedOn.IsEmpty())

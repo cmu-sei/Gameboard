@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Gameboard.Api.Features.Admin;
 
+[ApiController]
 [Route("api/admin/games/external")]
 [Authorize]
 public class AdminExternalGamesController(IMediator mediator) : ControllerBase

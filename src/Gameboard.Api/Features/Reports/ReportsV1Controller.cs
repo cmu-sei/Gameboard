@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Features.Feedback;
 using Gameboard.Api.Features.Users;
 using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Authorization;

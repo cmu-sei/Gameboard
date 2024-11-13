@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Gameboard.Api.Features.GameEngine;
 
+[ApiController]
 [Authorize]
 [Route("/api/gameEngine")]
 public class GameEngineController(IMediator mediator) : ControllerBase

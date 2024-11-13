@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Gameboard.Api.Features.Reports;
 
+[ApiController]
 [Authorize]
 [Route("/api/reports/export")]
 public class ReportsExportController : ControllerBase

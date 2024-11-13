@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Gameboard.Api.Features.Teams;
 
+[ApiController]
 [Authorize]
 [Route("/api/team")]
 public class TeamController(

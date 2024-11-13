@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Gameboard.Api.Features.Consoles;
 
+[ApiController]
 [Authorize(AppConstants.ConsolePolicy)]
 [Route("/api/consoles")]
 public class ConsolesController(

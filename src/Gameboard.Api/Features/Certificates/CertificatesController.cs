@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Gameboard.Api.Features.Certificates;
 
 [Authorize]
+[ApiController]
 [Route("/api/user")]
 public class CertificatesController(
     IActingUserService actingUser,

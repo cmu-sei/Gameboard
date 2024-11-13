@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Gameboard.Api.Features.Teams;
 
+[ApiController]
 [Route("api/admin/team")]
 [Authorize]
 public class AdminTeamsController(IMediator mediator) : ControllerBase

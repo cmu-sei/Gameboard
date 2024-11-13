@@ -208,6 +208,16 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
             b.Property(u => u.GameId).HasMaxLength(40);
         });
 
+        builder.Entity<FeedbackTemplate>(b =>
+        {
+            b.Property(b => b.Name).HasStandardNameLength().IsRequired();
+            b.Property(b => b.Content).IsRequired();
+            b.Property(b => b.HelpText).HasMaxLength(200);
+            b.HasOne(b => b.CreatedByUser).WithMany(u => u.CreatedFeedbackTemplates).IsRequired();
+            b.HasMany(t => t.UseAsFeedbackTemplateForGameChallenges).WithOne(g => g.GameFeedbackTemplate);
+            b.HasMany(t => t.UseAsFeedbackTemplateForGames).WithOne(g => g.GameChallengesFeedbackTemplate);
+        });
+
         builder.Entity<Game>(b =>
         {
             b.Property(u => u.Id).HasMaxLength(40);
@@ -454,6 +464,7 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
     public DbSet<ExternalGameHost> ExternalGameHosts { get; set; }
     public DbSet<ExternalGameTeam> ExternalGameTeams { get; set; }
     public DbSet<Feedback> Feedback { get; set; }
+    public DbSet<FeedbackTemplate> FeedbackTemplates { get; set; }
     public DbSet<Game> Games { get; set; }
     public DbSet<ManualBonus> ManualBonuses { get; set; }
     public DbSet<Player> Players { get; set; }

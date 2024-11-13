@@ -21,15 +21,17 @@ internal sealed class TryCreateUsersHandler
     EntityExistsValidator<TryCreateUsersCommand, Data.Game> gameExists,
     PlayerService playerService,
     EntityExistsValidator<TryCreateUsersCommand, Data.Sponsor> sponsorExists,
+    ISponsorService sponsorService,
     IStore store,
     UserService userService,
     IValidatorService<TryCreateUsersCommand> validator
-    ) : IRequestHandler<TryCreateUsersCommand, TryCreateUsersResponse>
+) : IRequestHandler<TryCreateUsersCommand, TryCreateUsersResponse>
 {
     private readonly IActingUserService _actingUserService = actingUserService;
     private readonly EntityExistsValidator<TryCreateUsersCommand, Data.Game> _gameExists = gameExists;
     private readonly PlayerService _playerService = playerService;
     private readonly EntityExistsValidator<TryCreateUsersCommand, Data.Sponsor> _sponsorExists = sponsorExists;
+    private readonly ISponsorService _sponsorService = sponsorService;
     private readonly IStore _store = store;
     private readonly UserService _userService = userService;
     private readonly IValidatorService<TryCreateUsersCommand> _validator = validator;
@@ -66,12 +68,15 @@ internal sealed class TryCreateUsersHandler
 
         // do the business
         var createdUsers = new List<TryCreateUserResult>();
+        var defaultSponsor = await _sponsorService.GetDefaultSponsor();
+
         foreach (var id in request.Request.UserIds.ToArray())
         {
             createdUsers.Add(await _userService.TryCreate(new NewUser
             {
                 Id = id,
-                SponsorId = request.Request.SponsorId,
+                Role = request.Request.Role ?? UserRoleKey.Member,
+                SponsorId = request.Request.SponsorId.IsNotEmpty() ? defaultSponsor.Id : request.Request.SponsorId,
                 UnsetDefaultSponsorFlag = request.Request.UnsetDefaultSponsorFlag
             }));
         }
@@ -127,6 +132,7 @@ internal sealed class TryCreateUsersHandler
                 Name = u.User.ApprovedName,
                 IsNewUser = u.IsNewUser,
                 EnrolledInGameId = request.Request.EnrollInGameId,
+                Role = u.User.Role,
                 Sponsor = new SimpleEntity { Id = u.User.SponsorId, Name = sponsorNames[u.User.SponsorId] }
             })
         };
