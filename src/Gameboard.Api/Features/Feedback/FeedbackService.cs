@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Feedback;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -91,7 +92,7 @@ namespace Gameboard.Api.Services
             return questionStats;
         }
 
-        public async Task<Feedback> Retrieve(FeedbackSearchParams model, string actorId)
+        public async Task<Features.Feedback.Feedback> Retrieve(FeedbackSearchParams model, string actorId)
         {
             // for normal challenge and game feedback, we can just do simple lookups on the provided IDs.
             // unfortunately, for practice mode, we need a special case.
@@ -121,18 +122,18 @@ namespace Gameboard.Api.Services
                         )
                         .SingleOrDefaultAsync();
 
-                    return Mapper.Map<Feedback>(feedback);
+                    return Mapper.Map<Features.Feedback.Feedback>(feedback);
                 }
             }
 
             // if we get here, we're just doing standard lookups with no special logic
             var lookup = MakeFeedbackLookup(model.GameId, model.ChallengeId, model.ChallengeSpecId, actorId);
             var entity = await LoadFeedback(lookup);
-            return Mapper.Map<Feedback>(entity);
+            return Mapper.Map<Features.Feedback.Feedback>(entity);
         }
 
 
-        public async Task<Feedback> Submit(FeedbackSubmission model, string actorId)
+        public async Task<Features.Feedback.Feedback> Submit(FeedbackSubmission model, string actorId)
         {
             var lookup = MakeFeedbackLookup(model.GameId, model.ChallengeId, model.ChallengeSpecId, actorId);
             var entity = await LoadFeedback(lookup);
@@ -148,7 +149,7 @@ namespace Gameboard.Api.Services
             {
                 if (entity.Submitted)
                 {
-                    return Mapper.Map<Feedback>(entity);
+                    return Mapper.Map<Features.Feedback.Feedback>(entity);
                 }
                 Mapper.Map(model, entity);
                 entity.Timestamp = DateTimeOffset.UtcNow; // always last saved/submitted
@@ -169,7 +170,7 @@ namespace Gameboard.Api.Services
                 await _store.Create(entity);
             }
 
-            return Mapper.Map<Feedback>(entity);
+            return Mapper.Map<Features.Feedback.Feedback>(entity);
         }
 
         // List feedback responses based on params such as game/challenge filtering, skip/take, and sorting

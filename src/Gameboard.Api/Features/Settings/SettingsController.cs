@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Gameboard.Api.Features.Settings;
 
+[ApiController]
 [Authorize]
 [Route("api/settings")]
 public class SettingsController(IMediator mediator) : ControllerBase

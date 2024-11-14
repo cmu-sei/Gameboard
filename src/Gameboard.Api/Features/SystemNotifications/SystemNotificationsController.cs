@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Gameboard.Api.Features.SystemNotifications;
 
+[ApiController]
 [Route("api")]
 [Authorize]
 public class SystemNotificationsController(IMediator mediator) : ControllerBase

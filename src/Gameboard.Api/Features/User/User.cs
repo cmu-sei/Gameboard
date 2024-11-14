@@ -17,7 +17,7 @@ public class User
     public string Name { get; set; }
     public string NameStatus { get; set; }
     public string ApprovedName { get; set; }
-    public UserRoleKey? Role { get; set; }
+    public UserRoleKey Role { get; set; }
     public IEnumerable<PermissionKey> RolePermissions { get; set; } = [];
     public Player[] Enrollments { get; set; }
     public DateTimeOffset CreatedOn { get; set; }
@@ -33,6 +33,7 @@ public class NewUser
 {
     public required string Id { get; set; }
     public string DefaultName { get; set; }
+    public UserRoleKey Role { get; set; } = UserRoleKey.Member;
     public string SponsorId { get; set; }
     public bool UnsetDefaultSponsorFlag { get; set; }
 }
@@ -100,9 +101,9 @@ public class TryCreateUsersRequest
 {
     public required bool AllowSubsetCreation { get; set; }
     public string EnrollInGameId { get; set; }
-    [TypeConverter(typeof(JsonStringEnumConverter))]
-    public UserRoleKey Role { get; set; } = UserRoleKey.Member;
-    public required string SponsorId { get; set; }
+    [TypeConverter(typeof(JsonStringEnumConverter<UserRoleKey>))]
+    public UserRoleKey? Role { get; set; } = UserRoleKey.Member;
+    public string SponsorId { get; set; }
     public required bool UnsetDefaultSponsorFlag { get; set; }
     public required IEnumerable<string> UserIds { get; set; }
 }
@@ -117,6 +118,7 @@ public sealed class TryCreateUsersResponseUser
     public required string Id { get; set; }
     public required string EnrolledInGameId { get; set; }
     public required string Name { get; set; }
+    public required UserRoleKey Role { get; set; }
     public required SimpleEntity Sponsor { get; set; }
     public required bool IsNewUser { get; set; }
 }

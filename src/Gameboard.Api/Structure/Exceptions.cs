@@ -9,6 +9,7 @@ namespace Gameboard.Api
 {
     internal class MissingRequiredInput<T> : GameboardValidationException
     {
+        internal MissingRequiredInput(string inputName) : this(inputName, default) { }
         internal MissingRequiredInput(string inputName, T input) : base($"""Your input for "{inputName}" was either missing or incorrectly formed (found \"{input}\").""") { }
     }
 
