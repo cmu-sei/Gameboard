@@ -206,7 +206,7 @@ public class PlayerController(
     {
         await AuthorizeAny
         (
-            () => _permissionsService.IsActingUserAsync(id),
+            () => IsSelf(id),
             () => _permissionsService.Can(PermissionKey.Teams_Enroll)
         );
 
