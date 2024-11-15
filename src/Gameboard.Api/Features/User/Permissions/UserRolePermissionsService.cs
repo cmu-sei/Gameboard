@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
@@ -107,8 +108,8 @@ internal class UserRolePermissionsService(IActingUserService actingUserService, 
         {
             Group = PermissionKeyGroup.Scoring,
             Key = PermissionKey.Scores_RegradeAndRerank,
-            Name = "Regrade challenges",
-            Description = "Manually initiate regrading of challenges"
+            Name = "Revise scores",
+            Description = "Manually initiate reranking of games and regrading of challenges"
         },
         new()
         {
