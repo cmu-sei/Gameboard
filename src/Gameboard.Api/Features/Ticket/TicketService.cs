@@ -150,13 +150,13 @@ public class TicketService
         return createdTicketModel;
     }
 
-    public IQueryable<Data.Ticket> GetGameOpenTickets(string gameId)
-    {
-        return _store
+    public IQueryable<Data.Ticket> GetGameTicketsQuery(string gameId)
+        => _store
             .WithNoTracking<Data.Ticket>()
-            .Where(t => t.Challenge.GameId == gameId || t.Player.Challenges.Any(c => c.GameId == gameId))
-            .Where(t => t.Status != "Closed");
-    }
+            .Where(t => t.Challenge.GameId == gameId || t.Player.Challenges.Any(c => c.GameId == gameId));
+
+    public IQueryable<Data.Ticket> GetGameOpenTicketsQuery(string gameId)
+        => GetGameTicketsQuery(gameId).Where(t => t.Status != "Closed");
 
     public IQueryable<Data.Ticket> GetTeamTickets(IEnumerable<string> teamIds)
         => _store
