@@ -195,7 +195,7 @@ public class UserService
             query = query.Where(u => ((int)u.Role) > 0);
 
         if (model.WantsPending)
-            query = query.Where(u => u.NameStatus.Equals(AppConstants.NameStatusPending) && u.Name != u.ApprovedName);
+            query = query.Where(u => u.Name != u.ApprovedName);
 
         if (model.WantsDisallowed)
             query = query.Where(u => !string.IsNullOrEmpty(u.NameStatus) && !u.NameStatus.Equals(AppConstants.NameStatusPending));
