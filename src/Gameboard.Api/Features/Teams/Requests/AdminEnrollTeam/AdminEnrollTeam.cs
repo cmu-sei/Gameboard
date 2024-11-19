@@ -27,32 +27,22 @@ public record AdminEnrollTeamRequest
     PlayerMode PlayerMode = PlayerMode.Competition
 ) : IRequest<AdminEnrollTeamResponse>;
 
-internal class AdminEnrollTeamHandler : IRequestHandler<AdminEnrollTeamRequest, AdminEnrollTeamResponse>
+internal class AdminEnrollTeamHandler
+(
+    IActingUserService actingUserService,
+    IGuidService guids,
+    PlayerService playerService,
+    IStore store,
+    ITeamService teamService,
+    IGameboardRequestValidator<AdminEnrollTeamRequest> validator
+) : IRequestHandler<AdminEnrollTeamRequest, AdminEnrollTeamResponse>
 {
-    private readonly IActingUserService _actingUserService;
-    private readonly IGuidService _guids;
-    private readonly PlayerService _playerService;
-    private readonly IStore _store;
-    private readonly ITeamService _teamService;
-    private readonly IGameboardRequestValidator<AdminEnrollTeamRequest> _validator;
-
-    public AdminEnrollTeamHandler
-    (
-        IActingUserService actingUserService,
-        IGuidService guids,
-        PlayerService playerService,
-        IStore store,
-        ITeamService teamService,
-        IGameboardRequestValidator<AdminEnrollTeamRequest> validator
-    )
-    {
-        _actingUserService = actingUserService;
-        _guids = guids;
-        _playerService = playerService;
-        _store = store;
-        _teamService = teamService;
-        _validator = validator;
-    }
+    private readonly IActingUserService _actingUserService = actingUserService;
+    private readonly IGuidService _guids = guids;
+    private readonly PlayerService _playerService = playerService;
+    private readonly IStore _store = store;
+    private readonly ITeamService _teamService = teamService;
+    private readonly IGameboardRequestValidator<AdminEnrollTeamRequest> _validator = validator;
 
     public async Task<AdminEnrollTeamResponse> Handle(AdminEnrollTeamRequest request, CancellationToken cancellationToken)
     {
@@ -91,7 +81,8 @@ internal class AdminEnrollTeamHandler : IRequestHandler<AdminEnrollTeamRequest, 
         }
 
         // team everyone up
-        // TODO: kinda yucky. Want to share logic about what it means to be added to a team, but all the validation around
+        // TODO: kinda yucky. Want to share logic about what it means to be added to a team, but all the validation around that
+        // is in teamService
         var playersToAdd = createdPlayers.Where(p => p.Id != captainPlayer.Id).Select(p => p.Id).ToArray();
         await _teamService.AddPlayers(captainPlayer.TeamId, cancellationToken, playersToAdd);
 

@@ -20,11 +20,6 @@ public sealed class PracticeSession
     public required string UserId { get; set; }
 }
 
-public sealed class SearchPracticeChallengesResult
-{
-    public required PagedEnumerable<ChallengeSpecSummary> Results { get; set; }
-}
-
 public sealed class PracticeModeSettingsApiModel
 {
     public int? AttemptLimit { get; set; }

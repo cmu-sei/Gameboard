@@ -86,13 +86,13 @@ public class PlayerController(
     {
         await AuthorizeAny
         (
-            () => _permissionsService.IsActingUserAsync(model.Id),
+            () => IsSelf(model.Id),
             () => _permissionsService.Can(PermissionKey.Teams_ApproveNameChanges)
         );
 
         await Validate(model);
 
-        var result = await PlayerService.Update(model, Actor, await _permissionsService.Can(PermissionKey.Teams_ApproveNameChanges));
+        var result = await PlayerService.Update(model, Actor);
         return Mapper.Map<PlayerUpdatedViewModel>(result);
     }
 
@@ -120,12 +120,11 @@ public class PlayerController(
     /// Delete a player enrollment
     /// </summary>
     /// <param name="playerId"></param>
-    /// <param name="asAdmin"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpDelete("/api/player/{playerId}")]
     [Authorize]
-    public async Task Unenroll([FromRoute] string playerId, [FromQuery] bool asAdmin, CancellationToken cancellationToken)
+    public async Task Unenroll([FromRoute] string playerId, CancellationToken cancellationToken)
     {
         await AuthorizeAny
         (

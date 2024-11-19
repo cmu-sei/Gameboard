@@ -37,10 +37,10 @@ namespace Gameboard.Api.Services
         private static partial Regex TagsSplitRegex();
 
         // EF advises to make this mapping a static method to avoid memory leaks
-        private static IEnumerable<string> StringTagsToEnumerableStringTags(string tagsIn)
+        public static IEnumerable<string> StringTagsToEnumerableStringTags(string tagsIn)
         {
             if (tagsIn.IsEmpty())
-                return Array.Empty<string>();
+                return [];
 
             return TagsSplitRegex().Split(tagsIn);
         }

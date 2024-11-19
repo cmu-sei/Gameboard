@@ -178,7 +178,7 @@ internal class GetGameCenterContextHandler
             // aggregates
             ChallengeCount = challengeData?.ChallengeCount ?? 0,
             PointsAvailable = challengeData?.PointsAvailable ?? 0,
-            OpenTicketCount = gameTotalTicketCount,
+            OpenTicketCount = gameOpenTicketCount,
             TotalTicketCount = gameTotalTicketCount
         };
     }

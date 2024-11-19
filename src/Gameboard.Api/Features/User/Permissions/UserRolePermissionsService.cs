@@ -59,8 +59,8 @@ internal class UserRolePermissionsService(IActingUserService actingUserService, 
         {
             Group = PermissionKeyGroup.Games,
             Key = PermissionKey.Games_ViewUnpublished,
-            Name = "View hidden games",
-            Description = "View games which have been hidden from players by their creator"
+            Name = "View hidden games and practice challenges",
+            Description = "View games and practice challenges which have been hidden from players by their creator"
         },
         new()
         {
