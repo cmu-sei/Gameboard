@@ -1,5 +1,3 @@
-using System.Security.Cryptography.Pkcs;
-using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;

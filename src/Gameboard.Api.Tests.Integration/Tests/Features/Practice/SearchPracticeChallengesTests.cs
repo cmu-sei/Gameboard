@@ -31,10 +31,12 @@ public class SearchPracticeChallengesTests(GameboardTestContext testContext) : I
 
                 state.Add<Data.Game>(fixture, game =>
                 {
+                    game.IsPublished = true;
                     game.Specs = state.Build<Data.ChallengeSpec>(fixture, spec =>
                     {
                         game.PlayerMode = PlayerMode.Practice;
                         spec.Tags = tag;
+                        spec.IsHidden = false;
                     }).ToCollection();
                 });
             }
