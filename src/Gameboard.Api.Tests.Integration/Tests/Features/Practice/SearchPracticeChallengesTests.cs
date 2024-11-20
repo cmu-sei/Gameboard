@@ -32,11 +32,11 @@ public class SearchPracticeChallengesTests(GameboardTestContext testContext) : I
                 state.Add<Data.Game>(fixture, game =>
                 {
                     game.IsPublished = true;
+                    game.PlayerMode = PlayerMode.Practice;
+
                     game.Specs = state.Build<Data.ChallengeSpec>(fixture, spec =>
                     {
-                        game.PlayerMode = PlayerMode.Practice;
                         spec.Tags = tag;
-                        spec.IsHidden = false;
                     }).ToCollection();
                 });
             }
@@ -65,6 +65,9 @@ public class SearchPracticeChallengesTests(GameboardTestContext testContext) : I
                 // note there are no suggested searches in this db
                 state.Add<Data.Game>(fixture, game =>
                 {
+                    game.PlayerMode = PlayerMode.Practice;
+                    game.IsPublished = true;
+
                     game.Specs = state.Build<Data.ChallengeSpec>(fixture, spec =>
                     {
                         game.PlayerMode = PlayerMode.Practice;

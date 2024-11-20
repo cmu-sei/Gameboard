@@ -38,8 +38,7 @@ internal class SearchPracticeChallengesHandler
         var sluggedSuggestedSearches = settings.SuggestedSearches.Select(search => _slugger.Get(search));
 
         var query = await BuildQuery(request.Filter.Term, sluggedSuggestedSearches);
-        var results = await _store
-            .WithNoTracking<Data.ChallengeSpec>()
+        var results = await query
             .Select(s => new PracticeChallengeView
             {
                 Id = s.Id,
