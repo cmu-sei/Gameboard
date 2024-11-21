@@ -53,11 +53,11 @@ public class TicketService
     public string GetFullKey(int key)
         => $"{(Options.KeyPrefix.IsEmpty() ? "GB" : Options.KeyPrefix)}-{key}";
 
-    public Task<Ticket> Retrieve(string id)
-        => LoadTicketDto(id);
+    public Task<Ticket> Retrieve(string id, SortDirection activitySortDirection = SortDirection.Asc)
+        => LoadTicketDto(id, activitySortDirection);
 
-    public Task<Ticket> Retrieve(int id)
-        => LoadTicketDto(id);
+    public Task<Ticket> Retrieve(int id, SortDirection activitySortDirection = SortDirection.Asc)
+        => LoadTicketDto(id, activitySortDirection);
 
     public IQueryable<Data.Ticket> BuildTicketSearchQuery(string term)
     {
@@ -384,14 +384,6 @@ public class TicketService
         return b;
     }
 
-    public async Task<bool> UserIsEnrolled(string gameId, string userId)
-    {
-        return await _store.AnyAsync<Data.User>(u =>
-            u.Id == userId &&
-            u.Enrollments.Any(e => e.GameId == gameId)
-        , CancellationToken.None);
-    }
-
     public async Task<bool> IsOwnerOrTeamMember(int ticketId, string userId)
     {
         var ticket = await _store
@@ -442,15 +434,6 @@ public class TicketService
             p.UserId == userId &&
             p.TeamId == ticket.TeamId
         , CancellationToken.None);
-    }
-
-    public async Task<bool> IsOwner(string ticketId, string userId)
-    {
-        return await _store
-            .WithNoTracking<Data.Ticket>()
-            .Where(t => t.Id == ticketId)
-            .Where(t => t.RequesterId == userId)
-            .AnyAsync();
     }
 
     public async Task<bool> UserCanUpdate(string ticketId, string userId)
@@ -551,13 +534,13 @@ public class TicketService
         }
     }
 
-    private async Task<Ticket> LoadTicketDto(int ticketKey)
-        => await BuildTicketDto(await BuildTicketQueryBase().SingleOrDefaultAsync(t => t.Key == ticketKey));
+    private async Task<Ticket> LoadTicketDto(int ticketKey, SortDirection activitySortDirection = SortDirection.Asc)
+        => await BuildTicketDto(await BuildTicketQueryBase().SingleOrDefaultAsync(t => t.Key == ticketKey), activitySortDirection);
 
-    private async Task<Ticket> LoadTicketDto(string ticketId)
-        => await BuildTicketDto(await BuildTicketQueryBase().SingleOrDefaultAsync(t => t.Id == ticketId));
+    private async Task<Ticket> LoadTicketDto(string ticketId, SortDirection activitySortDirection = SortDirection.Asc)
+        => await BuildTicketDto(await BuildTicketQueryBase().SingleOrDefaultAsync(t => t.Id == ticketId), activitySortDirection);
 
-    private async Task<Ticket> BuildTicketDto(Data.Ticket ticketEntity)
+    private async Task<Ticket> BuildTicketDto(Data.Ticket ticketEntity, SortDirection activitySortDirection)
     {
         var ticket = Mapper.Map<Ticket>(ticketEntity);
         ticket.FullKey = GetFullKey(ticket.Key);
@@ -565,11 +548,22 @@ public class TicketService
         ticket.Assignee = await BuildTicketUser(ticketEntity.Assignee);
         ticket.Creator = await BuildTicketUser(ticketEntity.Creator);
         ticket.Requester = await BuildTicketUser(ticketEntity.Requester);
+        ticket.TeamName = "(deleted team)";
 
         if (ticket.TeamId.IsNotEmpty())
         {
-            var team = await _teamService.GetTeam(ticket.TeamId);
-            ticket.TeamName = team.ApprovedName;
+            // have to do this delicately in case the team is deleted (reset)
+            // https://github.com/cmu-sei/Gameboard/issues/553 can't come soon enough
+            var captain = await _store
+                .WithNoTracking<Data.Player>()
+                .Where(p => p.TeamId == ticket.TeamId)
+                .OrderBy(p => p.Role == PlayerRole.Manager ? 0 : 1)
+                .FirstOrDefaultAsync();
+
+            if (captain is not null)
+            {
+                ticket.TeamName = captain.ApprovedName;
+            }
         }
 
         if (ticket.Player is not null)
@@ -580,6 +574,15 @@ public class TicketService
         if (ticket.Challenge is not null)
         {
             ticket.IsTeamGame = ticket.Challenge.AllowTeam;
+        }
+
+        if (activitySortDirection == SortDirection.Asc)
+        {
+            ticket.Activity = [.. ticket.Activity.OrderBy(a => a.Timestamp)];
+        }
+        else
+        {
+            ticket.Activity = [.. ticket.Activity.OrderByDescending(a => a.Timestamp)];
         }
 
         return ticket;
