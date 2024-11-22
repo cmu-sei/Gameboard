@@ -104,7 +104,7 @@ internal class SearchPracticeChallengesHandler
             // without the permission, neither spec nor the game can be hidden
             q = q
                 .Where(s => !s.IsHidden)
-                .Where(g => !g.IsHidden);
+                .Where(s => s.Game.IsPublished);
         }
 
         if (filterTerm.IsNotEmpty())
