@@ -76,6 +76,7 @@ public class Team
     public string GameId { get; set; }
     public DateTimeOffset SessionBegin { get; set; }
     public DateTimeOffset SessionEnd { get; set; }
+    public PlayerMode Mode { get; set; }
     public int Rank { get; set; }
     public int Score { get; set; }
     public long Time { get; set; }
@@ -87,9 +88,9 @@ public class Team
     public required SimpleEntity AdvancedFromPlayer { get; set; }
     public required string AdvancedFromTeamId { get; set; }
     public required double? AdvancedWithScore { get; set; }
-    public IEnumerable<TeamChallenge> Challenges { get; set; } = new List<TeamChallenge>();
-    public IEnumerable<TeamMember> Members { get; set; } = new List<TeamMember>();
-    public IEnumerable<Sponsor> Sponsors { get; set; } = new List<Sponsor>();
+    public IEnumerable<TeamChallenge> Challenges { get; set; } = [];
+    public IEnumerable<TeamMember> Members { get; set; } = [];
+    public IEnumerable<Sponsor> Sponsors { get; set; } = [];
 }
 
 public class TeamSummary

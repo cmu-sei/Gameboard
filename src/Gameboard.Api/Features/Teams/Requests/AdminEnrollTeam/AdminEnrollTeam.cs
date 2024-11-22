@@ -84,7 +84,10 @@ internal class AdminEnrollTeamHandler
         // TODO: kinda yucky. Want to share logic about what it means to be added to a team, but all the validation around that
         // is in teamService
         var playersToAdd = createdPlayers.Where(p => p.Id != captainPlayer.Id).Select(p => p.Id).ToArray();
-        await _teamService.AddPlayers(captainPlayer.TeamId, cancellationToken, playersToAdd);
+        if (playersToAdd.Length > 0)
+        {
+            await _teamService.AddPlayers(captainPlayer.TeamId, cancellationToken, playersToAdd);
+        }
 
         // make the captain the actual captain
         await _teamService.PromoteCaptain(captainPlayer.TeamId, captainPlayer.Id, actingUser, cancellationToken);

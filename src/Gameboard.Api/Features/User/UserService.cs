@@ -4,11 +4,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -24,6 +26,7 @@ public class UserService
     IMapper mapper,
     IMemoryCache cache,
     INameService namesvc,
+    ITeamService teamService,
     IUserRolePermissionsService permissionsService
 )
 {
@@ -34,6 +37,7 @@ public class UserService
     private readonly IStore<Data.User> _userStore = userStore;
     private readonly IMemoryCache _localcache = cache;
     private readonly INameService _namesvc = namesvc;
+    private readonly ITeamService _teamService = teamService;
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
 
     /// <summary>

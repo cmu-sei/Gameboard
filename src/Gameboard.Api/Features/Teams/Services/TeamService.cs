@@ -408,7 +408,9 @@ internal class TeamService
             .ToListAsync(cancellationToken);
 
         if (teamPlayers.Count == 0)
-            throw new TeamHasNoPlayersException(teamId);
+        {
+            throw new ResourceNotFound<Team>(teamId);
+        }
 
         var captainFound = false;
         foreach (var player in teamPlayers)

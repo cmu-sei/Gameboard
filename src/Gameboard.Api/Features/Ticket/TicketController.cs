@@ -18,7 +18,8 @@ using Microsoft.Extensions.Logging;
 namespace Gameboard.Api.Controllers;
 
 [Authorize]
-public class TicketController(
+public class TicketController
+(
     IActingUserService actingUserService,
     ILogger<ChallengeController> logger,
     IDistributedCache cache,
@@ -28,7 +29,7 @@ public class TicketController(
     TicketService ticketService,
     IHubContext<AppHub, IAppHubEvent> hub,
     IMapper mapper
-    ) : GameboardLegacyController(actingUserService, logger, cache, validator)
+) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
     TicketService TicketService { get; } = ticketService;

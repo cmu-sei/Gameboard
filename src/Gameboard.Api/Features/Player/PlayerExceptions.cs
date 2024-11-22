@@ -83,6 +83,7 @@ internal class RegistrationIsClosed : GameboardValidationException
 internal class SessionAlreadyStarted : GameboardValidationException
 {
     internal SessionAlreadyStarted(string playerId, string why) : base($"Player {playerId}'s session was started. {why}.") { }
+    internal SessionAlreadyStarted(string teamId) : base($"Session for team {teamId} already started.") { }
 }
 
 internal class SessionNotActive : GameboardException
