@@ -49,6 +49,18 @@ public class ChallengeSummary
     public bool IsActive { get; set; }
 }
 
+public sealed class ChallengeLaunchCacheEntry
+{
+    public required string TeamId { get; set; }
+    public required IList<ChallengeLaunchCacheEntrySpec> Specs { get; set; } = [];
+}
+
+public sealed class ChallengeLaunchCacheEntrySpec
+{
+    public required string GameId { get; set; }
+    public required string SpecId { get; set; }
+}
+
 public class UserActiveChallenge
 {
     public required string Id { get; set; }

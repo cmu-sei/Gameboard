@@ -3,8 +3,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -14,8 +16,6 @@ using YamlDotNet.Serialization.NamingConventions;
 using Gameboard.Api.Common.Services;
 using Microsoft.AspNetCore.Http;
 using Gameboard.Api.Data;
-using System.IO;
-using System.Threading;
 using Gameboard.Api.Features.Users;
 
 namespace Gameboard.Api.Services;
@@ -112,15 +112,14 @@ public class GameService(
     {
         var gameSessionData = await _store
             .WithNoTracking<Data.Game>()
-                .Include(g => g.Players)
             .Where(g => g.Id == gameId)
-            .Where(g => g.Players.Any(p => _now.Get() < p.SessionEnd))
             .Select(g => new
             {
                 g.Id,
                 g.SessionLimit,
                 Teams = g
                     .Players
+                    .Where(p => _now.Get() < p.SessionEnd)
                     .Select(p => p.TeamId)
                     .Distinct()
             })

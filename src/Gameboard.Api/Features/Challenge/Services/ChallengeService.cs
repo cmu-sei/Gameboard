@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -12,15 +11,15 @@ using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Users;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using ServiceStack;
-using Gameboard.Api.Features.Practice;
+using System.Collections.Concurrent;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Api.Services;
 
@@ -53,6 +52,7 @@ public partial class ChallengeService
     private readonly IGameEngineService _gameEngine = gameEngine;
     private readonly IGuidService _guids = guids;
     private readonly IJsonService _jsonService = jsonService;
+    private readonly static ConcurrentDictionary<string, ChallengeLaunchCacheEntry> _launchCache = new();
     private readonly IMapper _mapper = mapper;
     private readonly IMediator _mediator = mediator;
     private readonly IMemoryCache _memCache = memCache;
@@ -73,6 +73,16 @@ public partial class ChallengeService
             return Mapper.Map<Challenge>(entity);
 
         return await Create(model, actorId, graderUrl, CancellationToken.None);
+    }
+
+    public int GetDeployingChallengeCount(string teamId)
+    {
+        if (!_launchCache.TryGetValue(teamId, out var entry))
+        {
+            return 0;
+        }
+
+        return entry.Specs.Count;
     }
 
     public IEnumerable<string> GetTags(Data.ChallengeSpec spec)
@@ -98,7 +108,9 @@ public partial class ChallengeService
             .Include(g => g.Prerequisites)
             .SingleAsync(g => g.Id == player.GameId, cancellationToken);
 
-        if (await _teamService.IsAtGamespaceLimit(player.TeamId, game, cancellationToken))
+        var teamActiveChallenges = await _teamService.GetChallengesWithActiveGamespace(player.TeamId, game.Id, cancellationToken);
+        var activePlusPendingChallengeCount = teamActiveChallenges.Count() + GetDeployingChallengeCount(player.TeamId);
+        if (activePlusPendingChallengeCount > game.GamespaceLimitPerSession)
             throw new GamespaceLimitReached(game.Id, player.TeamId);
 
         if (!await IsUnlocked(player, game, model.SpecId))
@@ -116,22 +128,28 @@ public partial class ChallengeService
                 throw new CantStartBecauseGameExecutionPeriodIsOver(model.SpecId, model.PlayerId, game.GameEnd, now);
         }
 
-        var lockkey = $"{player.TeamId}{model.SpecId}";
-        var lockval = _guids.Generate();
-        var locked = _memCache.GetOrCreate(lockkey, entry =>
+        _launchCache.EnsureKey(player.TeamId, new ChallengeLaunchCacheEntry
         {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
-            return lockval;
+            TeamId = player.TeamId,
+            Specs = []
         });
 
-        if (locked != lockval)
+        _launchCache.TryGetValue(player.TeamId, out var entry);
+        var launchingSpec = new ChallengeLaunchCacheEntrySpec { GameId = game.Id, SpecId = model.SpecId };
+        if (entry.Specs.Any(s => s.SpecId == model.SpecId))
+        {
             throw new ChallengeStartPending();
+        }
+        else
+        {
+            entry.Specs.Add(new ChallengeLaunchCacheEntrySpec { GameId = game.Id, SpecId = model.SpecId });
+        }
 
         var spec = await _store
             .WithNoTracking<Data.ChallengeSpec>()
             .SingleAsync(s => s.Id == model.SpecId, cancellationToken);
 
-        int playerCount = 1;
+        var playerCount = 1;
         if (game.AllowTeam)
         {
             playerCount = await _store
@@ -150,12 +168,12 @@ public partial class ChallengeService
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(message: $"Challenge registration failure: {ex.GetType().Name} -- {ex.Message}");
+            Logger.LogWarning(message: "Challenge registration failure: {exName} -- {exMessage}", ex.GetType().Name, ex.Message);
             throw;
         }
         finally
         {
-            _memCache.Remove(lockkey);
+            entry.Specs.Remove(launchingSpec);
         }
     }
 
