@@ -52,7 +52,7 @@ internal class TeamService
     IInternalHubBus teamHubService,
     IPracticeService practiceService,
     IStore store
-    ) : ITeamService
+) : ITeamService
 {
     private readonly IActingUserService _actingUserService = actingUserService;
     private readonly IGameEngineService _gameEngine = gameEngine;
@@ -352,7 +352,7 @@ internal class TeamService
             .ToDictionaryAsync(gr => gr.Key, gr => gr.ToArray());
 
         if (teamPlayers.Count == 0)
-            return Array.Empty<Team>();
+            return [];
 
         foreach (var teamId in teamPlayers.Keys)
         {
@@ -459,13 +459,13 @@ internal class TeamService
 
         // if the team has a captain (manager), yay
         // if they have too many, boo (pick one by name which is stupid but stupid things happen sometimes)
-        // if they don't have one, pick by name among all players
+        // if they don't have one, pick by registration date among all players
         var captains = players.Where(p => p.IsManager);
 
         if (captains.Count() == 1)
             return captains.Single();
         else if (captains.Count() > 1)
-            return captains.OrderBy(c => c.ApprovedName).First();
+            return captains.OrderBy(c => c.WhenCreated).First();
 
         return players.OrderBy(p => p.ApprovedName).First();
     }

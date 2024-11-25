@@ -470,7 +470,7 @@ public partial class ChallengeService
         // load and regrade
         var challenge = await _challengeStore.Retrieve(id);
         // preserve the score prior to regrade
-        double currentScore = challenge.Score;
+        var currentScore = challenge.Score;
         // who's regrading?
         var actingUserId = _actingUserService.Get()?.Id;
 
@@ -533,7 +533,7 @@ public partial class ChallengeService
         if (challenges == null || !challenges.Any())
             return;
 
-        Logger.LogInformation($"Archiving {challenges.Count()} challenges.");
+        Logger.LogInformation("Archiving {challengeCount} challenges.", challenges.Count());
         var toArchiveIds = challenges.Select(c => c.Id).ToArray();
 
         var teamMemberMap = await _store

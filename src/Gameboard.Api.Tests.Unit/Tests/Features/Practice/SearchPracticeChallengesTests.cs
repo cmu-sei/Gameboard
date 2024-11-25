@@ -52,6 +52,7 @@ public class SearchPracticeChallengesTests
             Disabled = false,
             Game = new Data.Game
             {
+                IsPublished = true,
                 Name = fixture.Create<string>(),
                 PlayerMode = PlayerMode.Practice
             }
