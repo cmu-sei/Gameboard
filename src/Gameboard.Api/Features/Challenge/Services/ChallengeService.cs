@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -18,8 +19,6 @@ using Gameboard.Api.Features.Users;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace Gameboard.Api.Services;
 
@@ -38,7 +37,6 @@ public partial class ChallengeService
     ILogger<ChallengeService> logger,
     IMapper mapper,
     IMediator mediator,
-    IMemoryCache memCache,
     INowService now,
     IPracticeService practiceService,
     IUserRolePermissionsService permissionsService,
@@ -55,7 +53,6 @@ public partial class ChallengeService
     private readonly static ConcurrentDictionary<string, ChallengeLaunchCacheEntry> _launchCache = new();
     private readonly IMapper _mapper = mapper;
     private readonly IMediator _mediator = mediator;
-    private readonly IMemoryCache _memCache = memCache;
     private readonly INowService _now = now;
     private readonly IPracticeService _practiceService = practiceService;
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
@@ -110,11 +107,15 @@ public partial class ChallengeService
 
         var teamActiveChallenges = await _teamService.GetChallengesWithActiveGamespace(player.TeamId, game.Id, cancellationToken);
         var activePlusPendingChallengeCount = teamActiveChallenges.Count() + GetDeployingChallengeCount(player.TeamId);
-        if (activePlusPendingChallengeCount > game.GamespaceLimitPerSession)
+        if (activePlusPendingChallengeCount >= game.GamespaceLimitPerSession)
+        {
             throw new GamespaceLimitReached(game.Id, player.TeamId);
+        }
 
         if (!await IsUnlocked(player, game, model.SpecId))
+        {
             throw new ChallengeLocked();
+        }
 
         // if we're outside the execution window, we need to be sure the acting person is an admin
         if (game.IsCompetitionMode && now > game.GameEnd)
@@ -135,7 +136,7 @@ public partial class ChallengeService
         });
 
         _launchCache.TryGetValue(player.TeamId, out var entry);
-        var launchingSpec = new ChallengeLaunchCacheEntrySpec { GameId = game.Id, SpecId = model.SpecId };
+
         if (entry.Specs.Any(s => s.SpecId == model.SpecId))
         {
             throw new ChallengeStartPending();
@@ -173,7 +174,7 @@ public partial class ChallengeService
         }
         finally
         {
-            entry.Specs.Remove(launchingSpec);
+            entry.Specs = entry.Specs.Where(s => s.SpecId != model.SpecId).ToList();
         }
     }
 
@@ -295,12 +296,14 @@ public partial class ChallengeService
         if (model.Term.NotEmpty())
         {
             var term = model.Term.ToLower();
-            q = q.Where(c =>
-                c.Id.StartsWith(term) || // Challenge Id
-                c.Tag.ToLower().StartsWith(term) || // Challenge Tag
-                c.UserId.StartsWith(term) || // User Id
-                c.Name.ToLower().Contains(term) || // Challenge Title
-                c.PlayerName.ToLower().Contains(term) // Team Name (or indiv. Player Name)
+            q = q.Where
+            (
+                c =>
+                    c.Id.StartsWith(term) || // Challenge Id
+                    c.Tag.ToLower().StartsWith(term) || // Challenge Tag
+                    c.UserId.StartsWith(term) || // User Id
+                    c.Name.ToLower().Contains(term) || // Challenge Title
+                    c.PlayerName.ToLower().Contains(term) // Team Name (or indiv. Player Name)
             );
         }
 
@@ -574,12 +577,12 @@ public partial class ChallengeService
             }
             catch (Exception ex)
             {
-                Logger.LogWarning($"Exception thrown during attempted cleanup of gamespace (type: {ex.GetType().Name}, message: {ex.Message})");
+                Logger.LogWarning("Exception thrown during attempted cleanup of gamespace (type: {exType}, message: {message})", ex.GetType().Name, ex.Message);
             }
 
             var mappedChallenge = _mapper.Map<ArchivedChallenge>(challenge);
             mappedChallenge.Submissions = submissions;
-            mappedChallenge.TeamMembers = teamMemberMap.TryGetValue(challenge.TeamId, out List<string> value) ? value.ToArray() : [];
+            mappedChallenge.TeamMembers = teamMemberMap.TryGetValue(challenge.TeamId, out List<string> value) ? [.. value] : [];
 
             return mappedChallenge;
         }).ToArray();
