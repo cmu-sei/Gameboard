@@ -122,9 +122,9 @@ public class SecurityHeaderOptions
 public class CorsPolicyOptions
 {
     public string Name { get; set; } = "default";
-    public string[] Origins { get; set; } = Array.Empty<string>();
-    public string[] Methods { get; set; } = Array.Empty<string>();
-    public string[] Headers { get; set; } = Array.Empty<string>();
+    public string[] Origins { get; set; } = [];
+    public string[] Methods { get; set; } = [];
+    public string[] Headers { get; set; } = [];
     public bool AllowCredentials { get; set; }
 
     public CorsPolicy Build()
@@ -132,20 +132,20 @@ public class CorsPolicyOptions
         var policy = new CorsPolicyBuilder();
 
         var origins = Origins.Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
-        if (origins.Any())
+        if (origins.Length > 0)
         {
             if (origins.First() == "*") policy.AllowAnyOrigin(); else policy.WithOrigins(origins);
             if (AllowCredentials && origins.First() != "*") policy.AllowCredentials(); else policy.DisallowCredentials();
         }
 
         var methods = Methods.Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
-        if (methods.Any())
+        if (methods.Length > 0)
         {
             if (methods.First() == "*") policy.AllowAnyMethod(); else policy.WithMethods(methods);
         }
 
         var headers = Headers.Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
-        if (headers.Any())
+        if (headers.Length > 0)
         {
             if (headers.First() == "*") policy.AllowAnyHeader(); else policy.WithHeaders(headers);
         }
@@ -220,9 +220,11 @@ public class Defaults
         // Create a new DateTimeOffset representation for every string time given
         for (int i = 0; i < shiftStrings.Length; i++)
         {
-            offsets[i] = new DateTimeOffset[] {
-                    ConvertTime(shiftStrings[i][0], ShiftTimezoneFallback),
-                    ConvertTime(shiftStrings[i][1], ShiftTimezoneFallback) };
+            offsets[i] =
+            [
+                ConvertTime(shiftStrings[i][0], ShiftTimezoneFallback),
+                ConvertTime(shiftStrings[i][1], ShiftTimezoneFallback)
+            ];
         }
         return offsets;
     }

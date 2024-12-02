@@ -44,14 +44,22 @@ public class PlayerMapper : Profile
             .ForMember(vm => vm.PreUpdateName, opts => opts.Ignore());
 
         CreateMap<Data.Player, Team>()
-            .AfterMap((player, team) => team.Members = new List<TeamMember>
+            .AfterMap((player, team) =>
             {
-                new()
+                team.Members =
+                [
+                    new()
+                    {
+                        Id = player.Id,
+                        ApprovedName = player.ApprovedName,
+                        Role = player.Role,
+                        UserId = player.UserId
+                    }
+                ];
+
+                if (team.Members.Any() && !team.Members.Any(p => p.Role == PlayerRole.Manager))
                 {
-                    Id = player.Id,
-                    ApprovedName = player.ApprovedName,
-                    Role = player.Role,
-                    UserId = player.UserId
+                    team.Members.OrderBy(p => p.ApprovedName).First().Role = PlayerRole.Manager;
                 }
             });
     }

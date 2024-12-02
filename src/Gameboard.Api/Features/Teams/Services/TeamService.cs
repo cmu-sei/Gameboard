@@ -52,7 +52,7 @@ internal class TeamService
     IInternalHubBus teamHubService,
     IPracticeService practiceService,
     IStore store
-    ) : ITeamService
+) : ITeamService
 {
     private readonly IActingUserService _actingUserService = actingUserService;
     private readonly IGameEngineService _gameEngine = gameEngine;
@@ -352,7 +352,7 @@ internal class TeamService
             .ToDictionaryAsync(gr => gr.Key, gr => gr.ToArray());
 
         if (teamPlayers.Count == 0)
-            return Array.Empty<Team>();
+            return [];
 
         foreach (var teamId in teamPlayers.Keys)
         {
@@ -408,7 +408,9 @@ internal class TeamService
             .ToListAsync(cancellationToken);
 
         if (teamPlayers.Count == 0)
-            throw new TeamHasNoPlayersException(teamId);
+        {
+            throw new ResourceNotFound<Team>(teamId);
+        }
 
         var captainFound = false;
         foreach (var player in teamPlayers)
@@ -441,6 +443,18 @@ internal class TeamService
             .Where(p => p.TeamId == teamId)
             .ToArrayAsync(cancellationToken);
 
+        // if we get here, something is not awesome - this only can theoretically happen
+        // because of a database schema flaw. fix it up in the meantime
+        if (players.Length > 0 && players.Count(p => p.Role == PlayerRole.Manager) != 1)
+        {
+            var adjustedCaptain = players.OrderBy(p => p.WhenCreated).First();
+
+            await _store
+                .WithNoTracking<Data.Player>()
+                .Where(p => p.TeamId == teamId)
+                .ExecuteUpdateAsync(up => up.SetProperty(p => p.Role, p => p.Id == adjustedCaptain.Id ? PlayerRole.Manager : PlayerRole.Member));
+        }
+
         return ResolveCaptain(players);
     }
 
@@ -457,15 +471,23 @@ internal class TeamService
 
         // if the team has a captain (manager), yay
         // if they have too many, boo (pick one by name which is stupid but stupid things happen sometimes)
-        // if they don't have one, pick by name among all players
+        // if they don't have one, pick by registration date among all players
         var captains = players.Where(p => p.IsManager);
 
         if (captains.Count() == 1)
-            return captains.Single();
-        else if (captains.Count() > 1)
-            return captains.OrderBy(c => c.ApprovedName).First();
+        {
+            return captains.First();
+        }
+        {
+            // ensure we end up with exactly one captain
+            var captainToPromote = players.OrderBy(p => p.WhenCreated).First();
+            foreach (var player in players)
+            {
+                player.Role = captainToPromote.Id == player.Id ? PlayerRole.Manager : PlayerRole.Member;
+            }
 
-        return players.OrderBy(p => p.ApprovedName).First();
+            return captainToPromote;
+        }
     }
 
     public async Task<IDictionary<string, Data.Player>> ResolveCaptains(IEnumerable<string> teamIds, CancellationToken cancellationToken)

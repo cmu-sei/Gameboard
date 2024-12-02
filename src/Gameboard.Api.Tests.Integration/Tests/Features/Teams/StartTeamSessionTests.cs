@@ -1,7 +1,7 @@
 using Gameboard.Api.Common;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Structure;
-using ServiceStack;
+using StackExchange.Redis;
 
 namespace Gameboard.Api.Tests.Integration.Teams;
 
@@ -142,7 +142,7 @@ public class TeamControllerStartTeamSessionTests(GameboardTestContext testContex
         await httpClient
             .PutAsync($"api/team/{teamId}/manager/{finalCaptainPlayerId}", new PromoteToManagerRequest
             {
-                CurrentManagerPlayerId = initialCaptainPlayerId,
+                CurrentCaptainId = initialCaptainPlayerId,
                 NewManagerPlayerId = finalCaptainPlayerId,
                 TeamId = teamId
             }.ToJsonBody());
@@ -159,4 +159,47 @@ public class TeamControllerStartTeamSessionTests(GameboardTestContext testContex
     // Users can team up, leave the team, join a different team, then start sessions on the original and the new team
     // Admins can start sessions for non-admins
     // Non-admins can't start sessions for other teams
+    [Theory, GbIntegrationAutoData]
+    public async Task Team_WhenStartingOtherTeamSession_FailsValidation
+    (
+        string actingTeamId,
+        string actingUserId,
+        string targetPlayerId,
+        IFixture fixture
+    )
+    {
+        // given two players registered for the same game
+        await _testContext.WithDataState(state =>
+        {
+            state.Add<Data.Game>(fixture, game =>
+            {
+                game.Players =
+                [
+                    // the person who's starting a session
+                    state.Build<Data.Player>(fixture, p =>
+                    {
+                        p.Id = fixture.Create<string>();
+                        p.Role = PlayerRole.Manager;
+                        p.TeamId = actingTeamId;
+                        p.User = state.Build<Data.User>(fixture, u => u.Id = actingUserId);
+                    }),
+                    state.Build<Data.Player>(fixture, p =>
+                    {
+                        p.Id = targetPlayerId;
+                        p.Role = PlayerRole.Manager;
+                        p.TeamId = actingTeamId;
+                        p.User = state.Build<Data.User>(fixture);
+                    })
+                ];
+            });
+        });
+
+        // when the first player tries to start the second's session
+        var response = await _testContext
+            .CreateHttpClientWithActingUser(u => u.Id = actingUserId)
+            .PutAsync($"api/player/{targetPlayerId}/start", null);
+
+        // then the response should have a failure code
+        response.IsSuccessStatusCode.ShouldBeFalse();
+    }
 }

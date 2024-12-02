@@ -2,10 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
+using Gameboard.Api.Features.Users;
+using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,16 +17,16 @@ public record SearchPracticeChallengesQuery(SearchFilter Filter) : IRequest<Sear
 internal class SearchPracticeChallengesHandler
 (
     IChallengeDocsService challengeDocsService,
-    IMapper mapper,
     IPagingService pagingService,
+    IUserRolePermissionsService permissionsService,
     IPracticeService practiceService,
     ISlugService slugger,
     IStore store
 ) : IRequestHandler<SearchPracticeChallengesQuery, SearchPracticeChallengesResult>
 {
     private readonly IChallengeDocsService _challengeDocsService = challengeDocsService;
-    private readonly IMapper _mapper = mapper;
     private readonly IPagingService _pagingService = pagingService;
+    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
     private readonly IPracticeService _practiceService = practiceService;
     private readonly ISlugService _slugger = slugger;
     private readonly IStore _store = store;
@@ -36,8 +37,27 @@ internal class SearchPracticeChallengesHandler
         var settings = await _practiceService.GetSettings(cancellationToken);
         var sluggedSuggestedSearches = settings.SuggestedSearches.Select(search => _slugger.Get(search));
 
-        var query = BuildQuery(request.Filter.Term, sluggedSuggestedSearches);
-        var results = await _mapper.ProjectTo<ChallengeSpecSummary>(query).ToArrayAsync(cancellationToken);
+        var query = await BuildQuery(request.Filter.Term, sluggedSuggestedSearches);
+        var results = await query
+            .Select(s => new PracticeChallengeView
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Description = s.Description,
+                Text = s.Text,
+                AverageDeploySeconds = s.AverageDeploySeconds,
+                IsHidden = s.IsHidden,
+                SolutionGuideUrl = s.SolutionGuideUrl,
+                Tags = ChallengeSpecMapper.StringTagsToEnumerableStringTags(s.Tags),
+                Game = new PracticeChallengeViewGame
+                {
+                    Id = s.Game.Id,
+                    Name = s.Game.Name,
+                    Logo = s.Game.Logo,
+                    IsHidden = !s.Game.IsPublished
+                }
+            })
+            .ToArrayAsync(cancellationToken);
 
         foreach (var result in results)
         {
@@ -69,14 +89,23 @@ internal class SearchPracticeChallengesHandler
     /// <param name="filterTerm"></param>
     /// <param name="sluggedSuggestedSearches"></param>
     /// <returns></returns>
-    internal IQueryable<Data.ChallengeSpec> BuildQuery(string filterTerm, IEnumerable<string> sluggedSuggestedSearches)
+    internal async Task<IQueryable<Data.ChallengeSpec>> BuildQuery(string filterTerm, IEnumerable<string> sluggedSuggestedSearches)
     {
+        var canViewHidden = await _permissionsService.Can(PermissionKey.Games_ViewUnpublished);
+
         var q = _store
             .WithNoTracking<Data.ChallengeSpec>()
             .Include(s => s.Game)
             .Where(s => s.Game.PlayerMode == PlayerMode.Practice)
-            .Where(s => !s.Disabled)
-            .Where(s => !s.IsHidden);
+            .Where(s => !s.Disabled);
+
+        if (!canViewHidden)
+        {
+            // without the permission, neither spec nor the game can be hidden
+            q = q
+                .Where(s => !s.IsHidden)
+                .Where(s => s.Game.IsPublished);
+        }
 
         if (filterTerm.IsNotEmpty())
         {

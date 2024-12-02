@@ -163,19 +163,17 @@ public class PlayerService
         return _mapper.Map<Player>(await _store.WithNoTracking<Data.Player>().SingleAsync(p => p.Id == id));
     }
 
-    public async Task<Player> Update(ChangedPlayer model, User actor, bool sudo = false)
+    public async Task<Player> Update(ChangedPlayer model, User actor)
     {
         var player = await _store
             .WithNoTracking<Data.Player>()
             .SingleAsync(p => p.Id == model.Id);
         var prev = _mapper.Map<Player>(player);
 
-        if (!sudo)
+        // people with the appropriate permissions can hard-set their names
+        if (!await _permissionsService.Can(PermissionKey.Teams_ApproveNameChanges))
         {
-            _mapper.Map(
-                _mapper.Map<SelfChangedPlayer>(model),
-                player
-            );
+            _mapper.Map(_mapper.Map<SelfChangedPlayer>(model), player);
         }
         else
         {
@@ -189,13 +187,15 @@ public class PlayerService
         if (prev.Name != player.Name)
         {
             // check uniqueness
-            bool found = await _store
+            var found = await _store
                 .WithNoTracking<Data.Player>()
-                .AnyAsync(p =>
-                p.GameId == player.GameId &&
-                p.TeamId != player.TeamId &&
-                p.Name == player.Name
-            );
+                .AnyAsync
+                (
+                    p =>
+                        p.GameId == player.GameId &&
+                        p.TeamId != player.TeamId &&
+                        (p.Name == player.Name || p.ApprovedName == player.Name)
+                );
 
             if (found)
                 player.NameStatus = AppConstants.NameStatusNotUnique;
@@ -264,36 +264,6 @@ public class PlayerService
         return players;
     }
 
-    public async Task<Standing[]> Standings(PlayerDataFilter model)
-    {
-        if (model.gid.IsEmpty())
-            return [];
-
-        model.Filter = [.. model.Filter, PlayerDataFilter.FilterScoredOnly];
-        model.mode = PlayerMode.Competition.ToString();
-        var q = BuildListQuery(model);
-        var standings = await _mapper.ProjectTo<Standing>(q).ToArrayAsync();
-
-        // as a temporary workaround until we get the new scoreboard, we need to manually 
-        // set the Sponsors property to accommodate multisponsor teams.
-        var allTeamIds = standings.Select(s => s.TeamId);
-        var allSponsors = await _store.WithNoTracking<Data.Sponsor>()
-            .ToDictionaryAsync(s => s.Id, s => s);
-
-        var teamsWithSponsors = await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => allTeamIds.Contains(p.TeamId))
-            .GroupBy(p => p.TeamId)
-            .ToDictionaryAsync(g => g.Key, g => g.Select(p => p.SponsorId).ToArray());
-
-        foreach (var standing in standings)
-        {
-            var distinctSponsors = teamsWithSponsors[standing.TeamId].Distinct().Select(s => allSponsors[s]);
-            standing.TeamSponsors = _mapper.Map<Sponsor[]>(distinctSponsors);
-        }
-        return standings;
-    }
-
     private IQueryable<Data.Player> BuildListQuery(PlayerDataFilter model)
     {
         var ts = _now.Get();
@@ -303,7 +273,7 @@ public class PlayerService
             .Include(p => p.User)
             .Include(p => p.Sponsor)
             .Include(p => p.AdvancedFromGame)
-            .AsNoTracking();
+            .AsQueryable();
 
         if (model.WantsMode)
             q = q.Where(p => p.Mode == Enum.Parse<PlayerMode>(model.mode, true));
@@ -443,11 +413,11 @@ public class PlayerService
         if (player.Role != PlayerRole.Manager)
             throw new ActionForbidden();
 
-        byte[] buffer = new byte[16];
-
+        var buffer = new byte[16];
         new Random().NextBytes(buffer);
 
-        var code = Convert.ToBase64String(buffer)
+        var code = Convert
+            .ToBase64String(buffer)
             .Replace("+", string.Empty)
             .Replace("/", string.Empty)
             .Replace("=", string.Empty);

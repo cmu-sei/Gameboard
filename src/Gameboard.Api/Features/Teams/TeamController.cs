@@ -23,6 +23,14 @@ public class TeamController(
     private readonly IMediator _mediator = mediator;
     private readonly ITeamService _teamService = teamService;
 
+    [HttpDelete("{teamId}/players/{playerId}")]
+    public Task<RemoveFromTeamResponse> RemovePlayer([FromRoute] string teamId, [FromRoute] string playerId)
+        => _mediator.Send(new RemoveFromTeamCommand(playerId));
+
+    [HttpPut("{teamId}/players")]
+    public Task<AddToTeamResponse> AddUser([FromRoute] string teamId, [FromBody] AddToTeamCommand request)
+        => _mediator.Send(request);
+
     [HttpGet("{teamId}")]
     public async Task<Team> GetTeam(string teamId)
         => await _mediator.Send(new GetTeamQuery(teamId, _actingUserService.Get()));

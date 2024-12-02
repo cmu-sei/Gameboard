@@ -117,6 +117,11 @@ internal class StartTeamSessionsValidator
                 if (team.Value.Length < game.MinTeamSize || team.Value.Length > game.MaxTeamSize)
                     ctx.AddValidationException(new InvalidTeamSize(team.Key, team.Value.Length, game.MinTeamSize, game.MaxTeamSize));
 
+            // NOTE: this currently doesn't care about the team's challenge count. while it really should,
+            // we super need to refactor the team session start path into this. right now, team service
+            // knows how to determine gamespace limit, and only challenge service knows about pending challenge starts
+            // 🙄🙄🙄
+
             // can only play active games
             if (game.GameStart.IsEmpty() || game.GameStart > now || game.GameEnd < now)
                 ctx.AddValidationException(new GameNotActive(game.Id, game.GameStart, game.GameEnd));
@@ -124,7 +129,9 @@ internal class StartTeamSessionsValidator
             // can't exceed the legal session limit if established
             var activeSessions = await _gameService.GetTeamsWithActiveSession(game.Id, cancellationToken);
             if (game.SessionLimit > 0 && activeSessions.Count() >= game.SessionLimit)
-                ctx.AddValidationException(new SessionLimitReached(request.TeamIds.First(), game.Id, activeSessions.Count(), game.SessionLimit));
+            {
+                ctx.AddValidationException(new GameSessionLimitReached(new SimpleEntity { Id = game.Id, Name = game.Name }, game.SessionLimit, activeSessions.Count()));
+            }
 
             // can't start late if late start disabled
             var sessionWindow = _sessionWindow.Calculate(game.SessionMinutes, game.GameEnd, await _permissionsService.Can(PermissionKey.Play_IgnoreExecutionWindow), now);

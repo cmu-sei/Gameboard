@@ -16,32 +16,22 @@ namespace Gameboard.Api.Features.Admin;
 
 public record GetGameCenterContextQuery(string GameId) : IRequest<GameCenterContext>;
 
-internal class GetGameCenterContextHandler : IRequestHandler<GetGameCenterContextQuery, GameCenterContext>
+internal class GetGameCenterContextHandler
+(
+    EntityExistsValidator<GetGameCenterContextQuery, Data.Game> gameExists,
+    INowService now,
+    IStore store,
+    ITeamService teamService,
+    TicketService ticketService,
+    IValidatorService<GetGameCenterContextQuery> validator
+) : IRequestHandler<GetGameCenterContextQuery, GameCenterContext>
 {
-    private readonly EntityExistsValidator<GetGameCenterContextQuery, Data.Game> _gameExists;
-    private readonly INowService _now;
-    private readonly IStore _store;
-    private readonly ITeamService _teamService;
-    private readonly TicketService _ticketService;
-    private readonly IValidatorService<GetGameCenterContextQuery> _validator;
-
-    public GetGameCenterContextHandler
-    (
-        EntityExistsValidator<GetGameCenterContextQuery, Data.Game> gameExists,
-        INowService now,
-        IStore store,
-        ITeamService teamService,
-        TicketService ticketService,
-        IValidatorService<GetGameCenterContextQuery> validator
-    )
-    {
-        _gameExists = gameExists;
-        _now = now;
-        _store = store;
-        _teamService = teamService;
-        _ticketService = ticketService;
-        _validator = validator;
-    }
+    private readonly EntityExistsValidator<GetGameCenterContextQuery, Data.Game> _gameExists = gameExists;
+    private readonly INowService _now = now;
+    private readonly IStore _store = store;
+    private readonly ITeamService _teamService = teamService;
+    private readonly TicketService _ticketService = ticketService;
+    private readonly IValidatorService<GetGameCenterContextQuery> _validator = validator;
 
     public async Task<GameCenterContext> Handle(GetGameCenterContextQuery request, CancellationToken cancellationToken)
     {
@@ -86,8 +76,11 @@ internal class GetGameCenterContextHandler : IRequestHandler<GetGameCenterContex
             })
             .SingleOrDefaultAsync(cancellationToken);
 
-        var openTicketCount = await _ticketService
-            .GetGameOpenTickets(request.GameId)
+        var gameTotalTicketCount = await _ticketService
+            .GetGameTicketsQuery(request.GameId)
+            .CountAsync(cancellationToken);
+        var gameOpenTicketCount = await _ticketService
+            .GetGameOpenTicketsQuery(request.GameId)
             .CountAsync(cancellationToken);
 
         var topScore = await _store
@@ -185,7 +178,8 @@ internal class GetGameCenterContextHandler : IRequestHandler<GetGameCenterContex
             // aggregates
             ChallengeCount = challengeData?.ChallengeCount ?? 0,
             PointsAvailable = challengeData?.PointsAvailable ?? 0,
-            OpenTicketCount = openTicketCount
+            OpenTicketCount = gameOpenTicketCount,
+            TotalTicketCount = gameTotalTicketCount
         };
     }
 }

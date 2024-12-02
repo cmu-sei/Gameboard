@@ -1,7 +1,6 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -19,7 +18,8 @@ using Microsoft.Extensions.Logging;
 namespace Gameboard.Api.Controllers;
 
 [Authorize]
-public class TicketController(
+public class TicketController
+(
     IActingUserService actingUserService,
     ILogger<ChallengeController> logger,
     IDistributedCache cache,
@@ -29,7 +29,7 @@ public class TicketController(
     TicketService ticketService,
     IHubContext<AppHub, IAppHubEvent> hub,
     IMapper mapper
-    ) : GameboardLegacyController(actingUserService, logger, cache, validator)
+) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
     TicketService TicketService { get; } = ticketService;
@@ -41,10 +41,11 @@ public class TicketController(
     /// Gets ticket details
     /// </summary>
     /// <param name="id"></param>
+    /// <param name="sortDirection">The direction in which activity on this ticket will be ordered (by timestamp)</param>
     /// <returns></returns>
     [HttpGet("api/ticket/{id}")]
     [Authorize]
-    public async Task<Ticket> Retrieve([FromRoute] int id)
+    public async Task<Ticket> Retrieve([FromRoute] int id, [FromQuery] SortDirection sortDirection)
     {
         await AuthorizeAny
         (
@@ -52,7 +53,7 @@ public class TicketController(
             () => TicketService.IsOwnerOrTeamMember(id, Actor.Id)
         );
 
-        return await TicketService.Retrieve(id);
+        return await TicketService.Retrieve(id, sortDirection);
     }
 
 

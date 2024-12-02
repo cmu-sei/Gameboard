@@ -21,7 +21,8 @@ using Microsoft.Extensions.Logging;
 namespace Gameboard.Api.Controllers;
 
 [Authorize]
-public class PlayerController(
+public class PlayerController
+(
     IActingUserService actingUserService,
     ILogger<PlayerController> logger,
     IDistributedCache cache,
@@ -31,7 +32,7 @@ public class PlayerController(
     IMapper _mapper,
     IUserRolePermissionsService permissionsService,
     ITeamService teamService
-    ) : GameboardLegacyController(actingUserService, logger, cache, validator)
+) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
     private readonly IMapper Mapper = _mapper;
     private readonly IMediator _mediator = mediator;
@@ -86,23 +87,23 @@ public class PlayerController(
     {
         await AuthorizeAny
         (
-            () => _permissionsService.IsActingUserAsync(model.Id),
+            () => IsSelf(model.Id),
             () => _permissionsService.Can(PermissionKey.Teams_ApproveNameChanges)
         );
 
         await Validate(model);
 
-        var result = await PlayerService.Update(model, Actor, await _permissionsService.Can(PermissionKey.Teams_ApproveNameChanges));
+        var result = await PlayerService.Update(model, Actor);
         return Mapper.Map<PlayerUpdatedViewModel>(result);
     }
 
-    [HttpPut("api/player/{playerId}/ready")]
     [Authorize]
+    [HttpPut("api/player/{playerId}/ready")]
     public Task UpdatePlayerReady([FromRoute] string playerId, [FromBody] PlayerReadyUpdate readyUpdate)
         => _mediator.Send(new UpdatePlayerReadyStateCommand(playerId, readyUpdate.IsReady, Actor));
 
-    [HttpPut("api/player/{playerId}/start")]
     [Authorize]
+    [HttpPut("api/player/{playerId}/start")]
     public async Task<Player> Start(string playerId)
     {
         await AuthorizeAny
@@ -120,12 +121,11 @@ public class PlayerController(
     /// Delete a player enrollment
     /// </summary>
     /// <param name="playerId"></param>
-    /// <param name="asAdmin"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    [HttpDelete("/api/player/{playerId}")]
     [Authorize]
-    public async Task Unenroll([FromRoute] string playerId, [FromQuery] bool asAdmin, CancellationToken cancellationToken)
+    [HttpDelete("/api/player/{playerId}")]
+    public async Task Unenroll([FromRoute] string playerId, CancellationToken cancellationToken)
     {
         await AuthorizeAny
         (
@@ -233,13 +233,13 @@ public class PlayerController(
         await AuthorizeAny
         (
             () => _permissionsService.Can(PermissionKey.Teams_Enroll),
-            () => IsSelf(promoteRequest.CurrentManagerPlayerId)
+            () => IsSelf(promoteRequest.CurrentCaptainId)
         );
 
         var model = new PromoteToManagerRequest
         {
             Actor = Actor,
-            CurrentManagerPlayerId = promoteRequest.CurrentManagerPlayerId,
+            CurrentCaptainId = promoteRequest.CurrentCaptainId,
             NewManagerPlayerId = playerId,
             TeamId = teamId
         };
