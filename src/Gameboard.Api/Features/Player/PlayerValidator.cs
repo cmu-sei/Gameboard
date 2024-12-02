@@ -133,11 +133,11 @@ public class PlayerValidator(
         // INDEPENDENT OF ADMIN
         var currentManager = await _store
             .WithNoTracking<Data.Player>()
-            .SingleOrDefaultAsync(p => p.Id == model.CurrentManagerPlayerId)
-            ?? throw new ResourceNotFound<Player>(model.CurrentManagerPlayerId, $"Couldn't resolve the player record for current manager {model.CurrentManagerPlayerId}.");
+            .SingleOrDefaultAsync(p => p.Id == model.CurrentCaptainId)
+            ?? throw new ResourceNotFound<Player>(model.CurrentCaptainId, $"Couldn't resolve the player record for current manager {model.CurrentCaptainId}.");
 
         if (!currentManager.IsManager)
-            throw new PlayerIsntManager(model.CurrentManagerPlayerId, "Calls to this endpoint must supply the correct ID of the current manager.");
+            throw new PlayerIsntManager(model.CurrentCaptainId, "Calls to this endpoint must supply the correct ID of the current manager.");
 
         var newManager = await _store
             .WithNoTracking<Data.Player>()

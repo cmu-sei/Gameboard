@@ -142,7 +142,7 @@ public class TeamControllerStartTeamSessionTests(GameboardTestContext testContex
         await httpClient
             .PutAsync($"api/team/{teamId}/manager/{finalCaptainPlayerId}", new PromoteToManagerRequest
             {
-                CurrentManagerPlayerId = initialCaptainPlayerId,
+                CurrentCaptainId = initialCaptainPlayerId,
                 NewManagerPlayerId = finalCaptainPlayerId,
                 TeamId = teamId
             }.ToJsonBody());

@@ -7,7 +7,7 @@ namespace Gameboard.Api.Features.Teams;
 public class PromoteToManagerRequest
 {
     public User Actor { get; set; }
-    public string CurrentManagerPlayerId { get; set; }
+    public string CurrentCaptainId { get; set; }
     public string NewManagerPlayerId { get; set; }
     public string TeamId { get; set; }
 }

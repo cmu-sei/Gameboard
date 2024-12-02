@@ -233,13 +233,13 @@ public class PlayerController
         await AuthorizeAny
         (
             () => _permissionsService.Can(PermissionKey.Teams_Enroll),
-            () => IsSelf(promoteRequest.CurrentManagerPlayerId)
+            () => IsSelf(promoteRequest.CurrentCaptainId)
         );
 
         var model = new PromoteToManagerRequest
         {
             Actor = Actor,
-            CurrentManagerPlayerId = promoteRequest.CurrentManagerPlayerId,
+            CurrentCaptainId = promoteRequest.CurrentCaptainId,
             NewManagerPlayerId = playerId,
             TeamId = teamId
         };
