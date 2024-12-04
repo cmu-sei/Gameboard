@@ -81,6 +81,11 @@ public sealed class ChallengeSpecSummary
     public required IEnumerable<string> Tags { get; set; }
 }
 
+public sealed class ChallengeSpecSectionPerformance
+{
+    public required string Text { get; set; }
+}
+
 public sealed class ChallengeSpecQuestionPerformance
 {
     public required int QuestionRank { get; set; }
