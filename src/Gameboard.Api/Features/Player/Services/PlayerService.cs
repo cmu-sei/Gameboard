@@ -681,7 +681,7 @@ public class PlayerService
         certificateHTML = certificateHTML.Replace("{{player_count}}", playerCount.ToString());
         certificateHTML = certificateHTML.Replace("{{team_count}}", teamCount.ToString());
 
-        return new Api.PlayerCertificate
+        return new PlayerCertificate
         {
             Game = _mapper.Map<Game>(player.Game),
             PublishedOn = player.User.PublishedCompetitiveCertificates.FirstOrDefault(c => c.GameId == player.Game.Id)?.PublishedOn,
@@ -726,7 +726,7 @@ public class PlayerService
         {
             int count = await _store
                 .WithNoTracking<Data.Player>()
-                .CountAsync<Data.Player>
+                .CountAsync
                 (
                     p =>
                         p.Mode == PlayerMode.Practice &&

@@ -117,8 +117,6 @@ public class ChallengeSpecService
     public async Task<IOrderedEnumerable<ChallengeSpecQuestionPerformance>> GetQuestionPerformance(string challengeSpecId, CancellationToken cancellationToken)
     {
         var results = await GetQuestionPerformance([challengeSpecId], cancellationToken);
-        if (!results.Any())
-            throw new ArgumentException($"Couldn't load performance for specId {challengeSpecId}", nameof(challengeSpecId));
 
         return results[challengeSpecId];
     }
@@ -151,7 +149,13 @@ public class ChallengeSpecService
         // because of topo architecture, we can't tell the caller anything about the challenge unless it's been attempted
         // at least once
         if (data is null || !data.Values.Any(v => v.Any()))
-            return null;
+        {
+            return challengeSpecIds.ToDictionary
+            (
+                specId => specId,
+                specId => Array.Empty<ChallengeSpecQuestionPerformance>().OrderBy(c => c.CountCorrect)
+            );
+        }
 
         // deserialize states
         var questionPerformance = new Dictionary<string, IOrderedEnumerable<ChallengeSpecQuestionPerformance>>();
