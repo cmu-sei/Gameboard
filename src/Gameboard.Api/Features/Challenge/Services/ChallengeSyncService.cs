@@ -23,32 +23,22 @@ public interface IChallengeSyncService
 /// <summary>
 /// Used by the Job service to update challenges which have expired
 /// </summary>
-internal class ChallengeSyncService : IChallengeSyncService
+internal class ChallengeSyncService
+(
+    ConsoleActorMap consoleActorMap,
+    IGameEngineService gameEngine,
+    ILogger<IChallengeSyncService> logger,
+    IMapper mapper,
+    INowService now,
+    IStore store
+) : IChallengeSyncService
 {
-    private readonly ConsoleActorMap _consoleActorMap;
-    private readonly IGameEngineService _gameEngine;
-    private readonly ILogger<IChallengeSyncService> _logger;
-    private readonly IMapper _mapper;
-    private readonly INowService _now;
-    private readonly IStore _store;
-
-    public ChallengeSyncService
-    (
-        ConsoleActorMap consoleActorMap,
-        IGameEngineService gameEngine,
-        ILogger<IChallengeSyncService> logger,
-        IMapper mapper,
-        INowService now,
-        IStore store
-    )
-    {
-        _consoleActorMap = consoleActorMap;
-        _logger = logger;
-        _gameEngine = gameEngine;
-        _mapper = mapper;
-        _now = now;
-        _store = store;
-    }
+    private readonly ConsoleActorMap _consoleActorMap = consoleActorMap;
+    private readonly IGameEngineService _gameEngine = gameEngine;
+    private readonly ILogger<IChallengeSyncService> _logger = logger;
+    private readonly IMapper _mapper = mapper;
+    private readonly INowService _now = now;
+    private readonly IStore _store = store;
 
     public Task Sync(Data.Challenge challenge, GameEngineGameState state, string actingUserId, CancellationToken cancellationToken)
         => Sync(cancellationToken, new SyncEntry(actingUserId, challenge, state));
@@ -104,7 +94,7 @@ internal class ChallengeSyncService : IChallengeSyncService
             .Where(p => playerIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, p => p.SessionEnd, cancellationToken);
 
-        _logger.LogInformation($"The ChallengeSyncService is synchronizing {challenges.Count()} challenges...");
+        _logger.LogInformation("The ChallengeSyncService is synchronizing {syncCount} challenges...", challenges.Count());
         foreach (var challenge in challenges)
         {
             try

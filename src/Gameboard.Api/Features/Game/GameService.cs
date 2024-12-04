@@ -329,7 +329,9 @@ public class GameService(
         var files = Directory.GetFiles(Options.ImageFolder, fileSearchPattern);
 
         foreach (var cardImageFile in files)
+        {
             File.Delete(cardImageFile);
+        }
 
         await UpdateImage(gameId, "card", string.Empty);
     }
@@ -342,7 +344,7 @@ public class GameService(
         var fileName = $"{GetGameCardFileNameBase(gameId)}{Path.GetExtension(file.FileName.ToLower())}";
         var path = Path.Combine(Options.ImageFolder, fileName);
 
-        using var stream = new FileStream(path, FileMode.Create);
+        using var stream = new FileStream(path, FileMode.OpenOrCreate);
         await file.CopyToAsync(stream);
         await UpdateImage(gameId, "card", fileName);
 
