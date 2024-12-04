@@ -329,7 +329,9 @@ public class GameService(
         var files = Directory.GetFiles(Options.ImageFolder, fileSearchPattern);
 
         foreach (var cardImageFile in files)
+        {
             File.Delete(cardImageFile);
+        }
 
         await UpdateImage(gameId, "card", string.Empty);
     }
