@@ -17,7 +17,8 @@ namespace Gameboard.Api.Features.Teams;
 
 public record AddPlayerToTeamCommand(string PlayerId, string InvitationCode) : IRequest<Api.Player>;
 
-internal class AddPlayerToTeamHandler(
+internal class AddPlayerToTeamHandler
+(
     IActingUserService actingUserService,
     IInternalHubBus hubBus,
     IMapper mapper,
@@ -27,7 +28,8 @@ internal class AddPlayerToTeamHandler(
     EntityExistsValidator<Data.Player> playerExists,
     IStore store,
     ITeamService teamService,
-    IValidatorService<AddPlayerToTeamCommand> validatorService) : IRequestHandler<AddPlayerToTeamCommand, Api.Player>
+    IValidatorService<AddPlayerToTeamCommand> validatorService
+) : IRequestHandler<AddPlayerToTeamCommand, Api.Player>
 {
     private readonly IActingUserService _actingUserService = actingUserService;
     private readonly IInternalHubBus _hubBus = hubBus;

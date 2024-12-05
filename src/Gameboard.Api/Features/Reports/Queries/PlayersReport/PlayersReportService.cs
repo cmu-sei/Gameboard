@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
-using ServiceStack;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -11,16 +10,10 @@ public interface IPlayersReportService
     IQueryable<PlayersReportRecord> GetQuery(PlayersReportParameters parameters);
 }
 
-internal class PlayersReportService : IPlayersReportService
+internal class PlayersReportService(IReportsService reportsService, IStore store) : IPlayersReportService
 {
-    private readonly IReportsService _reportsService;
-    private readonly IStore _store;
-
-    public PlayersReportService(IReportsService reportsService, IStore store)
-    {
-        _reportsService = reportsService;
-        _store = store;
-    }
+    private readonly IReportsService _reportsService = reportsService;
+    private readonly IStore _store = store;
 
     public IQueryable<PlayersReportRecord> GetQuery(PlayersReportParameters parameters)
     {

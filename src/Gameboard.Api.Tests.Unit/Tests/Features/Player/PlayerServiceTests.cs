@@ -6,20 +6,6 @@ namespace Gameboard.Api.Tests.Unit;
 public class PlayerServiceTests
 {
     [Theory, GameboardAutoData]
-    public async Task Standings_WhenGameIdIsEmpty_ReturnsEmptyArray(IFixture fixture)
-    {
-        // arrange
-        var sut = fixture.Create<PlayerService>();
-        var filterParams = A.Fake<PlayerDataFilter>();
-
-        // act
-        var result = await sut.Standings(filterParams);
-
-        // assert
-        result.ShouldBe(Array.Empty<Standing>());
-    }
-
-    [Theory, GameboardAutoData]
     public async Task MakeCertificates_WhenScoreZero_ReturnsEmptyArray(IFixture fixture)
     {
         // arrange

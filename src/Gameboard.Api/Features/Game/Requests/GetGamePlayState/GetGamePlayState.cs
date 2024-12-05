@@ -48,7 +48,9 @@ internal class GetGamePlayStateHandler(
             .AddValidator((req, ctx) =>
             {
                 if (gameId.IsEmpty())
-                    ctx.AddValidationException(new TeamHasNoPlayersException(request.TeamId));
+                {
+                    throw new ResourceNotFound<Team>(request.TeamId);
+                }
             })
             .Validate(request, cancellationToken);
 

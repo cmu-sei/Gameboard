@@ -61,7 +61,7 @@ internal sealed class RequestNameChangeHandler
         }
         else
         {
-            finalStatus = canRenameWithoutApproval ? string.Empty : "pending";
+            finalStatus = canRenameWithoutApproval ? string.Empty : AppConstants.NameStatusPending;
         }
 
         await _store

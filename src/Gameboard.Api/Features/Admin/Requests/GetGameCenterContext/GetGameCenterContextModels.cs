@@ -15,6 +15,7 @@ public sealed class GameCenterContext
 
     public required int ChallengeCount { get; set; }
     public required int OpenTicketCount { get; set; }
+    public required int TotalTicketCount { get; set; }
 
     public required bool HasScoreboard { get; set; }
     public required bool IsExternal { get; set; }

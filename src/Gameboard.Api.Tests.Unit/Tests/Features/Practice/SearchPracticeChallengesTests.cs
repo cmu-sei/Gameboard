@@ -1,9 +1,9 @@
-using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.Practice;
+using Gameboard.Api.Features.Users;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Unit;
@@ -32,9 +32,8 @@ public class SearchPracticeChallengesTests
         var sut = GetSutWithResults(fixture, disabledSpec);
 
         // when a query for all challenges is issued
-        var result = await sut
-            .BuildQuery(string.Empty, Array.Empty<string>())
-            .ToArrayAsync(CancellationToken.None);
+        var query = await sut.BuildQuery(string.Empty, []);
+        var result = await query.ToArrayAsync(CancellationToken.None);
 
         // then we expect no results
         result.Length.ShouldBe(0);
@@ -53,6 +52,7 @@ public class SearchPracticeChallengesTests
             Disabled = false,
             Game = new Data.Game
             {
+                IsPublished = true,
                 Name = fixture.Create<string>(),
                 PlayerMode = PlayerMode.Practice
             }
@@ -61,9 +61,8 @@ public class SearchPracticeChallengesTests
         var sut = GetSutWithResults(fixture, enabledSpec);
 
         // when a query for all challenges is issued
-        var result = await sut
-            .BuildQuery(string.Empty, Array.Empty<string>())
-            .ToArrayAsync(CancellationToken.None);
+        var query = await sut.BuildQuery(string.Empty, []);
+        var result = await query.ToArrayAsync(CancellationToken.None);
 
         // then we expect one result
         result.Length.ShouldBe(1);
@@ -81,8 +80,8 @@ public class SearchPracticeChallengesTests
         var sut = new SearchPracticeChallengesHandler
         (
             A.Fake<IChallengeDocsService>(),
-            A.Fake<IMapper>(),
             A.Fake<IPagingService>(),
+            A.Fake<IUserRolePermissionsService>(),
             A.Fake<IPracticeService>(),
             A.Fake<ISlugService>(),
             store

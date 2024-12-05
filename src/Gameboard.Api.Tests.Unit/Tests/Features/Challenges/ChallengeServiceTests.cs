@@ -8,7 +8,6 @@ using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.Users;
 using Gameboard.Api.Services;
 using MediatR;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Tests.Unit;
@@ -113,7 +112,6 @@ public class ChallengeServiceTests
             A.Fake<ILogger<ChallengeService>>(),
             A.Fake<IMapper>(),
             A.Fake<IMediator>(),
-            A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
             A.Fake<IPracticeService>(),
             A.Fake<IUserRolePermissionsService>(),
@@ -237,7 +235,6 @@ public class ChallengeServiceTests
             A.Fake<ILogger<ChallengeService>>(),
             A.Fake<IMapper>(),
             A.Fake<IMediator>(),
-            A.Fake<IMemoryCache>(),
             A.Fake<INowService>(),
             A.Fake<IPracticeService>(),
             A.Fake<IUserRolePermissionsService>(),

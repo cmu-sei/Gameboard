@@ -3,8 +3,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -14,8 +16,6 @@ using YamlDotNet.Serialization.NamingConventions;
 using Gameboard.Api.Common.Services;
 using Microsoft.AspNetCore.Http;
 using Gameboard.Api.Data;
-using System.IO;
-using System.Threading;
 using Gameboard.Api.Features.Users;
 
 namespace Gameboard.Api.Services;
@@ -112,15 +112,14 @@ public class GameService(
     {
         var gameSessionData = await _store
             .WithNoTracking<Data.Game>()
-                .Include(g => g.Players)
             .Where(g => g.Id == gameId)
-            .Where(g => g.Players.Any(p => _now.Get() < p.SessionEnd))
             .Select(g => new
             {
                 g.Id,
                 g.SessionLimit,
                 Teams = g
                     .Players
+                    .Where(p => _now.Get() < p.SessionEnd)
                     .Select(p => p.TeamId)
                     .Distinct()
             })
@@ -330,7 +329,9 @@ public class GameService(
         var files = Directory.GetFiles(Options.ImageFolder, fileSearchPattern);
 
         foreach (var cardImageFile in files)
+        {
             File.Delete(cardImageFile);
+        }
 
         await UpdateImage(gameId, "card", string.Empty);
     }
@@ -343,7 +344,7 @@ public class GameService(
         var fileName = $"{GetGameCardFileNameBase(gameId)}{Path.GetExtension(file.FileName.ToLower())}";
         var path = Path.Combine(Options.ImageFolder, fileName);
 
-        using var stream = new FileStream(path, FileMode.Create);
+        using var stream = new FileStream(path, FileMode.OpenOrCreate);
         await file.CopyToAsync(stream);
         await UpdateImage(gameId, "card", fileName);
 

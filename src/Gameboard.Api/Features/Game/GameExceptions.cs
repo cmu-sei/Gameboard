@@ -87,7 +87,14 @@ internal class PracticeSessionLimitReached : GameboardValidationException
 
 internal class SessionLimitReached : GameboardValidationException
 {
-    public SessionLimitReached(string teamId, string gameId, int sessions, int sessionLimit) : base($"Can't start a new game ({gameId}) for team \"{teamId}\". The session limit is {sessionLimit}, and the team has {sessions} sessions.") { }
+    public SessionLimitReached(string teamId, SimpleEntity game, int sessions, int sessionLimit)
+        : base($"""Can't start a new "{game.Name}" session for for team \"{teamId}\". The session limit is {sessionLimit}, and the team has {sessions} sessions.""") { }
+}
+
+internal class GameSessionLimitReached : GameboardValidationException
+{
+    public GameSessionLimitReached(SimpleEntity game, int sessionLimit, int currentSessionCount)
+        : base($"""Can't start new session(s) for "{game.Name}". There are {currentSessionCount} session active, and its limit is {sessionLimit}.""") { }
 }
 
 internal class SpecNotFound : GameboardException

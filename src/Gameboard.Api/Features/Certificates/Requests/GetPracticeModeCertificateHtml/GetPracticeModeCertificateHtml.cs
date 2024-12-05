@@ -49,10 +49,12 @@ internal class GetPracticeModeCertificateHtmlHandler
             .Validate(request, cancellationToken);
 
         if (certificate is null)
+        {
             throw new ResourceNotFound<PublishedPracticeCertificate>(request.ChallengeSpecId, $"Couldn't resolve a certificate for owner {request.CertificateOwnerUserId} and challenge spec {request.ChallengeSpecId}");
+        }
 
-        // load the outer template from this application (this is custom crafted by us to ensure we end up)
-        // with a consistent HTML-compliant base
+        // load the outer template from this application (this is custom crafted by us to ensure we end up
+        // with a consistent HTML-compliant base)
         var outerTemplatePath = Path.Combine(_coreOptions.TemplatesDirectory, "practice-certificate.template.html");
         var outerTemplate = File.ReadAllText(outerTemplatePath);
 
