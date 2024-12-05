@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Gameboard.Api.Features.Teams;
 
+[ApiController]
 [Authorize]
 [Route("/api/team")]
 public class TeamController(
@@ -21,6 +22,14 @@ public class TeamController(
     private readonly IActingUserService _actingUserService = actingUserService;
     private readonly IMediator _mediator = mediator;
     private readonly ITeamService _teamService = teamService;
+
+    [HttpDelete("{teamId}/players/{playerId}")]
+    public Task<RemoveFromTeamResponse> RemovePlayer([FromRoute] string teamId, [FromRoute] string playerId)
+        => _mediator.Send(new RemoveFromTeamCommand(playerId));
+
+    [HttpPut("{teamId}/players")]
+    public Task<AddToTeamResponse> AddUser([FromRoute] string teamId, [FromBody] AddToTeamCommand request)
+        => _mediator.Send(request);
 
     [HttpGet("{teamId}")]
     public async Task<Team> GetTeam(string teamId)

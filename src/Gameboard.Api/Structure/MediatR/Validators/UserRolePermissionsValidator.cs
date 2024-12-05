@@ -32,10 +32,6 @@ internal class UserRolePermissionsValidator(IUserRolePermissionsService userRole
         // if there are no required permissions, validation always passes
         if (_requiredPermissions is not null && _requiredPermissions.Any())
         {
-            // if the user doesn't have a role, this won't work
-            if (user.Role is null)
-                throw new UnauthorizedAccessException("This operation requires a role.");
-
             // if the user is on the whitelist, let em through
             if (_unlessUserIdIn is not null && _unlessUserIdIn.Any(uId => uId == user.Id))
                 return [];
@@ -59,7 +55,7 @@ internal class UserRolePermissionsValidator(IUserRolePermissionsService userRole
 
             if (missingPermissions.Any())
             {
-                retVal.Add(new UserRolePermissionException(user.Role.Value, missingPermissions));
+                retVal.Add(new UserRolePermissionException(user.Role, missingPermissions));
 
                 if (_unless is not null && _unlessException is not null)
                 {

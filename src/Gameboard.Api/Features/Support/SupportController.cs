@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Gameboard.Api.Features.Support;
 
+[ApiController]
 [Authorize]
 [Route("api/support")]
 public class SupportController(IMediator mediator) : ControllerBase

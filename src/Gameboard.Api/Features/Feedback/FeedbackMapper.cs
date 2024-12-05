@@ -1,10 +1,10 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoMapper;
+using Gameboard.Api.Features.Feedback;
 
 
 namespace Gameboard.Api.Services
@@ -15,20 +15,20 @@ namespace Gameboard.Api.Services
         {
             CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
 
-            CreateMap<Data.Feedback, Api.Feedback>()
+            CreateMap<Data.Feedback, Feedback>()
                 .ForMember(d => d.Questions, opt => opt.MapFrom(s =>
                     JsonSerializer.Deserialize<QuestionSubmission[]>(s.Answers, JsonOptions))
                 );
 
-            CreateMap<Api.Feedback, Data.Feedback>();
+            CreateMap<Feedback, Data.Feedback>();
 
-            CreateMap<Api.FeedbackSubmission, Data.Feedback>()
+            CreateMap<FeedbackSubmission, Data.Feedback>()
                 .ForMember(d => d.Submitted, opt => opt.MapFrom(s => s.Submit))
                 .ForMember(d => d.Answers, opt => opt.MapFrom(s =>
                     JsonSerializer.Serialize<QuestionSubmission[]>(s.Questions, JsonOptions))
                 );
 
-            CreateMap<Data.Feedback, Api.FeedbackReportDetails>()
+            CreateMap<Data.Feedback, FeedbackReportDetails>()
                 .ForMember(d => d.Questions, opt => opt.MapFrom(s =>
                         JsonSerializer.Deserialize<QuestionSubmission[]>(s.Answers, JsonOptions))
                 )
@@ -36,8 +36,9 @@ namespace Gameboard.Api.Services
                 .ForMember(d => d.ChallengeTag, opt => opt.MapFrom(s => s.ChallengeSpec.Tag));
 
             // Use a dictionary to map each question id in a response to the answer 
-            CreateMap<Api.FeedbackReportDetails, Api.FeedbackReportHelper>()
-                .AfterMap((src, dest) => {
+            CreateMap<FeedbackReportDetails, FeedbackReportHelper>()
+                .AfterMap((src, dest) =>
+                {
                     foreach (QuestionSubmission q in src.Questions) { dest.IdToAnswer.Add(q.Id, q.Answer); }
                 });
 

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Gameboard.Api.Features.Scores;
 
+[ApiController]
 [Authorize]
 [Route("api")]
 public class ScoringController(IMediator mediator) : ControllerBase()

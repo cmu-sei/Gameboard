@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Gameboard.Api.Features.Games.External;
 
+[ApiController]
 [Authorize]
 [Route("api/games/external")]
 public class ExternalGamesController : ControllerBase

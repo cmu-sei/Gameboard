@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Gameboard.Api.Features.Reports;
 
+[ApiController]
 [Authorize]
 [Route("/api/reports")]
 public class ReportsController(IMediator mediator, IReportsService service) : ControllerBase

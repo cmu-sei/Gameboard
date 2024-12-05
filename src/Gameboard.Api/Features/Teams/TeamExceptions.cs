@@ -15,6 +15,18 @@ internal class CantJoinTeamBecausePlayerCount : GameboardValidationException
         : base($"Can't add {playersToJoin} player(s) to the team. This team has {teamSizeCurrent} player(s) (min team size is {teamSizeMin}, max team size is {teamSizeMax}).") { }
 }
 
+internal class CantRemoveCaptain : GameboardValidationException
+{
+    public CantRemoveCaptain(SimpleEntity player, string teamId)
+        : base($"Can't remove player {player.Name} from the team {teamId} - they're the captain.") { }
+}
+
+internal class CantRemoveLastTeamMember : GameboardValidationException
+{
+    public CantRemoveLastTeamMember(SimpleEntity player, string teamId)
+        : base($"""Can't remove the last member ("{player.Name}") of a team {teamId}.""") { }
+}
+
 internal class CantResolveTeamFromCode : GameboardValidationException
 {
     internal CantResolveTeamFromCode(string code, string[] teamIds)
@@ -65,11 +77,6 @@ internal class RequiresSameSponsor : GameboardValidationException
         : base($"Game {gameId} requires that all players have the same sponsor. The inviting player {managerPlayerId} has sponsor {managerSponsor}, while player {playerId} has sponsor {playerSponsor}.") { }
 }
 
-internal class TeamHasNoPlayersException : GameboardValidationException
-{
-    public TeamHasNoPlayersException(string teamId) : base($"Team {teamId} has no players.") { }
-}
-
 internal class TeamsAreFromMultipleGames : GameboardException
 {
     public TeamsAreFromMultipleGames(IEnumerable<string> teamIds, IEnumerable<string> gameIds)
@@ -78,6 +85,8 @@ internal class TeamsAreFromMultipleGames : GameboardException
 
 internal class TeamIsFull : GameboardValidationException
 {
+    internal TeamIsFull(SimpleEntity team, int teamSize, int maxTeamSize)
+        : base($"""Team {team.Name} has {teamSize} players, and the max team size is {maxTeamSize}.""") { }
     internal TeamIsFull(string invitingPlayerId, int teamSize, int maxTeamSize)
         : base($"Inviting player {invitingPlayerId} has {teamSize} players on their team, and the max team size for this game is {maxTeamSize}.") { }
 }

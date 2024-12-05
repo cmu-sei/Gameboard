@@ -17,7 +17,8 @@ using Microsoft.Extensions.Logging;
 namespace Gameboard.Api.Controllers;
 
 [Authorize]
-public class ChallengeSpecController(
+public class ChallengeSpecController
+(
     IActingUserService actingUserService,
     ILogger<ChallengeSpecController> logger,
     IDistributedCache cache,
@@ -25,7 +26,7 @@ public class ChallengeSpecController(
     ChallengeSpecValidator validator,
     ChallengeSpecService challengespecService,
     IUserRolePermissionsService permissionsService
-    ) : GameboardLegacyController(actingUserService, logger, cache, validator)
+) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
     private readonly IMediator _mediator = mediator;
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;

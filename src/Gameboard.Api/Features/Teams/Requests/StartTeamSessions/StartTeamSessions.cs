@@ -114,7 +114,7 @@ internal sealed class StartTeamSessionsHandler
             );
 
             // start all sessions
-            // (note that this effective synchronizes all teams starting in this command)
+            // (note that this effectively synchronizes all teams starting in this command)
             _logger.LogInformation($"Starting sessions for {request.TeamIds.Count()} teams...");
             await _teamService.SetSessionWindow(request.TeamIds, sessionWindow, cancellationToken);
             _logger.LogInformation($"Sessions started.");

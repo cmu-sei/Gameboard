@@ -23,8 +23,10 @@ using System.Threading;
 
 namespace Gameboard.Api.Controllers;
 
+[ApiController]
 [Authorize]
-public class UserController(
+public class UserController
+(
     IActingUserService actingUserService,
     IGuidService guids,
     ILogger<UserController> logger,
@@ -34,15 +36,14 @@ public class UserController(
     CoreOptions options,
     IMediator mediator,
     IUserRolePermissionsService permissionsService
-    ) : GameboardLegacyController(actingUserService, logger, cache, validator)
+) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
     private readonly IActingUserService _actingUserService = actingUserService;
     private readonly IGuidService _guids = guids;
+    private readonly CoreOptions _options = options;
     private readonly IMediator _mediator = mediator;
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
-
-    UserService UserService { get; } = userService;
-    CoreOptions Options { get; } = options;
+    private readonly UserService _userService = userService;
 
     /// <summary>
     /// Register a new user
@@ -59,7 +60,7 @@ public class UserController(
             () => _permissionsService.Can(PermissionKey.Users_CreateEditDelete)
         );
 
-        var result = await UserService.TryCreate(model);
+        var result = await _userService.TryCreate(model);
 
         await HttpContext.SignInAsync(
             AppConstants.MksCookie,
@@ -106,7 +107,7 @@ public class UserController(
         );
 
         await Validate(new Entity { Id = id });
-        return await UserService.Retrieve(id);
+        return await _userService.Retrieve(id);
     }
 
     /// <summary>
@@ -125,7 +126,7 @@ public class UserController(
         );
 
         await Validate(model);
-        return await UserService.Update(model, canAdminUsers);
+        return await _userService.Update(model, canAdminUsers);
     }
 
     /// <summary>
@@ -138,7 +139,7 @@ public class UserController(
     {
         await Authorize(_permissionsService.Can(PermissionKey.Users_CreateEditDelete));
         await Validate(new Entity { Id = id });
-        await UserService.Delete(id);
+        await _userService.Delete(id);
     }
 
     /// <summary>
@@ -148,7 +149,7 @@ public class UserController(
     /// <returns></returns>
     [HttpGet("/api/user/{userId}/challenges/active")]
     public Task<GetUserActiveChallengesResponse> GetUserActiveChallenges([FromRoute] string userId)
-            => _mediator.Send(new GetUserActiveChallengesQuery(userId));
+        => _mediator.Send(new GetUserActiveChallengesQuery(userId));
 
     /// <summary>
     /// Find users
@@ -159,7 +160,7 @@ public class UserController(
     public async Task<IEnumerable<UserOnly>> List([FromQuery] UserSearch model)
     {
         await Authorize(_permissionsService.Can(PermissionKey.Admin_View));
-        return await UserService.List<UserOnly>(model);
+        return await _userService.List<UserOnly>(model);
     }
 
     /// <summary>
@@ -171,7 +172,7 @@ public class UserController(
     public async Task<SimpleEntity[]> ListSupport([FromQuery] SearchFilter model)
     {
         await Authorize(_permissionsService.Can(PermissionKey.Support_ManageTickets));
-        return await UserService.ListSupport(model);
+        return await _userService.ListSupport(model);
     }
 
     /// <summary>
@@ -182,7 +183,7 @@ public class UserController(
     [HttpPost("/api/user/ticket")]
     public async Task<IActionResult> GetTicket()
     {
-        string ticket = _guids.Generate();
+        var ticket = _guids.Generate();
 
         await Cache.SetStringAsync(
             $"{TicketAuthentication.TicketCachePrefix}{ticket}",
@@ -219,8 +220,9 @@ public class UserController(
     [AllowAnonymous]
     public string[] GetDocList()
     {
-        var result = Directory.GetFiles(Options.DocFolder, "*", SearchOption.AllDirectories)
-            .Select(x => x.Replace(Options.DocFolder, ""))
+        var result = Directory
+            .GetFiles(_options.DocFolder, "*", SearchOption.AllDirectories)
+            .Select(x => x.Replace(_options.DocFolder, ""))
             .ToArray();
 
         return result;

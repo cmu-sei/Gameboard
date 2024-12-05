@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Gameboard.Api.Features.Practice;
 
+[ApiController]
 [Authorize]
 [Route("/api/practice")]
 public class PracticeController(

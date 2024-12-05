@@ -9,6 +9,7 @@ using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -24,6 +25,7 @@ public class UserService
     IMapper mapper,
     IMemoryCache cache,
     INameService namesvc,
+    ITeamService teamService,
     IUserRolePermissionsService permissionsService
 )
 {
@@ -34,6 +36,7 @@ public class UserService
     private readonly IStore<Data.User> _userStore = userStore;
     private readonly IMemoryCache _localcache = cache;
     private readonly INameService _namesvc = namesvc;
+    private readonly ITeamService _teamService = teamService;
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
 
     /// <summary>
@@ -63,7 +66,9 @@ public class UserService
 
         // first user gets admin
         if (!await _store.WithNoTracking<Data.User>().AnyAsync(u => u.Id != model.Id))
+        {
             entity.Role = UserRoleKey.Admin;
+        }
 
         // record creation date and first login
         if (entity.CreatedOn.IsEmpty())
@@ -193,7 +198,7 @@ public class UserService
             query = query.Where(u => ((int)u.Role) > 0);
 
         if (model.WantsPending)
-            query = query.Where(u => u.NameStatus.Equals(AppConstants.NameStatusPending) && u.Name != u.ApprovedName);
+            query = query.Where(u => u.Name != u.ApprovedName);
 
         if (model.WantsDisallowed)
             query = query.Where(u => !string.IsNullOrEmpty(u.NameStatus) && !u.NameStatus.Equals(AppConstants.NameStatusPending));
