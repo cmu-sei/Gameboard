@@ -4,7 +4,7 @@ using Gameboard.Api.Features.Feedback;
 
 namespace Gameboard.Api.Data;
 
-public enum FeedbackResponseAttachedEntityType
+public enum FeedbackSubmissionAttachedEntityType
 {
     ChallengeSpec = 0,
     Game = 1
@@ -13,7 +13,7 @@ public enum FeedbackResponseAttachedEntityType
 public abstract class FeedbackSubmission : IEntity
 {
     public string Id { get; set; }
-    public required FeedbackResponseAttachedEntityType AttachedEntityType { get; set; }
+    public required FeedbackSubmissionAttachedEntityType AttachedEntityType { get; set; }
     public DateTimeOffset? WhenEdited { get; set; }
     public required DateTimeOffset WhenSubmitted { get; set; }
 
@@ -30,10 +30,10 @@ public abstract class FeedbackSubmission : IEntity
 
 public sealed class FeedbackSubmissionGame : FeedbackSubmission, IEntity
 {
-    public required Game Game { get; set; }
+    public required Data.Game Game { get; set; }
 }
 
 public sealed class FeedbackSubmissionChallengeSpec : FeedbackSubmission, IEntity
 {
-    public required string ChallengeSpecId { get; set; }
+    public required Data.ChallengeSpec ChallengeSpec { get; set; }
 }

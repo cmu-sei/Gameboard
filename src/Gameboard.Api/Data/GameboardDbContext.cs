@@ -212,28 +212,39 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
         {
             b
                 .HasDiscriminator(b => b.AttachedEntityType)
-                    .HasValue<FeedbackSubmissionChallengeSpec>(FeedbackResponseAttachedEntityType.ChallengeSpec)
-                    .HasValue<FeedbackSubmissionGame>(FeedbackResponseAttachedEntityType.Game);
+                    .HasValue<FeedbackSubmissionChallengeSpec>(FeedbackSubmissionAttachedEntityType.ChallengeSpec)
+                    .HasValue<FeedbackSubmissionGame>(FeedbackSubmissionAttachedEntityType.Game);
             b
                 .HasOne(f => f.User)
-                .WithMany(u => u.FeedbackResponses);
+                .WithMany(u => u.FeedbackSubmissions)
+                .IsRequired();
 
             b
                 .HasOne(f => f.FeedbackTemplate)
-                .WithMany(t => t.Submissions);
+                .WithMany(t => t.Submissions)
+                .IsRequired();
 
             // configures the question data as proper database JSON
             b.OwnsMany(f => f.Responses, ownedJsonEntityBuilder =>
             {
-                ownedJsonEntityBuilder.ToTable("FeedbackResponsesData");
+                ownedJsonEntityBuilder.ToTable("FeedbackSubmissionResponses");
             });
+        });
+
+        builder.Entity<FeedbackSubmissionChallengeSpec>(b =>
+        {
+            b
+                .HasOne<Data.ChallengeSpec>()
+                .WithMany(s => s.FeedbackSubmissions)
+                .IsRequired();
         });
 
         builder.Entity<FeedbackSubmissionGame>(b =>
         {
             b
                 .HasOne<Data.Game>()
-                .WithMany(g => g.FeedbackSubmissions);
+                .WithMany(g => g.FeedbackSubmissions)
+                .IsRequired();
         });
 
         builder.Entity<FeedbackTemplate>(b =>
