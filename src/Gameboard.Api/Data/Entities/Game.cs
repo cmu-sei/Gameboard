@@ -55,8 +55,10 @@ public class Game : IEntity
     public bool ShowOnHomePageInPracticeMode { get; set; } = false;
 
     // feedback
-    public FeedbackTemplate GameChallengesFeedbackTemplate { get; set; }
-    public FeedbackTemplate GameFeedbackTemplate { get; set; }
+    public string ChallengesFeedbackTemplateId { get; set; }
+    public FeedbackTemplate ChallengesFeedbackTemplate { get; set; }
+    public string FeedbackTemplateId { get; set; }
+    public FeedbackTemplate FeedbackTemplate { get; set; }
 
     public ICollection<Player> AdvancedPlayers { get; set; }
     public ICollection<ChallengeSpec> Specs { get; set; } = new List<ChallengeSpec>();
@@ -65,6 +67,7 @@ public class Game : IEntity
     public ICollection<Player> Players { get; set; } = new List<Player>();
     public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
     public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
+    public ICollection<FeedbackSubmissionGame> FeedbackSubmissions { get; set; } = [];
     public ICollection<ChallengeGate> Prerequisites { get; set; } = new List<ChallengeGate>();
     public ICollection<PublishedCompetitiveCertificate> PublishedCompetitiveCertificates { get; set; }
 

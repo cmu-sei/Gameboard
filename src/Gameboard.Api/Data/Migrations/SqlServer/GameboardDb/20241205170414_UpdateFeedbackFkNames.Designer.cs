@@ -4,6 +4,7 @@ using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 {
     [DbContext(typeof(GameboardDbContextSqlServer))]
-    partial class GameboardDbContextSqlServerModelSnapshot : ModelSnapshot
+    [Migration("20241205170414_UpdateFeedbackFkNames")]
+    partial class UpdateFeedbackFkNames
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -752,11 +755,11 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<string>("FeedbackConfig")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("FeedbackTemplateId")
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<DateTimeOffset>("GameEnd")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("GameFeedbackTemplateId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("GameMarkdown")
                         .HasColumnType("nvarchar(max)");
@@ -849,7 +852,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.HasIndex("ExternalHostId");
 
-                    b.HasIndex("FeedbackTemplateId");
+                    b.HasIndex("GameFeedbackTemplateId");
 
                     b.ToTable("Games");
                 });
@@ -1626,48 +1629,6 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Gameboard.Api.Data.FeedbackSubmission", b =>
-                {
-                    b.HasOne("Gameboard.Api.Data.FeedbackTemplate", "FeedbackTemplate")
-                        .WithMany("Submissions")
-                        .HasForeignKey("FeedbackTemplateId");
-
-                    b.HasOne("Gameboard.Api.Data.User", "User")
-                        .WithMany("FeedbackResponses")
-                        .HasForeignKey("UserId");
-
-                    b.OwnsMany("Gameboard.Api.Features.Feedback.QuestionSubmission", "Responses", b1 =>
-                        {
-                            b1.Property<string>("FeedbackSubmissionId")
-                                .HasColumnType("nvarchar(450)");
-
-                            b1.Property<string>("Id")
-                                .HasColumnType("nvarchar(450)");
-
-                            b1.Property<string>("Answer")
-                                .HasColumnType("nvarchar(max)");
-
-                            b1.Property<string>("Prompt")
-                                .HasColumnType("nvarchar(max)");
-
-                            b1.Property<string>("ShortName")
-                                .HasColumnType("nvarchar(max)");
-
-                            b1.HasKey("FeedbackSubmissionId", "Id");
-
-                            b1.ToTable("FeedbackResponsesData", (string)null);
-
-                            b1.WithOwner()
-                                .HasForeignKey("FeedbackSubmissionId");
-                        });
-
-                    b.Navigation("FeedbackTemplate");
-
-                    b.Navigation("Responses");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Gameboard.Api.Data.FeedbackTemplate", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.User", "CreatedByUser")
@@ -1690,15 +1651,15 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasForeignKey("ExternalHostId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("Gameboard.Api.Data.FeedbackTemplate", "FeedbackTemplate")
+                    b.HasOne("Gameboard.Api.Data.FeedbackTemplate", "GameFeedbackTemplate")
                         .WithMany("UseAsFeedbackTemplateForGameChallenges")
-                        .HasForeignKey("FeedbackTemplateId");
+                        .HasForeignKey("GameFeedbackTemplateId");
 
                     b.Navigation("ChallengesFeedbackTemplate");
 
                     b.Navigation("ExternalHost");
 
-                    b.Navigation("FeedbackTemplate");
+                    b.Navigation("GameFeedbackTemplate");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.ManualBonus", b =>
@@ -1887,19 +1848,6 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("Sponsor");
                 });
 
-            modelBuilder.Entity("Gameboard.Api.Data.FeedbackSubmissionGame", b =>
-                {
-                    b.HasOne("Gameboard.Api.Data.Game", null)
-                        .WithMany("FeedbackSubmissions")
-                        .HasForeignKey("GameId");
-
-                    b.HasOne("Gameboard.Api.Data.Game", "Game")
-                        .WithMany()
-                        .HasForeignKey("GameId1");
-
-                    b.Navigation("Game");
-                });
-
             modelBuilder.Entity("Gameboard.Api.Data.ManualChallengeBonus", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Challenge", "Challenge")
@@ -1979,8 +1927,6 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.FeedbackTemplate", b =>
                 {
-                    b.Navigation("Submissions");
-
                     b.Navigation("UseAsFeedbackTemplateForGameChallenges");
 
                     b.Navigation("UseAsFeedbackTemplateForGames");
@@ -1997,8 +1943,6 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("ExternalGameTeams");
 
                     b.Navigation("Feedback");
-
-                    b.Navigation("FeedbackSubmissions");
 
                     b.Navigation("Players");
 
@@ -2057,8 +2001,6 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("EnteredManualBonuses");
 
                     b.Navigation("Feedback");
-
-                    b.Navigation("FeedbackResponses");
 
                     b.Navigation("PublishedCompetitiveCertificates");
 

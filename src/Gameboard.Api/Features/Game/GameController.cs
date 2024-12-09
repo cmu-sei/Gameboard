@@ -67,7 +67,9 @@ namespace Gameboard.Api.Controllers
         [HttpGet("api/game/{id}")]
         [AllowAnonymous]
         public async Task<Game> Retrieve([FromRoute] string id)
-            => await GameService.Retrieve(id, await _permissionsService.Can(PermissionKey.Games_ViewUnpublished));
+        {
+            return await GameService.Retrieve(id, await _permissionsService.Can(PermissionKey.Games_ViewUnpublished));
+        }
 
         [HttpGet("api/game/{id}/specs")]
         [Authorize]

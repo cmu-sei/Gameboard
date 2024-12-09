@@ -49,7 +49,11 @@ namespace Gameboard.Api.Services
 
             CreateMap<Game, Data.Game>();
             CreateMap<NewGame, Data.Game>();
-            CreateMap<ChangedGame, Data.Game>();
+            CreateMap<ChangedGame, Data.Game>()
+                .ForMember(d => d.FeedbackTemplateId, opt => opt.MapFrom(s => s.FeedbackTemplateId))
+                .ForMember(d => d.ChallengesFeedbackTemplateId, opt => opt.MapFrom(s => s.ChallengesFeedbackTemplateId))
+                .ForMember(d => d.FeedbackTemplate, opt => opt.Ignore())
+                .ForMember(d => d.ChallengesFeedbackTemplate, opt => opt.Ignore());
 
             // FROM Data.Game
             CreateMap<Data.Game, SimpleEntity>();

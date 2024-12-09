@@ -133,7 +133,7 @@ namespace Gameboard.Api.Services
         }
 
 
-        public async Task<Features.Feedback.Feedback> Submit(FeedbackSubmission model, string actorId)
+        public async Task<Features.Feedback.Feedback> Submit(Features.Feedback.FeedbackSubmission model, string actorId)
         {
             var lookup = MakeFeedbackLookup(model.GameId, model.ChallengeId, model.ChallengeSpecId, actorId);
             var entity = await LoadFeedback(lookup);

@@ -42,6 +42,7 @@ internal sealed class CreateFeedbackTemplateHandler
                 Content = request.Template.Content.Trim(),
                 CreatedByUserId = _actingUserService.Get().Id,
                 Name = request.Template.Name.Trim(),
+                Submissions = [],
                 UseAsFeedbackTemplateForGameChallenges = [],
                 UseAsFeedbackTemplateForGames = []
             });

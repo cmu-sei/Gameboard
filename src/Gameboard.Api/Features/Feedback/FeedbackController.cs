@@ -1,7 +1,6 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -82,6 +81,25 @@ public class FeedbackController
     [HttpPost("template")]
     public Task<FeedbackTemplateView> CreateTemplate([FromBody] CreateFeedbackTemplateRequest request)
         => _mediator.Send(new CreateFeedbackTemplateCommand(request));
+
+    /// <summary>
+    /// Deletes a feedback template.
+    /// </summary>
+    /// <param name="templateId"></param>
+    /// <returns></returns>
+    [HttpDelete("template/{templateId}")]
+    public Task DeleteTemplate([FromRoute] string templateId)
+        => _mediator.Send(new DeleteFeedbackTemplateCommand(templateId));
+
+    /// <summary>
+    /// Retrieves a specific feedback template. Feedback templates can be used to gather feedback on a game,
+    /// a game's challenges, or both.
+    /// </summary>
+    /// <param name="templateId"></param>
+    /// <returns></returns>
+    [HttpGet("template/{templateId}")]
+    public Task<FeedbackTemplateView> GetTemplateForGameOrChallengeSpec([FromRoute] string templateId)
+        => _mediator.Send(new GetFeedbackTemplateQuery(templateId));
 
     /// <summary>
     /// List all available feedback templates, including which games they're used with and how many responses

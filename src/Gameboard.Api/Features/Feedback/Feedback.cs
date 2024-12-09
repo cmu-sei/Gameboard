@@ -160,7 +160,7 @@ public sealed class FeedbackTemplateView
     public required string Id { get; set; }
     public required string Content { get; set; }
     public required SimpleEntity CreatedBy { get; set; }
-    public required string HelpText { get; set;}
+    public required string HelpText { get; set; }
     public required string Name { get; set; }
     public required int ResponseCount { get; set; }
     public required IEnumerable<SimpleEntity> UseForGames { get; set; }
