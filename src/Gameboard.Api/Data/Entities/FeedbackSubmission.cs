@@ -28,12 +28,14 @@ public abstract class FeedbackSubmission : IEntity
     public required Data.User User { get; set; }
 }
 
-public sealed class FeedbackSubmissionGame : FeedbackSubmission, IEntity
+public class FeedbackSubmissionChallengeSpec : FeedbackSubmission, IEntity
 {
-    public required Data.Game Game { get; set; }
+    public required string ChallengeSpecId { get; set; }
+    public required Data.ChallengeSpec ChallengeSpec { get; set; }
 }
 
-public sealed class FeedbackSubmissionChallengeSpec : FeedbackSubmission, IEntity
+public class FeedbackSubmissionGame : FeedbackSubmission, IEntity
 {
-    public required Data.ChallengeSpec ChallengeSpec { get; set; }
+    public required string GameId { get; set; }
+    public required Data.Game Game { get; set; }
 }

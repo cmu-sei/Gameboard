@@ -668,6 +668,44 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.ToTable("Feedback");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.FeedbackSubmission", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<int>("AttachedEntityType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FeedbackTemplateId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TeamId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTimeOffset?>("WhenEdited")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("WhenSubmitted")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FeedbackTemplateId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("FeedbackSubmissions");
+
+                    b.HasDiscriminator<int>("AttachedEntityType");
+
+                    b.UseTphMappingStrategy();
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.FeedbackTemplate", b =>
                 {
                     b.Property<string>("Id")
@@ -1417,6 +1455,32 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.HasDiscriminator().HasValue(0);
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.FeedbackSubmissionChallengeSpec", b =>
+                {
+                    b.HasBaseType("Gameboard.Api.Data.FeedbackSubmission");
+
+                    b.Property<string>("ChallengeSpecId")
+                        .IsRequired()
+                        .HasColumnType("character varying(40)");
+
+                    b.HasIndex("ChallengeSpecId");
+
+                    b.HasDiscriminator().HasValue(0);
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.FeedbackSubmissionGame", b =>
+                {
+                    b.HasBaseType("Gameboard.Api.Data.FeedbackSubmission");
+
+                    b.Property<string>("GameId")
+                        .IsRequired()
+                        .HasColumnType("character varying(40)");
+
+                    b.HasIndex("GameId");
+
+                    b.HasDiscriminator().HasValue(1);
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ManualChallengeBonus", b =>
                 {
                     b.HasBaseType("Gameboard.Api.Data.ManualBonus");
@@ -1622,6 +1686,52 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Game");
 
                     b.Navigation("Player");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.FeedbackSubmission", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.FeedbackTemplate", "FeedbackTemplate")
+                        .WithMany("Submissions")
+                        .HasForeignKey("FeedbackTemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Gameboard.Api.Data.User", "User")
+                        .WithMany("FeedbackSubmissions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsMany("Gameboard.Api.Features.Feedback.QuestionSubmission", "Responses", b1 =>
+                        {
+                            b1.Property<string>("FeedbackSubmissionId")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("Id")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("Answer")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("Prompt")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("ShortName")
+                                .HasColumnType("text");
+
+                            b1.HasKey("FeedbackSubmissionId", "Id");
+
+                            b1.ToTable("FeedbackSubmissionResponses", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("FeedbackSubmissionId");
+                        });
+
+                    b.Navigation("FeedbackTemplate");
+
+                    b.Navigation("Responses");
 
                     b.Navigation("User");
                 });
@@ -1845,6 +1955,28 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("Sponsor");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.FeedbackSubmissionChallengeSpec", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.ChallengeSpec", "ChallengeSpec")
+                        .WithMany("FeedbackSubmissions")
+                        .HasForeignKey("ChallengeSpecId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChallengeSpec");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.FeedbackSubmissionGame", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.Game", "Game")
+                        .WithMany("FeedbackSubmissions")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Game");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ManualChallengeBonus", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Challenge", "Challenge")
@@ -1914,6 +2046,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
                     b.Navigation("Feedback");
 
+                    b.Navigation("FeedbackSubmissions");
+
                     b.Navigation("PublishedPracticeCertificates");
                 });
 
@@ -1924,6 +2058,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.FeedbackTemplate", b =>
                 {
+                    b.Navigation("Submissions");
+
                     b.Navigation("UseAsFeedbackTemplateForGameChallenges");
 
                     b.Navigation("UseAsFeedbackTemplateForGames");
@@ -1940,6 +2076,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("ExternalGameTeams");
 
                     b.Navigation("Feedback");
+
+                    b.Navigation("FeedbackSubmissions");
 
                     b.Navigation("Players");
 
@@ -1998,6 +2136,8 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("EnteredManualBonuses");
 
                     b.Navigation("Feedback");
+
+                    b.Navigation("FeedbackSubmissions");
 
                     b.Navigation("PublishedCompetitiveCertificates");
 

@@ -234,7 +234,7 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
         builder.Entity<FeedbackSubmissionChallengeSpec>(b =>
         {
             b
-                .HasOne<Data.ChallengeSpec>()
+                .HasOne(s => s.ChallengeSpec)
                 .WithMany(s => s.FeedbackSubmissions)
                 .IsRequired();
         });
@@ -242,7 +242,7 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
         builder.Entity<FeedbackSubmissionGame>(b =>
         {
             b
-                .HasOne<Data.Game>()
+                .HasOne(s => s.Game)
                 .WithMany(g => g.FeedbackSubmissions)
                 .IsRequired();
         });
