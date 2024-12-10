@@ -46,7 +46,7 @@ internal class UpdateUserSettingsHandler : IRequestHandler<UpdateUserSettingsCom
 
         var userEntity = await _store
             .WithTracking<Data.User>()
-            .SingleAsync(u => u.Id == _actingUserService.Get().Id);
+            .SingleAsync(u => u.Id == _actingUserService.Get().Id, cancellationToken);
 
         if (request.Request.PlayAudioOnBrowserNotification is not null)
         {
