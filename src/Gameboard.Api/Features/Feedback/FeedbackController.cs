@@ -62,7 +62,7 @@ public class FeedbackController
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPut("submit")]
-    public async Task<Feedback> Submit([FromBody] FeedbackSubmission model)
+    public async Task<Feedback> Submit([FromBody] FeedbackSubmissionLegacy model)
     {
         await Authorize(FeedbackService.UserIsEnrolled(model.GameId, Actor.Id));
         await Validate(model);
@@ -109,4 +109,17 @@ public class FeedbackController
     [HttpGet("template")]
     public Task<ListFeedbackTemplatesResponse> ListTemplates()
         => _mediator.Send(new ListFeedbackTemplatesQuery());
+
+    /// <summary>
+    /// Create a new feedback response.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpPost()]
+    public Task<UpsertFeedbackSubmissionResponse> ResponseCreate([FromBody] UpsertFeedbackSubmissionRequest request)
+    {
+        var modelState = ModelState;
+        var things = modelState.ErrorCount;
+        return _mediator.Send(new UpsertFeedbackSubmissionCommand(request));
+    }
 }

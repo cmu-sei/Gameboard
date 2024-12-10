@@ -4,12 +4,15 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Data;
 using Gameboard.Api.Structure.MediatR.Validators;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Structure.MediatR;
 
 public interface IValidatorService
 {
+    IValidatorService AddEntityExistsValidator<TEntity>(string id) where TEntity : class, IEntity;
     IValidatorService AddValidator(IGameboardValidator validator);
     IValidatorService AddValidator(Action<RequestValidationContext> validationAction);
     IValidatorService AddValidator(Func<RequestValidationContext, Task> validationTask);
@@ -19,11 +22,35 @@ public interface IValidatorService
     Task Validate(CancellationToken cancellationToken);
 }
 
-internal class ValidatorService(IActingUserService actingUserService, UserRolePermissionsValidator userRolePermissionsValidator) : IValidatorService
+internal class ValidatorService
+(
+    IActingUserService actingUserService,
+    IStore store,
+    UserRolePermissionsValidator userRolePermissionsValidator
+) : IValidatorService
 {
     private readonly IActingUserService _actingUserService = actingUserService;
     private readonly IList<Func<RequestValidationContext, Task>> _validationTasks = [];
+    private readonly IStore _store = store;
     private readonly UserRolePermissionsValidator _userRolePermissionsValidator = userRolePermissionsValidator;
+
+    public IValidatorService AddEntityExistsValidator<TEntity>(string id) where TEntity : class, IEntity
+    {
+        _validationTasks.Add(async ctx =>
+        {
+            var exists = await _store
+                .WithNoTracking<TEntity>()
+                .Where(e => e.Id == id)
+                .AnyAsync();
+
+            if (!exists)
+            {
+                ctx.AddValidationException(new ResourceNotFound<TEntity>(id));
+            }
+        });
+
+        return this;
+    }
 
     public IValidatorService AddValidator(IGameboardValidator validator)
     {

@@ -22,7 +22,7 @@ namespace Gameboard.Api.Services
 
             CreateMap<Feedback, Data.Feedback>();
 
-            CreateMap<FeedbackSubmission, Data.Feedback>()
+            CreateMap<FeedbackSubmissionLegacy, Data.Feedback>()
                 .ForMember(d => d.Submitted, opt => opt.MapFrom(s => s.Submit))
                 .ForMember(d => d.Answers, opt => opt.MapFrom(s =>
                     JsonSerializer.Serialize(s.Questions, JsonOptions))

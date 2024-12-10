@@ -28,8 +28,8 @@ public class ChallengeSpec : IEntity
         // nav properties
         public string GameId { get; set; }
         public Game Game { get; set; }
-        public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
+        public ICollection<Feedback> Feedback { get; set; } = [];
         public ICollection<FeedbackSubmissionChallengeSpec> FeedbackSubmissions { get; set; } = [];
-        public ICollection<ChallengeBonus> Bonuses { get; set; } = new List<ChallengeBonus>();
-        public ICollection<PublishedPracticeCertificate> PublishedPracticeCertificates { get; set; } = new List<PublishedPracticeCertificate>();
+        public ICollection<ChallengeBonus> Bonuses { get; set; } = [];
+        public ICollection<PublishedPracticeCertificate> PublishedPracticeCertificates { get; set; } = [];
 }

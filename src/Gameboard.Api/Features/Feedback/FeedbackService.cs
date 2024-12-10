@@ -10,6 +10,7 @@ using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Feedback;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
@@ -92,6 +93,31 @@ namespace Gameboard.Api.Services
             return questionStats;
         }
 
+        public async Task<FeedbackTemplate> ResolveTemplate(FeedbackSubmissionAttachedEntityType type, string id, CancellationToken cancellationToken)
+        {
+            var gameId = id;
+            if (type == FeedbackSubmissionAttachedEntityType.ChallengeSpec)
+            {
+                gameId = await _store
+                    .WithNoTracking<Data.ChallengeSpec>()
+                    .Where(s => s.Id == id)
+                    .Select(s => s.GameId)
+                    .SingleAsync(cancellationToken);
+            }
+
+            var gameTemplates = await _store
+                .WithNoTracking<Data.Game>()
+                .Where(g => g.Id == gameId)
+                .Select(g => new
+                {
+                    Game = g.FeedbackTemplate,
+                    Challenges = g.ChallengesFeedbackTemplate
+                })
+                .SingleAsync(cancellationToken);
+
+            return type == FeedbackSubmissionAttachedEntityType.Game ? gameTemplates.Game : gameTemplates.Challenges;
+        }
+
         public async Task<Features.Feedback.Feedback> Retrieve(FeedbackSearchParams model, string actorId)
         {
             // for normal challenge and game feedback, we can just do simple lookups on the provided IDs.
@@ -132,8 +158,12 @@ namespace Gameboard.Api.Services
             return Mapper.Map<Features.Feedback.Feedback>(entity);
         }
 
+        public async Task<FeedbackSubmission> ResolveExistingSubmission(string userId, string teamId, FeedbackSubmissionAttachedEntityType entityType, string entityId)
+        {
 
-        public async Task<Features.Feedback.Feedback> Submit(Features.Feedback.FeedbackSubmission model, string actorId)
+        }
+
+        public async Task<Features.Feedback.Feedback> Submit(FeedbackSubmissionLegacy model, string actorId)
         {
             var lookup = MakeFeedbackLookup(model.GameId, model.ChallengeId, model.ChallengeSpecId, actorId);
             var entity = await LoadFeedback(lookup);

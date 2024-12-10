@@ -14,13 +14,13 @@ namespace Gameboard.Api.Validators
 
         public Task Validate(object model)
         {
-            if (model is Features.Feedback.FeedbackSubmission)
-                return _validate(model as Features.Feedback.FeedbackSubmission);
+            if (model is Features.Feedback.FeedbackSubmissionLegacy)
+                return _validate(model as Features.Feedback.FeedbackSubmissionLegacy);
 
             throw new System.NotImplementedException();
         }
 
-        private async Task _validate(Features.Feedback.FeedbackSubmission model)
+        private async Task _validate(Features.Feedback.FeedbackSubmissionLegacy model)
         {
             if (!await _store.AnyAsync<Data.Game>(g => g.Id == model.GameId, CancellationToken.None))
                 throw new ResourceNotFound<Data.Game>(model.GameId);

@@ -7,7 +7,7 @@ using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.Feedback;
 
-public class FeedbackSubmission
+public class FeedbackSubmissionLegacy
 {
     // UserId and PlayerId are set automatically when saved
     public string ChallengeId { get; set; }
