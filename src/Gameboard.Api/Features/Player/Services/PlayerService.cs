@@ -406,6 +406,7 @@ public class PlayerService
             .Select(p => new
             {
                 p.Id,
+                p.TeamId,
                 p.Role
             })
             .SingleAsync(p => p.Id == id);
@@ -424,7 +425,7 @@ public class PlayerService
 
         await _store
             .WithNoTracking<Data.Player>()
-            .Where(p => p.Id == id)
+            .Where(p => p.TeamId == player.TeamId)
             .ExecuteUpdateAsync(up => up.SetProperty(p => p.InviteCode, code));
 
         return new TeamInvitation { Code = code };
