@@ -136,6 +136,7 @@ internal class AddPlayerToTeamHandler
             .WithNoTracking<Data.Player>()
             .Where(p => p.InviteCode == code)
             .Select(p => p.TeamId)
+            .Distinct()
             .SingleAsync(cancellationToken);
 
         var addedPlayers = await _teamService.AddPlayers(teamId, cancellationToken, request.PlayerId);
