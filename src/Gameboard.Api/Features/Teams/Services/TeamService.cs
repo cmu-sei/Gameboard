@@ -68,9 +68,10 @@ internal class TeamService
         var code = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => p.TeamId == teamId)
+            .OrderBy(p => p.Role == PlayerRole.Manager ? 0 : 1)
             .Select(p => p.InviteCode)
             .Distinct()
-            .SingleAsync(cancellationToken);
+            .FirstAsync(cancellationToken);
 
         await _store
             .WithNoTracking<Data.Player>()
@@ -84,19 +85,22 @@ internal class TeamService
                 cancellationToken
             );
 
+        // ensure captain stuff is as expected
+        var captain = await ResolveCaptain(teamId, cancellationToken);
+
         // notify interested parties
-        var updatedPlayers = _mapper.ProjectTo<Api.Player>
+        var updatedPlayers = await _mapper.ProjectTo<Api.Player>
         (
             _store
                 .WithNoTracking<Data.Player>()
                 .Where(p => playerIds.Contains(p.Id))
-        );
+        ).ToArrayAsync(cancellationToken);
 
         foreach (var updatedPlayer in updatedPlayers)
         {
             await _hubBus.SendPlayerEnrolled(updatedPlayer, _actingUserService.Get());
         }
-        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(updatedPlayers.Select(p => p.GameId).Single()), cancellationToken);
+        await _mediator.Publish(new GameEnrolledPlayersChangeNotification(captain.GameId), cancellationToken);
 
         return updatedPlayers;
     }
@@ -452,7 +456,7 @@ internal class TeamService
             await _store
                 .WithNoTracking<Data.Player>()
                 .Where(p => p.TeamId == teamId)
-                .ExecuteUpdateAsync(up => up.SetProperty(p => p.Role, p => p.Id == adjustedCaptain.Id ? PlayerRole.Manager : PlayerRole.Member));
+                .ExecuteUpdateAsync(up => up.SetProperty(p => p.Role, p => p.Id == adjustedCaptain.Id ? PlayerRole.Manager : PlayerRole.Member), cancellationToken);
         }
 
         return ResolveCaptain(players);
