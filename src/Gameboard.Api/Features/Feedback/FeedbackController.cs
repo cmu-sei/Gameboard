@@ -91,6 +91,10 @@ public class FeedbackController
     public Task DeleteTemplate([FromRoute] string templateId)
         => _mediator.Send(new DeleteFeedbackTemplateCommand(templateId));
 
+    [HttpGet("submission")]
+    public Task<FeedbackSubmissionView> GetSubmission([FromQuery] GetFeedbackSubmissionRequest request)
+        => _mediator.Send(new GetFeedbackSubmissionQuery(request));
+
     /// <summary>
     /// Retrieves a specific feedback template. Feedback templates can be used to gather feedback on a game,
     /// a game's challenges, or both.
@@ -98,7 +102,7 @@ public class FeedbackController
     /// <param name="templateId"></param>
     /// <returns></returns>
     [HttpGet("template/{templateId}")]
-    public Task<FeedbackTemplateView> GetTemplateForGameOrChallengeSpec([FromRoute] string templateId)
+    public Task<FeedbackTemplateView> GetTemplate([FromRoute] string templateId)
         => _mediator.Send(new GetFeedbackTemplateQuery(templateId));
 
     /// <summary>
@@ -116,10 +120,6 @@ public class FeedbackController
     /// <param name="request"></param>
     /// <returns></returns>
     [HttpPost()]
-    public Task<UpsertFeedbackSubmissionResponse> ResponseCreate([FromBody] UpsertFeedbackSubmissionRequest request)
-    {
-        var modelState = ModelState;
-        var things = modelState.ErrorCount;
-        return _mediator.Send(new UpsertFeedbackSubmissionCommand(request));
-    }
+    public Task<FeedbackSubmissionView> ResponseCreate([FromBody] UpsertFeedbackSubmissionRequest request)
+        => _mediator.Send(new UpsertFeedbackSubmissionCommand(request));
 }

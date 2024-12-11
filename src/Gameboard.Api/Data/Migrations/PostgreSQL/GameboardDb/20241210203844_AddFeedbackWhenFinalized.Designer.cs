@@ -3,6 +3,7 @@ using System;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 {
     [DbContext(typeof(GameboardDbContextPostgreSQL))]
-    partial class GameboardDbContextPostgreSQLModelSnapshot : ModelSnapshot
+    [Migration("20241210203844_AddFeedbackWhenFinalized")]
+    partial class AddFeedbackWhenFinalized
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -684,13 +687,13 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .IsRequired()
                         .HasColumnType("character varying(40)");
 
-                    b.Property<DateTimeOffset>("WhenCreated")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<DateTimeOffset?>("WhenEdited")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset?>("WhenFinalized")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("WhenSubmitted")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");

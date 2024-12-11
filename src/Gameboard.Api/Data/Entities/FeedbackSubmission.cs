@@ -10,18 +10,18 @@ public enum FeedbackSubmissionAttachedEntityType
     Game = 1
 }
 
-public class FeedbackSubmission : IEntity
+public abstract class FeedbackSubmission : IEntity
 {
     public string Id { get; set; }
     public FeedbackSubmissionAttachedEntityType AttachedEntityType { get; set; }
     public DateTimeOffset? WhenEdited { get; set; }
-    public required DateTimeOffset WhenSubmitted { get; set; }
+    public DateTimeOffset? WhenFinalized { get; set; }
+    public required DateTimeOffset WhenCreated { get; set; }
 
     // json-mapped data (see GameboardDbContext for JSON column config)
     public required ICollection<QuestionSubmission> Responses { get; set; }
 
     // navs
-    public required string TeamId { get; set; }
     public required string FeedbackTemplateId { get; set; }
     public FeedbackTemplate FeedbackTemplate { get; set; }
     public required string UserId { get; set; }

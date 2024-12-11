@@ -681,17 +681,17 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("TeamId")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<DateTimeOffset>("WhenCreated")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset?>("WhenEdited")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTimeOffset>("WhenSubmitted")
+                    b.Property<DateTimeOffset?>("WhenFinalized")
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");

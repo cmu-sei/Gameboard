@@ -15,11 +15,6 @@ internal class CantStartBecauseGameExecutionPeriodIsOver : GameboardValidationEx
         : base($"Can't start challenge spec {challengeSpecId} for player {playerId} because its game execution period is over (ended at {gameEnd}, it's currently {now}).") { }
 }
 
-internal class NoSession : GameboardException
-{
-    public NoSession(string playerId) : base($"Player {playerId} does not have an active session, so it's not possible to create a challenge for them.") { }
-}
-
 internal class GamespaceLimitReached : GameboardException
 {
     public GamespaceLimitReached(string gameId, string teamId) : base($""" Team(s) {teamId} are already at the maximum number of gamespaces permitted for game "{gameId}." """) { }

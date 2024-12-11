@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
@@ -12,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Feedback;
 
-public record UpsertFeedbackSubmissionCommand(UpsertFeedbackSubmissionRequest Request) : IRequest<UpsertFeedbackSubmissionResponse>;
+public record UpsertFeedbackSubmissionCommand(UpsertFeedbackSubmissionRequest Request) : IRequest<FeedbackSubmissionView>;
 
 // TODO: refactor this into separate commands for game/challenge that share an injected validator
 internal sealed class UpsertFeedbackSubmissionHandler
@@ -21,35 +20,26 @@ internal sealed class UpsertFeedbackSubmissionHandler
     FeedbackService feedbackService,
     INowService now,
     IStore store,
-    ITeamService teamService,
     IValidatorService validatorService
-) : IRequestHandler<UpsertFeedbackSubmissionCommand, UpsertFeedbackSubmissionResponse>
+) : IRequestHandler<UpsertFeedbackSubmissionCommand, FeedbackSubmissionView>
 {
     private readonly IActingUserService _actingUserService = actingUserService;
     private readonly FeedbackService _feedbackService = feedbackService;
     private readonly INowService _nowService = now;
     private readonly IStore _store = store;
-    private readonly ITeamService _teamService = teamService;
     private readonly IValidatorService _validator = validatorService;
 
-    public async Task<UpsertFeedbackSubmissionResponse> Handle(UpsertFeedbackSubmissionCommand request, CancellationToken cancellationToken)
+    public async Task<FeedbackSubmissionView> Handle(UpsertFeedbackSubmissionCommand request, CancellationToken cancellationToken)
     {
         var actingUserId = _actingUserService.Get()?.Id;
 
-        _validator
+        await _validator
             .Auth(c => c.RequireAuthentication())
             .AddValidator(ctx =>
             {
                 if (request.Request.AttachedEntity.EntityType != FeedbackSubmissionAttachedEntityType.ChallengeSpec && request.Request.AttachedEntity.EntityType != FeedbackSubmissionAttachedEntityType.Game)
                 {
                     ctx.AddValidationException(new InvalidParameterValue<FeedbackSubmissionAttachedEntityType>(nameof(request.Request.AttachedEntity.EntityType), "Must be either game or challengespec", request.Request.AttachedEntity.EntityType));
-                }
-            })
-            .AddValidator(async ctx =>
-            {
-                if (!await _teamService.IsOnTeam(request.Request.AttachedEntity.TeamId, _actingUserService.Get().Id))
-                {
-                    ctx.AddValidationException(new UserIsntOnTeam(actingUserId, request.Request.AttachedEntity.TeamId, $"User isn't on the expected team."));
                 }
             })
             .AddValidator(async ctx =>
@@ -62,92 +52,121 @@ internal sealed class UpsertFeedbackSubmissionHandler
                 }
 
             })
-            .AddEntityExistsValidator<FeedbackTemplate>(request.Request.FeedbackTemplateId);
-
-        if (request.Request.AttachedEntity.EntityType == FeedbackSubmissionAttachedEntityType.ChallengeSpec)
-        {
-            _validator.AddEntityExistsValidator<Data.ChallengeSpec>(request.Request.AttachedEntity.Id);
-
-            if (request.Request.Id.IsNotEmpty())
+            .AddEntityExistsValidator<FeedbackTemplate>(request.Request.FeedbackTemplateId)
+            .AddValidator(async ctx =>
             {
-                _validator.AddEntityExistsValidator<FeedbackSubmissionChallengeSpec>(request.Request.Id);
-            }
-        }
-        else
-        {
-            _validator.AddEntityExistsValidator<Data.Game>(request.Request.AttachedEntity.Id);
+                var existingSubmission = await _feedbackService.ResolveExistingSubmission
+                (
+                    _actingUserService.Get().Id,
+                    request.Request.AttachedEntity.EntityType,
+                    request.Request.AttachedEntity.Id,
+                    cancellationToken
+                );
 
-            if (request.Request.Id.IsNotEmpty())
-            {
-                _validator.AddEntityExistsValidator<FeedbackSubmissionGame>(request.Request.Id);
-            }
-        }
+                if (existingSubmission?.WhenFinalized is not null)
+                {
+                    ctx.AddValidationException(new FeedbackSubmissionFinalized(existingSubmission.Id, request.Request.AttachedEntity.EntityType, existingSubmission.WhenFinalized.Value));
+                }
+            })
+            .Validate(cancellationToken);
 
-        await _validator.Validate(cancellationToken);
+        // we don't have them update by id since the user id + entity are a unique key
+        // so load any previous submission to check for update
+        var existingSubmission = await _feedbackService.ResolveExistingSubmission
+        (
+            _actingUserService.Get().Id,
+            request.Request.AttachedEntity.EntityType,
+            request.Request.AttachedEntity.Id,
+            cancellationToken
+        );
+
+        // ultimately our retval
+        var submissionModel = default(FeedbackSubmission);
+
+        // we also need the template so we can be sure to save an answer for every question, even if not supplied previously
+        var template = await _store
+            .WithNoTracking<FeedbackTemplate>()
+            .Where(t => t.Id == request.Request.FeedbackTemplateId)
+            .SingleAsync(cancellationToken);
 
         // if updating, update
-        if (request.Request.Id.IsNotEmpty())
+        if (existingSubmission is not null)
         {
             if (request.Request.AttachedEntity.EntityType == FeedbackSubmissionAttachedEntityType.ChallengeSpec)
             {
-                var existingSubmission = await _store
+                submissionModel = await _store
                     .WithNoTracking<FeedbackSubmissionChallengeSpec>()
-                    .Where(s => s.Id == request.Request.Id)
+                    .Where(s => s.Id == existingSubmission.Id)
                     .SingleAsync(cancellationToken);
-
-                existingSubmission.WhenEdited = _nowService.Get();
-                existingSubmission.Responses = [.. request.Request.Responses];
-                await _store.SaveUpdate(existingSubmission, cancellationToken);
-                return new UpsertFeedbackSubmissionResponse { Submission = existingSubmission };
             }
             else if (request.Request.AttachedEntity.EntityType == FeedbackSubmissionAttachedEntityType.Game)
             {
-                var existingSubmission = await _store
+                submissionModel = await _store
                     .WithNoTracking<FeedbackSubmissionGame>()
-                    .Where(s => s.Id == request.Request.Id)
+                    .Where(s => s.Id == existingSubmission.Id)
                     .SingleAsync(cancellationToken);
-
-                existingSubmission.WhenEdited = _nowService.Get();
-                existingSubmission.Responses = [.. request.Request.Responses];
-                await _store.SaveUpdate(existingSubmission, cancellationToken);
-                return new UpsertFeedbackSubmissionResponse { Submission = existingSubmission };
             }
+
+            submissionModel.WhenEdited = _nowService.Get();
+            submissionModel.Responses.Clear();
+
+            foreach (var question in _feedbackService.BuildQuestionConfigFromTemplate(template).Questions)
+            {
+                submissionModel.Responses.Add(new QuestionSubmission
+                {
+                    Id = question.Prompt,
+                    Answer = submissionModel.Responses.SingleOrDefault(r => r.Id == question.Id)?.Answer,
+                    Prompt = question.Prompt,
+                    ShortName = question.ShortName,
+                });
+            }
+
+            if (request.Request.IsFinalized && submissionModel.WhenFinalized is null)
+            {
+                submissionModel.WhenFinalized = _nowService.Get();
+            }
+            submissionModel = await _store.SaveUpdate(submissionModel, cancellationToken);
         }
         else
         {
             // if creating, create
             if (request.Request.AttachedEntity.EntityType == FeedbackSubmissionAttachedEntityType.ChallengeSpec)
             {
-                var result = await _store
+                submissionModel = await _store
                     .Create<FeedbackSubmissionChallengeSpec>(new()
                     {
                         ChallengeSpecId = request.Request.AttachedEntity.Id,
                         FeedbackTemplateId = request.Request.FeedbackTemplateId,
                         Responses = [.. request.Request.Responses],
-                        TeamId = request.Request.AttachedEntity.TeamId,
                         UserId = actingUserId,
-                        WhenSubmitted = _nowService.Get(),
+                        WhenCreated = _nowService.Get(),
                     }, cancellationToken);
-
-                return new UpsertFeedbackSubmissionResponse { Submission = result };
             }
             else
             {
-                var result = await _store
+                submissionModel = await _store
                     .Create<FeedbackSubmissionGame>(new()
                     {
                         GameId = request.Request.AttachedEntity.Id,
                         FeedbackTemplateId = request.Request.FeedbackTemplateId,
                         Responses = [.. request.Request.Responses],
-                        TeamId = request.Request.AttachedEntity.TeamId,
                         UserId = actingUserId,
-                        WhenSubmitted = _nowService.Get(),
+                        WhenCreated = _nowService.Get(),
                     }, cancellationToken);
-
-                return new UpsertFeedbackSubmissionResponse { Submission = result };
             }
         }
 
-        throw new NotImplementedException();
+        if (submissionModel == default)
+        {
+            throw new NotImplementedException();
+        }
+
+        return await _feedbackService.ResolveExistingSubmission
+        (
+            _actingUserService.Get().Id,
+            request.Request.AttachedEntity.EntityType,
+            request.Request.AttachedEntity.Id,
+            cancellationToken
+        );
     }
 }

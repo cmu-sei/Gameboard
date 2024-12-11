@@ -104,7 +104,28 @@ public class ReportsService(
             {
                 Name = "Feedback",
                 Key = ReportKey.Feedback,
-                Description = "Learn more about how your games are landing with your players. (Requires configuration of feedback in the Game Center.)",
+                Description = "See feedback from your players grouped by template. Compare how your games and challenges are being received and get inside the minds of your players",
+                ExampleFields =
+                [
+                    "Responses",
+                    "Aggregated Stats"
+                ],
+                ExampleParameters =
+                [
+                    "Feedback Template",
+                    "Season",
+                    "Series",
+                    "Track",
+                    "Sponsor",
+                    "Game",
+                    "Submission Date"
+                ]
+            },
+            new()
+            {
+                Name = "Feedback (Legacy)",
+                Key = ReportKey.FeedbackLegacy,
+                Description = "Learn more about how your games are landing with your players. (Requires configuration of feedback in the Game Center. For games played before the existence of feedback templates.)",
                 ExampleFields =
                 [
                     "Question Info",

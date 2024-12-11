@@ -37,6 +37,7 @@ namespace Gameboard.Api.Services
 
             CreateMap<Data.FeedbackTemplate, FeedbackTemplateView>()
                 .ForMember(d => d.CreatedBy, opt => opt.MapFrom(s => new SimpleEntity { Id = s.CreatedByUserId, Name = s.CreatedByUser.ApprovedName }))
+                .ForMember(d => d.ResponseCount, opt => opt.MapFrom(s => s.Submissions.Count()))
                 .ForMember(d => d.UseForGames, opt => opt.MapFrom
                 (
                     s => s

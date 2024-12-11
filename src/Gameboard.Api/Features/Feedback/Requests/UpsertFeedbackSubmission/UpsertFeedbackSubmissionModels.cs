@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Text.Json.Serialization;
 using Gameboard.Api.Data;
 using Gameboard.Api.Structure;
 
@@ -14,21 +12,13 @@ public sealed class InvalidFeedbackTemplateId : GameboardValidationException
 
 public sealed class UpsertFeedbackSubmissionRequest
 {
-    public string Id { get; set; }
-    public required UpsertFeedbackSubmissionRequestAttachedEntity AttachedEntity { get; set; }
+    public required FeedbackSubmissionAttachedEntity AttachedEntity { get; set; }
     public required string FeedbackTemplateId { get; set; }
+    public required bool IsFinalized { get; set; }
     public IEnumerable<QuestionSubmission> Responses { get; set; }
-}
-
-public sealed class UpsertFeedbackSubmissionRequestAttachedEntity
-{
-    public required string Id { get; set; }
-    // [TypeConverter(typeof(JsonStringEnumConverter<FeedbackSubmissionAttachedEntityType>))]
-    public required FeedbackSubmissionAttachedEntityType EntityType { get; set; }
-    public required string TeamId { get; set; }
 }
 
 public sealed class UpsertFeedbackSubmissionResponse
 {
-    public required FeedbackSubmission Submission { get; set; }
+    public required FeedbackSubmissionView Submission { get; set; }
 }
