@@ -208,14 +208,53 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
             b.Property(u => u.GameId).HasMaxLength(40);
         });
 
+        builder.Entity<FeedbackSubmission>(b =>
+        {
+            b
+                .HasDiscriminator(b => b.AttachedEntityType)
+                    .HasValue<FeedbackSubmissionChallengeSpec>(FeedbackSubmissionAttachedEntityType.ChallengeSpec)
+                    .HasValue<FeedbackSubmissionGame>(FeedbackSubmissionAttachedEntityType.Game);
+            b
+                .HasOne(f => f.User)
+                .WithMany(u => u.FeedbackSubmissions)
+                .IsRequired();
+
+            b
+                .HasOne(f => f.FeedbackTemplate)
+                .WithMany(t => t.Submissions)
+                .IsRequired();
+
+            // configures the question data as proper database JSON
+            b.OwnsMany(f => f.Responses, ownedJsonEntityBuilder =>
+            {
+                ownedJsonEntityBuilder.ToTable("FeedbackSubmissionResponses");
+            });
+        });
+
+        builder.Entity<FeedbackSubmissionChallengeSpec>(b =>
+        {
+            b
+                .HasOne(s => s.ChallengeSpec)
+                .WithMany(s => s.FeedbackSubmissions)
+                .IsRequired();
+        });
+
+        builder.Entity<FeedbackSubmissionGame>(b =>
+        {
+            b
+                .HasOne(s => s.Game)
+                .WithMany(g => g.FeedbackSubmissions)
+                .IsRequired();
+        });
+
         builder.Entity<FeedbackTemplate>(b =>
         {
             b.Property(b => b.Name).HasStandardNameLength().IsRequired();
             b.Property(b => b.Content).IsRequired();
             b.Property(b => b.HelpText).HasMaxLength(200);
             b.HasOne(b => b.CreatedByUser).WithMany(u => u.CreatedFeedbackTemplates).IsRequired();
-            b.HasMany(t => t.UseAsFeedbackTemplateForGameChallenges).WithOne(g => g.GameFeedbackTemplate);
-            b.HasMany(t => t.UseAsFeedbackTemplateForGames).WithOne(g => g.GameChallengesFeedbackTemplate);
+            b.HasMany(t => t.UseAsFeedbackTemplateForGameChallenges).WithOne(g => g.FeedbackTemplate);
+            b.HasMany(t => t.UseAsFeedbackTemplateForGames).WithOne(g => g.ChallengesFeedbackTemplate);
         });
 
         builder.Entity<Game>(b =>
@@ -464,6 +503,7 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
     public DbSet<ExternalGameHost> ExternalGameHosts { get; set; }
     public DbSet<ExternalGameTeam> ExternalGameTeams { get; set; }
     public DbSet<Feedback> Feedback { get; set; }
+    public DbSet<FeedbackSubmission> FeedbackSubmissions { get; set; }
     public DbSet<FeedbackTemplate> FeedbackTemplates { get; set; }
     public DbSet<Game> Games { get; set; }
     public DbSet<ManualBonus> ManualBonuses { get; set; }

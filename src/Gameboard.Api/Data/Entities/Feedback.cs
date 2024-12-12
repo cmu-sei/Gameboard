@@ -2,7 +2,6 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
-using System.ComponentModel.DataAnnotations;
 
 namespace Gameboard.Api.Data
 {
@@ -22,6 +21,5 @@ namespace Gameboard.Api.Data
         public Game Game { get; set; }
         public Challenge Challenge { get; set; }
         public ChallengeSpec ChallengeSpec { get; set; }
-
     }
 }

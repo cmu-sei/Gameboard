@@ -41,8 +41,13 @@ public class ReportsController(IMediator mediator, IReportsService service) : Co
         => _mediator.Send(new EnrollmentReportByGameQuery(parameters, pagingArgs));
 
     [HttpGet("feedback")]
+    public Task<ReportResults<FeedbackReportSummaryData, FeedbackReportRecord>> GetFeedbackReport([FromQuery] FeedbackReportParameters request, [FromQuery] PagingArgs pagingArgs)
+        => _mediator.Send(new FeedbackReportQuery(request, pagingArgs));
+
+    [HttpGet("feedback-legacy")]
     public Task<FeedbackGameReportResults> GetFeedbackGameReport([FromQuery] GetFeedbackGameReportQuery query)
         => _mediator.Send(query);
+
 
     [HttpGet("players")]
     public Task<ReportResults<PlayersReportStatSummary, PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportParameters parameters, [FromQuery] PagingArgs pagingArgs)

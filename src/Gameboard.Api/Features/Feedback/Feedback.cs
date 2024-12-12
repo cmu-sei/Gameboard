@@ -3,11 +3,12 @@
 
 using System;
 using System.Collections.Generic;
+using Gameboard.Api.Data;
 using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.Feedback;
 
-public class FeedbackSubmission
+public class FeedbackSubmissionLegacy
 {
     // UserId and PlayerId are set automatically when saved
     public string ChallengeId { get; set; }
@@ -155,12 +156,40 @@ public sealed class DuplicateFeedbackTemplateNameException : GameboardValidation
         : base($"""A feedback template with the name "{name}" already exists. """) { }
 }
 
+public sealed class FeedbackQuestionsConfig
+{
+    public required IEnumerable<QuestionTemplate> Questions { get; set; }
+}
+
+public sealed class FeedbackSubmissionAttachedEntity
+{
+    public required string Id { get; set; }
+    public required FeedbackSubmissionAttachedEntityType EntityType { get; set; }
+}
+
+public sealed class FeedbackSubmissionFinalized : GameboardValidationException
+{
+    public FeedbackSubmissionFinalized(string id, FeedbackSubmissionAttachedEntityType entityType, DateTimeOffset whenFinalized)
+        : base($"Feedback for this {entityType} was finalized on {whenFinalized}.") { }
+}
+
+public sealed class FeedbackSubmissionView
+{
+    public required string Id { get; set; }
+    public required SimpleEntity FeedbackTemplate { get; set; }
+    public required IEnumerable<QuestionSubmission> Responses { get; set; }
+    public required SimpleEntity User { get; set; }
+    public required DateTimeOffset WhenCreated { get; set; }
+    public required DateTimeOffset? WhenEdited { get; set; }
+    public required DateTimeOffset? WhenFinalized { get; set; }
+}
+
 public sealed class FeedbackTemplateView
 {
     public required string Id { get; set; }
     public required string Content { get; set; }
     public required SimpleEntity CreatedBy { get; set; }
-    public required string HelpText { get; set;}
+    public required string HelpText { get; set; }
     public required string Name { get; set; }
     public required int ResponseCount { get; set; }
     public required IEnumerable<SimpleEntity> UseForGames { get; set; }

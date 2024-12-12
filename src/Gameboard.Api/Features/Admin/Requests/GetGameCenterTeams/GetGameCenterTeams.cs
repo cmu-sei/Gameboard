@@ -106,7 +106,7 @@ internal class GetGameCenterTeamsHandler : IRequestHandler<GetGameCenterTeamsQue
             {
                 p.Id,
                 Name = p.ApprovedName,
-                PendingName = p.Name != p.ApprovedName ? p.Name : null,
+                PendingName = (p.Name != p.ApprovedName && p.NameStatus != string.Empty) ? p.Name : null,
                 p.IsReady,
                 p.Role,
                 p.TeamId,

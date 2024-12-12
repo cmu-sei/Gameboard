@@ -98,35 +98,37 @@ public partial class ChallengeService
     public async Task<Challenge> Create(NewChallenge model, string actorId, string graderUrl, CancellationToken cancellationToken)
     {
         var now = _now.Get();
-        var player = await _store.WithNoTracking<Data.Player>().SingleAsync(p => p.Id == model.PlayerId, cancellationToken);
+        var player = await _store
+            .WithNoTracking<Data.Player>()
+            .Include(p => p.Game)
+            .SingleAsync(p => p.Id == model.PlayerId, cancellationToken);
 
-        var game = await _store
-            .WithNoTracking<Data.Game>()
-            .Include(g => g.Prerequisites)
-            .SingleAsync(g => g.Id == player.GameId, cancellationToken);
-
-        var teamActiveChallenges = await _teamService.GetChallengesWithActiveGamespace(player.TeamId, game.Id, cancellationToken);
-        var activePlusPendingChallengeCount = teamActiveChallenges.Count() + GetDeployingChallengeCount(player.TeamId);
-        if (activePlusPendingChallengeCount >= game.GamespaceLimitPerSession)
-        {
-            throw new GamespaceLimitReached(game.Id, player.TeamId);
-        }
-
-        if (!await IsUnlocked(player, game, model.SpecId))
+        if (!await IsUnlocked(player, player.Game, model.SpecId))
         {
             throw new ChallengeLocked();
         }
 
         // if we're outside the execution window, we need to be sure the acting person is an admin
-        if (game.IsCompetitionMode && now > game.GameEnd)
+        if (player.Game.IsCompetitionMode)
         {
-            // Would ideally do this using the acting user service, but background deployment (caused by sync start)
-            // may not play well with that as of now.
-            // var actingUser = _actingUserService.Get();
-            var actingUser = await _store.WithNoTracking<Data.User>().SingleOrDefaultAsync(u => u.Id == actorId, cancellationToken);
+            // check gamespace limits for competitive games only
+            var teamActiveChallenges = await _teamService.GetChallengesWithActiveGamespace(player.TeamId, player.GameId, cancellationToken);
+            var activePlusPendingChallengeCount = teamActiveChallenges.Count() + GetDeployingChallengeCount(player.TeamId);
+            if (activePlusPendingChallengeCount >= player.Game.GamespaceLimitPerSession)
+            {
+                throw new GamespaceLimitReached(player.GameId, player.TeamId);
+            }
 
-            if (!await _permissionsService.Can(PermissionKey.Play_IgnoreExecutionWindow))
-                throw new CantStartBecauseGameExecutionPeriodIsOver(model.SpecId, model.PlayerId, game.GameEnd, now);
+            if (now > player.Game.GameEnd)
+            {
+                // Would ideally do this using the acting user service, but background deployment (caused by sync start)
+                // may not play well with that as of now.
+                // var actingUser = _actingUserService.Get();
+                var actingUser = await _store.WithNoTracking<Data.User>().SingleOrDefaultAsync(u => u.Id == actorId, cancellationToken);
+
+                if (!await _permissionsService.Can(PermissionKey.Play_IgnoreExecutionWindow))
+                    throw new CantStartBecauseGameExecutionPeriodIsOver(model.SpecId, model.PlayerId, player.Game.GameEnd, now);
+            }
         }
 
         _launchCache.EnsureKey(player.TeamId, new ChallengeLaunchCacheEntry
@@ -143,7 +145,7 @@ public partial class ChallengeService
         }
         else
         {
-            entry.Specs.Add(new ChallengeLaunchCacheEntrySpec { GameId = game.Id, SpecId = model.SpecId });
+            entry.Specs.Add(new ChallengeLaunchCacheEntrySpec { GameId = player.GameId, SpecId = model.SpecId });
         }
 
         var spec = await _store
@@ -151,7 +153,7 @@ public partial class ChallengeService
             .SingleAsync(s => s.Id == model.SpecId, cancellationToken);
 
         var playerCount = 1;
-        if (game.AllowTeam)
+        if (player.Game.AllowTeam)
         {
             playerCount = await _store
                 .WithNoTracking<Data.Player>()
@@ -160,7 +162,7 @@ public partial class ChallengeService
 
         try
         {
-            var challenge = await BuildAndRegisterChallenge(model, spec, game, player, actorId, graderUrl, playerCount, model.Variant);
+            var challenge = await BuildAndRegisterChallenge(model, spec, player.Game, player, actorId, graderUrl, playerCount, model.Variant);
 
             await _store.Create(challenge, cancellationToken);
             await _challengeStore.UpdateEtd(challenge.SpecId);

@@ -24,6 +24,8 @@ public class GameDetail
     public string GameMarkdown { get; set; }
     public string FeedbackConfig { get; set; }
     public GameFeedbackTemplate FeedbackTemplate { get; set; }
+    public string ChallengesFeedbackTemplateId { get; set; }
+    public string FeedbackTemplateId { get; set; }
     public string CertificateTemplate { get; set; }
     public string RegistrationMarkdown { get; set; }
     public DateTimeOffset RegistrationOpen { get; set; }
@@ -105,6 +107,8 @@ public class BoardGame
     public string Mode { get; set; }
     public string Logo { get; set; }
     public string Sponsor { get; set; }
+    public string GameFeedbackTemplateId { get; set; }
+    public string ChallengesFeedbackTemplateId { get; set; }
     public GameFeedbackTemplate FeedbackTemplate { get; set; }
     public string Background { get; set; }
     public bool AllowPreview { get; set; }

@@ -1,7 +1,6 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -63,7 +62,7 @@ public class FeedbackController
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPut("submit")]
-    public async Task<Feedback> Submit([FromBody] FeedbackSubmission model)
+    public async Task<Feedback> Submit([FromBody] FeedbackSubmissionLegacy model)
     {
         await Authorize(FeedbackService.UserIsEnrolled(model.GameId, Actor.Id));
         await Validate(model);
@@ -84,6 +83,29 @@ public class FeedbackController
         => _mediator.Send(new CreateFeedbackTemplateCommand(request));
 
     /// <summary>
+    /// Deletes a feedback template.
+    /// </summary>
+    /// <param name="templateId"></param>
+    /// <returns></returns>
+    [HttpDelete("template/{templateId}")]
+    public Task DeleteTemplate([FromRoute] string templateId)
+        => _mediator.Send(new DeleteFeedbackTemplateCommand(templateId));
+
+    [HttpGet("submission")]
+    public Task<FeedbackSubmissionView> GetSubmission([FromQuery] GetFeedbackSubmissionRequest request)
+        => _mediator.Send(new GetFeedbackSubmissionQuery(request));
+
+    /// <summary>
+    /// Retrieves a specific feedback template. Feedback templates can be used to gather feedback on a game,
+    /// a game's challenges, or both.
+    /// </summary>
+    /// <param name="templateId"></param>
+    /// <returns></returns>
+    [HttpGet("template/{templateId}")]
+    public Task<FeedbackTemplateView> GetTemplate([FromRoute] string templateId)
+        => _mediator.Send(new GetFeedbackTemplateQuery(templateId));
+
+    /// <summary>
     /// List all available feedback templates, including which games they're used with and how many responses
     /// they have.
     /// </summary>
@@ -91,4 +113,13 @@ public class FeedbackController
     [HttpGet("template")]
     public Task<ListFeedbackTemplatesResponse> ListTemplates()
         => _mediator.Send(new ListFeedbackTemplatesQuery());
+
+    /// <summary>
+    /// Create a new feedback response.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpPost()]
+    public Task<FeedbackSubmissionView> ResponseCreate([FromBody] UpsertFeedbackSubmissionRequest request)
+        => _mediator.Send(new UpsertFeedbackSubmissionCommand(request));
 }

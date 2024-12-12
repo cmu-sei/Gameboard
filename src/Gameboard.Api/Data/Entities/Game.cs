@@ -55,8 +55,11 @@ public class Game : IEntity
     public bool ShowOnHomePageInPracticeMode { get; set; } = false;
 
     // feedback
-    public FeedbackTemplate GameChallengesFeedbackTemplate { get; set; }
-    public FeedbackTemplate GameFeedbackTemplate { get; set; }
+    public string ChallengesFeedbackTemplateId { get; set; }
+    public FeedbackTemplate ChallengesFeedbackTemplate { get; set; }
+    public string FeedbackTemplateId { get; set; }
+    public FeedbackTemplate FeedbackTemplate { get; set; }
+    public ICollection<FeedbackSubmissionGame> FeedbackSubmissions { get; set; } = [];
 
     public ICollection<Player> AdvancedPlayers { get; set; }
     public ICollection<ChallengeSpec> Specs { get; set; } = new List<ChallengeSpec>();

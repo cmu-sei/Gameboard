@@ -3,28 +3,21 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using ServiceStack;
+
 namespace Gameboard.Api.Features.Reports;
 
 public record EnrollmentReportByGameQuery(EnrollmentReportParameters Parameters, PagingArgs PagingArgs) : IRequest<ReportResults<EnrollmentReportByGameRecord>>, IReportQuery;
 
-internal class EnrollmentReportByGameHandler : IRequestHandler<EnrollmentReportByGameQuery, ReportResults<EnrollmentReportByGameRecord>>
+internal class EnrollmentReportByGameHandler
+(
+    IEnrollmentReportService enrollmentReportService,
+    ReportsQueryValidator queryValidator,
+    IReportsService reportsService
+) : IRequestHandler<EnrollmentReportByGameQuery, ReportResults<EnrollmentReportByGameRecord>>
 {
-    private readonly IEnrollmentReportService _enrollmentReportService;
-    private readonly ReportsQueryValidator _queryValidator;
-    private readonly IReportsService _reportsService;
-
-    public EnrollmentReportByGameHandler
-    (
-        IEnrollmentReportService enrollmentReportService,
-        ReportsQueryValidator queryValidator,
-        IReportsService reportsService
-    )
-    {
-        _enrollmentReportService = enrollmentReportService;
-        _queryValidator = queryValidator;
-        _reportsService = reportsService;
-    }
+    private readonly IEnrollmentReportService _enrollmentReportService = enrollmentReportService;
+    private readonly ReportsQueryValidator _queryValidator = queryValidator;
+    private readonly IReportsService _reportsService = reportsService;
 
     public async Task<ReportResults<EnrollmentReportByGameRecord>> Handle(EnrollmentReportByGameQuery request, CancellationToken cancellationToken)
     {

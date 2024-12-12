@@ -13,18 +13,13 @@ namespace Gameboard.Api.Features.Reports;
 [ApiController]
 [Authorize]
 [Route("/api/reports/export")]
-public class ReportsExportController : ControllerBase
+public class ReportsExportController(IMediator mediator) : ControllerBase
 {
-    private readonly IMediator _mediator;
-
-    public ReportsExportController(IMediator mediator)
-    {
-        _mediator = mediator;
-    }
+    private readonly IMediator _mediator = mediator;
 
     [HttpGet("challenges")]
     [ProducesResponseType(typeof(FileContentResult), 200)]
-    public async Task<IActionResult> GetChallengesReportExport(ChallengesReportParameters parameters)
+    public async Task<IActionResult> GetChallengesReportExport([FromQuery] ChallengesReportParameters parameters)
     {
         var results = await _mediator.Send(new GetChallengesReportExportQuery(parameters));
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
@@ -32,15 +27,23 @@ public class ReportsExportController : ControllerBase
 
     [HttpGet("enrollment")]
     [ProducesResponseType(typeof(FileContentResult), 200)]
-    public async Task<IActionResult> GetEnrollmentReportExport(EnrollmentReportParameters parameters)
+    public async Task<IActionResult> GetEnrollmentReportExport([FromQuery] EnrollmentReportParameters parameters)
     {
         var results = await _mediator.Send(new EnrollmentReportExportQuery(parameters));
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
     }
 
+    [HttpGet("feedback")]
+    [ProducesResponseType(typeof(FileContentResult), 200)]
+    public async Task<IActionResult> GetFeedbackReportExport([FromQuery] FeedbackReportParameters parameters)
+    {
+        var results = await _mediator.Send(new FeedbackReportExportQuery(parameters));
+        return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
+    }
+
     [HttpGet("players")]
     [ProducesResponseType(typeof(FileContentResult), 200)]
-    public async Task<IActionResult> GetPlayersReportExport(PlayersReportParameters parameters)
+    public async Task<IActionResult> GetPlayersReportExport([FromQuery] PlayersReportParameters parameters)
     {
         var results = await _mediator.Send(new GetPlayersReportExportQuery(parameters));
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
@@ -48,7 +51,7 @@ public class ReportsExportController : ControllerBase
 
     [HttpGet("practice-area")]
     [ProducesResponseType(typeof(FileContentResult), 200)]
-    public async Task<IActionResult> GetPracticeModeReportExport(PracticeModeReportParameters parameters, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetPracticeModeReportExport([FromQuery] PracticeModeReportParameters parameters, CancellationToken cancellationToken)
     {
         var results = await _mediator.Send(new PracticeModeReportCsvExportQuery(parameters), cancellationToken);
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
@@ -56,7 +59,7 @@ public class ReportsExportController : ControllerBase
 
     [HttpGet("support")]
     [ProducesResponseType(typeof(FileContentResult), 200)]
-    public async Task<IActionResult> GetSupportReport(SupportReportParameters parameters)
+    public async Task<IActionResult> GetSupportReport([FromQuery] SupportReportParameters parameters)
     {
         var results = await _mediator.Send(new SupportReportExportQuery(parameters));
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);

@@ -1,7 +1,6 @@
 using Gameboard.Api.Common;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Structure;
-using StackExchange.Redis;
 
 namespace Gameboard.Api.Tests.Integration.Teams;
 
@@ -12,6 +11,7 @@ public class TeamControllerStartTeamSessionTests(GameboardTestContext testContex
     [Theory, GbIntegrationAutoData]
     public async Task TeamGame_WithSinglePlayer_CantStart
     (
+        string gameId,
         string playerId,
         string userId,
         IFixture fixture
@@ -22,7 +22,7 @@ public class TeamControllerStartTeamSessionTests(GameboardTestContext testContex
         {
             state.Add(new Data.Game
             {
-                Id = fixture.Create<string>(),
+                Id = gameId,
                 MinTeamSize = 2,
                 MaxTeamSize = 5,
                 GameStart = DateTimeOffset.UtcNow,
@@ -47,6 +47,7 @@ public class TeamControllerStartTeamSessionTests(GameboardTestContext testContex
     [Theory, GbIntegrationAutoData]
     public async Task TeamGame_WithTwoPlayers_CanStart
     (
+        string gameId,
         string playerId,
         string userId,
         string teamId,
@@ -58,7 +59,7 @@ public class TeamControllerStartTeamSessionTests(GameboardTestContext testContex
         {
             state.Add(new Data.Game
             {
-                Id = fixture.Create<string>(),
+                Id = gameId,
                 MinTeamSize = 2,
                 MaxTeamSize = 5,
                 GameStart = DateTimeOffset.UtcNow,
