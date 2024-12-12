@@ -43,6 +43,11 @@ public sealed class FeedbackReportRecord
     public required DateTimeOffset? WhenFinalized { get; set; }
 }
 
+public sealed class FeedbackReportExportContainer
+{
+    public required IEnumerable<dynamic> Records { get; set; }
+}
+
 public sealed class FeedbackReportExportRecord
 {
     public required string Id { get; set; }

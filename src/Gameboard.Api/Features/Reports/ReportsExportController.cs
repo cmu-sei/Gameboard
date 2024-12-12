@@ -7,6 +7,7 @@ using Gameboard.Api.Structure;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ServiceStack.Text;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -38,7 +39,7 @@ public class ReportsExportController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> GetFeedbackReportExport([FromQuery] FeedbackReportParameters parameters)
     {
         var results = await _mediator.Send(new FeedbackReportExportQuery(parameters));
-        return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
+        return new FileContentResult(GetReportExport(results.Records), MimeTypes.TextCsv);
     }
 
     [HttpGet("players")]
@@ -67,7 +68,7 @@ public class ReportsExportController(IMediator mediator) : ControllerBase
 
     private byte[] GetReportExport<T>(IEnumerable<T> records)
     {
-        var csvText = ServiceStack.StringExtensions.ToCsv(records);
+        var csvText = CsvSerializer.SerializeToCsv(records);
         return Encoding.UTF8.GetBytes(csvText.ToString());
     }
 }

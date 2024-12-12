@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Linq;
+using System.Dynamic;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Features.Users;
@@ -8,43 +8,56 @@ using MediatR;
 
 namespace Gameboard.Api.Features.Reports;
 
-public record FeedbackReportExportQuery(FeedbackReportParameters Parameters) : IRequest<IEnumerable<FeedbackReportExportRecord>>;
+public record FeedbackReportExportQuery(FeedbackReportParameters Parameters) : IRequest<FeedbackReportExportContainer>;
 
 internal sealed class FeedbackReportExportHandler
 (
     IFeedbackReportService reportService,
     IValidatorService validatorService
-) : IRequestHandler<FeedbackReportExportQuery, IEnumerable<FeedbackReportExportRecord>>
+) : IRequestHandler<FeedbackReportExportQuery, FeedbackReportExportContainer>
 {
     private readonly IFeedbackReportService _reportService = reportService;
     private readonly IValidatorService _validator = validatorService;
 
-    public async Task<IEnumerable<FeedbackReportExportRecord>> Handle(FeedbackReportExportQuery request, CancellationToken cancellationToken)
+    public async Task<FeedbackReportExportContainer> Handle(FeedbackReportExportQuery request, CancellationToken cancellationToken)
     {
         await _validator
             .Auth(c => c.RequirePermissions(PermissionKey.Reports_View))
             .Validate(cancellationToken);
 
         var results = await _reportService.GetBaseQuery(request.Parameters, cancellationToken);
-
-        return results.Select(r => new FeedbackReportExportRecord
+        // we have to use the dynamic type here to accommodate the questions/answers
+        var records = new List<dynamic>();
+        foreach (var r in results)
         {
-            Id = r.Id,
-            ChallengeSpecId = r.ChallengeSpec?.Id,
-            ChallengeSpecName = r.ChallengeSpec?.Name,
-            GameId = r.LogicalGame.Id,
-            GameName = r.LogicalGame.Name,
-            GameSeason = r.LogicalGame.Season,
-            GameSeries = r.LogicalGame.Series,
-            GameTrack = r.LogicalGame.Track,
-            IsTeamGame = r.LogicalGame.IsTeamGame,
-            SponsorId = r.Sponsor.Id,
-            SponsorName = r.Sponsor.Name,
-            UserId = r.User.Id,
-            UserName = r.User.Name,
-            WhenCreated = r.WhenCreated,
-            WhenEdited = r.WhenEdited,
-            WhenFinalized = r.WhenFinalized
-        }).ToArray();
+            dynamic record = new ExpandoObject();
+
+            record.Id = r.Id;
+            record.ChallengeSpecId = r.ChallengeSpec?.Id;
+            record.ChallengeSpecName = r.ChallengeSpec?.Name;
+            record.GameId = r.LogicalGame.Id;
+            record.GameName = r.LogicalGame.Name;
+            record.GameSeason = r.LogicalGame.Season;
+            record.GameSeries = r.LogicalGame.Series;
+            record.GameTrack = r.LogicalGame.Track;
+            record.IsTeamGame = r.LogicalGame.IsTeamGame;
+            record.SponsorId = r.Sponsor.Id;
+            record.SponsorName = r.Sponsor.Name;
+            record.UserId = r.User.Id;
+            record.UserName = r.User.Name;
+            record.WhenCreated = r.WhenCreated;
+            record.WhenEdited = r.WhenEdited;
+            record.WhenFinalized = r.WhenFinalized;
+
+            var asDict = record as IDictionary<string, object>;
+            foreach (var question in r.Responses)
+            {
+                asDict.Add(question.Prompt, question.Answer);
+            }
+
+            records.Add(asDict);
+        }
+
+        return new FeedbackReportExportContainer { Records = records };
     }
 }
