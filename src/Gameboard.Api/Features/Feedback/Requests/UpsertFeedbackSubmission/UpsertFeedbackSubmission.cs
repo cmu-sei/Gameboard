@@ -83,49 +83,10 @@ internal sealed class UpsertFeedbackSubmissionHandler
         // ultimately our retval
         var submissionModel = default(FeedbackSubmission);
 
-        // we also need the template so we can be sure to save an answer for every question, even if not supplied previously
-        var template = await _store
-            .WithNoTracking<FeedbackTemplate>()
-            .Where(t => t.Id == request.Request.FeedbackTemplateId)
-            .SingleAsync(cancellationToken);
-
         // if updating, update
         if (existingSubmission is not null)
         {
-            if (request.Request.AttachedEntity.EntityType == FeedbackSubmissionAttachedEntityType.ChallengeSpec)
-            {
-                submissionModel = await _store
-                    .WithNoTracking<FeedbackSubmissionChallengeSpec>()
-                    .Where(s => s.Id == existingSubmission.Id)
-                    .SingleAsync(cancellationToken);
-            }
-            else if (request.Request.AttachedEntity.EntityType == FeedbackSubmissionAttachedEntityType.Game)
-            {
-                submissionModel = await _store
-                    .WithNoTracking<FeedbackSubmissionGame>()
-                    .Where(s => s.Id == existingSubmission.Id)
-                    .SingleAsync(cancellationToken);
-            }
-
-            submissionModel.WhenEdited = _nowService.Get();
-            submissionModel.Responses.Clear();
-
-            foreach (var question in _feedbackService.BuildQuestionConfigFromTemplate(template).Questions)
-            {
-                submissionModel.Responses.Add(new QuestionSubmission
-                {
-                    Id = question.Prompt,
-                    Answer = submissionModel.Responses.SingleOrDefault(r => r.Id == question.Id)?.Answer,
-                    Prompt = question.Prompt,
-                    ShortName = question.ShortName,
-                });
-            }
-
-            if (request.Request.IsFinalized && submissionModel.WhenFinalized is null)
-            {
-                submissionModel.WhenFinalized = _nowService.Get();
-            }
-            submissionModel = await _store.SaveUpdate(submissionModel, cancellationToken);
+            submissionModel = await UpdateSubmission(existingSubmission, request.Request, cancellationToken);
         }
         else
         {
@@ -168,5 +129,65 @@ internal sealed class UpsertFeedbackSubmissionHandler
             request.Request.AttachedEntity.Id,
             cancellationToken
         );
+    }
+
+    private async Task<FeedbackSubmission> UpdateSubmission(FeedbackSubmissionView existingSubmission, UpsertFeedbackSubmissionRequest request, CancellationToken cancellationToken)
+    {
+        var submissionModel = default(FeedbackSubmission);
+
+        // we also need the template so we can be sure to save an answer for every question, even if not supplied previously
+        var template = await _store
+            .WithNoTracking<FeedbackTemplate>()
+            .Where(t => t.Id == request.FeedbackTemplateId)
+            .SingleAsync(cancellationToken);
+
+        await _store.DoTransaction(async dbContext =>
+        {
+            if (request.AttachedEntity.EntityType == FeedbackSubmissionAttachedEntityType.ChallengeSpec)
+            {
+                submissionModel = await _store
+                    .WithTracking<FeedbackSubmissionChallengeSpec>()
+                    .Where(s => s.Id == existingSubmission.Id)
+                    .SingleAsync(cancellationToken);
+            }
+            else if (request.AttachedEntity.EntityType == FeedbackSubmissionAttachedEntityType.Game)
+            {
+                submissionModel = await _store
+                    .WithTracking<FeedbackSubmissionGame>()
+                    .Where(s => s.Id == existingSubmission.Id)
+                    .SingleAsync(cancellationToken);
+            }
+
+            submissionModel.WhenEdited = _nowService.Get();
+
+            foreach (var question in _feedbackService.BuildQuestionConfigFromTemplate(template).Questions)
+            {
+                var existingResponse = submissionModel.Responses.SingleOrDefault(r => r.Id == question.Id);
+                if (existingResponse is not null)
+                {
+                    existingResponse.Answer = request.Responses.SingleOrDefault(r => r.Id == question.Id)?.Answer;
+                    dbContext.Entry(existingResponse).Property(r => r.Answer).IsModified = true;
+                }
+                else
+                {
+                    submissionModel.Responses.Add(new QuestionSubmission
+                    {
+                        Id = question.Prompt,
+                        Answer = request.Responses.SingleOrDefault(r => r.Id == question.Id)?.Answer,
+                        Prompt = question.Prompt,
+                        ShortName = question.ShortName,
+                    });
+                }
+            }
+
+            if (request.IsFinalized && submissionModel.WhenFinalized is null)
+            {
+                submissionModel.WhenFinalized = _nowService.Get();
+            }
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }, cancellationToken);
+
+        return submissionModel;
     }
 }

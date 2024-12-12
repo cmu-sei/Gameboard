@@ -33,6 +33,7 @@ public interface IStore
     Task<IEnumerable<TEntity>> SaveAddRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity;
     Task SaveRemoveRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity;
     Task<TEntity> SaveUpdate<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity;
+    Task<TEntity> SaveUpdate<TEntity, TProperty>(TEntity entity, Expression<Func<TEntity, TProperty>> property, CancellationToken cancellationToken) where TEntity : class, IEntity;
     Task SaveUpdateRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity;
     Task<TEntity> SingleAsync<TEntity>(string id, CancellationToken cancellationToken) where TEntity : class, IEntity;
     Task<TEntity> SingleOrDefaultAsync<TEntity>(CancellationToken cancellationToken) where TEntity : class, IEntity;
@@ -166,6 +167,24 @@ internal class Store(IGuidService guids, GameboardDbContext dbContext) : IStore
     public async Task<TEntity> SaveUpdate<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class, IEntity
     {
         await SaveUpdateRange(entity);
+        return entity;
+    }
+
+    public async Task<TEntity> SaveUpdate<TEntity, TProperty>(TEntity entity, Expression<Func<TEntity, TProperty>> property, CancellationToken cancellationToken) where TEntity : class, IEntity
+    {
+        if (_dbContext.Entry(entity).State == EntityState.Detached)
+        {
+            _dbContext.Attach(entity);
+        }
+
+        if (property is not null)
+        {
+            _dbContext.Entry(entity).Property(property).IsModified = true;
+        }
+
+        _dbContext.Update(entity);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
         return entity;
     }
 
