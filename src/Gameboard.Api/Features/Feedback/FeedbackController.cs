@@ -114,6 +114,10 @@ public class FeedbackController
     public Task<ListFeedbackTemplatesResponse> ListTemplates()
         => _mediator.Send(new ListFeedbackTemplatesQuery());
 
+    [HttpPut("template/{templateId}")]
+    public Task<FeedbackTemplateView> UpdateTemplate([FromQuery] string templateId, [FromBody] UpdateFeedbackTemplateRequest request)
+        => _mediator.Send(new UpdateFeedbackTemplateCommand(request));
+
     /// <summary>
     /// Create a new feedback response.
     /// </summary>

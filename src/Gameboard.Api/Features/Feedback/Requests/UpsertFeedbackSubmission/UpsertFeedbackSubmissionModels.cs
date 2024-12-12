@@ -16,9 +16,16 @@ public sealed class UpsertFeedbackSubmissionRequest
     public required string FeedbackTemplateId { get; set; }
     public required bool IsFinalized { get; set; }
     public IEnumerable<QuestionSubmission> Responses { get; set; }
+    public string UserId { get; set; }
 }
 
 public sealed class UpsertFeedbackSubmissionResponse
 {
     public required FeedbackSubmissionView Submission { get; set; }
+}
+
+public sealed class CantUpdateOtherUserFeedback : GameboardValidationException
+{
+    public CantUpdateOtherUserFeedback(string otherUserId)
+        : base($"Can't update feedback for other user {otherUserId}") { }
 }
