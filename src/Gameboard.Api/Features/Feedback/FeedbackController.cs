@@ -50,6 +50,7 @@ public class FeedbackController
     /// </summary>
     /// <param name="model"></param>
     /// <returns></returns>
+    [HttpGet]
     public async Task<Feedback> Retrieve([FromQuery] FeedbackSearchParams model)
     {
         await Authorize(FeedbackService.UserIsEnrolled(model.GameId, Actor.Id));
