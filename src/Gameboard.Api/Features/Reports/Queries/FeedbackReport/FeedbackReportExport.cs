@@ -26,6 +26,7 @@ internal sealed class FeedbackReportExportHandler
             .Validate(cancellationToken);
 
         var results = await _reportService.GetBaseQuery(request.Parameters, cancellationToken);
+
         // we have to use the dynamic type here to accommodate the questions/answers
         var records = new List<dynamic>();
         foreach (var r in results)
