@@ -34,6 +34,8 @@ internal sealed class FeedbackReportService(IReportsService reportsService, ISto
             .Include(s => s.User)
             .Where(s => s.FeedbackTemplateId == parameters.TemplateId);
 
+        // we need to load the feedback template to ensure that everyone in the report has an entry for all questions (even ones they didn't answer)
+
         if (submissionDateStart.IsNotEmpty())
         {
             matchingSubmissions = matchingSubmissions.Where(s => s.WhenCreated >= submissionDateStart.Value);
@@ -111,7 +113,7 @@ internal sealed class FeedbackReportService(IReportsService reportsService, ISto
                         LogoFileName = s.User.Sponsor.Logo,
                         Name = s.User.Sponsor.Name
                     },
-                    Responses = s.Responses,
+                    Responses = s.Responses.OrderBy(r => r.Id).ToArray(),
                     User = new SimpleEntity { Id = s.UserId, Name = s.User.ApprovedName },
                     WhenCreated = s.WhenCreated,
                     WhenEdited = s.WhenEdited,

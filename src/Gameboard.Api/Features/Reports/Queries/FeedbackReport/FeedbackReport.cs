@@ -52,7 +52,6 @@ internal sealed class FeedbackReportHandler
             },
             Paging = paged.Paging,
             Records = paged.Items,
-
         };
     }
 }

@@ -50,6 +50,7 @@ public class FeedbackController
     /// </summary>
     /// <param name="model"></param>
     /// <returns></returns>
+    [HttpGet]
     public async Task<Feedback> Retrieve([FromQuery] FeedbackSearchParams model)
     {
         await Authorize(FeedbackService.UserIsEnrolled(model.GameId, Actor.Id));
@@ -113,6 +114,10 @@ public class FeedbackController
     [HttpGet("template")]
     public Task<ListFeedbackTemplatesResponse> ListTemplates()
         => _mediator.Send(new ListFeedbackTemplatesQuery());
+
+    [HttpPut("template/{templateId}")]
+    public Task<FeedbackTemplateView> UpdateTemplate([FromQuery] string templateId, [FromBody] UpdateFeedbackTemplateRequest request)
+        => _mediator.Send(new UpdateFeedbackTemplateCommand(request));
 
     /// <summary>
     /// Create a new feedback response.
