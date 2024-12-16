@@ -35,6 +35,7 @@ public class Game : IEntity
     public bool RequireSponsoredTeam { get; set; }
     public int SessionMinutes { get; set; } = 60;
     public int SessionLimit { get; set; } = 0;
+    public int? SessionAvailabilityWarningThreshold { get; set; }
     public int GamespaceLimitPerSession { get; set; } = 1;
     public bool IsPublished { get; set; }
     public bool AllowLateStart { get; set; }

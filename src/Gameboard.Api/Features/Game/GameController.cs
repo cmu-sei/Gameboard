@@ -79,6 +79,11 @@ namespace Gameboard.Api.Controllers
             return await GameService.RetrieveChallengeSpecs(id);
         }
 
+        [HttpGet("api/game/{gameId}/session-availability")]
+        [Authorize]
+        public Task<GameSessionAvailibilityResponse> GetSessionAvailability([FromRoute] string gameId)
+            => _mediator.Send(new GameSessionAvailabilityQuery(gameId));
+
         [HttpGet("api/game/{id}/sessions")]
         [Authorize]
         public async Task<SessionForecast[]> GetSessionForecast([FromRoute] string id)

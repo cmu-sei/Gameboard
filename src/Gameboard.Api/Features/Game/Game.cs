@@ -37,6 +37,7 @@ public class GameDetail
     public int MaxTeamSize { get; set; }
     public int SessionMinutes { get; set; }
     public int SessionLimit { get; set; }
+    public int? SessionAvailabilityWarningThreshold { get; set; }
     public int GamespaceLimitPerSession { get; set; }
     public string ExternalHostId { get; set; }
     public bool IsPublished { get; set; }
@@ -150,3 +151,9 @@ public class GameGroup
 }
 
 public sealed record DeployGameResourcesBody(IEnumerable<string> TeamIds);
+
+public sealed class GameActiveTeam
+{
+    public required string TeamId { get; set; }
+    public required DateTimeOffset SessionEnd { get; set; }
+}

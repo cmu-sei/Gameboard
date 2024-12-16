@@ -860,6 +860,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<int?>("SessionAvailabilityWarningThreshold")
+                        .HasColumnType("int");
+
                     b.Property<int>("SessionLimit")
                         .HasColumnType("int");
 
