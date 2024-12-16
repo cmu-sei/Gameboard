@@ -132,7 +132,10 @@ public class EnrollmentReportManualChallengeBonus
 
 public sealed class EnrollmentReportLineChartResponse
 {
-    public required IDictionary<DateTimeOffset, EnrollmentReportLineChartGroup> PlayerGroups { get; set; }
+    public required Dictionary<DateTimeOffset, IEnumerable<EnrollmentReportLineChartPlayerGame>> ByDate { get; set; }
+    public required Dictionary<string, Dictionary<DateTimeOffset, IEnumerable<EnrollmentReportLineChartPlayerGame>>> ByGameByDate { get; set; }
+    public required Dictionary<string, string> Games { get; set; }
+    public required Dictionary<string, EnrollmentReportLineChartPlayer> Players { get; set; }
     public required EnrollmentReportLineChartPeriod PeriodType { get; set; }
     public required DateTimeOffset PeriodStart { get; set; }
     public required DateTimeOffset PeriodEnd { get; set; }
@@ -146,18 +149,18 @@ public enum EnrollmentReportLineChartPeriod
     Month,
 }
 
-public sealed class EnrollmentReportLineChartGroup
-{
-    public required IEnumerable<EnrollmentReportLineChartPlayer> Players { get; set; }
-    public required int TotalCount { get; set; }
-}
-
 public sealed class EnrollmentReportLineChartPlayer
 {
     public required string Id { get; set; }
     public required string Name { get; set; }
     public required DateTimeOffset EnrollDate { get; set; }
     public required SimpleEntity Game { get; set; }
+}
+
+public sealed class EnrollmentReportLineChartPlayerGame
+{
+    public required string Id { get; set; }
+    public required string GameId { get; set; }
 }
 
 // this class isn't sent down with the report data, it's just used as an intermediate

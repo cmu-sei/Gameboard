@@ -127,7 +127,7 @@ internal class StartTeamSessionsValidator
                 ctx.AddValidationException(new GameNotActive(game.Id, game.GameStart, game.GameEnd));
 
             // can't exceed the legal session limit if established
-            var activeSessions = await _gameService.GetTeamsWithActiveSession(game.Id, cancellationToken);
+            var activeSessions = await _gameService.GetTeamsWithActiveSession(game.Id).ToArrayAsync(cancellationToken);
             if (game.SessionLimit > 0 && activeSessions.Count() >= game.SessionLimit)
             {
                 ctx.AddValidationException(new GameSessionLimitReached(new SimpleEntity { Id = game.Id, Name = game.Name }, game.SessionLimit, activeSessions.Count()));

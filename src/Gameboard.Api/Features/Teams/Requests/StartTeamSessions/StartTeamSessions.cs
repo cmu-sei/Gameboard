@@ -13,7 +13,6 @@ using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Npgsql.Replication;
 using ServiceStack;
 
 namespace Gameboard.Api.Features.Teams;

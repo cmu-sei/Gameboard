@@ -25,7 +25,7 @@ public interface IGameService
     Task<Game> Create(NewGame model);
     Task<string> Export(GameSpecExport model);
     Task<Game> Import(GameSpecImport model);
-    Task<IEnumerable<string>> GetTeamsWithActiveSession(string GameId, CancellationToken cancellationToken);
+    IQueryable<GameActiveTeam> GetTeamsWithActiveSession(string GameId);
     Task<bool> IsUserPlaying(string gameId, string userId);
     Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false);
     Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo);
@@ -108,28 +108,17 @@ public class GameService(
         return entity;
     }
 
-    public async Task<IEnumerable<string>> GetTeamsWithActiveSession(string gameId, CancellationToken cancellationToken)
-    {
-        var gameSessionData = await _store
-            .WithNoTracking<Data.Game>()
-            .Where(g => g.Id == gameId)
-            .Select(g => new
+    public IQueryable<GameActiveTeam> GetTeamsWithActiveSession(string gameId)
+        => _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.GameId == gameId)
+            .Where(p => p.SessionEnd > _now.Get())
+            .GroupBy(p => p.TeamId)
+            .Select(gr => new GameActiveTeam
             {
-                g.Id,
-                g.SessionLimit,
-                Teams = g
-                    .Players
-                    .Where(p => _now.Get() < p.SessionEnd)
-                    .Select(p => p.TeamId)
-                    .Distinct()
-            })
-            .SingleOrDefaultAsync(cancellationToken);
-
-        if (gameSessionData is not null)
-            return gameSessionData.Teams;
-
-        return [];
-    }
+                TeamId = gr.Key,
+                SessionEnd = gr.Min(p => p.SessionEnd)
+            });
 
     public async Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false)
     {

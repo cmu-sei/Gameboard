@@ -11,7 +11,13 @@ namespace Gameboard.Api
     {
         public override DateTimeOffset Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            return DateTimeOffset.Parse(reader.GetString()).ToUniversalTime();
+            var dateString = reader.GetString();
+            if (dateString.IsEmpty())
+            {
+                return default;
+            }
+
+            return DateTimeOffset.Parse(dateString).ToUniversalTime();
         }
 
         public override void Write(Utf8JsonWriter writer, DateTimeOffset value, JsonSerializerOptions options)

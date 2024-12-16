@@ -4,9 +4,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Games;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ServiceStack;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -29,7 +31,9 @@ internal class EnrollmentReportLineChartHandler(
         await _validator.Validate(request.Parameters, cancellationToken);
 
         if (request.Parameters.TrendPeriod is null)
+        {
             request.Parameters.TrendPeriod = EnrollmentReportLineChartPeriod.All;
+        }
 
         // pull base query but select only what we need
         var results = await _reportService
@@ -43,20 +47,42 @@ internal class EnrollmentReportLineChartHandler(
             })
             .WhereDateIsNotEmpty(p => p.EnrollDate)
             .OrderBy(p => p.EnrollDate)
-            .ToListAsync(cancellationToken);
+            .ToArrayAsync(cancellationToken);
 
-        // grouping stuff
-        var totalEnrolledPlayerCount = 0;
-        var playerGroups = new Dictionary<DateTimeOffset, EnrollmentReportLineChartGroup>();
+        // we send down data by game and just by date, so let's store the player and game data in one place so we don't duplicate it
+        var gameMap = results.Select(p => p.Game).DistinctBy(g => g.Id).OrderBy(g => g.Name).ToDictionary(g => g.Id, g => g.Name);
+        var playerMap = results.DistinctBy(p => p.Id).ToDictionary(p => p.Id, p => p);
+        var byDate = new Dictionary<DateTimeOffset, IEnumerable<EnrollmentReportLineChartPlayerGame>>();
+        var byGameByDate = new Dictionary<string, Dictionary<DateTimeOffset, IEnumerable<EnrollmentReportLineChartPlayerGame>>>();
+        var distinctRegistrationDates = results
+            .Select(p => new DateTimeOffset(p.EnrollDate.Year, p.EnrollDate.Month, p.EnrollDate.Day, 0, 0, 0, p.EnrollDate.Offset))
+            .Distinct()
+            .ToArray();
 
-        foreach (var grouping in results.GroupBy(p => new DateTimeOffset(p.EnrollDate.Year, p.EnrollDate.Month, p.EnrollDate.Day, 0, 0, 0, p.EnrollDate.Offset)))
+        foreach (var distinctRegistrationDate in distinctRegistrationDates)
         {
-            totalEnrolledPlayerCount += grouping.Count();
-            playerGroups[grouping.Key] = new EnrollmentReportLineChartGroup
+            var registeredPlayers = results
+            .Where
+            (
+                p =>
+                    p.EnrollDate.Year <= distinctRegistrationDate.Year &&
+                    p.EnrollDate.Month <= distinctRegistrationDate.Month &&
+                    p.EnrollDate.Day <= distinctRegistrationDate.Day &&
+                    p.EnrollDate.Offset <= distinctRegistrationDate.Offset
+            )
+            .Select(p => new EnrollmentReportLineChartPlayerGame { Id = p.Id, GameId = p.Game.Id });
+
+            byDate.Add(distinctRegistrationDate, registeredPlayers);
+
+            foreach (var gameId in gameMap.Keys)
             {
-                Players = grouping,
-                TotalCount = totalEnrolledPlayerCount
-            };
+                byGameByDate.EnsureKey(gameId, []);
+                byGameByDate[gameId].Add
+                (
+                    distinctRegistrationDate,
+                    registeredPlayers.Where(p => p.GameId == gameId)
+                );
+            }
         }
 
         return new EnrollmentReportLineChartResponse
@@ -64,7 +90,10 @@ internal class EnrollmentReportLineChartHandler(
             PeriodEnd = results.Select(p => p.EnrollDate).Max(),
             PeriodStart = results.Select(p => p.EnrollDate).Min(),
             PeriodType = request.Parameters.TrendPeriod.Value,
-            PlayerGroups = playerGroups
+            Games = gameMap,
+            Players = playerMap,
+            ByDate = byDate,
+            ByGameByDate = byGameByDate
         };
     }
 }
