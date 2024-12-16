@@ -132,10 +132,12 @@ public class EnrollmentReportManualChallengeBonus
 
 public sealed class EnrollmentReportLineChartResponse
 {
-    public required Dictionary<DateTimeOffset, IEnumerable<EnrollmentReportLineChartPlayerGame>> ByDate { get; set; }
-    public required Dictionary<string, Dictionary<DateTimeOffset, IEnumerable<EnrollmentReportLineChartPlayerGame>>> ByGameByDate { get; set; }
+    // public required Dictionary<DateTimeOffset, IEnumerable<EnrollmentReportLineChartPlayerGame>> ByDate { get; set; }
+    // public required Dictionary<string, Dictionary<DateTimeOffset, IEnumerable<EnrollmentReportLineChartPlayerGame>>> ByGameByDate { get; set; }
+    // public required Dictionary<string, EnrollmentReportLineChartPlayer> Players { get; set; }
+    public required Dictionary<DateTimeOffset, int> ByDate { get; set; }
+    public required Dictionary<string, Dictionary<DateTimeOffset, int>> ByGameByDate { get; set; }
     public required Dictionary<string, string> Games { get; set; }
-    public required Dictionary<string, EnrollmentReportLineChartPlayer> Players { get; set; }
     public required EnrollmentReportLineChartPeriod PeriodType { get; set; }
     public required DateTimeOffset PeriodStart { get; set; }
     public required DateTimeOffset PeriodEnd { get; set; }
