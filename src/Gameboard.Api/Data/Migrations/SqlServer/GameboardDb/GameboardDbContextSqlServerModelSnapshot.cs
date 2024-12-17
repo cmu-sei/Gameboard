@@ -770,7 +770,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
-                    b.Property<string>("CertificateTemplate")
+                    b.Property<string>("CertificateTemplateLegacy")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ChallengesFeedbackTemplateId")

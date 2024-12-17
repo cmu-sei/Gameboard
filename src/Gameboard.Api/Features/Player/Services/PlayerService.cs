@@ -637,8 +637,8 @@ public class PlayerService
                 p => p.UserId == uid &&
                 p.SessionEnd > DateTimeOffset.MinValue &&
                 p.Game.GameEnd < now &&
-                p.Game.CertificateTemplate != null &&
-                p.Game.CertificateTemplate.Length > 0
+                p.Game.CertificateTemplateLegacy != null &&
+                p.Game.CertificateTemplateLegacy.Length > 0
             )
             .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
             .WhereIsScoringPlayer()
@@ -666,7 +666,7 @@ public class PlayerService
 
     private PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount)
     {
-        var certificateHTML = player.Game.CertificateTemplate;
+        var certificateHTML = player.Game.CertificateTemplateLegacy;
         if (certificateHTML.IsEmpty())
             return null;
 
