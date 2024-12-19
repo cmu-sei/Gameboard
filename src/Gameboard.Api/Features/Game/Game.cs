@@ -26,6 +26,8 @@ public class GameDetail
     public GameFeedbackTemplate FeedbackTemplate { get; set; }
     public string ChallengesFeedbackTemplateId { get; set; }
     public string FeedbackTemplateId { get; set; }
+    public string CertificateTemplateId { get; set; }
+    public string PracticeCertificateTemplateId { get; set; }
     public string CertificateTemplateLegacy { get; set; }
     public string RegistrationMarkdown { get; set; }
     public DateTimeOffset RegistrationOpen { get; set; }

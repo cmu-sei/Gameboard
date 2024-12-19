@@ -18,7 +18,7 @@ public class PlayerServiceTests
                 PartialCount = 1,
                 Game = new Data.Game
                 {
-                    CertificateTemplate = fixture.Create<string>(),
+                    CertificateTemplateLegacy = fixture.Create<string>(),
                     GameEnd = DateTimeOffset.UtcNow - TimeSpan.FromDays(1)
                 },
                 Score = 0,
@@ -35,7 +35,7 @@ public class PlayerServiceTests
         var result = await sut.MakeCertificates(userId);
 
         // assert
-        result.ShouldBe(Array.Empty<PlayerCertificate>());
+        result.ShouldBe([]);
     }
 
     [Theory, GameboardAutoData]
@@ -51,7 +51,7 @@ public class PlayerServiceTests
                 PartialCount = 0,
                 Game = new Data.Game
                 {
-                    CertificateTemplate = fixture.Create<string>(),
+                    CertificateTemplateLegacy = fixture.Create<string>(),
                     GameEnd = DateTimeOffset.UtcNow - TimeSpan.FromDays(1)
                 },
                 Score = 1,

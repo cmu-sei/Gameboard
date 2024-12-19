@@ -4,6 +4,7 @@ using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 {
     [DbContext(typeof(GameboardDbContextSqlServer))]
-    partial class GameboardDbContextSqlServerModelSnapshot : ModelSnapshot
+    [Migration("20241217161133_AddCertificateTemplates")]
+    partial class AddCertificateTemplates
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1091,9 +1094,6 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<string>("CertificateHtmlTemplate")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("CertificateTemplateId")
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<int>("DefaultPracticeSessionLengthMinutes")
                         .HasColumnType("int");
 
@@ -1117,10 +1117,6 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CertificateTemplateId")
-                        .IsUnique()
-                        .HasFilter("[CertificateTemplateId] IS NOT NULL");
 
                     b.HasIndex("UpdatedByUserId")
                         .IsUnique()
@@ -1807,8 +1803,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                 {
                     b.HasOne("Gameboard.Api.Data.CertificateTemplate", "CertificateTemplate")
                         .WithMany("UseAsTemplateForGames")
-                        .HasForeignKey("CertificateTemplateId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("CertificateTemplateId");
 
                     b.HasOne("Gameboard.Api.Data.FeedbackTemplate", "ChallengesFeedbackTemplate")
                         .WithMany("UseAsFeedbackTemplateForGames")
@@ -1825,8 +1820,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.HasOne("Gameboard.Api.Data.CertificateTemplate", "PracticeCertificateTemplate")
                         .WithMany("UseAsPracticeTemplateForGames")
-                        .HasForeignKey("PracticeCertificateTemplateId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("PracticeCertificateTemplateId");
 
                     b.Navigation("CertificateTemplate");
 
@@ -1889,16 +1883,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.PracticeModeSettings", b =>
                 {
-                    b.HasOne("Gameboard.Api.Data.CertificateTemplate", "CertificateTemplate")
-                        .WithOne("UsedAsPracticeModeDefault")
-                        .HasForeignKey("Gameboard.Api.Data.PracticeModeSettings", "CertificateTemplateId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("Gameboard.Api.Data.User", "UpdatedByUser")
                         .WithOne("UpdatedPracticeModeSettings")
                         .HasForeignKey("Gameboard.Api.Data.PracticeModeSettings", "UpdatedByUserId");
-
-                    b.Navigation("CertificateTemplate");
 
                     b.Navigation("UpdatedByUser");
                 });
@@ -2102,8 +2089,6 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("UseAsPracticeTemplateForGames");
 
                     b.Navigation("UseAsTemplateForGames");
-
-                    b.Navigation("UsedAsPracticeModeDefault");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>

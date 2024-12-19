@@ -30,6 +30,28 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        builder.Entity<CertificateTemplate>(b =>
+        {
+            b.Property(t => t.Content).IsRequired();
+            b.Property(t => t.Name)
+                .HasStandardNameLength()
+                .IsRequired();
+            b
+                .HasOne(t => t.CreatedByUser)
+                .WithMany(u => u.CreatedCertificateTemplates)
+                .IsRequired();
+
+            b
+                .HasMany(t => t.UseAsTemplateForGames)
+                .WithOne(g => g.CertificateTemplate)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            b
+                .HasMany(t => t.UseAsPracticeTemplateForGames)
+                .WithOne(g => g.PracticeCertificateTemplate)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
         builder.Entity<Challenge>(b =>
         {
             b.HasOne(p => p.Player).WithMany(u => u.Challenges).OnDelete(DeleteBehavior.Cascade);
@@ -365,6 +387,11 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
                 .HasOne(m => m.UpdatedByUser)
                 .WithOne(u => u.UpdatedPracticeModeSettings)
                 .IsRequired(false);
+
+            b
+                .HasOne(m => m.CertificateTemplate)
+                .WithOne(t => t.UsedAsPracticeModeDefault)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<Sponsor>(b =>

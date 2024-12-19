@@ -4,6 +4,7 @@ using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 {
     [DbContext(typeof(GameboardDbContextSqlServer))]
-    partial class GameboardDbContextSqlServerModelSnapshot : ModelSnapshot
+    [Migration("20241219174157_AddPracticeModeDefaultTemplate")]
+    partial class AddPracticeModeDefaultTemplate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1807,8 +1810,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                 {
                     b.HasOne("Gameboard.Api.Data.CertificateTemplate", "CertificateTemplate")
                         .WithMany("UseAsTemplateForGames")
-                        .HasForeignKey("CertificateTemplateId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("CertificateTemplateId");
 
                     b.HasOne("Gameboard.Api.Data.FeedbackTemplate", "ChallengesFeedbackTemplate")
                         .WithMany("UseAsFeedbackTemplateForGames")
@@ -1825,8 +1827,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.HasOne("Gameboard.Api.Data.CertificateTemplate", "PracticeCertificateTemplate")
                         .WithMany("UseAsPracticeTemplateForGames")
-                        .HasForeignKey("PracticeCertificateTemplateId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("PracticeCertificateTemplateId");
 
                     b.Navigation("CertificateTemplate");
 
@@ -1891,8 +1892,7 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                 {
                     b.HasOne("Gameboard.Api.Data.CertificateTemplate", "CertificateTemplate")
                         .WithOne("UsedAsPracticeModeDefault")
-                        .HasForeignKey("Gameboard.Api.Data.PracticeModeSettings", "CertificateTemplateId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("Gameboard.Api.Data.PracticeModeSettings", "CertificateTemplateId");
 
                     b.HasOne("Gameboard.Api.Data.User", "UpdatedByUser")
                         .WithOne("UpdatedPracticeModeSettings")

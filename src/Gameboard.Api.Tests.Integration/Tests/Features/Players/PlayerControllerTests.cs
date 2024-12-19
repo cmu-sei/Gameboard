@@ -70,7 +70,7 @@ public class PlayerControllerTests(GameboardTestContext testContext) : IClassFix
             state.Add<Data.Game>(fixture, g =>
             {
                 g.GameEnd = now - TimeSpan.FromDays(1);
-                g.CertificateTemplate = "This is a template with a {{player_count}}.";
+                g.CertificateTemplateLegacy = "This is a template with a {{player_count}}.";
                 g.Players =
                 [
                     // i almost broke my brain trying to get GbIntegrationAutoData to work with
@@ -120,7 +120,7 @@ public class PlayerControllerTests(GameboardTestContext testContext) : IClassFix
         {
             state.Add<Data.Game>(fixture, g =>
             {
-                g.CertificateTemplate = "This is a template with a {{player_count}} and a {{team_count}}.";
+                g.CertificateTemplateLegacy = "This is a template with a {{player_count}} and a {{team_count}}.";
                 g.GameEnd = now - TimeSpan.FromDays(1);
                 g.Players = new List<Data.Player>
                 {

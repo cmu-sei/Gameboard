@@ -461,7 +461,7 @@ public partial class ChallengeService
                 (int)updatedScore.Score.TotalScore,
                 model.SectionIndex,
                 model.Questions.Select(q => q.Answer),
-                CancellationToken.None
+                cancellationToken
             );
         }
 

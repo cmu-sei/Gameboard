@@ -518,7 +518,9 @@ public class PlayerService
                     ApprovedName = i.User.ApprovedName,
                     Role = i.Role,
                     UserId = i.UserId
-                }).OrderBy(p => p.ApprovedName).ToArray()
+                })
+                .OrderBy(p => p.ApprovedName)
+                .ToArray()
             })
             .OrderBy(c => c.ApprovedName)
             .ToArray();
@@ -625,7 +627,7 @@ public class PlayerService
 
     public async Task<IEnumerable<PlayerCertificate>> MakeCertificates(string uid)
     {
-        DateTimeOffset now = DateTimeOffset.UtcNow;
+        var now = DateTimeOffset.UtcNow;
 
         var completedSessions = await _store
             .WithNoTracking<Data.Player>()
