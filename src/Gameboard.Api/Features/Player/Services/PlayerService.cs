@@ -518,7 +518,9 @@ public class PlayerService
                     ApprovedName = i.User.ApprovedName,
                     Role = i.Role,
                     UserId = i.UserId
-                }).OrderBy(p => p.ApprovedName).ToArray()
+                })
+                .OrderBy(p => p.ApprovedName)
+                .ToArray()
             })
             .OrderBy(c => c.ApprovedName)
             .ToArray();
@@ -625,7 +627,7 @@ public class PlayerService
 
     public async Task<IEnumerable<PlayerCertificate>> MakeCertificates(string uid)
     {
-        DateTimeOffset now = DateTimeOffset.UtcNow;
+        var now = DateTimeOffset.UtcNow;
 
         var completedSessions = await _store
             .WithNoTracking<Data.Player>()
@@ -637,8 +639,8 @@ public class PlayerService
                 p => p.UserId == uid &&
                 p.SessionEnd > DateTimeOffset.MinValue &&
                 p.Game.GameEnd < now &&
-                p.Game.CertificateTemplate != null &&
-                p.Game.CertificateTemplate.Length > 0
+                p.Game.CertificateTemplateLegacy != null &&
+                p.Game.CertificateTemplateLegacy.Length > 0
             )
             .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
             .WhereIsScoringPlayer()
@@ -666,7 +668,7 @@ public class PlayerService
 
     private PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount)
     {
-        var certificateHTML = player.Game.CertificateTemplate;
+        var certificateHTML = player.Game.CertificateTemplateLegacy;
         if (certificateHTML.IsEmpty())
             return null;
 

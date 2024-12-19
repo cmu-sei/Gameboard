@@ -63,7 +63,7 @@ public class GameService(
             if (_defaults.FeedbackTemplate.NotEmpty())
                 model.FeedbackConfig = _defaults.FeedbackTemplate;
             if (_defaults.CertificateTemplate.NotEmpty())
-                model.CertificateTemplate = _defaults.CertificateTemplate;
+                model.CertificateTemplateLegacy = _defaults.CertificateTemplate;
         }
 
         // defaults: standard, 60 minutes, scoreboard access, etc.

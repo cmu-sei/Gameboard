@@ -40,10 +40,6 @@ public class AdminController(IMediator mediator, IActingUserService actingUserSe
     public Task<GetPlayersCsvExportResponse> GetPlayersCsvExport([FromRoute] string gameId, [FromQuery] string teamIds)
         => _mediator.Send(new GetPlayersCsvExportQuery(gameId, teamIds.IsEmpty() ? null : teamIds.Split(',')));
 
-    [HttpPut("players/{playerId}/name")]
-    public Task ApprovePlayerName([FromRoute] string playerId, [FromBody] ApprovePlayerNameRequest request)
-        => _mediator.Send(new ApprovePlayerNameCommand(playerId, request.Name, request.RevisionReason));
-
     [HttpGet("stats")]
     public Task<GetAppOverviewStatsResponse> GetAppOverviewStats()
         => _mediator.Send(new GetAppOverviewStatsQuery());
@@ -51,4 +47,8 @@ public class AdminController(IMediator mediator, IActingUserService actingUserSe
     [HttpGet("teams/{teamId}")]
     public Task<TeamCenterContext> GetTeamCenterContext([FromRoute] string teamId)
         => _mediator.Send(new GetTeamCenterContextQuery(teamId, _actingUser));
+
+    [HttpPut("players/{playerId}/name")]
+    public Task UpdatePlayerNameChangeRequest([FromRoute] string playerId, [FromBody] UpdatePlayerNameChangeRequestArgs request)
+        => _mediator.Send(new UpdatePlayerNameChangeRequestCommand(playerId, request));
 }

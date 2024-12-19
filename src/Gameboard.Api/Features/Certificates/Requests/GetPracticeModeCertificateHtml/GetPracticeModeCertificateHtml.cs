@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +7,7 @@ using Gameboard.Api.Features.Certificates;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Practice;
 
@@ -15,29 +15,28 @@ public record GetPracticeModeCertificateHtmlQuery(string ChallengeSpecId, string
 
 internal class GetPracticeModeCertificateHtmlHandler
 (
-    EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> actingUserExists,
     EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> certificateOwnerExists,
     ICertificatesService certificatesService,
-    CoreOptions coreOptions,
     IPracticeService practiceService,
+    IStore store,
     IValidatorService<GetPracticeModeCertificateHtmlQuery> validatorService
 ) : IRequestHandler<GetPracticeModeCertificateHtmlQuery, string>
 {
     private readonly ICertificatesService _certificatesService = certificatesService;
-    private readonly CoreOptions _coreOptions = coreOptions;
-    private readonly EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> _actingUserExists = actingUserExists;
     private readonly EntityExistsValidator<GetPracticeModeCertificateHtmlQuery, Data.User> _certificateOwnerExists = certificateOwnerExists;
     private readonly IPracticeService _practiceService = practiceService;
+    private readonly IStore _store = store;
     private readonly IValidatorService<GetPracticeModeCertificateHtmlQuery> _validatorService = validatorService;
 
     public async Task<string> Handle(GetPracticeModeCertificateHtmlQuery request, CancellationToken cancellationToken)
     {
-        var certificate = (await _certificatesService
-            .GetPracticeCertificates(request.CertificateOwnerUserId))
+        var userPracticeCertificates = await _certificatesService
+            .GetPracticeCertificates(request.CertificateOwnerUserId, cancellationToken);
+        var certificate = userPracticeCertificates
+            .OrderByDescending(c => c.Date)
             .FirstOrDefault(c => c.Challenge.ChallengeSpecId == request.ChallengeSpecId);
 
         await _validatorService
-            .AddValidator(_actingUserExists.UseProperty(r => r.ActingUser.Id))
             .AddValidator(_certificateOwnerExists.UseProperty(r => r.CertificateOwnerUserId))
             .AddValidator((request, context) =>
             {
@@ -53,55 +52,53 @@ internal class GetPracticeModeCertificateHtmlHandler
             throw new ResourceNotFound<PublishedPracticeCertificate>(request.ChallengeSpecId, $"Couldn't resolve a certificate for owner {request.CertificateOwnerUserId} and challenge spec {request.ChallengeSpecId}");
         }
 
-        // load the outer template from this application (this is custom crafted by us to ensure we end up
-        // with a consistent HTML-compliant base)
-        var outerTemplatePath = Path.Combine(_coreOptions.TemplatesDirectory, "practice-certificate.template.html");
-        var outerTemplate = File.ReadAllText(outerTemplatePath);
+        // first check the game for its certificate template
+        var templateId = await _store
+            .WithNoTracking<Data.Game>()
+            .Where(g => g.Id == certificate.Game.Id)
+            .Select(g => g.PracticeCertificateTemplateId)
+            .SingleOrDefaultAsync(cancellationToken);
 
-        // the "inner" template is user-defined and loaded from settings
-        var settings = await _practiceService.GetSettings(cancellationToken);
-        var innerTemplate = $"""
-            <p>
-                You successfully completed challenge {certificate.Challenge.Name} on {certificate.Date} with
-                a score of {certificate.Score} and a time of {certificate.Time}, but the administrator of this
-                site hasn't configured a certificate template for the Practice Area.
-            </p>
-        """.Trim();
-
-        if (!settings.CertificateHtmlTemplate.IsEmpty())
+        if (templateId.IsEmpty())
         {
-            innerTemplate = settings.CertificateHtmlTemplate
-                .Replace("{{challengeName}}", certificate.Challenge.Name)
-                .Replace("{{challengeDescription}}", certificate.Challenge.Description)
-                .Replace("{{date}}", certificate.Date.ToLocalTime().ToString("M/d/yyyy"))
-                .Replace("{{division}}", certificate.Game.Division)
-                .Replace("{{playerName}}", request.RequestedName.IsNotEmpty() ? request.RequestedName : certificate.PlayerName)
-                .Replace("{{score}}", certificate.Score.ToString())
-                .Replace("{{season}}", certificate.Game.Season)
-                .Replace("{{time}}", GetDurationDescription(certificate.Time))
-                .Replace("{{track}}", certificate.Game.Track);
+            // if the game doesn't have one, the global practice settings might
+            var settings = await _practiceService.GetSettings(cancellationToken);
+
+            templateId = settings.CertificateTemplateId;
         }
 
-        // compose final html and save to a temp file
-        return outerTemplate.Replace("{{bodyContent}}", innerTemplate);
-    }
-
-    internal string GetDurationDescription(TimeSpan time)
-    {
-        // compute time string - hours and minutes rounded off
-        var timeString = "Less than a minute";
-        if (Math.Round(time.TotalMinutes, 0) > 0)
+        if (templateId.IsEmpty())
         {
-            var hours = Math.Floor(time.TotalHours);
-
-            // for each of the hour and minute strings, do pluralization stuff or set to empty
-            // if the value is zero
-            var hoursString = hours > 0 ? $"{hours} hour{(hours == 1 ? "" : "s")}" : string.Empty;
-            var minutesString = time.Minutes > 0 ? $"{time.Minutes} minute{(time.Minutes == 1 ? "" : "s")}" : string.Empty;
-
-            timeString = $"{hoursString}{(!hoursString.IsEmpty() && !minutesString.IsEmpty() ? " and " : "")}{minutesString}";
+            throw new NoCertificateTemplateConfigured(request.ChallengeSpecId);
         }
 
-        return timeString;
+        var certificateContext = new CertificateHtmlContext
+        {
+            Challenge = new CertificateHtmlContextChallenge
+            {
+                Id = certificate.Challenge.Id,
+                Name = certificate.Challenge.Name,
+                Description = certificate.Challenge.Description
+            },
+            Game = new CertificateHtmlContextGame
+            {
+                Id = certificate.Game.Id,
+                Name = certificate.Game.Name,
+                Division = certificate.Game.Division,
+                Season = certificate.Game.Season,
+                Series = certificate.Game.Series,
+                Track = certificate.Game.Track
+            },
+            Date = certificate.Date,
+            Duration = certificate.Time,
+            PlayerName = certificate.PlayerName,
+            Score = certificate.Score,
+            TeamName = certificate.TeamName,
+            UserId = request.ActingUser.Id,
+            UserName = certificate.UserName,
+            UserRequestedName = request.RequestedName
+        };
+
+        return await _certificatesService.BuildCertificateHtml(templateId, certificateContext, cancellationToken);
     }
 }

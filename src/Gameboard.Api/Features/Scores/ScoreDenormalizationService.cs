@@ -15,23 +15,16 @@ public interface IScoreDenormalizationService
     Task DenormalizeTeam(string teamId, CancellationToken cancellationToken);
 }
 
-internal class ScoreDenormalizationService : IScoreDenormalizationService
+internal class ScoreDenormalizationService
+(
+    IScoringService scoringService,
+    IStore store,
+    ITeamService teamService
+) : IScoreDenormalizationService
 {
-    private readonly IScoringService _scoringService;
-    private readonly IStore _store;
-    private readonly ITeamService _teamService;
-
-    public ScoreDenormalizationService
-    (
-        IScoringService scoringService,
-        IStore store,
-        ITeamService teamService
-    )
-    {
-        _scoringService = scoringService;
-        _store = store;
-        _teamService = teamService;
-    }
+    private readonly IScoringService _scoringService = scoringService;
+    private readonly IStore _store = store;
+    private readonly ITeamService _teamService = teamService;
 
     public async Task DenormalizeGame(string gameId, CancellationToken cancellationToken)
     {

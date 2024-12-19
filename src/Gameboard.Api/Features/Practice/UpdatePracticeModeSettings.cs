@@ -79,6 +79,7 @@ internal class UpdatePracticeModeSettingsHandler
         var updatedSettings = _mapper.Map<PracticeModeSettings>(request.Settings);
 
         updatedSettings.AttemptLimit = request.Settings.AttemptLimit;
+        updatedSettings.CertificateTemplateId = request.Settings.CertificateTemplateId;
         updatedSettings.SuggestedSearches = _practiceService.EscapeSuggestedSearches(request.Settings.SuggestedSearches);
         updatedSettings.Id = currentSettings.Id;
         updatedSettings.UpdatedOn = _now.Get();

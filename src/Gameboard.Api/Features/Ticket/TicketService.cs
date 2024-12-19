@@ -552,8 +552,7 @@ public class TicketService
 
         if (ticket.TeamId.IsNotEmpty())
         {
-            // have to do this delicately in case the team is deleted (reset)
-            // https://github.com/cmu-sei/Gameboard/issues/553 can't come soon enough
+            // #just553things
             var captain = await _store
                 .WithNoTracking<Data.Player>()
                 .Where(p => p.TeamId == ticket.TeamId)
@@ -585,6 +584,21 @@ public class TicketService
             ticket.Activity = [.. ticket.Activity.OrderByDescending(a => a.Timestamp)];
         }
 
+        // hydrate "is support personnel" across all activity
+        var activityUsers = ticket.Activity.Select(a => a.User.Id).ToArray();
+        var activityUserRoles = await _store
+            .WithNoTracking<Data.User>()
+            .Select(u => new { u.Id, u.Role })
+            .ToDictionaryAsync(u => u.Id, u => u.Role, CancellationToken.None);
+
+        foreach (var activity in ticket.Activity)
+        {
+            if (activityUserRoles.TryGetValue(activity.User.Id, out var activityUserRole))
+            {
+                activity.User.IsSupportPersonnel = await _permissionsService.Can(activityUserRole, PermissionKey.Support_ManageTickets);
+            }
+        }
+
         return ticket;
     }
 
@@ -597,7 +611,7 @@ public class TicketService
         {
             Name = user.ApprovedName,
             Id = user.Id,
-            IsSupportPersonnel = await _permissionsService.Can(PermissionKey.Support_ManageTickets),
+            IsSupportPersonnel = await _permissionsService.Can(user.Role, PermissionKey.Support_ManageTickets)
         };
     }
 

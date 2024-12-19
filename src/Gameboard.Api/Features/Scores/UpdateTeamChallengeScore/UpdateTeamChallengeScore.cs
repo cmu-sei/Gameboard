@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,7 @@ internal class UpdateTeamChallengeBaseScoreHandler(
     IMediator mediator,
     IScoringService scoringService,
     IStore store,
+    ITeamService teamService,
     IGameboardRequestValidator<UpdateTeamChallengeBaseScoreCommand> validator
     ) : IRequestHandler<UpdateTeamChallengeBaseScoreCommand, TeamChallengeScore>
 {
@@ -26,6 +28,7 @@ internal class UpdateTeamChallengeBaseScoreHandler(
     private readonly IMediator _mediator = mediator;
     private readonly IScoringService _scoringService = scoringService;
     private readonly IStore _store = store;
+    private readonly ITeamService _teamService = teamService;
     private readonly IGameboardRequestValidator<UpdateTeamChallengeBaseScoreCommand> _validator = validator;
 
     public async Task<TeamChallengeScore> Handle(UpdateTeamChallengeBaseScoreCommand request, CancellationToken cancellationToken)
@@ -33,7 +36,6 @@ internal class UpdateTeamChallengeBaseScoreHandler(
         // validate
         await _validator.Validate(request, cancellationToken);
 
-        // load additional data (and track - we use the dbContext to finalize below)
         var updateChallenge = await _store
             .WithNoTracking<Data.Challenge>()
             .Include(c => c.Game)
@@ -89,6 +91,13 @@ internal class UpdateTeamChallengeBaseScoreHandler(
                 });
             }
         }
+
+        // update cumulative times
+        var teamCumulativeTimeMs = await _teamService.GetCumulativeTimeMs(updateChallenge.TeamId, cancellationToken);
+        await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.TeamId == updateChallenge.TeamId)
+            .ExecuteUpdateAsync(up => up.SetProperty(p => p.Time, teamCumulativeTimeMs), cancellationToken);
 
         // notify score-interested listeners that a team has scored
         await _mediator.Publish(new ScoreChangedNotification(updateChallenge.TeamId), cancellationToken);

@@ -33,6 +33,6 @@ internal class GetPracticeModeCertificatesHandler
             .AddValidator(_userExists.UseProperty(r => r.CertificateOwnerUserId))
             .Validate(request, cancellationToken);
 
-        return await _certificatesService.GetPracticeCertificates(request.CertificateOwnerUserId);
+        return await _certificatesService.GetPracticeCertificates(request.CertificateOwnerUserId, cancellationToken);
     }
 }

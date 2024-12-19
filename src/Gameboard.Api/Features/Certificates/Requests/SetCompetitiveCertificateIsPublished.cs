@@ -54,7 +54,7 @@ internal class SetCompetitiveCertificateIsPublishedHandler : IRequestHandler<Set
                 PublishedOn = _nowService.Get(),
                 GameId = request.GameId
             };
-            await _store.Create<PublishedCompetitiveCertificate>(publish);
+            await _store.Create(publish);
 
             // pull the game and owner for return val
             var createdPublish = await GetExistingPublish(request.ActingUser.Id, request.GameId, cancellationToken);
@@ -89,12 +89,13 @@ internal class SetCompetitiveCertificateIsPublishedHandler : IRequestHandler<Set
         return null;
     }
 
-    private async Task<PublishedCompetitiveCertificate> GetExistingPublish(string ownerUserId, string gameId, CancellationToken cancellationToken)
-        => await _store
+    private Task<PublishedCompetitiveCertificate> GetExistingPublish(string ownerUserId, string gameId, CancellationToken cancellationToken)
+        => _store
             .WithNoTracking<PublishedCompetitiveCertificate>()
                 .Include(c => c.Game)
                 .Include(c => c.OwnerUser)
             .Where(c => c.GameId == gameId)
             .Where(c => c.OwnerUserId == ownerUserId)
+            .OrderByDescending(c => c.PublishedOn)
             .FirstOrDefaultAsync(cancellationToken);
 }
