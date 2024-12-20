@@ -29,6 +29,7 @@ public interface ITeamService
     Task<CalculatedSessionWindow> GetSession(string teamId, CancellationToken cancellationToken);
     Task<int> GetSessionCount(string teamId, string gameId, CancellationToken cancellationToken);
     Task<IEnumerable<SponsorWithParentSponsor>> GetSponsors(string teamId, CancellationToken cancellationToken);
+    Task<long> GetCumulativeTimeMs(string id, CancellationToken cancellationToken);
     Task<Team> GetTeam(string id);
     Task<IEnumerable<Team>> GetTeams(IEnumerable<string> ids);
     Task<string[]> GetUserTeamIds(string userId);
@@ -331,6 +332,19 @@ internal class TeamService
                     now < p.SessionEnd
             )
             .CountAsync(cancellationToken);
+    }
+
+    public async Task<long> GetCumulativeTimeMs(string id, CancellationToken cancellationToken)
+    {
+        var teamChallengeTimes = await _store
+            .WithNoTracking<Data.Challenge>()
+            .Where(c => c.TeamId == id)
+            .WhereDateIsNotEmpty(c => c.LastScoreTime)
+            .WhereDateIsNotEmpty(c => c.StartTime)
+            .Select(c => new { c.LastScoreTime, c.StartTime })
+            .ToArrayAsync(cancellationToken);
+
+        return teamChallengeTimes.Sum(c => c.LastScoreTime.ToUnixTimeMilliseconds() - c.StartTime.ToUnixTimeMilliseconds());
     }
 
     public async Task<Team> GetTeam(string id)

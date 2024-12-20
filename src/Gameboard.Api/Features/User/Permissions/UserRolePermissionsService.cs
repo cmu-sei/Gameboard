@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
@@ -13,6 +12,7 @@ namespace Gameboard.Api.Features.Users;
 public interface IUserRolePermissionsService
 {
     Task<bool> Can(PermissionKey key);
+    Task<bool> Can(UserRoleKey role, PermissionKey permissionKey);
     bool IsActingUser(string userId);
     Task<bool> IsActingUserAsync(string userId);
     Task<IEnumerable<PermissionKey>> GetAllPermissions();
@@ -223,6 +223,12 @@ internal class UserRolePermissionsService(IActingUserService actingUserService, 
 
         var rolePermissions = await GetPermissions(actingUserService.Get().Role);
         return rolePermissions.Contains(key);
+    }
+
+    public async Task<bool> Can(UserRoleKey role, PermissionKey permissionKey)
+    {
+        var rolesWithPermission = await GetRolesWithPermission(permissionKey);
+        return rolesWithPermission.Contains(role);
     }
 
     public Task<IEnumerable<PermissionKey>> GetAllPermissions()

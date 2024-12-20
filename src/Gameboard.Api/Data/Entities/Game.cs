@@ -23,7 +23,7 @@ public class Game : IEntity
     public DateTimeOffset GameEnd { get; set; }
     public string GameMarkdown { get; set; }
     public string FeedbackConfig { get; set; }
-    public string CertificateTemplate { get; set; }
+    public string CertificateTemplateLegacy { get; set; }
     public string RegistrationMarkdown { get; set; }
     public DateTimeOffset RegistrationOpen { get; set; }
     public DateTimeOffset RegistrationClose { get; set; }
@@ -62,15 +62,23 @@ public class Game : IEntity
     public FeedbackTemplate FeedbackTemplate { get; set; }
     public ICollection<FeedbackSubmissionGame> FeedbackSubmissions { get; set; } = [];
 
+    // certificates
+    public ICollection<PublishedCompetitiveCertificate> PublishedCompetitiveCertificates { get; set; } = [];
+
+    public string CertificateTemplateId { get; set; }
+    public CertificateTemplate CertificateTemplate { get; set; }
+    public string PracticeCertificateTemplateId { get; set; }
+    public CertificateTemplate PracticeCertificateTemplate { get; set; }
+
+    // other navs
     public ICollection<Player> AdvancedPlayers { get; set; }
-    public ICollection<ChallengeSpec> Specs { get; set; } = new List<ChallengeSpec>();
-    public ICollection<DenormalizedTeamScore> DenormalizedTeamScores = new List<DenormalizedTeamScore>();
-    public ICollection<ExternalGameTeam> ExternalGameTeams { get; set; } = new List<ExternalGameTeam>();
-    public ICollection<Player> Players { get; set; } = new List<Player>();
-    public ICollection<Challenge> Challenges { get; set; } = new List<Challenge>();
-    public ICollection<Feedback> Feedback { get; set; } = new List<Feedback>();
-    public ICollection<ChallengeGate> Prerequisites { get; set; } = new List<ChallengeGate>();
-    public ICollection<PublishedCompetitiveCertificate> PublishedCompetitiveCertificates { get; set; }
+    public ICollection<ChallengeSpec> Specs { get; set; } = [];
+    public ICollection<DenormalizedTeamScore> DenormalizedTeamScores = [];
+    public ICollection<ExternalGameTeam> ExternalGameTeams { get; set; } = [];
+    public ICollection<Player> Players { get; set; } = [];
+    public ICollection<Challenge> Challenges { get; set; } = [];
+    public ICollection<Feedback> Feedback { get; set; } = [];
+    public ICollection<ChallengeGate> Prerequisites { get; set; } = [];
 
     [NotMapped] public bool RequireSession => SessionMinutes > 0;
     [NotMapped] public bool RequireTeam => MinTeamSize > 1;

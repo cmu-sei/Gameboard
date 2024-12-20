@@ -178,6 +178,31 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("AwardedChallengeBonuses");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.CertificateTemplate", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.ToTable("CertificateTemplate");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
                 {
                     b.Property<string>("Id")
@@ -770,7 +795,10 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
-                    b.Property<string>("CertificateTemplate")
+                    b.Property<string>("CertificateTemplateId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CertificateTemplateLegacy")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ChallengesFeedbackTemplateId")
@@ -835,6 +863,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<int>("PlayerMode")
                         .HasColumnType("int");
 
+                    b.Property<string>("PracticeCertificateTemplateId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<DateTimeOffset>("RegistrationClose")
                         .HasColumnType("datetimeoffset");
 
@@ -886,11 +917,15 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CertificateTemplateId");
+
                     b.HasIndex("ChallengesFeedbackTemplateId");
 
                     b.HasIndex("ExternalHostId");
 
                     b.HasIndex("FeedbackTemplateId");
+
+                    b.HasIndex("PracticeCertificateTemplateId");
 
                     b.ToTable("Games");
                 });
@@ -1056,6 +1091,9 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Property<string>("CertificateHtmlTemplate")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("CertificateTemplateId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<int>("DefaultPracticeSessionLengthMinutes")
                         .HasColumnType("int");
 
@@ -1079,6 +1117,10 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CertificateTemplateId")
+                        .IsUnique()
+                        .HasFilter("[CertificateTemplateId] IS NOT NULL");
 
                     b.HasIndex("UpdatedByUserId")
                         .IsUnique()
@@ -1565,6 +1607,17 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("ChallengeBonus");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.CertificateTemplate", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.User", "CreatedByUser")
+                        .WithMany("CreatedCertificateTemplates")
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.Game", "Game")
@@ -1752,6 +1805,11 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.Game", b =>
                 {
+                    b.HasOne("Gameboard.Api.Data.CertificateTemplate", "CertificateTemplate")
+                        .WithMany("UseAsTemplateForGames")
+                        .HasForeignKey("CertificateTemplateId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Gameboard.Api.Data.FeedbackTemplate", "ChallengesFeedbackTemplate")
                         .WithMany("UseAsFeedbackTemplateForGames")
                         .HasForeignKey("ChallengesFeedbackTemplateId");
@@ -1765,11 +1823,20 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .WithMany("UseAsFeedbackTemplateForGameChallenges")
                         .HasForeignKey("FeedbackTemplateId");
 
+                    b.HasOne("Gameboard.Api.Data.CertificateTemplate", "PracticeCertificateTemplate")
+                        .WithMany("UseAsPracticeTemplateForGames")
+                        .HasForeignKey("PracticeCertificateTemplateId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CertificateTemplate");
+
                     b.Navigation("ChallengesFeedbackTemplate");
 
                     b.Navigation("ExternalHost");
 
                     b.Navigation("FeedbackTemplate");
+
+                    b.Navigation("PracticeCertificateTemplate");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.ManualBonus", b =>
@@ -1822,9 +1889,16 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.PracticeModeSettings", b =>
                 {
+                    b.HasOne("Gameboard.Api.Data.CertificateTemplate", "CertificateTemplate")
+                        .WithOne("UsedAsPracticeModeDefault")
+                        .HasForeignKey("Gameboard.Api.Data.PracticeModeSettings", "CertificateTemplateId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Gameboard.Api.Data.User", "UpdatedByUser")
                         .WithOne("UpdatedPracticeModeSettings")
                         .HasForeignKey("Gameboard.Api.Data.PracticeModeSettings", "UpdatedByUserId");
+
+                    b.Navigation("CertificateTemplate");
 
                     b.Navigation("UpdatedByUser");
                 });
@@ -2023,6 +2097,15 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("OwnerUser");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.CertificateTemplate", b =>
+                {
+                    b.Navigation("UseAsPracticeTemplateForGames");
+
+                    b.Navigation("UseAsTemplateForGames");
+
+                    b.Navigation("UsedAsPracticeModeDefault");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.Challenge", b =>
                 {
                     b.Navigation("AwardedBonuses");
@@ -2129,6 +2212,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
             modelBuilder.Entity("Gameboard.Api.Data.User", b =>
                 {
                     b.Navigation("ApiKeys");
+
+                    b.Navigation("CreatedCertificateTemplates");
 
                     b.Navigation("CreatedFeedbackTemplates");
 

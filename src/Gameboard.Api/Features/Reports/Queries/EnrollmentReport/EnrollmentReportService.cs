@@ -229,6 +229,9 @@ internal class EnrollmentReportService(
             }
         }
 
+        var noChallengeStartedPlayers = rawResults.Where(r => r.ChallengesStarted == 0);
+        var noSessionPlayers = rawResults.Where(r => r.Player.SessionBegin.IsEmpty());
+
         return new EnrollmentReportStatSummary
         {
             DistinctGameCount = rawResults.Select(r => r.Player.GameId).Distinct().Count(),
@@ -236,8 +239,10 @@ internal class EnrollmentReportService(
             DistinctSponsorCount = rawResults.Select(r => r.Player.SponsorId).Distinct().Count(),
             DistinctTeamCount = rawResults.Select(r => r.Player.TeamId).Distinct().Count(),
             SponsorWithMostPlayers = sponsorWithMostPlayers,
-            TeamsWithNoSessionCount = rawResults.Where(r => r.Player.SessionBegin.IsEmpty()).Select(r => r.Player.TeamId).Distinct().Count(),
-            TeamsWithNoStartedChallengeCount = rawResults.Where(r => r.ChallengesStarted == 0).Select(r => r.Player.TeamId).Distinct().Count()
+            PlayersWithNoSessionCount = noSessionPlayers.Select(r => r.Player.UserId).Distinct().Count(),
+            PlayersWithNoStartedChallengeCount = noChallengeStartedPlayers.Select(r => r.Player.UserId).Distinct().Count(),
+            TeamsWithNoSessionCount = noSessionPlayers.Select(r => r.Player.TeamId).Distinct().Count(),
+            TeamsWithNoStartedChallengeCount = noChallengeStartedPlayers.Select(r => r.Player.TeamId).Distinct().Count()
         };
     }
 
