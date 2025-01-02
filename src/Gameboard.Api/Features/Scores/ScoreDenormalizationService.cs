@@ -108,7 +108,7 @@ internal class ScoreDenormalizationService
         {
             CumulativeTimeMs = t.CumulativeTimeMs,
             OverallScore = t.ScoreOverall,
-            SessionStart = !captains.TryGetValue(t.TeamId, out var captain) || captain.SessionBegin == DateTimeOffset.MinValue ? null : captain.SessionBegin,
+            SessionStart = !captains.TryGetValue(t.TeamId, out var captain) || captain?.SessionBegin == DateTimeOffset.MinValue ? null : captain.SessionBegin,
             TeamId = t.TeamId
         }));
 
