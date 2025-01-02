@@ -279,6 +279,12 @@ internal class GetGameCenterTeamsHandler
                         Id = tId,
                         Name = captain.Name,
                         IsExtended = captain.SessionEnd is not null && captain.SessionBegin is not null && (captain.SessionEnd.Value - captain.SessionBegin.Value).TotalMinutes > gameSessionMinutes,
+                        Advancement = captain.Advancement is null ? null : new GameCenterTeamsAdvancement
+                        {
+                            FromGame = captain.Advancement.FromGame,
+                            FromTeam = captain.Advancement.FromTeam,
+                            Score = captain.Advancement.Score
+                        },
                         Captain = new GameCenterTeamsPlayer
                         {
                             Id = captain.Id,

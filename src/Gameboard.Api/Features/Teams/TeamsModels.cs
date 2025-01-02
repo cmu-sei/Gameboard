@@ -4,6 +4,13 @@ using System.Linq;
 
 namespace Gameboard.Api.Features.Teams;
 
+public class AdvanceTeamsRequest
+{
+    public required string GameId { get; set; }
+    public required bool IncludeScores { get; set; }
+    public required string[] TeamIds { get; set; }
+}
+
 public class PromoteToManagerRequest
 {
     public User Actor { get; set; }

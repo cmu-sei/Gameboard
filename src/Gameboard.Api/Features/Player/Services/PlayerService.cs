@@ -533,6 +533,7 @@ public class PlayerService
         var teams = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => p.GameId == model.GameId)
+            .Where(p => model.TeamIds.Contains(p.TeamId))
             .Select(p => new
             {
                 p.Id,
@@ -591,11 +592,12 @@ public class PlayerService
             .Where(p => allAdvancingPlayerIds.Contains(p.Id))
             .ExecuteUpdateAsync(up => up.SetProperty(p => p.Advanced, true));
 
-
         // for now, this is a little goofy, but raising any team's score change will rerank the game,
         // and that's what we want, so...
-        if (teams.Count > 0)
-            await _mediator.Publish(new ScoreChangedNotification(model.TeamIds.First()));
+        if (enrollments.Count > 0)
+        {
+            await _mediator.Publish(new ScoreChangedNotification(enrollments.First().TeamId));
+        }
     }
 
     public async Task<PlayerCertificate> MakeCertificate(string id)

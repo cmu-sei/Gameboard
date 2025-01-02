@@ -42,6 +42,7 @@ public sealed class GameCenterTeamsResultsTeam
     public required string Id { get; set; }
     public required string Name { get; set; }
 
+    public required GameCenterTeamsAdvancement Advancement { get; set; }
     public required GameCenterTeamsPlayer Captain { get; set; }
     public required int ChallengesCompleteCount { get; set; }
     public required int ChallengesPartialCount { get; set; }
@@ -60,7 +61,7 @@ public sealed class GameCenterTeamsAdvancement
 {
     public required SimpleEntity FromGame { get; set; }
     public required SimpleEntity FromTeam { get; set; }
-    public required double Score { get; set; }
+    public required double? Score { get; set; }
 }
 
 public enum GameCenterTeamsSessionStatus
