@@ -112,6 +112,14 @@ public class TeamSummary
     }
 }
 
+public sealed class TeamChallengeTime
+{
+    public required string TeamId { get; set; }
+    public required string ChallengeId { get; set; }
+    public required DateTimeOffset? StartTime { get; set; }
+    public required DateTimeOffset? LastScoreTime { get; set; }
+}
+
 public class TeamPlayer
 {
     public string Id { get; set; }
