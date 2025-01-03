@@ -246,7 +246,8 @@ internal class CertificatesService
                 CreatedByUser = new SimpleEntity { Id = t.CreatedByUserId, Name = t.CreatedByUser.ApprovedName },
                 UseAsPracticeTemplateForGames = t.UseAsPracticeTemplateForGames.Select(g => new SimpleEntity { Id = g.Id, Name = g.Name }),
                 UseAsTemplateForGames = t.UseAsTemplateForGames.Select(g => new SimpleEntity { Id = g.Id, Name = g.Name })
-            });
+            })
+            .OrderBy(t => t.Name);
 
     private string BuildCertificateHtml(string templateHtml, CertificateHtmlContext htmlContext)
     {

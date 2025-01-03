@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -133,6 +134,16 @@ public class PlayerService
         );
     }
 
+    public Expression<Func<Data.Player, bool>> GetWhereHasPendingNamePredicate()
+    {
+        return p => p.Name != p.ApprovedName && p.Name != null && p.Name != string.Empty && (p.NameStatus == null || p.NameStatus == string.Empty || p.NameStatus == AppConstants.NameStatusPending);
+    }
+
+    public Expression<Func<Data.Player, bool>> GetWhereDoesntHavePendingNamePredicate()
+    {
+        return p => !(p.Name != p.ApprovedName && p.Name != null && p.Name != string.Empty && (p.NameStatus == null || p.NameStatus == string.Empty || p.NameStatus == AppConstants.NameStatusPending));
+    }
+
     /// <summary>
     /// Maps a PlayerId to its UserId
     /// </summary>
@@ -182,7 +193,9 @@ public class PlayerService
 
         // if manipulation of the names has caused Name to equal ApprovedName, clear any pending status
         if (player.Name == player.ApprovedName && player.NameStatus == AppConstants.NameStatusPending)
+        {
             player.NameStatus = string.Empty;
+        }
 
         if (prev.Name != player.Name)
         {
@@ -308,7 +321,10 @@ public class PlayerService
             q = q.Where(p => !p.Advanced);
 
         if (model.WantsPending)
-            q = q.Where(p => p.Name != null && p.Name != string.Empty && p.Name != p.ApprovedName);
+        {
+            var pendingNamePredicate = GetWhereHasPendingNamePredicate();
+            q = q.Where(pendingNamePredicate);
+        }
 
         if (model.WantsDisallowed)
             q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus));
