@@ -23,6 +23,10 @@ public class TeamController(
     private readonly IMediator _mediator = mediator;
     private readonly ITeamService _teamService = teamService;
 
+    [HttpPost("advance")]
+    public Task AdvanceTeams([FromBody] AdvanceTeamsRequest request)
+        => _mediator.Send(new AdvanceTeamsCommand(request.GameId, request.IncludeScores, request.TeamIds));
+
     [HttpDelete("{teamId}/players/{playerId}")]
     public Task<RemoveFromTeamResponse> RemovePlayer([FromRoute] string teamId, [FromRoute] string playerId)
         => _mediator.Send(new RemoveFromTeamCommand(playerId));

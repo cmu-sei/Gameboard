@@ -341,10 +341,16 @@ internal class TeamService
             .Where(c => c.TeamId == id)
             .WhereDateIsNotEmpty(c => c.LastScoreTime)
             .WhereDateIsNotEmpty(c => c.StartTime)
-            .Select(c => new { c.LastScoreTime, c.StartTime })
+            .Select(c => new TeamChallengeTime
+            {
+                TeamId = c.TeamId,
+                ChallengeId = c.Id,
+                StartTime = c.StartTime == DateTimeOffset.MinValue ? null : c.StartTime,
+                LastScoreTime = c.LastScoreTime == DateTimeOffset.MinValue ? null : c.LastScoreTime,
+            })
             .ToArrayAsync(cancellationToken);
 
-        return teamChallengeTimes.Sum(c => c.LastScoreTime.ToUnixTimeMilliseconds() - c.StartTime.ToUnixTimeMilliseconds());
+        return CalculateCumulativeTimeMs(teamChallengeTimes);
     }
 
     public async Task<Team> GetTeam(string id)
@@ -576,9 +582,18 @@ internal class TeamService
             .Select(c => _gameEngine.ExtendSession(c.Id, sessionWindow.End, c.GameEngineType))
             .ToArray();
 
-        if (pushGamespaceUpdateTasks.Any())
+        if (pushGamespaceUpdateTasks.Length > 0)
+        {
             await Task.WhenAll(pushGamespaceUpdateTasks);
+        }
     }
+
+    // protected for unit testing
+    protected long CalculateCumulativeTimeMs(IEnumerable<TeamChallengeTime> challengeTimes)
+        => challengeTimes
+            .Where(t => t.StartTime.IsNotEmpty())
+            .Where(t => t.LastScoreTime.IsNotEmpty())
+            .Sum(t => Math.Max(t.LastScoreTime.Value.ToUnixTimeMilliseconds() - t.StartTime.Value.ToUnixTimeMilliseconds(), 0));
 
     private async Task<TeamState> GetTeamState(string teamId, SimpleEntity actor, CancellationToken cancellationToken)
     {

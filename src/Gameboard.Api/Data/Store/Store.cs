@@ -148,6 +148,14 @@ internal class Store(IGuidService guids, GameboardDbContext dbContext) : IStore
 
     public async Task<IEnumerable<TEntity>> SaveAddRange<TEntity>(params TEntity[] entities) where TEntity : class, IEntity
     {
+        foreach (var entity in entities)
+        {
+            if (entity.Id.IsEmpty())
+            {
+                entity.Id = _guids.Generate();
+            }
+        }
+
         _dbContext.AddRange(entities);
         await _dbContext.SaveChangesAsync();
 

@@ -4,6 +4,13 @@ using System.Linq;
 
 namespace Gameboard.Api.Features.Teams;
 
+public class AdvanceTeamsRequest
+{
+    public required string GameId { get; set; }
+    public required bool IncludeScores { get; set; }
+    public required string[] TeamIds { get; set; }
+}
+
 public class PromoteToManagerRequest
 {
     public User Actor { get; set; }
@@ -110,6 +117,14 @@ public class TeamSummary
                 .ToArray();
         }
     }
+}
+
+public sealed class TeamChallengeTime
+{
+    public required string TeamId { get; set; }
+    public required string ChallengeId { get; set; }
+    public required DateTimeOffset? StartTime { get; set; }
+    public required DateTimeOffset? LastScoreTime { get; set; }
 }
 
 public class TeamPlayer
