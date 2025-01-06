@@ -10,6 +10,7 @@ using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ServiceStack;
 
 namespace Gameboard.Api.Features.Admin;
 
@@ -19,6 +20,7 @@ internal class GetGameCenterTeamsHandler
 (
     INowService nowService,
     IPagingService pagingService,
+    PlayerService playerService,
     IStore store,
     ITeamService teamService,
     TicketService ticketService
@@ -26,6 +28,7 @@ internal class GetGameCenterTeamsHandler
 {
     private readonly INowService _nowService = nowService;
     private readonly IPagingService _pagingService = pagingService;
+    private readonly PlayerService _playerService = playerService;
     private readonly IStore _store = store;
     private readonly ITeamService _teamService = teamService;
     private readonly TicketService _ticketService = ticketService;
@@ -92,6 +95,18 @@ internal class GetGameCenterTeamsHandler
             }
         }
 
+        if (request.Args.HasPendingNames is not null)
+        {
+            if (request.Args.HasPendingNames.Value)
+            {
+                query = query.Where(_playerService.GetWhereHasPendingNamePredicate());
+            }
+            else
+            {
+                query = query.Where(_playerService.GetWhereDoesntHavePendingNamePredicate());
+            }
+        }
+
         var matchingTeams = await query
             .Select(p => new
             {
@@ -124,15 +139,7 @@ internal class GetGameCenterTeamsHandler
                 p.WhenCreated
             })
             .GroupBy(p => p.TeamId)
-            // have to do pending names filter here because we need all players
-            .ToDictionaryAsync(gr => gr.Key, gr => gr.ToArray(), cancellationToken);
-
-        if (request.Args.HasPendingNames is not null)
-        {
-            matchingTeams = matchingTeams
-                .Where(kv => request.Args.HasPendingNames.Value == kv.Value.Any(p => p.PendingName != p.Name && (p.NameStatus == string.Empty || p.NameStatus == null || p.NameStatus == AppConstants.NameStatusPending)))
-                .ToDictionary(kv => kv.Key, kv => kv.Value);
-        }
+            .ToDictionaryAsync(gr => gr.Key, gr => gr.ToArray(), cancellationToken); ;
 
         var matchingTeamIds = matchingTeams.Keys.ToArray();
         var captains = matchingTeams.ToDictionary(kv => kv.Key, kv =>
@@ -257,9 +264,7 @@ internal class GetGameCenterTeamsHandler
         // last, we check to see if the game has any pending approvals, as we need them for the screen
         var pendingNameCount = await _store
             .WithNoTracking<Data.Player>()
-            .Where(p => p.GameId == request.GameId)
-            .Where(p => p.Name != null && p.Name != string.Empty && p.Name != p.ApprovedName)
-            .Where(p => p.NameStatus == AppConstants.NameStatusPending || p.NameStatus == null || p.NameStatus == string.Empty)
+            .Where(_playerService.GetWhereHasPendingNamePredicate())
             .CountAsync(cancellationToken);
 
         return new GameCenterTeamsResults
