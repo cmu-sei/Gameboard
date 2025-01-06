@@ -1,7 +1,10 @@
 using Gameboard.Api.Common;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Reports;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Structure;
+using Microsoft.EntityFrameworkCore;
+using ServiceStack;
 
 namespace Gameboard.Api.Tests.Integration.Teams;
 
@@ -61,7 +64,7 @@ public class TeamControllerStartTeamSessionTests(GameboardTestContext testContex
             state.Add(new Data.Game
             {
                 Id = gameId,
-                MinTeamSize = 2,
+                MinTeamSize = 1,
                 MaxTeamSize = 5,
                 GameStart = DateTimeOffset.UtcNow,
                 GameEnd = DateTimeOffset.UtcNow.AddDays(1),
@@ -203,7 +206,6 @@ public class TeamControllerStartTeamSessionTests(GameboardTestContext testContex
         response.IsSuccessStatusCode.ShouldBeFalse();
     }
 
-    // Users can team up, leave the team, join a different team, then start sessions on the original and the new team
     // Admins can start sessions for non-admins
     [Theory, GbIntegrationAutoData]
     public async Task Team_WhenAdminStartingOtherTeamSession_Starts
@@ -235,7 +237,101 @@ public class TeamControllerStartTeamSessionTests(GameboardTestContext testContex
             .CreateHttpClientWithAuthRole(UserRoleKey.Admin)
             .PutAsync($"api/player/{targetPlayerId}/start", null);
 
-        // then the response should have a failure code
-        response.IsSuccessStatusCode.ShouldBeTrue();
+        // then the session should have successfully begun
+        var sessionStartTime = await _testContext
+            .GetValidationDbContext()
+            .Players
+            .AsNoTracking()
+            .Where(p => p.Id == targetPlayerId)
+            .Select(p => p.SessionBegin)
+            .SingleOrDefaultAsync();
+
+        sessionStartTime.ShouldNotBe(DateTimeOffset.MinValue);
+    }
+
+    // Users can team up, leave the team, join a different team, then start sessions on the original and the new team
+    [Theory, GbIntegrationAutoData]
+    public async Task Team_WhenTeamedUpThenLeave_CanBothStart
+    (
+        string gameId,
+        string player1Id,
+        string player2Id,
+        string teamId,
+        string user1Id,
+        string user2Id,
+        IFixture fixture
+    )
+    {
+        // given two players
+        await _testContext.WithDataState(state =>
+        {
+            state.Add<Data.Game>(fixture, game =>
+            {
+                game.Id = gameId;
+                game.MaxTeamSize = 2;
+                game.Players =
+                [
+                    state.Build<Data.Player>(fixture, p =>
+                    {
+                        p.Id = player1Id;
+                        p.Role = PlayerRole.Manager;
+                        p.TeamId = teamId;
+                        p.User = state.Build<Data.User>(fixture, u => u.Id = user1Id);
+                    }),
+                    state.Build<Data.Player>(fixture, p =>
+                    {
+                        p.Id = player2Id;
+                        p.Role = PlayerRole.Manager;
+                        p.TeamId = fixture.Create<string>();
+                        p.User = state.Build<Data.User>(fixture, u => u.Id = user2Id);
+                    })
+                ];
+            });
+        });
+
+        // when they team up, the second player leaves, and both try to start their sessions
+        var player1Http = _testContext.CreateHttpClientWithActingUser(u => u.Id = user1Id);
+        var player2Http = _testContext.CreateHttpClientWithActingUser(u => u.Id = user2Id);
+
+        // generate invite
+        var inviteCode = await player1Http
+            .PostAsync($"api/player/{player1Id}/invite", null)
+            .DeserializeResponseAs<TeamInvitation>();
+
+        // team up
+        var player2 = await player2Http
+            .PostAsync($"api/player/enlist", new PlayerEnlistment
+            {
+                Code = inviteCode.Code,
+                PlayerId = player2Id,
+                UserId = user2Id
+            }.ToJsonBody())
+            .DeserializeResponseAs<Player>();
+
+        // player 2 unenrolls
+        await player2Http.DeleteAsync($"api/player/{player2Id}");
+
+        // player 2 re-enrolls on a different team
+        var player2ReEnrolled = await player2Http.PostAsync($"api/player", new NewPlayer
+        {
+            GameId = gameId,
+            UserId = user2Id
+        }.ToJsonBody())
+        .DeserializeResponseAs<Player>();
+
+        // both sessions launch
+        var response1 = await player1Http.PutAsync($"api/player/{player1Id}/start", null);
+        var response2 = await player2Http.PutAsync($"api/player/{player2ReEnrolled.Id}/start", null);
+
+        // both users should have started sessions
+        var finalPlayers = await _testContext
+            .GetValidationDbContext()
+            .Players
+            .AsNoTracking()
+            .Where(p => p.GameId == gameId)
+            .ToArrayAsync();
+
+        finalPlayers.ShouldContain(p => p.UserId == user1Id && p.SessionBegin != DateTimeOffset.MinValue);
+        finalPlayers.ShouldContain(p => p.UserId == user2Id && p.SessionBegin != DateTimeOffset.MinValue);
     }
 }
