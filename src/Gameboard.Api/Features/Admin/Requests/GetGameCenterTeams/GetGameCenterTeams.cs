@@ -264,6 +264,7 @@ internal class GetGameCenterTeamsHandler
         // last, we check to see if the game has any pending approvals, as we need them for the screen
         var pendingNameCount = await _store
             .WithNoTracking<Data.Player>()
+            .Where(p => p.GameId == request.GameId)
             .Where(_playerService.GetWhereHasPendingNamePredicate())
             .CountAsync(cancellationToken);
 
