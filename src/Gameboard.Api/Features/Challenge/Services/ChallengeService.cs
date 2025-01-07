@@ -285,7 +285,13 @@ public partial class ChallengeService
         var practiceChallengesCutoff = _now.Get().AddDays(-7);
         q = q.Include(c => c.Player).Include(c => c.Game);
         // band-aid for #296
-        q = q.Where(c => c.Game.GameEnd > recent || (c.PlayerMode == PlayerMode.Practice && c.StartTime >= practiceChallengesCutoff));
+        q = q.Where
+        (
+            c =>
+                c.EndTime > recent ||
+                c.Game.GameEnd > recent ||
+                (c.PlayerMode == PlayerMode.Practice && c.StartTime >= practiceChallengesCutoff)
+        );
         q = q.OrderByDescending(p => p.StartTime);
 
         return await Mapper.ProjectTo<ChallengeOverview>(q).ToArrayAsync();
