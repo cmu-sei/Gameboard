@@ -13,14 +13,15 @@ namespace Gameboard.Api.Features.Teams;
 
 public record EndTeamSessionCommand(string TeamId, User Actor) : IRequest<TeamSessionUpdate>;
 
-internal class EndTeamSessionHandler(
+internal class EndTeamSessionHandler
+(
     INowService nowService,
     IUserRolePermissionsService permissionsService,
     IStore store,
     TeamExistsValidator<EndTeamSessionCommand> teamExists,
     ITeamService teamService,
     IValidatorService<EndTeamSessionCommand> validatorService
-    ) : IRequestHandler<EndTeamSessionCommand, TeamSessionUpdate>
+) : IRequestHandler<EndTeamSessionCommand, TeamSessionUpdate>
 {
     private readonly INowService _nowService = nowService;
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;

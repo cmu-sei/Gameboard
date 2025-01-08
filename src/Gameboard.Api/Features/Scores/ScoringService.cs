@@ -297,10 +297,11 @@ internal class ScoringService(
     public IDictionary<string, int?> GetTeamRanks(IEnumerable<TeamForRanking> teams)
     {
         var scoreRank = 0;
-        TeamForRanking lastScore = null;
+        var lastScore = default(TeamForRanking);
         var retVal = new Dictionary<string, int?>();
         var ranked = teams
-            .OrderByDescending(t => t.OverallScore).ThenBy(t => t.CumulativeTimeMs);
+            .OrderByDescending(t => t.OverallScore)
+                .ThenBy(t => t.CumulativeTimeMs);
 
         foreach (var team in ranked)
         {

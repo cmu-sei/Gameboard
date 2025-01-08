@@ -17,77 +17,76 @@ public class ReportsController(IMediator mediator, IReportsService service) : Co
     private readonly IReportsService _service = service;
 
     [HttpGet]
-    public async Task<IEnumerable<ReportViewModel>> List()
-        => await _service.List();
+    public Task<IEnumerable<ReportViewModel>> List()
+        => _service.List();
 
     [HttpGet("challenges")]
-    public Task<ReportResults<ChallengesReportStatSummary, ChallengesReportRecord>> GetChallengesReport([FromQuery] ChallengesReportParameters parameters, [FromQuery] PagingArgs paging)
-        => _mediator.Send(new GetChallengesReportQuery(parameters, paging));
+    public Task<ReportResults<ChallengesReportStatSummary, ChallengesReportRecord>> GetChallengesReport([FromQuery] ChallengesReportParameters parameters, [FromQuery] PagingArgs paging, CancellationToken cancellationToken)
+        => _mediator.Send(new GetChallengesReportQuery(parameters, paging), cancellationToken);
 
     [HttpGet("enrollment")]
-    public Task<ReportResults<EnrollmentReportRecord>> GetEnrollmentReportSummary([FromQuery] EnrollmentReportParameters parameters, [FromQuery] PagingArgs paging)
-        => _mediator.Send(new EnrollmentReportSummaryQuery(parameters, paging));
+    public Task<ReportResults<EnrollmentReportRecord>> GetEnrollmentReportSummary([FromQuery] EnrollmentReportParameters parameters, [FromQuery] PagingArgs paging, CancellationToken cancellationToken)
+        => _mediator.Send(new EnrollmentReportSummaryQuery(parameters, paging), cancellationToken);
 
     [HttpGet("enrollment/stats")]
-    public Task<EnrollmentReportStatSummary> GetEnrollmentReportSummaryStats([FromQuery] EnrollmentReportParameters parameters)
-        => _mediator.Send(new EnrollmentReportSummaryStatsQuery(parameters));
+    public Task<EnrollmentReportStatSummary> GetEnrollmentReportSummaryStats([FromQuery] EnrollmentReportParameters parameters, CancellationToken cancellationToken)
+        => _mediator.Send(new EnrollmentReportSummaryStatsQuery(parameters), cancellationToken);
 
     [HttpGet("enrollment/trend")]
-    public Task<EnrollmentReportLineChartResponse> GetEnrollmentReportLineChart([FromQuery] EnrollmentReportParameters parameters)
-        => _mediator.Send(new EnrollmentReportLineChartQuery(parameters));
+    public Task<EnrollmentReportLineChartResponse> GetEnrollmentReportLineChart([FromQuery] EnrollmentReportParameters parameters, CancellationToken cancellationToken)
+        => _mediator.Send(new EnrollmentReportLineChartQuery(parameters), cancellationToken);
 
     [HttpGet("enrollment/by-game")]
-    public Task<ReportResults<EnrollmentReportByGameRecord>> GetEnrollmentReportByGame([FromQuery] EnrollmentReportParameters parameters, [FromQuery] PagingArgs pagingArgs)
-        => _mediator.Send(new EnrollmentReportByGameQuery(parameters, pagingArgs));
+    public Task<ReportResults<EnrollmentReportByGameRecord>> GetEnrollmentReportByGame([FromQuery] EnrollmentReportParameters parameters, [FromQuery] PagingArgs pagingArgs, CancellationToken cancellationToken)
+        => _mediator.Send(new EnrollmentReportByGameQuery(parameters, pagingArgs), cancellationToken);
 
     [HttpGet("feedback")]
-    public Task<ReportResults<FeedbackReportSummaryData, FeedbackReportRecord>> GetFeedbackReport([FromQuery] FeedbackReportParameters request, [FromQuery] PagingArgs pagingArgs)
-        => _mediator.Send(new FeedbackReportQuery(request, pagingArgs));
+    public Task<ReportResults<FeedbackReportSummaryData, FeedbackReportRecord>> GetFeedbackReport([FromQuery] FeedbackReportParameters request, [FromQuery] PagingArgs pagingArgs, CancellationToken cancellationToken)
+        => _mediator.Send(new FeedbackReportQuery(request, pagingArgs), cancellationToken);
 
     [HttpGet("feedback-legacy")]
-    public Task<FeedbackGameReportResults> GetFeedbackGameReport([FromQuery] GetFeedbackGameReportQuery query)
-        => _mediator.Send(query);
-
+    public Task<FeedbackGameReportResults> GetFeedbackGameReport([FromQuery] GetFeedbackGameReportQuery query, CancellationToken cancellationToken)
+        => _mediator.Send(query, cancellationToken);
 
     [HttpGet("players")]
-    public Task<ReportResults<PlayersReportStatSummary, PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportParameters parameters, [FromQuery] PagingArgs pagingArgs)
-        => _mediator.Send(new GetPlayersReportQuery(parameters, pagingArgs));
+    public Task<ReportResults<PlayersReportStatSummary, PlayersReportRecord>> GetPlayersReport([FromQuery] PlayersReportParameters parameters, [FromQuery] PagingArgs pagingArgs, CancellationToken cancellationToken)
+        => _mediator.Send(new GetPlayersReportQuery(parameters, pagingArgs), cancellationToken);
 
     [HttpGet("practice-area")]
-    public async Task<ReportResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>> GetPracticeModeReport([FromQuery] PracticeModeReportParameters parameters, [FromQuery] PagingArgs paging)
-        => await _mediator.Send(new PracticeModeReportQuery(parameters, paging));
+    public async Task<ReportResults<PracticeModeReportOverallStats, IPracticeModeReportRecord>> GetPracticeModeReport([FromQuery] PracticeModeReportParameters parameters, [FromQuery] PagingArgs paging, CancellationToken cancellationToken)
+        => await _mediator.Send(new PracticeModeReportQuery(parameters, paging), cancellationToken);
 
     [HttpGet("practice-area/challenge-spec/{challengeSpecId}")]
-    public Task<PracticeModeReportChallengeDetail> GetChallengeDetail([FromQuery] PracticeModeReportParameters parameters, [FromQuery] PracticeModeReportChallengeDetailParameters challengeDetailParameters, [FromQuery] PagingArgs pagingArgs, [FromRoute] string challengeSpecId)
-        => _mediator.Send(new PracticeModeReportChallengeDetailQuery(challengeSpecId, parameters, challengeDetailParameters, pagingArgs));
+    public Task<PracticeModeReportChallengeDetail> GetChallengeDetail([FromQuery] PracticeModeReportParameters parameters, [FromQuery] PracticeModeReportChallengeDetailParameters challengeDetailParameters, [FromQuery] PagingArgs pagingArgs, [FromRoute] string challengeSpecId, CancellationToken cancellationToken)
+        => _mediator.Send(new PracticeModeReportChallengeDetailQuery(challengeSpecId, parameters, challengeDetailParameters, pagingArgs), cancellationToken);
 
     [HttpGet("practice-area/user/{id}/summary")]
-    public async Task<PracticeModeReportPlayerModeSummary> GetPracticeModeReportPlayerModeSummary([FromRoute] string id, [FromQuery] bool isPractice)
-        => await _mediator.Send(new PracticeModeReportPlayerModeSummaryQuery(id, isPractice));
+    public async Task<PracticeModeReportPlayerModeSummary> GetPracticeModeReportPlayerModeSummary([FromRoute] string id, [FromQuery] bool isPractice, CancellationToken cancellationToken)
+        => await _mediator.Send(new PracticeModeReportPlayerModeSummaryQuery(id, isPractice), cancellationToken);
 
     [HttpGet("site-usage")]
-    public Task<SiteUsageReportRecord> GetSiteUsageReport([FromQuery] SiteUsageReportParameters parameters)
-        => _mediator.Send(new GetSiteUsageReportQuery(parameters));
+    public Task<SiteUsageReportRecord> GetSiteUsageReport([FromQuery] SiteUsageReportParameters parameters, CancellationToken cancellationToken)
+        => _mediator.Send(new GetSiteUsageReportQuery(parameters), cancellationToken);
 
     [HttpGet("site-usage/challenges")]
-    public Task<PagedEnumerable<SiteUsageReportChallenge>> GetSiteUsageREportChallenges([FromQuery] SiteUsageReportParameters reportParameters, [FromQuery] PagingArgs pagingArgs)
-        => _mediator.Send(new GetSiteUsageReportChallengesQuery(reportParameters, pagingArgs));
+    public Task<PagedEnumerable<SiteUsageReportChallenge>> GetSiteUsageREportChallenges([FromQuery] SiteUsageReportParameters reportParameters, [FromQuery] PagingArgs pagingArgs, CancellationToken cancellationToken)
+        => _mediator.Send(new GetSiteUsageReportChallengesQuery(reportParameters, pagingArgs), cancellationToken);
 
     [HttpGet("site-usage/players")]
-    public Task<PagedEnumerable<SiteUsageReportPlayer>> GetSiteUsageReportPlayers([FromQuery] SiteUsageReportParameters reportParameters, [FromQuery] SiteUsageReportPlayersParameters playersParameters, [FromQuery] PagingArgs pagingArgs)
-        => _mediator.Send(new GetSiteUsageReportPlayersQuery(reportParameters, playersParameters, pagingArgs));
+    public Task<PagedEnumerable<SiteUsageReportPlayer>> GetSiteUsageReportPlayers([FromQuery] SiteUsageReportParameters reportParameters, [FromQuery] SiteUsageReportPlayersParameters playersParameters, [FromQuery] PagingArgs pagingArgs, CancellationToken cancellationToken)
+        => _mediator.Send(new GetSiteUsageReportPlayersQuery(reportParameters, playersParameters, pagingArgs), cancellationToken);
 
     [HttpGet("site-usage/sponsors")]
-    public Task<IEnumerable<SiteUsageReportSponsor>> GetSiteUsageReportSponsors([FromQuery] SiteUsageReportParameters reportParameters)
-        => _mediator.Send(new GetSiteUsageReportSponsorsQuery(reportParameters));
+    public Task<IEnumerable<SiteUsageReportSponsor>> GetSiteUsageReportSponsors([FromQuery] SiteUsageReportParameters reportParameters, CancellationToken cancellationToken)
+        => _mediator.Send(new GetSiteUsageReportSponsorsQuery(reportParameters), cancellationToken);
 
     [HttpGet("support")]
-    public Task<ReportResults<SupportReportStatSummary, SupportReportRecord>> GetSupportReport([FromQuery] SupportReportParameters reportParams, [FromQuery] PagingArgs pagingArgs)
-        => _mediator.Send(new SupportReportQuery(reportParams, pagingArgs));
+    public Task<ReportResults<SupportReportStatSummary, SupportReportRecord>> GetSupportReport([FromQuery] SupportReportParameters reportParams, [FromQuery] PagingArgs pagingArgs, CancellationToken cancellationToken)
+        => _mediator.Send(new SupportReportQuery(reportParams, pagingArgs), cancellationToken);
 
     [HttpGet("metaData")]
-    public Task<ReportMetaData> GetReportMetaData([FromQuery] string reportKey)
-        => _mediator.Send(new GetMetaDataQuery(reportKey));
+    public Task<ReportMetaData> GetReportMetaData([FromQuery] string reportKey, CancellationToken cancellationToken)
+        => _mediator.Send(new GetMetaDataQuery(reportKey), cancellationToken);
 
     [HttpGet("parameter/challenge-specs/{gameId?}")]
     public Task<IEnumerable<SimpleEntity>> GetChallengeSpecs(string gameId = null)
