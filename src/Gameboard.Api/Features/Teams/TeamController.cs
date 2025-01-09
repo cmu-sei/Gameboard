@@ -61,7 +61,9 @@ public class TeamController(
     public async Task<TeamSessionUpdate> UpdateSession([FromBody] SessionChangeRequest model, CancellationToken cancellationToken)
     {
         if (model.SessionEnd is null)
+        {
             return await _mediator.Send(new EndTeamSessionCommand(model.TeamId, _actingUserService.Get()), cancellationToken);
+        }
         else
         {
             var player = await _teamService.ExtendSession
