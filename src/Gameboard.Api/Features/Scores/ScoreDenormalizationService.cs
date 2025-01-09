@@ -115,7 +115,7 @@ internal class ScoreDenormalizationService
                 SessionStart = (captain?.SessionBegin == null || captain?.SessionBegin == DateTimeOffset.MinValue) ? null : captain.SessionBegin,
                 TeamId = t.TeamId
             };
-        });
+        }));
 
         foreach (var team in teams)
             team.Rank = rankedTeams.TryGetValue(team.TeamId, out var teamRank) ? (teamRank ?? 0) : 0;
