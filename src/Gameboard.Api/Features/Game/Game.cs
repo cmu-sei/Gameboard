@@ -18,7 +18,6 @@ public class GameDetail
     public string Logo { get; set; }
     public string Sponsor { get; set; }
     public string Background { get; set; }
-    public string TestCode { get; set; }
     public DateTimeOffset GameStart { get; set; }
     public DateTimeOffset GameEnd { get; set; }
     public string GameMarkdown { get; set; }
