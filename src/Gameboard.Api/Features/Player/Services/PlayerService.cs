@@ -134,12 +134,22 @@ public class PlayerService
         );
     }
 
-    public Expression<Func<Data.Player, bool>> GetWhereHasPendingNamePredicate()
+    public Func<Data.Player, bool> GetHasActiveSessionFunc(DateTimeOffset now)
+    {
+        return p => p.SessionBegin != DateTimeOffset.MinValue && p.SessionBegin < now && p.SessionEnd > now;
+    }
+
+    public Expression<Func<Data.Player, bool>> GetHasActiveSessionPredicate(DateTimeOffset now)
+    {
+        return p => p.SessionBegin != DateTimeOffset.MinValue && p.SessionBegin < now && p.SessionEnd > now;
+    }
+
+    public Expression<Func<Data.Player, bool>> GetHasPendingNamePredicate()
     {
         return p => p.Name != p.ApprovedName && p.Name != null && p.Name != string.Empty && (p.NameStatus == null || p.NameStatus == string.Empty || p.NameStatus == AppConstants.NameStatusPending);
     }
 
-    public Expression<Func<Data.Player, bool>> GetWhereDoesntHavePendingNamePredicate()
+    public Expression<Func<Data.Player, bool>> GetDoesntHavePendingNamePredicate()
     {
         return p => !(p.Name != p.ApprovedName && p.Name != null && p.Name != string.Empty && (p.NameStatus == null || p.NameStatus == string.Empty || p.NameStatus == AppConstants.NameStatusPending));
     }
@@ -322,7 +332,7 @@ public class PlayerService
 
         if (model.WantsPending)
         {
-            var pendingNamePredicate = GetWhereHasPendingNamePredicate();
+            var pendingNamePredicate = GetHasPendingNamePredicate();
             q = q.Where(pendingNamePredicate);
         }
 

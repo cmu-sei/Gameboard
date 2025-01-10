@@ -37,7 +37,12 @@ internal class GetGameCenterTeamsHandler
     {
         var nowish = _nowService.Get();
 
-        // a little blarghy because we're counting on the Role, not the whole captain resolution thing
+        // normalize parameters
+        if (request.Args.SearchTerm.IsNotEmpty())
+        {
+            request.Args.SearchTerm = request.Args.SearchTerm.ToLower();
+        }
+
         var query = _store
             .WithNoTracking<Data.Player>()
             .Where(p => p.Mode == PlayerMode.Competition)
@@ -99,15 +104,25 @@ internal class GetGameCenterTeamsHandler
         {
             if (request.Args.HasPendingNames.Value)
             {
-                query = query.Where(_playerService.GetWhereHasPendingNamePredicate());
+                query = query.Where(_playerService.GetHasPendingNamePredicate());
             }
             else
             {
-                query = query.Where(_playerService.GetWhereDoesntHavePendingNamePredicate());
+                query = query.Where(_playerService.GetDoesntHavePendingNamePredicate());
             }
         }
 
-        var matchingTeams = await query
+        var matchingTeamIds = await query
+            .Select(p => p.TeamId)
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
+
+        var captains = await _teamService.ResolveCaptains(matchingTeamIds, cancellationToken);
+
+        // now load the actual data of all team members for the matching teamIds
+        var matchingTeams = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => matchingTeamIds.Contains(p.TeamId))
             .Select(p => new
             {
                 p.Id,
@@ -139,15 +154,7 @@ internal class GetGameCenterTeamsHandler
                 p.WhenCreated
             })
             .GroupBy(p => p.TeamId)
-            .ToDictionaryAsync(gr => gr.Key, gr => gr.ToArray(), cancellationToken); ;
-
-        var matchingTeamIds = matchingTeams.Keys.ToArray();
-        var captains = matchingTeams.ToDictionary(kv => kv.Key, kv =>
-        {
-            var captain = kv.Value.SingleOrDefault(p => p.Role == PlayerRole.Manager);
-
-            return captain ?? kv.Value.FirstOrDefault();
-        });
+            .ToDictionaryAsync(gr => gr.Key, gr => gr.ToArray(), cancellationToken);
 
         // we'll need this data no matter what, and if we get it here, we can
         // use it to do sorting stuff
@@ -202,15 +209,15 @@ internal class GetGameCenterTeamsHandler
         }
 
         // compute global stats as efficiently as we can before we load data for the paged results
-        var activeTeams = captains.Values
-            .Where(t => t.IsActive)
-            .Select(t => t.TeamId)
+        var activeTeamIds = matchingTeams
+            .Where(t => t.Value.Any(p => p.IsActive))
+            .Select(t => t.Key)
             .ToArray();
 
         var allPlayerStatuses = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => matchingTeamIds.Contains(p.TeamId))
-            .Select(p => new { p.UserId, IsActive = activeTeams.Contains(p.TeamId) })
+            .Select(p => new { p.UserId, IsActive = activeTeamIds.Contains(p.TeamId) })
             .Distinct()
             .ToArrayAsync(cancellationToken);
         var activePlayerCount = allPlayerStatuses.Where(p => p.IsActive).Count();
@@ -265,7 +272,7 @@ internal class GetGameCenterTeamsHandler
         var pendingNameCount = await _store
             .WithNoTracking<Data.Player>()
             .Where(p => p.GameId == request.GameId)
-            .Where(_playerService.GetWhereHasPendingNamePredicate())
+            .Where(_playerService.GetHasPendingNamePredicate())
             .CountAsync(cancellationToken);
 
         return new GameCenterTeamsResults
@@ -277,15 +284,16 @@ internal class GetGameCenterTeamsHandler
                 Items = pagedTeamIds.Select(tId =>
                 {
                     var players = matchingTeams[tId];
-                    var captain = captains[tId];
+                    captains.TryGetValue(tId, out var captainPlayer);
+                    var captain = players.Where(p => p.Id == captainPlayer?.Id).SingleOrDefault();
                     var solves = teamSolves[tId];
 
                     return new GameCenterTeamsResultsTeam
                     {
                         Id = tId,
-                        Name = captain.Name,
-                        IsExtended = captain.SessionEnd is not null && captain.SessionBegin is not null && (captain.SessionEnd.Value - captain.SessionBegin.Value).TotalMinutes > gameSessionMinutes,
-                        Advancement = captain.Advancement is null ? null : new GameCenterTeamsAdvancement
+                        Name = captain?.Name ?? "Unknown",
+                        IsExtended = captain is not null && captain.SessionEnd is not null && captain.SessionBegin is not null && (captain.SessionEnd - captain.SessionBegin)?.TotalMinutes > gameSessionMinutes,
+                        Advancement = captain?.Advancement is null ? null : new GameCenterTeamsAdvancement
                         {
                             FromGame = captain.Advancement.FromGame,
                             FromTeam = captain.Advancement.FromTeam,
@@ -328,11 +336,11 @@ internal class GetGameCenterTeamsHandler
                         Score = scores.TryGetValue(tId, out var score) ? score : Score.Default,
                         Session = new GameCenterTeamsSession
                         {
-                            Start = captains[tId].SessionBegin.HasValue ? captains[tId].SessionBegin.Value.ToUnixTimeMilliseconds() : default(long?),
-                            End = captains[tId].SessionEnd.HasValue ? captains[tId].SessionEnd.Value.ToUnixTimeMilliseconds() : default(long?),
-                            TimeCumulativeMs = captains[tId].TimeCumulative > 0 ? captains[tId].TimeCumulative : default(long?),
-                            TimeRemainingMs = captains[tId].TimeRemaining,
-                            TimeSinceStartMs = captains[tId].TimeSinceStart
+                            Start = captain?.SessionBegin is not null ? captain?.SessionBegin.Value.ToUnixTimeMilliseconds() : default(long?),
+                            End = captain?.SessionEnd is not null ? captain?.SessionEnd.Value.ToUnixTimeMilliseconds() : default(long?),
+                            TimeCumulativeMs = captain?.TimeCumulative > 0 ? captain?.TimeCumulative : default(long?),
+                            TimeRemainingMs = captain?.TimeRemaining,
+                            TimeSinceStartMs = captain?.TimeSinceStart
                         },
                         TicketCount = ticketCounts.TryGetValue(tId, out int value) ? value : 0
                     };
