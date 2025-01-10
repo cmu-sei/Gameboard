@@ -104,12 +104,17 @@ internal class ScoreDenormalizationService
 
         var captains = await _teamService.ResolveCaptains(teams.Select(t => t.TeamId).ToArray(), cancellationToken: CancellationToken.None);
 
-        var rankedTeams = _scoringService.GetTeamRanks(teams.Select(t => new TeamForRanking
+        var rankedTeams = _scoringService.GetTeamRanks(teams.Select(t =>
         {
-            CumulativeTimeMs = t.CumulativeTimeMs,
-            OverallScore = t.ScoreOverall,
-            SessionStart = !captains.TryGetValue(t.TeamId, out var captain) || captain?.SessionBegin == DateTimeOffset.MinValue ? null : captain.SessionBegin,
-            TeamId = t.TeamId
+            captains.TryGetValue(t.TeamId, out var captain);
+
+            return new TeamForRanking
+            {
+                CumulativeTimeMs = t.CumulativeTimeMs,
+                OverallScore = t.ScoreOverall,
+                SessionStart = (captain?.SessionBegin == null || captain?.SessionBegin == DateTimeOffset.MinValue) ? null : captain.SessionBegin,
+                TeamId = t.TeamId
+            };
         }));
 
         foreach (var team in teams)

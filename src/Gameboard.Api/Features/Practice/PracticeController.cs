@@ -9,10 +9,7 @@ namespace Gameboard.Api.Features.Practice;
 [ApiController]
 [Authorize]
 [Route("/api/practice")]
-public class PracticeController(
-    IActingUserService actingUserService,
-    IMediator mediator
-    ) : ControllerBase
+public class PracticeController(IActingUserService actingUserService, IMediator mediator) : ControllerBase
 {
     private readonly IActingUserService _actingUserService = actingUserService;
     private readonly IMediator _mediator = mediator;

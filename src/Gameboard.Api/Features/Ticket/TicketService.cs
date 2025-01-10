@@ -626,6 +626,7 @@ public class TicketService
             .Include(c => c.Activity)
                 .ThenInclude(a => a.Assignee)
             .Include(c => c.Challenge)
+                .ThenInclude(c => c.Game)
             .Include(c => c.Player)
                 .ThenInclude(p => p.Game);
 }
