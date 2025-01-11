@@ -47,3 +47,6 @@ Thumbs.db
 # git-kept
 src/Gameboard.Api/wwwroot/temp/*
 !.gitkeep
+
+# stuff that gameboard makes as part of being itself
+src/Gameboard.Api/wwwroot/export/*

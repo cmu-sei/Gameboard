@@ -16,6 +16,6 @@ public class Sponsor : IEntity
     public string ParentSponsorId { get; set; }
     public Sponsor ParentSponsor { get; set; }
     public ICollection<Sponsor> ChildSponsors { get; set; }
-    public ICollection<User> SponsoredUsers { get; set; } = new List<User>();
-    public ICollection<Player> SponsoredPlayers { get; set; } = new List<Player>();
+    public ICollection<User> SponsoredUsers { get; set; } = [];
+    public ICollection<Player> SponsoredPlayers { get; set; } = [];
 }

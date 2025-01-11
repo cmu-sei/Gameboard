@@ -15,7 +15,7 @@ namespace Microsoft.Extensions.DependencyInjection
             string contentRootPath
         )
         {
-            services.AddSingleton<Defaults>(_ =>
+            services.AddSingleton(_ =>
             {
                 // if no filename specified, check for presence of 'feedback-template.yaml'
                 var feedbackFilename = defaults.FeedbackTemplateFile.NotEmpty() ? defaults.FeedbackTemplateFile : "feedback-template.yaml";
@@ -26,9 +26,11 @@ namespace Microsoft.Extensions.DependencyInjection
 
                 var certificateFilename = defaults.CertificateTemplateFile.NotEmpty() ? defaults.CertificateTemplateFile : "certificate-template.html";
                 var certificateFile = Path.Combine(contentRootPath, certificateFilename);
-                string certificateTemplate = null;
+                var certificateTemplate = default(string);
                 if (File.Exists(certificateFile))
+                {
                     certificateTemplate = File.ReadAllText(certificateFile);
+                }
 
                 var shiftTimezone = defaults.ShiftTimezone.NotEmpty() ? defaults.ShiftTimezone : Defaults.ShiftTimezoneFallback;
                 var shiftStrings = defaults.ShiftStrings != null ? defaults.ShiftStrings : Defaults.ShiftStringsFallback;
@@ -37,7 +39,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 {
                     for (int i = 0; i < shiftStrings.Length; i++)
                     {
-                        shifts[i] = new System.DateTimeOffset[] { Defaults.ConvertTime(shiftStrings[i][0], shiftTimezone), Defaults.ConvertTime(shiftStrings[i][1], shiftTimezone) };
+                        shifts[i] = [Defaults.ConvertTime(shiftStrings[i][0], shiftTimezone), Defaults.ConvertTime(shiftStrings[i][1], shiftTimezone)];
                     }
                 }
 

@@ -161,6 +161,10 @@ namespace Gameboard.Api.Controllers
             return await GameService.Export(model);
         }
 
+        [HttpPost("/api/games/export")]
+        public Task<ExportGamesResult> ExportGames([FromBody] ExportGameCommand request, CancellationToken cancellationToken)
+            => _mediator.Send(request, cancellationToken);
+
         [HttpGet("/api/game/{gameId}/team/{teamId}/gamespace-limit")]
         public Task<TeamGamespaceLimitState> GetTeamGamespaceLimitState([FromRoute] string gameId, [FromRoute] string teamId)
             => _mediator.Send(new GetTeamGamespaceLimitStateQuery(gameId, teamId, Actor));

@@ -6,7 +6,9 @@ namespace Gameboard.Api.Features.Games;
 public sealed class GameImportExportBatch
 {
     public required string ExportBatchId { get; set; }
+    public required string DownloadUrl { get; set; }
     public required GameImportExportGame[] Games { get; set; }
+    public required string PracticeAreaCertificateTemplateId { get; set; }
     public required IDictionary<string, GameImportExportCertificateTemplate> CertificateTemplates { get; set; }
     public required IDictionary<string, GameImportExportExternalHost> ExternalHosts { get; set; }
     public required IDictionary<string, GameImportExportFeedbackTemplate> FeedbackTemplates { get; set; }
@@ -15,15 +17,14 @@ public sealed class GameImportExportBatch
 
 public sealed class GameImportExportGame
 {
-    public required string GameId { get; set; }
+    public required string Id { get; set; }
     public required string Name { get; set; }
     public required string Competition { get; set; }
     public required string Season { get; set; }
     public required string Track { get; set; }
     public required string Division { get; set; }
-    public required string Logo { get; set; }
-    public required string Sponsor { get; set; }
-    public required string Background { get; set; }
+    public required string CardImageFileName { get; set; }
+    public required string SponsorId { get; set; }
     public required DateTimeOffset? GameStart { get; set; }
     public required DateTimeOffset? GameEnd { get; set; }
     public required string GameMarkdown { get; set; }
@@ -48,36 +49,61 @@ public sealed class GameImportExportGame
     public required string CardText2 { get; set; }
     public required string CardText3 { get; set; }
     public required bool IsFeatured { get; set; }
+    public required string MapImageFileName { get; set; }
     public required string Mode { get; set; }
     public required PlayerMode PlayerMode { get; set; }
     public required bool RequireSynchronizedStart { get; set; }
     public required bool ShowOnHomePageInPracticeMode { get; set; }
 
-    public required string ExternalHostExportId { get; set; }
-    public required string CertificateTemplateExportId { get; set; }
-    public required string PracticeCertificateTemplateExportId { get; set; }
-    public required string ChallengesFeedbackTemplateExportId { get; set; }
-    public required string FeedbackTemplateExportId { get; set; }
+    public required string ExternalHostId { get; set; }
+    public required string CertificateTemplateId { get; set; }
+    public required string PracticeCertificateTemplateId { get; set; }
+    public required string ChallengesFeedbackTemplateId { get; set; }
+    public required string FeedbackTemplateId { get; set; }
 }
 
 public sealed class GameImportExportExternalHost
 {
-    public required string ExportId { get; set; }
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required string ClientUrl { get; set; }
+    public required bool DestroyResourcesOnDeployFailure { get; set; }
+    public required int? GamespaceDeployBatchSize { get; set; }
+    public required int? HttpTimeoutInSeconds { get; set; }
+    public required string HostUrl { get; set; }
+    public required string PingEndpoint { get; set; }
+    public required string StartupEndpoint { get; set; }
+    public required string TeamExtendedEndpoint { get; set; }
 }
 
 public sealed class GameImportExportFeedbackTemplate
 {
-    public required string ExportId { get; set; }
+    public string Id { get; set; }
+    public string HelpText { get; set; }
+    public required string Name { get; set; }
+    public required string Content { get; set; }
 }
 
 public sealed class GameImportExportCertificateTemplate
 {
-    public required string ExportId { get; set; }
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public string Content { get; set; }
+}
+
+public sealed class GameImportExportImages
+{
+    public required string CardFileName { get; set; }
+    public required string MapFileName { get; set; }
 }
 
 public sealed class GameImportExportSponsor
 {
-    public required string ExportId { get; set; }
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required string LogoFileName { get; set; }
+    public required bool Approved { get; set; }
+    public required GameImportExportSponsor ParentSponsor { get; set; }
 }
 
 public sealed class ImportedGame
