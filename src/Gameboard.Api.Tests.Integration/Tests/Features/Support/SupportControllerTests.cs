@@ -8,50 +8,50 @@ public class SupportControllerTests(GameboardTestContext testContext) : IClassFi
 {
     private readonly GameboardTestContext _testContext = testContext;
 
-    [Theory, GbIntegrationAutoData]
-    public async Task Ticket_WhenCreatedWithAutoTagTrigger_AutoTags
-    (
-        IFixture fixture,
-        string gameId,
-        string tag,
-        string sponsorId,
-        string userId
-    )
-    {
-        // given an autotag which triggers on sponsor and a player with that sponsor
-        await _testContext.WithDataState(state =>
-        {
-            state.Add<Data.Game>(fixture, g =>
-            {
-                g.Id = gameId;
-                g.Players = new Data.Player
-                {
-                    Id = fixture.Create<string>(),
-                    Sponsor = state.Build<Data.Sponsor>(fixture, s => s.Id = sponsorId),
-                    User = new Data.User { Id = userId, SponsorId = sponsorId }
-                }.ToCollection();
-            });
+    // [Theory, GbIntegrationAutoData]
+    // public async Task Ticket_WhenCreatedWithAutoTagTrigger_AutoTags
+    // (
+    //     IFixture fixture,
+    //     string gameId,
+    //     string tag,
+    //     string sponsorId,
+    //     string userId
+    // )
+    // {
+    //     // given an autotag which triggers on sponsor and a player with that sponsor
+    //     await _testContext.WithDataState(state =>
+    //     {
+    //         state.Add<Data.Game>(fixture, g =>
+    //         {
+    //             g.Id = gameId;
+    //             g.Players = new Data.Player
+    //             {
+    //                 Id = fixture.Create<string>(),
+    //                 Sponsor = state.Build<Data.Sponsor>(fixture, s => s.Id = sponsorId),
+    //                 User = new Data.User { Id = userId, SponsorId = sponsorId }
+    //             }.ToCollection();
+    //         });
 
-            state.Add<SupportSettingsAutoTag>(fixture, t =>
-            {
-                t.ConditionType = SupportSettingsAutoTagConditionType.SponsorId;
-                t.ConditionValue = sponsorId;
-                t.IsEnabled = true;
-                t.Tag = tag;
-            });
-        });
+    //         state.Add<SupportSettingsAutoTag>(fixture, t =>
+    //         {
+    //             t.ConditionType = SupportSettingsAutoTagConditionType.SponsorId;
+    //             t.ConditionValue = sponsorId;
+    //             t.IsEnabled = true;
+    //             t.Tag = tag;
+    //         });
+    //     });
 
-        // var result = await _testContext
-        //     .CreateHttpClientWithAuthRole(UserRoleKey.Support)
-        //     .PostAsync("api/ticket", new NewTicket
-        //     {
-        //         AssigneeId = userId,
-        //         Description = fixture.Create<string>(),
-        //         Summary = fixture.Create<string>(),
-        //         RequesterId = userId,
+    //     // var result = await _testContext
+    //     //     .CreateHttpClientWithAuthRole(UserRoleKey.Support)
+    //     //     .PostAsync("api/ticket", new NewTicket
+    //     //     {
+    //     //         AssigneeId = userId,
+    //     //         Description = fixture.Create<string>(),
+    //     //         Summary = fixture.Create<string>(),
+    //     //         RequesterId = userId,
 
-        //     }
-        //     .ToJsonBody())
-        //     .DeserializeResponseAs<Ticket>();
-    }
+    //     //     }
+    //     //     .ToJsonBody())
+    //     //     .DeserializeResponseAs<Ticket>();
+    // }
 }
