@@ -66,8 +66,10 @@ internal class GetGamePlayStateHandler(
             })
             .ToArrayAsync(cancellationToken);
 
-        var begin = teamSession.Select(p => p.SessionBegin).Distinct().Single();
-        var end = teamSession.Select(p => p.SessionEnd).Distinct().Single();
+        // max is a kludge here - there should only be one, but 
+        // becaues of denormalized structure, bugs could cause more than one
+        var begin = teamSession.Select(p => p.SessionBegin).Max();
+        var end = teamSession.Select(p => p.SessionEnd).Max();
 
         if (begin.IsEmpty())
             return GamePlayState.NotStarted;
