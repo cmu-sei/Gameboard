@@ -123,18 +123,23 @@ internal sealed class StartTeamSessionsHandler
                 await _externalGameHostService.StartGame(request.TeamIds, sessionWindow, cancellationToken);
 
             var dict = new Dictionary<string, StartTeamSessionsResultTeam>();
-            var finalTeams = teams.Select(kv => new StartTeamSessionsResultTeam
+            var finalTeams = teams.Select(kv =>
             {
-                Id = kv.Key,
-                Name = kv.Value.Single(p => p.IsManager).ApprovedName,
-                ResourcesDeploying = gameData.Mode == GameEngineMode.External,
-                Captain = kv.Value.Single(p => p.IsManager).ToSimpleEntity(p => p.Id, p => p.ApprovedName),
-                Players = kv.Value.Select(p => new SimpleEntity
+                var captain = kv.Value.OrderByDescending(p => p.IsManager).First();
+
+                return new StartTeamSessionsResultTeam
                 {
-                    Id = p.Id,
-                    Name = p.ApprovedName
-                }),
-                SessionWindow = sessionWindow
+                    Id = kv.Key,
+                    Name = captain.ApprovedName,
+                    ResourcesDeploying = gameData.Mode == GameEngineMode.External,
+                    Captain = captain.ToSimpleEntity(p => p.Id, p => p.ApprovedName),
+                    Players = kv.Value.Select(p => new SimpleEntity
+                    {
+                        Id = p.Id,
+                        Name = p.ApprovedName
+                    }),
+                    SessionWindow = sessionWindow
+                };
             }).ToArray();
 
             foreach (var team in finalTeams)
