@@ -72,3 +72,8 @@ public sealed class UserRolePermissionException(UserRoleKey role, IEnumerable<Pe
     : GameboardValidationException($"This operation requires the following permission(s): {string.Join(",", requiredPermissions)}. Your role ({role}) does not have one or more of these.")
 {
 }
+
+public sealed class UserRoleOneOfPermissionsException(UserRoleKey role, IEnumerable<PermissionKey> oneOfPermissions)
+    : GameboardValidationException($"This operation requires at least one of the following permission(s): {string.Join(",", oneOfPermissions)}. Your role ({role}) does not any of these.")
+{
+}

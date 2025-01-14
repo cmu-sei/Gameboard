@@ -24,7 +24,7 @@ internal sealed class UserRolePermissionsOverviewHandler(
     public async Task<UserRolePermissionsOverviewResponse> Handle(UserRolePermissionsOverviewQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .Auth(a => a.RequirePermissions(PermissionKey.Admin_View))
+            .Auth(a => a.Require(PermissionKey.Admin_View))
             .Validate(cancellationToken);
 
         var permissions = await _permissionsService.List();

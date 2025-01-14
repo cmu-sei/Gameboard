@@ -100,6 +100,7 @@ public sealed class EventHorizonChallengeSpec
 public sealed class EventHorizonTeamChallenge
 {
     public required string Id { get; set; }
+    public required double Score { get; set; }
     public required string SpecId { get; set; }
 }
 

@@ -31,7 +31,7 @@ internal sealed class ExportGameHandler
         }
 
         await _validator
-            .Auth(c => c.RequirePermissions(Users.PermissionKey.Games_CreateEditDelete))
+            .Auth(c => c.Require(Users.PermissionKey.Games_CreateEditDelete))
             .AddValidator(ctx =>
             {
                 if (request.GameIds.IsEmpty())

@@ -25,7 +25,7 @@ internal class ConfigureGameAutoBonusesValidator(
     public async Task Validate(ConfigureGameAutoBonusesCommand request, CancellationToken cancellationToken)
     {
         _validatorService
-            .Auth(a => a.RequirePermissions(PermissionKey.Games_CreateEditDelete))
+            .Auth(a => a.Require(PermissionKey.Games_CreateEditDelete))
             .AddValidator(_gameExists.UseProperty(r => r.Parameters.GameId));
 
         // we're going to bulldoze all existing configuration for now to make this simpler, so we need to

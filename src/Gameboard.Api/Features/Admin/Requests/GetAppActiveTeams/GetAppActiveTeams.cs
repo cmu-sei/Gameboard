@@ -35,7 +35,7 @@ internal class GetAppActiveTeamsHandler(
     {
         // authorize
         await _validatorService
-            .Auth(config => config.RequirePermissions(PermissionKey.Admin_View))
+            .Auth(config => config.Require(PermissionKey.Admin_View))
             .Validate(cancellationToken);
 
         // pull active teams/games

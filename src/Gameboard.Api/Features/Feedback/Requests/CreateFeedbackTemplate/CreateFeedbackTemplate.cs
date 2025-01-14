@@ -24,7 +24,7 @@ internal sealed class CreateFeedbackTemplateHandler
     public async Task<FeedbackTemplateView> Handle(CreateFeedbackTemplateCommand request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .Auth(c => c.RequirePermissions(Users.PermissionKey.Games_CreateEditDelete))
+            .Auth(c => c.Require(Users.PermissionKey.Games_CreateEditDelete))
             .AddValidator(request.Template.Name.IsEmpty(), new MissingRequiredInput<string>(nameof(request.Template.Name)))
             .AddValidator(request.Template.Content.IsEmpty(), new MissingRequiredInput<string>(nameof(request.Template.Content)))
             .AddValidator(async ctx =>

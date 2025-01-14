@@ -36,7 +36,7 @@ internal class GetGameCenterContextHandler
     public async Task<GameCenterContext> Handle(GetGameCenterContextQuery request, CancellationToken cancellationToken)
     {
         await _validator
-            .Auth(config => config.RequirePermissions(PermissionKey.Admin_View))
+            .Auth(config => config.Require(PermissionKey.Admin_View))
             .AddValidator(_gameExists.UseProperty(r => r.GameId))
             .Validate(request, cancellationToken);
 
@@ -182,7 +182,11 @@ internal class GetGameCenterContextHandler
             IsPublished = gameData.IsPublished,
             IsRegistrationActive = gameData.IsRegistrationActive,
             IsTeamGame = gameData.IsTeamGame,
-            Stats = playerActivity ?? new(),
+            Stats = playerActivity ?? new()
+            {
+                AttemptCountPractice = gameData.IsPracticeMode ? 0 : null,
+                TopScore = null
+            },
 
             // aggregates
             ChallengeCount = challengeData?.ChallengeCount ?? 0,

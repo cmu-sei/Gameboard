@@ -23,7 +23,7 @@ internal sealed class DeleteSupportSettingsAutoTagHandler(
     public async Task Handle(DeleteSupportSettingsAutoTagCommand request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .Auth(c => c.RequirePermissions(Users.PermissionKey.Support_EditSettings))
+            .Auth(c => c.Require(Users.PermissionKey.Support_EditSettings))
             .AddValidator(_tagExists.UseValue(request.Id))
             .Validate(cancellationToken);
 

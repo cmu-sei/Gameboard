@@ -32,7 +32,7 @@ internal sealed class RequestNameChangeHandler
         (
             config =>
                 config
-                    .RequirePermissions(PermissionKey.Teams_ApproveNameChanges)
+                    .Require(PermissionKey.Teams_ApproveNameChanges)
                     .Unless(() => Task.FromResult(request.UserId == _actingUserService.Get()?.Id && _coreOptions.NameChangeIsEnabled))
         )
         .AddValidator(request.Request.RequestedName.IsEmpty(), new MissingRequiredInput<string>(nameof(request.Request.RequestedName), request.Request.RequestedName))

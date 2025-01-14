@@ -32,7 +32,7 @@ internal class GetAppActiveChallengesHandler(
     public async Task<GetAppActiveChallengesResponse> Handle(GetAppActiveChallengesQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .Auth(config => config.RequirePermissions(PermissionKey.Admin_View))
+            .Auth(config => config.Require(PermissionKey.Admin_View))
             .Validate(cancellationToken);
 
         var challenges = await _appOverviewService

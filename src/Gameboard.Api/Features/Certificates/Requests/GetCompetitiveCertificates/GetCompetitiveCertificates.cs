@@ -28,7 +28,7 @@ internal sealed class GetCompetitiveCertificatesHandler
             (
                 c => c
                     .RequireAuthentication()
-                    .RequirePermissions(PermissionKey.Admin_View)
+                    .Require(PermissionKey.Admin_View)
                     .UnlessUserIdIn(request.OwnerUserId)
             )
             .Validate(cancellationToken);

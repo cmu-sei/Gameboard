@@ -28,7 +28,7 @@ internal class ListManualChallengeBonusesHandler(
     public async Task<IEnumerable<ManualChallengeBonusViewModel>> Handle(ListManualChallengeBonusesQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .Auth(a => a.RequirePermissions(PermissionKey.Scores_AwardManualBonuses))
+            .Auth(a => a.Require(PermissionKey.Scores_AwardManualBonuses))
             .AddValidator(_challengeExists.UseProperty(r => r.ChallengeId))
             .Validate(request, cancellationToken);
 

@@ -30,7 +30,7 @@ internal sealed class RemoveFromTeamHandler
     public async Task<RemoveFromTeamResponse> Handle(RemoveFromTeamCommand request, CancellationToken cancellationToken)
     {
         await _validator
-            .Auth(c => c.RequirePermissions(PermissionKey.Teams_Enroll))
+            .Auth(c => c.Require(PermissionKey.Teams_Enroll))
             .AddValidator(_playerExists.UseValue(request.PlayerId))
             .AddValidator(async ctx =>
             {

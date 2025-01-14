@@ -26,7 +26,7 @@ internal class GetGameStateValidator(
             .Auth
             (
                 a => a
-                    .RequirePermissions(Users.PermissionKey.Admin_View)
+                    .Require(Users.PermissionKey.Admin_View)
                     .Unless
                     (
                         () => _teamService.IsOnTeam(request.TeamId, _actingUser.Id),

@@ -53,7 +53,4 @@ public static class QueryExtensions
 
     public static IQueryable<Data.Challenge> WhereIsFullySolved(this IQueryable<Data.Challenge> query)
         => query.Where(c => c.Score >= c.Points);
-
-    public static IQueryable<Player> WhereIsScoringPlayer(this IQueryable<Data.Player> query)
-        => query.Where(p => p.Score > 0);
 }

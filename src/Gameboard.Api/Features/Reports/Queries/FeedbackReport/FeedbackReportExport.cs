@@ -22,7 +22,7 @@ internal sealed class FeedbackReportExportHandler
     public async Task<FeedbackReportExportContainer> Handle(FeedbackReportExportQuery request, CancellationToken cancellationToken)
     {
         await _validator
-            .Auth(c => c.RequirePermissions(PermissionKey.Reports_View))
+            .Auth(c => c.Require(PermissionKey.Reports_View))
             .Validate(cancellationToken);
 
         var results = await _reportService.GetBaseQuery(request.Parameters, cancellationToken);

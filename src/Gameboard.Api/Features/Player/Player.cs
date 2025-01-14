@@ -125,7 +125,6 @@ public class PlayerDataFilter : SearchFilter
 
     public const string FilterActiveOnly = "active";
     public const string FilterCompleteOnly = "complete";
-    public const string FilterScoredOnly = "scored";
     public const string FilterAdvancedOnly = "advanced";
     public const string FilterDismissedOnly = "dismissed";
     public const string FilterCollapseTeams = "collapse";
@@ -143,7 +142,6 @@ public class PlayerDataFilter : SearchFilter
     public bool WantsComplete => Filter.Contains(FilterCompleteOnly);
     public bool WantsAdvanced => Filter.Contains(FilterAdvancedOnly);
     public bool WantsDismissed => Filter.Contains(FilterDismissedOnly);
-    public bool WantsScored => Filter.Contains(FilterScoredOnly);
     public bool WantsGame => gid.NotEmpty();
     public bool WantsUser => uid.NotEmpty();
     public bool WantsTeam => tid.NotEmpty();

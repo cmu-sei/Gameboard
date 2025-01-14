@@ -45,7 +45,7 @@ internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenter
     {
         // auth/validate
         _validatorService
-            .Auth(c => c.RequirePermissions(PermissionKey.Admin_View))
+            .Auth(c => c.Require(PermissionKey.Admin_View))
             .AddValidator(_gameExists.UseProperty(r => r.GameId));
         await _validatorService.Validate(request, cancellationToken);
 

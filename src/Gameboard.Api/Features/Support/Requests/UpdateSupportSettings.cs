@@ -27,7 +27,7 @@ internal class UpdateSupportSettingsHandler(
     public async Task<SupportSettingsViewModel> Handle(UpdateSupportSettingsCommand request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .Auth(a => a.RequirePermissions(PermissionKey.Support_EditSettings))
+            .Auth(a => a.Require(PermissionKey.Support_EditSettings))
             .Validate(cancellationToken);
 
         var existingSettings = await _store

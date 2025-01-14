@@ -23,7 +23,7 @@ internal sealed class DeleteCertificateTemplateHandler
     public async Task Handle(DeleteCertificateTemplateCommand request, CancellationToken cancellationToken)
     {
         await _validator
-            .Auth(c => c.RequirePermissions(PermissionKey.Games_CreateEditDelete))
+            .Auth(c => c.Require(PermissionKey.Games_CreateEditDelete))
             .AddEntityExistsValidator<CertificateTemplate>(request.TemplateId)
             .Validate(cancellationToken);
 

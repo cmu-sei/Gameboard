@@ -26,7 +26,7 @@ internal sealed class GetExternalGameHostsHandler(
     public async Task<GetExternalGameHostsResponse> Handle(GetExternalGameHostsQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .Auth(config => config.RequirePermissions(Users.PermissionKey.Games_CreateEditDelete))
+            .Auth(config => config.Require(Users.PermissionKey.Games_CreateEditDelete))
             .Validate(cancellationToken);
 
         return new GetExternalGameHostsResponse

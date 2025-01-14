@@ -28,7 +28,7 @@ internal sealed class ImportGamesHandler
     public async Task<ImportedGame[]> Handle(ImportGamesCommand request, CancellationToken cancellationToken)
     {
         await _validator
-            .Auth(c => c.RequirePermissions(PermissionKey.Games_CreateEditDelete))
+            .Auth(c => c.Require(PermissionKey.Games_CreateEditDelete))
             .AddValidator(ctx =>
             {
                 if (request.ImportPackage.IsEmpty())

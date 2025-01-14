@@ -22,7 +22,7 @@ internal sealed class ListCertificateTemplatesHandler
     public async Task<IEnumerable<CertificateTemplateView>> Handle(ListCertificateTemplatesQuery request, CancellationToken cancellationToken)
     {
         await _validator
-            .Auth(c => c.RequirePermissions(PermissionKey.Games_CreateEditDelete))
+            .Auth(c => c.Require(PermissionKey.Games_CreateEditDelete))
             .Validate(cancellationToken);
 
         return await _certificatesService

@@ -19,7 +19,7 @@ internal sealed class ListFeedbackTemplatesHandler(IMapper mapper, IStore store,
     public async Task<ListFeedbackTemplatesResponse> Handle(ListFeedbackTemplatesQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .Auth(c => c.RequirePermissions(Users.PermissionKey.Games_CreateEditDelete))
+            .Auth(c => c.Require(Users.PermissionKey.Games_CreateEditDelete))
             .Validate(cancellationToken);
 
         var templates = await _mapper

@@ -26,7 +26,7 @@ internal class DeleteSystemNotificationHandler(
     {
         // validate/authorize
         await _validatorService
-            .Auth(a => a.RequirePermissions(PermissionKey.SystemNotifications_CreateEdit))
+            .Auth(a => a.Require(PermissionKey.SystemNotifications_CreateEdit))
             .AddValidator(_notificationExists.UseProperty(r => r.SystemNotificationId))
             .Validate(request, cancellationToken);
 

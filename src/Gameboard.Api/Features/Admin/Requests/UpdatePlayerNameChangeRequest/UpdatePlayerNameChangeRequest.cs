@@ -26,7 +26,7 @@ internal class UpdatePlayerNameChangeRequestHandler
     public async Task Handle(UpdatePlayerNameChangeRequestCommand request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .Auth(config => config.RequirePermissions(PermissionKey.Teams_ApproveNameChanges))
+            .Auth(config => config.Require(PermissionKey.Teams_ApproveNameChanges))
             .AddValidator(_playerExists.UseProperty(r => r.PlayerId))
             .AddValidator((req, ctx) => Task.FromResult(req.Args.ApprovedName.IsNotEmpty() && req.Args.ApprovedName.Length > 2))
             .Validate(request, cancellationToken);

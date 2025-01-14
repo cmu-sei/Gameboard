@@ -18,7 +18,7 @@ internal class GetTeamsMailMetadataHandler(PlayerService playerService, IValidat
     public async Task<IEnumerable<TeamSummary>> Handle(GetTeamsMailMetadataQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .Auth(a => a.RequirePermissions(PermissionKey.Teams_Observe))
+            .Auth(a => a.Require(PermissionKey.Teams_Observe))
             .Validate(cancellationToken);
 
         return await _playerService.LoadGameTeamsMailMetadata(request.GameId);

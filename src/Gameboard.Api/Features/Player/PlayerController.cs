@@ -248,30 +248,6 @@ public class PlayerController
         await _teamService.PromoteCaptain(teamId, playerId, Actor, cancellationToken);
     }
 
-    /// <summary>
-    /// Get Player Certificate
-    /// </summary>
-    /// <param name="id">player id</param>
-    /// <returns></returns>
-    [HttpGet("/api/certificate/{id}")]
-    [Authorize]
-    public async Task<PlayerCertificate> GetCertificate([FromRoute] string id)
-    {
-        await Validate(new Entity { Id = id });
-        await Authorize(IsSelf(id));
-
-        return await PlayerService.MakeCertificate(id);
-    }
-
-    /// <summary>
-    /// Get List of Player Certificates
-    /// </summary>
-    /// <returns> </returns>
-    [HttpGet("/api/certificates")]
-    [Authorize]
-    public Task<IEnumerable<PlayerCertificate>> GetCertificates()
-        => PlayerService.MakeCertificates(Actor.Id);
-
     private async Task<bool> IsSelf(string playerId)
     {
         return await PlayerService.MapId(playerId) == Actor.Id;
