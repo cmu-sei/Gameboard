@@ -88,6 +88,7 @@ internal class GetGameCenterContextHandler
             .Where(s => s.GameId == request.GameId)
             .Where(s => s.Rank > 0)
             .OrderByDescending(s => s.ScoreOverall)
+                .ThenBy(s => s.CumulativeTimeMs)
             .FirstOrDefaultAsync(cancellationToken);
         var topScoringTeamName = string.Empty;
 
