@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Gameboard.Api.Features.Games;
 
@@ -55,11 +56,30 @@ public sealed class GameImportExportGame
     public required bool RequireSynchronizedStart { get; set; }
     public required bool ShowOnHomePageInPracticeMode { get; set; }
 
-    public required string ExternalHostId { get; set; }
     public required string CertificateTemplateId { get; set; }
-    public required string PracticeCertificateTemplateId { get; set; }
     public required string ChallengesFeedbackTemplateId { get; set; }
+    public required GameImportExportChallengeSpec[] Specs { get; set; }
+    public required string ExternalHostId { get; set; }
     public required string FeedbackTemplateId { get; set; }
+    public required string PracticeCertificateTemplateId { get; set; }
+}
+
+public sealed class GameImportExportChallengeSpec
+{
+    public required string Description { get; set; }
+    public required bool Disabled { get; set; }
+    public required string ExternalId { get; set; }
+    public required GameEngineType GameEngineType { get; set; }
+    public required bool IsHidden { get; set; }
+    public required string Name { get; set; }
+    public required int Points { get; set; }
+    public required bool ShowSolutionGuideInCompetitiveMode { get; set; }
+    public required string Tag { get; set; }
+    public required string Tags { get; set; }
+    public required string Text { get; set; }
+    public required float X { get; set; }
+    public required float Y { get; set; }
+    public required float R { get; set; }
 }
 
 public sealed class GameImportExportExternalHost
@@ -110,5 +130,4 @@ public sealed class ImportedGame
 {
     public required string Id { get; set; }
     public required string Name { get; set; }
-    public required string ExportId { get; set; }
 }

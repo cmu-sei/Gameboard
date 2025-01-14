@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ServiceStack;
 
 namespace Gameboard.Api.Controllers
 {
@@ -164,6 +165,20 @@ namespace Gameboard.Api.Controllers
         [HttpPost("/api/games/export")]
         public Task<ExportGamesResult> ExportGames([FromBody] ExportGameCommand request, CancellationToken cancellationToken)
             => _mediator.Send(request, cancellationToken);
+
+        [HttpPost("/api/games/import")]
+        public async Task<ImportedGame[]> ImportGames([FromForm] IFormFile packageFile, CancellationToken cancellationToken)
+        {
+            var package = Array.Empty<byte>();
+
+            using (var memoryStream = new MemoryStream())
+            {
+                await packageFile.CopyToAsync(memoryStream, cancellationToken);
+                package = memoryStream.GetBufferAsBytes();
+            }
+
+            return await _mediator.Send(new ImportGamesCommand(package), cancellationToken);
+        }
 
         [HttpGet("/api/game/{gameId}/team/{teamId}/gamespace-limit")]
         public Task<TeamGamespaceLimitState> GetTeamGamespaceLimitState([FromRoute] string gameId, [FromRoute] string teamId)

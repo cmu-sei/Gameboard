@@ -87,7 +87,9 @@ internal class UpdatePracticeModeSettingsHandler
 
         // force a value for default session length, becaues it's required
         if (updatedSettings.DefaultPracticeSessionLengthMinutes <= 0)
+        {
             updatedSettings.DefaultPracticeSessionLengthMinutes = 60;
+        }
 
         await _store.SaveUpdate(updatedSettings, cancellationToken);
     }

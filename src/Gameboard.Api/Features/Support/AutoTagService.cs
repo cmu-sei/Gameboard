@@ -68,7 +68,6 @@ internal sealed class AutoTagService(IStore store) : IAutoTagService
             .ToArrayAsync(cancellationToken);
 
         var autoTags = await _store.WithNoTracking<SupportSettingsAutoTag>().ToArrayAsync();
-        Console.WriteLine($"DEBURG: {autoTagConfig.Length} matching thingies, but {autoTags.Length} total.");
 
         return [.. autoTagConfig.Select(c => c.Tag).OrderBy(t => t)];
 

@@ -63,7 +63,7 @@ internal sealed class ExportGameHandler
             })
             .Validate(cancellationToken);
 
-        var batch = await _importExportService.ExportGames
+        var batch = await _importExportService.ExportPackage
         (
             request.GameIds,
             request.IncludePracticeAreaDefaultCertificateTemplate.GetValueOrDefault(),

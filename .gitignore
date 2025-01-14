@@ -50,3 +50,4 @@ src/Gameboard.Api/wwwroot/temp/*
 
 # stuff that gameboard makes as part of being itself
 src/Gameboard.Api/wwwroot/export/*
+src/Gameboard.Api/wwwroot/import/*

@@ -7,5 +7,7 @@ public static class MimeTypes
     public static string ImagePng { get => "image/png"; }
     public static string ImageSvg { get => "image/svg+xml"; }
     public static string ImageWebp { get => "image/webp"; }
+    public const string OctetStream = "application/octet-stream";
     public static string TextCsv { get => "text/csv"; }
+    public const string Zip = "application/zip";
 }

@@ -40,7 +40,7 @@ internal class UpdateSupportSettingsHandler(
             await _store
                 .Create(new SupportSettings
                 {
-                    AutoTags = request.Settings.AutoTags.ToArray(),
+                    AutoTags = [.. request.Settings.AutoTags],
                     SupportPageGreeting = request.Settings.SupportPageGreeting,
                     UpdatedByUserId = _actingUserService.Get().Id,
                     UpdatedOn = _nowService.Get()
@@ -48,7 +48,7 @@ internal class UpdateSupportSettingsHandler(
         }
         else
         {
-            existingSettings.AutoTags = request.Settings.AutoTags.ToArray();
+            existingSettings.AutoTags = [.. request.Settings.AutoTags];
             existingSettings.SupportPageGreeting = request.Settings.SupportPageGreeting;
             existingSettings.UpdatedByUserId = _actingUserService.Get().Id;
             existingSettings.UpdatedOn = _nowService.Get();

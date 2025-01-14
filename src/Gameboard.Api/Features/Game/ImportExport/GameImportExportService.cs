@@ -7,35 +7,44 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Practice;
 using Microsoft.EntityFrameworkCore;
-using ServiceStack;
+using SharpCompress.Archives;
+using SharpCompress.Archives.Zip;
+using SharpCompress.Common;
+using SharpCompress.Readers;
+using SharpCompress.Writers;
 
 namespace Gameboard.Api.Features.Games;
 
 public interface IGameImportExportService
 {
-    Task<GameImportExportBatch> ExportGames(string[] gameIds, bool includePracticeAreaTemplate, CancellationToken cancellationToken);
-    Task<ImportedGame[]> ImportGames(GameImportExportBatch batch, CancellationToken cancellationToken);
+    Task<GameImportExportBatch> ExportPackage(string[] gameIds, bool includePracticeAreaTemplate, CancellationToken cancellationToken);
+    Task<ImportedGame[]> ImportPackage(byte[] package, CancellationToken cancellationToken);
 }
 
 internal sealed class GameImportExportService
 (
+    IActingUserService actingUser,
     CoreOptions coreOptions,
     IGuidService guids,
     HttpClient http,
     IJsonService json,
+    IPracticeService practice,
     IStore store,
     IZipService zip
 ) : IGameImportExportService
 {
+    private readonly IActingUserService _actingUser = actingUser;
     private readonly CoreOptions _coreOptions = coreOptions;
     private readonly IGuidService _guids = guids;
     private readonly HttpClient _http = http;
     private readonly IJsonService _json = json;
+    private readonly IPracticeService _practice = practice;
     private readonly IStore _store = store;
     private readonly IZipService _zip = zip;
 
-    public async Task<GameImportExportBatch> ExportGames(string[] gameIds, bool includePracticeAreaTemplate, CancellationToken cancellationToken)
+    public async Task<GameImportExportBatch> ExportPackage(string[] gameIds, bool includePracticeAreaTemplate, CancellationToken cancellationToken)
     {
         // declare a batch number - we'll use this to identify this attempt at exporting
         var exportBatchId = _guids.Generate();
@@ -50,11 +59,13 @@ internal sealed class GameImportExportService
         var games = await _store
             .WithNoTracking<Data.Game>()
                 .Include(g => g.CertificateTemplate)
-                .Include(g => g.ExternalHost)
-                .Include(g => g.PracticeCertificateTemplate)
                 .Include(g => g.ChallengesFeedbackTemplate)
                 .Include(g => g.FeedbackTemplate)
+                .Include(g => g.ExternalHost)
+                .Include(g => g.PracticeCertificateTemplate)
+                .Include(g => g.Specs)
             .Where(g => finalGameIds.Contains(g.Id))
+            .AsSplitQuery()
             .ToArrayAsync(cancellationToken);
 
         // all the attached entities are exported first, because we need to know their 
@@ -267,6 +278,26 @@ internal sealed class GameImportExportService
                 SessionMinutes = game.SessionMinutes,
                 ShowOnHomePageInPracticeMode = game.ShowOnHomePageInPracticeMode,
 
+                // specs
+                Specs = game.Specs.Select(s => new GameImportExportChallengeSpec
+                {
+                    Description = s.Description,
+                    Disabled = s.Disabled,
+                    ExternalId = s.ExternalId,
+                    GameEngineType = s.GameEngineType,
+                    IsHidden = s.IsHidden,
+                    Name = s.Name,
+                    Points = s.Points,
+                    ShowSolutionGuideInCompetitiveMode = s.ShowSolutionGuideInCompetitiveMode,
+                    Tag = s.Tag,
+                    Tags = s.Tags,
+                    Text = s.Text,
+                    X = s.X,
+                    Y = s.Y,
+                    R = s.R
+                })
+                .ToArray(),
+
                 // related entities
                 CertificateTemplateId = game.CertificateTemplateId,
                 ChallengesFeedbackTemplateId = game.ChallengesFeedbackTemplateId,
@@ -290,47 +321,231 @@ internal sealed class GameImportExportService
         };
 
         // write the manifest
-        using var stream = File.OpenWrite(Path.Combine(GetExportBatchRootPath(exportBatchId), "manifest.json"));
-        await _json.SerializeAsync(batch, stream);
+        using (var stream = File.OpenWrite(Path.Combine(GetExportBatchRootPath(exportBatchId), "manifest.json")))
+        {
+            await _json.SerializeAsync(batch, stream);
+        }
 
         // zip zip zip
-        _zip.ZipDirectory
-        (
-            GetExportBatchPackagePath(exportBatchId),
-            GetExportBatchRootPath(exportBatchId)
-        );
+        using (var archive = ZipArchive.Create())
+        {
+            archive.AddAllFromDirectory(GetExportBatchRootPath(exportBatchId));
+            archive.SaveTo(GetExportBatchPackagePath(exportBatchId), new WriterOptions(CompressionType.Deflate));
+        }
 
         return batch;
     }
 
-    public Task<ImportedGame[]> ImportGames(GameImportExportBatch batch, CancellationToken cancellationToken)
+    public async Task<ImportedGame[]> ImportPackage(byte[] package, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
-    }
+        var importBatchId = _guids.Generate();
+        var actingUser = _actingUser.Get();
+        Directory.CreateDirectory(GetImportBatchRoot(importBatchId));
+        Directory.CreateDirectory(GetImportPackageRoot());
 
-    private async Task<string> DownloadImage(string gameId, string url, string localFileName, CancellationToken cancellationToken)
-    {
-        var imageBytes = default(byte[]);
-        try
+        // extract the data
+        var tempArchivePath = Path.Combine(GetImportPackageRoot(), importBatchId) + ".zip";
+        using (var tempFile = File.Open(tempArchivePath, FileMode.Create))
         {
-            var response = await _http.GetAsync(url, cancellationToken);
-            imageBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
-        }
-        catch
-        {
-            throw new CantDownloadImage(gameId, url);
+            await tempFile.WriteAsync(package, cancellationToken);
         }
 
-        if (imageBytes.Length > 0)
+        using (var tempArchiveStream = File.OpenRead(tempArchivePath))
         {
-            await File.WriteAllBytesAsync(localFileName, imageBytes, cancellationToken);
-        }
-        else
-        {
-            throw new ImageWasEmpty(gameId, url);
+            using (var reader = ReaderFactory.Open(tempArchiveStream))
+            {
+                while (reader.MoveToNextEntry())
+                {
+                    if (!reader.Entry.IsDirectory)
+                    {
+                        reader.WriteEntryToDirectory(GetImportBatchRoot(importBatchId), new ExtractionOptions()
+                        {
+                            ExtractFullPath = true,
+                            Overwrite = true
+                        });
+                    }
+                }
+            }
         }
 
-        return localFileName;
+        // copy image files
+        foreach (var imgPath in Directory.EnumerateFileSystemEntries(GetImportBatchImageRoot(importBatchId)))
+        {
+            var fileName = Path.GetFileName(imgPath);
+            File.Copy(imgPath, Path.Combine(_coreOptions.ImageFolder, fileName), true);
+        }
+
+        // now read the manifest
+        var importBatch = default(GameImportExportBatch);
+        using (var manifestStream = File.OpenRead(Path.Combine(GetImportBatchRoot(importBatchId), "manifest.json")))
+        {
+            importBatch = await _json.DeserializeAsync<GameImportExportBatch>(manifestStream);
+        }
+
+        // certificate templates
+        if (importBatch.CertificateTemplates.Any())
+        {
+            var certificateTemplates = importBatch
+                .CertificateTemplates
+                .Values
+                .Select(t => new CertificateTemplate
+                {
+                    Content = t.Content,
+                    CreatedByUserId = actingUser.Id,
+                    Name = t.Name
+                })
+                .ToArray();
+
+            await _store.SaveAddRange(certificateTemplates);
+
+            if (importBatch.PracticeAreaCertificateTemplateId.IsNotEmpty())
+            {
+                var updatedSettings = await _practice.GetSettings(cancellationToken);
+                updatedSettings.CertificateTemplateId = importBatch.PracticeAreaCertificateTemplateId;
+                await _practice.UpdateSettings(updatedSettings, actingUser.Id, cancellationToken);
+            }
+        }
+
+        // external hosts
+        if (importBatch.ExternalHosts.Any())
+        {
+            await _store.SaveAddRange
+            (
+                importBatch
+                    .ExternalHosts
+                    .Values
+                    .Select(h => new ExternalGameHost
+                    {
+                        ClientUrl = h.ClientUrl,
+                        DestroyResourcesOnDeployFailure = h.DestroyResourcesOnDeployFailure,
+                        GamespaceDeployBatchSize = h.GamespaceDeployBatchSize,
+                        HostUrl = h.HostUrl,
+                        HttpTimeoutInSeconds = h.HttpTimeoutInSeconds,
+                        Name = h.Name,
+                        PingEndpoint = h.PingEndpoint,
+                        StartupEndpoint = h.StartupEndpoint,
+                        TeamExtendedEndpoint = h.TeamExtendedEndpoint
+                    })
+                    .ToArray()
+            );
+        }
+
+        // feedback templates
+        var feedbackTemplates = importBatch
+            .FeedbackTemplates
+            .Values
+            .Select(t => new FeedbackTemplate
+            {
+                Content = t.Content,
+                CreatedByUserId = actingUser.Id,
+                HelpText = t.HelpText,
+                Name = t.Name
+            })
+            .ToArray();
+        await _store.SaveAddRange(feedbackTemplates);
+
+        // sponsors
+        if (importBatch.Sponsors.Any())
+        {
+            await _store.SaveAddRange
+            (
+                importBatch
+                    .Sponsors
+                    .Values
+                    .Select(s => new Data.Sponsor
+                    {
+                        Approved = s.Approved,
+                        Logo = s.LogoFileName,
+                        Name = s.Name,
+                        ParentSponsor = s.ParentSponsor is null ? null : new Data.Sponsor
+                        {
+                            Approved = s.ParentSponsor.Approved,
+                            Logo = s.ParentSponsor.LogoFileName,
+                            Name = s.ParentSponsor.Id,
+                        }
+                    })
+                    .ToArray()
+            );
+        }
+
+        // and now games!
+        var importedGames = importBatch.Games.Select(g => new Data.Game
+        {
+            Name = g.Name,
+            Competition = g.Competition,
+            Season = g.Season,
+            Track = g.Track,
+            Division = g.Division,
+            AllowLateStart = g.AllowLateStart,
+            AllowPreview = g.AllowPreview,
+            AllowPublicScoreboardAccess = g.AllowPublicScoreboardAccess,
+            AllowReset = g.AllowReset,
+            Background = g.MapImageFileName,
+            CardText1 = g.CardText1,
+            CardText2 = g.CardText2,
+            CardText3 = g.CardText3,
+            GameStart = g.GameStart ?? DateTime.MinValue,
+            GameEnd = g.GameEnd ?? DateTime.MinValue,
+            GameMarkdown = g.GameMarkdown,
+            GamespaceLimitPerSession = g.GamespaceLimitPerSession,
+            IsFeatured = g.IsFeatured,
+            IsPublished = g.IsPublished,
+            Logo = g.CardImageFileName,
+            MaxAttempts = g.MaxAttempts ?? 0,
+            MaxTeamSize = g.MaxTeamSize,
+            MinTeamSize = g.MinTeamSize,
+            Mode = g.Mode,
+            PlayerMode = g.PlayerMode,
+            RegistrationClose = g.RegistrationClose ?? DateTime.MinValue,
+            RegistrationOpen = g.RegistrationOpen ?? DateTime.MinValue,
+            RegistrationMarkdown = g.RegistrationMarkdown,
+            RegistrationType = g.RegistrationType,
+            RequireSynchronizedStart = g.RequireSynchronizedStart,
+            RequireSponsoredTeam = g.RequireSponsoredTeam,
+            SessionAvailabilityWarningThreshold = g.SessionAvailabilityWarningThreshold,
+            SessionLimit = g.SessionLimit ?? 0,
+            SessionMinutes = g.SessionMinutes,
+            ShowOnHomePageInPracticeMode = g.ShowOnHomePageInPracticeMode,
+
+            // specs
+            Specs = g.Specs.Select(s => new Data.ChallengeSpec
+            {
+                Id = _guids.Generate(),
+                Description = s.Description,
+                Disabled = s.Disabled,
+                ExternalId = s.ExternalId,
+                GameEngineType = s.GameEngineType,
+                IsHidden = s.IsHidden,
+                Name = s.Name,
+                Points = s.Points,
+                ShowSolutionGuideInCompetitiveMode = s.ShowSolutionGuideInCompetitiveMode,
+                Tag = s.Tag,
+                Tags = s.Tags,
+                Text = s.Text,
+                X = s.X,
+                Y = s.Y,
+                R = s.R
+            })
+            .ToArray(),
+
+            // related entities
+            CertificateTemplateId = g.CertificateTemplateId,
+            ChallengesFeedbackTemplateId = g.ChallengesFeedbackTemplateId,
+            ExternalHostId = g.ExternalHostId,
+            FeedbackTemplateId = g.FeedbackTemplateId,
+            PracticeCertificateTemplateId = g.PracticeCertificateTemplateId,
+            Sponsor = g.SponsorId
+        })
+        .ToArray();
+
+        await _store.SaveAddRange(importedGames);
+
+        return importedGames.Select(g => new ImportedGame
+        {
+            Id = g.Id,
+            Name = g.Name
+        })
+        .ToArray();
     }
 
     private string GetExportBatchPackageName(string exportBatchId)
@@ -346,7 +561,16 @@ internal sealed class GameImportExportService
         => Path.Combine(_coreOptions.ExportFolder, "temp", exportBatchId);
 
     private string GetExportBatchImgRootPath(string exportBatchId)
-        => Path.Combine(GetExportBatchRootPath(exportBatchId), "img");
+        => Path.Combine(GetExportBatchRootPath(exportBatchId), "images");
+
+    private string GetImportPackageRoot()
+        => Path.Combine(_coreOptions.ImportFolder, "packages");
+
+    private string GetImportBatchRoot(string importBatchId)
+        => Path.Combine(_coreOptions.ImportFolder, "temp", importBatchId);
+
+    private string GetImportBatchImageRoot(string importBatchId)
+        => Path.Combine(_coreOptions.ImportFolder, "temp", importBatchId, "images");
 
     private string GetCardImageFileName(string gameId, string extension)
         => $"game-{gameId}-card{extension}";
