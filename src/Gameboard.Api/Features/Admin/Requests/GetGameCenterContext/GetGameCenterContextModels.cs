@@ -28,16 +28,17 @@ public sealed class GameCenterContext
 
 public sealed class GameCenterContextStats
 {
-    public int AttemptCountPractice { get; set; }
-    public int PlayerCountActive { get; set; }
-    public int PlayerCountCompetitive { get; set; }
-    public int PlayerCountPractice { get; set; }
-    public int PlayerCountTotal { get; set; }
-    public int TeamCountActive { get; set; }
-    public int TeamCountCompetitive { get; set; }
-    public int TeamCountPractice { get; set; }
-    public int TeamCountNotStarted { get; set; }
-    public int TeamCountTotal { get; set; }
-    public double? TopScore { get; set; }
-    public string TopScoreTeamName { get; set; }
+    public required int AttemptCountPractice { get; set; }
+    public required int PlayerCountActive { get; set; }
+    public required int PlayerCountCompetitive { get; set; }
+    public required int PlayerCountPractice { get; set; }
+    public required int PlayerCountTotal { get; set; }
+    public required int TeamCountActive { get; set; }
+    public required int TeamCountCompetitive { get; set; }
+    public required int TeamCountComplete { get; set; }
+    public required int TeamCountPractice { get; set; }
+    public required int TeamCountNotStarted { get; set; }
+    public required int TeamCountTotal { get; set; }
+    public required double? TopScore { get; set; }
+    public required string TopScoreTeamName { get; set; }
 }

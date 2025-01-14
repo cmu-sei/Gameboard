@@ -93,7 +93,9 @@ internal class GetGameCenterContextHandler
         var topScoringTeamName = string.Empty;
 
         if (topScore is not null)
+        {
             topScoringTeamName = (await _teamService.ResolveCaptain(topScore.TeamId, cancellationToken)).ApprovedName;
+        }
 
         var playerActivity = await _store
             .WithNoTracking<Data.Player>()
@@ -105,7 +107,8 @@ internal class GetGameCenterContextHandler
                 p.TeamId,
                 p.Mode,
                 IsActive = p.SessionBegin <= nowish && p.SessionEnd >= nowish,
-                IsStarted = p.SessionBegin != DateTimeOffset.MinValue
+                IsStarted = p.SessionBegin != DateTimeOffset.MinValue,
+                IsEnded = p.Mode == PlayerMode.Competition && p.SessionEnd != DateTimeOffset.MinValue && p.SessionEnd < nowish
             })
             .GroupBy(p => p.GameId)
             .Select(gr => new GameCenterContextStats
@@ -130,6 +133,11 @@ internal class GetGameCenterContextHandler
                     .Count(),
                 TeamCountActive = gr
                     .Where(p => p.IsActive)
+                    .Select(p => p.TeamId)
+                    .Distinct()
+                    .Count(),
+                TeamCountComplete = gr
+                    .Where(p => p.IsEnded)
                     .Select(p => p.TeamId)
                     .Distinct()
                     .Count(),
