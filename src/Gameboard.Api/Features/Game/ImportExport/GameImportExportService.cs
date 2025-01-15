@@ -271,7 +271,7 @@ internal sealed class GameImportExportService
                 RegistrationOpen = game.RegistrationOpen,
                 RegistrationMarkdown = game.RegistrationMarkdown,
                 RegistrationType = game.RegistrationType,
-                RequireSynchronizedStart = game.RequireSession,
+                RequireSynchronizedStart = game.RequireSynchronizedStart,
                 RequireSponsoredTeam = game.RequireSponsoredTeam,
                 SessionAvailabilityWarningThreshold = game.SessionAvailabilityWarningThreshold,
                 SessionLimit = game.SessionLimit,
@@ -342,6 +342,7 @@ internal sealed class GameImportExportService
         var actingUser = _actingUser.Get();
         Directory.CreateDirectory(GetImportBatchRoot(importBatchId));
         Directory.CreateDirectory(GetImportPackageRoot());
+        Directory.CreateDirectory(GetImportBatchImageRoot(importBatchId));
 
         // extract the data
         var tempArchivePath = Path.Combine(GetImportPackageRoot(), importBatchId) + ".zip";

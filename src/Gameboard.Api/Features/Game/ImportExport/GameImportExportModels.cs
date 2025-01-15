@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Gameboard.Api.Features.Games;
 
@@ -109,12 +108,6 @@ public sealed class GameImportExportCertificateTemplate
     public string Id { get; set; }
     public string Name { get; set; }
     public string Content { get; set; }
-}
-
-public sealed class GameImportExportImages
-{
-    public required string CardFileName { get; set; }
-    public required string MapFileName { get; set; }
 }
 
 public sealed class GameImportExportSponsor

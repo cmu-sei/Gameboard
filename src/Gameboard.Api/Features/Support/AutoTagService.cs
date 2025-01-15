@@ -48,7 +48,7 @@ internal sealed class AutoTagService(IStore store) : IAutoTagService
                 .Where(c => c.Id == ticket.ChallengeId)
                 .Select(c => new
                 {
-                    c.GameId
+                    c.GameId,
                     c.PlayerMode,
                     c.SpecId,
                 })
@@ -72,6 +72,28 @@ internal sealed class AutoTagService(IStore store) : IAutoTagService
                         .Select(c => c.Tag)
                         .ToArrayAsync(cancellationToken)
                 );
+            }
+
+            if (ticket.TeamId.IsNotEmpty())
+            {
+                var teamGameIds = await _store
+                    .WithNoTracking<Data.Player>()
+                    .Where(p => p.Id == ticket.TeamId)
+                    .Select(p => p.GameId)
+                    .Distinct()
+                    .ToArrayAsync(cancellationToken);
+
+                if (teamGameIds.Length > 0)
+                {
+                    retVal.AddRange
+                    (
+                        await _store
+                            .WithNoTracking<SupportSettingsAutoTag>()
+                            .Where(c => c.ConditionType == SupportSettingsAutoTagConditionType.GameId && teamGameIds.Contains(c.ConditionValue))
+                            .Select(c => c.Tag)
+                            .ToArrayAsync(cancellationToken)
+                    );
+                }
             }
         }
 

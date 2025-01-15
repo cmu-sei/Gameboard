@@ -90,12 +90,13 @@ public class TicketController
         var prevTicket = await TicketService.Retrieve(model.Id);
 
         var result = await TicketService.Update(model, Actor.Id, isTicketAdmin);
-        // Ignore labels being different
         if (result.Label != prevTicket.Label) prevTicket.LastUpdated = result.LastUpdated;
 
         // If the ticket hasn't been meaningfully updated, don't send a notification
         if (prevTicket.LastUpdated != result.LastUpdated)
+        {
             await Notify(Mapper.Map<TicketNotification>(result), EventAction.Updated);
+        }
 
         return result;
     }

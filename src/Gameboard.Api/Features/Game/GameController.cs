@@ -150,18 +150,6 @@ namespace Gameboard.Api.Controllers
         public Task<GamePlayState> GetGamePlayState(string gameId)
             => _mediator.Send(new GetGamePlayStateQuery(gameId, Actor.Id));
 
-        [HttpPost("/api/game/import")]
-        [Authorize]
-        public Task<Game> ImportGameSpec([FromBody] GameSpecImport model)
-            => GameService.Import(model);
-
-        [HttpPost("/api/game/export")]
-        public async Task<string> ExportGameSpec([FromBody] GameSpecExport model)
-        {
-            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
-            return await GameService.Export(model);
-        }
-
         [HttpPost("/api/games/export")]
         public Task<ExportGamesResult> ExportGames([FromBody] ExportGameCommand request, CancellationToken cancellationToken)
             => _mediator.Send(request, cancellationToken);
