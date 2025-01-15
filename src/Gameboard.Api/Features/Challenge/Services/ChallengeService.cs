@@ -176,7 +176,7 @@ public partial class ChallengeService
         }
         finally
         {
-            entry.Specs = entry.Specs.Where(s => s.SpecId != model.SpecId).ToList();
+            entry.Specs = [.. entry.Specs.Where(s => s.SpecId != model.SpecId)];
         }
     }
 

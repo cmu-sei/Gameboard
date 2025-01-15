@@ -33,8 +33,8 @@ namespace Gameboard.Api.Data
         public User Creator { get; set; }
         public Challenge Challenge { get; set; }
         public Player Player { get; set; }
+
         // Activity is a thread of comments and activity like status or assignee changes
         public ICollection<TicketActivity> Activity { get; set; } = [];
     }
-
 }
