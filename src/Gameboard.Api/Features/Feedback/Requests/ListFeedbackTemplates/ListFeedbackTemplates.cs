@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,8 @@ internal sealed class ListFeedbackTemplatesHandler(IMapper mapper, IStore store,
     public async Task<ListFeedbackTemplatesResponse> Handle(ListFeedbackTemplatesQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .Auth(c => c.Require(Users.PermissionKey.Games_CreateEditDelete))
+            // reports users are allowed here because of the filters
+            .Auth(c => c.RequireOneOf(PermissionKey.Games_CreateEditDelete, PermissionKey.Reports_View))
             .Validate(cancellationToken);
 
         var templates = await _mapper
