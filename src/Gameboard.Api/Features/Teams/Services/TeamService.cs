@@ -557,6 +557,7 @@ internal class TeamService
             );
 
         // and their challenges
+        // note that this doesn't matter for teams starting the first time, since they have no challenges
         var challenges = await _store
             .WithNoTracking<Data.Challenge>()
             .Where(c => teamIds.Contains(c.TeamId))

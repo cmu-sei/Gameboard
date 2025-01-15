@@ -134,16 +134,6 @@ public class PlayerService
         );
     }
 
-    public Func<Data.Player, bool> GetHasActiveSessionFunc(DateTimeOffset now)
-    {
-        return p => p.SessionBegin != DateTimeOffset.MinValue && p.SessionBegin < now && p.SessionEnd > now;
-    }
-
-    public Expression<Func<Data.Player, bool>> GetHasActiveSessionPredicate(DateTimeOffset now)
-    {
-        return p => p.SessionBegin != DateTimeOffset.MinValue && p.SessionBegin < now && p.SessionEnd > now;
-    }
-
     public Expression<Func<Data.Player, bool>> GetHasPendingNamePredicate()
     {
         return p => p.Name != p.ApprovedName && p.Name != null && p.Name != string.Empty && (p.NameStatus == null || p.NameStatus == string.Empty || p.NameStatus == AppConstants.NameStatusPending);
