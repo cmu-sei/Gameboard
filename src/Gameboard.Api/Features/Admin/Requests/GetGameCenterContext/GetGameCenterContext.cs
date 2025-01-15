@@ -59,7 +59,8 @@ internal class GetGameCenterContextHandler
                 g.IsPracticeMode,
                 g.IsPublished,
                 IsRegistrationActive = g.RegistrationType == GameRegistrationType.Open && g.RegistrationOpen <= nowish && g.RegistrationClose >= nowish,
-                IsTeamGame = g.MaxTeamSize > 1
+                IsTeamGame = g.MaxTeamSize > 1,
+                RegisteredTeamCount = g.Players.Select(p => p.TeamId).Distinct().Count()
             })
             .SingleAsync(g => g.Id == request.GameId, cancellationToken);
 
@@ -96,6 +97,12 @@ internal class GetGameCenterContextHandler
         {
             topScoringTeamName = (await _teamService.ResolveCaptain(topScore.TeamId, cancellationToken)).ApprovedName;
         }
+
+        var startedTeamsCount = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.GameId == request.GameId)
+            .SelectedStartedTeamIds()
+            .CountAsync(cancellationToken);
 
         var playerActivity = await _store
             .WithNoTracking<Data.Player>()
@@ -151,15 +158,8 @@ internal class GetGameCenterContextHandler
                     .Select(p => p.TeamId)
                     .Distinct()
                     .Count(),
-                TeamCountNotStarted = gr
-                    .Where(p => !p.IsStarted)
-                    .Select(p => p.TeamId)
-                    .Distinct()
-                    .Count(),
-                TeamCountTotal = gr
-                    .Select(p => p.TeamId)
-                    .Distinct()
-                    .Count(),
+                TeamCountNotStarted = gameData.RegisteredTeamCount - startedTeamsCount,
+                TeamCountTotal = gameData.RegisteredTeamCount,
                 TopScore = topScore == null ? null : topScore.ScoreOverall,
                 TopScoreTeamName = topScoringTeamName
             })

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Scores;
+using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
@@ -19,11 +20,13 @@ internal class GetTeamCenterContextHandler(
     IScoringService scoringService,
     IStore store,
     TeamExistsValidator<GetTeamCenterContextQuery> teamExists,
+    ITeamService teamService,
     IValidatorService<GetTeamCenterContextQuery> validatorService) : IRequestHandler<GetTeamCenterContextQuery, TeamCenterContext>
 {
     private readonly IScoringService _scoringService = scoringService;
     private readonly IStore _store = store;
     private readonly TeamExistsValidator<GetTeamCenterContextQuery> _teamExists = teamExists;
+    private readonly ITeamService _teamService = teamService;
     private readonly IValidatorService<GetTeamCenterContextQuery> _validatorService = validatorService;
 
     public async Task<TeamCenterContext> Handle(GetTeamCenterContextQuery request, CancellationToken cancellationToken)
