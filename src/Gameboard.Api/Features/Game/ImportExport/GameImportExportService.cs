@@ -276,6 +276,7 @@ internal sealed class GameImportExportService
                 PlayerMode = game.PlayerMode,
                 RegistrationClose = game.RegistrationClose,
                 RegistrationOpen = game.RegistrationOpen,
+                RegistrationConstraint = game.RegistrationConstraint,
                 RegistrationMarkdown = game.RegistrationMarkdown,
                 RegistrationType = game.RegistrationType,
                 RequireSynchronizedStart = game.RequireSynchronizedStart,

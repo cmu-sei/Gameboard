@@ -28,6 +28,7 @@ public sealed class GameImportExportGame
     public required DateTimeOffset? GameStart { get; set; }
     public required DateTimeOffset? GameEnd { get; set; }
     public required string GameMarkdown { get; set; }
+    public required string RegistrationConstraint { get; set; }
     public required string RegistrationMarkdown { get; set; }
     public required DateTimeOffset? RegistrationOpen { get; set; }
     public required DateTimeOffset? RegistrationClose { get; set; }
@@ -129,3 +130,6 @@ public sealed class ExportPackageNotFound : GameboardException
 {
     public ExportPackageNotFound(string exportBatchId) : base($"Export package {exportBatchId} doesn't exist.") { }
 }
+
+[AttributeUsage(AttributeTargets.Property)]
+public sealed class DontExportAttribute : Attribute { }
