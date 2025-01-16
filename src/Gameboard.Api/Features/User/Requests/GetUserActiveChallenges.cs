@@ -43,7 +43,7 @@ internal class GetUserActiveChallengesHandler
             .Auth
             (
                 a => a
-                    .RequirePermissions(PermissionKey.Teams_Observe)
+                    .Require(PermissionKey.Teams_Observe)
                     .UnlessUserIdIn(request.UserId)
             )
             .AddValidator(_userExists.UseProperty(m => m.UserId))

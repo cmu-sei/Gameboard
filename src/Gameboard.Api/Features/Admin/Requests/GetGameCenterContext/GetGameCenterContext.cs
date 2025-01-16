@@ -36,7 +36,7 @@ internal class GetGameCenterContextHandler
     public async Task<GameCenterContext> Handle(GetGameCenterContextQuery request, CancellationToken cancellationToken)
     {
         await _validator
-            .Auth(config => config.RequirePermissions(PermissionKey.Admin_View))
+            .Auth(config => config.Require(PermissionKey.Admin_View))
             .AddValidator(_gameExists.UseProperty(r => r.GameId))
             .Validate(request, cancellationToken);
 
@@ -59,7 +59,8 @@ internal class GetGameCenterContextHandler
                 g.IsPracticeMode,
                 g.IsPublished,
                 IsRegistrationActive = g.RegistrationType == GameRegistrationType.Open && g.RegistrationOpen <= nowish && g.RegistrationClose >= nowish,
-                IsTeamGame = g.MaxTeamSize > 1
+                IsTeamGame = g.MaxTeamSize > 1,
+                RegisteredTeamCount = g.Players.Select(p => p.TeamId).Distinct().Count()
             })
             .SingleAsync(g => g.Id == request.GameId, cancellationToken);
 
@@ -88,11 +89,20 @@ internal class GetGameCenterContextHandler
             .Where(s => s.GameId == request.GameId)
             .Where(s => s.Rank > 0)
             .OrderByDescending(s => s.ScoreOverall)
+                .ThenBy(s => s.CumulativeTimeMs)
             .FirstOrDefaultAsync(cancellationToken);
         var topScoringTeamName = string.Empty;
 
         if (topScore is not null)
+        {
             topScoringTeamName = (await _teamService.ResolveCaptain(topScore.TeamId, cancellationToken)).ApprovedName;
+        }
+
+        var startedTeamsCount = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.GameId == request.GameId)
+            .SelectedStartedTeamIds()
+            .CountAsync(cancellationToken);
 
         var playerActivity = await _store
             .WithNoTracking<Data.Player>()
@@ -104,7 +114,8 @@ internal class GetGameCenterContextHandler
                 p.TeamId,
                 p.Mode,
                 IsActive = p.SessionBegin <= nowish && p.SessionEnd >= nowish,
-                IsStarted = p.SessionBegin != DateTimeOffset.MinValue
+                IsStarted = p.SessionBegin != DateTimeOffset.MinValue,
+                IsEnded = p.Mode == PlayerMode.Competition && p.SessionEnd != DateTimeOffset.MinValue && p.SessionEnd < nowish
             })
             .GroupBy(p => p.GameId)
             .Select(gr => new GameCenterContextStats
@@ -132,6 +143,11 @@ internal class GetGameCenterContextHandler
                     .Select(p => p.TeamId)
                     .Distinct()
                     .Count(),
+                TeamCountComplete = gr
+                    .Where(p => p.IsEnded)
+                    .Select(p => p.TeamId)
+                    .Distinct()
+                    .Count(),
                 TeamCountCompetitive = gr
                     .Where(p => p.Mode == PlayerMode.Competition)
                     .Select(p => p.TeamId)
@@ -142,15 +158,8 @@ internal class GetGameCenterContextHandler
                     .Select(p => p.TeamId)
                     .Distinct()
                     .Count(),
-                TeamCountNotStarted = gr
-                    .Where(p => !p.IsStarted)
-                    .Select(p => p.TeamId)
-                    .Distinct()
-                    .Count(),
-                TeamCountTotal = gr
-                    .Select(p => p.TeamId)
-                    .Distinct()
-                    .Count(),
+                TeamCountNotStarted = gameData.RegisteredTeamCount - startedTeamsCount,
+                TeamCountTotal = gameData.RegisteredTeamCount,
                 TopScore = topScore == null ? null : topScore.ScoreOverall,
                 TopScoreTeamName = topScoringTeamName
             })
@@ -173,7 +182,11 @@ internal class GetGameCenterContextHandler
             IsPublished = gameData.IsPublished,
             IsRegistrationActive = gameData.IsRegistrationActive,
             IsTeamGame = gameData.IsTeamGame,
-            Stats = playerActivity ?? new(),
+            Stats = playerActivity ?? new()
+            {
+                AttemptCountPractice = gameData.IsPracticeMode ? 0 : null,
+                TopScore = null
+            },
 
             // aggregates
             ChallengeCount = challengeData?.ChallengeCount ?? 0,

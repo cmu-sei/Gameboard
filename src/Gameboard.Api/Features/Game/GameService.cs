@@ -5,26 +5,20 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using AutoMapper;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 using Gameboard.Api.Common.Services;
 using Microsoft.AspNetCore.Http;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Users;
 
 namespace Gameboard.Api.Services;
 
 public interface IGameService
 {
     Task<Game> Create(NewGame model);
-    Task<string> Export(GameSpecExport model);
-    Task<Game> Import(GameSpecImport model);
     IQueryable<GameActiveTeam> GetTeamsWithActiveSession(string GameId);
     Task<bool> IsUserPlaying(string gameId, string userId);
     Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false);
@@ -45,14 +39,12 @@ public class GameService(
     CoreOptions options,
     Defaults defaults,
     INowService nowService,
-    IUserRolePermissionsService permissionsService,
     IStore store
     ) : _Service(logger, mapper, options), IGameService
 {
     private readonly Defaults _defaults = defaults;
     private readonly IGuidService _guids = guids;
     private readonly INowService _now = nowService;
-    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
     private readonly IStore _store = store;
 
     public async Task<Game> Create(NewGame model)
@@ -153,7 +145,7 @@ public class GameService(
         else
             b = b.OrderBy(g => g.Year).ThenBy(g => g.Month);
 
-        return b.ToArray();
+        return [.. b];
     }
 
     public async Task<ChallengeSpec[]> RetrieveChallengeSpecs(string id)
@@ -203,49 +195,6 @@ public class GameService(
         }
 
         return [.. result];
-    }
-
-    public async Task<string> Export(GameSpecExport model)
-    {
-        var yaml = new SerializerBuilder()
-            .WithNamingConvention(CamelCaseNamingConvention.Instance)
-            .Build();
-
-        var entity = await _store
-            .WithNoTracking<Data.Game>()
-            .Include(g => g.Specs)
-            .SingleOrDefaultAsync(g => g.Id == model.Id);
-
-        if (entity is not null)
-            return yaml.Serialize(entity);
-
-        entity = new Data.Game { Id = _guids.Generate() };
-
-        for (int i = 0; i < model.GenerateSpecCount; i++)
-            entity.Specs.Add(new Data.ChallengeSpec
-            {
-                Id = _guids.Generate(),
-                GameId = entity.Id
-            });
-
-        return model.Format == ExportFormat.Yaml
-            ? yaml.Serialize(entity)
-            : JsonSerializer.Serialize(entity, JsonOptions);
-    }
-
-    public async Task<Game> Import(GameSpecImport model)
-    {
-        if (!await _permissionsService.Can(PermissionKey.Games_CreateEditDelete))
-            throw new ActionForbidden();
-
-        var yaml = new DeserializerBuilder()
-            .WithNamingConvention(CamelCaseNamingConvention.Instance)
-            .IgnoreUnmatchedProperties()
-            .Build();
-
-        var entity = yaml.Deserialize<Data.Game>(model.Data);
-        await _store.Create(entity);
-        return Mapper.Map<Game>(entity);
     }
 
     public async Task UpdateImage(string id, string type, string filename)

@@ -30,7 +30,7 @@ internal sealed class GetFeedbackSubmissionHandler
             (
                 c => c
                     .RequireAuthentication()
-                    .RequirePermissions(Users.PermissionKey.Admin_View)
+                    .Require(Users.PermissionKey.Admin_View)
                     .UnlessUserIdIn(request.Request.UserId)
             )
             .AddValidator(ctx =>

@@ -68,13 +68,12 @@ public class ChallengeController
         var graderUrl = _challengeGraderUrlService.BuildGraderUrl();
         var result = await ChallengeService.GetOrCreate(model, Actor.Id, graderUrl);
 
-        await Hub.Clients.Group(result.TeamId).ChallengeEvent(
-            new HubEvent<Challenge>
-            {
-                Model = result,
-                Action = EventAction.Updated,
-                ActingUser = Actor.ToSimpleEntity()
-            });
+        await Hub.Clients.Group(result.TeamId).ChallengeEvent(new HubEvent<Challenge>
+        {
+            Model = result,
+            Action = EventAction.Updated,
+            ActingUser = Actor.ToSimpleEntity()
+        });
 
         return result;
     }

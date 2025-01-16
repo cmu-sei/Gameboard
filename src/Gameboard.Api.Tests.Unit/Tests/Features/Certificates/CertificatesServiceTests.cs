@@ -72,4 +72,140 @@ public class CertificatesServiceTests
         // then
         result.ToLower().ShouldBe("1 hour and 3 minutes");
     }
+
+    [Theory, GameboardAutoData]
+    public async Task MakeCertificates_WhenScoreZero_ReturnsEmptyArray
+    (
+        string certificateTemplateId,
+        string gameId,
+        string teamId,
+        IFixture fixture
+    )
+    {
+        // when a team scores 0
+        var userId = fixture.Create<string>();
+        var fakeStore = A.Fake<IStore>();
+        var fakePlayers = new Data.Player[]
+        {
+            new()
+            {
+                PartialCount = 0,
+                Game = new Data.Game
+                {
+                    Id = gameId,
+                    CertificateTemplateId = certificateTemplateId,
+                    GameEnd = DateTimeOffset.UtcNow - TimeSpan.FromDays(1)
+                },
+                Score = 1,
+                SessionEnd = DateTimeOffset.UtcNow - TimeSpan.FromDays(2),
+                TeamId = teamId,
+                UserId = userId,
+                User = new Data.User { Id = userId }
+            }
+        }.ToList().BuildMock();
+
+        var fakeScores = new DenormalizedTeamScore[]
+        {
+            new()
+            {
+                GameId = gameId,
+                CumulativeTimeMs = 100,
+                ScoreAdvanced = 0,
+                ScoreAutoBonus = 0,
+                ScoreChallenge = 0,
+                ScoreManualBonus = 0,
+                SolveCountNone = 0,
+                SolveCountPartial = 1,
+                SolveCountComplete = 0,
+                TeamId = teamId,
+                TeamName = null,
+                Rank = 1,
+                ScoreOverall = 0
+            }
+        }.BuildMock();
+
+        A.CallTo(() => fakeStore.WithNoTracking<Data.Player>()).Returns(fakePlayers);
+        A.CallTo(() => fakeStore.WithNoTracking<DenormalizedTeamScore>()).Returns(fakeScores);
+
+        var sut = new CertificatesService
+        (
+            A.Fake<CoreOptions>(),
+            new NowService(),
+            fakeStore,
+            A.Fake<ITeamService>()
+        );
+        // act
+        var result = await sut.GetCompetitiveCertificates(userId, CancellationToken.None);
+
+        // assert
+        result.Count().ShouldBe(0);
+    }
+
+    [Theory, GameboardAutoData]
+    public async Task MakeCertificates_WhenScore1_ReturnsOneCertificate
+    (
+        string certificateTemplateId,
+        string gameId,
+        string teamId,
+        IFixture fixture
+    )
+    {
+        // arrange
+        var userId = fixture.Create<string>();
+        var fakeStore = A.Fake<IStore>();
+        var fakePlayers = new Data.Player[]
+        {
+            new()
+            {
+                PartialCount = 0,
+                Game = new Data.Game
+                {
+                    Id = gameId,
+                    CertificateTemplateId = certificateTemplateId,
+                    GameEnd = DateTimeOffset.UtcNow - TimeSpan.FromDays(1)
+                },
+                Score = 1,
+                SessionEnd = DateTimeOffset.UtcNow - TimeSpan.FromDays(2),
+                TeamId = teamId,
+                UserId = userId,
+                User = new Data.User { Id = userId }
+            }
+        }.ToList().BuildMock();
+
+        var fakeScores = new DenormalizedTeamScore[]
+        {
+            new()
+            {
+                GameId = gameId,
+                CumulativeTimeMs = 100,
+                ScoreAdvanced = 0,
+                ScoreAutoBonus = 0,
+                ScoreChallenge = 1,
+                ScoreManualBonus = 0,
+                SolveCountNone = 0,
+                SolveCountPartial = 1,
+                SolveCountComplete = 0,
+                TeamId = teamId,
+                TeamName = null,
+                Rank = 1,
+                ScoreOverall = 1
+            }
+        }.BuildMock();
+
+        A.CallTo(() => fakeStore.WithNoTracking<Data.Player>()).Returns(fakePlayers);
+        A.CallTo(() => fakeStore.WithNoTracking<DenormalizedTeamScore>()).Returns(fakeScores);
+
+        var sut = new CertificatesService
+        (
+            A.Fake<CoreOptions>(),
+            new NowService(),
+            fakeStore,
+            A.Fake<ITeamService>()
+        );
+        // act
+        var result = await sut.GetCompetitiveCertificates(userId, CancellationToken.None);
+
+        // assert
+        result.Count().ShouldBe(1);
+    }
 }

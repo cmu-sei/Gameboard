@@ -21,7 +21,7 @@ internal class UpsertSupportSettingsAutoTagHandler(
     public async Task<SupportSettingsAutoTag> Handle(UpsertSupportSettingsAutoTagCommand request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .Auth(c => c.RequirePermissions(Users.PermissionKey.Support_EditSettings))
+            .Auth(c => c.Require(Users.PermissionKey.Support_EditSettings))
             .AddValidator(ctx =>
             {
                 if (request.AutoTag.ConditionValue.IsEmpty())

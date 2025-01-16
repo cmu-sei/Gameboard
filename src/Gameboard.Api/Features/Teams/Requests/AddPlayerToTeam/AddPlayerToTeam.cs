@@ -52,7 +52,7 @@ internal class AddPlayerToTeamHandler
             .Auth
             (
                 config => config
-                    .RequirePermissions(PermissionKey.Teams_Enroll)
+                    .Require(PermissionKey.Teams_Enroll)
                     .Unless(() => _store.AnyAsync<Data.Player>(p => p.UserId == _actingUserService.Get().Id && p.Id == request.PlayerId, cancellationToken))
             )
             .AddValidator(_playerExists.UseValue(request.PlayerId))

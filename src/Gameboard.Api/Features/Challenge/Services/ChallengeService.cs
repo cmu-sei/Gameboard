@@ -136,32 +136,33 @@ public partial class ChallengeService
             TeamId = player.TeamId,
             Specs = []
         });
-
         _launchCache.TryGetValue(player.TeamId, out var entry);
-
-        if (entry.Specs.Any(s => s.SpecId == model.SpecId))
-        {
-            throw new ChallengeStartPending();
-        }
-        else
-        {
-            entry.Specs.Add(new ChallengeLaunchCacheEntrySpec { GameId = player.GameId, SpecId = model.SpecId });
-        }
-
-        var spec = await _store
-            .WithNoTracking<Data.ChallengeSpec>()
-            .SingleAsync(s => s.Id == model.SpecId, cancellationToken);
-
-        var playerCount = 1;
-        if (player.Game.AllowTeam)
-        {
-            playerCount = await _store
-                .WithNoTracking<Data.Player>()
-                .CountAsync(p => p.TeamId == player.TeamId, cancellationToken);
-        }
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (entry.Specs.Any(s => s.SpecId == model.SpecId))
+            {
+                throw new ChallengeStartPending();
+            }
+            else
+            {
+                entry.Specs.Add(new ChallengeLaunchCacheEntrySpec { GameId = player.GameId, SpecId = model.SpecId });
+            }
+
+            var spec = await _store
+                .WithNoTracking<Data.ChallengeSpec>()
+                .SingleAsync(s => s.Id == model.SpecId, cancellationToken);
+
+            var playerCount = 1;
+            if (player.Game.AllowTeam)
+            {
+                playerCount = await _store
+                    .WithNoTracking<Data.Player>()
+                    .CountAsync(p => p.TeamId == player.TeamId, cancellationToken);
+            }
+
             var challenge = await BuildAndRegisterChallenge(model, spec, player.Game, player, actorId, graderUrl, playerCount, model.Variant);
 
             await _store.Create(challenge, cancellationToken);
@@ -171,12 +172,12 @@ public partial class ChallengeService
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(message: "Challenge registration failure: {exName} -- {exMessage}", ex.GetType().Name, ex.Message);
+            Logger.LogWarning("Challenge registration failure: {exName} -- {exMessage}", ex.GetType().Name, ex.Message);
             throw;
         }
         finally
         {
-            entry.Specs = entry.Specs.Where(s => s.SpecId != model.SpecId).ToList();
+            entry.Specs = [.. entry.Specs.Where(s => s.SpecId != model.SpecId)];
         }
     }
 

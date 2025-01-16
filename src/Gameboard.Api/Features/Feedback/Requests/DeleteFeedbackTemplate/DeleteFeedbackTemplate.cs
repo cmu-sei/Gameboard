@@ -25,7 +25,7 @@ internal sealed class DeleteFeedbackTemplateHandler
     public async Task Handle(DeleteFeedbackTemplateCommand request, CancellationToken cancellationToken)
     {
         await _validator
-            .Auth(c => c.RequirePermissions(Users.PermissionKey.Games_CreateEditDelete))
+            .Auth(c => c.Require(Users.PermissionKey.Games_CreateEditDelete))
             .AddValidator(_templateExists.UseValue(request.FeedbackTemplateId))
             .Validate(cancellationToken);
 

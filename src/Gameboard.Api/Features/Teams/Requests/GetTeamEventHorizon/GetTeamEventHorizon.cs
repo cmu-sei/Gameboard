@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
@@ -15,35 +16,26 @@ namespace Gameboard.Api.Features.Teams;
 
 public record GetTeamEventHorizonQuery(string TeamId) : IRequest<EventHorizon>;
 
-internal class GetTeamEventHorizonHandler : IRequestHandler<GetTeamEventHorizonQuery, EventHorizon>
+internal class GetTeamEventHorizonHandler
+(
+    IActingUserService actingUserService,
+    IGuidService guidService,
+    IJsonService jsonService,
+    IScoringService scoringService,
+    IStore store,
+    TeamExistsValidator<GetTeamEventHorizonQuery> teamExists,
+    ITeamService teamService,
+    IValidatorService<GetTeamEventHorizonQuery> validator
+) : IRequestHandler<GetTeamEventHorizonQuery, EventHorizon>
 {
-    private readonly IActingUserService _actingUserService;
-    private readonly IGuidService _guidService;
-    private readonly IJsonService _jsonService;
-    private readonly IStore _store;
-    private readonly TeamExistsValidator<GetTeamEventHorizonQuery> _teamExists;
-    private readonly ITeamService _teamService;
-    private readonly IValidatorService<GetTeamEventHorizonQuery> _validator;
-
-    public GetTeamEventHorizonHandler
-    (
-        IActingUserService actingUserService,
-        IGuidService guidService,
-        IJsonService jsonService,
-        IStore store,
-        TeamExistsValidator<GetTeamEventHorizonQuery> teamExists,
-        ITeamService teamService,
-        IValidatorService<GetTeamEventHorizonQuery> validator
-    )
-    {
-        _actingUserService = actingUserService;
-        _guidService = guidService;
-        _jsonService = jsonService;
-        _store = store;
-        _teamExists = teamExists;
-        _teamService = teamService;
-        _validator = validator;
-    }
+    private readonly IActingUserService _actingUserService = actingUserService;
+    private readonly IGuidService _guidService = guidService;
+    private readonly IJsonService _jsonService = jsonService;
+    private readonly IScoringService _scoring = scoringService;
+    private readonly IStore _store = store;
+    private readonly TeamExistsValidator<GetTeamEventHorizonQuery> _teamExists = teamExists;
+    private readonly ITeamService _teamService = teamService;
+    private readonly IValidatorService<GetTeamEventHorizonQuery> _validator = validator;
 
     public async Task<EventHorizon> Handle(GetTeamEventHorizonQuery request, CancellationToken cancellationToken)
     {
@@ -52,7 +44,7 @@ internal class GetTeamEventHorizonHandler : IRequestHandler<GetTeamEventHorizonQ
 
         await _validator
             .Auth(config => config
-                .RequirePermissions(PermissionKey.Teams_Observe)
+                .Require(PermissionKey.Teams_Observe)
                 .Unless
                 (
                     () => _store
@@ -93,6 +85,9 @@ internal class GetTeamEventHorizonHandler : IRequestHandler<GetTeamEventHorizonQ
             .WithNoTracking<Data.ChallengeSpec>()
             .Where(cs => specIds.Contains(cs.Id))
             .ToArrayAsync(cancellationToken);
+
+        // and we want their scores so we can note that for the challenge
+        var score = await _scoring.GetTeamScore(request.TeamId, cancellationToken);
 
         // manually compose the events since they come from different sources
         var events = new List<IEventHorizonEvent>();
@@ -146,7 +141,8 @@ internal class GetTeamEventHorizonHandler : IRequestHandler<GetTeamEventHorizonQ
                 Challenges = challenges.Select(c => new EventHorizonTeamChallenge
                 {
                     Id = c.Id,
-                    SpecId = c.SpecId
+                    Score = score.Challenges.Where(challenge => challenge.Id == c.Id).FirstOrDefault()?.Score?.TotalScore ?? 0,
+                    SpecId = c.SpecId,
                 }),
                 Session = new EventHorizonSession
                 {

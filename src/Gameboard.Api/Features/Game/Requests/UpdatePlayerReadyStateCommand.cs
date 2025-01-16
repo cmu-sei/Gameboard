@@ -35,7 +35,7 @@ internal class UpdatePlayerReadyStateCommandHandler
             .Auth
             (
                 config => config
-                    .RequirePermissions(PermissionKey.Teams_SetSyncStartReady)
+                    .Require(PermissionKey.Teams_SetSyncStartReady)
                     .UnlessUserIdIn(player?.UserId)
 
             )

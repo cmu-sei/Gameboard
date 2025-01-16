@@ -35,7 +35,7 @@ internal class ResetSessionCommandValidator : IGameboardRequestValidator<ResetTe
             .Auth(config =>
             {
                 config
-                    .RequirePermissions(PermissionKey.Play_IgnoreSessionResetSettings)
+                    .Require(PermissionKey.Play_IgnoreSessionResetSettings)
                     .Unless
                     (
                         () => _store

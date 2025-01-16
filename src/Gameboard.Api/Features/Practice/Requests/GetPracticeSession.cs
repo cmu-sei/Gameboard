@@ -37,7 +37,7 @@ internal sealed class GetPracticeSessionHandler
             .Auth
             (
                 config => config
-                    .RequirePermissions(PermissionKey.Teams_Observe)
+                    .Require(PermissionKey.Teams_Observe)
                     .UnlessUserIdIn(request.UserId)
             )
             .Validate(cancellationToken);

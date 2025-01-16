@@ -28,7 +28,7 @@ internal sealed class AdvanceTeamsHandler
         var finalTeamIds = request.TeamIds.Distinct().ToArray();
 
         await _validator
-            .Auth(c => c.RequirePermissions(PermissionKey.Teams_Enroll))
+            .Auth(c => c.Require(PermissionKey.Teams_Enroll))
             .AddEntityExistsValidator<Data.Game>(request.GameId)
             .AddValidator(async ctx =>
             {

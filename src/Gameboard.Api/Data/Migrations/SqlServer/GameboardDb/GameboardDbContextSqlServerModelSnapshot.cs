@@ -907,10 +907,6 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
-                    b.Property<string>("TestCode")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
                     b.Property<string>("Track")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
@@ -1087,9 +1083,6 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
                     b.Property<int?>("AttemptLimit")
                         .HasColumnType("int");
-
-                    b.Property<string>("CertificateHtmlTemplate")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("CertificateTemplateId")
                         .HasColumnType("nvarchar(450)");

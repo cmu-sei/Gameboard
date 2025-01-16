@@ -22,6 +22,7 @@ public interface IPracticeService
     Task<IEnumerable<string>> GetVisibleChallengeTags(CancellationToken cancellationToken);
     Task<IEnumerable<string>> GetVisibleChallengeTags(IEnumerable<string> requestedTags, CancellationToken cancellationToken);
     IEnumerable<string> UnescapeSuggestedSearches(string input);
+    Task<PracticeModeSettings> UpdateSettings(PracticeModeSettingsApiModel settings, string actingUserId, CancellationToken cancellationToken);
 }
 
 public enum CanPlayPracticeChallengeResult
@@ -33,12 +34,14 @@ public enum CanPlayPracticeChallengeResult
 
 internal partial class PracticeService
 (
+    IGuidService guids,
     IMapper mapper,
     INowService now,
     ISlugService slugService,
     IStore store
 ) : IPracticeService
 {
+    private readonly IGuidService _guids = guids;
     private readonly IMapper _mapper = mapper;
     private readonly INowService _now = now;
     private readonly ISlugService _slugService = slugService;
@@ -115,13 +118,7 @@ internal partial class PracticeService
         // if we don't have any settings, make up some defaults
         if (settings is null)
         {
-            return new PracticeModeSettingsApiModel
-            {
-                CertificateHtmlTemplate = null,
-                DefaultPracticeSessionLengthMinutes = 60,
-                IntroTextMarkdown = null,
-                SuggestedSearches = []
-            };
+            return _mapper.Map<PracticeModeSettingsApiModel>(GetDefaultSettings());
         }
 
         var apiModel = _mapper.Map<PracticeModeSettingsApiModel>(settings);
@@ -142,6 +139,33 @@ internal partial class PracticeService
         return requestedTags.Select(t => t.ToLower()).Intersect(settings.SuggestedSearches).ToArray();
     }
 
+    public async Task<PracticeModeSettings> UpdateSettings(PracticeModeSettingsApiModel update, string actingUserId, CancellationToken cancellationToken)
+    {
+        var settings = await _store.FirstOrDefaultAsync<PracticeModeSettings>(cancellationToken);
+        if (settings is null)
+        {
+            settings.Id = settings.Id.IsEmpty() ? _guids.Generate() : settings.Id;
+            settings.AttemptLimit = update.AttemptLimit;
+            settings.CertificateTemplateId = update.CertificateTemplateId;
+            settings.DefaultPracticeSessionLengthMinutes = update.DefaultPracticeSessionLengthMinutes;
+            settings.IntroTextMarkdown = update.IntroTextMarkdown;
+            settings.MaxConcurrentPracticeSessions = update.MaxConcurrentPracticeSessions;
+            settings.MaxPracticeSessionLengthMinutes = update.MaxPracticeSessionLengthMinutes;
+            settings.SuggestedSearches = EscapeSuggestedSearches(update.SuggestedSearches);
+            settings.UpdatedByUserId = actingUserId;
+            settings.UpdatedOn = _now.Get();
+        }
+
+        // force a value for default session length, becaues it's required
+        if (settings.DefaultPracticeSessionLengthMinutes <= 0)
+        {
+            settings.DefaultPracticeSessionLengthMinutes = 60;
+        }
+
+        await _store.SaveUpdate(settings, cancellationToken);
+        return settings;
+    }
+
     private async Task<IEnumerable<string>> GetActiveSessionUsers()
         => await GetActivePracticeSessionsQueryBase()
             .Select(p => p.UserId)
@@ -152,4 +176,11 @@ internal partial class PracticeService
             .WithNoTracking<Data.Player>()
             .Where(p => p.SessionEnd > _now.Get())
             .Where(p => p.Mode == PlayerMode.Practice);
+
+    private PracticeModeSettings GetDefaultSettings()
+        => new()
+        {
+            DefaultPracticeSessionLengthMinutes = 60,
+            MaxPracticeSessionLengthMinutes = 240,
+        };
 }

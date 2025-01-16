@@ -283,7 +283,6 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
         {
             b.Property(u => u.Id).HasMaxLength(40);
             b.Property(p => p.Sponsor).HasMaxLength(40);
-            b.Property(p => p.TestCode).HasMaxLength(40);
             b.Property(p => p.Name).HasMaxLength(64);
             b.Property(p => p.Competition).HasMaxLength(64);
             b.Property(p => p.Season).HasMaxLength(64);
@@ -291,7 +290,6 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
             b.Property(p => p.Track).HasMaxLength(64);
             b.Property(p => p.Logo).HasMaxLength(64);
             b.Property(p => p.Background).HasMaxLength(64);
-            b.Property(p => p.TestCode).HasMaxLength(64);
             b.Property(p => p.CardText1).HasMaxLength(64);
             b.Property(p => p.CardText2).HasMaxLength(64);
             b.Property(p => p.CardText3).HasMaxLength(64);

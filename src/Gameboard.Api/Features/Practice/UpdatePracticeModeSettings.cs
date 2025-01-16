@@ -35,7 +35,7 @@ internal class UpdatePracticeModeSettingsValidator : IGameboardRequestValidator<
     public Task Validate(UpdatePracticeModeSettingsCommand request, CancellationToken cancellationToken)
     {
         return _validatorService
-            .Auth(a => a.RequirePermissions(PermissionKey.Practice_EditSettings))
+            .Auth(a => a.Require(PermissionKey.Practice_EditSettings))
             .AddValidator((request, context) =>
             {
                 if (request.Settings.MaxConcurrentPracticeSessions.HasValue && request.Settings.MaxConcurrentPracticeSessions < 0)
@@ -87,7 +87,9 @@ internal class UpdatePracticeModeSettingsHandler
 
         // force a value for default session length, becaues it's required
         if (updatedSettings.DefaultPracticeSessionLengthMinutes <= 0)
+        {
             updatedSettings.DefaultPracticeSessionLengthMinutes = 60;
+        }
 
         await _store.SaveUpdate(updatedSettings, cancellationToken);
     }

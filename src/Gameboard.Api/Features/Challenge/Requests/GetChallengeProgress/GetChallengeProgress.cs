@@ -37,7 +37,7 @@ internal class GetChallengeProgressHandler
             .Auth
             (
                 c => c
-                    .RequirePermissions(Users.PermissionKey.Teams_Observe)
+                    .Require(Users.PermissionKey.Teams_Observe)
                     .Unless(() => _challengeService.UserIsPlayingChallenge(request.ChallengeId, _actingUserService.Get()?.Id))
             )
             .AddValidator(_challengeExists.UseValue(request.ChallengeId))

@@ -36,7 +36,7 @@ internal sealed class AddToTeamCommandHandler
             .Auth
             (
                 c => c
-                    .RequirePermissions(Users.PermissionKey.Teams_Enroll)
+                    .Require(Users.PermissionKey.Teams_Enroll)
                     .Unless
                     (
                         async () => await _store

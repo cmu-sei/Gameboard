@@ -18,7 +18,6 @@ public class GameDetail
     public string Logo { get; set; }
     public string Sponsor { get; set; }
     public string Background { get; set; }
-    public string TestCode { get; set; }
     public DateTimeOffset GameStart { get; set; }
     public DateTimeOffset GameEnd { get; set; }
     public string GameMarkdown { get; set; }
@@ -158,4 +157,11 @@ public sealed class GameActiveTeam
 {
     public required string TeamId { get; set; }
     public required DateTimeOffset SessionEnd { get; set; }
+}
+
+public sealed class GameImportExport
+{
+    public required string CardImageUrl { get; set; }
+    public required string MapImageUrl { get; set; }
+    public required Data.Game Game { get; set; }
 }

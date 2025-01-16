@@ -15,6 +15,7 @@ public sealed class GameCenterPracticeContextUser
     public required SimpleSponsor Sponsor { get; set; }
     public required SimpleEntity ActiveChallenge { get; set; }
     public required long? ActiveChallengeEndTimestamp { get; set; }
+    public required string ActiveTeamId { get; set; }
     public required int TotalAttempts { get; set; }
     public required int UniqueChallengeSpecs { get; set; }
     public required IEnumerable<GameCenterPracticeContextChallengeSpec> ChallengeSpecs { get; set; }

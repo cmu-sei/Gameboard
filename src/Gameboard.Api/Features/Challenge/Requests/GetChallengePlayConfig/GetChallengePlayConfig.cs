@@ -40,7 +40,7 @@ internal sealed class GetChallengePlayConfigHandler(
             .Auth
             (
                 config => config
-                    .RequirePermissions(Users.PermissionKey.Teams_Observe)
+                    .Require(Users.PermissionKey.Teams_Observe)
                     .Unless(async () =>
                     {
                         var challengeTeamId = await _store

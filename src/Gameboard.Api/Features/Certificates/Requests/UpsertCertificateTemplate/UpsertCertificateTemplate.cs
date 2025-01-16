@@ -27,7 +27,7 @@ internal sealed class UpsertCertificateTemplateHandler
     public async Task<CertificateTemplateView> Handle(UpsertCertificateTemplateCommand request, CancellationToken cancellationToken)
     {
         _validator
-            .Auth(c => c.RequirePermissions(Users.PermissionKey.Games_CreateEditDelete))
+            .Auth(c => c.Require(Users.PermissionKey.Games_CreateEditDelete))
             .AddValidator(ctx =>
             {
                 if (request.Args.Name.IsEmpty())

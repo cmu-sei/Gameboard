@@ -21,7 +21,7 @@ internal sealed class GetCertificateTemplatePreviewHtmlHandler
     public async Task<string> Handle(GetCertificateTemplatePreviewHtml request, CancellationToken cancellationToken)
     {
         await _validator
-            .Auth(c => c.RequirePermissions(PermissionKey.Admin_View))
+            .Auth(c => c.Require(PermissionKey.Admin_View))
             .AddEntityExistsValidator<CertificateTemplate>(request.TemplateId)
             .Validate(cancellationToken);
 

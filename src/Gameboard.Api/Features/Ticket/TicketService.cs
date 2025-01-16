@@ -48,7 +48,7 @@ public class TicketService
     private readonly ISupportHubBus _supportHubBus = supportHubBus;
     private readonly ITeamService _teamService = teamService;
 
-    internal static char LABELS_DELIMITER = ' ';
+    internal static char TAGS_DELIMITER = ' ';
 
     public string GetFullKey(int key)
         => $"{(Options.KeyPrefix.IsEmpty() ? "GB" : Options.KeyPrefix)}-{key}";
@@ -191,14 +191,15 @@ public class TicketService
             }
 
             if (statusChanged && entity.Status == "Closed")
+            {
                 updateClosesTicket = true;
+            }
 
             updatedBySupport = true;
         }
         else // regular participant can only edit a few fields
         {
             Mapper.Map(Mapper.Map<SelfChangedTicket>(model), entity);
-
             updatedByUser = true;
         }
 
@@ -452,7 +453,7 @@ public class TicketService
         if (labels.IsEmpty())
             return [];
 
-        return labels.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return labels.Split(TAGS_DELIMITER, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
     private async Task UpdatedSessionContext(Data.Ticket entity)
@@ -486,7 +487,7 @@ public class TicketService
 
         // add conditional auto-tags
         var autoTags = await _autoTagService.GetAutoTags(entity, CancellationToken.None);
-        var finalTags = new List<string>(entity.Label?.Split(LABELS_DELIMITER, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? []);
+        var finalTags = new List<string>(entity.Label?.Split(TAGS_DELIMITER, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? []);
 
         foreach (var autoTag in autoTags)
         {
@@ -496,7 +497,7 @@ public class TicketService
             }
         }
 
-        entity.Label = string.Join(LABELS_DELIMITER, finalTags);
+        entity.Label = string.Join(TAGS_DELIMITER, finalTags);
 
         if (entity.TeamId.IsEmpty())
         {

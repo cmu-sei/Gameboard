@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Teams;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Reports;
@@ -229,20 +230,29 @@ internal class EnrollmentReportService(
             }
         }
 
+        var distinctTeamIds = rawResults.Select(r => r.Player.TeamId).Distinct().ToArray();
         var noChallengeStartedPlayers = rawResults.Where(r => r.ChallengesStarted == 0);
         var noSessionPlayers = rawResults.Where(r => r.Player.SessionBegin.IsEmpty());
+
+        var startedTeamsCount = rawResults
+            .Select(r => r.Player)
+            .WhereTeamStarted()
+            .Select(p => p.TeamId)
+            .Distinct()
+            .Count();
+        var startedChallengeTeamsCount = distinctTeamIds.Length - rawResults.Where(p => p.ChallengesStarted > 0).Select(r => r.Player.TeamId).Distinct().Count();
 
         return new EnrollmentReportStatSummary
         {
             DistinctGameCount = rawResults.Select(r => r.Player.GameId).Distinct().Count(),
             DistinctPlayerCount = rawResults.Select(r => r.Player.UserId).Distinct().Count(),
             DistinctSponsorCount = rawResults.Select(r => r.Player.SponsorId).Distinct().Count(),
-            DistinctTeamCount = rawResults.Select(r => r.Player.TeamId).Distinct().Count(),
+            DistinctTeamCount = distinctTeamIds.Length,
             SponsorWithMostPlayers = sponsorWithMostPlayers,
             PlayersWithNoSessionCount = noSessionPlayers.Select(r => r.Player.UserId).Distinct().Count(),
             PlayersWithNoStartedChallengeCount = noChallengeStartedPlayers.Select(r => r.Player.UserId).Distinct().Count(),
-            TeamsWithNoSessionCount = noSessionPlayers.Select(r => r.Player.TeamId).Distinct().Count(),
-            TeamsWithNoStartedChallengeCount = noChallengeStartedPlayers.Select(r => r.Player.TeamId).Distinct().Count()
+            TeamsWithNoSessionCount = distinctTeamIds.Length - startedTeamsCount,
+            TeamsWithNoStartedChallengeCount = distinctTeamIds.Length - startedChallengeTeamsCount
         };
     }
 

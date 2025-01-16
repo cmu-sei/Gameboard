@@ -22,12 +22,11 @@ internal class GameboardMksVmUrlResolver : IVmUrlResolver
         var url = _appUrlService.ToAppAbsoluteUrl("mks");
         var urlBuilder = new UriBuilder(url)
         {
-            Query = $"f=1&s={vmState.IsolationId}&v={vmState.Name}"
+            Query = $"f=1&s={vmState.IsolationId}&v={vmState.Name}",
+            // constructing the UrlBuilder this way makes it include the port by default
+            // (so don't do that)
+            Port = -1
         };
-
-        // constructing the UrlBuilder this way makes it include the port by default
-        // (so don't do that)
-        urlBuilder.Port = -1;
 
         return urlBuilder.ToString();
     }

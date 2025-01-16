@@ -15,8 +15,8 @@ public interface IFileUploadService
 
 internal class FileUploadService : IFileUploadService
 {
-    private static readonly IEnumerable<string> PERMITTED_MIME_TYPES = new string[]
-    {
+    private static readonly string[] PERMITTED_MIME_TYPES =
+    [
         MediaTypeNames.Image.Gif,
         MediaTypeNames.Image.Jpeg,
         MediaTypeNames.Image.Tiff,
@@ -28,12 +28,12 @@ internal class FileUploadService : IFileUploadService
         "image/svg+xml",
         "image/webp",
         "image/x-png"
-    };
+    ];
 
     public async Task<IEnumerable<FileUpload>> Upload(string rootDirectory, IEnumerable<IFormFile> files)
     {
         if (files == null || !files.Any())
-            return Array.Empty<FileUpload>();
+            return [];
 
         ValidateFileTypes(files);
         var uploads = BuildUploads(files);
@@ -52,7 +52,7 @@ internal class FileUploadService : IFileUploadService
         }
     }
 
-    private IEnumerable<FileUpload> BuildUploads(IEnumerable<IFormFile> files)
+    private FileUpload[] BuildUploads(IEnumerable<IFormFile> files)
     {
         var result = new List<FileUpload>();
 
@@ -67,7 +67,7 @@ internal class FileUploadService : IFileUploadService
             fileNum += 1;
         }
 
-        return result;
+        return [.. result];
     }
 
     private string BuildUploadPath(string rootDirectory)

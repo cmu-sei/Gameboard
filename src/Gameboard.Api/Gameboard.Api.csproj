@@ -18,6 +18,7 @@
     <PackageReference Include="Nito.AsyncEx.Coordination" Version="5.1.2" />
     <PackageReference Include="IdentityModel" Version="3.10.10" />
     <PackageReference Include="ServiceStack.Text" Version="8.5.2" />
+    <PackageReference Include="SharpCompress" Version="0.38.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.5.0" />
     <PackageReference Include="TopoMojo.Api.Client" Version="2.3.1" />

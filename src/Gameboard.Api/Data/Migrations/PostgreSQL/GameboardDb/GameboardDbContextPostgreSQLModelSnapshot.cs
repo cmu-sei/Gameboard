@@ -906,10 +906,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
-                    b.Property<string>("TestCode")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
                     b.Property<string>("Track")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -1086,9 +1082,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
                     b.Property<int?>("AttemptLimit")
                         .HasColumnType("integer");
-
-                    b.Property<string>("CertificateHtmlTemplate")
-                        .HasColumnType("text");
 
                     b.Property<string>("CertificateTemplateId")
                         .HasColumnType("text");

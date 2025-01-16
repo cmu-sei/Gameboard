@@ -11,7 +11,7 @@ public sealed class FeedbackTemplate : IEntity
 
     public required string CreatedByUserId { get; set; }
     public Data.User CreatedByUser { get; set; }
-    public required ICollection<FeedbackSubmission> Submissions { get; set; } = [];
-    public required ICollection<Data.Game> UseAsFeedbackTemplateForGames { get; set; } = [];
-    public required ICollection<Data.Game> UseAsFeedbackTemplateForGameChallenges { get; set; } = [];
+    public ICollection<FeedbackSubmission> Submissions { get; set; } = [];
+    public ICollection<Data.Game> UseAsFeedbackTemplateForGames { get; set; } = [];
+    public ICollection<Data.Game> UseAsFeedbackTemplateForGameChallenges { get; set; } = [];
 }

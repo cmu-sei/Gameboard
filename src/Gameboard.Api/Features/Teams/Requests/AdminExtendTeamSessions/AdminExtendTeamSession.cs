@@ -26,7 +26,7 @@ internal class AdminExtendTeamSessionHandler(
     public async Task<AdminExtendTeamSessionResponse> Handle(AdminExtendTeamSessionRequest request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .Auth(c => c.RequirePermissions(Users.PermissionKey.Teams_EditSession))
+            .Auth(c => c.Require(Users.PermissionKey.Teams_EditSession))
             .Validate(cancellationToken);
 
         var teams = await _teamService.GetTeams(request.TeamIds);
@@ -39,7 +39,8 @@ internal class AdminExtendTeamSessionHandler(
                 NewSessionEnd = team.SessionEnd.ToUniversalTime().AddMinutes(request.ExtensionDurationInMinutes),
                 TeamId = team.TeamId
             }, cancellationToken));
-        };
+        }
+        ;
 
         return new AdminExtendTeamSessionResponse
         (

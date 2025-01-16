@@ -23,7 +23,7 @@ internal class SendAnnouncementHandler(
     {
         // auth/validate
         await _validator
-            .Auth(config => config.RequirePermissions(PermissionKey.Teams_SendAnnouncements))
+            .Auth(config => config.Require(PermissionKey.Teams_SendAnnouncements))
             .AddValidator((req, ctx) =>
             {
                 if (req.ContentMarkdown.IsEmpty())

@@ -20,7 +20,7 @@ internal sealed class GetSupportSettingsAutoTagsHandler(IStore store, IValidator
     public async Task<IEnumerable<SupportSettingsAutoTagViewModel>> Handle(GetSupportSettingsAutoTagsQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .Auth(b => b.RequirePermissions(Users.PermissionKey.Support_EditSettings))
+            .Auth(b => b.Require(Users.PermissionKey.Support_EditSettings))
             .Validate(cancellationToken);
 
         var autoTags = await _store

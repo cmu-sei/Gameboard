@@ -20,7 +20,7 @@ internal class GetTeamsRequest(
     public async Task<IEnumerable<Team>> Handle(GetTeamsQuery request, CancellationToken cancellationToken)
     {
         await _validatorService
-            .Auth(a => a.RequirePermissions(PermissionKey.Admin_View))
+            .Auth(a => a.Require(PermissionKey.Admin_View))
             .Validate(cancellationToken);
 
         return await _teamService.GetTeams(request.TeamIds);

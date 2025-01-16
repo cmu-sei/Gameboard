@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
 
@@ -27,7 +28,7 @@ internal sealed class FeedbackReportHandler
     public async Task<ReportResults<FeedbackReportSummaryData, FeedbackReportRecord>> Handle(FeedbackReportQuery request, CancellationToken cancellationToken)
     {
         await _validator
-            .Auth(c => c.RequirePermissions(Users.PermissionKey.Reports_View))
+            .Auth(c => c.Require(PermissionKey.Reports_View))
             .Validate(cancellationToken);
 
         var results = await _feedbackReportService.GetBaseQuery(request.Parameters, cancellationToken);

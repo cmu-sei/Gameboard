@@ -134,16 +134,6 @@ public class PlayerService
         );
     }
 
-    public Func<Data.Player, bool> GetHasActiveSessionFunc(DateTimeOffset now)
-    {
-        return p => p.SessionBegin != DateTimeOffset.MinValue && p.SessionBegin < now && p.SessionEnd > now;
-    }
-
-    public Expression<Func<Data.Player, bool>> GetHasActiveSessionPredicate(DateTimeOffset now)
-    {
-        return p => p.SessionBegin != DateTimeOffset.MinValue && p.SessionBegin < now && p.SessionEnd > now;
-    }
-
     public Expression<Func<Data.Player, bool>> GetHasPendingNamePredicate()
     {
         return p => p.Name != p.ApprovedName && p.Name != null && p.Name != string.Empty && (p.NameStatus == null || p.NameStatus == string.Empty || p.NameStatus == AppConstants.NameStatusPending);
@@ -315,7 +305,7 @@ public class PlayerService
         if (model.WantsTeam)
             q = q.Where(p => p.TeamId == model.tid);
 
-        if (model.WantsCollapsed || model.WantsActive || model.WantsScored)
+        if (model.WantsCollapsed || model.WantsActive)
             q = q.Where(p => p.Role == PlayerRole.Manager);
 
         if (model.WantsActive)
@@ -338,9 +328,6 @@ public class PlayerService
 
         if (model.WantsDisallowed)
             q = q.Where(u => !string.IsNullOrEmpty(u.NameStatus));
-
-        if (model.WantsScored)
-            q = q.WhereIsScoringPlayer();
 
         if (model.Term.NotEmpty())
         {
@@ -624,101 +611,6 @@ public class PlayerService
         {
             await _mediator.Publish(new ScoreChangedNotification(enrollments.First().TeamId));
         }
-    }
-
-    public async Task<PlayerCertificate> MakeCertificate(string id)
-    {
-        var player = await _store
-            .WithNoTracking<Data.Player>()
-            .Include(p => p.Game)
-            .Include(p => p.User)
-                .ThenInclude(u => u.PublishedCompetitiveCertificates)
-            .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
-            .FirstOrDefaultAsync(p => p.Id == id);
-
-        var playerCount = await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => p.GameId == player.GameId && p.SessionEnd > DateTimeOffset.MinValue)
-            .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
-            .CountAsync();
-
-        var teamCount = await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => p.GameId == player.GameId &&
-                p.SessionEnd > DateTimeOffset.MinValue)
-            .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
-            .GroupBy(p => p.TeamId)
-            .CountAsync();
-
-        return CertificateFromTemplate(player, playerCount, teamCount);
-    }
-
-    public async Task<IEnumerable<PlayerCertificate>> MakeCertificates(string uid)
-    {
-        var now = DateTimeOffset.UtcNow;
-
-        var completedSessions = await _store
-            .WithNoTracking<Data.Player>()
-            .Include(p => p.Game)
-            .Include(p => p.User)
-                .ThenInclude(u => u.PublishedCompetitiveCertificates)
-            .Where
-            (
-                p => p.UserId == uid &&
-                p.SessionEnd > DateTimeOffset.MinValue &&
-                p.Game.GameEnd < now &&
-                p.Game.CertificateTemplateLegacy != null &&
-                p.Game.CertificateTemplateLegacy.Length > 0
-            )
-            .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
-            .WhereIsScoringPlayer()
-            .OrderByDescending(p => p.Game.GameEnd)
-            .ToArrayAsync();
-
-        return completedSessions.Select
-        (
-            c => CertificateFromTemplate
-            (
-                c,
-                _store.WithNoTracking<Data.Player>()
-                    .Where(p => p.Game == c.Game && p.SessionEnd > DateTimeOffset.MinValue)
-                    .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
-                    .WhereIsScoringPlayer()
-                    .Count(),
-                _store.WithNoTracking<Data.Player>()
-                    .Where(p => p.Game == c.Game && p.SessionEnd > DateTimeOffset.MinValue)
-                    .WhereIsScoringPlayer()
-                    .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
-                    .GroupBy(p => p.TeamId).Count()
-            )
-        ).ToArray();
-    }
-
-    private PlayerCertificate CertificateFromTemplate(Data.Player player, int playerCount, int teamCount)
-    {
-        var certificateHTML = player.Game.CertificateTemplateLegacy;
-        if (certificateHTML.IsEmpty())
-            return null;
-
-        certificateHTML = certificateHTML.Replace("{{leaderboard_name}}", player.ApprovedName);
-        certificateHTML = certificateHTML.Replace("{{user_name}}", player.User.ApprovedName);
-        certificateHTML = certificateHTML.Replace("{{score}}", player.Score.ToString());
-        certificateHTML = certificateHTML.Replace("{{rank}}", player.Rank.ToString());
-        certificateHTML = certificateHTML.Replace("{{game_name}}", player.Game.Name);
-        certificateHTML = certificateHTML.Replace("{{competition}}", player.Game.Competition);
-        certificateHTML = certificateHTML.Replace("{{season}}", player.Game.Season);
-        certificateHTML = certificateHTML.Replace("{{track}}", player.Game.Track);
-        certificateHTML = certificateHTML.Replace("{{date}}", player.SessionEnd.ToString("MMMM dd, yyyy"));
-        certificateHTML = certificateHTML.Replace("{{player_count}}", playerCount.ToString());
-        certificateHTML = certificateHTML.Replace("{{team_count}}", teamCount.ToString());
-
-        return new PlayerCertificate
-        {
-            Game = _mapper.Map<Game>(player.Game),
-            PublishedOn = player.User.PublishedCompetitiveCertificates.FirstOrDefault(c => c.GameId == player.Game.Id)?.PublishedOn,
-            Player = _mapper.Map<Player>(player),
-            Html = certificateHTML
-        };
     }
 
     private async Task<Player> RegisterPracticeSession(NewPlayer model, Data.User user, CancellationToken cancellationToken)

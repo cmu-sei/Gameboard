@@ -171,6 +171,8 @@ public class CoreOptions
     public bool NamesImportFromIdp { get; set; } = false;
     public string ImageFolder { get; set; } = "wwwroot/img";
     public string DocFolder { get; set; } = "wwwroot/doc";
+    public string ExportFolder { get; set; } = "wwwroot/export";
+    public string ImportFolder { get; set; } = "wwwroot/import";
     public string SupportUploadsRequestPath { get; set; } = "supportfiles";
     public string SupportUploadsFolder { get; set; } = "wwwroot/supportfiles";
     public string ChallengeDocUrl { get; set; }

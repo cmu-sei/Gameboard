@@ -33,7 +33,7 @@ internal sealed class DeleteExternalGameHostHandler : IRequestHandler<DeleteExte
     {
         // auth and validate
         await _validator
-            .Auth(c => c.RequirePermissions(Users.PermissionKey.Games_CreateEditDelete))
+            .Auth(c => c.Require(Users.PermissionKey.Games_CreateEditDelete))
             .AddValidator((req, ctx) =>
             {
                 if (req.DeleteHostId.IsEmpty())

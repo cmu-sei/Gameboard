@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -11,7 +12,6 @@ using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Practice;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 
 namespace Gameboard.Api.Features.Teams;
 
@@ -557,6 +557,7 @@ internal class TeamService
             );
 
         // and their challenges
+        // note that this doesn't matter for teams starting the first time, since they have no challenges
         var challenges = await _store
             .WithNoTracking<Data.Challenge>()
             .Where(c => teamIds.Contains(c.TeamId))

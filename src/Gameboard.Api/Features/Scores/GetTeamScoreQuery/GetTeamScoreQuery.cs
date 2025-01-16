@@ -47,7 +47,7 @@ internal class GetTeamScoreHandler : IRequestHandler<GetTeamScoreQuery, TeamScor
             .Auth(config =>
             {
                 config
-                    .RequirePermissions(PermissionKey.Scores_ViewLive)
+                    .Require(PermissionKey.Scores_ViewLive)
                     .Unless(() => _scoreService.CanAccessTeamScoreDetail(request.TeamId, cancellationToken), new CantAccessThisScore("not on requested team"));
             })
             .AddValidator(_teamExists.UseProperty(r => r.TeamId))

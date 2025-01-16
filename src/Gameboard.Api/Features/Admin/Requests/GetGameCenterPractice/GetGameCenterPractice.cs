@@ -17,35 +17,26 @@ namespace Gameboard.Api.Features.Admin;
 
 public record GetGameCenterPracticeContextQuery(string GameId, string SearchTerm, GameCenterPracticeSessionStatus? SessionStatus, GameCenterPracticeSort? Sort) : IRequest<GameCenterPracticeContext>;
 
-internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenterPracticeContextQuery, GameCenterPracticeContext>
+internal class GetGameCenterPracticeQueryHandler
+(
+    EntityExistsValidator<GetGameCenterPracticeContextQuery, Data.Game> gameExists,
+    INowService now,
+    IScoringService scoringService,
+    IStore store,
+    IValidatorService<GetGameCenterPracticeContextQuery> validatorService
+) : IRequestHandler<GetGameCenterPracticeContextQuery, GameCenterPracticeContext>
 {
-    private readonly EntityExistsValidator<GetGameCenterPracticeContextQuery, Data.Game> _gameExists;
-    private readonly INowService _now;
-    private readonly IScoringService _scoringService;
-    private readonly IStore _store;
-    private readonly IValidatorService<GetGameCenterPracticeContextQuery> _validatorService;
-
-    public GetGameCenterPracticeQueryHandler
-    (
-        EntityExistsValidator<GetGameCenterPracticeContextQuery, Data.Game> gameExists,
-        INowService now,
-        IScoringService scoringService,
-        IStore store,
-        IValidatorService<GetGameCenterPracticeContextQuery> validatorService
-    )
-    {
-        _gameExists = gameExists;
-        _now = now;
-        _scoringService = scoringService;
-        _store = store;
-        _validatorService = validatorService;
-    }
+    private readonly EntityExistsValidator<GetGameCenterPracticeContextQuery, Data.Game> _gameExists = gameExists;
+    private readonly INowService _now = now;
+    private readonly IScoringService _scoringService = scoringService;
+    private readonly IStore _store = store;
+    private readonly IValidatorService<GetGameCenterPracticeContextQuery> _validatorService = validatorService;
 
     public async Task<GameCenterPracticeContext> Handle(GetGameCenterPracticeContextQuery request, CancellationToken cancellationToken)
     {
         // auth/validate
         _validatorService
-            .Auth(c => c.RequirePermissions(PermissionKey.Admin_View))
+            .Auth(c => c.Require(PermissionKey.Admin_View))
             .AddValidator(_gameExists.UseProperty(r => r.GameId));
         await _validatorService.Validate(request, cancellationToken);
 
@@ -75,6 +66,7 @@ internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenter
                 c.SpecId,
                 c.Points,
                 c.Score,
+                c.TeamId,
                 User = new PlayerWithSponsor
                 {
                     Id = c.Player.UserId,
@@ -108,63 +100,64 @@ internal class GetGameCenterPracticeQueryHandler : IRequestHandler<GetGameCenter
             .SingleOrDefaultAsync(g => g.Id == request.GameId, cancellationToken);
 
         var responseUsers = users.Select(u =>
+        {
+            var challengeSpecs = new List<GameCenterPracticeContextChallengeSpec>();
+            var totalAttempts = 0;
+            var activeChallenge = default(SimpleEntity);
+            var activeChallengeEndTimestamp = default(long?);
+            var activeTeamId = default(string);
+
+            foreach (var specId in u.Value.Keys)
             {
-                var challengeSpecs = new List<GameCenterPracticeContextChallengeSpec>();
-                var totalAttempts = 0;
-                var activeChallenge = default(SimpleEntity);
-                var activeChallengeEndTimestamp = default(long?);
+                var attemptCount = u.Value[specId].Count();
+                totalAttempts += attemptCount;
+                var lastAttempt = u.Value[specId].OrderByDescending(c => c.StartTime).FirstOrDefault();
+                var bestAttempt = u.Value[specId].OrderByDescending(c => c.Score).FirstOrDefault();
 
-                foreach (var specId in u.Value.Keys)
+                var potentialActiveChallenge = u.Value[specId]
+                        .Where(c => c.StartTime > DateTimeOffset.MinValue && c.StartTime <= nowish)
+                        .Where(c => c.EndTime == DateTimeOffset.MinValue || c.EndTime > nowish)
+                        .FirstOrDefault();
+
+                if (potentialActiveChallenge is not null)
                 {
-                    var attemptCount = u.Value[specId].Count();
-                    totalAttempts += attemptCount;
-                    var lastAttempt = u.Value[specId].OrderByDescending(c => c.StartTime).FirstOrDefault();
-                    var bestAttempt = u.Value[specId].OrderByDescending(c => c.Score).FirstOrDefault();
-
-                    if (activeChallenge is null)
-                    {
-                        var potentialActiveChallenge = u.Value[specId]
-                            .Where(c => c.StartTime > DateTimeOffset.MinValue && c.StartTime <= nowish)
-                            .Where(c => c.EndTime == DateTimeOffset.MinValue || c.EndTime > nowish)
-                            .FirstOrDefault();
-
-                        if (potentialActiveChallenge is not null)
-                        {
-                            activeChallenge = new SimpleEntity { Id = potentialActiveChallenge.Id, Name = potentialActiveChallenge.Name };
-                            activeChallengeEndTimestamp = potentialActiveChallenge.EndTime.IsEmpty() ? null : potentialActiveChallenge.EndTime.ToUnixTimeMilliseconds();
-                        }
-                    }
-                    specs.TryGetValue(specId, out var spec);
-
-                    challengeSpecs.Add(new()
-                    {
-                        Id = specId,
-                        Name = bestAttempt.Name,
-                        Tag = spec?.Tag,
-                        AttemptCount = attemptCount,
-                        BestAttempt = bestAttempt is null ? null : new GameCenterPracticeContextChallengeAttempt
-                        {
-                            AttemptTimestamp = bestAttempt.StartTime.ToUnixTimeMilliseconds(),
-                            Result = _scoringService.GetChallengeResult(bestAttempt.Score, bestAttempt.Points),
-                            Score = bestAttempt.Score
-                        },
-                        LastAttemptDate = lastAttempt.StartTime.IsEmpty() ? null : lastAttempt.StartTime.ToUnixTimeMilliseconds(),
-                    });
+                    activeChallenge = new SimpleEntity { Id = potentialActiveChallenge.Id, Name = potentialActiveChallenge.Name };
+                    activeChallengeEndTimestamp = potentialActiveChallenge.EndTime.IsEmpty() ? null : potentialActiveChallenge.EndTime.ToUnixTimeMilliseconds();
+                    activeTeamId = potentialActiveChallenge.TeamId;
                 }
 
-                return new GameCenterPracticeContextUser
+                specs.TryGetValue(specId, out var spec);
+
+                challengeSpecs.Add(new()
                 {
-                    Id = u.Key.Id,
-                    Name = u.Key.Name,
-                    Sponsor = u.Key.Sponsor,
-                    ActiveChallenge = activeChallenge,
-                    ActiveChallengeEndTimestamp = activeChallengeEndTimestamp,
-                    TotalAttempts = totalAttempts,
-                    UniqueChallengeSpecs = u.Value.Keys.Count,
-                    ChallengeSpecs = challengeSpecs
-                };
-            })
-            .Where(u => request.SessionStatus is null || (request.SessionStatus == GameCenterPracticeSessionStatus.Playing == u.ActiveChallenge is not null));
+                    Id = specId,
+                    Name = bestAttempt.Name,
+                    Tag = spec?.Tag,
+                    AttemptCount = attemptCount,
+                    BestAttempt = bestAttempt is null ? null : new GameCenterPracticeContextChallengeAttempt
+                    {
+                        AttemptTimestamp = bestAttempt.StartTime.ToUnixTimeMilliseconds(),
+                        Result = _scoringService.GetChallengeResult(bestAttempt.Score, bestAttempt.Points),
+                        Score = bestAttempt.Score
+                    },
+                    LastAttemptDate = lastAttempt.StartTime.IsEmpty() ? null : lastAttempt.StartTime.ToUnixTimeMilliseconds(),
+                });
+            }
+
+            return new GameCenterPracticeContextUser
+            {
+                Id = u.Key.Id,
+                Name = u.Key.Name,
+                Sponsor = u.Key.Sponsor,
+                ActiveChallenge = activeChallenge,
+                ActiveChallengeEndTimestamp = activeChallengeEndTimestamp,
+                ActiveTeamId = activeTeamId,
+                TotalAttempts = totalAttempts,
+                UniqueChallengeSpecs = u.Value.Keys.Count,
+                ChallengeSpecs = challengeSpecs
+            };
+        })
+        .Where(u => request.SessionStatus is null || (request.SessionStatus == GameCenterPracticeSessionStatus.Playing == u.ActiveChallenge is not null));
 
         responseUsers = request.Sort switch
         {

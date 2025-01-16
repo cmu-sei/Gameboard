@@ -97,10 +97,8 @@ public class GameboardCustomization : ICustomization
         fixture.Register(() => new PracticeModeSettings
         {
             Id = fixture.Create<string>(),
-            CertificateHtmlTemplate = null,
             DefaultPracticeSessionLengthMinutes = 60,
-            IntroTextMarkdown = null,
-            SuggestedSearches = ""
+            SuggestedSearches = string.Empty
         });
 
         fixture.Register<Data.Sponsor>(() => new()

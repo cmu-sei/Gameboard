@@ -39,7 +39,7 @@ internal sealed class TryCreateUsersHandler
     public async Task<TryCreateUsersResponse> Handle(TryCreateUsersCommand request, CancellationToken cancellationToken)
     {
         // validate/authorize
-        _validator.Auth(config => config.RequirePermissions(PermissionKey.Users_CreateEditDelete));
+        _validator.Auth(config => config.Require(PermissionKey.Users_CreateEditDelete));
 
         // optionally throw if the caller doesn't want to ignore the fact that some users exist already
         if (!request.Request.AllowSubsetCreation)

@@ -31,7 +31,7 @@ internal class AdminEnrollTeamValidator(
             throw new NotImplementedException($"This feature only allows registration for competitive games.");
 
         await _validator
-            .Auth(c => c.RequirePermissions(PermissionKey.Teams_Enroll))
+            .Auth(c => c.Require(PermissionKey.Teams_Enroll))
             .AddValidator(_gameExists.UseProperty(r => r.GameId))
             .AddValidator(async (req, ctx) =>
             {

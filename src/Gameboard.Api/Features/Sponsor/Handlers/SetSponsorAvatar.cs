@@ -32,7 +32,7 @@ internal class SetSponsorAvatarHandler(
 
     public async Task<string> Handle(SetSponsorAvatarCommand request, CancellationToken cancellationToken)
     {
-        _validatorService.Auth(c => c.RequirePermissions(Users.PermissionKey.Sponsors_CreateEdit));
+        _validatorService.Auth(c => c.Require(Users.PermissionKey.Sponsors_CreateEdit));
         _validatorService.AddValidator(_sponsorExists.UseProperty(r => r.SponsorId));
         _validatorService.AddValidator
         (

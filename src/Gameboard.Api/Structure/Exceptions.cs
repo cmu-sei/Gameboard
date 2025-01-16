@@ -67,7 +67,6 @@ namespace Gameboard.Api
     }
 
     public class ActionForbidden : Exception { }
-    public class EntityNotFound : Exception { }
     public class SessionNotAdjustable : Exception { }
     public class InvalidConsoleAction : Exception { }
     public class AlreadyExists : Exception { }

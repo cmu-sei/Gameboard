@@ -40,7 +40,7 @@ internal class DeployGameResourcesHandler(
     {
         // auth and validate
         await _validator
-            .Auth(config => config.RequirePermissions(PermissionKey.Teams_DeployGameResources))
+            .Auth(config => config.Require(PermissionKey.Teams_DeployGameResources))
             .AddValidator(_gameExists.UseIdProperty(r => r.GameId))
             .Validate(request, cancellationToken);
 

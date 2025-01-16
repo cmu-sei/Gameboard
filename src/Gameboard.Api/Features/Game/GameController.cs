@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ServiceStack;
 
 namespace Gameboard.Api.Controllers
 {
@@ -149,16 +150,30 @@ namespace Gameboard.Api.Controllers
         public Task<GamePlayState> GetGamePlayState(string gameId)
             => _mediator.Send(new GetGamePlayStateQuery(gameId, Actor.Id));
 
-        [HttpPost("/api/game/import")]
-        [Authorize]
-        public Task<Game> ImportGameSpec([FromBody] GameSpecImport model)
-            => GameService.Import(model);
+        [HttpPost("/api/games/export")]
+        public Task<ExportGamesResult> ExportGames([FromBody] ExportGameCommand request, CancellationToken cancellationToken)
+            => _mediator.Send(request, cancellationToken);
 
-        [HttpPost("/api/game/export")]
-        public async Task<string> ExportGameSpec([FromBody] GameSpecExport model)
+        [HttpGet("/api/games/export/{exportBatchId}")]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<FileContentResult> DownloadExportPackage(string exportBatchId, CancellationToken cancellationToken)
         {
-            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
-            return await GameService.Export(model);
+            var bytes = await _mediator.Send(new DownloadExportPackageRequest(exportBatchId), cancellationToken);
+            return new FileContentResult(bytes, "application/zip");
+        }
+
+        [HttpPost("/api/games/import")]
+        public async Task<ImportedGame[]> ImportGames([FromForm] IFormFile packageFile, CancellationToken cancellationToken)
+        {
+            var package = Array.Empty<byte>();
+
+            using (var memoryStream = new MemoryStream())
+            {
+                await packageFile.CopyToAsync(memoryStream, cancellationToken);
+                package = memoryStream.GetBufferAsBytes();
+            }
+
+            return await _mediator.Send(new ImportGamesCommand(package), cancellationToken);
         }
 
         [HttpGet("/api/game/{gameId}/team/{teamId}/gamespace-limit")]
