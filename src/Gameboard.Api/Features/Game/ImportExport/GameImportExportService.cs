@@ -507,6 +507,7 @@ internal sealed class GameImportExportService
             PlayerMode = g.PlayerMode,
             RegistrationClose = g.RegistrationClose ?? DateTime.MinValue,
             RegistrationOpen = g.RegistrationOpen ?? DateTime.MinValue,
+            RegistrationConstraint = g.RegistrationConstraint,
             RegistrationMarkdown = g.RegistrationMarkdown,
             RegistrationType = g.RegistrationType,
             RequireSynchronizedStart = g.RequireSynchronizedStart,
