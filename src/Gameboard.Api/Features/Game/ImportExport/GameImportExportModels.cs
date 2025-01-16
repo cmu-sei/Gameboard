@@ -124,3 +124,8 @@ public sealed class ImportedGame
     public required string Id { get; set; }
     public required string Name { get; set; }
 }
+
+public sealed class ExportPackageNotFound : GameboardException
+{
+    public ExportPackageNotFound(string exportBatchId) : base($"Export package {exportBatchId} doesn't exist.") { }
+}

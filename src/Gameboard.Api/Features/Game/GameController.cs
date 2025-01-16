@@ -154,6 +154,14 @@ namespace Gameboard.Api.Controllers
         public Task<ExportGamesResult> ExportGames([FromBody] ExportGameCommand request, CancellationToken cancellationToken)
             => _mediator.Send(request, cancellationToken);
 
+        [HttpGet("/api/games/export/{exportBatchId}")]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        public async Task<FileContentResult> DownloadExportPackage(string exportBatchId, CancellationToken cancellationToken)
+        {
+            var bytes = await _mediator.Send(new DownloadExportPackageRequest(exportBatchId), cancellationToken);
+            return new FileContentResult(bytes, "application/zip");
+        }
+
         [HttpPost("/api/games/import")]
         public async Task<ImportedGame[]> ImportGames([FromForm] IFormFile packageFile, CancellationToken cancellationToken)
         {

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
@@ -19,6 +18,7 @@ namespace Gameboard.Api.Features.Games;
 
 public interface IGameImportExportService
 {
+    Task<byte[]> GetExportedPackageContent(string exportBatchId, CancellationToken cancellationToken);
     Task<GameImportExportBatch> ExportPackage(string[] gameIds, bool includePracticeAreaTemplate, CancellationToken cancellationToken);
     Task<ImportedGame[]> ImportPackage(byte[] package, CancellationToken cancellationToken);
 }
@@ -28,21 +28,28 @@ internal sealed class GameImportExportService
     IActingUserService actingUser,
     CoreOptions coreOptions,
     IGuidService guids,
-    HttpClient http,
     IJsonService json,
     IPracticeService practice,
-    IStore store,
-    IZipService zip
+    IStore store
 ) : IGameImportExportService
 {
     private readonly IActingUserService _actingUser = actingUser;
     private readonly CoreOptions _coreOptions = coreOptions;
     private readonly IGuidService _guids = guids;
-    private readonly HttpClient _http = http;
     private readonly IJsonService _json = json;
     private readonly IPracticeService _practice = practice;
     private readonly IStore _store = store;
-    private readonly IZipService _zip = zip;
+
+    public async Task<byte[]> GetExportedPackageContent(string exportBatchId, CancellationToken cancellationToken)
+    {
+        var path = GetExportBatchPackagePath(exportBatchId);
+        if (!File.Exists(path))
+        {
+            throw new ExportPackageNotFound(exportBatchId);
+        }
+
+        return await File.ReadAllBytesAsync(path, cancellationToken);
+    }
 
     public async Task<GameImportExportBatch> ExportPackage(string[] gameIds, bool includePracticeAreaTemplate, CancellationToken cancellationToken)
     {
