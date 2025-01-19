@@ -797,9 +797,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<string>("CertificateTemplateId")
                         .HasColumnType("text");
 
-                    b.Property<string>("CertificateTemplateLegacy")
-                        .HasColumnType("text");
-
                     b.Property<string>("ChallengesFeedbackTemplateId")
                         .HasColumnType("text");
 

@@ -33,7 +33,6 @@ public interface IGameService
 }
 
 public class GameService(
-    IGuidService guids,
     ILogger<GameService> logger,
     IMapper mapper,
     CoreOptions options,
@@ -43,7 +42,6 @@ public class GameService(
     ) : _Service(logger, mapper, options), IGameService
 {
     private readonly Defaults _defaults = defaults;
-    private readonly IGuidService _guids = guids;
     private readonly INowService _now = nowService;
     private readonly IStore _store = store;
 
@@ -54,8 +52,6 @@ public class GameService(
         {
             if (_defaults.FeedbackTemplate.NotEmpty())
                 model.FeedbackConfig = _defaults.FeedbackTemplate;
-            if (_defaults.CertificateTemplate.NotEmpty())
-                model.CertificateTemplateLegacy = _defaults.CertificateTemplate;
         }
 
         // defaults: standard, 60 minutes, scoreboard access, etc.

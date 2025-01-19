@@ -27,7 +27,6 @@ public class GameDetail
     public string FeedbackTemplateId { get; set; }
     public string CertificateTemplateId { get; set; }
     public string PracticeCertificateTemplateId { get; set; }
-    public string CertificateTemplateLegacy { get; set; }
     public string RegistrationMarkdown { get; set; }
     public DateTimeOffset RegistrationOpen { get; set; }
     public DateTimeOffset RegistrationClose { get; set; }
