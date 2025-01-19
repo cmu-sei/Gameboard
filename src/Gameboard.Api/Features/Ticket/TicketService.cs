@@ -33,8 +33,7 @@ public class TicketService
     CoreOptions options,
     IUserRolePermissionsService permissionsService,
     IStore store,
-    ISupportHubBus supportHubBus,
-    ITeamService teamService
+    ISupportHubBus supportHubBus
 ) : _Service(logger, mapper, options)
 {
     private readonly IActingUserService _actingUserService = actingUserService;
@@ -46,9 +45,9 @@ public class TicketService
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
     private readonly IStore _store = store;
     private readonly ISupportHubBus _supportHubBus = supportHubBus;
-    private readonly ITeamService _teamService = teamService;
 
     internal static char TAGS_DELIMITER = ' ';
+    public static readonly string OpenStatus = "Open";
 
     public string GetFullKey(int key)
         => $"{(Options.KeyPrefix.IsEmpty() ? "GB" : Options.KeyPrefix)}-{key}";

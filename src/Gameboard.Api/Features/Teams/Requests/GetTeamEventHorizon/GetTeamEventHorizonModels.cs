@@ -10,13 +10,15 @@ public enum EventHorizonEventType
     GamespaceOnOff,
     SolveComplete,
     SubmissionRejected,
-    SubmissionScored
+    SubmissionScored,
+    TicketOpenClose
 }
 
 [JsonDerivedType(typeof(EventHorizonEvent))]
 [JsonDerivedType(typeof(EventHorizonGamespaceOnOffEvent))]
 [JsonDerivedType(typeof(EventHorizonSolveCompleteEvent))]
 [JsonDerivedType(typeof(EventHorizonSubmissionScoredEvent))]
+[JsonDerivedType(typeof(EventHorizonTicketOpenCloseEvent))]
 public interface IEventHorizonEvent
 {
     public string Id { get; set; }
@@ -64,6 +66,16 @@ public sealed class EventHorizonSubmissionScoredEventData
 public sealed class EventHorizonSubmissionScoredEvent : EventHorizonEvent
 {
     public required EventHorizonSubmissionScoredEventData EventData { get; set; }
+}
+
+public sealed class EventHorizonTicketOpenCloseEvent : EventHorizonEvent, IEventHorizonEvent
+{
+    public required EventHorizonTicketOpenClosedEventData EventData { get; set; }
+}
+
+public sealed class EventHorizonTicketOpenClosedEventData
+{
+    public required DateTimeOffset ClosedAt { get; set; }
 }
 
 public sealed class EventHorizonGame

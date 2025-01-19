@@ -109,7 +109,7 @@ public partial class ChallengeService
         }
 
         // if we're outside the execution window, we need to be sure the acting person is an admin
-        if (player.Game.IsCompetitionMode)
+        if (player.Game.PlayerMode == PlayerMode.Competition)
         {
             // check gamespace limits for competitive games only
             var teamActiveChallenges = await _teamService.GetChallengesWithActiveGamespace(player.TeamId, player.GameId, cancellationToken);
@@ -156,7 +156,7 @@ public partial class ChallengeService
                 .SingleAsync(s => s.Id == model.SpecId, cancellationToken);
 
             var playerCount = 1;
-            if (player.Game.AllowTeam)
+            if (player.Game.MaxTeamSize > 1)
             {
                 playerCount = await _store
                     .WithNoTracking<Data.Player>()
