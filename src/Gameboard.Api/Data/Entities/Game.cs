@@ -22,7 +22,6 @@ public class Game : IEntity
     public DateTimeOffset GameEnd { get; set; }
     public string GameMarkdown { get; set; }
     public string FeedbackConfig { get; set; }
-    public string CertificateTemplateLegacy { get; set; }
     public string RegistrationMarkdown { get; set; }
     public DateTimeOffset RegistrationOpen { get; set; }
     public DateTimeOffset RegistrationClose { get; set; }
