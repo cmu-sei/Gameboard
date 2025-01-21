@@ -23,7 +23,6 @@ public interface IGameService
     Task<bool> IsUserPlaying(string gameId, string userId);
     Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false);
     Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo);
-    Task ReRank(string id);
     Task<Game> Retrieve(string id, bool accessHidden = true);
     Task<ChallengeSpec[]> RetrieveChallengeSpecs(string id);
     Task<SessionForecast[]> SessionForecast(string id);
@@ -211,34 +210,6 @@ public class GameService(
         }
 
         await _store.SaveUpdate(entity, default);
-    }
-
-    public async Task ReRank(string id)
-    {
-        var players = await _store
-            .WithTracking<Data.Player>()
-            .Where(p => p.GameId == id && p.Mode == PlayerMode.Competition)
-            .OrderByDescending(p => p.Score)
-            .ThenBy(p => p.Time)
-            .ThenByDescending(p => p.CorrectCount)
-            .ThenByDescending(p => p.PartialCount)
-            .ToArrayAsync()
-        ;
-
-        int rank = 0;
-        string last = "";
-        foreach (var player in players)
-        {
-            if (player.TeamId != last)
-            {
-                rank += 1;
-                last = player.TeamId;
-            }
-
-            player.Rank = rank;
-        }
-
-        await _store.SaveUpdateRange(players);
     }
 
     public Task<bool> IsUserPlaying(string gameId, string userId)
