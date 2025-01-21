@@ -78,11 +78,10 @@ internal class CertificatesService
             .WithNoTracking<Data.Player>()
             .Where
             (
-                p => p.UserId == userId &&
-                p.SessionEnd > DateTimeOffset.MinValue &&
-                p.Game.PlayerMode == PlayerMode.Competition &&
-                (p.Game.GameEnd < now || p.Game.GameEnd == DateTimeOffset.MinValue) &&
-                p.Game.CertificateTemplateId != null
+                p =>
+                    p.UserId == userId
+                    && (p.Game.GameEnd < now || p.Game.GameEnd == DateTimeOffset.MinValue)
+            // && p.Game.CertificateTemplateId != null
             )
             .WhereDateIsNotEmpty(p => p.SessionEnd)
             .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
@@ -159,7 +158,7 @@ internal class CertificatesService
                     MaxPossibleScore = t.Game.MaxPossibleScore
                 },
                 Date = t.Game.GameEnd.IsEmpty() ? captain.SessionEnd : t.Game.GameEnd,
-                Rank = score.Rank > 0 ? score.Rank : null,
+                Rank = score?.Rank ?? 0,
                 Score = score is not null ? score.ScoreOverall : 0,
                 Duration = TimeSpan.FromMilliseconds(t.Time),
                 UniquePlayerCount = participationCounts?.UniquePlayerCount,
