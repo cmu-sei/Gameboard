@@ -46,7 +46,6 @@ public class TicketService
     private readonly ISupportHubBus _supportHubBus = supportHubBus;
 
     internal static char TAGS_DELIMITER = ' ';
-    public static readonly string OpenStatus = "Open";
 
     public string GetFullKey(int key)
         => $"{(Options.KeyPrefix.IsEmpty() ? "GB" : Options.KeyPrefix)}-{key}";
