@@ -81,7 +81,7 @@ internal class CertificatesService
                 p =>
                     p.UserId == userId
                     && (p.Game.GameEnd < now || p.Game.GameEnd == DateTimeOffset.MinValue)
-            // && p.Game.CertificateTemplateId != null
+                    && p.Game.CertificateTemplateId != null
             )
             .WhereDateIsNotEmpty(p => p.SessionEnd)
             .Where(p => p.Challenges.All(c => c.PlayerMode == PlayerMode.Competition))
