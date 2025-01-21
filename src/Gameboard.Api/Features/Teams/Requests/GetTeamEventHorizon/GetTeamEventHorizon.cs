@@ -8,6 +8,7 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Support;
 using Gameboard.Api.Features.Users;
+using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
@@ -26,6 +27,7 @@ internal class GetTeamEventHorizonHandler
     IStore store,
     TeamExistsValidator<GetTeamEventHorizonQuery> teamExists,
     ITeamService teamService,
+    TicketService ticketService,
     IValidatorService<GetTeamEventHorizonQuery> validator
 ) : IRequestHandler<GetTeamEventHorizonQuery, EventHorizon>
 {
@@ -36,6 +38,7 @@ internal class GetTeamEventHorizonHandler
     private readonly IStore _store = store;
     private readonly TeamExistsValidator<GetTeamEventHorizonQuery> _teamExists = teamExists;
     private readonly ITeamService _teamService = teamService;
+    private readonly TicketService _ticketService = ticketService;
     private readonly IValidatorService<GetTeamEventHorizonQuery> _validator = validator;
 
     public async Task<EventHorizon> Handle(GetTeamEventHorizonQuery request, CancellationToken cancellationToken)
@@ -302,7 +305,7 @@ internal class GetTeamEventHorizonHandler
         var challengeTickets = await _store
             .WithNoTracking<Data.Ticket>()
             .Where(t => t.ChallengeId != null && t.ChallengeId != string.Empty && t.TeamId == teamId)
-            .Select(t => new { t.Id, t.Status, t.Created, t.ChallengeId, Activity = t.Activity.Select(a => new { a.Id, a.Timestamp, a.Status }).Distinct().OrderBy(a => a.Status).ToList() })
+            .Select(t => new { t.Id, t.Status, t.Created, t.ChallengeId, t.Key, Activity = t.Activity.Select(a => new { a.Id, a.Timestamp, a.Status }).Distinct().OrderBy(a => a.Status).ToList() })
             .GroupBy(a => a.ChallengeId)
             .ToDictionaryAsync(gr => gr.Key, gr => gr.ToList(), cancellationToken);
 
@@ -311,9 +314,6 @@ internal class GetTeamEventHorizonHandler
         // for each challenge, find its tickets and build events for them
         foreach (var challengeId in challengeTickets.Keys)
         {
-            // we auto-create an open event for each challenge group, because:
-            // - The challenge is guaranteed to have at least one ticket if it comes back from the query
-            // - new tickets don't get an Activity entry just for opening, so we need to simulate that here
             var tickets = challengeTickets[challengeId];
 
             foreach (var ticket in tickets)
@@ -327,7 +327,8 @@ internal class GetTeamEventHorizonHandler
                     Type = EventHorizonEventType.TicketOpenClose,
                     EventData = new EventHorizonTicketOpenClosedEventData
                     {
-                        ClosedAt = default
+                        ClosedAt = default,
+                        TicketKey = _ticketService.GetFullKey(ticket.Key),
                     }
                 };
                 events.Add(creatingEvent);
@@ -345,7 +346,6 @@ internal class GetTeamEventHorizonHandler
                     }
                 }
             }
-
         }
 
         return [.. events];

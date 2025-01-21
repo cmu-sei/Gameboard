@@ -76,6 +76,7 @@ public sealed class EventHorizonTicketOpenCloseEvent : EventHorizonEvent, IEvent
 public sealed class EventHorizonTicketOpenClosedEventData
 {
     public required DateTimeOffset ClosedAt { get; set; }
+    public required string TicketKey { get; set; }
 }
 
 public sealed class EventHorizonGame
