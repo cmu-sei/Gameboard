@@ -16,38 +16,26 @@ namespace Gameboard.Api.Features.Scores;
 
 public record GetScoreboardQuery(string GameId) : IRequest<ScoreboardData>;
 
-internal class GetScoreboardHandler : IRequestHandler<GetScoreboardQuery, ScoreboardData>
+internal class GetScoreboardHandler
+(
+    IActingUserService actingUser,
+    EntityExistsValidator<GetScoreboardQuery, Data.Game> gameExists,
+    INowService now,
+    IScoreDenormalizationService scoringDenormalizationService,
+    IScoringService scoringService,
+    IStore store,
+    ITeamService teamService,
+    IValidatorService<GetScoreboardQuery> validatorService
+) : IRequestHandler<GetScoreboardQuery, ScoreboardData>
 {
-    private readonly IActingUserService _actingUser;
-    private readonly EntityExistsValidator<GetScoreboardQuery, Data.Game> _gameExists;
-    private readonly INowService _now;
-    private readonly IScoreDenormalizationService _scoringDenormalizationService;
-    private readonly IScoringService _scoringService;
-    private readonly IStore _store;
-    private readonly ITeamService _teamService;
-    private readonly IValidatorService<GetScoreboardQuery> _validatorService;
-
-    public GetScoreboardHandler
-    (
-        IActingUserService actingUser,
-        EntityExistsValidator<GetScoreboardQuery, Data.Game> gameExists,
-        INowService now,
-        IScoreDenormalizationService scoringDenormalizationService,
-        IScoringService scoringService,
-        IStore store,
-        ITeamService teamService,
-        IValidatorService<GetScoreboardQuery> validatorService
-    )
-    {
-        _actingUser = actingUser;
-        _gameExists = gameExists;
-        _now = now;
-        _scoringDenormalizationService = scoringDenormalizationService;
-        _scoringService = scoringService;
-        _store = store;
-        _teamService = teamService;
-        _validatorService = validatorService;
-    }
+    private readonly IActingUserService _actingUser = actingUser;
+    private readonly EntityExistsValidator<GetScoreboardQuery, Data.Game> _gameExists = gameExists;
+    private readonly INowService _now = now;
+    private readonly IScoreDenormalizationService _scoringDenormalizationService = scoringDenormalizationService;
+    private readonly IScoringService _scoringService = scoringService;
+    private readonly IStore _store = store;
+    private readonly ITeamService _teamService = teamService;
+    private readonly IValidatorService<GetScoreboardQuery> _validatorService = validatorService;
 
     public async Task<ScoreboardData> Handle(GetScoreboardQuery request, CancellationToken cancellationToken)
     {
@@ -62,17 +50,6 @@ internal class GetScoreboardHandler : IRequestHandler<GetScoreboardQuery, Scoreb
             .SingleAsync(g => g.Id == request.GameId, cancellationToken);
 
         var teams = await LoadDenormalizedTeams(request.GameId, cancellationToken);
-
-        // if the teams aren't in the denormalized table, it's probably because this is an older game
-        // that denormalized data hasn't been generated for yet. Do it here:
-        if (!teams.Any())
-        {
-            // force the game to rerank
-            await _scoringDenormalizationService.DenormalizeGame(request.GameId, cancellationToken);
-
-            // then pull teams again
-            teams = await LoadDenormalizedTeams(request.GameId, cancellationToken);
-        }
 
         // we grab competitive players only becaause later we filter out teams that have no competitive-mode players
         // (since the scoreboard isn't really for practice mode)
