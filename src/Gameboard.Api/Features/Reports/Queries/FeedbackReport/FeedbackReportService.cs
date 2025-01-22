@@ -128,17 +128,17 @@ internal sealed class FeedbackReportService(IReportsService reportsService, ISto
 
         if (seasonsCriteria.Any())
         {
-            records = records.Where(s => seasonsCriteria.Contains(s.LogicalGame.Season));
+            records = records.Where(s => seasonsCriteria.Contains(s.LogicalGame.Season.ToLower()));
         }
 
         if (seriesCriteria.Any())
         {
-            records = records.Where(s => seriesCriteria.Contains(s.LogicalGame.Series));
+            records = records.Where(s => seriesCriteria.Contains(s.LogicalGame.Series.ToLower()));
         }
 
         if (tracksCriteria.Any())
         {
-            records = records.Where(s => tracksCriteria.Contains(s.LogicalGame.Track));
+            records = records.Where(s => tracksCriteria.Contains(s.LogicalGame.Track.ToLower()));
         }
 
         var orderedQuery = records.OrderBy(r => r.User.Name);
