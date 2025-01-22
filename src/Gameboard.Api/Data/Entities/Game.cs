@@ -78,19 +78,7 @@ public class Game : IEntity
     public ICollection<Feedback> Feedback { get; set; } = [];
     public ICollection<ChallengeGate> Prerequisites { get; set; } = [];
 
-    [NotMapped] public bool RequireSession => SessionMinutes > 0;
-    [NotMapped] public bool RequireTeam => MinTeamSize > 1;
     [NotMapped] public bool AllowTeam => MaxTeamSize > 1;
-
-    [NotMapped]
-    public bool IsLive =>
-        GameStart != DateTimeOffset.MinValue &&
-        GameStart.CompareTo(DateTimeOffset.UtcNow) < 0 &&
-        GameEnd.CompareTo(DateTimeOffset.UtcNow) > 0;
-
-    [NotMapped]
-    public bool HasEnded =>
-        GameEnd.CompareTo(DateTimeOffset.UtcNow) < 0;
 
     [NotMapped]
     public bool RegistrationActive =>
@@ -98,6 +86,5 @@ public class Game : IEntity
         RegistrationOpen.CompareTo(DateTimeOffset.UtcNow) < 0 &&
         RegistrationClose.CompareTo(DateTimeOffset.UtcNow) > 0;
 
-    [NotMapped] public bool IsCompetitionMode => PlayerMode == PlayerMode.Competition;
     [NotMapped] public bool IsPracticeMode => PlayerMode == PlayerMode.Practice;
 }

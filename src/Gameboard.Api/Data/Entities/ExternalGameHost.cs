@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Gameboard.Api.Features.Games;
 
 namespace Gameboard.Api.Data;
 
@@ -10,6 +11,7 @@ public sealed class ExternalGameHost : IEntity
     public required bool DestroyResourcesOnDeployFailure { get; set; }
     public int? GamespaceDeployBatchSize { get; set; }
     public int? HttpTimeoutInSeconds { get; set; }
+    [DontExport]
     public string HostApiKey { get; set; }
     public required string HostUrl { get; set; }
     public string PingEndpoint { get; set; }
@@ -17,5 +19,6 @@ public sealed class ExternalGameHost : IEntity
     public string TeamExtendedEndpoint { get; set; }
 
     // nav properties
+    [DontExport]
     public ICollection<Data.Game> UsedByGames { get; set; } = new List<Data.Game>();
 }

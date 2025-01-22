@@ -25,3 +25,9 @@ public sealed class UpsertSupportSettingsAutoTagRequest
     public bool? IsEnabled { get; set; }
     public required string Tag { get; set; }
 }
+
+public static class TicketStatus
+{
+    public static readonly string Closed = "Closed";
+    public static readonly string Open = "Open";
+}

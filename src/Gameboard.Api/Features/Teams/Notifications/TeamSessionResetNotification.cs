@@ -1,26 +1,18 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Services;
+using Gameboard.Api.Features.Scores;
 using MediatR;
 
 namespace Gameboard.Api.Features.Teams;
 
 public record TeamSessionResetNotification(string GameId, string TeamId) : INotification;
 
-internal class TeamSessionResetHandler : INotificationHandler<TeamSessionResetNotification>
+internal class TeamSessionResetHandler(IScoreDenormalizationService scoreDenorm) : INotificationHandler<TeamSessionResetNotification>
 {
-    private readonly GameService _gameService;
-
-    public TeamSessionResetHandler
-    (
-        GameService gameService
-    )
-    {
-        _gameService = gameService;
-    }
+    private readonly IScoreDenormalizationService _scoreDenorm = scoreDenorm;
 
     public async Task Handle(TeamSessionResetNotification notification, CancellationToken cancellationToken)
     {
-        await _gameService.ReRank(notification.GameId);
+        await _scoreDenorm.DenormalizeGame(notification.GameId, cancellationToken);
     }
 }

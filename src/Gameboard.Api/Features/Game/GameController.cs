@@ -244,7 +244,6 @@ namespace Gameboard.Api.Controllers
             await Authorize(_permissionsService.Can(PermissionKey.Scores_RegradeAndRerank));
             await Validate(new Entity { Id = id });
 
-            await GameService.ReRank(id);
             await _scoreDenormalization.DenormalizeGame(id, cancellationToken);
             await _mediator.Publish(new GameCacheInvalidateNotification(id), cancellationToken);
         }

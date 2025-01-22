@@ -103,7 +103,6 @@ internal class ScoreDenormalizationService
             .ToArrayAsync();
 
         var captains = await _teamService.ResolveCaptains(teams.Select(t => t.TeamId).ToArray(), cancellationToken: CancellationToken.None);
-
         var rankedTeams = _scoringService.GetTeamRanks(teams.Select(t =>
         {
             captains.TryGetValue(t.TeamId, out var captain);

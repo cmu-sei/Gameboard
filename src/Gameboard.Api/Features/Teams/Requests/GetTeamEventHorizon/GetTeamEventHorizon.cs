@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Scores;
+using Gameboard.Api.Features.Support;
 using Gameboard.Api.Features.Users;
+using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
@@ -25,6 +27,7 @@ internal class GetTeamEventHorizonHandler
     IStore store,
     TeamExistsValidator<GetTeamEventHorizonQuery> teamExists,
     ITeamService teamService,
+    TicketService ticketService,
     IValidatorService<GetTeamEventHorizonQuery> validator
 ) : IRequestHandler<GetTeamEventHorizonQuery, EventHorizon>
 {
@@ -35,6 +38,7 @@ internal class GetTeamEventHorizonHandler
     private readonly IStore _store = store;
     private readonly TeamExistsValidator<GetTeamEventHorizonQuery> _teamExists = teamExists;
     private readonly ITeamService _teamService = teamService;
+    private readonly TicketService _ticketService = ticketService;
     private readonly IValidatorService<GetTeamEventHorizonQuery> _validator = validator;
 
     public async Task<EventHorizon> Handle(GetTeamEventHorizonQuery request, CancellationToken cancellationToken)
@@ -68,7 +72,9 @@ internal class GetTeamEventHorizonHandler
             .ToArrayAsync(cancellationToken);
 
         if (challenges.Length == 0)
+        {
             return null;
+        }
 
         // make sure we have exactly one game
         var games = challenges.Select(c => c.Game).ToArray();
@@ -119,6 +125,9 @@ internal class GetTeamEventHorizonHandler
         var submissionEvents = BuildSubmissionEvents(submissions, challengeMaxScores);
         events.AddRange(submissionEvents);
 
+        // ticket events come from ticket activity
+        events.AddRange(await BuildTicketOpenClosedEvents(request.TeamId, cancellationToken));
+
         // finally, build the event horizon response
         return new EventHorizon
         {
@@ -159,7 +168,7 @@ internal class GetTeamEventHorizonHandler
     /// </summary>
     /// <param name="challenges"></param>
     /// <returns></returns>
-    private IEnumerable<EventHorizonGamespaceOnOffEvent> BuildGamespaceEvents(IEnumerable<Data.Challenge> challenges)
+    private EventHorizonGamespaceOnOffEvent[] BuildGamespaceEvents(IEnumerable<Data.Challenge> challenges)
     {
         var retVal = new List<EventHorizonGamespaceOnOffEvent>();
 
@@ -222,7 +231,7 @@ internal class GetTeamEventHorizonHandler
         return retVal.OrderBy(e => e.Timestamp).ToArray();
     }
 
-    private IEnumerable<IEventHorizonEvent> BuildSubmissionEvents(IEnumerable<ChallengeSubmission> submissions, IDictionary<string, double> challengeSolveScores)
+    private IEventHorizonEvent[] BuildSubmissionEvents(IEnumerable<ChallengeSubmission> submissions, IDictionary<string, double> challengeSolveScores)
     {
         // we'll return a list of submission/solve events
         var retVal = new List<IEventHorizonEvent>();
@@ -287,6 +296,58 @@ internal class GetTeamEventHorizonHandler
             }
         }
 
-        return retVal;
+        return [.. retVal];
+    }
+
+    private async Task<EventHorizonTicketOpenCloseEvent[]> BuildTicketOpenClosedEvents(string teamId, CancellationToken cancellationToken)
+    {
+        // pull the data first, then worry about organizing it "client" side
+        var challengeTickets = await _store
+            .WithNoTracking<Data.Ticket>()
+            .Where(t => t.ChallengeId != null && t.ChallengeId != string.Empty && t.TeamId == teamId)
+            .Select(t => new { t.Id, t.Status, t.Created, t.ChallengeId, t.Key, Activity = t.Activity.Select(a => new { a.Id, a.Timestamp, a.Status }).Distinct().OrderBy(a => a.Status).ToList() })
+            .GroupBy(a => a.ChallengeId)
+            .ToDictionaryAsync(gr => gr.Key, gr => gr.ToList(), cancellationToken);
+
+        var events = new List<EventHorizonTicketOpenCloseEvent>();
+
+        // for each challenge, find its tickets and build events for them
+        foreach (var challengeId in challengeTickets.Keys)
+        {
+            var tickets = challengeTickets[challengeId];
+
+            foreach (var ticket in tickets)
+            {
+                var lastOpenStamp = ticket.Created;
+                var creatingEvent = new EventHorizonTicketOpenCloseEvent
+                {
+                    Id = challengeId,
+                    ChallengeId = challengeId,
+                    Timestamp = ticket.Created,
+                    Type = EventHorizonEventType.TicketOpenClose,
+                    EventData = new EventHorizonTicketOpenClosedEventData
+                    {
+                        ClosedAt = default,
+                        TicketKey = _ticketService.GetFullKey(ticket.Key),
+                    }
+                };
+                events.Add(creatingEvent);
+
+                foreach (var activity in ticket.Activity)
+                {
+                    if (ticket.Status == TicketStatus.Open && lastOpenStamp == default)
+                    {
+                        lastOpenStamp = activity.Timestamp;
+                    }
+                    else if (activity.Status == TicketStatus.Closed && lastOpenStamp != default)
+                    {
+                        creatingEvent.EventData.ClosedAt = activity.Timestamp;
+                        lastOpenStamp = default;
+                    }
+                }
+            }
+        }
+
+        return [.. events];
     }
 }

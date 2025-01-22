@@ -11,7 +11,6 @@ using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Support;
-using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.Users;
 using Gameboard.Api.Hubs;
 using MediatR;
@@ -33,8 +32,7 @@ public class TicketService
     CoreOptions options,
     IUserRolePermissionsService permissionsService,
     IStore store,
-    ISupportHubBus supportHubBus,
-    ITeamService teamService
+    ISupportHubBus supportHubBus
 ) : _Service(logger, mapper, options)
 {
     private readonly IActingUserService _actingUserService = actingUserService;
@@ -46,7 +44,6 @@ public class TicketService
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
     private readonly IStore _store = store;
     private readonly ISupportHubBus _supportHubBus = supportHubBus;
-    private readonly ITeamService _teamService = teamService;
 
     internal static char TAGS_DELIMITER = ' ';
 
