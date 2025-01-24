@@ -318,7 +318,7 @@ internal sealed class GameImportExportService
 
         var batch = new GameImportExportBatch
         {
-            DownloadUrl = GetExportBatchPackageName(exportBatchId),
+            DownloadUrl = Path.Combine(_coreOptions.AppUrl, "games", "export", exportBatchId),
             ExportBatchId = exportBatchId,
             Games = [.. gamesExported],
             CertificateTemplates = certificateTemplates,

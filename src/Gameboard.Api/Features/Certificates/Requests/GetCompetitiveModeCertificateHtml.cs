@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
@@ -18,6 +19,7 @@ internal class GetCompetitiveModeCertificateHtmlHandler
     ICertificatesService certificatesService,
     EntityExistsValidator<GetCompetitiveModeCertificateHtmlQuery, Data.Game> gameExists,
     IStore store,
+    IUserRolePermissionsService rolePermissions,
     IValidatorService<GetCompetitiveModeCertificateHtmlQuery> validatorService
 ) : IRequestHandler<GetCompetitiveModeCertificateHtmlQuery, string>
 {
@@ -25,6 +27,7 @@ internal class GetCompetitiveModeCertificateHtmlHandler
     private readonly ICertificatesService _certificatesService = certificatesService;
     private readonly EntityExistsValidator<GetCompetitiveModeCertificateHtmlQuery, Data.Game> _gameExists = gameExists;
     private readonly IStore _store = store;
+    private readonly IUserRolePermissionsService _rolePermissions = rolePermissions;
     private readonly IValidatorService<GetCompetitiveModeCertificateHtmlQuery> _validatorService = validatorService;
 
     public async Task<string> Handle(GetCompetitiveModeCertificateHtmlQuery request, CancellationToken cancellationToken)
@@ -41,12 +44,13 @@ internal class GetCompetitiveModeCertificateHtmlHandler
 
         await _validatorService
             .AddValidator(_gameExists.UseProperty(r => r.GameId))
-            .AddValidator((request, context) =>
+            .AddValidator(async (request, context) =>
             {
-                if (request.OwnerUserId != _actingUser.Get().Id && !isPublished)
-                    context.AddValidationException(new CertificateIsntPublished(request.OwnerUserId, PublishedCertificateMode.Competitive, request.GameId));
+                var actingUser = _actingUser.Get();
+                var hasPermission = await _rolePermissions.Can(PermissionKey.Admin_View);
 
-                return Task.CompletedTask;
+                if (request.OwnerUserId != _actingUser.Get().Id && !isPublished && !hasPermission)
+                    context.AddValidationException(new CertificateIsntPublished(request.OwnerUserId, PublishedCertificateMode.Competitive, request.GameId));
             })
             .AddValidator((req, ctx) =>
             {
