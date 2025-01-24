@@ -75,9 +75,9 @@ public class CertificatesController
     [HttpGet]
     [Route("user/{userId}/certificates/competitive/{awardedForEntityId}")]
     [AllowAnonymous] // anyone can _try_, but we only serve them the cert if it's published (or if they're the owner)
-    public async Task<FileResult> GetCompetitiveCertificatePng([FromRoute] string userId, [FromRoute] string awardedForEntityId, CancellationToken cancellationToken)
+    public async Task<FileResult> GetCompetitiveCertificatePng([FromRoute] string userId, [FromRoute] string awardedForEntityId, [FromQuery] string requestedNameOverride, CancellationToken cancellationToken)
     {
-        var html = await _mediator.Send(new GetCompetitiveModeCertificateHtmlQuery(awardedForEntityId, userId, _actingUser.Get().Id), cancellationToken);
+        var html = await _mediator.Send(new GetCompetitiveModeCertificateHtmlQuery(awardedForEntityId, userId, requestedNameOverride), cancellationToken);
         return File(await _htmlToImage.ToPng($"{_actingUser.Get().Id}_{awardedForEntityId}.png", html, 3300, 2550), MimeTypes.ImagePng);
     }
 
