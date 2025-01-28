@@ -2,22 +2,30 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Features.Reports;
+using Gameboard.Api.Features.Challenges;
+using Gameboard.Api.Features.Users;
+using Gameboard.Api.Structure.MediatR;
 using MediatR;
 
-namespace Gameboard.Api.Reports;
+namespace Gameboard.Api.Features.Reports;
 
-// this returns an object array because, regrettably, submission entries have a dynamic number of "answer" fields, so we pull back a strongly-typed
-// object from the app logic, but then we convert to untyped here to accommodate for arbitray numbers of fields.
-public record PracticeModeReportSubmissionsExportQuery(string ChallengeSpecId, PracticeModeReportParameters Parameters) : IRequest<object[]>;
+public record GetChallengesReportSubmissionsExport(string ChallengeSpecId, ChallengesReportParameters Parameters) : IRequest<object[]>;
 
-internal sealed class PracticeModeReportSubmissionsExportHandler(IPracticeModeReportService practiceMode) : IRequestHandler<PracticeModeReportSubmissionsExportQuery, object[]>
+internal sealed class GetChallengesReportSubmissionsHandler
+(
+    IChallengesReportService challengesReport,
+    IValidatorService validatorService
+) : IRequestHandler<GetChallengesReportSubmissionsExport, object[]>
 {
-    private readonly IPracticeModeReportService _practiceMode = practiceMode;
-
-    public async Task<object[]> Handle(PracticeModeReportSubmissionsExportQuery request, CancellationToken cancellationToken)
+    private readonly IChallengesReportService _challengesReport = challengesReport;
+    private readonly IValidatorService _validator = validatorService;
+    public async Task<object[]> Handle(GetChallengesReportSubmissionsExport request, CancellationToken cancellationToken)
     {
-        var results = await _practiceMode.GetSubmissionsCsv(request.ChallengeSpecId, request.Parameters, cancellationToken);
+        await _validator
+            .Auth(config => config.Require(PermissionKey.Reports_View))
+            .Validate(cancellationToken);
+
+        var results = await _challengesReport.GetSubmissionsCsv(request.ChallengeSpecId, request.Parameters, cancellationToken);
         var records = new List<dynamic>();
 
         // we need to know the maximum number of answers in a submission to make a tabular CSV

@@ -27,6 +27,14 @@ public class ReportsExportController(IMediator mediator) : ControllerBase
         return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
     }
 
+    [HttpGet("challenges/submissions/{challengeSpecId?}")]
+    [ProducesResponseType(typeof(FileContentResult), 200)]
+    public async Task<IActionResult> GetChallengesSubmissionsExport([FromRoute] string challengeSpecId, [FromQuery] ChallengesReportParameters parameters, CancellationToken cancellationToken)
+    {
+        var results = await _mediator.Send(new GetChallengesReportSubmissionsExport(challengeSpecId, parameters), cancellationToken);
+        return new FileContentResult(GetReportExport(results), MimeTypes.TextCsv);
+    }
+
     [HttpGet("enrollment")]
     [ProducesResponseType(typeof(FileContentResult), 200)]
     public async Task<IActionResult> GetEnrollmentReportExport([FromQuery] EnrollmentReportParameters parameters)

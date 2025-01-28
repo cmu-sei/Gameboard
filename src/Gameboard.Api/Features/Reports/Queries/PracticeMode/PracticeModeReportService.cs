@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Services;
@@ -20,12 +21,13 @@ public interface IPracticeModeReportService
     Task<PracticeModeReportResults> GetResultsByChallenge(PracticeModeReportParameters parameters, CancellationToken cancellationToken);
     Task<PracticeModeReportResults> GetResultsByUser(PracticeModeReportParameters parameters, CancellationToken cancellationToken);
     Task<PracticeModeReportResults> GetResultsByPlayerModePerformance(PracticeModeReportParameters parameters, CancellationToken cancellationToken);
-    Task<PracticeModeReportSubmissionsCsvRecord[]> GetSubmissionsCsv(string challengeSpecId, PracticeModeReportParameters parameters, CancellationToken cancellationToken);
+    Task<ChallengeSubmissionCsvRecord[]> GetSubmissionsCsv(string challengeSpecId, PracticeModeReportParameters parameters, CancellationToken cancellationToken);
 }
 
 internal class PracticeModeReportService
 (
     ChallengeService challengeService,
+    IChallengeSubmissionsService challengeSubmissionsService,
     IJsonService jsonService,
     IPracticeService practiceService,
     IReportsService reportsService,
@@ -33,6 +35,7 @@ internal class PracticeModeReportService
 ) : IPracticeModeReportService
 {
     private readonly ChallengeService _challengeService = challengeService;
+    private readonly IChallengeSubmissionsService _challengeSubmissionsService = challengeSubmissionsService;
     private readonly IJsonService _json = jsonService;
     private readonly IPracticeService _practiceService = practiceService;
     private readonly IReportsService _reportsService = reportsService;
@@ -557,7 +560,7 @@ internal class PracticeModeReportService
         });
     }
 
-    public async Task<PracticeModeReportSubmissionsCsvRecord[]> GetSubmissionsCsv(string challengeSpecId, PracticeModeReportParameters parameters, CancellationToken cancellationToken)
+    public async Task<ChallengeSubmissionCsvRecord[]> GetSubmissionsCsv(string challengeSpecId, PracticeModeReportParameters parameters, CancellationToken cancellationToken)
     {
         var challenges = await GetBaseQuery(parameters, false, cancellationToken);
 
@@ -567,50 +570,7 @@ internal class PracticeModeReportService
             challenges = challenges.Where(c => c.SpecId == challengeSpecId);
         }
 
-        var challengeData = challenges.Select(c => new
-        {
-            c.Id,
-            c.Name,
-            c.Points,
-            c.Player.UserId,
-            c.Score,
-            c.SpecId,
-            UserName = c.Player.User.ApprovedName
-        })
-        .ToDictionary(c => c.Id, c => c);
-
-        var submissions = await _store
-            .WithNoTracking<ChallengeSubmission>()
-            .Where(s => challengeData.Keys.Contains(s.ChallengeId))
-            .ToArrayAsync(cancellationToken);
-
-        var records = new List<PracticeModeReportSubmissionsCsvRecord>();
-        foreach (var s in submissions)
-        {
-            var challenge = challengeData[s.ChallengeId];
-            var deserializedAnswers = _json.Deserialize<ChallengeSubmissionAnswers>(s.Answers);
-
-            records.Add(new()
-            {
-                ChallengeId = challenge.Id,
-                ChallengeSpecId = challenge.SpecId,
-                ChallengeSpecName = challenge.Name,
-                ScoreAtSubmission = s.Score,
-                ScoreFinal = challenge.Score,
-                ScoreMaxPossible = challenge.Points,
-                SubmittedAnswers = deserializedAnswers,
-                SubmittedOn = s.SubmittedOn,
-                UserId = challenge.UserId,
-                UserName = challenge.UserName
-            });
-        }
-
-        return [..
-            records
-                .OrderBy(r => r.ChallengeSpecName)
-                .ThenBy(r => r.ChallengeId)
-                .ThenBy(r => r.SubmittedAnswers.QuestionSetIndex)
-        ];
+        return await _challengeSubmissionsService.GetSubmissionsCsv(challenges, cancellationToken);
     }
 
     private PracticeModeReportByPlayerModePerformanceRecordModeSummary CalculateByPlayerPerformanceModeSummary(bool isPractice, IEnumerable<Data.Challenge> challenges, IEnumerable<PracticeModeReportByPlayerModePerformanceChallengeScore> percentileTable)

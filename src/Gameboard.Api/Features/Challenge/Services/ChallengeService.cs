@@ -315,7 +315,9 @@ public partial class ChallengeService
         q = q.Skip(model.Skip);
 
         if (model.Take > 0)
+        {
             q = q.Take(model.Take);
+        }
 
         return await Mapper.ProjectTo<ArchivedChallenge>(q).ToArrayAsync();
     }
@@ -463,7 +465,7 @@ public partial class ChallengeService
                 challenge.Id,
                 (int)updatedScore.Score.TotalScore,
                 model.SectionIndex,
-                model.Questions.Select(q => q.Answer),
+                [.. model.Questions.Select(q => q.Answer)],
                 cancellationToken
             );
         }

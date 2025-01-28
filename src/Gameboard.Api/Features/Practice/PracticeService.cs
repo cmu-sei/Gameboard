@@ -136,7 +136,7 @@ internal partial class PracticeService
     public async Task<IEnumerable<string>> GetVisibleChallengeTags(IEnumerable<string> requestedTags, CancellationToken cancellationToken)
     {
         var settings = await GetSettings(cancellationToken);
-        return requestedTags.Select(t => t.ToLower()).Intersect(settings.SuggestedSearches).ToArray();
+        return [.. requestedTags.Select(t => t.ToLower()).Intersect(settings.SuggestedSearches)];
     }
 
     public async Task<PracticeModeSettings> UpdateSettings(PracticeModeSettingsApiModel update, string actingUserId, CancellationToken cancellationToken)

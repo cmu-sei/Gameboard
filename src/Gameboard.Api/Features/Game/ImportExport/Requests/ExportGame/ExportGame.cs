@@ -9,25 +9,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Games;
 
-public record ExportGameCommand(string[] GameIds, bool? IncludePracticeAreaDefaultCertificateTemplate) : IRequest<ExportGamesResult>;
+public record ExportGamesCommand(string[] GameIds, bool? IncludePracticeAreaDefaultCertificateTemplate) : IRequest<ExportGamesResult>;
 
-internal sealed class ExportGameHandler
+internal sealed class ExportGamesHandler
 (
     IGameImportExportService importExportService,
     IStore store,
     IValidatorService validator
-) : IRequestHandler<ExportGameCommand, ExportGamesResult>
+) : IRequestHandler<ExportGamesCommand, ExportGamesResult>
 {
     private readonly IGameImportExportService _importExportService = importExportService;
     private readonly IStore _store = store;
     private readonly IValidatorService _validator = validator;
 
-    public async Task<ExportGamesResult> Handle(ExportGameCommand request, CancellationToken cancellationToken)
+    public async Task<ExportGamesResult> Handle(ExportGamesCommand request, CancellationToken cancellationToken)
     {
         var finalGameIds = Array.Empty<string>();
-        if (request.GameIds is not null)
+        if (request.GameIds.IsNotEmpty())
         {
-            finalGameIds = request.GameIds.Distinct().Where(gId => gId.IsNotEmpty()).ToArray();
+            finalGameIds = [.. request.GameIds.Distinct().Where(gId => gId.IsNotEmpty())];
         }
 
         await _validator

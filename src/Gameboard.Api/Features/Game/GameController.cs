@@ -151,7 +151,7 @@ namespace Gameboard.Api.Controllers
             => _mediator.Send(new GetGamePlayStateQuery(gameId, Actor.Id));
 
         [HttpPost("/api/games/export")]
-        public Task<ExportGamesResult> ExportGames([FromBody] ExportGameCommand request, CancellationToken cancellationToken)
+        public Task<ExportGamesResult> ExportGames([FromBody] ExportGamesCommand request, CancellationToken cancellationToken)
             => _mediator.Send(request, cancellationToken);
 
         [HttpGet("/api/games/export/{exportBatchId}")]

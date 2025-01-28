@@ -222,17 +222,3 @@ public sealed class PracticeModeReportChallengeDetailUser
     public required ChallengeResult BestAttemptResult { get; set; }
     public required double BestAttemptScore { get; set; }
 }
-
-public sealed class PracticeModeReportSubmissionsCsvRecord
-{
-    public required string ChallengeSpecId { get; set; }
-    public required string ChallengeSpecName { get; set; }
-    public required string ChallengeId { get; set; }
-    public required double ScoreAtSubmission { get; set; }
-    public required double ScoreFinal { get; set; }
-    public required double ScoreMaxPossible { get; set; }
-    public required ChallengeSubmissionAnswers SubmittedAnswers { get; set; }
-    public required DateTimeOffset SubmittedOn { get; set; }
-    public required string UserId { get; set; }
-    public required string UserName { get; set; }
-}

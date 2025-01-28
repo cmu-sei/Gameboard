@@ -68,7 +68,7 @@ internal class SaveChallengePendingSubmissionHandler : IRequestHandler<SaveChall
         (
             request.ChallengeId,
             request.Answers.QuestionSetIndex,
-            request.Answers.Answers,
+            [.. request.Answers.Answers],
             cancellationToken
         );
     }

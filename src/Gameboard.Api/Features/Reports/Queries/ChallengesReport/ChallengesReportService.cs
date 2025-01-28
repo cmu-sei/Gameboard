@@ -15,21 +15,27 @@ public interface IChallengesReportService
 {
     Task<IEnumerable<ChallengesReportRecord>> GetRawResults(ChallengesReportParameters parameters, CancellationToken cancellationToken);
     ChallengesReportStatSummary GetStatSummary(IEnumerable<ChallengesReportRecord> records);
+    Task<ChallengeSubmissionCsvRecord[]> GetSubmissionsCsv(string challengeSpecId, ChallengesReportParameters parameters, CancellationToken cancellationToken);
 }
 
-internal class ChallengesReportService(IPracticeService practiceService, IReportsService reportsService, IStore store) : IChallengesReportService
+internal class ChallengesReportService
+(
+    IChallengeSubmissionsService challengeSubmissions,
+    IPracticeService practiceService,
+    IReportsService reportsService,
+    IStore store
+) : IChallengesReportService
 {
+    private readonly IChallengeSubmissionsService _challengeSubmissions = challengeSubmissions;
     private readonly IPracticeService _practiceService = practiceService;
     private readonly IReportsService _reportsService = reportsService;
     private readonly IStore _store = store;
 
     public async Task<IEnumerable<ChallengesReportRecord>> GetRawResults(ChallengesReportParameters parameters, CancellationToken cancellationToken)
     {
-        var gamesCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Games);
-        var seasonsCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Seasons);
-        var seriesCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Series);
         var tagsCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Tags);
-        var tracksCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Tracks);
+        Expression<Func<Data.Challenge, bool>> startDateCondition = c => true;
+        Expression<Func<Data.Challenge, bool>> endDateCondition = c => true;
 
         var query = _store
             .WithNoTracking<Data.ChallengeSpec>()
@@ -37,23 +43,9 @@ internal class ChallengesReportService(IPracticeService practiceService, IReport
             .OrderBy(cs => cs.Name)
             .Where(cs => !cs.IsHidden);
 
-        if (gamesCriteria.Any())
-            query = query.Where(cs => gamesCriteria.Contains(cs.GameId));
-
-        if (seasonsCriteria.Any())
-            query = query.Where(cs => seasonsCriteria.Contains(cs.Game.Season.ToLower()));
-
-        if (seriesCriteria.Any())
-            query = query.Where(cs => seriesCriteria.Contains(cs.Game.Competition.ToLower()));
-
-        if (tracksCriteria.Any())
-            query = query.Where(cs => tracksCriteria.Contains(cs.Game.Track.ToLower()));
-
         // the date filters apply to challenges, not to specs
         var startDateStart = parameters.StartDateStart.HasValue ? parameters.StartDateStart.Value.ToUniversalTime() : default(DateTimeOffset?);
         var startDateEnd = parameters.StartDateEnd.HasValue ? parameters.StartDateEnd.Value.ToEndDate().ToUniversalTime() : default(DateTimeOffset?);
-        Expression<Func<Data.Challenge, bool>> startDateCondition = c => true;
-        Expression<Func<Data.Challenge, bool>> endDateCondition = c => true;
 
         if (parameters.StartDateStart.HasValue)
             startDateCondition = c => c.StartTime >= parameters.StartDateStart.Value.ToUniversalTime();
@@ -61,7 +53,7 @@ internal class ChallengesReportService(IPracticeService practiceService, IReport
         if (parameters.StartDateEnd.HasValue)
             endDateCondition = c => c.EndTime <= parameters.StartDateEnd.Value.ToEndDate().ToUniversalTime();
 
-        var specs = await query
+        var specs = await GetBaseQuery(parameters)
             .Select(cs => new
             {
                 cs.Id,
@@ -259,5 +251,59 @@ internal class ChallengesReportService(IPracticeService practiceService, IReport
                     DeployCount = mostPopularPracticeChallengeSpec.DeployPracticeCount
                 }
         };
+    }
+
+    public async Task<ChallengeSubmissionCsvRecord[]> GetSubmissionsCsv(string challengeSpecId, ChallengesReportParameters parameters, CancellationToken cancellationToken)
+    {
+        var query = GetBaseQuery(parameters);
+
+        if (challengeSpecId.IsNotEmpty())
+        {
+            query = query.Where(s => s.Id == challengeSpecId);
+        }
+
+        var challengeSpecs = await query.Select(s => s.Id).ToArrayAsync(cancellationToken);
+        var challengesQuery = _store.WithNoTracking<Data.Challenge>().Where(c => challengeSpecs.Contains(c.SpecId));
+        return await _challengeSubmissions.GetSubmissionsCsv(challengesQuery, cancellationToken);
+    }
+
+    private IQueryable<Data.ChallengeSpec> GetBaseQuery(ChallengesReportParameters parameters)
+    {
+        var gamesCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Games);
+        var seasonsCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Seasons);
+        var seriesCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Series);
+        var tracksCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Tracks);
+
+        var query = _store
+            .WithNoTracking<Data.ChallengeSpec>()
+            .Include(cs => cs.Game)
+            .OrderBy(cs => cs.Name)
+            .Where(cs => !cs.IsHidden);
+
+        if (gamesCriteria.Any())
+            query = query.Where(cs => gamesCriteria.Contains(cs.GameId));
+
+        if (seasonsCriteria.Any())
+            query = query.Where(cs => seasonsCriteria.Contains(cs.Game.Season.ToLower()));
+
+        if (seriesCriteria.Any())
+            query = query.Where(cs => seriesCriteria.Contains(cs.Game.Competition.ToLower()));
+
+        if (tracksCriteria.Any())
+            query = query.Where(cs => tracksCriteria.Contains(cs.Game.Track.ToLower()));
+
+        // the date filters apply to challenges, not to specs
+        var startDateStart = parameters.StartDateStart.HasValue ? parameters.StartDateStart.Value.ToUniversalTime() : default(DateTimeOffset?);
+        var startDateEnd = parameters.StartDateEnd.HasValue ? parameters.StartDateEnd.Value.ToEndDate().ToUniversalTime() : default(DateTimeOffset?);
+        Expression<Func<Data.Challenge, bool>> startDateCondition = c => true;
+        Expression<Func<Data.Challenge, bool>> endDateCondition = c => true;
+
+        if (parameters.StartDateStart.HasValue)
+            startDateCondition = c => c.StartTime >= parameters.StartDateStart.Value.ToUniversalTime();
+
+        if (parameters.StartDateEnd.HasValue)
+            endDateCondition = c => c.EndTime <= parameters.StartDateEnd.Value.ToEndDate().ToUniversalTime();
+
+        return query;
     }
 }
