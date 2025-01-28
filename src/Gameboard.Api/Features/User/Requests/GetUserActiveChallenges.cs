@@ -57,9 +57,6 @@ internal class GetUserActiveChallengesHandler
 
         var challenges = await _store
             .WithNoTracking<Data.Challenge>()
-                .Include(c => c.Game)
-                .Include(c => c.Player)
-                    .ThenInclude(p => p.User)
             .Where(c => c.Player.SessionBegin >= DateTimeOffset.MinValue)
             .Where(c => c.Player.SessionEnd > _now.Get())
             .Where(c => c.Player.UserId == request.UserId)
@@ -70,6 +67,7 @@ internal class GetUserActiveChallengesHandler
                 c.Name,
                 c.SpecId,
                 Game = new SimpleEntity { Id = c.GameId, Name = c.Game.Name },
+                c.Game.ChallengesFeedbackTemplateId,
                 c.GameEngineType,
                 EndTime = c.EndTime == DateTimeOffset.MinValue ? default(DateTimeOffset?) : c.EndTime,
                 c.State,
@@ -97,7 +95,7 @@ internal class GetUserActiveChallengesHandler
             });
             teamIds.Add(challenge.TeamId);
         }
-        teamIds = teamIds.Distinct().ToList();
+        teamIds = [.. teamIds.Distinct()];
 
         var teams = await _store.WithNoTracking<Data.Player>()
             .Where(p => teamIds.Contains(p.TeamId))
@@ -113,6 +111,7 @@ internal class GetUserActiveChallengesHandler
             Game = c.Game,
             Spec = new SimpleEntity { Id = c.SpecId, Name = c.Name },
             Team = new SimpleEntity { Id = c.TeamId, Name = teams[c.TeamId] },
+            FeedbackTemplateId = c.ChallengesFeedbackTemplateId,
             Mode = c.PlayerMode,
             EndsAt = c.EndTime?.ToUnixTimeMilliseconds() ?? null,
             IsDeployed = challengeStates[c.Id].Vms?.Any() ?? false,

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Text.Json.Serialization;
+using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -219,4 +221,18 @@ public sealed class PracticeModeReportChallengeDetailUser
     public required double BestAttemptDurationMs { get; set; }
     public required ChallengeResult BestAttemptResult { get; set; }
     public required double BestAttemptScore { get; set; }
+}
+
+public sealed class PracticeModeReportSubmissionsCsvRecord
+{
+    public required string ChallengeSpecId { get; set; }
+    public required string ChallengeSpecName { get; set; }
+    public required string ChallengeId { get; set; }
+    public required double ScoreAtSubmission { get; set; }
+    public required double ScoreFinal { get; set; }
+    public required double ScoreMaxPossible { get; set; }
+    public required ChallengeSubmissionAnswers SubmittedAnswers { get; set; }
+    public required DateTimeOffset SubmittedOn { get; set; }
+    public required string UserId { get; set; }
+    public required string UserName { get; set; }
 }

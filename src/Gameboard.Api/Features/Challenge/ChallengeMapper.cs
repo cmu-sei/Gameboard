@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoMapper;
 using Gameboard.Api.Features.GameEngine;
+using ServiceStack;
 
 namespace Gameboard.Api.Services
 {
@@ -48,11 +49,12 @@ namespace Gameboard.Api.Services
                 .ForMember(d => d.LastSyncTime, opt => opt.MapFrom(s => DateTimeOffset.UtcNow))
                 .ForMember(d => d.LastScoreTime, opt => opt.MapFrom(s => s.Challenge.LastScoreTime))
                 .ForMember(d => d.Score, opt => opt.MapFrom(s => s.Challenge.Score))
-                .ForMember(d => d.HasDeployedGamespace, opt => opt.MapFrom(s => s.Vms != null && s.Vms.Any()))
+                .ForMember(d => d.HasDeployedGamespace, opt => opt.MapFrom(s => s.Vms != null && s.Vms.Count > 0))
                 .ForMember(d => d.State, opt => opt.MapFrom(s => JsonSerializer.Serialize(s, JsonOptions)));
 
             CreateMap<Data.Challenge, Challenge>()
                 .ForMember(d => d.Score, opt => opt.MapFrom(s => (int)Math.Floor(s.Score)))
+                .ForMember(d => d.FeedbackTemplateId, opt => opt.MapFrom(s => s.Game != null ? s.Game.ChallengesFeedbackTemplateId : default))
                 .ForMember(d => d.State, opt => opt.MapFrom(s =>
                     JsonSerializer.Deserialize<GameEngineGameState>(s.State, JsonOptions))
                 );

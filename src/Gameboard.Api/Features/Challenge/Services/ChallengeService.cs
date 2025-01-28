@@ -19,6 +19,7 @@ using Gameboard.Api.Features.Users;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ServiceStack;
 
 namespace Gameboard.Api.Services;
 
@@ -62,14 +63,15 @@ public partial class ChallengeService
     private readonly IStore _store = store;
     private readonly ITeamService _teamService = teamService;
 
+    public Task<Challenge> Get(string challengeId)
+        => GetDto(_store.WithNoTracking<Data.Challenge>().Where(c => c.Id == challengeId));
+
     public async Task<Challenge> GetOrCreate(NewChallenge model, string actorId, string graderUrl)
     {
-        var entity = await _challengeStore.Load(model);
+        var challengeQuery = await ResolveChallenge(model.SpecId, model.PlayerId);
+        var challenge = await GetDto(challengeQuery);
 
-        if (entity is not null)
-            return Mapper.Map<Challenge>(entity);
-
-        return await Create(model, actorId, graderUrl, CancellationToken.None);
+        return challenge ?? await Create(model, actorId, graderUrl, CancellationToken.None);
     }
 
     public int GetDeployingChallengeCount(string teamId)
@@ -201,13 +203,6 @@ public partial class ChallengeService
         return result;
     }
 
-    public async Task<Challenge> Retrieve(string id)
-    {
-        var result = Mapper.Map<Challenge>(await _challengeStore.Load(id));
-
-        return result;
-    }
-
     public async Task Delete(string id)
     {
         await _challengeStore.Delete(id);
@@ -327,7 +322,8 @@ public partial class ChallengeService
 
     public async Task<Challenge> Preview(NewChallenge model)
     {
-        var entity = await _challengeStore.Load(model);
+        var challengeQuery = await ResolveChallenge(model.SpecId, model.PlayerId);
+        var entity = await GetDto(challengeQuery);
 
         if (entity is not null)
             return Mapper.Map<Challenge>(entity);
@@ -336,7 +332,7 @@ public partial class ChallengeService
         var challenge = Mapper.Map<Data.Challenge>(spec);
 
         var result = Mapper.Map<Challenge>(challenge);
-        GameEngineGameState state = new() { Markdown = spec.Text };
+        var state = new GameEngineGameState { Markdown = spec.Text };
         state = TransformStateRelativeUrls(state);
         result.State = state;
         return result;
@@ -529,8 +525,8 @@ public partial class ChallengeService
     public async Task ArchivePlayerChallenges(Data.Player player)
     {
         // for this, we need to make sure that we're not cleaning up any challenges
-        // that still belong to other members of the player's team (if they)
-        // have any
+        // that still belong to other members of the player's team (if they
+        // have any)
         var candidateChallenges = await _store
             .WithNoTracking<Data.Challenge>()
             .Where(c => c.PlayerId == player.Id)
@@ -657,23 +653,17 @@ public partial class ChallengeService
             var captain = captains.ContainsKey(challenge.TeamId) ? captains[challenge.TeamId] : null;
             challenge.TeamName = captain?.ApprovedName ?? challenge.PlayerName;
 
-            challenge.Consoles = challenge.Consoles
-                .Where(v => v.IsVisible)
-                .ToArray();
+            challenge.Consoles = [.. challenge.Consoles.Where(v => v.IsVisible)];
             result.Add(challenge);
         }
         return result;
     }
 
     public ConsoleActor[] GetConsoleActors(string gameId)
-    {
-        return _actorMap.Find(gameId);
-    }
+        => _actorMap.Find(gameId);
 
     public ConsoleActor GetConsoleActor(string userId)
-    {
-        return _actorMap.FindActor(userId);
-    }
+        => _actorMap.FindActor(userId);
 
     public async Task<ChallengeIdUserIdMap> GetChallengeUserMaps(IQueryable<Data.Challenge> query, CancellationToken cancellationToken)
     {
@@ -824,5 +814,49 @@ public partial class ChallengeService
         });
 
         return challenge;
+    }
+
+    internal async Task<Challenge> GetDto(IQueryable<Data.Challenge> challengeQuery)
+    {
+        var challengeData = await challengeQuery.Select(c => new
+        {
+            Challenge = c,
+            c.Events,
+            c.Game.ChallengesFeedbackTemplateId
+        })
+        .SingleOrDefaultAsync();
+
+        if (challengeData is null)
+        {
+            return null;
+        }
+
+        challengeData.Challenge.Events = challengeData.Events;
+        var dto = Mapper.Map<Challenge>(challengeData.Challenge);
+        dto.FeedbackTemplateId = challengeData.ChallengesFeedbackTemplateId;
+
+        return dto;
+    }
+
+    internal async Task<IQueryable<Data.Challenge>> ResolveChallenge(string challengeSpecId, string playerId)
+    {
+        var player = await _store
+            .WithNoTracking<Data.Player>()
+            .Where(p => p.Id == playerId)
+            .SingleOrDefaultAsync();
+
+        return _store
+            .WithNoTracking<Data.Challenge>()
+            .Include(c => c.Player)
+            .OrderByDescending(c => c.StartTime)
+            .Where
+            (
+                c =>
+                    c.SpecId == challengeSpecId &&
+                    (
+                        c.PlayerId == playerId ||
+                        c.TeamId == player.TeamId
+                    )
+            );
     }
 }
