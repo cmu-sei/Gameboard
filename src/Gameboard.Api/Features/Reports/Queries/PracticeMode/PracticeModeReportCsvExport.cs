@@ -7,16 +7,10 @@ namespace Gameboard.Api.Features.Reports;
 
 public record PracticeModeReportCsvExportQuery(PracticeModeReportParameters Parameters) : IReportQuery, IRequest<IEnumerable<PracticeModeReportCsvRecord>>;
 
-internal class PracticeModeReportCsvExportHandler : IRequestHandler<PracticeModeReportCsvExportQuery, IEnumerable<PracticeModeReportCsvRecord>>
+internal class PracticeModeReportCsvExportHandler(IPracticeModeReportService practiceModeReportService, ReportsQueryValidator validator) : IRequestHandler<PracticeModeReportCsvExportQuery, IEnumerable<PracticeModeReportCsvRecord>>
 {
-    private readonly IPracticeModeReportService _practiceModeReportService;
-    private readonly ReportsQueryValidator _validator;
-
-    public PracticeModeReportCsvExportHandler(IPracticeModeReportService practiceModeReportService, ReportsQueryValidator validator)
-    {
-        _practiceModeReportService = practiceModeReportService;
-        _validator = validator;
-    }
+    private readonly IPracticeModeReportService _practiceModeReportService = practiceModeReportService;
+    private readonly ReportsQueryValidator _validator = validator;
 
     public async Task<IEnumerable<PracticeModeReportCsvRecord>> Handle(PracticeModeReportCsvExportQuery request, CancellationToken cancellationToken)
     {

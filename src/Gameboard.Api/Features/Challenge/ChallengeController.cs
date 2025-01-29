@@ -94,7 +94,7 @@ public class ChallengeController
 
         await Validate(new Entity { Id = id });
 
-        return await ChallengeService.Retrieve(id);
+        return await ChallengeService.Get(id);
     }
 
     /// <summary>

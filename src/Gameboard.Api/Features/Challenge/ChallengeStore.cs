@@ -12,7 +12,6 @@ namespace Gameboard.Api.Data;
 
 public interface IChallengeStore : IStore<Challenge>
 {
-    Task<Data.Challenge> Load(NewChallenge model);
     Task<Data.Challenge> Load(string id);
     Task UpdateEtd(string specId);
 }
@@ -53,24 +52,6 @@ public class ChallengeStore(
         return await DbSet
             .Include(c => c.Events)
             .SingleOrDefaultAsync(c => c.Id == id);
-    }
-
-    public async Task<Challenge> Load(NewChallenge model)
-    {
-        var player = await _store
-            .WithNoTracking<Data.Player>()
-            .Where(p => p.Id == model.PlayerId)
-            .SingleOrDefaultAsync();
-
-        return await DbSet
-            .Include(c => c.Player)
-            .FirstOrDefaultAsync(c =>
-                c.SpecId == model.SpecId &&
-                (
-                    c.PlayerId == model.PlayerId ||
-                    c.TeamId == player.TeamId
-                )
-            );
     }
 
     public async Task UpdateEtd(string specId)

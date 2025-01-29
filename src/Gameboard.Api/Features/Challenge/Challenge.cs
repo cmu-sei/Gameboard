@@ -14,6 +14,7 @@ public class Challenge
     public string TeamId { get; set; }
     public string Name { get; set; }
     public string Tag { get; set; }
+    public string FeedbackTemplateId { get; set; }
     public DateTimeOffset StartTime { get; set; }
     public DateTimeOffset EndTime { get; set; }
     public DateTimeOffset LastScoreTime { get; set; }
@@ -68,6 +69,7 @@ public class UserActiveChallenge
     public required long? EndsAt { get; set; }
     public required SimpleEntity Game { get; set; }
     public required SimpleEntity Spec { get; set; }
+    public required string FeedbackTemplateId { get; set; }
     public required bool IsDeployed { get; set; }
     public required string Markdown { get; set; }
     public required PlayerMode Mode { get; set; }

@@ -69,7 +69,7 @@ public class ReportsController(IMediator mediator, IReportsService service) : Co
         => _mediator.Send(new GetSiteUsageReportQuery(parameters), cancellationToken);
 
     [HttpGet("site-usage/challenges")]
-    public Task<PagedEnumerable<SiteUsageReportChallenge>> GetSiteUsageREportChallenges([FromQuery] SiteUsageReportParameters reportParameters, [FromQuery] PagingArgs pagingArgs, CancellationToken cancellationToken)
+    public Task<PagedEnumerable<SiteUsageReportChallenge>> GetSiteUsageReportChallenges([FromQuery] SiteUsageReportParameters reportParameters, [FromQuery] PagingArgs pagingArgs, CancellationToken cancellationToken)
         => _mediator.Send(new GetSiteUsageReportChallengesQuery(reportParameters, pagingArgs), cancellationToken);
 
     [HttpGet("site-usage/players")]

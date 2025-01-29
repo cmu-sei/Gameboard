@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Services;
@@ -15,22 +16,27 @@ namespace Gameboard.Api.Features.Reports;
 public interface IPracticeModeReportService
 {
     Task<IQueryable<Data.Challenge>> GetBaseQuery(PracticeModeReportParameters parameters, bool includeCompetitive, CancellationToken cancellationToken);
+    Task<IEnumerable<PracticeModeReportCsvRecord>> GetCsvExport(PracticeModeReportParameters parameters, CancellationToken cancellationToken);
+    Task<PracticeModeReportPlayerModeSummary> GetPlayerModePerformanceSummary(string userId, bool isPractice, CancellationToken cancellationToken);
     Task<PracticeModeReportResults> GetResultsByChallenge(PracticeModeReportParameters parameters, CancellationToken cancellationToken);
     Task<PracticeModeReportResults> GetResultsByUser(PracticeModeReportParameters parameters, CancellationToken cancellationToken);
     Task<PracticeModeReportResults> GetResultsByPlayerModePerformance(PracticeModeReportParameters parameters, CancellationToken cancellationToken);
-    Task<IEnumerable<PracticeModeReportCsvRecord>> GetCsvExport(PracticeModeReportParameters parameters, CancellationToken cancellationToken);
-    Task<PracticeModeReportPlayerModeSummary> GetPlayerModePerformanceSummary(string userId, bool isPractice, CancellationToken cancellationToken);
+    Task<ChallengeSubmissionCsvRecord[]> GetSubmissionsCsv(string challengeSpecId, PracticeModeReportParameters parameters, CancellationToken cancellationToken);
 }
 
 internal class PracticeModeReportService
 (
     ChallengeService challengeService,
+    IChallengeSubmissionsService challengeSubmissionsService,
+    IJsonService jsonService,
     IPracticeService practiceService,
     IReportsService reportsService,
     IStore store
 ) : IPracticeModeReportService
 {
     private readonly ChallengeService _challengeService = challengeService;
+    private readonly IChallengeSubmissionsService _challengeSubmissionsService = challengeSubmissionsService;
+    private readonly IJsonService _json = jsonService;
     private readonly IPracticeService _practiceService = practiceService;
     private readonly IReportsService _reportsService = reportsService;
     private readonly IStore _store = store;
@@ -170,10 +176,10 @@ internal class PracticeModeReportService
         if (parameters.Tracks.IsNotEmpty())
             query = query.Where(c => parameters.Tracks.Contains(c.Game.Track));
 
-        if (parameters.Games is not null && parameters.Games.Any())
+        if (parameters.Games is not null && parameters.Games.Length > 0)
             query = query.Where(c => parameters.Games.Contains(c.GameId));
 
-        if (parameters.Sponsors is not null && parameters.Sponsors.Any())
+        if (parameters.Sponsors is not null && parameters.Sponsors.Length > 0)
             query = query.Where(c => sponsorIds.Contains(c.Player.Sponsor.Id));
 
         // we have to constrain the query results by eliminating challenges that have a specId
@@ -518,7 +524,7 @@ internal class PracticeModeReportService
     public async Task<IEnumerable<PracticeModeReportCsvRecord>> GetCsvExport(PracticeModeReportParameters parameters, CancellationToken cancellationToken)
     {
         var ungroupedResults = await BuildUngroupedResults(parameters, false, cancellationToken);
-        var teams = await _reportsService.GetTeamsByPlayerIds(ungroupedResults.Challenges.Select(c => c.PlayerId), cancellationToken);
+        var teams = await _reportsService.GetTeamsByPlayerIds(ungroupedResults.Challenges.Select(c => c.PlayerId).Distinct(), cancellationToken);
         var rawScores = await GetSpecRawScores(ungroupedResults.Specs.Values.Select(s => s.Id).ToArray());
 
         return ungroupedResults.Challenges.Select(c =>
@@ -539,7 +545,7 @@ internal class PracticeModeReportService
                 SponsorId = sponsor?.Id,
                 SponsorName = sponsor?.Name,
                 TeamId = c.Player.TeamId,
-                TeamName = teams.ContainsKey(c.Player.TeamId) ? teams[c.Player.TeamId].Name : null,
+                TeamName = teams.TryGetValue(c.Player.TeamId, out ReportTeamViewModel value) ? value.Name : null,
                 UserId = c.Player.UserId,
                 UserName = c.Player.User.ApprovedName,
                 DurationMs = c.Duration,
@@ -552,6 +558,19 @@ internal class PracticeModeReportService
                 SessionEnd = c.EndTime.IsNotEmpty() ? c.EndTime : null
             };
         });
+    }
+
+    public async Task<ChallengeSubmissionCsvRecord[]> GetSubmissionsCsv(string challengeSpecId, PracticeModeReportParameters parameters, CancellationToken cancellationToken)
+    {
+        var challenges = await GetBaseQuery(parameters, false, cancellationToken);
+
+        // this csv can be generated for all challenges which meet the criteria, or for a specific one via a parameter
+        if (challengeSpecId.IsNotEmpty())
+        {
+            challenges = challenges.Where(c => c.SpecId == challengeSpecId);
+        }
+
+        return await _challengeSubmissionsService.GetSubmissionsCsv(challenges, cancellationToken);
     }
 
     private PracticeModeReportByPlayerModePerformanceRecordModeSummary CalculateByPlayerPerformanceModeSummary(bool isPractice, IEnumerable<Data.Challenge> challenges, IEnumerable<PracticeModeReportByPlayerModePerformanceChallengeScore> percentileTable)
@@ -609,11 +628,11 @@ internal class PracticeModeReportService
         return decimal.Divide(numerator, denominator) * 100;
     }
 
-    private async Task<IEnumerable<PracticeModeReportByPlayerModePerformanceChallengeScore>> GetSpecRawScores(IList<string> specIds)
+    private async Task<IEnumerable<PracticeModeReportByPlayerModePerformanceChallengeScore>> GetSpecRawScores(string[] specIds)
     {
         return await _store
             .WithNoTracking<Data.Challenge>()
-                .Include(c => c.Game)
+            .Where(c => specIds.Contains(c.SpecId))
             .GroupBy(c => new { c.Id, c.SpecId, IsPractice = c.PlayerMode == PlayerMode.Practice })
             .Select(g => new PracticeModeReportByPlayerModePerformanceChallengeScore
             {
@@ -624,7 +643,6 @@ internal class PracticeModeReportService
                     .Select(c => c.Score)
                     .Max()
             })
-            .Where(k => specIds.Contains(k.ChallengeSpecId))
             .ToListAsync();
     }
 }

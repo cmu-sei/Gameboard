@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -11,34 +10,76 @@ namespace Gameboard.Api.Features.Challenges;
 
 public interface IChallengeSubmissionsService
 {
-    Task LogSubmission(string challengeId, double score, IEnumerable<string> answers, CancellationToken cancellationToken);
-    Task LogSubmission(string challengeId, double score, int sectionIndex, IEnumerable<string> answers, CancellationToken cancellationToken);
-    Task LogPendingSubmission(string challengeId, IEnumerable<string> answers, CancellationToken cancellationToken);
-    Task LogPendingSubmission(string challengeId, int sectionIndex, IEnumerable<string> answers, CancellationToken cancellationToken);
+    Task<ChallengeSubmissionCsvRecord[]> GetSubmissionsCsv(IQueryable<Data.Challenge> challengesQuery, CancellationToken cancellationToken);
+    Task LogSubmission(string challengeId, double score, string[] answers, CancellationToken cancellationToken);
+    Task LogSubmission(string challengeId, double score, int sectionIndex, string[] answers, CancellationToken cancellationToken);
+    Task LogPendingSubmission(string challengeId, string[] answers, CancellationToken cancellationToken);
+    Task LogPendingSubmission(string challengeId, int sectionIndex, string[] answers, CancellationToken cancellationToken);
 }
 
-internal class ChallengeSubmissionsService : IChallengeSubmissionsService
+internal class ChallengeSubmissionsService
+(
+    IJsonService json,
+    INowService now,
+    IStore store
+) : IChallengeSubmissionsService
 {
-    private readonly IJsonService _jsonService;
-    private readonly INowService _now;
-    private readonly IStore _store;
+    private readonly IJsonService _json = json;
+    private readonly INowService _now = now;
+    private readonly IStore _store = store;
 
-    public ChallengeSubmissionsService
-    (
-        IJsonService jsonService,
-        INowService now,
-        IStore store
-    )
+    public async Task<ChallengeSubmissionCsvRecord[]> GetSubmissionsCsv(IQueryable<Data.Challenge> challengesQuery, CancellationToken cancellationToken)
     {
-        _jsonService = jsonService;
-        _now = now;
-        _store = store;
+        var challengeData = challengesQuery.Select(c => new
+        {
+            c.Id,
+            c.Name,
+            c.Points,
+            c.Player.UserId,
+            c.Score,
+            c.SpecId,
+            UserName = c.Player.User.ApprovedName
+        })
+        .ToDictionary(c => c.Id, c => c);
+
+        var submissions = await _store
+            .WithNoTracking<ChallengeSubmission>()
+            .Where(s => challengeData.Keys.Contains(s.ChallengeId))
+            .ToArrayAsync(cancellationToken);
+
+        var records = new List<ChallengeSubmissionCsvRecord>();
+        foreach (var s in submissions)
+        {
+            var challenge = challengeData[s.ChallengeId];
+            var deserializedAnswers = _json.Deserialize<ChallengeSubmissionAnswers>(s.Answers);
+
+            records.Add(new()
+            {
+                ChallengeId = challenge.Id,
+                ChallengeSpecId = challenge.SpecId,
+                ChallengeSpecName = challenge.Name,
+                ScoreAtSubmission = s.Score,
+                ScoreFinal = challenge.Score,
+                ScoreMaxPossible = challenge.Points,
+                SubmittedAnswers = deserializedAnswers,
+                SubmittedOn = s.SubmittedOn,
+                UserId = challenge.UserId,
+                UserName = challenge.UserName
+            });
+        }
+
+        return [..
+            records
+                .OrderBy(r => r.ChallengeSpecName)
+                .ThenBy(r => r.ChallengeId)
+                .ThenBy(r => r.SubmittedAnswers.QuestionSetIndex)
+        ];
     }
 
-    public Task LogPendingSubmission(string challengeId, IEnumerable<string> answers, CancellationToken cancellationToken)
+    public Task LogPendingSubmission(string challengeId, string[] answers, CancellationToken cancellationToken)
         => LogPendingSubmission(challengeId, 0, answers, cancellationToken);
 
-    public async Task LogPendingSubmission(string challengeId, int sectionIndex, IEnumerable<string> answers, CancellationToken cancellationToken)
+    public async Task LogPendingSubmission(string challengeId, int sectionIndex, string[] answers, CancellationToken cancellationToken)
     {
         var answersEntity = new ChallengeSubmissionAnswers
         {
@@ -49,13 +90,13 @@ internal class ChallengeSubmissionsService : IChallengeSubmissionsService
         await _store
             .WithNoTracking<Data.Challenge>()
             .Where(c => c.Id == challengeId)
-            .ExecuteUpdateAsync(up => up.SetProperty(c => c.PendingSubmission, _jsonService.Serialize(answersEntity)), cancellationToken);
+            .ExecuteUpdateAsync(up => up.SetProperty(c => c.PendingSubmission, _json.Serialize(answersEntity)), cancellationToken);
     }
 
-    public Task LogSubmission(string challengeId, double score, IEnumerable<string> answers, CancellationToken cancellationToken)
+    public Task LogSubmission(string challengeId, double score, string[] answers, CancellationToken cancellationToken)
         => LogSubmission(challengeId, score, 0, answers, cancellationToken);
 
-    public async Task LogSubmission(string challengeId, double score, int sectionIndex, IEnumerable<string> answers, CancellationToken cancellationToken)
+    public async Task LogSubmission(string challengeId, double score, int sectionIndex, string[] answers, CancellationToken cancellationToken)
     {
         var answersEntity = new ChallengeSubmissionAnswers
         {
@@ -66,7 +107,7 @@ internal class ChallengeSubmissionsService : IChallengeSubmissionsService
         // commit the new answers
         await _store.Create(new ChallengeSubmission
         {
-            Answers = _jsonService.Serialize(answersEntity),
+            Answers = _json.Serialize(answersEntity),
             ChallengeId = challengeId,
             Score = score,
             SubmittedOn = _now.Get()

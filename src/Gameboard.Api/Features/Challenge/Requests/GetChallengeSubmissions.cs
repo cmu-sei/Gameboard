@@ -55,7 +55,7 @@ internal class GetChallengeSubmissionsHandler
             })
             .SingleAsync(c => c.ChallengeId == request.ChallengeId, cancellationToken);
 
-        ChallengeSubmissionAnswers pendingAnswers = null;
+        var pendingAnswers = default(ChallengeSubmissionAnswers);
         var submittedAnswers = Array.Empty<ChallengeSubmissionViewModel>();
 
         if (rawSubmissionData.PendingSubmissionData.IsNotEmpty())

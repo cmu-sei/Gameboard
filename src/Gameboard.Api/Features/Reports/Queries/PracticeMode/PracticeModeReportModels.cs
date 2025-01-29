@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Text.Json.Serialization;
+using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Features.Reports;
 
