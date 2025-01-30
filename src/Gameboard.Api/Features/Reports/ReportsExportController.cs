@@ -3,7 +3,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Features.Challenges;
-using Gameboard.Api.Reports;
 using Gameboard.Api.Structure;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;

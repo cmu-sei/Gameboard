@@ -29,7 +29,6 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
     private readonly ChallengeService _challengeService;
     private readonly CoreOptions _coreOptions;
     private readonly IGameEngineService _gameEngineService;
-    private readonly IChallengeGraderUrlService _graderUrlService;
     private readonly IJsonService _jsonService;
     private readonly ILockService _lockService;
     private readonly ILogger<GameResourcesDeployService> _logger;
@@ -45,7 +44,6 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
         ChallengeService challengeService,
         CoreOptions coreOptions,
         IGameEngineService gameEngineService,
-        IChallengeGraderUrlService graderUrlService,
         IJsonService jsonService,
         ILockService lockService,
         IMediator mediator,
@@ -60,7 +58,6 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
         _challengeService = challengeService;
         _coreOptions = coreOptions;
         _gameEngineService = gameEngineService;
-        _graderUrlService = graderUrlService;
         _jsonService = jsonService;
         _lockService = lockService;
         _logger = logger;
@@ -184,7 +181,6 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
                             Variant = 0
                         },
                         captain.UserId,
-                        _graderUrlService.BuildGraderUrl(),
                         cancellationToken
                     );
                 }

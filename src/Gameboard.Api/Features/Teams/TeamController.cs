@@ -27,6 +27,10 @@ public class TeamController(
     public Task AdvanceTeams([FromBody] AdvanceTeamsRequest request)
         => _mediator.Send(new AdvanceTeamsCommand(request.GameId, request.IncludeScores, request.TeamIds));
 
+    [HttpGet("{teamId}/challenges")]
+    public Task<GetTeamChallengeSpecsStatusesResponse> GetChallengeSpecStatuses([FromRoute] string teamId, CancellationToken cancellationToken)
+        => _mediator.Send(new GetTeamChallengeSpecsStatusesQuery(teamId), cancellationToken);
+
     [HttpDelete("{teamId}/players/{playerId}")]
     public Task<RemoveFromTeamResponse> RemovePlayer([FromRoute] string teamId, [FromRoute] string playerId)
         => _mediator.Send(new RemoveFromTeamCommand(playerId));

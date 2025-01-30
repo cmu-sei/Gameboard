@@ -156,6 +156,13 @@ internal class UserRolePermissionsService(IActingUserService actingUserService, 
         new()
         {
             Group = PermissionKeyGroup.Teams,
+            Key = PermissionKey.Teams_CreateEditDeleteChallenges,
+            Name = "Create/delete challenge instances",
+            Description = "Start and purge an instance of a challenge on behalf of any team"
+        },
+        new()
+        {
+            Group = PermissionKeyGroup.Teams,
             Key = PermissionKey.Teams_DeployGameResources,
             Name = "Deploy game resources",
             Description = "Deploy virtual  on behalf of players through the Admin section"

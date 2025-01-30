@@ -160,19 +160,6 @@ public class PlayerController
     }
 
     /// <summary>
-    /// Load active challenge data for a team.
-    /// </summary>
-    /// <param name="id">The id of the team who owns the challenges</param>
-    /// <returns>An array of challenge entries.</returns>
-    [HttpGet("/api/team/{id}/challenges")]
-    [Authorize]
-    public async Task<IEnumerable<TeamChallenge>> GetTeamChallenges([FromRoute] string id)
-    {
-        await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
-        return await PlayerService.LoadChallengesForTeam(id);
-    }
-
-    /// <summary>
     /// Get a Game's Teams with Members
     /// </summary>
     /// <param name="id">Game Id</param>

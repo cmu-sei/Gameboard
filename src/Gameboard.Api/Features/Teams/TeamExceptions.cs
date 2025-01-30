@@ -91,6 +91,12 @@ internal class TeamIsFull : GameboardValidationException
         : base($"Inviting player {invitingPlayerId} has {teamSize} players on their team, and the max team size for this game is {maxTeamSize}.") { }
 }
 
+internal class TeamIsntPlayingGame : GameboardValidationException
+{
+    internal TeamIsntPlayingGame(SimpleEntity team, SimpleEntity game)
+        : base($"""Team {team.Name} isn't playing game {game.Name}.""") { }
+}
+
 internal class UserIsntOnTeam : GameboardValidationException
 {
     internal UserIsntOnTeam(string userId, string teamId, string message = null)
