@@ -25,7 +25,6 @@ namespace Gameboard.Api.Controllers;
 public class ChallengeController
 (
     IActingUserService actingUserService,
-    IChallengeGraderUrlService challengeGraderUrlService,
     ILogger<ChallengeController> logger,
     IDistributedCache cache,
     ChallengeValidator validator,
@@ -37,7 +36,6 @@ public class ChallengeController
     ConsoleActorMap actormap
     ) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
-    private readonly IChallengeGraderUrlService _challengeGraderUrlService = challengeGraderUrlService;
     private readonly IMediator _mediator = mediator;
     private readonly IUserRolePermissionsService _permissionsService = permissionsService;
 
@@ -47,12 +45,35 @@ public class ChallengeController
     ConsoleActorMap ActorMap { get; } = actormap;
 
     /// <summary>
-    /// Create new challenge instance
+    /// Purge a challenge. This deletes the challenge instance, and all progress on it, and can't be undone.
+    /// A record of the challenge is stored in ArchivedChallenges.
+    /// </summary>
+    /// <param name="challengeId"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpDelete("api/challenge/{challengeId}")]
+    public Task DeleteChallenge(string challengeId, CancellationToken cancellationToken)
+        => _mediator.Send(new PurgeChallengeCommand(challengeId), cancellationToken);
+
+    /// <summary>
+    /// Create and start an instance of a challenge.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPost("api/challenge")]
+    public Task<StartChallengeResponse> Create([FromBody] StartChallengeCommand request, CancellationToken cancellationToken)
+        => _mediator.Send(request, cancellationToken);
+
+    /// <summary>
+    /// Create new challenge instance.
+    /// 
+    /// (This endpoint is deprecated and will be removed in a future release. Instead, use api/challenge and pass teamId + specId)
     /// </summary>
     /// <remarks>Idempotent method to retrieve or create challenge state</remarks>
     /// <param name="model">NewChallenge</param>
     /// <returns>Challenge</returns>
-    [HttpPost("api/challenge")]
+    [HttpPost("api/challenge/launch")]
     public async Task<Challenge> Create([FromBody] NewChallenge model)
     {
         await AuthorizeAny
@@ -65,8 +86,7 @@ public class ChallengeController
         if (!await _permissionsService.Can(PermissionKey.Play_ChooseChallengeVariant))
             model.Variant = 0;
 
-        var graderUrl = _challengeGraderUrlService.BuildGraderUrl();
-        var result = await ChallengeService.GetOrCreate(model, Actor.Id, graderUrl);
+        var result = await ChallengeService.GetOrCreate(model, Actor.Id);
 
         await Hub.Clients.Group(result.TeamId).ChallengeEvent(new HubEvent<Challenge>
         {
