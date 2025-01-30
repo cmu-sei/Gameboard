@@ -28,6 +28,7 @@ public partial class ChallengeService
     IActingUserService actingUserService,
     ConsoleActorMap actorMap,
     CoreOptions coreOptions,
+    IChallengeGraderUrlService challengeGraderUrls,
     IChallengeStore challengeStore,
     IChallengeDocsService challengeDocsService,
     IChallengeSubmissionsService challengeSubmissionsService,
@@ -47,6 +48,7 @@ public partial class ChallengeService
 {
     private readonly IActingUserService _actingUserService = actingUserService;
     private readonly ConsoleActorMap _actorMap = actorMap;
+    private readonly IChallengeGraderUrlService _challengeGraderUrls = challengeGraderUrls;
     private readonly IChallengeStore _challengeStore = challengeStore;
     private readonly IGameEngineService _gameEngine = gameEngine;
     private readonly IGuidService _guids = guids;
@@ -66,12 +68,18 @@ public partial class ChallengeService
     public Task<Challenge> Get(string challengeId)
         => GetDto(_store.WithNoTracking<Data.Challenge>().Where(c => c.Id == challengeId));
 
-    public async Task<Challenge> GetOrCreate(NewChallenge model, string actorId, string graderUrl)
+    public Task<Challenge> GetOrCreate(NewChallenge model)
+    {
+        var actingUser = _actingUserService.Get();
+        return GetOrCreate(model, actingUser.Id);
+    }
+
+    public async Task<Challenge> GetOrCreate(NewChallenge model, string actorId)
     {
         var challengeQuery = await ResolveChallenge(model.SpecId, model.PlayerId);
         var challenge = await GetDto(challengeQuery);
 
-        return challenge ?? await Create(model, actorId, graderUrl, CancellationToken.None);
+        return challenge ?? await Create(model, actorId, CancellationToken.None);
     }
 
     public int GetDeployingChallengeCount(string teamId)
@@ -97,7 +105,7 @@ public partial class ChallengeService
             .ToArray();
     }
 
-    public async Task<Challenge> Create(NewChallenge model, string actorId, string graderUrl, CancellationToken cancellationToken)
+    public async Task<Challenge> Create(NewChallenge model, string actorId, CancellationToken cancellationToken)
     {
         var now = _now.Get();
         var player = await _store
@@ -165,7 +173,7 @@ public partial class ChallengeService
                     .CountAsync(p => p.TeamId == player.TeamId, cancellationToken);
             }
 
-            var challenge = await BuildAndRegisterChallenge(model, spec, player.Game, player, actorId, graderUrl, playerCount, model.Variant);
+            var challenge = await BuildAndRegisterChallenge(model, spec, player.Game, player, actorId, playerCount, model.Variant);
 
             await _store.Create(challenge, cancellationToken);
             await _challengeStore.UpdateEtd(challenge.SpecId);
@@ -524,6 +532,15 @@ public partial class ChallengeService
         return Mapper.Map<Challenge>(challenge);
     }
 
+    public async Task ArchiveChallenge(string challengeId, CancellationToken cancellationToken)
+    {
+        var challenge = await _store
+            .WithNoTracking<Data.Challenge>()
+            .SingleOrDefaultAsync(c => c.Id == challengeId, cancellationToken) ?? throw new ResourceNotFound<Data.Challenge>(challengeId);
+
+        await ArchiveChallenges([challenge]);
+    }
+
     public async Task ArchivePlayerChallenges(Data.Player player)
     {
         // for this, we need to make sure that we're not cleaning up any challenges
@@ -746,7 +763,6 @@ public partial class ChallengeService
         Data.Game game,
         Data.Player player,
         string actorUserId,
-        string graderUrl,
         int playerCount,
         int variant
     )
@@ -774,7 +790,7 @@ public partial class ChallengeService
             ChallengeSpec = spec,
             Game = game,
             GraderKey = graderKey,
-            GraderUrl = graderUrl,
+            GraderUrl = _challengeGraderUrls.BuildGraderUrl(),
             Player = player,
             PlayerCount = playerCount,
             StartGamespace = newChallenge.StartGamespace,

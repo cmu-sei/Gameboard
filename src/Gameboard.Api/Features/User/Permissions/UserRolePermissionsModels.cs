@@ -24,6 +24,7 @@ public enum PermissionKey
     Support_ViewTickets,
     SystemNotifications_CreateEdit,
     Teams_ApproveNameChanges,
+    Teams_CreateEditDeleteChallenges,
     Teams_DeployGameResources,
     Teams_EditSession,
     Teams_Enroll,

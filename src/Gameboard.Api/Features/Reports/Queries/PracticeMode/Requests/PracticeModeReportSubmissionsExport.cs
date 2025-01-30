@@ -2,10 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Features.Reports;
 using MediatR;
 
-namespace Gameboard.Api.Reports;
+namespace Gameboard.Api.Features.Reports;
 
 // this returns an object array because, regrettably, submission entries have a dynamic number of "answer" fields, so we pull back a strongly-typed
 // object from the app logic, but then we convert to untyped here to accommodate for arbitray numbers of fields.

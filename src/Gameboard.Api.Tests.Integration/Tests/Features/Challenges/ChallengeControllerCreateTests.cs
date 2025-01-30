@@ -33,6 +33,7 @@ public class ChallengeControllerCreateTests : IClassFixture<GameboardTestContext
                     g.Players = state.Build<Data.Player>(fixture, p =>
                     {
                         p.Id = playerId;
+                        p.Role = PlayerRole.Manager;
                         p.User = state.Build<Data.User>(fixture, u => u.Id = userId);
                         p.SessionBegin = DateTimeOffset.UtcNow.AddDays(-1);
                         p.SessionEnd = DateTimeOffset.UtcNow.AddDays(1);
@@ -51,7 +52,7 @@ public class ChallengeControllerCreateTests : IClassFixture<GameboardTestContext
         // act
         var challenge = await _testContext
             .CreateHttpClientWithActingUser(u => u.Id = userId)
-            .PostAsync("/api/challenge", model.ToJsonBody())
+            .PostAsync("/api/challenge/launch", model.ToJsonBody())
             .DeserializeResponseAs<Api.Challenge>();
 
         // assert

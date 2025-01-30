@@ -63,6 +63,15 @@ internal sealed class ExportGamesHandler
             })
             .Validate(cancellationToken);
 
+        // if no gameIds have been passed, give them everything
+        if (finalGameIds.IsEmpty())
+        {
+            finalGameIds = await _store
+                .WithNoTracking<Data.Game>()
+                .Select(g => g.Id)
+                .ToArrayAsync(cancellationToken);
+        }
+
         var batch = await _importExportService.ExportPackage
         (
             request.GameIds,

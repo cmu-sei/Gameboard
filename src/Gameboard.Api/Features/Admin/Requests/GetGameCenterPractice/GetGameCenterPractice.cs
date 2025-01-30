@@ -47,6 +47,7 @@ internal class GetGameCenterPracticeQueryHandler
         var users = await _store
             .WithNoTracking<Data.Challenge>()
             .Where(c => c.GameId == request.GameId)
+            .Where(c => c.PlayerMode == PlayerMode.Practice)
             .Where
             (
                 c =>

@@ -20,7 +20,6 @@ public class ChallengeServiceTests
     /// <param name="gameId"></param>
     /// <param name="playerId"></param>
     /// <param name="gamespaceId"></param>
-    /// <param name="graderUrl"></param>
     /// <param name="specId"></param>
     /// <param name="specExternalId"></param>
     /// <param name="teamId"></param>
@@ -102,6 +101,7 @@ public class ChallengeServiceTests
             A.Fake<IActingUserService>(),
             A.Fake<ConsoleActorMap>(),
             A.Fake<CoreOptions>(),
+            A.Fake<IChallengeGraderUrlService>(),
             A.Fake<IChallengeStore>(),
             A.Fake<IChallengeDocsService>(),
             A.Fake<IChallengeSubmissionsService>(),
@@ -127,7 +127,6 @@ public class ChallengeServiceTests
             fakeGame,
             fakePlayer,
             userId,
-            graderUrl,
             1,
             0
         );
@@ -225,6 +224,7 @@ public class ChallengeServiceTests
             A.Fake<IActingUserService>(),
             A.Fake<ConsoleActorMap>(),
             A.Fake<CoreOptions>(),
+            A.Fake<IChallengeGraderUrlService>(),
             A.Fake<IChallengeStore>(),
             A.Fake<IChallengeDocsService>(),
             A.Fake<IChallengeSubmissionsService>(),
@@ -250,7 +250,6 @@ public class ChallengeServiceTests
             fakeGame,
             fakePlayer,
             userId,
-            graderUrl,
             1,
             0
         );
