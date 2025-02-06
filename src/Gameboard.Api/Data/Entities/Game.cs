@@ -70,13 +70,14 @@ public class Game : IEntity
 
     // other navs
     public ICollection<Player> AdvancedPlayers { get; set; }
-    public ICollection<ChallengeSpec> Specs { get; set; } = [];
-    public ICollection<DenormalizedTeamScore> DenormalizedTeamScores = [];
-    public ICollection<ExternalGameTeam> ExternalGameTeams { get; set; } = [];
-    public ICollection<Player> Players { get; set; } = [];
     public ICollection<Challenge> Challenges { get; set; } = [];
+    public ICollection<DenormalizedTeamScore> DenormalizedTeamScores = [];
+    public ICollection<GameExportBatch> ExportedInBatches { get; set; }
+    public ICollection<ExternalGameTeam> ExternalGameTeams { get; set; } = [];
     public ICollection<Feedback> Feedback { get; set; } = [];
+    public ICollection<Player> Players { get; set; } = [];
     public ICollection<ChallengeGate> Prerequisites { get; set; } = [];
+    public ICollection<ChallengeSpec> Specs { get; set; } = [];
 
     [NotMapped] public bool RequireSession => SessionMinutes > 0;
     [NotMapped] public bool RequireTeam => MinTeamSize > 1;

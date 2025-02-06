@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.Games;
@@ -28,7 +27,6 @@ internal class PracticeModeReportService
 (
     ChallengeService challengeService,
     IChallengeSubmissionsService challengeSubmissionsService,
-    IJsonService jsonService,
     IPracticeService practiceService,
     IReportsService reportsService,
     IStore store
@@ -36,7 +34,6 @@ internal class PracticeModeReportService
 {
     private readonly ChallengeService _challengeService = challengeService;
     private readonly IChallengeSubmissionsService _challengeSubmissionsService = challengeSubmissionsService;
-    private readonly IJsonService _json = jsonService;
     private readonly IPracticeService _practiceService = practiceService;
     private readonly IReportsService _reportsService = reportsService;
     private readonly IStore _store = store;

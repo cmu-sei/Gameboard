@@ -30,6 +30,7 @@ public class User : IEntity
     public ICollection<SystemNotification> CreatedSystemNotifications { get; set; } = [];
     public ICollection<Player> Enrollments { get; set; } = [];
     public ICollection<ManualBonus> EnteredManualBonuses { get; set; } = [];
+    public ICollection<GameExportBatch> GameExportBatches { get; set; }
     public ICollection<Feedback> Feedback { get; set; } = [];
     public ICollection<FeedbackSubmission> FeedbackSubmissions { get; set; } = [];
     public ICollection<PublishedCompetitiveCertificate> PublishedCompetitiveCertificates { get; set; } = [];

@@ -11,23 +11,16 @@ public interface IAppUrlService
     string ToAppAbsoluteUrl(string relativeUrl);
 }
 
-internal class AppUrlService : IAppUrlService
+internal class AppUrlService
+(
+    IWebHostEnvironment env,
+    BackgroundAsyncTaskContext backgroundTaskContext,
+    IHttpContextAccessor httpContextAccessor
+) : IAppUrlService
 {
-    private readonly IWebHostEnvironment _env;
-    private readonly BackgroundAsyncTaskContext _backgroundTaskContext;
-    private readonly HttpContext _httpContext;
-
-    public AppUrlService
-    (
-        IWebHostEnvironment env,
-        BackgroundAsyncTaskContext backgroundTaskContext,
-        IHttpContextAccessor httpContextAccessor
-    )
-    {
-        _env = env;
-        _backgroundTaskContext = backgroundTaskContext;
-        _httpContext = httpContextAccessor.HttpContext;
-    }
+    private readonly IWebHostEnvironment _env = env;
+    private readonly BackgroundAsyncTaskContext _backgroundTaskContext = backgroundTaskContext;
+    private readonly HttpContext _httpContext = httpContextAccessor.HttpContext;
 
     public string GetBaseUrl()
     {

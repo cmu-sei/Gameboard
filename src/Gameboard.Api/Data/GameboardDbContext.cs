@@ -296,6 +296,17 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
             b.Property(p => p.Mode).HasMaxLength(40);
         });
 
+        builder.Entity<GameExportBatch>(b =>
+        {
+            b.ToTable("GameExportBatches");
+            b
+                .HasOne(b => b.ExportedByUser)
+                .WithMany(u => u.GameExportBatches);
+            b
+                .HasMany(b => b.IncludedGames)
+                .WithMany(g => g.ExportedInBatches);
+        });
+
         builder.Entity<ArchivedChallenge>(b =>
         {
             // Archive is snapshot with no foreign keys; explicitly index Id fields for searching
