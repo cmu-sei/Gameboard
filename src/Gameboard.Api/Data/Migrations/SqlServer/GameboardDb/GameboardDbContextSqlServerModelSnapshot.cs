@@ -23,6 +23,21 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("GameGameExportBatch", b =>
+                {
+                    b.Property<string>("ExportedInBatchesId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("IncludedGamesId")
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasKey("ExportedInBatchesId", "IncludedGamesId");
+
+                    b.HasIndex("IncludedGamesId");
+
+                    b.ToTable("GameGameExportBatch");
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ApiKey", b =>
                 {
                     b.Property<string>("Id")
@@ -923,6 +938,24 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.ToTable("Games");
                 });
 
+            modelBuilder.Entity("Gameboard.Api.Data.GameExportBatch", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ExportedByUserId")
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTimeOffset>("ExportedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExportedByUserId");
+
+                    b.ToTable("GameExportBatches", (string)null);
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ManualBonus", b =>
                 {
                     b.Property<string>("Id")
@@ -1570,6 +1603,21 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.HasDiscriminator().HasValue(1);
                 });
 
+            modelBuilder.Entity("GameGameExportBatch", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.GameExportBatch", null)
+                        .WithMany()
+                        .HasForeignKey("ExportedInBatchesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Gameboard.Api.Data.Game", null)
+                        .WithMany()
+                        .HasForeignKey("IncludedGamesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Gameboard.Api.Data.ApiKey", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.User", "Owner")
@@ -1827,6 +1875,15 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("FeedbackTemplate");
 
                     b.Navigation("PracticeCertificateTemplate");
+                });
+
+            modelBuilder.Entity("Gameboard.Api.Data.GameExportBatch", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.User", "ExportedByUser")
+                        .WithMany("GameExportBatches")
+                        .HasForeignKey("ExportedByUserId");
+
+                    b.Navigation("ExportedByUser");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.ManualBonus", b =>
@@ -2216,6 +2273,8 @@ namespace Gameboard.Api.Data.Migrations.SqlServer.GameboardDb
                     b.Navigation("Feedback");
 
                     b.Navigation("FeedbackSubmissions");
+
+                    b.Navigation("GameExportBatches");
 
                     b.Navigation("PublishedCompetitiveCertificates");
 

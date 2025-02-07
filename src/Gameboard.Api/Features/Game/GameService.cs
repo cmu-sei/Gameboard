@@ -7,11 +7,11 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
-using Microsoft.AspNetCore.Http;
 using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Services;
@@ -31,14 +31,15 @@ public interface IGameService
     Task<bool> UserIsTeamPlayer(string uid, string gid, string tid);
 }
 
-public class GameService(
+public class GameService
+(
     ILogger<GameService> logger,
     IMapper mapper,
     CoreOptions options,
     Defaults defaults,
     INowService nowService,
     IStore store
-    ) : _Service(logger, mapper, options), IGameService
+) : _Service(logger, mapper, options), IGameService
 {
     private readonly Defaults _defaults = defaults;
     private readonly INowService _now = nowService;
@@ -290,7 +291,7 @@ public class GameService(
             q = q.Where(g => g.IsPublished);
 
         if (model == null)
-            return q;
+            return q.OrderBy(g => g.Name);
 
         if (model.IsFeatured.HasValue)
             q = q.Where(g => g.IsFeatured == model.IsFeatured);

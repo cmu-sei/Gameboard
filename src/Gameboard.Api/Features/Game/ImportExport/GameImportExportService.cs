@@ -18,6 +18,7 @@ namespace Gameboard.Api.Features.Games;
 
 public interface IGameImportExportService
 {
+    Task DeleteExportPackage(string exportBatchId, CancellationToken cancellationToken);
     Task<byte[]> GetExportedPackageContent(string exportBatchId, CancellationToken cancellationToken);
     Task<GameImportExportBatch> ExportPackage(string[] gameIds, bool includePracticeAreaTemplate, CancellationToken cancellationToken);
     Task<ImportedGame[]> ImportPackage(byte[] package, CancellationToken cancellationToken);
@@ -26,19 +27,36 @@ public interface IGameImportExportService
 internal sealed class GameImportExportService
 (
     IActingUserService actingUser,
+    IAppUrlService appUrlService,
     CoreOptions coreOptions,
     IGuidService guids,
     IJsonService json,
+    INowService now,
     IPracticeService practice,
     IStore store
 ) : IGameImportExportService
 {
     private readonly IActingUserService _actingUser = actingUser;
+    private readonly IAppUrlService _appUrlService = appUrlService;
     private readonly CoreOptions _coreOptions = coreOptions;
     private readonly IGuidService _guids = guids;
     private readonly IJsonService _json = json;
+    private readonly INowService _now = now;
     private readonly IPracticeService _practice = practice;
     private readonly IStore _store = store;
+
+    public async Task DeleteExportPackage(string exportBatchId, CancellationToken cancellationToken)
+    {
+        await _store
+            .WithNoTracking<GameExportBatch>()
+            .Where(b => b.Id == exportBatchId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        if (File.Exists(GetExportBatchPackagePath(exportBatchId)))
+        {
+            File.Delete(GetExportBatchPackagePath(exportBatchId));
+        }
+    }
 
     public async Task<byte[]> GetExportedPackageContent(string exportBatchId, CancellationToken cancellationToken)
     {
@@ -226,8 +244,8 @@ internal sealed class GameImportExportService
                     GetExportBatchImgRootPath(exportBatchId),
                     GetCardImageFileName(game.Id, extension)
                 );
-                File.Copy(fileName, destinationFileName);
 
+                File.Copy(fileName, destinationFileName);
                 gameCardImageFileName = Path.GetFileName(destinationFileName);
             }
 
@@ -242,7 +260,6 @@ internal sealed class GameImportExportService
                 );
 
                 File.Copy(fileName, destinationFileName);
-
                 gameMapImageFileName = Path.GetFileName(destinationFileName);
             }
 
@@ -318,7 +335,7 @@ internal sealed class GameImportExportService
 
         var batch = new GameImportExportBatch
         {
-            DownloadUrl = Path.Combine(_coreOptions.AppUrl, "games", "export", exportBatchId),
+            DownloadUrl = _appUrlService.ToAppAbsoluteUrl($"api/games/export/{exportBatchId}"),
             ExportBatchId = exportBatchId,
             Games = [.. gamesExported],
             CertificateTemplates = certificateTemplates,
@@ -340,6 +357,24 @@ internal sealed class GameImportExportService
             archive.AddAllFromDirectory(GetExportBatchRootPath(exportBatchId));
             archive.SaveTo(GetExportBatchPackagePath(exportBatchId), new WriterOptions(CompressionType.Deflate));
         }
+
+        // log the export batch
+        await _store.DoTransaction(async db =>
+        {
+            var simpleGames = games.Select(g => new Data.Game { Id = g.Id }).ToArray();
+            db.AttachRange(simpleGames);
+
+            var batchEntity = new GameExportBatch
+            {
+                Id = exportBatchId,
+                ExportedByUserId = _actingUser.Get().Id,
+                ExportedOn = _now.Get(),
+                IncludedGames = simpleGames
+            };
+
+            db.Add(batchEntity);
+            await db.SaveChangesAsync(cancellationToken);
+        }, cancellationToken);
 
         return batch;
     }

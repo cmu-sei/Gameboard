@@ -44,7 +44,7 @@ public class LambdaVisitor : Visitor
         Log($"This expression is a {NodeType} expression type");
         Log($"The name of the lambda is {_node.Name ?? "<null>"}");
         Log($"The return type is {_node.ReturnType}");
-        Log($"The expression has {_node.Parameters.Count} argument(s). They are:");
+        Log($"The expression has {_node.Parameters.Count} argument(s).");
 
         // Visit each parameter:
         Parameters = _node.Parameters;
@@ -53,7 +53,6 @@ public class LambdaVisitor : Visitor
             var argumentVisitor = CreateFromExpression(argumentExpression);
             argumentVisitor.Visit();
         }
-        Log($"The expression body is:");
 
         // Visit the body:
         var bodyVisitor = CreateFromExpression(_node.Body);
@@ -61,18 +60,17 @@ public class LambdaVisitor : Visitor
     }
 }
 
-public class BinaryVisitor : Visitor
+public class BinaryVisitor(BinaryExpression node) : Visitor(node)
 {
-    private readonly BinaryExpression node;
-    public BinaryVisitor(BinaryExpression node) : base(node) => this.node = node;
+    private readonly BinaryExpression _node = node;
 
     public override void Visit()
     {
         Log($"This binary expression is a {NodeType} expression");
-        var left = CreateFromExpression(node.Left);
+        var left = CreateFromExpression(_node.Left);
         Log($"The Left argument is:");
         left.Visit();
-        var right = CreateFromExpression(node.Right);
+        var right = CreateFromExpression(_node.Right);
         Log($"The Right argument is:");
         right.Visit();
     }

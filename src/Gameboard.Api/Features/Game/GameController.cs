@@ -151,10 +151,18 @@ namespace Gameboard.Api.Controllers
             => _mediator.Send(new GetGamePlayStateQuery(gameId, Actor.Id));
 
         [HttpPost("/api/games/export")]
-        public Task<ExportGamesResult> ExportGames([FromBody] ExportGamesCommand request, CancellationToken cancellationToken)
+        public Task<GameImportExportBatch> ExportGames([FromBody] ExportGamesCommand request, CancellationToken cancellationToken)
             => _mediator.Send(request, cancellationToken);
 
-        [HttpGet("/api/games/export/{exportBatchId}")]
+        [HttpGet("/api/games/export-batches")]
+        public Task<ListExportBatchesResponse> ListGameExportBatches(CancellationToken cancellationToken)
+            => _mediator.Send(new ListExportBatchesQuery(), cancellationToken);
+
+        [HttpDelete("/api/games/export-batches/{exportBatchId}")]
+        public Task DeleteExportPackage(string exportBatchId, CancellationToken cancellationToken)
+            => _mediator.Send(new DeleteExportBatchCommand(exportBatchId), cancellationToken);
+
+        [HttpGet("/api/games/export-batches/{exportBatchId}")]
         [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<FileContentResult> DownloadExportPackage(string exportBatchId, CancellationToken cancellationToken)
         {
