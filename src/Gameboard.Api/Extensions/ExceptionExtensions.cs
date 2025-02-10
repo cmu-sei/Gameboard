@@ -6,9 +6,6 @@ namespace Gameboard.Api;
 
 public static class ExceptionExtensions
 {
-    public static string ToTypeName(string exceptionCode)
-        => Encoding.UTF8.GetString(Convert.FromBase64String(exceptionCode));
-
     public static string ToExceptionCode<T>(this T exception) where T : GameboardValidationException
         => ToExceptionCode(typeof(T));
 

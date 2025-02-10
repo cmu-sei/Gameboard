@@ -1,21 +1,26 @@
 using System;
 using System.IO;
+using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.HttpLogging;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.Events;
+using Serilog.Sinks.Grafana.Loki;
+using Serilog.Sinks.SystemConsole.Themes;
 using ServiceStack.Text;
+using ZstdSharp.Unsafe;
 
 namespace Gameboard.Api.Extensions;
 
 internal static class WebApplicationBuilderExtensions
 {
-    public static AppSettings BuildAppSettings(this WebApplicationBuilder builder, ILogger logger)
+    public static AppSettings BuildAppSettings(this WebApplicationBuilder builder)
     {
         var settings = builder.Configuration.Get<AppSettings>() ?? new AppSettings();
 
@@ -66,6 +71,30 @@ internal static class WebApplicationBuilderExtensions
     {
         var services = builder.Services;
 
+        services.Configure<ForwardedHeadersOptions>(opts =>
+        {
+            opts.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        });
+
+        // serilog config
+        builder.Host.UseSerilog();
+
+        Serilog.Debugging.SelfLog.Enable(Console.Error);
+        var loggerConfiguration = new LoggerConfiguration()
+            .MinimumLevel.Is(settings.Logging.MinimumLogLevel)
+            .MinimumLevel.Override("Microsoft.AspnetCore", LogEventLevel.Warning)
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+            .WriteTo.Console(theme: AnsiConsoleTheme.Code);
+
+        // set up sinks for grafana and seq on demand
+        if (settings.Logging.GrafanaLokiInstanceUrl.IsNotEmpty())
+        {
+            var labels = new LokiLabel[] { new() { Key = "app", Value = "GameboardApi" } };
+            loggerConfiguration = loggerConfiguration.WriteTo.GrafanaLoki(settings.Logging.GrafanaLokiInstanceUrl, labels);
+        }
+
+        Log.Logger = loggerConfiguration.CreateLogger();
+
         services
             .AddMvc()
             .AddGameboardJsonOptions();
@@ -98,33 +127,13 @@ internal static class WebApplicationBuilderExtensions
                 .AddHostedService<BackgroundAsyncTaskRunner>()
                 .AddHostedService<JobService>();
 
-        services.AddSingleton
-        (
-            new AutoMapper.MapperConfiguration(cfg =>
-            {
-                cfg.AddGameboardMaps();
-            }).CreateMapper()
-        );
+        services.AddSingleton(new MapperConfiguration(cfg => cfg.AddGameboardMaps()).CreateMapper());
+
         // configuring SignalR involves acting on the builder as well as its services
         builder.AddGameboardSignalRServices();
 
         // Configure Auth
         services.AddConfiguredAuthentication(settings.Oidc, settings.ApiKey, builder.Environment);
         services.AddConfiguredAuthorization();
-
-        if (settings.Logging.EnableHttpLogging)
-        {
-            services.AddHttpLogging(logging =>
-            {
-                logging.LoggingFields = HttpLoggingFields.ResponseStatusCode
-                    | HttpLoggingFields.ResponseBody
-                    | HttpLoggingFields.RequestPath
-                    | HttpLoggingFields.RequestQuery
-                    | HttpLoggingFields.RequestBody;
-                logging.RequestBodyLogLimit = settings.Logging.RequestBodyLogLimit;
-                logging.ResponseBodyLogLimit = settings.Logging.ResponseBodyLogLimit;
-                logging.MediaTypeOptions.AddText(MimeTypes.ApplicationJson);
-            });
-        }
     }
 }

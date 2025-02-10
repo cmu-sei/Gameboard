@@ -5,6 +5,8 @@ using System;
 using System.Linq;
 using Gameboard.Api.Data;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.Extensions.Logging;
+using Serilog.Events;
 
 namespace Gameboard.Api;
 
@@ -31,17 +33,8 @@ public class ApiKeyOptions
 
 public class LoggingSettings
 {
-    public bool EnableHttpLogging { get; set; } = false;
-
-    /// <summary>
-    /// The maximum number of bytes logged for the request body (in bytes).
-    /// </summary>
-    public int RequestBodyLogLimit { get; set; } = 32000;
-
-    /// <summary>
-    /// The maximum number of bytes logged for the response body (in bytes).
-    /// </summary>
-    public int ResponseBodyLogLimit { get; set; } = 32000;
+    public string GrafanaLokiInstanceUrl { get; set; }
+    public LogEventLevel MinimumLogLevel { get; set; }
 }
 
 public class OidcOptions

@@ -12,6 +12,7 @@ using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace Gameboard.Api.Extensions;
 
@@ -42,14 +43,30 @@ internal static class WebApplicationExtensions
 
         app.UseRouting();
         app.UseCors(settings.Headers.Cors.Name);
+
+        // additional post-build logging config
+        app.UseSerilogRequestLogging(opt =>
+        {
+            opt.IncludeQueryInRequestPath = true;
+            opt.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+            {
+                diagnosticContext.Set("IsApiRequest", true);
+                diagnosticContext.Set("UserIPv4", httpContext.Connection.RemoteIpAddress);
+
+                var user = httpContext.Items[AppConstants.RequestContextGameboardUser] as User;
+                if (user is not null)
+                {
+                    diagnosticContext.Set("UserId", user.Id);
+                    diagnosticContext.Set("UserRole", user.Role);
+                    diagnosticContext.Set("UserName", user.ApprovedName);
+                }
+            };
+        });
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseUserRolePermissions();
         app.UseFileProtection();
         app.UseStaticFiles();
-
-        if (settings.Logging.EnableHttpLogging)
-            app.UseHttpLogging();
 
         if (settings.OpenApi.Enabled)
             app.UseConfiguredSwagger(settings.OpenApi, settings.Oidc.Audience, settings.PathBase);
@@ -75,7 +92,7 @@ internal static class WebApplicationExtensions
     /// <param name="app"></param>
     /// <param name="logger"></param>
     /// <returns></returns>
-    public static async Task<WebApplication> DoStartupTasks(this WebApplication app, ILogger logger)
+    public static async Task<WebApplication> DoStartupTasks(this WebApplication app, Microsoft.Extensions.Logging.ILogger logger)
     {
         try
         {

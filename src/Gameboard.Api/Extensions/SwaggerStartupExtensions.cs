@@ -11,7 +11,6 @@ using Microsoft.OpenApi.Models;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
-
     public static class SwaggerStartupExtensions
     {
         public static IServiceCollection AddSwagger(
