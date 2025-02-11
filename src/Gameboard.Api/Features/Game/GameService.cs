@@ -265,7 +265,12 @@ public class GameService
     {
         var now = _now.Get();
         var q = _store
-            .WithNoTracking<Data.Game>();
+            .WithNoTracking<Data.Game>()
+            // since we use this with AutoMapper's ProjectTo in some places, we
+            // really do have to specifically include here. If you don't, Automapper won't
+            // throw, but the values in its expressions will be null/zero/default
+            .Include(g => g.Players)
+            .AsQueryable();
 
         if (!string.IsNullOrEmpty(model.Term))
         {

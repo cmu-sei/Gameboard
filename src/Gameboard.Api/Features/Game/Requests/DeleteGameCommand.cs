@@ -68,11 +68,11 @@ internal class DeleteGameHandler
         }
 
         // delete the game and its resources
+        await _gameService.DeleteGameCardImage(request.GameId);
+
         await _store
             .WithNoTracking<Data.Game>()
             .Where(g => g.Id == request.GameId)
             .ExecuteDeleteAsync(cancellationToken);
-
-        await _gameService.DeleteGameCardImage(request.GameId);
     }
 }
