@@ -3,6 +3,7 @@ using System;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -12,9 +13,11 @@ using NpgsqlTypes;
 namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 {
     [DbContext(typeof(GameboardDbContextPostgreSQL))]
-    partial class GameboardDbContextPostgreSQLModelSnapshot : ModelSnapshot
+    [Migration("20250211161031_AddChallengeSpecTextSearch")]
+    partial class AddChallengeSpecTextSearch
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -452,7 +455,7 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("tsvector")
                         .HasAnnotation("Npgsql:TsVectorConfig", "english")
-                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Name", "Description", "GameId", "Tag", "Tags", "Text" });
+                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Name", "Description", "Tag", "Tags" });
 
                     b.Property<float>("X")
                         .HasColumnType("real");
@@ -929,12 +932,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
-                    b.Property<NpgsqlTsVector>("TextSearchVector")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("tsvector")
-                        .HasAnnotation("Npgsql:TsVectorConfig", "english")
-                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Name", "Competition", "Id", "Track", "Season", "Division" });
-
                     b.Property<string>("Track")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -950,10 +947,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.HasIndex("FeedbackTemplateId");
 
                     b.HasIndex("PracticeCertificateTemplateId");
-
-                    b.HasIndex("TextSearchVector");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("TextSearchVector"), "GIN");
 
                     b.ToTable("Games");
                 });

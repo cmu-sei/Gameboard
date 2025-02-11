@@ -95,7 +95,6 @@ internal class SearchPracticeChallengesHandler
 
         var q = _store
             .WithNoTracking<Data.ChallengeSpec>()
-            .Include(s => s.Game)
             .Where(s => s.Game.PlayerMode == PlayerMode.Practice)
             .Where(s => !s.Disabled);
 
@@ -109,23 +108,11 @@ internal class SearchPracticeChallengesHandler
 
         if (filterTerm.IsNotEmpty())
         {
-            var term = filterTerm.ToLower();
-            var sluggedTerm = _slugger.Get(term);
-
-            q = q.Where
-            (
-                s =>
-                    s.Id.Equals(term) ||
-                    s.Name.ToLower().Contains(term) ||
-                    s.Description.ToLower().Contains(term) ||
-                    s.Game.Name.ToLower().Contains(term) ||
-                    s.Game.Id.ToLower() == term ||
-                    s.Text.ToLower().Contains(term) ||
-                    (s.Tags.Contains(sluggedTerm) && sluggedSuggestedSearches.Contains(sluggedTerm))
-            );
+            q = q.Where(s => s.TextSearchVector.Matches(filterTerm) || s.Game.TextSearchVector.Matches(filterTerm));
+            q = q.OrderByDescending(s => s.TextSearchVector.Rank(EF.Functions.PlainToTsQuery(filterTerm)))
+                .ThenByDescending(s => s.Game.TextSearchVector.Rank(EF.Functions.PlainToTsQuery(filterTerm)));
         }
 
-        q = q.OrderBy(s => s.Name);
         return q;
     }
 }

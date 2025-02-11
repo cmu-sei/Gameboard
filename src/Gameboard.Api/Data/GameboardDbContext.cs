@@ -148,6 +148,16 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
             b.Property(u => u.ExternalId).HasMaxLength(40);
             b.Property(u => u.SolutionGuideUrl).HasMaxLength(1000);
 
+            b
+                .HasGeneratedTsVectorColumn
+                (
+                    p => p.TextSearchVector,
+                    "english",  // Text search config
+                    p => new { p.Name, p.Description, p.GameId, p.Tag, p.Tags, p.Text }
+                )
+                .HasIndex(p => p.TextSearchVector)
+                .HasMethod("GIN"); // Index method on the search vector (GIN or GIST)
+
             b.HasOne(p => p.Game).WithMany(u => u.Specs).OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -294,6 +304,16 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
             b.Property(p => p.CardText2).HasMaxLength(64);
             b.Property(p => p.CardText3).HasMaxLength(64);
             b.Property(p => p.Mode).HasMaxLength(40);
+
+            b
+                .HasGeneratedTsVectorColumn
+                (
+                    g => g.TextSearchVector,
+                    "english",  // Text search config
+                    g => new { g.Name, g.Competition, g.Id, g.Track, g.Season, g.Division }
+                )
+                .HasIndex(p => p.TextSearchVector)
+                .HasMethod("GIN"); // Index method on the search vector (GIN or GIST)
         });
 
         builder.Entity<GameExportBatch>(b =>

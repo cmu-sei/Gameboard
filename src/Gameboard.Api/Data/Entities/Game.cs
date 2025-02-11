@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using NpgsqlTypes;
 
 namespace Gameboard.Api.Data;
 
@@ -52,6 +53,9 @@ public class Game : IEntity
     public PlayerMode PlayerMode { get; set; }
     public bool RequireSynchronizedStart { get; set; } = false;
     public bool ShowOnHomePageInPracticeMode { get; set; } = false;
+
+    // full-text search
+    public NpgsqlTsVector TextSearchVector { get; set; }
 
     // feedback
     public string ChallengesFeedbackTemplateId { get; set; }

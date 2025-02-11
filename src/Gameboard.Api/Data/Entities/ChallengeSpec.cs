@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Collections.Generic;
+using NpgsqlTypes;
 
 namespace Gameboard.Api.Data;
 
@@ -24,6 +25,9 @@ public class ChallengeSpec : IEntity
         public bool ShowSolutionGuideInCompetitiveMode { get; set; }
         public string Tags { get; set; }
         public bool IsHidden { get; set; }
+
+        // full text search
+        public NpgsqlTsVector TextSearchVector { get; set; }
 
         // nav properties
         public string GameId { get; set; }
