@@ -184,6 +184,7 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
 
             b.HasOne(d => d.Game)
                 .WithMany(g => g.DenormalizedTeamScores)
+                .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired();
         });
 
@@ -535,11 +536,13 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
             b.Property(u => u.Name).HasMaxLength(64);
             b.Property(u => u.NameStatus).HasMaxLength(40);
             b.Property(u => u.Email).HasMaxLength(64);
-            b.Property(u => u.LoginCount).HasDefaultValueSql("0");
+            b.Property(u => u.LoginCount).HasDefaultValue(0);
             b.Property(u => u.PlayAudioOnBrowserNotification).HasDefaultValue(false);
 
             // nav properties
-            b.HasOne(u => u.Sponsor).WithMany(s => s.SponsoredUsers)
+            b
+                .HasOne(u => u.Sponsor)
+                .WithMany(s => s.SponsoredUsers)
                 .IsRequired();
         });
     }

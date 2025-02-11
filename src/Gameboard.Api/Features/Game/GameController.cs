@@ -115,10 +115,11 @@ namespace Gameboard.Api.Controllers
         /// Delete game
         /// </summary>
         /// <param name="id"></param>
+        /// <param name="allowPlayerDeletion"></param>
         /// <returns></returns>
         [HttpDelete("/api/game/{id}")]
-        public Task Delete([FromRoute] string id)
-            => _mediator.Send(new DeleteGameCommand(id));
+        public Task Delete([FromRoute] string id, [FromBody] bool allowPlayerDeletion = false)
+            => _mediator.Send(new DeleteGameCommand(id, allowPlayerDeletion));
 
         /// <summary>
         /// Find games

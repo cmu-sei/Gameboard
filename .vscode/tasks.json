@@ -90,33 +90,7 @@
             "problemMatcher": []
         },
         {
-            "label": "EF: Create Migration (MS)",
-            "type": "shell",
-            "command": "dotnet",
-            "args": [
-                "ef",
-                "migrations",
-                "add",
-                "${input:migrationName}",
-                "--project",
-                "${workspaceFolder}/src/Gameboard.Api",
-                "--context",
-                "GameboardDbContextSqlServer"
-            ],
-            "problemMatcher": []
-        },
-        {
-            "label": "EF: Create Migration",
-            "type": "shell",
-            "dependsOrder": "sequence",
-            "dependsOn": [
-                "EF: Create Migration (PG)",
-                "EF: Create Migration (MS)"
-            ],
-            "problemMatcher": []
-        },
-        {
-            "label": "EF: Undo Migration (PG)",
+            "label": "EF: Undo Migration",
             "type": "shell",
             "command": "dotnet",
             "args": [
@@ -130,31 +104,7 @@
             ]
         },
         {
-            "label": "EF: Undo Migration (MS)",
-            "type": "shell",
-            "command": "dotnet",
-            "args": [
-                "ef",
-                "migrations",
-                "remove",
-                "--project",
-                "${workspaceFolder}/src/Gameboard.Api",
-                "--context",
-                "GameboardDbContextSqlServer"
-            ],
-            "problemMatcher": []
-        },
-        {
-            "label": "EF: Undo Migration (All)",
-            "dependsOrder": "sequence",
-            "dependsOn": [
-                "EF: Undo Migration (PG)",
-                "EF: Undo Migration (MS)"
-            ],
-            "problemMatcher": []
-        },
-        {
-            "label": "EF: Update database (PG)",
+            "label": "EF: Update database",
             "dependsOn": [
                 "build",
             ],
@@ -172,7 +122,7 @@
             ]
         },
         {
-            "label": "EF: Update PG database to... (PG)",
+            "label": "EF: Update database to...",
             "dependsOrder": "sequence",
             "dependsOn": [
                 "build"

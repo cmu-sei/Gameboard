@@ -6,4 +6,3 @@ using Microsoft.EntityFrameworkCore;
 namespace Gameboard.Api.Data;
 
 public class GameboardDbContextPostgreSQL(DbContextOptions options) : GameboardDbContext(options) { }
-public class GameboardDbContextSqlServer(DbContextOptions options) : GameboardDbContext(options) { }

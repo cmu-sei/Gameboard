@@ -5,7 +5,7 @@ namespace Gameboard.Api;
 
 internal static class IHostEnvironmentExtensions
 {
-    private static string _envTest = "Test";
+    private static readonly string _envTest = "Test";
 
     public static bool IsDevOrTest(this IHostEnvironment env)
     {

@@ -1,4 +1,5 @@
 using Gameboard.Api.Common;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Consoles;
 
 namespace Gameboard.Api.Tests.Integration;

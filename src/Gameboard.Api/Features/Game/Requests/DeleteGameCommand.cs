@@ -12,17 +12,20 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.games;
 
-public record DeleteGameCommand(string GameId) : IRequest;
+public record DeleteGameCommand(string GameId, bool AllowPlayerDataDeletion) : IRequest;
 
-internal class DeleteGameHandler(
+internal class DeleteGameHandler
+(
     EntityExistsValidator<DeleteGameCommand, Data.Game> gameExists,
     IGameService gameService,
+    IUserRolePermissionsService permissions,
     IStore store,
     IValidatorService<DeleteGameCommand> validatorService
-    ) : IRequestHandler<DeleteGameCommand>
+) : IRequestHandler<DeleteGameCommand>
 {
     private readonly EntityExistsValidator<DeleteGameCommand, Data.Game> _gameExists = gameExists;
     private readonly IGameService _gameService = gameService;
+    private readonly IUserRolePermissionsService _permissions = permissions;
     private readonly IStore _store = store;
     private readonly IValidatorService<DeleteGameCommand> _validatorService = validatorService;
 
@@ -36,21 +39,40 @@ internal class DeleteGameHandler(
             (
                 async (req, ctx) =>
                 {
-                    var playerCount = await _store
-                        .WithNoTracking<Data.Player>()
-                        .CountAsync(p => p.GameId == request.GameId);
+                    var actingUserCanDeleteWithPlayers = await _permissions.Can(PermissionKey.Games_DeleteWithPlayerData);
+                    if (!req.AllowPlayerDataDeletion || !actingUserCanDeleteWithPlayers)
+                    {
+                        var playerCount = await _store
+                            .WithNoTracking<Data.Player>()
+                            .CountAsync(p => p.GameId == request.GameId);
 
-                    if (playerCount > 0)
-                        ctx.AddValidationException(new CantDeleteGameWithPlayers(request.GameId, playerCount));
-
+                        if (playerCount > 0)
+                            ctx.AddValidationException(new CantDeleteGameWithPlayers(request.GameId, playerCount));
+                    }
                 }
             )
             .Validate(request, cancellationToken);
 
-        // do the things
+        // delete resources
+        if (request.AllowPlayerDataDeletion)
+        {
+            await _store
+                .WithNoTracking<Data.Challenge>()
+                .Where(c => c.GameId == request.GameId)
+                .ExecuteDeleteAsync(cancellationToken);
+
+            await _store
+                .WithNoTracking<Data.Player>()
+                .Where(p => p.GameId == request.GameId)
+                .ExecuteDeleteAsync(cancellationToken);
+        }
+
+        // delete the game and its resources
         await _store
             .WithNoTracking<Data.Game>()
             .Where(g => g.Id == request.GameId)
             .ExecuteDeleteAsync(cancellationToken);
+
+        await _gameService.DeleteGameCardImage(request.GameId);
     }
 }

@@ -9,6 +9,7 @@ public enum PermissionKey
     Admin_View,
     ApiKeys_CreateRevoke,
     Games_CreateEditDelete,
+    Games_DeleteWithPlayerData,
     Games_ViewUnpublished,
     Play_ChooseChallengeVariant,
     Play_IgnoreSessionResetSettings,

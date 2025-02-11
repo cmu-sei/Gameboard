@@ -5,7 +5,6 @@ using System;
 using System.Linq;
 using Gameboard.Api.Data;
 using Microsoft.AspNetCore.Cors.Infrastructure;
-using Microsoft.Extensions.Logging;
 using Serilog.Events;
 
 namespace Gameboard.Api;
@@ -33,16 +32,17 @@ public class ApiKeyOptions
 
 public class LoggingSettings
 {
-    public string GrafanaLokiInstanceUrl { get; set; }
     public LogEventLevel MinimumLogLevel { get; set; }
+    public string SeqInstanceApiKey { get; set; }
+    public string SeqInstanceUrl { get; set; }
 }
 
 public class OidcOptions
 {
     public string Authority { get; set; } = "http://localhost:5000";
     public string Audience { get; set; } = "gameboard-api";
-    public bool RequireHttpsMetadata { get; set; } = true;
     public int MksCookieMinutes { get; set; } = 60;
+    public bool RequireHttpsMetadata { get; set; } = true;
 }
 
 public class OpenIdClient
@@ -82,8 +82,7 @@ public class DatabaseOptions
     public string AdminId { get; set; }
     public string AdminName { get; set; } = "Gameboard Admin";
     public UserRoleKey AdminRole { get; set; } = UserRoleKey.Admin;
-    public string Provider { get; set; } = "InMemory";
-    public string ConnectionString { get; set; } = "gameboard_db";
+    public string ConnectionString { get; set; } = "Server=localhost;Port=5432;Database=gameboard;User ID=setmepls;Password=setmepls;";
     public string SeedFile { get; set; } = "seed-data.json";
 }
 

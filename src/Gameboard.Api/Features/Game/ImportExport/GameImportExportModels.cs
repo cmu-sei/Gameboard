@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Features.Games;
 

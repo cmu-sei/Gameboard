@@ -29,6 +29,10 @@ namespace Microsoft.Extensions.DependencyInjection
                 {
                     config.ForwardedHeaders = targets;
                 }
+                else
+                {
+                    config.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+                }
 
                 config.ForwardLimit = options.ForwardLimit;
 

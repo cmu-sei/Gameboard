@@ -23,9 +23,11 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
             .ConfigureServices(services =>
             {
                 if (_container is null)
-                    throw new GbAutomatedTestSetupException("Couldn't initialize the test context - the database contianer hasn't been resolved.");
+                    throw new GbAutomatedTestSetupException("Couldn't initialize the test context - the database container hasn't been resolved.");
 
                 // Add DB context with connection to the container
+                // connstring
+                var connectionString = _container.GetConnectionString();
                 services
                     .AddDbContext<GameboardDbContext, GameboardDbContextPostgreSQL>((serviceProvider, options) =>
                     {

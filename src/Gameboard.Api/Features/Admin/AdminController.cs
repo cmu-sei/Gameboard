@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Data;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 

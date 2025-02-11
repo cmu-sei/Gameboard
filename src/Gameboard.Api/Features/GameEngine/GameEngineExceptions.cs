@@ -1,4 +1,5 @@
 using System;
+using Gameboard.Api.Data;
 using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.GameEngine;

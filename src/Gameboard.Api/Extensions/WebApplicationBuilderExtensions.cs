@@ -6,12 +6,10 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
-using Serilog.Sinks.Grafana.Loki;
 using Serilog.Sinks.SystemConsole.Themes;
 using ServiceStack.Text;
 
@@ -70,12 +68,6 @@ internal static class WebApplicationBuilderExtensions
     {
         var services = builder.Services;
 
-        // include forwarded headers in case GB is hosted with a reverse proxy
-        services.Configure<ForwardedHeadersOptions>(opts =>
-        {
-            opts.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-        });
-
         // serilog config
         builder.Host.UseSerilog();
 
@@ -86,13 +78,13 @@ internal static class WebApplicationBuilderExtensions
             .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
             .WriteTo.Console(theme: AnsiConsoleTheme.Code);
 
-        // set up sinks for grafana and seq on demand
-        if (settings.Logging.GrafanaLokiInstanceUrl.IsNotEmpty())
+        // set up sinks on demand
+        if (settings.Logging.SeqInstanceUrl.IsNotEmpty())
         {
-            var labels = new LokiLabel[] { new() { Key = "app", Value = "GameboardApi" } };
-            loggerConfiguration = loggerConfiguration.WriteTo.GrafanaLoki(settings.Logging.GrafanaLokiInstanceUrl, labels);
+            loggerConfiguration = loggerConfiguration.WriteTo.Seq(settings.Logging.SeqInstanceUrl, apiKey: settings.Logging.SeqInstanceApiKey);
         }
 
+        // weirdly, this really does appear to be the way to replace the default logger with Serilog 🤷
         Log.Logger = loggerConfiguration.CreateLogger();
 
         services
