@@ -74,7 +74,7 @@
             "problemMatcher": []
         },
         {
-            "label": "EF: Create Migration (PG)",
+            "label": "EF: Create Migration",
             "type": "shell",
             "command": "dotnet",
             "args": [

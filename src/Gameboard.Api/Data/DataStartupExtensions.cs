@@ -21,7 +21,7 @@ public static class DataStartupExtensions
         DatabaseOptions dbOptions
     )
     {
-        if (!environment.IsTest() && dbOptions.ConnectionString.IsEmpty())
+        if (!environment.IsTest())
         {
             if (dbOptions.ConnectionString.IsEmpty())
             {
