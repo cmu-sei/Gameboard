@@ -14,7 +14,6 @@ using Serilog.Events;
 using Serilog.Sinks.Grafana.Loki;
 using Serilog.Sinks.SystemConsole.Themes;
 using ServiceStack.Text;
-using ZstdSharp.Unsafe;
 
 namespace Gameboard.Api.Extensions;
 
@@ -71,6 +70,7 @@ internal static class WebApplicationBuilderExtensions
     {
         var services = builder.Services;
 
+        // include forwarded headers in case GB is hosted with a reverse proxy
         services.Configure<ForwardedHeadersOptions>(opts =>
         {
             opts.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
