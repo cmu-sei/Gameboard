@@ -26,6 +26,7 @@ internal class UserRolePermissionsConfigurationService : IUserRolePermissionsCon
                 [
                     PermissionKey.Admin_View,
                     PermissionKey.Games_CreateEditDelete,
+                    PermissionKey.Games_DeleteWithPlayerData,
                     PermissionKey.Games_ViewUnpublished,
                     PermissionKey.Play_ChooseChallengeVariant,
                     PermissionKey.Play_IgnoreExecutionWindow,

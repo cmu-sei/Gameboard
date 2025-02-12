@@ -32,7 +32,7 @@ public class ApiKeyOptions
 
 public class LoggingSettings
 {
-    public LogEventLevel MinimumLogLevel { get; set; }
+    public LogEventLevel MinimumLogLevel { get; set; } = LogEventLevel.Information;
     public string[] NamespacesErrorLevel { get; set; } = [];
     public string[] NamespacesFatalLevel { get; set; } = [];
     public string[] NamespacesInfoLevel { get; set; } = [];
