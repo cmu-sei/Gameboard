@@ -177,8 +177,7 @@ public partial class ChallengeService
 
             await _store.Create(challenge, cancellationToken);
             await _challengeStore.UpdateEtd(challenge.SpecId);
-
-            return Mapper.Map<Challenge>(challenge);
+            return await GetDto(_store.WithNoTracking<Data.Challenge>().Where(c => c.Id == challenge.Id));
         }
         catch (Exception ex)
         {
