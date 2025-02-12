@@ -74,9 +74,30 @@ internal static class WebApplicationBuilderExtensions
         Serilog.Debugging.SelfLog.Enable(Console.Error);
         var loggerConfiguration = new LoggerConfiguration()
             .MinimumLevel.Is(settings.Logging.MinimumLogLevel)
-            .MinimumLevel.Override("Microsoft.AspnetCore", LogEventLevel.Warning)
-            .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
             .WriteTo.Console(theme: AnsiConsoleTheme.Code);
+
+        // normally, you'd do this in an appsettings.json and just rely on built-in config
+        // assembly stuff, but we distribute with a helm chart and a weird conf format, so
+        // we need to manually set up the log levels
+        foreach (var logNamespace in settings.Logging.NamespacesErrorLevel)
+        {
+            loggerConfiguration = loggerConfiguration.MinimumLevel.Override(logNamespace, LogEventLevel.Error);
+        }
+
+        foreach (var logNamespace in settings.Logging.NamespacesFatalLevel)
+        {
+            loggerConfiguration = loggerConfiguration.MinimumLevel.Override(logNamespace, LogEventLevel.Fatal);
+        }
+
+        foreach (var logNamespace in settings.Logging.NamespacesInfoLevel)
+        {
+            loggerConfiguration = loggerConfiguration.MinimumLevel.Override(logNamespace, LogEventLevel.Information);
+        }
+
+        foreach (var logNamespace in settings.Logging.NamespacesWarningLevel)
+        {
+            loggerConfiguration = loggerConfiguration.MinimumLevel.Override(logNamespace, LogEventLevel.Warning);
+        }
 
         // set up sinks on demand
         if (settings.Logging.SeqInstanceUrl.IsNotEmpty())

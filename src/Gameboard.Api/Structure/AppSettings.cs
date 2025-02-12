@@ -33,6 +33,10 @@ public class ApiKeyOptions
 public class LoggingSettings
 {
     public LogEventLevel MinimumLogLevel { get; set; }
+    public string[] NamespacesErrorLevel { get; set; } = [];
+    public string[] NamespacesFatalLevel { get; set; } = [];
+    public string[] NamespacesInfoLevel { get; set; } = [];
+    public string[] NamespacesWarningLevel { get; set; } = [];
     public string SeqInstanceApiKey { get; set; }
     public string SeqInstanceUrl { get; set; }
 }
