@@ -1,21 +1,23 @@
 using System;
 using System.IO;
+using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Structure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.Events;
+using Serilog.Sinks.SystemConsole.Themes;
 using ServiceStack.Text;
 
 namespace Gameboard.Api.Extensions;
 
 internal static class WebApplicationBuilderExtensions
 {
-    public static AppSettings BuildAppSettings(this WebApplicationBuilder builder, ILogger logger)
+    public static AppSettings BuildAppSettings(this WebApplicationBuilder builder)
     {
         var settings = builder.Configuration.Get<AppSettings>() ?? new AppSettings();
 
@@ -66,6 +68,46 @@ internal static class WebApplicationBuilderExtensions
     {
         var services = builder.Services;
 
+        // serilog config
+        builder.Host.UseSerilog();
+
+        Serilog.Debugging.SelfLog.Enable(Console.Error);
+        var loggerConfiguration = new LoggerConfiguration()
+            .MinimumLevel.Is(settings.Logging.MinimumLogLevel)
+            .WriteTo.Console(theme: AnsiConsoleTheme.Code);
+
+        // normally, you'd do this in an appsettings.json and just rely on built-in config
+        // assembly stuff, but we distribute with a helm chart and a weird conf format, so
+        // we need to manually set up the log levels
+        foreach (var logNamespace in settings.Logging.NamespacesErrorLevel)
+        {
+            loggerConfiguration = loggerConfiguration.MinimumLevel.Override(logNamespace, LogEventLevel.Error);
+        }
+
+        foreach (var logNamespace in settings.Logging.NamespacesFatalLevel)
+        {
+            loggerConfiguration = loggerConfiguration.MinimumLevel.Override(logNamespace, LogEventLevel.Fatal);
+        }
+
+        foreach (var logNamespace in settings.Logging.NamespacesInfoLevel)
+        {
+            loggerConfiguration = loggerConfiguration.MinimumLevel.Override(logNamespace, LogEventLevel.Information);
+        }
+
+        foreach (var logNamespace in settings.Logging.NamespacesWarningLevel)
+        {
+            loggerConfiguration = loggerConfiguration.MinimumLevel.Override(logNamespace, LogEventLevel.Warning);
+        }
+
+        // set up sinks on demand
+        if (settings.Logging.SeqInstanceUrl.IsNotEmpty())
+        {
+            loggerConfiguration = loggerConfiguration.WriteTo.Seq(settings.Logging.SeqInstanceUrl, apiKey: settings.Logging.SeqInstanceApiKey);
+        }
+
+        // weirdly, this really does appear to be the way to replace the default logger with Serilog 🤷
+        Log.Logger = loggerConfiguration.CreateLogger();
+
         services
             .AddMvc()
             .AddGameboardJsonOptions();
@@ -98,33 +140,13 @@ internal static class WebApplicationBuilderExtensions
                 .AddHostedService<BackgroundAsyncTaskRunner>()
                 .AddHostedService<JobService>();
 
-        services.AddSingleton
-        (
-            new AutoMapper.MapperConfiguration(cfg =>
-            {
-                cfg.AddGameboardMaps();
-            }).CreateMapper()
-        );
+        services.AddSingleton(new MapperConfiguration(cfg => cfg.AddGameboardMaps()).CreateMapper());
+
         // configuring SignalR involves acting on the builder as well as its services
         builder.AddGameboardSignalRServices();
 
         // Configure Auth
         services.AddConfiguredAuthentication(settings.Oidc, settings.ApiKey, builder.Environment);
         services.AddConfiguredAuthorization();
-
-        if (settings.Logging.EnableHttpLogging)
-        {
-            services.AddHttpLogging(logging =>
-            {
-                logging.LoggingFields = HttpLoggingFields.ResponseStatusCode
-                    | HttpLoggingFields.ResponseBody
-                    | HttpLoggingFields.RequestPath
-                    | HttpLoggingFields.RequestQuery
-                    | HttpLoggingFields.RequestBody;
-                logging.RequestBodyLogLimit = settings.Logging.RequestBodyLogLimit;
-                logging.ResponseBodyLogLimit = settings.Logging.ResponseBodyLogLimit;
-                logging.MediaTypeOptions.AddText(MimeTypes.ApplicationJson);
-            });
-        }
     }
 }

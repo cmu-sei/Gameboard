@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api;

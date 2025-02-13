@@ -28,15 +28,6 @@ public static class ModelCreationExtensions
             return;
         }
 
-        if (db.IsSqlServer())
-        {
-            entityTypeBuilder
-                .OwnsOne(propertyExpression, ownBuilder => ownBuilder.ToJson())
-                .Navigation(propertyExpression)
-                .IsRequired();
-            return;
-        }
-
         throw new NotImplementedException($"""Json column configuration has not been created for database provider: {db.ProviderName}""");
     }
 }

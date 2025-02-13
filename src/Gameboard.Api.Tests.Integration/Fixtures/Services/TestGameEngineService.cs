@@ -1,6 +1,7 @@
 using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;

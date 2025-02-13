@@ -8,7 +8,7 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Features.Games;
 using Gameboard.Api.Features.Games.External;
 using Gameboard.Api.Features.Users;
-using Gameboard.Api.Structure;
+using Gameboard.Api.Structure.Logging;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;

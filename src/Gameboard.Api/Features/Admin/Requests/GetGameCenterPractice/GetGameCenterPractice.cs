@@ -11,7 +11,6 @@ using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using ServiceStack;
 
 namespace Gameboard.Api.Features.Admin;
 
@@ -54,6 +53,7 @@ internal class GetGameCenterPracticeQueryHandler
                     searchTerm == null ||
                     c.Id.StartsWith(searchTerm) ||
                     c.Player.UserId.ToLower().StartsWith(searchTerm) ||
+                    c.Player.TeamId.ToLower().StartsWith(searchTerm) ||
                     c.Player.Sponsor.Name.ToLower().StartsWith(searchTerm) ||
                     c.Player.User.Sponsor.Name.ToLower().StartsWith(searchTerm) ||
                     c.Player.User.Name.ToLower().Contains(searchTerm)

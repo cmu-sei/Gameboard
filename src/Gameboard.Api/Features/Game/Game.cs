@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.Feedback;
 
 namespace Gameboard.Api;
@@ -54,6 +55,9 @@ public class GameDetail
     public bool IsFeatured { get; set; }
     public PlayerMode PlayerMode { get; set; }
     public bool ShowOnHomePageInPracticeMode { get; set; }
+
+    public int CountPlayers { get; set; }
+    public int CountTeams { get; set; }
 }
 
 public class Game : GameDetail

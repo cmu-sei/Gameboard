@@ -1,6 +1,7 @@
 using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Structure.Logging;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 
@@ -15,7 +16,7 @@ public sealed class SlowCommandLogInterceptor(ILoggerFactory loggerFactory) : Db
     {
         if (eventData.Duration.TotalMilliseconds >= DURATION_THRESHOLD_MS)
         {
-            _logger.LogWarning($"Slow command ({eventData.Duration.TotalMilliseconds} ms): {command.CommandText}");
+            _logger.LogWarning(LogEventId.Db_LongRunningQuery, "Slow command ({durationMs}ms): {commandText}", eventData.Duration.TotalMilliseconds, command.CommandText);
         }
 
         return base.ReaderExecutedAsync(command, eventData, result, cancellationToken);

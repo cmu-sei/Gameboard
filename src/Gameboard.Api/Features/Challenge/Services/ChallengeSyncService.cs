@@ -75,6 +75,8 @@ internal class ChallengeSyncService
             entry.Challenge.PlayerId = playerId;
             entry.Challenge.LastSyncTime = _now.Get();
             await _store.SaveUpdate(entry.Challenge, cancellationToken);
+
+            _logger.LogChallengeSync(entry.Challenge.Id, entry.Challenge.TeamId, entry.Challenge.HasDeployedGamespace);
         }
     }
 

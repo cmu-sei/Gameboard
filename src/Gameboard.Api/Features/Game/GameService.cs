@@ -19,6 +19,7 @@ namespace Gameboard.Api.Services;
 public interface IGameService
 {
     Task<Game> Create(NewGame model);
+    Task DeleteGameCardImage(string gameId);
     IQueryable<GameActiveTeam> GetTeamsWithActiveSession(string GameId);
     Task<bool> IsUserPlaying(string gameId, string userId);
     Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false);
@@ -28,7 +29,7 @@ public interface IGameService
     Task<SessionForecast[]> SessionForecast(string id);
     Task<Data.Game> Update(ChangedGame account);
     Task UpdateImage(string id, string type, string filename);
-    Task<bool> UserIsTeamPlayer(string uid, string gid, string tid);
+    Task<bool> UserIsTeamPlayer(string uid, string tid);
 }
 
 public class GameService
@@ -216,7 +217,7 @@ public class GameService
     public Task<bool> IsUserPlaying(string gameId, string userId)
         => _store.AnyAsync<Data.Player>(p => p.GameId == gameId && p.UserId == userId, CancellationToken.None);
 
-    public async Task<bool> UserIsTeamPlayer(string uid, string gid, string tid)
+    public async Task<bool> UserIsTeamPlayer(string uid, string tid)
     {
         bool authd = await _store.AnyAsync<Data.User>(u =>
             u.Id == uid &&
@@ -264,7 +265,12 @@ public class GameService
     {
         var now = _now.Get();
         var q = _store
-            .WithNoTracking<Data.Game>();
+            .WithNoTracking<Data.Game>()
+            // since we use this with AutoMapper's ProjectTo in some places, we
+            // really do have to specifically include here. If you don't, Automapper won't
+            // throw, but the values in its expressions will be null/zero/default
+            .Include(g => g.Players)
+            .AsQueryable();
 
         if (!string.IsNullOrEmpty(model.Term))
         {

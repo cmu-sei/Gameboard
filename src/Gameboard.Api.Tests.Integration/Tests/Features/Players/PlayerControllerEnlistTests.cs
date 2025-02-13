@@ -1,3 +1,5 @@
+using Gameboard.Api.Data;
+
 namespace Gameboard.Api.Tests.Integration;
 
 public class PlayerControllerEnlistTests(GameboardTestContext testContext) : IClassFixture<GameboardTestContext>

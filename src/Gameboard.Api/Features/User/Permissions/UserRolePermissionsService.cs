@@ -58,6 +58,13 @@ internal class UserRolePermissionsService(IActingUserService actingUserService, 
         new()
         {
             Group = PermissionKeyGroup.Games,
+            Key = PermissionKey.Games_DeleteWithPlayerData,
+            Name = "Delete played games",
+            Description = "Delete _all_ games, including games which have registered, playing, or completed players."
+        },
+        new()
+        {
+            Group = PermissionKeyGroup.Games,
             Key = PermissionKey.Games_ViewUnpublished,
             Name = "View hidden games and practice challenges",
             Description = "View games and practice challenges which have been hidden from players by their creator"

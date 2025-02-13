@@ -1,6 +1,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 using MediatR;
 

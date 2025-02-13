@@ -21,23 +21,16 @@ public static class DataStartupExtensions
         DatabaseOptions dbOptions
     )
     {
-        if (!environment.IsTest() && dbOptions.Provider.IsEmpty())
+        if (!environment.IsTest())
         {
-            throw new Exception($"Can't start Gameboard without a storage provider.");
-        }
+            if (dbOptions.ConnectionString.IsEmpty())
+            {
+                throw new Exception($"Can't start Gameboard without a PostgreSql connection string.");
+            }
 
-        switch (dbOptions.Provider.ToLower())
-        {
-            case "sqlserver":
-                services.AddDbContext<GameboardDbContext, GameboardDbContextSqlServer>((serviceProvider, options) => options
-                    .UseSqlServer(dbOptions.ConnectionString)
-                    .UseGameboardEfConfig(serviceProvider));
-                break;
-            case "postgresql":
-                services.AddDbContext<GameboardDbContext, GameboardDbContextPostgreSQL>((serviceProvider, options) => options
-                    .UseNpgsql(dbOptions.ConnectionString)
-                    .UseGameboardEfConfig(serviceProvider));
-                break;
+            services.AddDbContext<GameboardDbContext, GameboardDbContextPostgreSQL>((serviceProvider, options) => options
+                .UseNpgsql(dbOptions.ConnectionString)
+                .UseGameboardEfConfig(serviceProvider));
         }
 
         // load stores by reflection
@@ -99,8 +92,9 @@ public static class DataStartupExtensions
 
         // when run at design-time, the service provider may be null (because there's no running app to create it)
         if (serviceProvider is not null)
-            builder
-                .AddInterceptors(new SlowCommandLogInterceptor(serviceProvider.GetRequiredService<ILoggerFactory>()));
+        {
+            builder.AddInterceptors(new SlowCommandLogInterceptor(serviceProvider.GetRequiredService<ILoggerFactory>()));
+        }
 
         return builder;
     }

@@ -1,7 +1,7 @@
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using Gameboard.Api.Structure;
+using Gameboard.Api.Structure.Logging;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
