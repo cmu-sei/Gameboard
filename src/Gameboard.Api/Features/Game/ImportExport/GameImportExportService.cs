@@ -52,9 +52,10 @@ internal sealed class GameImportExportService
             .Where(b => b.Id == exportBatchId)
             .ExecuteDeleteAsync(cancellationToken);
 
-        if (File.Exists(GetExportBatchPackagePath(exportBatchId)))
+        var packagePath = GetExportBatchPackagePath(exportBatchId);
+        if (File.Exists(packagePath))
         {
-            File.Delete(GetExportBatchPackagePath(exportBatchId));
+            File.Delete(packagePath);
         }
     }
 
@@ -396,18 +397,16 @@ internal sealed class GameImportExportService
 
         using (var tempArchiveStream = File.OpenRead(tempArchivePath))
         {
-            using (var reader = ReaderFactory.Open(tempArchiveStream))
+            using var reader = ReaderFactory.Open(tempArchiveStream);
+            while (reader.MoveToNextEntry())
             {
-                while (reader.MoveToNextEntry())
+                if (!reader.Entry.IsDirectory)
                 {
-                    if (!reader.Entry.IsDirectory)
+                    reader.WriteEntryToDirectory(GetImportBatchRoot(importBatchId), new ExtractionOptions()
                     {
-                        reader.WriteEntryToDirectory(GetImportBatchRoot(importBatchId), new ExtractionOptions()
-                        {
-                            ExtractFullPath = true,
-                            Overwrite = true
-                        });
-                    }
+                        ExtractFullPath = true,
+                        Overwrite = true
+                    });
                 }
             }
         }
@@ -585,12 +584,7 @@ internal sealed class GameImportExportService
 
         await _store.SaveAddRange(importedGames);
 
-        return importedGames.Select(g => new ImportedGame
-        {
-            Id = g.Id,
-            Name = g.Name
-        })
-        .ToArray();
+        return [.. importedGames.Select(g => new ImportedGame { Id = g.Id, Name = g.Name })];
     }
 
     private string GetExportBatchPackageName(string exportBatchId)
