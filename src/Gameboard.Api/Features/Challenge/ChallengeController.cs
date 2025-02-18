@@ -194,6 +194,10 @@ public class ChallengeController
         return result;
     }
 
+    [HttpPut("/api/challenge/{challengeId}/sync")]
+    public Task<GameEngineGameState> Sync([FromRoute] string challengeId, CancellationToken cancellationToken)
+        => _mediator.Send(new SyncChallengeCommand(challengeId), cancellationToken);
+
     /// <summary>
     /// Grade a challenge
     /// </summary>

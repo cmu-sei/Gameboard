@@ -27,6 +27,7 @@ public class ChallengeSyncServiceTests
         var store = BuildTestableStore(challenge);
         var sut = new ChallengeSyncService
         (
+            A.Fake<IActingUserService>(),
             A.Fake<ConsoleActorMap>(),
             A.Fake<IGameEngineService>(),
             A.Fake<ILogger<IChallengeSyncService>>(),
@@ -59,6 +60,7 @@ public class ChallengeSyncServiceTests
         var store = BuildTestableStore(challenge);
         var sut = new ChallengeSyncService
         (
+            A.Fake<IActingUserService>(),
             A.Fake<ConsoleActorMap>(),
             A.Fake<IGameEngineService>(),
             A.Fake<ILogger<IChallengeSyncService>>(),
@@ -91,6 +93,7 @@ public class ChallengeSyncServiceTests
         var store = BuildTestableStore(challenge);
         var sut = new ChallengeSyncService
         (
+            A.Fake<IActingUserService>(),
             A.Fake<ConsoleActorMap>(),
             A.Fake<IGameEngineService>(),
             A.Fake<ILogger<IChallengeSyncService>>(),
@@ -123,6 +126,7 @@ public class ChallengeSyncServiceTests
         var store = BuildTestableStore(challenge);
         var sut = new ChallengeSyncService
         (
+            A.Fake<IActingUserService>(),
             A.Fake<ConsoleActorMap>(),
             A.Fake<IGameEngineService>(),
             A.Fake<ILogger<IChallengeSyncService>>(),
@@ -155,6 +159,7 @@ public class ChallengeSyncServiceTests
         var store = BuildTestableStore(challenge);
         var sut = new ChallengeSyncService
         (
+            A.Fake<IActingUserService>(),
             A.Fake<ConsoleActorMap>(),
             A.Fake<IGameEngineService>(),
             A.Fake<ILogger<IChallengeSyncService>>(),

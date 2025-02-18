@@ -16,6 +16,7 @@ namespace Gameboard.Api.Features.Challenges;
 
 public interface IChallengeSyncService
 {
+    Task<GameEngineGameState> Sync(string challengeId, CancellationToken cancellationToken);
     Task Sync(Data.Challenge challenge, GameEngineGameState challengeState, string actingUserId, CancellationToken cancellationToken);
     Task SyncExpired(CancellationToken cancellationToken);
 }
@@ -25,6 +26,7 @@ public interface IChallengeSyncService
 /// </summary>
 internal class ChallengeSyncService
 (
+    IActingUserService actingUser,
     ConsoleActorMap consoleActorMap,
     IGameEngineService gameEngine,
     ILogger<IChallengeSyncService> logger,
@@ -33,12 +35,30 @@ internal class ChallengeSyncService
     IStore store
 ) : IChallengeSyncService
 {
+    private readonly IActingUserService _actingUser = actingUser;
     private readonly ConsoleActorMap _consoleActorMap = consoleActorMap;
     private readonly IGameEngineService _gameEngine = gameEngine;
     private readonly ILogger<IChallengeSyncService> _logger = logger;
     private readonly IMapper _mapper = mapper;
     private readonly INowService _now = now;
     private readonly IStore _store = store;
+
+    public async Task<GameEngineGameState> Sync(string challengeId, CancellationToken cancellationToken)
+    {
+        var challenge = await _store
+            .WithNoTracking<Data.Challenge>()
+            .SingleOrDefaultAsync(c => c.Id == challengeId, cancellationToken);
+
+        if (challenge is null)
+        {
+            return null;
+        }
+
+        var state = await _gameEngine.GetChallengeState(GameEngineType.TopoMojo, challenge.State);
+        await Sync(challenge, state, _actingUser.Get()?.Id, cancellationToken);
+
+        return await _gameEngine.GetChallengeState(GameEngineType.TopoMojo, challenge.State);
+    }
 
     public Task Sync(Data.Challenge challenge, GameEngineGameState state, string actingUserId, CancellationToken cancellationToken)
         => Sync(cancellationToken, new SyncEntry(actingUserId, challenge, state));
