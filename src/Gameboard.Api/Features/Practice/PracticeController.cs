@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using MediatR;
@@ -18,11 +19,12 @@ public class PracticeController(IActingUserService actingUserService, IMediator 
     /// Search challenges within games that have been set to Practice mode.
     /// </summary>
     /// <param name="model"></param>
+    /// <param name="isCompleted">Whether or not the challenge has ever been completed by the current user (in practice mode).</param>
     /// <returns></returns>
     [HttpGet]
     [AllowAnonymous]
-    public Task<SearchPracticeChallengesResult> Browse([FromQuery] SearchFilter model)
-        => _mediator.Send(new SearchPracticeChallengesQuery(model));
+    public Task<SearchPracticeChallengesResult> Browse([FromQuery] SearchFilter model, [FromQuery] bool? isCompleted = null)
+        => _mediator.Send(new SearchPracticeChallengesQuery(model, isCompleted));
 
     [HttpGet("session")]
     public Task<PracticeSession> GetPracticeSession()
@@ -33,6 +35,11 @@ public class PracticeController(IActingUserService actingUserService, IMediator 
     [AllowAnonymous]
     public Task<PracticeModeSettingsApiModel> GetSettings()
         => _mediator.Send(new GetPracticeModeSettingsQuery(_actingUserService.Get()));
+
+    [HttpGet]
+    [Route("user/{userId}/history")]
+    public Task<UserPracticeHistoryChallenge[]> GetUserPracticeHistory([FromRoute] string userId, CancellationToken cancellationToken)
+        => _mediator.Send(new GetUserPracticeHistoryQuery(userId), cancellationToken);
 
     [HttpPut]
     [Route("settings")]

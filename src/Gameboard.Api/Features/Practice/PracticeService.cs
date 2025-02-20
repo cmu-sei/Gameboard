@@ -19,6 +19,7 @@ public interface IPracticeService
     Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, DateTimeOffset currentSessionEnd, CancellationToken cancellationToken);
     Task<PracticeModeSettingsApiModel> GetSettings(CancellationToken cancellationToken);
     Task<Data.Player> GetUserActivePracticeSession(string userId, CancellationToken cancellationToken);
+    Task<UserPracticeHistoryChallenge[]> GetUserPracticeHistory(string userId, CancellationToken cancellationToken);
     Task<IEnumerable<string>> GetVisibleChallengeTags(CancellationToken cancellationToken);
     Task<IEnumerable<string>> GetVisibleChallengeTags(IEnumerable<string> requestedTags, CancellationToken cancellationToken);
     IEnumerable<string> UnescapeSuggestedSearches(string input);
@@ -100,7 +101,9 @@ internal partial class PracticeService
         {
             var activeSessionUsers = await GetActiveSessionUsers();
             if (activeSessionUsers.Count() >= settings.MaxConcurrentPracticeSessions.Value && !activeSessionUsers.Contains(userId))
+            {
                 return CanPlayPracticeChallengeResult.TooManyActivePracticeSessions;
+            }
         }
 
         return CanPlayPracticeChallengeResult.Yes;
@@ -110,6 +113,36 @@ internal partial class PracticeService
         => GetActivePracticeSessionsQueryBase()
             .Where(p => p.UserId == userId)
             .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<UserPracticeHistoryChallenge[]> GetUserPracticeHistory(string userId, CancellationToken cancellationToken)
+    {
+        // restrict to living specs #317
+        var specs = await _store
+            .WithNoTracking<Data.ChallengeSpec>()
+            .Where(s => s.Game.PlayerMode == PlayerMode.Practice || s.Game.Challenges.Any(c => c.PlayerMode == PlayerMode.Practice))
+            .Select(s => s.Id)
+            .ToArrayAsync(cancellationToken);
+
+        return await _store
+            .WithNoTracking<Data.Challenge>()
+            .Where(c => c.Player.UserId == userId)
+            .Where(c => c.PlayerMode == PlayerMode.Practice)
+            .Where(c => specs.Contains(c.SpecId))
+            .Where(c => c.Score > 0)
+            .GroupBy(c => new { c.Name, c.SpecId })
+            .Select(gr => new UserPracticeHistoryChallenge
+            {
+                ChallengeName = gr.Key.Name,
+                ChallengeSpecId = gr.Key.SpecId,
+                AttemptCount = gr.Count(),
+                BestAttemptDate = gr.OrderByDescending(c => c.Score).First().StartTime,
+                BestAttemptScore = gr.OrderByDescending(c => c.Score).First().Score,
+                ChallengeId = gr.OrderByDescending(c => c.Score).First().Id,
+                IsComplete = gr.OrderByDescending(c => c.Score).First().Score >= gr.OrderByDescending(c => c.Score).First().Points
+
+            })
+            .ToArrayAsync(cancellationToken);
+    }
 
     public async Task<PracticeModeSettingsApiModel> GetSettings(CancellationToken cancellationToken)
     {

@@ -79,6 +79,7 @@ public class SearchPracticeChallengesTests
 
         var sut = new SearchPracticeChallengesHandler
         (
+            A.Fake<IActingUserService>(),
             A.Fake<IChallengeDocsService>(),
             A.Fake<IPagingService>(),
             A.Fake<IUserRolePermissionsService>(),

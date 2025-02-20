@@ -30,7 +30,7 @@ public interface IPagingService
 
 internal class PagingService : IPagingService
 {
-    private static readonly int DEFAULT_PAGE_SIZE = 20;
+    private static readonly int DEFAULT_PAGE_SIZE = 25;
 
     public PagedEnumerable<T> Page<T>(IEnumerable<T> items, PagingArgs pagingArgs = null)
     {
