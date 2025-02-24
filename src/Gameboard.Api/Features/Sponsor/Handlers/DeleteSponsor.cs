@@ -44,11 +44,11 @@ internal class DeleteSponsorHandler(
             .SingleAsync(s => s.Id == request.SponsorId, cancellationToken);
 
         // if this sponsor sponsors any players or users, we need to update them
-        if (entity.SponsoredPlayers.Any() || entity.SponsoredUsers.Any())
+        if (entity.SponsoredPlayers.Count != 0 || entity.SponsoredUsers.Count != 0)
         {
             var defaultSponsor = await _sponsorService.GetDefaultSponsor();
 
-            if (entity.SponsoredPlayers.Any())
+            if (entity.SponsoredPlayers.Count != 0)
             {
                 await _store
                     .WithNoTracking<Data.Player>()

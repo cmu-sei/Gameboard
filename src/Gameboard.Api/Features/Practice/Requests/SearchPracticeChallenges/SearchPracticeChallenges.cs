@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,7 +40,7 @@ internal class SearchPracticeChallengesHandler
         var sluggedSuggestedSearches = settings.SuggestedSearches.Select(_slugger.Get);
         var hasGlobalPracticeCertificate = settings.CertificateTemplateId.IsNotEmpty();
 
-        var query = await BuildQuery(request.Filter.Term, sluggedSuggestedSearches);
+        var query = await _practiceService.GetPracticeChallengesQueryBase(request.Filter.Term);
         var results = await query
             .Select(s => new PracticeChallengeView
             {
@@ -113,43 +112,5 @@ internal class SearchPracticeChallengesHandler
         }
 
         return new SearchPracticeChallengesResult { Results = pagedResults };
-    }
-
-    /// <summary>
-    /// Load the transformed query results from the database. (Broken out into its own function for unit testing.)
-    /// </summary>
-    /// <param name="filterTerm"></param>
-    /// <param name="sluggedSuggestedSearches"></param>
-    /// <returns></returns>
-    internal async Task<IQueryable<Data.ChallengeSpec>> BuildQuery(string filterTerm, IEnumerable<string> sluggedSuggestedSearches)
-    {
-        var canViewHidden = await _permissionsService.Can(PermissionKey.Games_ViewUnpublished);
-
-        var q = _store
-            .WithNoTracking<Data.ChallengeSpec>()
-            .Where(s => s.Game.PlayerMode == PlayerMode.Practice)
-            .Where(s => !s.Disabled);
-
-        if (!canViewHidden)
-        {
-            // without the permission, neither spec nor the game can be hidden
-            q = q
-                .Where(s => !s.IsHidden)
-                .Where(s => s.Game.IsPublished);
-        }
-
-        if (filterTerm.IsNotEmpty())
-        {
-            q = q.Where(s => s.TextSearchVector.Matches(filterTerm) || s.Game.TextSearchVector.Matches(filterTerm));
-            q = q.OrderByDescending(s => s.TextSearchVector.Rank(EF.Functions.PlainToTsQuery(filterTerm)))
-                .ThenByDescending(s => s.Game.TextSearchVector.Rank(EF.Functions.PlainToTsQuery(filterTerm)))
-                .ThenBy(s => s.Name);
-        }
-        else
-        {
-            q = q.OrderBy(s => s.Name);
-        }
-
-        return q;
     }
 }

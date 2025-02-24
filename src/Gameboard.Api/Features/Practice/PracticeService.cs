@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Practice;
@@ -17,8 +18,17 @@ public interface IPracticeService
     // are unavailable when requested
     Task<CanPlayPracticeChallengeResult> GetCanDeployChallenge(string userId, string challengeSpecId, CancellationToken cancellationToken);
     Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, DateTimeOffset currentSessionEnd, CancellationToken cancellationToken);
+    Task<IQueryable<Data.ChallengeSpec>> GetPracticeChallengesQueryBase(string filterTerm);
     Task<PracticeModeSettingsApiModel> GetSettings(CancellationToken cancellationToken);
     Task<Data.Player> GetUserActivePracticeSession(string userId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Returns a summary of all of the requested user's practice activity (with one challengespec object per challenge they've ever attempted
+    /// at least once)
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
     Task<UserPracticeHistoryChallenge[]> GetUserPracticeHistory(string userId, CancellationToken cancellationToken);
     Task<IEnumerable<string>> GetVisibleChallengeTags(CancellationToken cancellationToken);
     Task<IEnumerable<string>> GetVisibleChallengeTags(IEnumerable<string> requestedTags, CancellationToken cancellationToken);
@@ -38,6 +48,7 @@ internal partial class PracticeService
     IGuidService guids,
     IMapper mapper,
     INowService now,
+    IUserRolePermissionsService permissionsService,
     ISlugService slugService,
     IStore store
 ) : IPracticeService
@@ -45,6 +56,7 @@ internal partial class PracticeService
     private readonly IGuidService _guids = guids;
     private readonly IMapper _mapper = mapper;
     private readonly INowService _now = now;
+    private readonly IUserRolePermissionsService _permissions = permissionsService;
     private readonly ISlugService _slugService = slugService;
     private readonly IStore _store = store;
 
@@ -109,6 +121,43 @@ internal partial class PracticeService
         return CanPlayPracticeChallengeResult.Yes;
     }
 
+    /// <summary>
+    /// Load the transformed query results from the database.
+    /// </summary>
+    /// <param name="filterTerm"></param>
+    /// <returns></returns>
+    public async Task<IQueryable<Data.ChallengeSpec>> GetPracticeChallengesQueryBase(string filterTerm)
+    {
+        var canViewHidden = await _permissions.Can(PermissionKey.Games_ViewUnpublished);
+
+        var q = _store
+            .WithNoTracking<Data.ChallengeSpec>()
+            .Where(s => s.Game.PlayerMode == PlayerMode.Practice)
+            .Where(s => !s.Disabled);
+
+        if (!canViewHidden)
+        {
+            // without the permission, neither spec nor the game can be hidden
+            q = q
+                .Where(s => !s.IsHidden)
+                .Where(s => s.Game.IsPublished);
+        }
+
+        if (filterTerm.IsNotEmpty())
+        {
+            q = q.Where(s => s.TextSearchVector.Matches(filterTerm) || s.Game.TextSearchVector.Matches(filterTerm));
+            q = q.OrderByDescending(s => s.TextSearchVector.Rank(EF.Functions.PlainToTsQuery(filterTerm)))
+                .ThenByDescending(s => s.Game.TextSearchVector.Rank(EF.Functions.PlainToTsQuery(filterTerm)))
+                .ThenBy(s => s.Name);
+        }
+        else
+        {
+            q = q.OrderBy(s => s.Name);
+        }
+
+        return q;
+    }
+
     public Task<Data.Player> GetUserActivePracticeSession(string userId, CancellationToken cancellationToken)
         => GetActivePracticeSessionsQueryBase()
             .Where(p => p.UserId == userId)
@@ -129,17 +178,16 @@ internal partial class PracticeService
             .Where(c => c.PlayerMode == PlayerMode.Practice)
             .Where(c => specs.Contains(c.SpecId))
             .Where(c => c.Score > 0)
-            .GroupBy(c => new { c.Name, c.SpecId })
+            .GroupBy(c => new { c.SpecId })
             .Select(gr => new UserPracticeHistoryChallenge
             {
-                ChallengeName = gr.Key.Name,
+                ChallengeName = gr.OrderByDescending(c => c.Score).First().Name,
                 ChallengeSpecId = gr.Key.SpecId,
                 AttemptCount = gr.Count(),
                 BestAttemptDate = gr.OrderByDescending(c => c.Score).First().StartTime,
                 BestAttemptScore = gr.OrderByDescending(c => c.Score).First().Score,
                 ChallengeId = gr.OrderByDescending(c => c.Score).First().Id,
                 IsComplete = gr.OrderByDescending(c => c.Score).First().Score >= gr.OrderByDescending(c => c.Score).First().Points
-
             })
             .ToArrayAsync(cancellationToken);
     }

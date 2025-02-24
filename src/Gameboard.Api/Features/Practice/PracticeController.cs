@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
+using Gameboard.Api.Features.Practice.Requests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -40,6 +41,11 @@ public class PracticeController(IActingUserService actingUserService, IMediator 
     [Route("user/{userId}/history")]
     public Task<UserPracticeHistoryChallenge[]> GetUserPracticeHistory([FromRoute] string userId, CancellationToken cancellationToken)
         => _mediator.Send(new GetUserPracticeHistoryQuery(userId), cancellationToken);
+
+    [HttpGet]
+    [Route("user/{userId}/summary")]
+    public Task<GetUserPracticeSummaryResponse> GetUserPracticeSummary([FromRoute] string userId, CancellationToken cancellationToken)
+        => _mediator.Send(new GetUserPracticeSummaryRequest(userId), cancellationToken);
 
     [HttpPut]
     [Route("settings")]
