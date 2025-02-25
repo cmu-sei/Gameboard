@@ -108,7 +108,8 @@ internal class SearchPracticeChallengesHandler
 
         if (filterTerm.IsNotEmpty())
         {
-            q = q.Where(s => s.TextSearchVector.Matches(filterTerm) || s.Game.TextSearchVector.Matches(filterTerm));
+            filterTerm = filterTerm.Trim().ToLower();
+            q = q.Where(s => s.TextSearchVector.Matches(filterTerm) || s.Game.TextSearchVector.Matches(filterTerm) || (sluggedSuggestedSearches.Contains(filterTerm) && s.Tags.Contains(filterTerm)));
             q = q.OrderByDescending(s => s.TextSearchVector.Rank(EF.Functions.PlainToTsQuery(filterTerm)))
                 .ThenByDescending(s => s.Game.TextSearchVector.Rank(EF.Functions.PlainToTsQuery(filterTerm)));
         }
