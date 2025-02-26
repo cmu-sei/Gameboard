@@ -3,35 +3,29 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
-using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
-using Gameboard.Api.Features.Users;
 using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Practice;
 
-public record SearchPracticeChallengesQuery(SearchFilter Filter, bool? IsCompleted) : IRequest<SearchPracticeChallengesResult>;
+public record SearchPracticeChallengesQuery(SearchFilter Filter, SearchPracticeChallengesRequestUserProgress? UserProgress = default) : IRequest<SearchPracticeChallengesResult>;
 
 internal class SearchPracticeChallengesHandler
 (
     IActingUserService actingUser,
     IChallengeDocsService challengeDocsService,
     IPagingService pagingService,
-    IUserRolePermissionsService permissionsService,
     IPracticeService practiceService,
-    ISlugService slugger,
-    IStore store
+    ISlugService slugger
 ) : IRequestHandler<SearchPracticeChallengesQuery, SearchPracticeChallengesResult>
 {
     private readonly IActingUserService _actingUser = actingUser;
     private readonly IChallengeDocsService _challengeDocsService = challengeDocsService;
     private readonly IPagingService _pagingService = pagingService;
-    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
     private readonly IPracticeService _practiceService = practiceService;
     private readonly ISlugService _slugger = slugger;
-    private readonly IStore _store = store;
 
     public async Task<SearchPracticeChallengesResult> Handle(SearchPracticeChallengesQuery request, CancellationToken cancellationToken)
     {
@@ -84,6 +78,40 @@ internal class SearchPracticeChallengesHandler
             result.Text = _challengeDocsService.ReplaceRelativeUris(result.Text);
         }
 
+        // append historical data
+        if (userHistory.Length != 0)
+        {
+            foreach (var challenge in results)
+            {
+                var challengeHistory = userHistory.FirstOrDefault(h => h.ChallengeSpecId == challenge.Id);
+
+                challenge.UserBestAttempt = new PracticeChallengeViewUserHistory
+                {
+                    AttemptCount = challengeHistory?.AttemptCount ?? 0,
+                    BestAttemptDate = challengeHistory?.BestAttemptDate ?? default(DateTimeOffset?),
+                    BestAttemptScore = challengeHistory?.BestAttemptScore ?? default(double?),
+                    IsComplete = challengeHistory?.IsComplete ?? false
+                };
+            }
+        }
+
+        // filter by complete if requested
+        if (request.UserProgress.HasValue)
+        {
+            switch (request.UserProgress.Value)
+            {
+                case SearchPracticeChallengesRequestUserProgress.NotAttempted:
+                    results = [.. results.Where(c => c.UserBestAttempt?.BestAttemptDate == default)];
+                    break;
+                case SearchPracticeChallengesRequestUserProgress.Attempted:
+                    results = [.. results.Where(c => c.UserBestAttempt?.BestAttemptDate != default && !c.UserBestAttempt.IsComplete)];
+                    break;
+                case SearchPracticeChallengesRequestUserProgress.Completed:
+                    results = [.. results.Where(c => c.UserBestAttempt is not null && c.UserBestAttempt.IsComplete)];
+                    break;
+            }
+        }
+
         // resolve paging arguments
         var pageSize = request.Filter.Take > 0 ? request.Filter.Take : 100;
         var pageNumber = request.Filter.Skip / pageSize;
@@ -93,23 +121,6 @@ internal class SearchPracticeChallengesHandler
             PageNumber = pageNumber,
             PageSize = pageSize
         });
-
-        // append historical data
-        if (userHistory.Length != 0)
-        {
-            foreach (var challenge in pagedResults.Items)
-            {
-                var challengeHistory = userHistory.FirstOrDefault(h => h.ChallengeSpecId == challenge.Id);
-
-                challenge.UserBestAttempt = new PracticeChallengeViewUserHistory
-                {
-                    AttemptCount = challengeHistory?.AttemptCount ?? 0,
-                    BestAttemptDate = challengeHistory?.BestAttemptDate ?? default,
-                    BestAttemptScore = challengeHistory?.BestAttemptScore ?? default,
-                    IsComplete = challengeHistory?.IsComplete ?? false
-                };
-            }
-        }
 
         return new SearchPracticeChallengesResult { Results = pagedResults };
     }

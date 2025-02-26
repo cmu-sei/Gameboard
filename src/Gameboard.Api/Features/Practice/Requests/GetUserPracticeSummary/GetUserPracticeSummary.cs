@@ -44,7 +44,6 @@ internal sealed class GetUserPracticeSummaryHandler
             })
             .ToArrayAsync(cancellationToken);
 
-        var allTags = allPracticeChallenges.SelectMany(c => challengesService.GetTags(c.Tags)).Distinct();
         var tagEngagement = new Dictionary<string, UserPracticeSummaryResponseTagEngagement>();
         var countAttempted = 0;
         var countCompleted = 0;
@@ -62,6 +61,11 @@ internal sealed class GetUserPracticeSummaryHandler
             // add/increment all tag counts
             foreach (var tag in challengesService.GetTags(challenge.Tags))
             {
+                if (!practiceSettings.SuggestedSearches.Contains(tag))
+                {
+                    continue;
+                }
+
                 if (!tagEngagement.TryGetValue(tag, out var engagement))
                 {
                     engagement = new UserPracticeSummaryResponseTagEngagement
@@ -82,6 +86,7 @@ internal sealed class GetUserPracticeSummaryHandler
 
                 if (userChallengeHistory is not null)
                 {
+                    countAttempted += 1;
                     engagement.CountAttempted += 1;
                     engagement.PointsScored += userChallengeHistory.BestAttemptScore ?? 0;
                     totalPointsScored += userChallengeHistory?.BestAttemptScore ?? 0;
@@ -102,7 +107,18 @@ internal sealed class GetUserPracticeSummaryHandler
             CountCompleted = countCompleted,
             PointsAvailable = totalPointsAvailable,
             PointsScored = totalPointsScored,
-            Tags = [.. tagEngagement.OrderByDescending(kv => kv.Value.CountCompleted).Select(kv => kv.Value)]
+            TagsPlayed = [..
+                tagEngagement
+                    .OrderByDescending(kv => kv.Value.CountCompleted)
+                    .Select(kv => kv.Value)
+                    .Where(kv => kv.CountAttempted > 0)
+            ],
+            TagsUnplayed = [..
+                allPracticeChallenges
+                    .SelectMany(c => challengesService.GetTags(c.Tags))
+                    .Where(t => practiceSettings.SuggestedSearches.Contains(t))
+                    .Where(t => !tagEngagement.ContainsKey(t) || tagEngagement[t].CountAttempted == 0)
+            ]
         };
     }
 }

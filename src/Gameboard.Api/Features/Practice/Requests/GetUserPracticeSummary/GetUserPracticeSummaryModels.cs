@@ -7,7 +7,8 @@ public sealed class GetUserPracticeSummaryResponse
     public required int CountCompleted { get; set; }
     public required double PointsAvailable { get; set; }
     public required double PointsScored { get; set; }
-    public required UserPracticeSummaryResponseTagEngagement[] Tags { get; set; }
+    public required UserPracticeSummaryResponseTagEngagement[] TagsPlayed { get; set; }
+    public required string[] TagsUnplayed { get; set; }
 }
 
 public sealed class UserPracticeSummaryResponseTagEngagement

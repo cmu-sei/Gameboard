@@ -3,6 +3,15 @@ using System.Collections.Generic;
 
 namespace Gameboard.Api.Features.Practice;
 
+public record SearchPracticeChallengesRequest(SearchFilter Term, SearchPracticeChallengesRequestUserProgress? Progress = default);
+
+public enum SearchPracticeChallengesRequestUserProgress
+{
+    NotAttempted,
+    Attempted,
+    Completed
+}
+
 public sealed class SearchPracticeChallengesResult
 {
     public required PagedEnumerable<PracticeChallengeView> Results { get; set; }

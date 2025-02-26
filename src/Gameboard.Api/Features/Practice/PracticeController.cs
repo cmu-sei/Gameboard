@@ -19,13 +19,13 @@ public class PracticeController(IActingUserService actingUserService, IMediator 
     /// <summary>
     /// Search challenges within games that have been set to Practice mode.
     /// </summary>
-    /// <param name="model"></param>
-    /// <param name="isCompleted">Whether or not the challenge has ever been completed by the current user (in practice mode).</param>
+    /// <param name="filter"></param>
+    /// <param name="userProgress">Whether or not the challenge has ever been attempted/completed by the current user (in practice mode).</param>
     /// <returns></returns>
     [HttpGet]
     [AllowAnonymous]
-    public Task<SearchPracticeChallengesResult> Browse([FromQuery] SearchFilter model, [FromQuery] bool? isCompleted = null)
-        => _mediator.Send(new SearchPracticeChallengesQuery(model, isCompleted));
+    public Task<SearchPracticeChallengesResult> Search([FromQuery] SearchFilter filter, [FromQuery] SearchPracticeChallengesRequestUserProgress? userProgress = null)
+        => _mediator.Send(new SearchPracticeChallengesQuery(filter, userProgress));
 
     [HttpGet("session")]
     public Task<PracticeSession> GetPracticeSession()
@@ -37,6 +37,11 @@ public class PracticeController(IActingUserService actingUserService, IMediator 
     public Task<PracticeModeSettingsApiModel> GetSettings()
         => _mediator.Send(new GetPracticeModeSettingsQuery(_actingUserService.Get()));
 
+    [HttpPut]
+    [Route("settings")]
+    public Task UpdateSettings([FromBody] PracticeModeSettingsApiModel settings)
+        => _mediator.Send(new UpdatePracticeModeSettingsCommand(settings, _actingUserService.Get()));
+
     [HttpGet]
     [Route("user/{userId}/history")]
     public Task<UserPracticeHistoryChallenge[]> GetUserPracticeHistory([FromRoute] string userId, CancellationToken cancellationToken)
@@ -46,9 +51,4 @@ public class PracticeController(IActingUserService actingUserService, IMediator 
     [Route("user/{userId}/summary")]
     public Task<GetUserPracticeSummaryResponse> GetUserPracticeSummary([FromRoute] string userId, CancellationToken cancellationToken)
         => _mediator.Send(new GetUserPracticeSummaryRequest(userId), cancellationToken);
-
-    [HttpPut]
-    [Route("settings")]
-    public Task UpdateSettings([FromBody] PracticeModeSettingsApiModel settings)
-        => _mediator.Send(new UpdatePracticeModeSettingsCommand(settings, _actingUserService.Get()));
 }
