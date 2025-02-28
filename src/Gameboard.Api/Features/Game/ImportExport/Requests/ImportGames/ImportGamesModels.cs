@@ -1,6 +1,14 @@
 using Gameboard.Api.Structure;
+using Microsoft.AspNetCore.Http;
 
 namespace Gameboard.Api.Features.Games;
+
+public sealed class ImportGamesRequest
+{
+    public string DelimitedGameIds { get; set; }
+    public required IFormFile PackageFile { get; set; }
+    public string SetGamesPublishStatus { get; set; }
+}
 
 public record ImportGamesResponse(ImportedGame[] ImportedGames);
 

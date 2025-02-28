@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.games;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Games.ImportExport;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Users;
@@ -164,7 +165,6 @@ namespace Gameboard.Api.Controllers
             => _mediator.Send(new DeleteExportBatchCommand(exportBatchId), cancellationToken);
 
         [HttpGet("/api/games/export-batches/{exportBatchId}")]
-        [ProducesResponseType(typeof(FileContentResult), 200)]
         public async Task<FileContentResult> DownloadExportPackage(string exportBatchId, CancellationToken cancellationToken)
         {
             var bytes = await _mediator.Send(new DownloadExportPackageRequest(exportBatchId), cancellationToken);
@@ -172,17 +172,32 @@ namespace Gameboard.Api.Controllers
         }
 
         [HttpPost("/api/games/import")]
-        public async Task<ImportedGame[]> ImportGames([FromForm] IFormFile packageFile, CancellationToken cancellationToken)
+        public async Task<ImportedGame[]> ImportGames([FromForm] ImportGamesRequest request, CancellationToken cancellationToken)
         {
-            var package = Array.Empty<byte>();
+            var package = await request.PackageFile.ToBytes(cancellationToken);
 
-            using (var memoryStream = new MemoryStream())
+            // the gameIds are passed as a comma-delimited string (because the request accepts formdata)
+            var parsedGameIds = Array.Empty<string>();
+            if (request.DelimitedGameIds.IsNotEmpty())
             {
-                await packageFile.CopyToAsync(memoryStream, cancellationToken);
-                package = memoryStream.GetBufferAsBytes();
+                parsedGameIds = request.DelimitedGameIds.Split(',');
             }
 
-            return await _mediator.Send(new ImportGamesCommand(package), cancellationToken);
+            // TODO: should do a nullable boolean JsonConverter at some point, but
+            var setPublishStatus = default(bool?);
+            if (request.SetGamesPublishStatus is not null)
+            {
+                setPublishStatus = request.SetGamesPublishStatus.Equals("true", StringComparison.CurrentCultureIgnoreCase);
+            }
+
+            return await _mediator.Send(new ImportGamesCommand(package, parsedGameIds, setPublishStatus), cancellationToken);
+        }
+
+        [HttpPost("/api/games/import/preview")]
+        public async Task<GameImportExportBatch> PreviewImportPackage([FromForm] IFormFile packageFile, CancellationToken cancellationToken)
+        {
+            var package = await packageFile.ToBytes(cancellationToken);
+            return await _mediator.Send(new PreviewImportPackageQuery(package), cancellationToken);
         }
 
         [HttpGet("/api/game/{gameId}/team/{teamId}/gamespace-limit")]
