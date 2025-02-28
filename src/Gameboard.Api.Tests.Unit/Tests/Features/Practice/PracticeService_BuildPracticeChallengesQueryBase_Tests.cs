@@ -28,7 +28,7 @@ public class PracticeService_BuildPracticeChallengesQueryBase_Tests
             }
         };
 
-        var sut = GetSutWithResults(fixture, disabledSpec);
+        var sut = GetSutWithResults(disabledSpec);
 
         // when a query for all challenges is issued
         var query = await sut.GetPracticeChallengesQueryBase(string.Empty);
@@ -57,7 +57,7 @@ public class PracticeService_BuildPracticeChallengesQueryBase_Tests
             }
         };
 
-        var sut = GetSutWithResults(fixture, enabledSpec);
+        var sut = GetSutWithResults(enabledSpec);
 
         // when a query for all challenges is issued
         var query = await sut.GetPracticeChallengesQueryBase(string.Empty);
@@ -67,7 +67,7 @@ public class PracticeService_BuildPracticeChallengesQueryBase_Tests
         result.Length.ShouldBe(1);
     }
 
-    private PracticeService GetSutWithResults(IFixture fixture, params Data.ChallengeSpec[] specs)
+    private PracticeService GetSutWithResults(params Data.ChallengeSpec[] specs)
     {
         var queryResults = specs.BuildMock();
 
@@ -80,6 +80,7 @@ public class PracticeService_BuildPracticeChallengesQueryBase_Tests
         (
             new CoreOptions(),
             A.Fake<IGuidService>(),
+            A.Fake<ILockService>(),
             A.Fake<IMapper>(),
             A.Fake<INowService>(),
             A.Fake<IUserRolePermissionsService>(),

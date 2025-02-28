@@ -22,6 +22,7 @@ public sealed class PracticeSession
 
 public sealed class PracticeModeSettingsApiModel
 {
+    public required string Id { get; set; }
     public int? AttemptLimit { get; set; }
     public string CertificateTemplateId { get; set; }
     public required int DefaultPracticeSessionLengthMinutes { get; set; }

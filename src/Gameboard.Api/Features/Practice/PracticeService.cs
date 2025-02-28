@@ -47,6 +47,7 @@ internal partial class PracticeService
 (
     CoreOptions coreOptions,
     IGuidService guids,
+    ILockService lockService,
     IMapper mapper,
     INowService now,
     IUserRolePermissionsService permissionsService,
@@ -56,6 +57,7 @@ internal partial class PracticeService
 {
     private readonly CoreOptions _coreOptions = coreOptions;
     private readonly IGuidService _guids = guids;
+    private readonly ILockService _lockService = lockService;
     private readonly IMapper _mapper = mapper;
     private readonly INowService _now = now;
     private readonly IUserRolePermissionsService _permissions = permissionsService;
@@ -197,6 +199,7 @@ internal partial class PracticeService
 
     public async Task<PracticeModeSettingsApiModel> GetSettings(CancellationToken cancellationToken)
     {
+        using var settingsLock = await _lockService.GetArbitraryLock($"{nameof(PracticeService)}.{nameof(GetSettings)}").LockAsync(cancellationToken);
         var settings = await _store.FirstOrDefaultAsync<PracticeModeSettings>(cancellationToken);
 
         // if we don't have any settings, make up some defaults (and save them)
