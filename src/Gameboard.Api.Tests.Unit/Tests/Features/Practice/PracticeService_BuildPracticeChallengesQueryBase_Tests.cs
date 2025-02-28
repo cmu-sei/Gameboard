@@ -78,6 +78,7 @@ public class PracticeService_BuildPracticeChallengesQueryBase_Tests
 
         return new PracticeService
         (
+            new CoreOptions(),
             A.Fake<IGuidService>(),
             A.Fake<IMapper>(),
             A.Fake<INowService>(),

@@ -45,6 +45,7 @@ public enum CanPlayPracticeChallengeResult
 
 internal partial class PracticeService
 (
+    CoreOptions coreOptions,
     IGuidService guids,
     IMapper mapper,
     INowService now,
@@ -53,6 +54,7 @@ internal partial class PracticeService
     IStore store
 ) : IPracticeService
 {
+    private readonly CoreOptions _coreOptions = coreOptions;
     private readonly IGuidService _guids = guids;
     private readonly IMapper _mapper = mapper;
     private readonly INowService _now = now;
@@ -71,12 +73,13 @@ internal partial class PracticeService
         if (input.IsEmpty())
             return [];
 
-        return CommonRegexes
-            .WhitespaceGreedy
-            .Split(input)
-            .Select(m => m.Trim().ToLower())
-            .Where(m => m.IsNotEmpty())
-            .ToArray();
+        return [..
+            CommonRegexes
+                .WhitespaceGreedy
+                .Split(input)
+                .Select(m => m.Trim().ToLower())
+                .Where(m => m.IsNotEmpty())
+        ];
     }
 
     public async Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, DateTimeOffset currentSessionEnd, CancellationToken cancellationToken)
@@ -145,9 +148,9 @@ internal partial class PracticeService
 
         if (filterTerm.IsNotEmpty())
         {
-            q = q.Where(s => s.TextSearchVector.Matches(filterTerm) || s.Game.TextSearchVector.Matches(filterTerm));
-            q = q.OrderByDescending(s => s.TextSearchVector.Rank(EF.Functions.PlainToTsQuery(filterTerm)))
-                .ThenByDescending(s => s.Game.TextSearchVector.Rank(EF.Functions.PlainToTsQuery(filterTerm)))
+            q = q.Where(s => s.TextSearchVector.Matches(EF.Functions.PlainToTsQuery("english", filterTerm)) || s.Game.TextSearchVector.Matches(EF.Functions.PlainToTsQuery("english", filterTerm)));
+            q = q.OrderByDescending(s => s.TextSearchVector.Rank(EF.Functions.PlainToTsQuery("english", filterTerm)))
+                .ThenByDescending(s => s.Game.TextSearchVector.Rank(EF.Functions.PlainToTsQuery("english", filterTerm)))
                 .ThenBy(s => s.Name);
         }
         else
@@ -196,10 +199,11 @@ internal partial class PracticeService
     {
         var settings = await _store.FirstOrDefaultAsync<PracticeModeSettings>(cancellationToken);
 
-        // if we don't have any settings, make up some defaults
+        // if we don't have any settings, make up some defaults (and save them)
         if (settings is null)
         {
-            return _mapper.Map<PracticeModeSettingsApiModel>(GetDefaultSettings());
+            settings = GetDefaultSettings();
+            await _store.SaveAddRange(settings);
         }
 
         var apiModel = _mapper.Map<PracticeModeSettingsApiModel>(settings);
@@ -240,7 +244,7 @@ internal partial class PracticeService
         // force a value for default session length, becaues it's required
         if (settings.DefaultPracticeSessionLengthMinutes <= 0)
         {
-            settings.DefaultPracticeSessionLengthMinutes = 60;
+            settings.DefaultPracticeSessionLengthMinutes = _coreOptions.PracticeDefaultSessionLength;
         }
 
         await _store.SaveUpdate(settings, cancellationToken);
@@ -261,7 +265,7 @@ internal partial class PracticeService
     private PracticeModeSettings GetDefaultSettings()
         => new()
         {
-            DefaultPracticeSessionLengthMinutes = 60,
-            MaxPracticeSessionLengthMinutes = 240,
+            DefaultPracticeSessionLengthMinutes = _coreOptions.PracticeDefaultSessionLength,
+            MaxPracticeSessionLengthMinutes = _coreOptions.PracticeMaxSessionLength,
         };
 }
