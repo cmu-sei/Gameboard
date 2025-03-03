@@ -58,6 +58,9 @@ internal sealed class GetUserPracticeSummaryHandler
             // has the user tried this one?
             var userChallengeHistory = userHistory.SingleOrDefault(c => c.ChallengeSpecId == challenge.Id);
 
+            // update total points scored if played
+            totalPointsScored += userChallengeHistory?.BestAttemptScore ?? 0;
+
             // add/increment all tag counts
             foreach (var tag in challengesService.GetTags(challenge.Tags))
             {
@@ -89,7 +92,6 @@ internal sealed class GetUserPracticeSummaryHandler
                     countAttempted += 1;
                     engagement.CountAttempted += 1;
                     engagement.PointsScored += userChallengeHistory.BestAttemptScore ?? 0;
-                    totalPointsScored += userChallengeHistory?.BestAttemptScore ?? 0;
 
                     if (userChallengeHistory.IsComplete)
                     {

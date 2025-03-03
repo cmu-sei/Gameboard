@@ -444,6 +444,7 @@ internal sealed class GameImportExportService
                 .Values
                 .Select(t => new CertificateTemplate
                 {
+                    Id = t.Id,
                     Content = t.Content,
                     CreatedByUserId = actingUser.Id,
                     Name = t.Name
@@ -470,6 +471,7 @@ internal sealed class GameImportExportService
                     .Values
                     .Select(h => new ExternalGameHost
                     {
+                        Id = h.Id,
                         ClientUrl = h.ClientUrl,
                         DestroyResourcesOnDeployFailure = h.DestroyResourcesOnDeployFailure,
                         GamespaceDeployBatchSize = h.GamespaceDeployBatchSize,
@@ -490,6 +492,7 @@ internal sealed class GameImportExportService
             .Values
             .Select(t => new FeedbackTemplate
             {
+                Id = t.Id,
                 Content = t.Content,
                 CreatedByUserId = actingUser.Id,
                 HelpText = t.HelpText,
@@ -508,6 +511,7 @@ internal sealed class GameImportExportService
                     .Values
                     .Select(s => new Data.Sponsor
                     {
+                        Id = s.Id,
                         Approved = s.Approved,
                         Logo = s.LogoFileName,
                         Name = s.Name,
