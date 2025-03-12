@@ -13,24 +13,12 @@ public interface ISupportHubBus
     Task SendTicketUpdatedByUser(Ticket ticket, User updatedBy);
 }
 
-internal class SupportHubBus : ISupportHubBus, IGameboardHubService
+internal class SupportHubBus
+(
+    IHubContext<SupportHub, ISupportHubEvent> hubContext,
+    ITicketAttachedUsersProvider ticketAttachedUsersProvider
+) : ISupportHubBus, IGameboardHubService
 {
-    private readonly IHubContext<SupportHub, ISupportHubEvent> _hubContext;
-    private readonly IUserIdProvider _userIdProvider;
-    private readonly ITicketAttachedUsersProvider _ticketAttachedUsersProvider;
-
-    public SupportHubBus
-    (
-        IHubContext<SupportHub, ISupportHubEvent> hubContext,
-        ITicketAttachedUsersProvider ticketAttachedUsersProvider,
-        IUserIdProvider userIdProvider
-    )
-    {
-        _hubContext = hubContext;
-        _ticketAttachedUsersProvider = ticketAttachedUsersProvider;
-        _userIdProvider = userIdProvider;
-    }
-
     public GameboardHubType GroupType => GameboardHubType.Support;
 
     public async Task SendTicketClosed(Ticket ticket, User closedBy)
@@ -41,14 +29,14 @@ internal class SupportHubBus : ISupportHubBus, IGameboardHubService
             Ticket = ToHubModel(ticket)
         };
 
-        var attachedUsers = await _ticketAttachedUsersProvider.GetAttachedUsers(ticket.Id);
+        var attachedUsers = await ticketAttachedUsersProvider.GetAttachedUsers(ticket.Id);
         var attachedUserIds = attachedUsers
             .Select(u => u.Id)
             // ignore the person instigating the event
             .Where(uId => uId != closedBy.Id)
             .ToArray();
 
-        await _hubContext
+        await hubContext
             .Clients
             .Users(attachedUserIds)
             .TicketClosed(new SupportHubEvent<TicketClosedEvent>
@@ -61,9 +49,9 @@ internal class SupportHubBus : ISupportHubBus, IGameboardHubService
     public async Task SendTicketCreated(Ticket ticket)
     {
         var evData = new TicketCreatedEvent { Ticket = ToHubModel(ticket) };
-        var attachedUsers = await _ticketAttachedUsersProvider.GetAttachedUsers(ticket.Id);
+        var attachedUsers = await ticketAttachedUsersProvider.GetAttachedUsers(ticket.Id);
 
-        await _hubContext
+        await hubContext
             .Clients
             .Users(attachedUsers.Select(u => u.Id).Where(uId => uId != ticket.CreatorId))
             .TicketCreated(new SupportHubEvent<TicketCreatedEvent>
@@ -81,9 +69,9 @@ internal class SupportHubBus : ISupportHubBus, IGameboardHubService
             Ticket = ToHubModel(ticket)
         };
 
-        var notifyUserIds = await _ticketAttachedUsersProvider.GetAttachedUsers(ticket.Id);
+        var notifyUserIds = await ticketAttachedUsersProvider.GetAttachedUsers(ticket.Id);
 
-        await _hubContext
+        await hubContext
             .Clients
             .Users(notifyUserIds.Where(u => u.Id != updatedBy.Id).Select(u => u.Id))
             .TicketUpdatedBySupport(new SupportHubEvent<TicketUpdatedEvent>
@@ -101,9 +89,9 @@ internal class SupportHubBus : ISupportHubBus, IGameboardHubService
             Ticket = ToHubModel(ticket)
         };
 
-        var notifyUserIds = await _ticketAttachedUsersProvider.GetAttachedUsers(ticket.Id);
+        var notifyUserIds = await ticketAttachedUsersProvider.GetAttachedUsers(ticket.Id);
 
-        await _hubContext
+        await hubContext
             .Clients
             .Users(notifyUserIds.Where(u => u.Id != updatedBy.Id).Select(u => u.Id))
             .TicketUpdatedByUser(new SupportHubEvent<TicketUpdatedEvent>
