@@ -30,7 +30,7 @@ public class UserClaimsTransformationTests
         A.CallTo(() => store.WithNoTracking<Data.User?>())
             .Returns(Array.Empty<Data.User>().BuildMock());
 
-        var sut = new UserClaimTransformation(cache, mapper, sponsorService, store, A.Fake<IUserRolePermissionsService>());
+        var sut = new UserClaimTransformation(cache, mapper, new OidcOptions(), sponsorService, store, A.Fake<IUserRolePermissionsService>());
         var claimsPrincipal = new ClaimsPrincipal();
         claimsPrincipal.AddIdentity(new ClaimsIdentity(new Claim(AppConstants.SubjectClaimName, userId).ToEnumerable()));
 

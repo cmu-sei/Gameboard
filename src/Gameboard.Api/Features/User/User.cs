@@ -19,6 +19,7 @@ public class User
     public string ApprovedName { get; set; }
     public UserRoleKey Role { get; set; }
     public IEnumerable<PermissionKey> RolePermissions { get; set; } = [];
+    public string Email { get; set; }
     public Player[] Enrollments { get; set; }
     public DateTimeOffset CreatedOn { get; set; }
     public DateTimeOffset? LastLoginDate { get; set; }

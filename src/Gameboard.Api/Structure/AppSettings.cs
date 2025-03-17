@@ -11,17 +11,17 @@ namespace Gameboard.Api;
 
 public class AppSettings
 {
-    public string PathBase { get; set; }
     public ApiKeyOptions ApiKey { get; set; } = new ApiKeyOptions();
-    public OidcOptions Oidc { get; set; } = new OidcOptions();
     public CacheOptions Cache { get; set; } = new CacheOptions();
     public CoreOptions Core { get; set; } = new CoreOptions();
+    public CrucibleOptions Crucible { get; set; } = new CrucibleOptions();
     public DatabaseOptions Database { get; set; } = new DatabaseOptions();
+    public Defaults Defaults { get; set; } = new Defaults();
     public HeaderOptions Headers { get; set; } = new HeaderOptions();
     public LoggingSettings Logging { get; set; } = new LoggingSettings();
+    public OidcOptions Oidc { get; set; } = new OidcOptions();
     public OpenApiOptions OpenApi { get; set; } = new OpenApiOptions();
-    public Defaults Defaults { get; set; } = new Defaults();
-    public CrucibleOptions Crucible { get; set; } = new CrucibleOptions();
+    public string PathBase { get; set; }
 }
 
 public class ApiKeyOptions
@@ -45,8 +45,10 @@ public class OidcOptions
 {
     public string Authority { get; set; } = "http://localhost:5000";
     public string Audience { get; set; } = "gameboard-api";
+    public string DefaultUserNameClaimType { get; set; } = null;
     public int MksCookieMinutes { get; set; } = 60;
     public bool RequireHttpsMetadata { get; set; } = true;
+    public bool StoreUserEmails { get; set; } = false;
 }
 
 public class OpenIdClient

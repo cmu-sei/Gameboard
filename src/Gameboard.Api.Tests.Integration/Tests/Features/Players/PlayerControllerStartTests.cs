@@ -27,8 +27,8 @@ public class PlayerControllerStartTests(GameboardTestContext testContext) : ICla
                 g.GameEnd = DateTime.UtcNow.AddDays(-1);
                 g.Mode = GameEngineMode.Standard;
 
-                g.Players = new Data.Player[]
-                {
+                g.Players =
+                [
                     new()
                     {
                         Id = playerId,
@@ -41,7 +41,7 @@ public class PlayerControllerStartTests(GameboardTestContext testContext) : ICla
                             SponsorId = sponsorId,
                         }
                     }
-                };
+                ];
             });
         });
 

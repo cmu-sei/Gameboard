@@ -4,13 +4,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
-using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.Users;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -18,26 +19,26 @@ namespace Gameboard.Api.Services;
 
 public class UserService
 (
+    IActingUserService actingUserService,
+    IHttpContextAccessor httpContextAccessor,
     INowService now,
     SponsorService sponsorService,
     IStore store,
     IStore<Data.User> userStore,
     IMapper mapper,
     IMemoryCache cache,
-    INameService namesvc,
-    ITeamService teamService,
+    INameService nameService,
     IUserRolePermissionsService permissionsService
 )
 {
+    private readonly IMemoryCache _localCache = cache;
     private readonly IMapper _mapper = mapper;
+    private readonly INameService _nameSvc = nameService;
     private readonly INowService _now = now;
+    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
     private readonly SponsorService _sponsorService = sponsorService;
     private readonly IStore _store = store;
     private readonly IStore<Data.User> _userStore = userStore;
-    private readonly IMemoryCache _localcache = cache;
-    private readonly INameService _namesvc = namesvc;
-    private readonly ITeamService _teamService = teamService;
-    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
 
     /// <summary>
     /// If user exists update fields
@@ -79,10 +80,15 @@ public class UserService
 
         // if a specific sponsor is requested, try to set it
         if (model.SponsorId.IsNotEmpty())
+        {
             entity.SponsorId = await _store
                 .WithNoTracking<Data.Sponsor>()
                 .Select(s => s.Id)
                 .SingleOrDefaultAsync(sId => sId == model.SponsorId);
+        }
+
+        // if enabled, the email address will also be available via claims
+        entity.Email = httpContextAccessor.HttpContext?.User?.FindFirstValue(AppConstants.EmailClaimName);
 
         // if no sponsor was specified or if the specified one doesn't exist, use the default
         entity.SponsorId ??= (await _sponsorService.GetDefaultSponsor()).Id;
@@ -90,19 +96,11 @@ public class UserService
         // unless specifically told otherwise, we flag this user as needing to confirm their sponsor
         entity.HasDefaultSponsor = !model.UnsetDefaultSponsorFlag;
 
-        bool found = false;
-        var i = 0;
-        do
-        {
-            entity.ApprovedName = model.DefaultName.IsEmpty() ? _namesvc.GetRandomName() : model.DefaultName.Trim();
-            entity.Name = entity.ApprovedName;
+        // resolve a name and filter it through (imperfect) duplicate protection
+        entity.ApprovedName = await ResolveNewUserName(model);
 
-            // check uniqueness
-            found = await _userStore.AnyAsync(p => p.Id != entity.Id && p.ApprovedName == entity.Name);
-        } while (found && i++ < 20);
-
-        await _userStore.Create(entity);
-        _localcache.Remove(entity.Id);
+        await _store.SaveAddRange(entity);
+        _localCache.Remove(entity.Id);
 
         return new TryCreateUserResult
         {
@@ -113,7 +111,7 @@ public class UserService
 
     public async Task<User> Retrieve(string id)
     {
-        return await BuildUserDto(await _userStore.Retrieve(id));
+        return await BuildUserDto(await _store.WithNoTracking<Data.User>().SingleOrDefaultAsync(u => u.Id == id));
     }
 
     public async Task<User> Update(UpdateUser model, bool canAdminUsers)
@@ -157,9 +155,9 @@ public class UserService
         }
 
         await _userStore.Update(entity);
-        _localcache.Remove(entity.Id);
+        _localCache.Remove(entity.Id);
 
-        // if the user's sponsor change, update the sponsors of any player records they own which haven't actually
+        // if the user's sponsor changes, update the sponsors of any player records they own which haven't actually
         // started a session (https://github.com/cmu-sei/Gameboard/issues/326)
         if (sponsorUpdated)
         {
@@ -176,7 +174,7 @@ public class UserService
     public async Task Delete(string id)
     {
         await _store.Delete<Data.User>(id);
-        _localcache.Remove(id);
+        _localCache.Remove(id);
     }
 
     public async Task<IEnumerable<UserOnly>> List<TProject>(UserSearch model) where TProject : class
@@ -298,5 +296,42 @@ public class UserService
         var mapped = _mapper.Map<User>(user);
         mapped.RolePermissions = await _permissionsService.GetPermissions(user.Role);
         return mapped;
+    }
+
+    private async Task<string> ResolveNewUserName(NewUser newUser)
+    {
+        // if we've requested a specific name, roll with that
+        var tryName = newUser.DefaultName;
+
+        if (tryName.IsEmpty())
+        {
+            // if self-creating and has a default name claim type configured, try to read it out   
+            var actingUser = actingUserService.Get();
+            if (actingUser?.Id == newUser.Id)
+            {
+                tryName = actingUser.ApprovedName;
+            }
+        }
+
+        // fall back to a random name
+        if (tryName.IsEmpty())
+        {
+            tryName = _nameSvc.GetRandomName();
+        }
+
+        bool found = false;
+        var i = 0;
+        do
+        {
+            // check uniqueness
+            found = await _store.WithNoTracking<Data.User>().AnyAsync(u => u.Id != newUser.Id && u.ApprovedName == tryName);
+
+            if (found)
+            {
+                tryName = _nameSvc.GetRandomName();
+            }
+        } while (found && i++ < 20);
+
+        return tryName;
     }
 }

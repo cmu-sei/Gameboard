@@ -10,6 +10,7 @@ public static class AppConstants
     public const string SubjectClaimName = "sub";
     public const string NameClaimName = "name";
     public const string ApprovedNameClaimName = "verified_name";
+    public const string EmailClaimName = "email";
     public const string SponsorClaimName = "sponsor";
     public const string RoleClaimName = "role";
     public const string ConsolePolicy = "ConsolePolicy";

@@ -80,7 +80,8 @@ internal static class WebApplicationBuilderExtensions
         if (settings.OpenApi.Enabled)
             services.AddSwagger(settings.Oidc, settings.OpenApi);
 
-        services.AddDataProtection()
+        services
+            .AddDataProtection()
             .SetApplicationName(AppConstants.DataProtectionPurpose)
             .PersistKeys(() => settings.Cache);
 
@@ -89,6 +90,7 @@ internal static class WebApplicationBuilderExtensions
         services
             .AddSingleton(_ => settings.Core)
             .AddSingleton(_ => settings.Crucible)
+            .AddSingleton(_ => settings.Oidc)
             .AddGameboardData(builder.Environment, settings.Database)
             .AddGameboardMediatR()
             .AddGameboardServices(settings)

@@ -14,35 +14,20 @@ namespace Gameboard.Api.Features.Extensions;
 
 public interface IExtensionsService { }
 
-internal class ExtensionsService : IExtensionsService, INotificationHandler<ScoreChangedNotification>, INotificationHandler<TicketCreatedNotification>
+internal class ExtensionsService
+(
+    CoreOptions coreOptions,
+    IHttpClientFactory httpClientFactory,
+    IScoringService scoringService,
+    IStore store,
+    ITeamService teamService
+) : IExtensionsService, INotificationHandler<ScoreChangedNotification>, INotificationHandler<TicketCreatedNotification>
 {
-    private readonly CoreOptions _coreOptions;
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IScoringService _scoringService;
-    private readonly IStore _store;
-    private readonly ITeamService _teamService;
-
-    public ExtensionsService
-    (
-        CoreOptions coreOptions,
-        IHttpClientFactory httpClientFactory,
-        IScoringService scoringService,
-        IStore store,
-        ITeamService teamService
-    )
-    {
-        _coreOptions = coreOptions;
-        _httpClientFactory = httpClientFactory;
-        _scoringService = scoringService;
-        _store = store;
-        _teamService = teamService;
-    }
-
     public async Task Handle(ScoreChangedNotification notification, CancellationToken cancellationToken)
     {
-        var captain = await _teamService.ResolveCaptain(notification.TeamId, cancellationToken);
-        var score = await _scoringService.GetTeamScore(notification.TeamId, cancellationToken);
-        var game = await _store
+        var captain = await teamService.ResolveCaptain(notification.TeamId, cancellationToken);
+        var score = await scoringService.GetTeamScore(notification.TeamId, cancellationToken);
+        var game = await store
             .WithNoTracking<Data.Game>()
             .Select(g => new
             {
@@ -89,7 +74,7 @@ internal class ExtensionsService : IExtensionsService, INotificationHandler<Scor
 
     private async Task NotifyTicketCreated(TicketCreatedNotification ev, CancellationToken cancellationToken)
     {
-        var text = $"""{ev.Creator.Name} just sent us a new ticket ({ev.FullKey}): _"{ev.Title}"_. Head to [{_coreOptions.AppName}]({_coreOptions.AppUrl}/support/tickets/{ev.Key}) to check it out.""";
+        var text = $"""{ev.Creator.Name} just sent us a new ticket ({ev.FullKey}): _"{ev.Title}"_. Head to [{coreOptions.AppName}]({coreOptions.AppUrl}/support/tickets/{ev.Key}) to check it out.""";
         var extensions = await GetEnabledExtensions(cancellationToken);
 
         foreach (var extension in extensions)
@@ -99,7 +84,7 @@ internal class ExtensionsService : IExtensionsService, INotificationHandler<Scor
     private async Task<IEnumerable<IExtensionService>> GetEnabledExtensions(CancellationToken cancellationToken)
     {
         var configuredExtensions = new List<IExtensionService>();
-        var allExtensions = await _store
+        var allExtensions = await store
             .WithNoTracking<Extension>()
             .Where(e => e.HostUrl != null && e.HostUrl != "")
             .Where(e => e.Token != null && e.Token != "")
@@ -109,7 +94,7 @@ internal class ExtensionsService : IExtensionsService, INotificationHandler<Scor
         var mm = allExtensions.Where(e => e.Type == ExtensionType.Mattermost).SingleOrDefault();
 
         if (mm is not null)
-            configuredExtensions.Add(new MattermostExtensionService(mm, _httpClientFactory));
+            configuredExtensions.Add(new MattermostExtensionService(mm, httpClientFactory));
 
         return configuredExtensions;
     }

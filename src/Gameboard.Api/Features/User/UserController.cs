@@ -62,7 +62,8 @@ public class UserController
 
         var result = await _userService.TryCreate(model);
 
-        await HttpContext.SignInAsync(
+        await HttpContext.SignInAsync
+        (
             AppConstants.MksCookie,
             new ClaimsPrincipal(new ClaimsIdentity(User.Claims, AppConstants.MksCookie))
         );

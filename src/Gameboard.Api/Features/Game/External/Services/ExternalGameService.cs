@@ -8,7 +8,6 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Features.Teams;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Games.External;
 
@@ -29,34 +28,22 @@ public interface IExternalGameService
     Task UpdateTeamDeployStatus(IEnumerable<string> teamIds, ExternalGameDeployStatus status, CancellationToken cancellationToken);
 }
 
-internal class ExternalGameService : IExternalGameService,
+internal class ExternalGameService
+(
+    IGuidService guids,
+    INowService now,
+    IStore store,
+    ISyncStartGameService syncStartGameService,
+    ITeamService teamService
+) : IExternalGameService,
     INotificationHandler<GameResourcesDeployStartNotification>,
     INotificationHandler<GameResourcesDeployEndNotification>
 {
-    private readonly IGuidService _guids;
-    private readonly ILogger<ExternalGameService> _logger;
-    private readonly INowService _now;
-    private readonly IStore _store;
-    private readonly ISyncStartGameService _syncStartGameService;
-    private readonly ITeamService _teamService;
-
-    public ExternalGameService
-    (
-        IGuidService guids,
-        ILogger<ExternalGameService> logger,
-        INowService now,
-        IStore store,
-        ISyncStartGameService syncStartGameService,
-        ITeamService teamService
-    )
-    {
-        _guids = guids;
-        _logger = logger;
-        _now = now;
-        _store = store;
-        _syncStartGameService = syncStartGameService;
-        _teamService = teamService;
-    }
+    private readonly IGuidService _guids = guids;
+    private readonly INowService _now = now;
+    private readonly IStore _store = store;
+    private readonly ISyncStartGameService _syncStartGameService = syncStartGameService;
+    private readonly ITeamService _teamService = teamService;
 
     public Task DeleteTeamExternalData(CancellationToken cancellationToken, params string[] teamIds)
         => _store
@@ -273,12 +260,6 @@ internal class ExternalGameService : IExternalGameService,
             TeamId = teamIdGameId.Key,
             DeployStatus = ExternalGameDeployStatus.NotStarted
         }).ToArray());
-    }
-
-    private void Log(string message, string gameId)
-    {
-        var prefix = $"[EXTERNAL GAME {gameId}] - ";
-        _logger.LogInformation(message: $"{prefix} {message}");
     }
 
     private ExternalGameDeployStatus ResolveOverallDeployStatus(IEnumerable<ExternalGameDeployStatus> teamStatuses)

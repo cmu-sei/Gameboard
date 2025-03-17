@@ -7,59 +7,58 @@ using Gameboard.Api.Features.Feedback;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace Gameboard.Api.Services
+namespace Gameboard.Api.Services;
+
+public class GameMapper : Profile
 {
-    public class GameMapper : Profile
+    public GameMapper()
     {
-        public GameMapper()
-        {
-            var yaml = new DeserializerBuilder()
-                .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                .IgnoreUnmatchedProperties()
-                .Build();
+        var yaml = new DeserializerBuilder()
+            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .IgnoreUnmatchedProperties()
+            .Build();
 
-            CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
+        CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
 
-            // Use BeforeMap for custom mapping since Deserialize() could error and prevent Game from loading
-            // Need to not throw error if format is invalid. If Deserialize() could default to null on error, that would be ideal
-            CreateMap<Data.Game, Game>()
-                .BeforeMap((src, dest) =>
+        // Use BeforeMap for custom mapping since Deserialize() could error and prevent Game from loading
+        // Need to not throw error if format is invalid. If Deserialize() could default to null on error, that would be ideal
+        CreateMap<Data.Game, Game>()
+            .BeforeMap((src, dest) =>
+            {
+                try
                 {
-                    try
-                    {
-                        dest.FeedbackTemplate = yaml.Deserialize<GameFeedbackTemplate>(src.FeedbackConfig ?? "");
-                    }
-                    catch
-                    {
-                        dest.FeedbackTemplate = null;
-                    }
-                })
-                .ForMember(d => d.CountPlayers, o => o.MapFrom(s => s.Players.Select(p => p.UserId).Distinct().Count()))
-                .ForMember(d => d.CountTeams, o => o.MapFrom(s => s.Players.Select(p => p.TeamId).Distinct().Count()));
-
-            CreateMap<Data.Game, BoardGame>()
-                .BeforeMap((src, dest) =>
+                    dest.FeedbackTemplate = yaml.Deserialize<GameFeedbackTemplate>(src.FeedbackConfig ?? "");
+                }
+                catch
                 {
-                    try
-                    {
-                        dest.FeedbackTemplate = yaml.Deserialize<GameFeedbackTemplate>(src.FeedbackConfig ?? "");
-                    }
-                    catch
-                    {
-                        dest.FeedbackTemplate = null;
-                    }
-                });
+                    dest.FeedbackTemplate = null;
+                }
+            })
+            .ForMember(d => d.CountPlayers, o => o.MapFrom(s => s.Players.Select(p => p.UserId).Distinct().Count()))
+            .ForMember(d => d.CountTeams, o => o.MapFrom(s => s.Players.Select(p => p.TeamId).Distinct().Count()));
 
-            CreateMap<Game, Data.Game>();
-            CreateMap<NewGame, Data.Game>();
-            CreateMap<ChangedGame, Data.Game>()
-                .ForMember(d => d.FeedbackTemplateId, opt => opt.MapFrom(s => s.FeedbackTemplateId))
-                .ForMember(d => d.ChallengesFeedbackTemplateId, opt => opt.MapFrom(s => s.ChallengesFeedbackTemplateId))
-                .ForMember(d => d.FeedbackTemplate, opt => opt.Ignore())
-                .ForMember(d => d.ChallengesFeedbackTemplate, opt => opt.Ignore());
+        CreateMap<Data.Game, BoardGame>()
+            .BeforeMap((src, dest) =>
+            {
+                try
+                {
+                    dest.FeedbackTemplate = yaml.Deserialize<GameFeedbackTemplate>(src.FeedbackConfig ?? "");
+                }
+                catch
+                {
+                    dest.FeedbackTemplate = null;
+                }
+            });
 
-            // FROM Data.Game
-            CreateMap<Data.Game, SimpleEntity>();
-        }
+        CreateMap<Game, Data.Game>();
+        CreateMap<NewGame, Data.Game>();
+        CreateMap<ChangedGame, Data.Game>()
+            .ForMember(d => d.FeedbackTemplateId, opt => opt.MapFrom(s => s.FeedbackTemplateId))
+            .ForMember(d => d.ChallengesFeedbackTemplateId, opt => opt.MapFrom(s => s.ChallengesFeedbackTemplateId))
+            .ForMember(d => d.FeedbackTemplate, opt => opt.Ignore())
+            .ForMember(d => d.ChallengesFeedbackTemplate, opt => opt.Ignore());
+
+        // FROM Data.Game
+        CreateMap<Data.Game, SimpleEntity>();
     }
 }
