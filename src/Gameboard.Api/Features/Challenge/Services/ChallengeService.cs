@@ -705,18 +705,18 @@ public partial class ChallengeService
             .ToDictionary(gr => gr.Key, gr => gr.Value
             .SelectMany(tId => teamChallengeIds[tId]));
 
-        var challengeIdUserIds = new Dictionary<string, IEnumerable<string>>();
+        var challengeIdUserIds = new Dictionary<string, List<string>>();
         foreach (var kv in userIdChallengeIds)
             foreach (var cId in kv.Value)
-                if (challengeIdUserIds.TryGetValue(cId, out IEnumerable<string> userIds))
+                if (challengeIdUserIds.TryGetValue(cId, out List<string> userIds))
                     _ = userIds.Append(kv.Key);
                 else
                     challengeIdUserIds[cId] = [kv.Key];
 
         return new ChallengeIdUserIdMap
         {
-            ChallengeIdUserIds = challengeIdUserIds,
-            UserIdChallengeIds = userIdChallengeIds
+            ChallengeIdUserIds = challengeIdUserIds.ToDictionary(kv => kv.Key, kv => kv.Value.ToArray()),
+            UserIdChallengeIds = userIdChallengeIds.ToDictionary(kv => kv.Key, kv => kv.Value.ToArray())
         };
     }
 
