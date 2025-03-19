@@ -210,7 +210,7 @@ internal class PracticeModeReportService
             {
                 var attempts = g.ToList();
                 var spec = ungroupedResults.Specs[g.Key];
-                var specTags = _challengeService.GetTags(spec);
+                var specTags = _challengeService.GetTags(spec.Tags);
 
                 var sponsorIdsPlayed = attempts.Select(a => a.Player.Sponsor.Id).Distinct();
                 var sponsorsPlayed = ungroupedResults
@@ -350,7 +350,7 @@ internal class PracticeModeReportService
                     Track = specs[c.Key.SpecId].Game.Track
                 },
                 MaxPossibleScore = specs[c.Key.SpecId].Points,
-                Tags = visibleTags.Intersect(_challengeService.GetTags(specs[c.Key.SpecId]))
+                Tags = visibleTags.Intersect(_challengeService.GetTags(specs[c.Key.SpecId].Tags))
             },
             Attempts = c
                 .ToList()

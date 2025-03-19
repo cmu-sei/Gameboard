@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -17,24 +18,15 @@ internal class PracticeModeSettingsInvalid : GameboardValidationException
         : base($"""Practice Area setting "{settingName}" with value "{settingValue}" is invalid. {description}""") { }
 }
 
-internal class UpdatePracticeModeSettingsValidator : IGameboardRequestValidator<UpdatePracticeModeSettingsCommand>
+internal class UpdatePracticeModeSettingsValidator
+(
+    EntityExistsValidator<UpdatePracticeModeSettingsCommand, Data.User> userExists,
+    IValidatorService<UpdatePracticeModeSettingsCommand> validatorService
+) : IGameboardRequestValidator<UpdatePracticeModeSettingsCommand>
 {
-    private readonly EntityExistsValidator<UpdatePracticeModeSettingsCommand, Data.User> _userExists;
-    private readonly IValidatorService<UpdatePracticeModeSettingsCommand> _validatorService;
-
-    public UpdatePracticeModeSettingsValidator
-    (
-        EntityExistsValidator<UpdatePracticeModeSettingsCommand, Data.User> userExists,
-        IValidatorService<UpdatePracticeModeSettingsCommand> validatorService
-    )
-    {
-        _userExists = userExists;
-        _validatorService = validatorService;
-    }
-
     public Task Validate(UpdatePracticeModeSettingsCommand request, CancellationToken cancellationToken)
     {
-        return _validatorService
+        return validatorService
             .Auth(a => a.Require(PermissionKey.Practice_EditSettings))
             .AddValidator((request, context) =>
             {
@@ -49,7 +41,7 @@ internal class UpdatePracticeModeSettingsValidator : IGameboardRequestValidator<
 
                 return Task.CompletedTask;
             })
-            .AddValidator(_userExists.UseProperty(r => r.ActingUser.Id))
+            .AddValidator(userExists.UseProperty(r => r.ActingUser.Id))
             .Validate(request, cancellationToken);
     }
 }
@@ -58,6 +50,7 @@ public record UpdatePracticeModeSettingsCommand(PracticeModeSettingsApiModel Set
 
 internal class UpdatePracticeModeSettingsHandler
 (
+    CoreOptions coreOptions,
     IMapper mapper,
     INowService now,
     IPracticeService practiceService,
@@ -65,6 +58,7 @@ internal class UpdatePracticeModeSettingsHandler
     IGameboardRequestValidator<UpdatePracticeModeSettingsCommand> requestValidator
 ) : IRequestHandler<UpdatePracticeModeSettingsCommand>
 {
+    private readonly CoreOptions _coreOptions = coreOptions;
     private readonly IMapper _mapper = mapper;
     private readonly INowService _now = now;
     private readonly IPracticeService _practiceService = practiceService;
@@ -75,7 +69,7 @@ internal class UpdatePracticeModeSettingsHandler
     {
         await _requestValidator.Validate(request, cancellationToken);
 
-        var currentSettings = await _store.FirstOrDefaultAsync<PracticeModeSettings>(cancellationToken);
+        var currentSettings = await _practiceService.GetSettings(cancellationToken);
         var updatedSettings = _mapper.Map<PracticeModeSettings>(request.Settings);
 
         updatedSettings.AttemptLimit = request.Settings.AttemptLimit;
@@ -88,7 +82,7 @@ internal class UpdatePracticeModeSettingsHandler
         // force a value for default session length, becaues it's required
         if (updatedSettings.DefaultPracticeSessionLengthMinutes <= 0)
         {
-            updatedSettings.DefaultPracticeSessionLengthMinutes = 60;
+            updatedSettings.DefaultPracticeSessionLengthMinutes = _coreOptions.PracticeDefaultSessionLength;
         }
 
         await _store.SaveUpdate(updatedSettings, cancellationToken);

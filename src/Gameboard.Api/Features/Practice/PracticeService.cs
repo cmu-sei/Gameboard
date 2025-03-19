@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Users;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Practice;
@@ -17,8 +18,18 @@ public interface IPracticeService
     // are unavailable when requested
     Task<CanPlayPracticeChallengeResult> GetCanDeployChallenge(string userId, string challengeSpecId, CancellationToken cancellationToken);
     Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, DateTimeOffset currentSessionEnd, CancellationToken cancellationToken);
+    Task<IQueryable<Data.ChallengeSpec>> GetPracticeChallengesQueryBase(string filterTerm);
     Task<PracticeModeSettingsApiModel> GetSettings(CancellationToken cancellationToken);
     Task<Data.Player> GetUserActivePracticeSession(string userId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Returns a summary of all of the requested user's practice activity (with one challengespec object per challenge they've ever attempted
+    /// at least once)
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<UserPracticeHistoryChallenge[]> GetUserPracticeHistory(string userId, CancellationToken cancellationToken);
     Task<IEnumerable<string>> GetVisibleChallengeTags(CancellationToken cancellationToken);
     Task<IEnumerable<string>> GetVisibleChallengeTags(IEnumerable<string> requestedTags, CancellationToken cancellationToken);
     IEnumerable<string> UnescapeSuggestedSearches(string input);
@@ -34,16 +45,22 @@ public enum CanPlayPracticeChallengeResult
 
 internal partial class PracticeService
 (
+    CoreOptions coreOptions,
     IGuidService guids,
+    ILockService lockService,
     IMapper mapper,
     INowService now,
+    IUserRolePermissionsService permissionsService,
     ISlugService slugService,
     IStore store
 ) : IPracticeService
 {
+    private readonly CoreOptions _coreOptions = coreOptions;
     private readonly IGuidService _guids = guids;
+    private readonly ILockService _lockService = lockService;
     private readonly IMapper _mapper = mapper;
     private readonly INowService _now = now;
+    private readonly IUserRolePermissionsService _permissions = permissionsService;
     private readonly ISlugService _slugService = slugService;
     private readonly IStore _store = store;
 
@@ -58,12 +75,13 @@ internal partial class PracticeService
         if (input.IsEmpty())
             return [];
 
-        return CommonRegexes
-            .WhitespaceGreedy
-            .Split(input)
-            .Select(m => m.Trim().ToLower())
-            .Where(m => m.IsNotEmpty())
-            .ToArray();
+        return [..
+            CommonRegexes
+                .WhitespaceGreedy
+                .Split(input)
+                .Select(m => m.Trim().ToLower())
+                .Where(m => m.IsNotEmpty())
+        ];
     }
 
     public async Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, DateTimeOffset currentSessionEnd, CancellationToken cancellationToken)
@@ -100,10 +118,49 @@ internal partial class PracticeService
         {
             var activeSessionUsers = await GetActiveSessionUsers();
             if (activeSessionUsers.Count() >= settings.MaxConcurrentPracticeSessions.Value && !activeSessionUsers.Contains(userId))
+            {
                 return CanPlayPracticeChallengeResult.TooManyActivePracticeSessions;
+            }
         }
 
         return CanPlayPracticeChallengeResult.Yes;
+    }
+
+    /// <summary>
+    /// Load the transformed query results from the database.
+    /// </summary>
+    /// <param name="filterTerm"></param>
+    /// <returns></returns>
+    public async Task<IQueryable<Data.ChallengeSpec>> GetPracticeChallengesQueryBase(string filterTerm)
+    {
+        var canViewHidden = await _permissions.Can(PermissionKey.Games_ViewUnpublished);
+
+        var q = _store
+            .WithNoTracking<Data.ChallengeSpec>()
+            .Where(s => s.Game.PlayerMode == PlayerMode.Practice)
+            .Where(s => !s.Disabled);
+
+        if (!canViewHidden)
+        {
+            // without the permission, neither spec nor the game can be hidden
+            q = q
+                .Where(s => !s.IsHidden)
+                .Where(s => s.Game.IsPublished);
+        }
+
+        if (filterTerm.IsNotEmpty())
+        {
+            q = q.Where(s => s.TextSearchVector.Matches(EF.Functions.PlainToTsQuery("english", filterTerm)) || s.Game.TextSearchVector.Matches(EF.Functions.PlainToTsQuery("english", filterTerm)));
+            q = q.OrderByDescending(s => s.TextSearchVector.Rank(EF.Functions.PlainToTsQuery("english", filterTerm)))
+                .ThenByDescending(s => s.Game.TextSearchVector.Rank(EF.Functions.PlainToTsQuery("english", filterTerm)))
+                .ThenBy(s => s.Name);
+        }
+        else
+        {
+            q = q.OrderBy(s => s.Name);
+        }
+
+        return q;
     }
 
     public Task<Data.Player> GetUserActivePracticeSession(string userId, CancellationToken cancellationToken)
@@ -111,14 +168,45 @@ internal partial class PracticeService
             .Where(p => p.UserId == userId)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<UserPracticeHistoryChallenge[]> GetUserPracticeHistory(string userId, CancellationToken cancellationToken)
+    {
+        // restrict to living specs #317
+        var specs = await _store
+            .WithNoTracking<Data.ChallengeSpec>()
+            .Where(s => s.Game.PlayerMode == PlayerMode.Practice || s.Game.Challenges.Any(c => c.PlayerMode == PlayerMode.Practice))
+            .Select(s => s.Id)
+            .ToArrayAsync(cancellationToken);
+
+        return await _store
+            .WithNoTracking<Data.Challenge>()
+            .Where(c => c.Player.UserId == userId)
+            .Where(c => c.PlayerMode == PlayerMode.Practice)
+            .Where(c => specs.Contains(c.SpecId))
+            .Where(c => c.Score > 0)
+            .GroupBy(c => new { c.SpecId })
+            .Select(gr => new UserPracticeHistoryChallenge
+            {
+                ChallengeName = gr.OrderByDescending(c => c.Score).First().Name,
+                ChallengeSpecId = gr.Key.SpecId,
+                AttemptCount = gr.Count(),
+                BestAttemptDate = gr.OrderByDescending(c => c.Score).First().StartTime,
+                BestAttemptScore = gr.OrderByDescending(c => c.Score).First().Score,
+                ChallengeId = gr.OrderByDescending(c => c.Score).First().Id,
+                IsComplete = gr.OrderByDescending(c => c.Score).First().Score >= gr.OrderByDescending(c => c.Score).First().Points
+            })
+            .ToArrayAsync(cancellationToken);
+    }
+
     public async Task<PracticeModeSettingsApiModel> GetSettings(CancellationToken cancellationToken)
     {
+        using var settingsLock = await _lockService.GetArbitraryLock($"{nameof(PracticeService)}.{nameof(GetSettings)}").LockAsync(cancellationToken);
         var settings = await _store.FirstOrDefaultAsync<PracticeModeSettings>(cancellationToken);
 
-        // if we don't have any settings, make up some defaults
+        // if we don't have any settings, make up some defaults (and save them)
         if (settings is null)
         {
-            return _mapper.Map<PracticeModeSettingsApiModel>(GetDefaultSettings());
+            settings = GetDefaultSettings();
+            await _store.SaveAddRange(settings);
         }
 
         var apiModel = _mapper.Map<PracticeModeSettingsApiModel>(settings);
@@ -159,7 +247,7 @@ internal partial class PracticeService
         // force a value for default session length, becaues it's required
         if (settings.DefaultPracticeSessionLengthMinutes <= 0)
         {
-            settings.DefaultPracticeSessionLengthMinutes = 60;
+            settings.DefaultPracticeSessionLengthMinutes = _coreOptions.PracticeDefaultSessionLength;
         }
 
         await _store.SaveUpdate(settings, cancellationToken);
@@ -180,7 +268,7 @@ internal partial class PracticeService
     private PracticeModeSettings GetDefaultSettings()
         => new()
         {
-            DefaultPracticeSessionLengthMinutes = 60,
-            MaxPracticeSessionLengthMinutes = 240,
+            DefaultPracticeSessionLengthMinutes = _coreOptions.PracticeDefaultSessionLength,
+            MaxPracticeSessionLengthMinutes = _coreOptions.PracticeMaxSessionLength,
         };
 }

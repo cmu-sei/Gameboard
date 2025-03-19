@@ -20,10 +20,7 @@ internal class GetSettingsHandler(CoreOptions coreOptions, IValidatorService val
 
         return new GetSettingsResponse
         {
-            Settings = new PublicSettings
-            {
-                NameChangeIsEnabled = _coreOptions.NameChangeIsEnabled
-            }
+            Settings = new PublicSettings { NameChangeIsEnabled = _coreOptions.NameChangeIsEnabled }
         };
     }
 }

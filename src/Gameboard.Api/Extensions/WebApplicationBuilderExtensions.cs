@@ -68,7 +68,60 @@ internal static class WebApplicationBuilderExtensions
     {
         var services = builder.Services;
 
-        // serilog config
+        services
+            .AddMvc()
+            .AddGameboardJsonOptions();
+
+        services
+            .ConfigureForwarding(settings.Headers.Forwarding)
+            .AddCors(opt => opt.AddPolicy(settings.Headers.Cors.Name, settings.Headers.Cors.Build()))
+            .AddCache(() => settings.Cache);
+
+        if (settings.OpenApi.Enabled)
+            services.AddSwagger(settings.Oidc, settings.OpenApi);
+
+        services
+            .AddDataProtection()
+            .SetApplicationName(AppConstants.DataProtectionPurpose)
+            .PersistKeys(() => settings.Cache);
+
+        builder.AddGameboardSerilog(settings);
+
+        services
+            .AddSingleton(_ => settings.Core)
+            .AddSingleton(_ => settings.Crucible)
+            .AddSingleton(_ => settings.Oidc)
+            .AddGameboardData(builder.Environment, settings.Database)
+            .AddGameboardMediatR()
+            .AddGameboardServices(settings)
+            .AddConfiguredHttpClients(settings.Core)
+            .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath);
+
+        // HOSTED SERVICES
+        // don't add these during test - we don't want them interfere with CI
+        if (!builder.Environment.IsTest())
+            services
+                .AddHostedService<BackgroundAsyncTaskRunner>()
+                .AddHostedService<JobService>();
+
+        services.AddSingleton(new MapperConfiguration(cfg => cfg.AddGameboardMaps()).CreateMapper());
+
+        // configuring SignalR involves acting on the builder as well as its services
+        builder.AddGameboardSignalRServices();
+
+        // Configure Auth
+        services.AddConfiguredAuthentication(settings.Oidc, settings.ApiKey, builder.Environment);
+        services.AddConfiguredAuthorization();
+    }
+
+    private static WebApplicationBuilder AddGameboardSerilog(this WebApplicationBuilder builder, AppSettings settings)
+    {
+        // SERILOG CONFIG
+        // Gameboard uses Serilog, which is awesome, because Serilog is awesome. By default, it just
+        // writes to the console sink, which you can ingest with any log ingester (and is useful if you
+        // choose to monitor the output of its pod in a K8s-style scenario). But if you want richer logging,
+        //  you can add a Seq instance using its configuration so you get nice metadata like the userID
+        // and name for API requests. Want to use a non-Seq sink? We get it. PR us and let's talk about it.
         builder.Host.UseSerilog();
 
         Serilog.Debugging.SelfLog.Enable(Console.Error);
@@ -108,45 +161,6 @@ internal static class WebApplicationBuilderExtensions
         // weirdly, this really does appear to be the way to replace the default logger with Serilog 🤷
         Log.Logger = loggerConfiguration.CreateLogger();
 
-        services
-            .AddMvc()
-            .AddGameboardJsonOptions();
-
-        services
-            .ConfigureForwarding(settings.Headers.Forwarding)
-            .AddCors(opt => opt.AddPolicy(settings.Headers.Cors.Name, settings.Headers.Cors.Build()))
-            .AddCache(() => settings.Cache);
-
-        if (settings.OpenApi.Enabled)
-            services.AddSwagger(settings.Oidc, settings.OpenApi);
-
-        services.AddDataProtection()
-            .SetApplicationName(AppConstants.DataProtectionPurpose)
-            .PersistKeys(() => settings.Cache);
-
-        services
-            .AddSingleton(_ => settings.Core)
-            .AddSingleton(_ => settings.Crucible)
-            .AddGameboardData(builder.Environment, settings.Database)
-            .AddGameboardMediatR()
-            .AddGameboardServices(settings)
-            .AddConfiguredHttpClients(settings.Core)
-            .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath);
-
-        // HOSTED SERVICES
-        // don't add these during test - we don't want them interfere with CI
-        if (!builder.Environment.IsTest())
-            services
-                .AddHostedService<BackgroundAsyncTaskRunner>()
-                .AddHostedService<JobService>();
-
-        services.AddSingleton(new MapperConfiguration(cfg => cfg.AddGameboardMaps()).CreateMapper());
-
-        // configuring SignalR involves acting on the builder as well as its services
-        builder.AddGameboardSignalRServices();
-
-        // Configure Auth
-        services.AddConfiguredAuthentication(settings.Oidc, settings.ApiKey, builder.Environment);
-        services.AddConfiguredAuthorization();
+        return builder;
     }
 }

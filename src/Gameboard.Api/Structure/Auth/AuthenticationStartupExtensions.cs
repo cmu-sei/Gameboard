@@ -40,13 +40,11 @@ namespace Microsoft.Extensions.DependencyInjection
                     jwt.Audience = oidcOptions.Audience;
                     jwt.Authority = oidcOptions.Authority;
                     jwt.RequireHttpsMetadata = oidcOptions.RequireHttpsMetadata;
-
                     jwt.TokenValidationParameters = new TokenValidationParameters
                     {
                         NameClaimType = AppConstants.NameClaimName,
                         RoleClaimType = AppConstants.RoleClaimName
                     };
-
                     jwt.SaveToken = true;
                 })
                 .AddCookie(AppConstants.MksCookie, opt =>

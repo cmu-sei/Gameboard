@@ -22,6 +22,7 @@ public sealed class PracticeSession
 
 public sealed class PracticeModeSettingsApiModel
 {
+    public required string Id { get; set; }
     public int? AttemptLimit { get; set; }
     public string CertificateTemplateId { get; set; }
     public required int DefaultPracticeSessionLengthMinutes { get; set; }
@@ -29,4 +30,15 @@ public sealed class PracticeModeSettingsApiModel
     public int? MaxConcurrentPracticeSessions { get; set; }
     public int? MaxPracticeSessionLengthMinutes { get; set; }
     public required IEnumerable<string> SuggestedSearches { get; set; }
+}
+
+public sealed class UserPracticeHistoryChallenge
+{
+    public required string ChallengeId { get; set; }
+    public required string ChallengeName { get; set; }
+    public required string ChallengeSpecId { get; set; }
+    public required int AttemptCount { get; set; }
+    public required DateTimeOffset? BestAttemptDate { get; set; }
+    public required double? BestAttemptScore { get; set; }
+    public required bool IsComplete { get; set; }
 }

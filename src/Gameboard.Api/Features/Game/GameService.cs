@@ -29,7 +29,6 @@ public interface IGameService
     Task<SessionForecast[]> SessionForecast(string id);
     Task<Data.Game> Update(ChangedGame account);
     Task UpdateImage(string id, string type, string filename);
-    Task<bool> UserIsTeamPlayer(string uid, string tid);
 }
 
 public class GameService
@@ -38,11 +37,13 @@ public class GameService
     IMapper mapper,
     CoreOptions options,
     Defaults defaults,
+    IGuidService guids,
     INowService nowService,
     IStore store
 ) : _Service(logger, mapper, options), IGameService
 {
     private readonly Defaults _defaults = defaults;
+    private readonly IGuidService _guids = guids;
     private readonly INowService _now = nowService;
     private readonly IStore _store = store;
 
@@ -217,16 +218,6 @@ public class GameService
     public Task<bool> IsUserPlaying(string gameId, string userId)
         => _store.AnyAsync<Data.Player>(p => p.GameId == gameId && p.UserId == userId, CancellationToken.None);
 
-    public async Task<bool> UserIsTeamPlayer(string uid, string tid)
-    {
-        bool authd = await _store.AnyAsync<Data.User>(u =>
-            u.Id == uid &&
-            u.Enrollments.Any(e => e.TeamId == tid)
-        , CancellationToken.None);
-
-        return authd;
-    }
-
     public async Task DeleteGameCardImage(string gameId)
     {
         if (!await _store.WithNoTracking<Data.Game>().AnyAsync(g => g.Id == gameId))
@@ -248,6 +239,10 @@ public class GameService
         if (!await _store.WithNoTracking<Data.Game>().AnyAsync(g => g.Id == gameId))
             throw new ResourceNotFound<Data.Game>(gameId);
 
+        // we currently intentionally leave the old image around for quasi-logging purposes,
+        // but we could delete if desired here by getting the path from the Game entity.
+        // We generate a semi-random name for the new file in GetGameCardFileNameBase to bypass
+        // network-level caching.
         var fileName = $"{GetGameCardFileNameBase(gameId)}{Path.GetExtension(file.FileName.ToLower())}";
         var path = Path.Combine(Options.ImageFolder, fileName);
 
@@ -259,7 +254,7 @@ public class GameService
     }
 
     private string GetGameCardFileNameBase(string gameId)
-        => $"{gameId.ToLower()}_card";
+        => $"{gameId.ToLower()}_card_{_guids.Generate()[..6]}";
 
     private IQueryable<Data.Game> BuildSearchQuery(GameSearchFilter model, bool canViewUnpublished = false)
     {

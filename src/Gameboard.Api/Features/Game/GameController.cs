@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.games;
 using Gameboard.Api.Features.Games;
+using Gameboard.Api.Features.Games.ImportExport;
+using Gameboard.Api.Features.Games.Requests;
 using Gameboard.Api.Features.Games.Start;
 using Gameboard.Api.Features.Scores;
 using Gameboard.Api.Features.Users;
@@ -22,239 +24,265 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ServiceStack;
 
-namespace Gameboard.Api.Controllers
+namespace Gameboard.Api.Controllers;
+
+[Authorize]
+public class GameController
+(
+    IActingUserService actingUserService,
+    ILogger<GameController> logger,
+    IDistributedCache cache,
+    GameService gameService,
+    IScoreDenormalizationService scoreDenormalization,
+    GameValidator validator,
+    CoreOptions options,
+    IMediator mediator,
+    IHostEnvironment env,
+    IUserRolePermissionsService permissionsService
+) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
-    [Authorize]
-    public class GameController(
-        IActingUserService actingUserService,
-        ILogger<GameController> logger,
-        IDistributedCache cache,
-        GameService gameService,
-        IScoreDenormalizationService scoreDenormalization,
-        GameValidator validator,
-        CoreOptions options,
-        IMediator mediator,
-        IHostEnvironment env,
-        IUserRolePermissionsService permissionsService
-        ) : GameboardLegacyController(actingUserService, logger, cache, validator)
+    GameService GameService { get; } = gameService;
+    public CoreOptions Options { get; } = options;
+    public IHostEnvironment Env { get; } = env;
+
+    private readonly IMediator _mediator = mediator;
+    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
+    private readonly IScoreDenormalizationService _scoreDenormalization = scoreDenormalization;
+
+    /// <summary>
+    /// Create new game
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpPost("api/game")]
+    public async Task<Game> Create([FromBody] NewGame model)
     {
-        GameService GameService { get; } = gameService;
-        public CoreOptions Options { get; } = options;
-        public IHostEnvironment Env { get; } = env;
+        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        return await GameService.Create(model);
+    }
 
-        private readonly IMediator _mediator = mediator;
-        private readonly IUserRolePermissionsService _permissionsService = permissionsService;
-        private readonly IScoreDenormalizationService _scoreDenormalization = scoreDenormalization;
+    /// <summary>
+    /// Retrieve game
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
+    [HttpGet("api/game/{id}")]
+    [AllowAnonymous]
+    public async Task<Game> Retrieve([FromRoute] string id)
+    {
+        return await GameService.Retrieve(id, await _permissionsService.Can(PermissionKey.Games_ViewUnpublished));
+    }
 
-        /// <summary>
-        /// Create new game
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpPost("api/game")]
-        public async Task<Game> Create([FromBody] NewGame model)
+    [HttpGet("api/game/{id}/specs")]
+    [Authorize]
+    public async Task<ChallengeSpec[]> GetChallengeSpecs([FromRoute] string id)
+    {
+        await Validate(new Entity { Id = id });
+        return await GameService.RetrieveChallengeSpecs(id);
+    }
+
+    [HttpGet("api/game/{gameId}/session-availability")]
+    [Authorize]
+    public Task<GameSessionAvailibilityResponse> GetSessionAvailability([FromRoute] string gameId)
+        => _mediator.Send(new GameSessionAvailabilityQuery(gameId));
+
+    [HttpGet("api/game/{id}/sessions")]
+    [Authorize]
+    public async Task<SessionForecast[]> GetSessionForecast([FromRoute] string id)
+    {
+        await Validate(new Entity { Id = id });
+        return await GameService.SessionForecast(id);
+    }
+
+    [HttpPost("api/game/{gameId}/resources")]
+    [Authorize]
+    public Task DeployResources([FromRoute] string gameId, [FromBody] DeployGameResourcesBody body)
+        => _mediator.Send(new DeployGameResourcesCommand(gameId, body?.TeamIds));
+
+    /// <summary>
+    /// Change game
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpPut("api/game")]
+    public async Task<Data.Game> Update([FromBody] ChangedGame model)
+    {
+        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        await Validate(model);
+        return await GameService.Update(model);
+    }
+
+    /// <summary>
+    /// Delete game
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpDelete("/api/game/{id}")]
+    public Task Delete([FromRoute] string id, [FromBody] DeleteGameRequest request)
+        => _mediator.Send(new DeleteGameCommand(id, request.AllowPlayerDeletion));
+
+    /// <summary>
+    /// Find games
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpGet("/api/games")]
+    [AllowAnonymous]
+    public async Task<IEnumerable<Game>> List([FromQuery] GameSearchFilter model)
+        => await GameService.List(model, await _permissionsService.Can(PermissionKey.Games_ViewUnpublished));
+
+    /// <summary>
+    /// List games for admin interfaces.
+    /// 
+    /// NOTE: This endpoint will eventually replace /api/games and take its path - it's just a modernized
+    /// expression of the same utility.
+    /// </summary>
+    /// <param name="query"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet("/api/games/admin")]
+    public Task<ListGamesResponse> ListAdmin([FromQuery] ListGamesQuery query, CancellationToken cancellationToken)
+        => _mediator.Send(query, cancellationToken);
+
+    /// <summary>
+    /// List games grouped by year and month
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpGet("/api/games/grouped")]
+    [AllowAnonymous]
+    public async Task<GameGroup[]> ListGrouped([FromQuery] GameSearchFilter model)
+        => await GameService.ListGrouped(model, await _permissionsService.Can(PermissionKey.Games_ViewUnpublished));
+
+    [HttpGet("/api/game/{gameId}/ready")]
+    [Authorize]
+    public Task<SyncStartState> GetSyncStartState(string gameId)
+        => _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
+
+    [HttpGet("/api/game/{gameId}/play-state")]
+    [Authorize]
+    public Task<GamePlayState> GetGamePlayState(string gameId)
+        => _mediator.Send(new GetGamePlayStateQuery(gameId, Actor.Id));
+
+    [HttpPost("/api/games/export")]
+    public Task<GameImportExportBatch> ExportGames([FromBody] ExportGamesCommand request, CancellationToken cancellationToken)
+        => _mediator.Send(request, cancellationToken);
+
+    [HttpGet("/api/games/export-batches")]
+    public Task<ListExportBatchesResponse> ListGameExportBatches(CancellationToken cancellationToken)
+        => _mediator.Send(new ListExportBatchesQuery(), cancellationToken);
+
+    [HttpDelete("/api/games/export-batches/{exportBatchId}")]
+    public Task DeleteExportPackage(string exportBatchId, CancellationToken cancellationToken)
+        => _mediator.Send(new DeleteExportBatchCommand(exportBatchId), cancellationToken);
+
+    [HttpGet("/api/games/export-batches/{exportBatchId}")]
+    public async Task<FileContentResult> DownloadExportPackage(string exportBatchId, CancellationToken cancellationToken)
+    {
+        var bytes = await _mediator.Send(new DownloadExportPackageRequest(exportBatchId), cancellationToken);
+        return new FileContentResult(bytes, "application/zip");
+    }
+
+    [HttpPost("/api/games/import")]
+    public async Task<ImportedGame[]> ImportGames([FromForm] ImportGamesRequest request, CancellationToken cancellationToken)
+    {
+        var package = await request.PackageFile.ToBytes(cancellationToken);
+
+        // the gameIds are passed as a comma-delimited string (because the request accepts formdata)
+        var parsedGameIds = Array.Empty<string>();
+        if (request.DelimitedGameIds.IsNotEmpty())
         {
-            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
-            return await GameService.Create(model);
+            parsedGameIds = request.DelimitedGameIds.Split(',');
         }
 
-        /// <summary>
-        /// Retrieve game
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        [HttpGet("api/game/{id}")]
-        [AllowAnonymous]
-        public async Task<Game> Retrieve([FromRoute] string id)
+        // TODO: should do a nullable boolean JsonConverter at some point, but
+        var setPublishStatus = default(bool?);
+        if (request.SetGamesPublishStatus is not null)
         {
-            return await GameService.Retrieve(id, await _permissionsService.Can(PermissionKey.Games_ViewUnpublished));
+            setPublishStatus = request.SetGamesPublishStatus.Equals("true", StringComparison.CurrentCultureIgnoreCase);
         }
 
-        [HttpGet("api/game/{id}/specs")]
-        [Authorize]
-        public async Task<ChallengeSpec[]> GetChallengeSpecs([FromRoute] string id)
+        return await _mediator.Send(new ImportGamesCommand(package, parsedGameIds, setPublishStatus), cancellationToken);
+    }
+
+    [HttpPost("/api/games/import/preview")]
+    public async Task<GameImportExportBatch> PreviewImportPackage([FromForm] IFormFile packageFile, CancellationToken cancellationToken)
+    {
+        var package = await packageFile.ToBytes(cancellationToken);
+        return await _mediator.Send(new PreviewImportPackageQuery(package), cancellationToken);
+    }
+
+    [HttpGet("/api/game/{gameId}/team/{teamId}/gamespace-limit")]
+    public Task<TeamGamespaceLimitState> GetTeamGamespaceLimitState([FromRoute] string gameId, [FromRoute] string teamId)
+        => _mediator.Send(new GetTeamGamespaceLimitStateQuery(gameId, teamId, Actor));
+
+    [HttpPost("api/game/{id}/card")]
+    public async Task<ActionResult<UploadedFile>> UploadGameCard(string id, IFormFile file)
+    {
+        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        return Ok(await GameService.SaveGameCardImage(id, file));
+    }
+
+    [HttpPost("api/game/{id}/{type}")]
+    public async Task<ActionResult<UploadedFile>> UploadMapImage(string id, string type, IFormFile file)
+    {
+        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        await Validate(new Entity { Id = id });
+
+        string filename = $"{type}_{new Random().Next().ToString("x8")}{Path.GetExtension(file.FileName)}".ToLower();
+        string path = Path.Combine(Options.ImageFolder, filename);
+
+        using (var stream = new FileStream(path, FileMode.Create))
         {
-            await Validate(new Entity { Id = id });
-            return await GameService.RetrieveChallengeSpecs(id);
+            await file.CopyToAsync(stream);
         }
 
-        [HttpGet("api/game/{gameId}/session-availability")]
-        [Authorize]
-        public Task<GameSessionAvailibilityResponse> GetSessionAvailability([FromRoute] string gameId)
-            => _mediator.Send(new GameSessionAvailabilityQuery(gameId));
+        await GameService.UpdateImage(id, type, filename);
 
-        [HttpGet("api/game/{id}/sessions")]
-        [Authorize]
-        public async Task<SessionForecast[]> GetSessionForecast([FromRoute] string id)
+        return Ok(new UploadedFile { Filename = filename });
+    }
+
+    [HttpDelete("api/game/{id}/card")]
+    public async Task DeleteGameCard([FromRoute] string id)
+    {
+        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        await GameService.DeleteGameCardImage(id);
+    }
+
+    [HttpDelete("api/game/{id}/{type}")]
+    [Authorize]
+    public async Task<ActionResult<UploadedFile>> DeleteImage([FromRoute] string id, [FromRoute] string type)
+    {
+        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        await Validate(new Entity { Id = id });
+
+        string target = $"{id}_{type}.*".ToLower();
+        var file = Directory.GetFiles(Options.ImageFolder, target).FirstOrDefault();
+
+        if (file.NotEmpty())
         {
-            await Validate(new Entity { Id = id });
-            return await GameService.SessionForecast(id);
+            System.IO.File.Delete(file);
+            await GameService.UpdateImage(id, type, "");
         }
 
-        [HttpPost("api/game/{gameId}/resources")]
-        [Authorize]
-        public Task DeployResources([FromRoute] string gameId, [FromBody] DeployGameResourcesBody body)
-            => _mediator.Send(new DeployGameResourcesCommand(gameId, body?.TeamIds));
+        return Ok(new UploadedFile { Filename = "" });
+    }
 
-        /// <summary>
-        /// Change game
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpPut("api/game")]
-        public async Task<Data.Game> Update([FromBody] ChangedGame model)
-        {
-            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
-            await Validate(model);
-            return await GameService.Update(model);
-        }
+    /// <summary>
+    /// Rerank a game's players
+    /// </summary>
+    /// <param name="id">id</param>
+    /// <param name="cancellationToken">id</param>
+    /// <returns></returns>
+    [HttpPost("/api/game/{id}/rerank")]
+    public async Task Rerank([FromRoute] string id, CancellationToken cancellationToken)
+    {
+        await Authorize(_permissionsService.Can(PermissionKey.Scores_RegradeAndRerank));
+        await Validate(new Entity { Id = id });
 
-        /// <summary>
-        /// Delete game
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="request"></param>
-        /// <returns></returns>
-        [HttpDelete("/api/game/{id}")]
-        public Task Delete([FromRoute] string id, [FromBody] DeleteGameRequest request)
-            => _mediator.Send(new DeleteGameCommand(id, request.AllowPlayerDeletion));
-
-        /// <summary>
-        /// Find games
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpGet("/api/games")]
-        [AllowAnonymous]
-        public async Task<IEnumerable<Game>> List([FromQuery] GameSearchFilter model)
-            => await GameService.List(model, await _permissionsService.Can(PermissionKey.Games_ViewUnpublished));
-
-        /// <summary>
-        /// List games grouped by year and month
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpGet("/api/games/grouped")]
-        [AllowAnonymous]
-        public async Task<GameGroup[]> ListGrouped([FromQuery] GameSearchFilter model)
-            => await GameService.ListGrouped(model, await _permissionsService.Can(PermissionKey.Games_ViewUnpublished));
-
-        [HttpGet("/api/game/{gameId}/ready")]
-        [Authorize]
-        public Task<SyncStartState> GetSyncStartState(string gameId)
-            => _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
-
-        [HttpGet("/api/game/{gameId}/play-state")]
-        [Authorize]
-        public Task<GamePlayState> GetGamePlayState(string gameId)
-            => _mediator.Send(new GetGamePlayStateQuery(gameId, Actor.Id));
-
-        [HttpPost("/api/games/export")]
-        public Task<GameImportExportBatch> ExportGames([FromBody] ExportGamesCommand request, CancellationToken cancellationToken)
-            => _mediator.Send(request, cancellationToken);
-
-        [HttpGet("/api/games/export-batches")]
-        public Task<ListExportBatchesResponse> ListGameExportBatches(CancellationToken cancellationToken)
-            => _mediator.Send(new ListExportBatchesQuery(), cancellationToken);
-
-        [HttpDelete("/api/games/export-batches/{exportBatchId}")]
-        public Task DeleteExportPackage(string exportBatchId, CancellationToken cancellationToken)
-            => _mediator.Send(new DeleteExportBatchCommand(exportBatchId), cancellationToken);
-
-        [HttpGet("/api/games/export-batches/{exportBatchId}")]
-        [ProducesResponseType(typeof(FileContentResult), 200)]
-        public async Task<FileContentResult> DownloadExportPackage(string exportBatchId, CancellationToken cancellationToken)
-        {
-            var bytes = await _mediator.Send(new DownloadExportPackageRequest(exportBatchId), cancellationToken);
-            return new FileContentResult(bytes, "application/zip");
-        }
-
-        [HttpPost("/api/games/import")]
-        public async Task<ImportedGame[]> ImportGames([FromForm] IFormFile packageFile, CancellationToken cancellationToken)
-        {
-            var package = Array.Empty<byte>();
-
-            using (var memoryStream = new MemoryStream())
-            {
-                await packageFile.CopyToAsync(memoryStream, cancellationToken);
-                package = memoryStream.GetBufferAsBytes();
-            }
-
-            return await _mediator.Send(new ImportGamesCommand(package), cancellationToken);
-        }
-
-        [HttpGet("/api/game/{gameId}/team/{teamId}/gamespace-limit")]
-        public Task<TeamGamespaceLimitState> GetTeamGamespaceLimitState([FromRoute] string gameId, [FromRoute] string teamId)
-            => _mediator.Send(new GetTeamGamespaceLimitStateQuery(gameId, teamId, Actor));
-
-        [HttpPost("api/game/{id}/card")]
-        public async Task<ActionResult<UploadedFile>> UploadGameCard(string id, IFormFile file)
-        {
-            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
-            return Ok(await GameService.SaveGameCardImage(id, file));
-        }
-
-        [HttpPost("api/game/{id}/{type}")]
-        public async Task<ActionResult<UploadedFile>> UploadMapImage(string id, string type, IFormFile file)
-        {
-            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
-            await Validate(new Entity { Id = id });
-
-            string filename = $"{type}_{new Random().Next().ToString("x8")}{Path.GetExtension(file.FileName)}".ToLower();
-            string path = Path.Combine(Options.ImageFolder, filename);
-
-            using (var stream = new FileStream(path, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
-
-            await GameService.UpdateImage(id, type, filename);
-
-            return Ok(new UploadedFile { Filename = filename });
-        }
-
-        [HttpDelete("api/game/{id}/card")]
-        public async Task DeleteGameCard([FromRoute] string id)
-        {
-            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
-            await GameService.DeleteGameCardImage(id);
-        }
-
-        [HttpDelete("api/game/{id}/{type}")]
-        [Authorize]
-        public async Task<ActionResult<UploadedFile>> DeleteImage([FromRoute] string id, [FromRoute] string type)
-        {
-            await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
-            await Validate(new Entity { Id = id });
-
-            string target = $"{id}_{type}.*".ToLower();
-            var file = Directory.GetFiles(Options.ImageFolder, target).FirstOrDefault();
-
-            if (file.NotEmpty())
-            {
-                System.IO.File.Delete(file);
-                await GameService.UpdateImage(id, type, "");
-            }
-
-            return Ok(new UploadedFile { Filename = "" });
-        }
-
-        /// <summary>
-        /// Rerank a game's players
-        /// </summary>
-        /// <param name="id">id</param>
-        /// <param name="cancellationToken">id</param>
-        /// <returns></returns>
-        [HttpPost("/api/game/{id}/rerank")]
-        public async Task Rerank([FromRoute] string id, CancellationToken cancellationToken)
-        {
-            await Authorize(_permissionsService.Can(PermissionKey.Scores_RegradeAndRerank));
-            await Validate(new Entity { Id = id });
-
-            await _scoreDenormalization.DenormalizeGame(id, cancellationToken);
-            await _mediator.Publish(new GameCacheInvalidateNotification(id), cancellationToken);
-        }
+        await _scoreDenormalization.DenormalizeGame(id, cancellationToken);
+        await _mediator.Publish(new GameCacheInvalidateNotification(id), cancellationToken);
     }
 }

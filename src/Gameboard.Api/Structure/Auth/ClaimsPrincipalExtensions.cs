@@ -26,7 +26,7 @@ public static class ClaimsPrincipalExtensions
             Id = principal.Subject(),
             Name = principal.FindFirstValue(AppConstants.NameClaimName),
             ApprovedName = principal.FindFirstValue(AppConstants.ApprovedNameClaimName),
-            Role = finalRole.HasValue ? finalRole.Value : UserRoleKey.Member,
+            Role = finalRole ?? UserRoleKey.Member,
             RolePermissions = await userRolePermissionsService.GetPermissions(role),
             SponsorId = principal.FindFirstValue(AppConstants.SponsorClaimName)
         };

@@ -11,17 +11,17 @@ namespace Gameboard.Api;
 
 public class AppSettings
 {
-    public string PathBase { get; set; }
     public ApiKeyOptions ApiKey { get; set; } = new ApiKeyOptions();
-    public OidcOptions Oidc { get; set; } = new OidcOptions();
     public CacheOptions Cache { get; set; } = new CacheOptions();
     public CoreOptions Core { get; set; } = new CoreOptions();
+    public CrucibleOptions Crucible { get; set; } = new CrucibleOptions();
     public DatabaseOptions Database { get; set; } = new DatabaseOptions();
+    public Defaults Defaults { get; set; } = new Defaults();
     public HeaderOptions Headers { get; set; } = new HeaderOptions();
     public LoggingSettings Logging { get; set; } = new LoggingSettings();
+    public OidcOptions Oidc { get; set; } = new OidcOptions();
     public OpenApiOptions OpenApi { get; set; } = new OpenApiOptions();
-    public Defaults Defaults { get; set; } = new Defaults();
-    public CrucibleOptions Crucible { get; set; } = new CrucibleOptions();
+    public string PathBase { get; set; }
 }
 
 public class ApiKeyOptions
@@ -45,8 +45,10 @@ public class OidcOptions
 {
     public string Authority { get; set; } = "http://localhost:5000";
     public string Audience { get; set; } = "gameboard-api";
+    public string DefaultUserNameClaimType { get; set; } = null;
     public int MksCookieMinutes { get; set; } = 60;
     public bool RequireHttpsMetadata { get; set; } = true;
+    public bool StoreUserEmails { get; set; } = false;
 }
 
 public class OpenIdClient
@@ -156,39 +158,41 @@ public class CoreOptions
 {
     public string AppName { get; set; } = "Gameboard";
     public string AppUrl { get; set; } = "http://localhost:4202";
-    public int GameEngineDeployBatchSize { get; set; } = 2;
-    public string GameEngineUrl { get; set; } = "http://localhost:5004";
+    public string ChallengeDocUrl { get; set; }
+    public string DocFolder { get; set; } = "wwwroot/doc";
+    public string GamebrainApiKey { get; set; }
     public string GameEngineClientName { get; set; }
     public string GameEngineClientSecret { get; set; }
+    public int GameEngineDeployBatchSize { get; set; } = 2;
+    public string GameEngineUrl { get; set; } = "http://localhost:5004";
     public int GameEngineMaxRetries { get; set; } = 2;
+    public string ImageFolder { get; set; } = "wwwroot/img";
+    public string KeyPrefix { get; set; } = "GB";
     public bool MojoEnabled { get; set; } = true;
     public bool NameChangeIsEnabled { get; set; } = true;
     public bool NameChangeRequiresApproval { get; set; } = true;
     public bool NamesImportFromIdp { get; set; } = false;
-    public string ImageFolder { get; set; } = "wwwroot/img";
-    public string DocFolder { get; set; } = "wwwroot/doc";
+    public int PracticeDefaultSessionLength { get; set; } = 60;
+    public int PracticeMaxSessionLength { get; set; } = 240;
     public string ExportFolder { get; set; } = "wwwroot/export";
     public string ImportFolder { get; set; } = "wwwroot/import";
+    public string SafeNamesFile { get; set; } = "names.json";
     public string SupportUploadsRequestPath { get; set; } = "supportfiles";
     public string SupportUploadsFolder { get; set; } = "wwwroot/supportfiles";
-    public string ChallengeDocUrl { get; set; }
     public string TempDirectory { get; set; } = "wwwroot/temp";
     public string TemplatesDirectory { get; set; } = "wwwroot/templates";
-    public string SafeNamesFile { get; set; } = "names.json";
-    public string KeyPrefix { get; set; } = "GB";
-    public string GamebrainApiKey { get; set; }
     public string WebHostRoot { get; set; }
 }
 
 public class CrucibleOptions
 {
     public string ApiUrl { get; set; } = "http://localhost:4402/api";
-    public string TokenUrl { get; set; } = "http://localhost:5000/connect/token";
     public string ClientId { get; set; } = "";
-    public string Scope { get; set; } = "";
-    public string UserName { get; set; } = "";
-    public string Password { get; set; } = "";
     public bool Enabled { get; set; } = false;
+    public string Password { get; set; } = "";
+    public string UserName { get; set; } = "";
+    public string Scope { get; set; } = "";
+    public string TokenUrl { get; set; } = "http://localhost:5000/connect/token";
 }
 
 public class Defaults

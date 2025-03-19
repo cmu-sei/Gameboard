@@ -1,14 +1,13 @@
-using Gameboard.Api.Common;
+using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Challenges;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Users;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Tests.Unit;
 
-public class SearchPracticeChallengesTests
+public class PracticeService_BuildPracticeChallengesQueryBase_Tests
 {
     [Theory, GameboardAutoData]
     public async Task SearchPracticeChallenges_WithDisabled_ReturnsEmpty(IFixture fixture)
@@ -29,10 +28,10 @@ public class SearchPracticeChallengesTests
             }
         };
 
-        var sut = GetSutWithResults(fixture, disabledSpec);
+        var sut = GetSutWithResults(disabledSpec);
 
         // when a query for all challenges is issued
-        var query = await sut.BuildQuery(string.Empty, []);
+        var query = await sut.GetPracticeChallengesQueryBase(string.Empty);
         var result = await query.ToArrayAsync(CancellationToken.None);
 
         // then we expect no results
@@ -58,17 +57,17 @@ public class SearchPracticeChallengesTests
             }
         };
 
-        var sut = GetSutWithResults(fixture, enabledSpec);
+        var sut = GetSutWithResults(enabledSpec);
 
         // when a query for all challenges is issued
-        var query = await sut.BuildQuery(string.Empty, []);
+        var query = await sut.GetPracticeChallengesQueryBase(string.Empty);
         var result = await query.ToArrayAsync(CancellationToken.None);
 
         // then we expect one result
         result.Length.ShouldBe(1);
     }
 
-    private SearchPracticeChallengesHandler GetSutWithResults(IFixture fixture, params Data.ChallengeSpec[] specs)
+    private PracticeService GetSutWithResults(params Data.ChallengeSpec[] specs)
     {
         var queryResults = specs.BuildMock();
 
@@ -77,16 +76,16 @@ public class SearchPracticeChallengesTests
             .WithAnyArguments()
             .Returns(queryResults);
 
-        var sut = new SearchPracticeChallengesHandler
+        return new PracticeService
         (
-            A.Fake<IChallengeDocsService>(),
-            A.Fake<IPagingService>(),
+            new CoreOptions(),
+            A.Fake<IGuidService>(),
+            A.Fake<ILockService>(),
+            A.Fake<IMapper>(),
+            A.Fake<INowService>(),
             A.Fake<IUserRolePermissionsService>(),
-            A.Fake<IPracticeService>(),
             A.Fake<ISlugService>(),
             store
         );
-
-        return sut;
     }
 }

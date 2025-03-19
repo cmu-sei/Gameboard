@@ -1,43 +1,40 @@
-using System.Collections.Generic;
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
-using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
-using Gameboard.Api.Features.Users;
 using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Practice;
 
-public record SearchPracticeChallengesQuery(SearchFilter Filter) : IRequest<SearchPracticeChallengesResult>;
+public record SearchPracticeChallengesQuery(SearchFilter Filter, SearchPracticeChallengesRequestUserProgress? UserProgress = default) : IRequest<SearchPracticeChallengesResult>;
 
 internal class SearchPracticeChallengesHandler
 (
+    IActingUserService actingUser,
     IChallengeDocsService challengeDocsService,
     IPagingService pagingService,
-    IUserRolePermissionsService permissionsService,
     IPracticeService practiceService,
-    ISlugService slugger,
-    IStore store
+    ISlugService slugger
 ) : IRequestHandler<SearchPracticeChallengesQuery, SearchPracticeChallengesResult>
 {
+    private readonly IActingUserService _actingUser = actingUser;
     private readonly IChallengeDocsService _challengeDocsService = challengeDocsService;
     private readonly IPagingService _pagingService = pagingService;
-    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
     private readonly IPracticeService _practiceService = practiceService;
     private readonly ISlugService _slugger = slugger;
-    private readonly IStore _store = store;
 
     public async Task<SearchPracticeChallengesResult> Handle(SearchPracticeChallengesQuery request, CancellationToken cancellationToken)
     {
         // load settings - we need these to make decisions about tag-based matches
         var settings = await _practiceService.GetSettings(cancellationToken);
-        var sluggedSuggestedSearches = settings.SuggestedSearches.Select(search => _slugger.Get(search));
+        var sluggedSuggestedSearches = settings.SuggestedSearches.Select(_slugger.Get);
+        var hasGlobalPracticeCertificate = settings.CertificateTemplateId.IsNotEmpty();
 
-        var query = await BuildQuery(request.Filter.Term, sluggedSuggestedSearches);
+        var query = await _practiceService.GetPracticeChallengesQueryBase(request.Filter.Term);
         var results = await query
             .Select(s => new PracticeChallengeView
             {
@@ -46,7 +43,9 @@ internal class SearchPracticeChallengesHandler
                 Description = s.Description,
                 Text = s.Text,
                 AverageDeploySeconds = s.AverageDeploySeconds,
+                HasCertificateTemplate = hasGlobalPracticeCertificate || s.Game.PracticeCertificateTemplateId != null,
                 IsHidden = s.IsHidden,
+                ScoreMaxPossible = s.Points,
                 SolutionGuideUrl = s.SolutionGuideUrl,
                 Tags = ChallengeSpecMapper.StringTagsToEnumerableStringTags(s.Tags),
                 Game = new PracticeChallengeViewGame
@@ -59,6 +58,15 @@ internal class SearchPracticeChallengesHandler
             })
             .ToArrayAsync(cancellationToken);
 
+        // load the user history so we can reflect their progress on all challenges
+        var userHistory = Array.Empty<UserPracticeHistoryChallenge>();
+        var actingUserId = _actingUser.Get()?.Id;
+
+        if (actingUserId.IsNotEmpty())
+        {
+            userHistory = await _practiceService.GetUserPracticeHistory(actingUserId, cancellationToken);
+        }
+
         foreach (var result in results)
         {
             // hide tags which aren't in the "suggested searches" configured in the practice area
@@ -68,6 +76,40 @@ internal class SearchPracticeChallengesHandler
 
             // fix up relative urls
             result.Text = _challengeDocsService.ReplaceRelativeUris(result.Text);
+        }
+
+        // append historical data
+        if (userHistory.Length != 0)
+        {
+            foreach (var challenge in results)
+            {
+                var challengeHistory = userHistory.FirstOrDefault(h => h.ChallengeSpecId == challenge.Id);
+
+                challenge.UserBestAttempt = new PracticeChallengeViewUserHistory
+                {
+                    AttemptCount = challengeHistory?.AttemptCount ?? 0,
+                    BestAttemptDate = challengeHistory?.BestAttemptDate ?? default(DateTimeOffset?),
+                    BestAttemptScore = challengeHistory?.BestAttemptScore ?? default(double?),
+                    IsComplete = challengeHistory?.IsComplete ?? false
+                };
+            }
+        }
+
+        // filter by complete if requested
+        if (request.UserProgress.HasValue)
+        {
+            switch (request.UserProgress.Value)
+            {
+                case SearchPracticeChallengesRequestUserProgress.NotAttempted:
+                    results = [.. results.Where(c => c.UserBestAttempt?.BestAttemptDate == default)];
+                    break;
+                case SearchPracticeChallengesRequestUserProgress.Attempted:
+                    results = [.. results.Where(c => c.UserBestAttempt?.BestAttemptDate != default && !c.UserBestAttempt.IsComplete)];
+                    break;
+                case SearchPracticeChallengesRequestUserProgress.Completed:
+                    results = [.. results.Where(c => c.UserBestAttempt is not null && c.UserBestAttempt.IsComplete)];
+                    break;
+            }
         }
 
         // resolve paging arguments
@@ -81,39 +123,5 @@ internal class SearchPracticeChallengesHandler
         });
 
         return new SearchPracticeChallengesResult { Results = pagedResults };
-    }
-
-    /// <summary>
-    /// Load the transformed query results from the database. (Broken out into its own function for unit testing.)
-    /// </summary>
-    /// <param name="filterTerm"></param>
-    /// <param name="sluggedSuggestedSearches"></param>
-    /// <returns></returns>
-    internal async Task<IQueryable<Data.ChallengeSpec>> BuildQuery(string filterTerm, IEnumerable<string> sluggedSuggestedSearches)
-    {
-        var canViewHidden = await _permissionsService.Can(PermissionKey.Games_ViewUnpublished);
-
-        var q = _store
-            .WithNoTracking<Data.ChallengeSpec>()
-            .Where(s => s.Game.PlayerMode == PlayerMode.Practice)
-            .Where(s => !s.Disabled);
-
-        if (!canViewHidden)
-        {
-            // without the permission, neither spec nor the game can be hidden
-            q = q
-                .Where(s => !s.IsHidden)
-                .Where(s => s.Game.IsPublished);
-        }
-
-        if (filterTerm.IsNotEmpty())
-        {
-            filterTerm = filterTerm.Trim().ToLower();
-            q = q.Where(s => s.TextSearchVector.Matches(filterTerm) || s.Game.TextSearchVector.Matches(filterTerm) || (sluggedSuggestedSearches.Contains(filterTerm) && s.Tags.Contains(filterTerm)));
-            q = q.OrderByDescending(s => s.TextSearchVector.Rank(EF.Functions.PlainToTsQuery(filterTerm)))
-                .ThenByDescending(s => s.Game.TextSearchVector.Rank(EF.Functions.PlainToTsQuery(filterTerm)));
-        }
-
-        return q;
     }
 }

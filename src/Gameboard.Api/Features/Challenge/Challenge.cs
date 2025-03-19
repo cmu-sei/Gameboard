@@ -254,6 +254,6 @@ public class ChallengeSearchFilter : SearchFilter
 
 public sealed class ChallengeIdUserIdMap
 {
-    public required IDictionary<string, IEnumerable<string>> ChallengeIdUserIds { get; set; }
-    public required IDictionary<string, IEnumerable<string>> UserIdChallengeIds { get; set; }
+    public required IDictionary<string, string[]> ChallengeIdUserIds { get; set; }
+    public required IDictionary<string, string[]> UserIdChallengeIds { get; set; }
 }

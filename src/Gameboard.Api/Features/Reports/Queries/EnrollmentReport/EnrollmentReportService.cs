@@ -16,8 +16,7 @@ public interface IEnrollmentReportService
     Task<EnrollmentReportStatSummary> GetSummaryStats(EnrollmentReportParameters parameters, CancellationToken cancellationToken);
 }
 
-internal class EnrollmentReportService(
-    IReportsService reportsService,
+internal class EnrollmentReportService(IReportsService reportsService,
     IStore store
     ) : IEnrollmentReportService
 {
@@ -32,8 +31,8 @@ internal class EnrollmentReportService(
         var seriesCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Series);
         var sponsorCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Sponsors);
         var trackCriteria = _reportsService.ParseMultiSelectCriteria(parameters.Tracks);
-        DateTimeOffset? enrollDateStart = parameters.EnrollDateStart.HasValue ? parameters.EnrollDateStart.Value.ToEndDate().ToUniversalTime() : null;
-        DateTimeOffset? enrollDateEnd = parameters.EnrollDateEnd.HasValue ? parameters.EnrollDateEnd.Value.ToEndDate().ToUniversalTime() : null;
+        var enrollDateStart = parameters.EnrollDateStart.HasValue ? parameters.EnrollDateStart.Value.ToEndDate().ToUniversalTime() : default(DateTimeOffset?);
+        var enrollDateEnd = parameters.EnrollDateEnd.HasValue ? parameters.EnrollDateEnd.Value.ToEndDate().ToUniversalTime() : default(DateTimeOffset?);
 
         // the fundamental unit of reporting here is really the player record (an "enrollment"), so resolve enrollments that
         // meet the filter criteria (and have at least one challenge completed in competitive mode)

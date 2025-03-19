@@ -65,7 +65,7 @@ internal class EnrollmentReportSummaryHandler : IRequestHandler<EnrollmentReport
                     records = records.Sort(r => r.Game.Name, sortDirection);
                     break;
                 case "time":
-                    records = records.Sort(r => r.PlayTime, sortDirection);
+                    records = records.Sort(r => r.PlayTime.DurationMs, sortDirection);
                     break;
             }
 

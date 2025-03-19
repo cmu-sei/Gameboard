@@ -3,8 +3,9 @@
 
 using System.Threading.Tasks;
 
+namespace Gameboard.Api.Common;
+
 public interface IModelValidator
 {
     Task Validate(object model);
 }
-

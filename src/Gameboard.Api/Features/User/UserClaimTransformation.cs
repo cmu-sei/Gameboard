@@ -20,6 +20,7 @@ public class UserClaimTransformation
 (
     IMemoryCache cache,
     IMapper mapper,
+    OidcOptions oidcOptions,
     ISponsorService sponsorService,
     IStore store,
     IUserRolePermissionsService userRolePermissionsService
@@ -27,6 +28,7 @@ public class UserClaimTransformation
 {
     private readonly IMapper _mapper = mapper;
     private readonly IMemoryCache _cache = cache;
+    private readonly OidcOptions _oidcOptions = oidcOptions;
     private readonly ISponsorService _sponsorService = sponsorService;
     private readonly IStore _store = store;
 
@@ -36,7 +38,9 @@ public class UserClaimTransformation
         // in this case, just pass the claims we already have
         var subject = principal.Subject();
         if (subject is null)
+        {
             return principal;
+        }
 
         if (!_cache.TryGetValue(subject, out User user))
         {
@@ -61,10 +65,31 @@ public class UserClaimTransformation
                 };
             }
 
-            if (user.SponsorId is null || user.SponsorId.IsEmpty())
+            if (user.SponsorId.IsEmpty())
             {
                 var defaultSponsor = await _sponsorService.GetDefaultSponsor();
                 user.SponsorId = defaultSponsor.Id;
+            }
+
+            if (_oidcOptions.DefaultUserNameClaimType.IsNotEmpty())
+            {
+                var claimValue = principal.FindFirstValue(_oidcOptions.DefaultUserNameClaimType);
+
+                if (claimValue.IsNotEmpty())
+                {
+                    user.ApprovedName = claimValue;
+                    user.Name = string.Empty;
+                }
+            }
+
+            if (_oidcOptions.StoreUserEmails)
+            {
+                var claimValue = principal.FindFirstValue(AppConstants.EmailClaimName);
+
+                if (claimValue.IsNotEmpty())
+                {
+                    user.Email = claimValue;
+                }
             }
 
             // TODO: implement IChangeToken for this
@@ -80,15 +105,20 @@ public class UserClaimTransformation
             new(AppConstants.SponsorClaimName, user.SponsorId)
         };
 
+        if (user.Email.IsNotEmpty())
+        {
+            claims.Add(new(AppConstants.EmailClaimName, user.Email));
+        }
+
         return new ClaimsPrincipal
-        (
-            new ClaimsIdentity
             (
-                claims,
-                principal.Identity.AuthenticationType,
-                AppConstants.NameClaimName,
-                AppConstants.RoleClaimName
-            )
-        );
+                new ClaimsIdentity
+                (
+                    claims,
+                    principal.Identity.AuthenticationType,
+                    AppConstants.NameClaimName,
+                    AppConstants.RoleClaimName
+                )
+            );
     }
 }
