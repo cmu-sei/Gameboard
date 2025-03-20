@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,7 +7,6 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Features.Reports;
 
@@ -17,7 +15,6 @@ public record GetSiteUsageReportPlayersQuery(SiteUsageReportParameters ReportPar
 internal sealed class GetSiteUsageReportPlayersHandler
 (
     ChallengeService challengeService,
-    ILogger<GetSiteUsageReportPlayersHandler> logger,
     IPagingService pagingService,
     ISiteUsageReportService reportService,
     IStore store,
