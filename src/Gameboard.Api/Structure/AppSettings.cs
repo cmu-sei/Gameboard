@@ -46,6 +46,7 @@ public class OidcOptions
     public string Authority { get; set; } = "http://localhost:5000";
     public string Audience { get; set; } = "gameboard-api";
     public string DefaultUserNameClaimType { get; set; } = null;
+    public bool DefaultUserNameInferFromEmail { get; set; } = false;
     public int MksCookieMinutes { get; set; } = 60;
     public bool RequireHttpsMetadata { get; set; } = true;
     public bool StoreUserEmails { get; set; } = false;
