@@ -13,13 +13,12 @@ using Microsoft.Extensions.Logging;
 using AutoMapper;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
-using System.Linq.Expressions;
 
 namespace Gameboard.Api.Services;
 
 public interface IGameService
 {
-    Task<Game> Create(NewGame model);
+    Task<Game> Create(GameDetail model);
     Task DeleteCardImage(string gameId, CancellationToken cancellationToken);
     Task DeleteMapImage(string gameId, CancellationToken cancellationToken);
     IQueryable<GameActiveTeam> GetTeamsWithActiveSession(string GameId);
@@ -50,15 +49,8 @@ public class GameService
     private readonly INowService _now = nowService;
     private readonly IStore _store = store;
 
-    public async Task<Game> Create(NewGame model)
+    public async Task<Game> Create(GameDetail model)
     {
-        // for "New Game" only, set global defaults, if defined
-        if (!model.IsClone)
-        {
-            if (_defaults.FeedbackTemplate.NotEmpty())
-                model.FeedbackConfig = _defaults.FeedbackTemplate;
-        }
-
         // defaults: standard, 60 minutes, scoreboard access, etc.
         if (model.Mode.IsEmpty())
             model.Mode = GameEngineMode.Standard;

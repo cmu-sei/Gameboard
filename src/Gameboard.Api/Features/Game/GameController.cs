@@ -56,7 +56,7 @@ public class GameController
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPost("api/game")]
-    public async Task<Game> Create([FromBody] NewGame model)
+    public async Task<Game> Create([FromBody] GameDetail model)
     {
         await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
         return await GameService.Create(model);

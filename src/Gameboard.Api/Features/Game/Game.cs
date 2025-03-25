@@ -72,11 +72,6 @@ public class Game : GameDetail
     public bool IsPracticeMode { get; set; }
 }
 
-public class NewGame : GameDetail
-{
-    public bool IsClone { get; set; } = false;
-}
-
 public class ChangedGame : Game { }
 
 public class GameSearchFilter : SearchFilter
