@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.ChallengeSpecs;
@@ -99,8 +100,8 @@ public class ChallengeSpecController
     /// Load solve performance for the challenge spec
     /// </summary>
     [HttpGet("/api/challengespecs/{challengeSpecId}/question-performance")]
-    public Task<GetChallengeSpecQuestionPerformanceResult> GetQuestionPerformance([FromRoute] string challengeSpecId)
-        => _mediator.Send(new GetChallengeSpecQuestionPerformanceQuery(challengeSpecId));
+    public Task<GetChallengeSpecQuestionPerformanceResult> GetQuestionPerformance([FromRoute] string challengeSpecId, CancellationToken cancellationToken)
+        => _mediator.Send(new GetChallengeSpecQuestionPerformanceQuery(challengeSpecId), cancellationToken);
 
     /// <summary>
     /// Sync challengespec name/description with external source

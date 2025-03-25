@@ -58,6 +58,17 @@ internal sealed class GetUserPracticeSummaryHandler
             // has the user tried this one?
             var userChallengeHistory = userHistory.SingleOrDefault(c => c.ChallengeSpecId == challenge.Id);
 
+            if (userChallengeHistory is not null)
+            {
+                countAttempted += 1;
+                totalPointsScored += userChallengeHistory.BestAttemptScore ?? 0;
+
+                if (userChallengeHistory.IsComplete)
+                {
+                    countCompleted += 1;
+                }
+            }
+
             // update total points scored if played
             totalPointsScored += userChallengeHistory?.BestAttemptScore ?? 0;
 
@@ -89,13 +100,11 @@ internal sealed class GetUserPracticeSummaryHandler
 
                 if (userChallengeHistory is not null)
                 {
-                    countAttempted += 1;
                     engagement.CountAttempted += 1;
                     engagement.PointsScored += userChallengeHistory.BestAttemptScore ?? 0;
 
                     if (userChallengeHistory.IsComplete)
                     {
-                        countCompleted += 1;
                         engagement.CountCompleted += 1;
                     }
                 }
@@ -120,6 +129,7 @@ internal sealed class GetUserPracticeSummaryHandler
                     .SelectMany(c => challengesService.GetTags(c.Tags))
                     .Where(t => practiceSettings.SuggestedSearches.Contains(t))
                     .Where(t => !tagEngagement.ContainsKey(t) || tagEngagement[t].CountAttempted == 0)
+                    .Distinct()
             ]
         };
     }

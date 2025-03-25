@@ -194,7 +194,6 @@ public class ChallengeSpecService
                 CountSubmitted = allQuestions[q.Text].Count(answeredQ => answeredQ.IsGraded)
             }).OrderBy(q => q.QuestionRank);
 
-            // GB will need special topo access anyway if we want to show support people the answers
             questionPerformance.Add(challengeSpecId, questions);
         }
 
