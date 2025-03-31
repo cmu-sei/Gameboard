@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -25,7 +26,12 @@ internal sealed class ListFeedbackTemplatesHandler(IMapper mapper, IStore store,
             .Validate(cancellationToken);
 
         var templates = await _mapper
-            .ProjectTo<FeedbackTemplateView>(_store.WithNoTracking<FeedbackTemplate>())
+            .ProjectTo<FeedbackTemplateView>
+            (
+                _store
+                    .WithNoTracking<FeedbackTemplate>()
+                    .OrderBy(t => t.Name)
+            )
             .ToArrayAsync(cancellationToken);
 
         return new ListFeedbackTemplatesResponse { Templates = templates };
