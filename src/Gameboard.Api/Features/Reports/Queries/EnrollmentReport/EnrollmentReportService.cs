@@ -173,7 +173,7 @@ internal class EnrollmentReportService(IReportsService reportsService,
                 ChallengeCount = challenges.Length,
                 ChallengesPartiallySolvedCount = challenges.Where(c => c.Result == ChallengeResult.Partial).Count(),
                 ChallengesCompletelySolvedCount = challenges.Where(c => c.Result == ChallengeResult.Success).Count(),
-                Score = p.Score
+                Score = challenges.Sum(c => c.Score == null ? 0 : c.Score.Value)
             };
         });
 
@@ -188,7 +188,7 @@ internal class EnrollmentReportService(IReportsService reportsService,
             .Select(p => new
             {
                 Player = p,
-                ChallengesStarted = p.Challenges.Where(c => c.StartTime != DateTimeOffset.MinValue).Count()
+                ChallengesStarted = p.Challenges.Where(c => c.StartTime != DateTimeOffset.MinValue).Select(c => c.Id).Distinct().Count()
             });
 
         var rawResults = await query.ToArrayAsync(cancellationToken);
@@ -239,7 +239,7 @@ internal class EnrollmentReportService(IReportsService reportsService,
             .Select(p => p.TeamId)
             .Distinct()
             .Count();
-        var startedChallengeTeamsCount = distinctTeamIds.Length - rawResults.Where(p => p.ChallengesStarted > 0).Select(r => r.Player.TeamId).Distinct().Count();
+        var startedChallengeTeamsCount = rawResults.Where(p => p.ChallengesStarted > 0).Select(r => r.Player.TeamId).Distinct().Count();
 
         return new EnrollmentReportStatSummary
         {

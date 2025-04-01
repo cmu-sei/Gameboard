@@ -82,13 +82,25 @@ public class UserClaimTransformation
                 }
             }
 
-            if (_oidcOptions.StoreUserEmails)
+            if (_oidcOptions.StoreUserEmails || _oidcOptions.DefaultUserNameInferFromEmail)
             {
-                var claimValue = principal.FindFirstValue(AppConstants.EmailClaimName);
+                var emailClaimValue = principal.FindFirstValue(AppConstants.EmailClaimName);
 
-                if (claimValue.IsNotEmpty())
+                if (_oidcOptions.StoreUserEmails)
                 {
-                    user.Email = claimValue;
+                    if (emailClaimValue.IsNotEmpty())
+                    {
+                        user.Email = emailClaimValue;
+                    }
+                }
+
+                if (_oidcOptions.DefaultUserNameInferFromEmail && emailClaimValue.IsNotEmpty() && user.ApprovedName.IsEmpty())
+                {
+                    var atIndex = emailClaimValue.IndexOf('@');
+                    if (atIndex >= 0)
+                    {
+                        user.ApprovedName = emailClaimValue[..atIndex];
+                    }
                 }
             }
 
@@ -99,8 +111,8 @@ public class UserClaimTransformation
         var claims = new List<Claim>
         {
             new(AppConstants.SubjectClaimName, user.Id),
-            new(AppConstants.NameClaimName, user.Name ?? ""),
-            new(AppConstants.ApprovedNameClaimName, user.ApprovedName ?? ""),
+            new(AppConstants.NameClaimName, user.Name ?? string.Empty),
+            new(AppConstants.ApprovedNameClaimName, user.ApprovedName ?? string.Empty),
             new(AppConstants.RoleClaimName, user.Role.ToString()),
             new(AppConstants.SponsorClaimName, user.SponsorId)
         };

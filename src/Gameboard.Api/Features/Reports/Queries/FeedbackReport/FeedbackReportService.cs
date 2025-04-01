@@ -90,17 +90,17 @@ internal sealed class FeedbackReportService(IReportsService reportsService, ISto
                             s.AttachedEntityType == FeedbackSubmissionAttachedEntityType.ChallengeSpec ?
                             ((FeedbackSubmissionChallengeSpec)s).ChallengeSpec.Game :
                             ((FeedbackSubmissionGame)s).Game
-                        ).Season,
+                        ).Season ?? string.Empty,
                         Series = (
                             s.AttachedEntityType == FeedbackSubmissionAttachedEntityType.ChallengeSpec ?
                             ((FeedbackSubmissionChallengeSpec)s).ChallengeSpec.Game :
                             ((FeedbackSubmissionGame)s).Game
-                        ).Competition,
+                        ).Competition ?? string.Empty,
                         Track = (
                             s.AttachedEntityType == FeedbackSubmissionAttachedEntityType.ChallengeSpec ?
                             ((FeedbackSubmissionChallengeSpec)s).ChallengeSpec.Game :
                             ((FeedbackSubmissionGame)s).Game
-                        ).Track,
+                        ).Track ?? string.Empty,
                         IsTeamGame = (
                             s.AttachedEntityType == FeedbackSubmissionAttachedEntityType.ChallengeSpec ?
                             ((FeedbackSubmissionChallengeSpec)s).ChallengeSpec.Game :

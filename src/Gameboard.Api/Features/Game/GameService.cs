@@ -18,17 +18,19 @@ namespace Gameboard.Api.Services;
 
 public interface IGameService
 {
-    Task<Game> Create(NewGame model);
-    Task DeleteGameCardImage(string gameId);
+    Task<Game> Create(GameDetail model);
+    Task DeleteCardImage(string gameId, CancellationToken cancellationToken);
+    Task DeleteMapImage(string gameId, CancellationToken cancellationToken);
     IQueryable<GameActiveTeam> GetTeamsWithActiveSession(string GameId);
     Task<bool> IsUserPlaying(string gameId, string userId);
     Task<IEnumerable<Game>> List(GameSearchFilter model = null, bool sudo = false);
     Task<GameGroup[]> ListGrouped(GameSearchFilter model, bool sudo);
     Task<Game> Retrieve(string id, bool accessHidden = true);
     Task<ChallengeSpec[]> RetrieveChallengeSpecs(string id);
+    Task<UploadedFile> SaveCardImage(string gameId, IFormFile file, CancellationToken cancellationToken);
+    Task<UploadedFile> SaveMapImage(string gameId, IFormFile file, CancellationToken cancellationToken);
     Task<SessionForecast[]> SessionForecast(string id);
     Task<Data.Game> Update(ChangedGame account);
-    Task UpdateImage(string id, string type, string filename);
 }
 
 public class GameService
@@ -47,15 +49,8 @@ public class GameService
     private readonly INowService _now = nowService;
     private readonly IStore _store = store;
 
-    public async Task<Game> Create(NewGame model)
+    public async Task<Game> Create(GameDetail model)
     {
-        // for "New Game" only, set global defaults, if defined
-        if (!model.IsClone)
-        {
-            if (_defaults.FeedbackTemplate.NotEmpty())
-                model.FeedbackConfig = _defaults.FeedbackTemplate;
-        }
-
         // defaults: standard, 60 minutes, scoreboard access, etc.
         if (model.Mode.IsEmpty())
             model.Mode = GameEngineMode.Standard;
@@ -75,6 +70,50 @@ public class GameService
         var entity = Mapper.Map<Data.Game>(model);
         var created = await _store.Create(entity);
         return Mapper.Map<Game>(created);
+    }
+
+    public async Task DeleteCardImage(string gameId, CancellationToken cancellationToken)
+    {
+        if (!await _store.WithNoTracking<Data.Game>().AnyAsync(g => g.Id == gameId, cancellationToken))
+            throw new ResourceNotFound<Data.Game>(gameId);
+
+        var fileSearchPattern = $"{GetCardFileNameBase(gameId)}.*";
+        var files = Directory.GetFiles(Options.ImageFolder, fileSearchPattern);
+
+        foreach (var cardImageFile in files)
+        {
+            File.Delete(cardImageFile);
+        }
+
+        await _store
+            .WithNoTracking<Data.Game>()
+            .Where(g => g.Id == gameId)
+            .ExecuteUpdateAsync(up => up.SetProperty(g => g.Logo, default(string)), cancellationToken);
+    }
+
+    public async Task DeleteMapImage(string gameId, CancellationToken cancellationToken)
+    {
+        var mapImagePath = await _store
+            .WithNoTracking<Data.Game>()
+            .Where(g => g.Id == gameId)
+            .Select(g => g.Background)
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (mapImagePath.IsEmpty())
+        {
+            return;
+        }
+
+        await _store
+            .WithNoTracking<Data.Game>()
+            .Where(g => g.Id == gameId)
+            .ExecuteUpdateAsync(up => up.SetProperty(g => g.Background, default(string)), cancellationToken);
+
+        var filePath = Path.Combine(Options.ImageFolder, mapImagePath);
+        if (File.Exists(filePath))
+        {
+            File.Delete(filePath);
+        }
     }
 
     public async Task<Game> Retrieve(string id, bool accessHidden = true)
@@ -218,43 +257,37 @@ public class GameService
     public Task<bool> IsUserPlaying(string gameId, string userId)
         => _store.AnyAsync<Data.Player>(p => p.GameId == gameId && p.UserId == userId, CancellationToken.None);
 
-    public async Task DeleteGameCardImage(string gameId)
+    public async Task<UploadedFile> SaveCardImage(string gameId, IFormFile file, CancellationToken cancellationToken)
     {
-        if (!await _store.WithNoTracking<Data.Game>().AnyAsync(g => g.Id == gameId))
-            throw new ResourceNotFound<Data.Game>(gameId);
+        var fileName = $"{GetCardFileNameBase(gameId)}{Path.GetExtension(file.FileName.ToLower())}";
+        var result = await SaveImage(gameId, fileName, await file.ToBytes(cancellationToken), cancellationToken);
 
-        var fileSearchPattern = $"{GetGameCardFileNameBase(gameId)}.*";
-        var files = Directory.GetFiles(Options.ImageFolder, fileSearchPattern);
+        await _store
+            .WithNoTracking<Data.Game>()
+            .Where(g => g.Id == gameId)
+            .ExecuteUpdateAsync(up => up.SetProperty(g => g.Logo, fileName), cancellationToken);
 
-        foreach (var cardImageFile in files)
-        {
-            File.Delete(cardImageFile);
-        }
-
-        await UpdateImage(gameId, "card", string.Empty);
+        return result;
     }
 
-    public async Task<UploadedFile> SaveGameCardImage(string gameId, IFormFile file)
+    public async Task<UploadedFile> SaveMapImage(string gameId, IFormFile file, CancellationToken cancellationToken)
     {
-        if (!await _store.WithNoTracking<Data.Game>().AnyAsync(g => g.Id == gameId))
-            throw new ResourceNotFound<Data.Game>(gameId);
+        var fileName = $"{GetMapImageFileNameBase(gameId)}{Path.GetExtension(file.FileName.ToLower())}";
+        var result = await SaveImage(gameId, fileName, await file.ToBytes(cancellationToken), cancellationToken);
 
-        // we currently intentionally leave the old image around for quasi-logging purposes,
-        // but we could delete if desired here by getting the path from the Game entity.
-        // We generate a semi-random name for the new file in GetGameCardFileNameBase to bypass
-        // network-level caching.
-        var fileName = $"{GetGameCardFileNameBase(gameId)}{Path.GetExtension(file.FileName.ToLower())}";
-        var path = Path.Combine(Options.ImageFolder, fileName);
+        await _store
+            .WithNoTracking<Data.Game>()
+            .Where(g => g.Id == gameId)
+            .ExecuteUpdateAsync(up => up.SetProperty(g => g.Background, fileName), cancellationToken);
 
-        using var stream = new FileStream(path, FileMode.OpenOrCreate);
-        await file.CopyToAsync(stream);
-        await UpdateImage(gameId, "card", fileName);
-
-        return new UploadedFile { Filename = fileName };
+        return result;
     }
 
-    private string GetGameCardFileNameBase(string gameId)
+    private string GetCardFileNameBase(string gameId)
         => $"{gameId.ToLower()}_card_{_guids.Generate()[..6]}";
+
+    private string GetMapImageFileNameBase(string gameId)
+        => $"{gameId.ToLower()}_map_{_guids.Generate()[..6]}";
 
     private IQueryable<Data.Game> BuildSearchQuery(GameSearchFilter model, bool canViewUnpublished = false)
     {
@@ -333,5 +366,24 @@ public class GameService
             q = q.Take(model.Take);
 
         return q;
+    }
+
+    private async Task<UploadedFile> SaveImage(string gameId, string saveAsFileName, byte[] imageBytes, CancellationToken cancellationToken)
+    {
+        if (!await _store.WithNoTracking<Data.Game>().AnyAsync(g => g.Id == gameId, cancellationToken))
+        {
+            throw new ResourceNotFound<Data.Game>(gameId);
+        }
+
+        // we currently intentionally leave the old image around for quasi-logging purposes,
+        // but we could delete if desired here by getting the path from the Game entity.
+        // We generate a semi-random name for the new file in GetGameCardFileNameBase to bypass
+        // network-level caching.
+        var path = Path.Combine(Options.ImageFolder, saveAsFileName);
+
+        using var stream = new FileStream(path, FileMode.OpenOrCreate);
+        await stream.WriteAsync(imageBytes, cancellationToken);
+
+        return new UploadedFile { Filename = saveAsFileName };
     }
 }

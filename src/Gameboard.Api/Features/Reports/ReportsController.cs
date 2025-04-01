@@ -93,7 +93,7 @@ public class ReportsController(IMediator mediator, IReportsService service) : Co
         => _service.ListChallengeSpecs(gameId);
 
     [HttpGet("parameter/challenge-tags")]
-    public Task<IEnumerable<string>> GetChallengeTags(CancellationToken cancellationToken)
+    public Task<string[]> GetChallengeTags(CancellationToken cancellationToken)
         => _service.ListChallengeTags(cancellationToken);
 
     [HttpGet("parameter/games")]

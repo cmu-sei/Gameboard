@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,26 +9,21 @@ namespace Gameboard.Api.Features.Reports;
 
 public record GetMetaDataQuery(string ReportKey) : IRequest<ReportMetaData>, IReportQuery;
 
-internal class GetMetaDataHandler : IRequestHandler<GetMetaDataQuery, ReportMetaData>
+internal class GetMetaDataHandler
+(
+    INowService nowService,
+    IReportsService reportsService,
+    ReportsQueryValidator reportsQueryValidator,
+    ISlugService slugger
+) : IRequestHandler<GetMetaDataQuery, ReportMetaData>
 {
-    private readonly INowService _now;
-    private readonly IReportsService _reportsService;
-    private readonly ReportsQueryValidator _reportsQueryValidator;
-
-    public GetMetaDataHandler
-    (
-        INowService now,
-        IReportsService reportsService,
-        ReportsQueryValidator reportsQueryValidator
-    )
-        => (_now, _reportsService, _reportsQueryValidator) = (now, reportsService, reportsQueryValidator);
-
     public async Task<ReportMetaData> Handle(GetMetaDataQuery request, CancellationToken cancellationToken)
     {
-        await _reportsQueryValidator.Validate(request, cancellationToken);
+        await reportsQueryValidator.Validate(request, cancellationToken);
 
-        var reports = await _reportsService.List();
-        var report = reports.FirstOrDefault(r => r.Key == request.ReportKey) ?? throw new ResourceNotFound<ReportViewModel>(request.ReportKey);
+        var reports = await reportsService.List();
+        var normalizedKey = slugger.Get(request.ReportKey);
+        var report = reports.FirstOrDefault(r => string.Equals(slugger.Get(r.Key), normalizedKey, StringComparison.InvariantCultureIgnoreCase)) ?? throw new ResourceNotFound<ReportViewModel>(request.ReportKey);
 
         return new ReportMetaData
         {
@@ -36,7 +32,7 @@ internal class GetMetaDataHandler : IRequestHandler<GetMetaDataQuery, ReportMeta
             Description = report.Description,
             IsExportable = report.IsExportable,
             ParametersSummary = null,
-            RunAt = _now.Get()
+            RunAt = nowService.Get()
         };
     }
 }

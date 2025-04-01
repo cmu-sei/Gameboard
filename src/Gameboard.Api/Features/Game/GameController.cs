@@ -56,11 +56,16 @@ public class GameController
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPost("api/game")]
-    public async Task<Game> Create([FromBody] NewGame model)
+    public async Task<Game> Create([FromBody] GameDetail model)
     {
         await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
         return await GameService.Create(model);
     }
+
+    [HttpPost("api/game/clone")]
+    [Authorize]
+    public Task<Game> Clone([FromBody] CloneGameCommand request, CancellationToken cancellationToken)
+        => _mediator.Send(request, cancellationToken);
 
     /// <summary>
     /// Retrieve game
@@ -218,56 +223,34 @@ public class GameController
     public Task<TeamGamespaceLimitState> GetTeamGamespaceLimitState([FromRoute] string gameId, [FromRoute] string teamId)
         => _mediator.Send(new GetTeamGamespaceLimitStateQuery(gameId, teamId, Actor));
 
-    [HttpPost("api/game/{id}/card")]
-    public async Task<ActionResult<UploadedFile>> UploadGameCard(string id, IFormFile file)
+    [HttpPost("api/game/{id}/image/card")]
+    public async Task<ActionResult<UploadedFile>> UploadCardImage(string id, IFormFile file, CancellationToken cancellationToken)
     {
         await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
-        return Ok(await GameService.SaveGameCardImage(id, file));
+        return Ok(await GameService.SaveCardImage(id, file, cancellationToken));
     }
 
-    [HttpPost("api/game/{id}/{type}")]
-    public async Task<ActionResult<UploadedFile>> UploadMapImage(string id, string type, IFormFile file)
+    [HttpPost("api/game/{id}/image/map")]
+    public async Task<UploadedFile> UploadMapImage(string id, IFormFile file, CancellationToken cancellationToken)
     {
         await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
-        await Validate(new Entity { Id = id });
-
-        string filename = $"{type}_{new Random().Next().ToString("x8")}{Path.GetExtension(file.FileName)}".ToLower();
-        string path = Path.Combine(Options.ImageFolder, filename);
-
-        using (var stream = new FileStream(path, FileMode.Create))
-        {
-            await file.CopyToAsync(stream);
-        }
-
-        await GameService.UpdateImage(id, type, filename);
-
-        return Ok(new UploadedFile { Filename = filename });
+        return await GameService.SaveMapImage(id, file, cancellationToken);
     }
 
-    [HttpDelete("api/game/{id}/card")]
-    public async Task DeleteGameCard([FromRoute] string id)
-    {
-        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
-        await GameService.DeleteGameCardImage(id);
-    }
-
-    [HttpDelete("api/game/{id}/{type}")]
+    [HttpDelete("api/game/{id}/image/card")]
     [Authorize]
-    public async Task<ActionResult<UploadedFile>> DeleteImage([FromRoute] string id, [FromRoute] string type)
+    public async Task DeleteGameCard([FromRoute] string id, CancellationToken cancellationToken)
     {
         await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
-        await Validate(new Entity { Id = id });
+        await GameService.DeleteCardImage(id, cancellationToken);
+    }
 
-        string target = $"{id}_{type}.*".ToLower();
-        var file = Directory.GetFiles(Options.ImageFolder, target).FirstOrDefault();
-
-        if (file.NotEmpty())
-        {
-            System.IO.File.Delete(file);
-            await GameService.UpdateImage(id, type, "");
-        }
-
-        return Ok(new UploadedFile { Filename = "" });
+    [HttpDelete("api/game/{gameId}/image/map")]
+    [Authorize]
+    public async Task DeleteGameMapImage([FromRoute] string gameId, CancellationToken cancellationToken)
+    {
+        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        await GameService.DeleteMapImage(gameId, cancellationToken);
     }
 
     /// <summary>

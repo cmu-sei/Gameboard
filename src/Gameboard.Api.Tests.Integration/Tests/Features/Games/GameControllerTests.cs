@@ -11,7 +11,7 @@ public class GameControllerTests(GameboardTestContext testContext) : IClassFixtu
     {
         // arrange
 
-        var game = new NewGame()
+        var game = new GameDetail()
         {
             Name = "Test game",
             Competition = "Test competition",

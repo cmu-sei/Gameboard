@@ -20,7 +20,7 @@ public interface IReportsService
     Task<IDictionary<string, ReportTeamViewModel>> GetTeamsByPlayerIds(IEnumerable<string> playerIds, CancellationToken cancellationToken);
     Task<IEnumerable<ReportViewModel>> List();
     Task<IEnumerable<SimpleEntity>> ListChallengeSpecs(string gameId = null);
-    Task<IEnumerable<string>> ListChallengeTags(CancellationToken cancellationToken);
+    Task<string[]> ListChallengeTags(CancellationToken cancellationToken);
     Task<IEnumerable<SimpleEntity>> ListGames();
     Task<IEnumerable<string>> ListSeasons();
     Task<IEnumerable<string>> ListSeries();
@@ -30,13 +30,14 @@ public interface IReportsService
     IEnumerable<string> ParseMultiSelectCriteria(string criteria);
 }
 
-public class ReportsService(
+public class ReportsService
+(
     INowService now,
     IPagingService paging,
     IPracticeService practiceService,
     IStore store,
     ITeamService teamService
-    ) : IReportsService
+) : IReportsService
 {
     private static readonly string MULTI_SELECT_DELIMITER = ",";
 
@@ -283,7 +284,7 @@ public class ReportsService(
             .ToArrayAsync();
     }
 
-    public Task<IEnumerable<string>> ListChallengeTags(CancellationToken cancellationToken)
+    public Task<string[]> ListChallengeTags(CancellationToken cancellationToken)
         => _practiceService.GetVisibleChallengeTags(cancellationToken);
 
     public Task<IEnumerable<string>> ListSeasons()

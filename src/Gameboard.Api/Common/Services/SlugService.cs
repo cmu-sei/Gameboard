@@ -15,6 +15,6 @@ internal partial class SlugService : ISlugService
             .ToLower()
             .Trim('-');
 
-    [GeneratedRegex("\\s+")]
+    [GeneratedRegex("[^a-zA-Z0-9]+")]
     private static partial Regex WhitespaceRegex();
 }

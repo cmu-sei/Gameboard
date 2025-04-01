@@ -6,26 +6,17 @@ namespace Gameboard.Api.Features.Reports;
 
 public record EnrollmentReportSummaryStatsQuery(EnrollmentReportParameters Parameters) : IRequest<EnrollmentReportStatSummary>, IReportQuery;
 
-internal class EnrollmentReportSummaryStatsHandler : IRequestHandler<EnrollmentReportSummaryStatsQuery, EnrollmentReportStatSummary>
+internal class EnrollmentReportSummaryStatsHandler
+(
+    IEnrollmentReportService enrollmentReportService,
+    ReportsQueryValidator reportsQueryValidator
+) : IRequestHandler<EnrollmentReportSummaryStatsQuery, EnrollmentReportStatSummary>
 {
-    private readonly IEnrollmentReportService _enrollmentReportService;
-    private readonly ReportsQueryValidator _reportsQueryValidator;
-
-    public EnrollmentReportSummaryStatsHandler
-    (
-        IEnrollmentReportService enrollmentReportService,
-        ReportsQueryValidator reportsQueryValidator
-    )
-    {
-        _enrollmentReportService = enrollmentReportService;
-        _reportsQueryValidator = reportsQueryValidator;
-    }
-
     public async Task<EnrollmentReportStatSummary> Handle(EnrollmentReportSummaryStatsQuery request, CancellationToken cancellationToken)
     {
         // validate
-        await _reportsQueryValidator.Validate(request, cancellationToken);
+        await reportsQueryValidator.Validate(request, cancellationToken);
 
-        return await _enrollmentReportService.GetSummaryStats(request.Parameters, cancellationToken);
+        return await enrollmentReportService.GetSummaryStats(request.Parameters, cancellationToken);
     }
 }

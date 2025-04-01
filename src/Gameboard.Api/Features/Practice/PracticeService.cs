@@ -30,8 +30,8 @@ public interface IPracticeService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<UserPracticeHistoryChallenge[]> GetUserPracticeHistory(string userId, CancellationToken cancellationToken);
-    Task<IEnumerable<string>> GetVisibleChallengeTags(CancellationToken cancellationToken);
-    Task<IEnumerable<string>> GetVisibleChallengeTags(IEnumerable<string> requestedTags, CancellationToken cancellationToken);
+    Task<string[]> GetVisibleChallengeTags(CancellationToken cancellationToken);
+    Task<string[]> GetVisibleChallengeTags(IEnumerable<string> requestedTags, CancellationToken cancellationToken);
     IEnumerable<string> UnescapeSuggestedSearches(string input);
     Task<PracticeModeSettings> UpdateSettings(PracticeModeSettingsApiModel settings, string actingUserId, CancellationToken cancellationToken);
 }
@@ -215,16 +215,16 @@ internal partial class PracticeService
         return apiModel;
     }
 
-    public async Task<IEnumerable<string>> GetVisibleChallengeTags(CancellationToken cancellationToken)
+    public async Task<string[]> GetVisibleChallengeTags(CancellationToken cancellationToken)
     {
         var settings = await GetSettings(cancellationToken);
-        return settings.SuggestedSearches;
+        return [.. settings.SuggestedSearches.OrderBy(s => s)];
     }
 
-    public async Task<IEnumerable<string>> GetVisibleChallengeTags(IEnumerable<string> requestedTags, CancellationToken cancellationToken)
+    public async Task<string[]> GetVisibleChallengeTags(IEnumerable<string> requestedTags, CancellationToken cancellationToken)
     {
         var settings = await GetSettings(cancellationToken);
-        return [.. requestedTags.Select(t => t.ToLower()).Intersect(settings.SuggestedSearches)];
+        return [.. requestedTags.Select(t => t.ToLower()).Intersect(settings.SuggestedSearches).OrderBy(s => s)];
     }
 
     public async Task<PracticeModeSettings> UpdateSettings(PracticeModeSettingsApiModel update, string actingUserId, CancellationToken cancellationToken)
