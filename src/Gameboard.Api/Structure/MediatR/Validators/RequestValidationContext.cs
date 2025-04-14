@@ -4,7 +4,7 @@ namespace Gameboard.Api.Structure.MediatR.Validators;
 
 public class RequestValidationContext
 {
-    private List<GameboardValidationException> _exceptions = new List<GameboardValidationException>();
+    private readonly List<GameboardValidationException> _exceptions = [];
     internal IEnumerable<GameboardValidationException> ValidationExceptions { get => _exceptions; }
     internal RequestValidationContext() { }
 

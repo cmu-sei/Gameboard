@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Challenges;
+using Gameboard.Api.Features.Consoles;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Users;
 using Gameboard.Api.Hubs;
@@ -29,11 +30,12 @@ public class ChallengeController
     IDistributedCache cache,
     ChallengeValidator validator,
     ChallengeService challengeService,
+    IGameEngineService gameEngineService,
     IMediator mediator,
     IUserRolePermissionsService permissionsService,
     PlayerService playerService,
     IHubContext<AppHub, IAppHubEvent> hub,
-    ConsoleActorMap actormap
+    ConsoleActorMap actorMap
     ) : GameboardLegacyController(actingUserService, logger, cache, validator)
 {
     private readonly IMediator _mediator = mediator;
@@ -42,7 +44,7 @@ public class ChallengeController
     ChallengeService ChallengeService { get; } = challengeService;
     PlayerService PlayerService { get; } = playerService;
     IHubContext<AppHub, IAppHubEvent> Hub { get; } = hub;
-    ConsoleActorMap ActorMap { get; } = actormap;
+    ConsoleActorMap ActorMap { get; } = actorMap;
 
     /// <summary>
     /// Purge a challenge. This deletes the challenge instance, and all progress on it, and can't be undone.
@@ -113,7 +115,6 @@ public class ChallengeController
         );
 
         await Validate(new Entity { Id = id });
-
         return await ChallengeService.Get(id);
     }
 
@@ -275,10 +276,11 @@ public class ChallengeController
     /// Console action (ticket, reset)
     /// </summary>
     /// <param name="model"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("/api/challenge/console")]
     [Authorize(AppConstants.ConsolePolicy)]
-    public async Task<ConsoleSummary> GetConsole([FromBody] ConsoleRequest model)
+    public async Task<ConsoleState> SendConsoleCommand([FromBody] ConsoleRequest model, CancellationToken cancellationToken)
     {
         await Validate(new Entity { Id = model.SessionId });
         var isTeamMember = await ChallengeService.UserIsPlayingChallenge(model.SessionId, Actor.Id);
@@ -288,28 +290,18 @@ public class ChallengeController
             await Authorize(_permissionsService.Can(PermissionKey.Teams_Observe));
 
         Logger.LogInformation($"""Console access attempt ({model.Id} / {Actor.Id}): Allowed.""");
-        var result = await ChallengeService.GetConsole(model, isTeamMember.Equals(false));
+        var result = await gameEngineService.GetConsole(GameEngineType.TopoMojo, new ConsoleId { ChallengeId = model.SessionId, Name = model.Name }, cancellationToken);
 
         if (isTeamMember)
-            ActorMap.Update(await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.ApprovedName));
+        {
+            ActorMap.Update(await ChallengeService.SetConsoleActor(new ConsoleId
+            {
+                ChallengeId = model.SessionId,
+                Name = model.Name
+            }, Actor.Id, Actor.ApprovedName));
+        }
 
         return result;
-    }
-
-    /// <summary>
-    /// Console action (ticket, reset)
-    /// </summary>
-    /// <param name="model"></param>
-    /// <returns></returns>
-    [HttpPut("/api/challenge/console")]
-    [Authorize(AppConstants.ConsolePolicy)]
-    public async Task SetConsoleActor([FromBody] ConsoleRequest model)
-    {
-        await Validate(new Entity { Id = model.SessionId });
-
-        var isTeamMember = await ChallengeService.UserIsPlayingChallenge(model.SessionId, Actor.Id);
-        if (isTeamMember)
-            ActorMap.Update(await ChallengeService.SetConsoleActor(model, Actor.Id, Actor.ApprovedName));
     }
 
     [HttpGet("/api/challenge/consoles")]

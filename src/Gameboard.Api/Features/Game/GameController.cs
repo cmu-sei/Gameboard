@@ -3,8 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
@@ -46,10 +44,6 @@ public class GameController
     public CoreOptions Options { get; } = options;
     public IHostEnvironment Env { get; } = env;
 
-    private readonly IMediator _mediator = mediator;
-    private readonly IUserRolePermissionsService _permissionsService = permissionsService;
-    private readonly IScoreDenormalizationService _scoreDenormalization = scoreDenormalization;
-
     /// <summary>
     /// Create new game
     /// </summary>
@@ -58,14 +52,14 @@ public class GameController
     [HttpPost("api/game")]
     public async Task<Game> Create([FromBody] GameDetail model)
     {
-        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        await Authorize(permissionsService.Can(PermissionKey.Games_CreateEditDelete));
         return await GameService.Create(model);
     }
 
     [HttpPost("api/game/clone")]
     [Authorize]
     public Task<Game> Clone([FromBody] CloneGameCommand request, CancellationToken cancellationToken)
-        => _mediator.Send(request, cancellationToken);
+        => mediator.Send(request, cancellationToken);
 
     /// <summary>
     /// Retrieve game
@@ -76,7 +70,7 @@ public class GameController
     [AllowAnonymous]
     public async Task<Game> Retrieve([FromRoute] string id)
     {
-        return await GameService.Retrieve(id, await _permissionsService.Can(PermissionKey.Games_ViewUnpublished));
+        return await GameService.Retrieve(id, await permissionsService.Can(PermissionKey.Games_ViewUnpublished));
     }
 
     [HttpGet("api/game/{id}/specs")]
@@ -90,7 +84,7 @@ public class GameController
     [HttpGet("api/game/{gameId}/session-availability")]
     [Authorize]
     public Task<GameSessionAvailibilityResponse> GetSessionAvailability([FromRoute] string gameId)
-        => _mediator.Send(new GameSessionAvailabilityQuery(gameId));
+        => mediator.Send(new GameSessionAvailabilityQuery(gameId));
 
     [HttpGet("api/game/{id}/sessions")]
     [Authorize]
@@ -103,7 +97,7 @@ public class GameController
     [HttpPost("api/game/{gameId}/resources")]
     [Authorize]
     public Task DeployResources([FromRoute] string gameId, [FromBody] DeployGameResourcesBody body)
-        => _mediator.Send(new DeployGameResourcesCommand(gameId, body?.TeamIds));
+        => mediator.Send(new DeployGameResourcesCommand(gameId, body?.TeamIds));
 
     /// <summary>
     /// Change game
@@ -113,7 +107,7 @@ public class GameController
     [HttpPut("api/game")]
     public async Task<Data.Game> Update([FromBody] ChangedGame model)
     {
-        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        await Authorize(permissionsService.Can(PermissionKey.Games_CreateEditDelete));
         await Validate(model);
         return await GameService.Update(model);
     }
@@ -126,7 +120,7 @@ public class GameController
     /// <returns></returns>
     [HttpDelete("/api/game/{id}")]
     public Task Delete([FromRoute] string id, [FromBody] DeleteGameRequest request)
-        => _mediator.Send(new DeleteGameCommand(id, request.AllowPlayerDeletion));
+        => mediator.Send(new DeleteGameCommand(id, request.AllowPlayerDeletion));
 
     /// <summary>
     /// Find games
@@ -136,7 +130,7 @@ public class GameController
     [HttpGet("/api/games")]
     [AllowAnonymous]
     public async Task<IEnumerable<Game>> List([FromQuery] GameSearchFilter model)
-        => await GameService.List(model, await _permissionsService.Can(PermissionKey.Games_ViewUnpublished));
+        => await GameService.List(model, await permissionsService.Can(PermissionKey.Games_ViewUnpublished));
 
     /// <summary>
     /// List games for admin interfaces.
@@ -149,7 +143,7 @@ public class GameController
     /// <returns></returns>
     [HttpGet("/api/games/admin")]
     public Task<ListGamesResponse> ListAdmin([FromQuery] ListGamesQuery query, CancellationToken cancellationToken)
-        => _mediator.Send(query, cancellationToken);
+        => mediator.Send(query, cancellationToken);
 
     /// <summary>
     /// List games grouped by year and month
@@ -159,34 +153,34 @@ public class GameController
     [HttpGet("/api/games/grouped")]
     [AllowAnonymous]
     public async Task<GameGroup[]> ListGrouped([FromQuery] GameSearchFilter model)
-        => await GameService.ListGrouped(model, await _permissionsService.Can(PermissionKey.Games_ViewUnpublished));
+        => await GameService.ListGrouped(model, await permissionsService.Can(PermissionKey.Games_ViewUnpublished));
 
     [HttpGet("/api/game/{gameId}/ready")]
     [Authorize]
     public Task<SyncStartState> GetSyncStartState(string gameId)
-        => _mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
+        => mediator.Send(new GetSyncStartStateQuery(gameId, Actor));
 
     [HttpGet("/api/game/{gameId}/play-state")]
     [Authorize]
     public Task<GamePlayState> GetGamePlayState(string gameId)
-        => _mediator.Send(new GetGamePlayStateQuery(gameId, Actor.Id));
+        => mediator.Send(new GetGamePlayStateQuery(gameId, Actor.Id));
 
     [HttpPost("/api/games/export")]
     public Task<GameImportExportBatch> ExportGames([FromBody] ExportGamesCommand request, CancellationToken cancellationToken)
-        => _mediator.Send(request, cancellationToken);
+        => mediator.Send(request, cancellationToken);
 
     [HttpGet("/api/games/export-batches")]
     public Task<ListExportBatchesResponse> ListGameExportBatches(CancellationToken cancellationToken)
-        => _mediator.Send(new ListExportBatchesQuery(), cancellationToken);
+        => mediator.Send(new ListExportBatchesQuery(), cancellationToken);
 
     [HttpDelete("/api/games/export-batches/{exportBatchId}")]
     public Task DeleteExportPackage(string exportBatchId, CancellationToken cancellationToken)
-        => _mediator.Send(new DeleteExportBatchCommand(exportBatchId), cancellationToken);
+        => mediator.Send(new DeleteExportBatchCommand(exportBatchId), cancellationToken);
 
     [HttpGet("/api/games/export-batches/{exportBatchId}")]
     public async Task<FileContentResult> DownloadExportPackage(string exportBatchId, CancellationToken cancellationToken)
     {
-        var bytes = await _mediator.Send(new DownloadExportPackageRequest(exportBatchId), cancellationToken);
+        var bytes = await mediator.Send(new DownloadExportPackageRequest(exportBatchId), cancellationToken);
         return new FileContentResult(bytes, "application/zip");
     }
 
@@ -209,31 +203,31 @@ public class GameController
             setPublishStatus = request.SetGamesPublishStatus.Equals("true", StringComparison.CurrentCultureIgnoreCase);
         }
 
-        return await _mediator.Send(new ImportGamesCommand(package, parsedGameIds, setPublishStatus), cancellationToken);
+        return await mediator.Send(new ImportGamesCommand(package, parsedGameIds, setPublishStatus), cancellationToken);
     }
 
     [HttpPost("/api/games/import/preview")]
     public async Task<GameImportExportBatch> PreviewImportPackage([FromForm] IFormFile packageFile, CancellationToken cancellationToken)
     {
         var package = await packageFile.ToBytes(cancellationToken);
-        return await _mediator.Send(new PreviewImportPackageQuery(package), cancellationToken);
+        return await mediator.Send(new PreviewImportPackageQuery(package), cancellationToken);
     }
 
     [HttpGet("/api/game/{gameId}/team/{teamId}/gamespace-limit")]
     public Task<TeamGamespaceLimitState> GetTeamGamespaceLimitState([FromRoute] string gameId, [FromRoute] string teamId)
-        => _mediator.Send(new GetTeamGamespaceLimitStateQuery(gameId, teamId, Actor));
+        => mediator.Send(new GetTeamGamespaceLimitStateQuery(gameId, teamId, Actor));
 
     [HttpPost("api/game/{id}/image/card")]
     public async Task<ActionResult<UploadedFile>> UploadCardImage(string id, IFormFile file, CancellationToken cancellationToken)
     {
-        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        await Authorize(permissionsService.Can(PermissionKey.Games_CreateEditDelete));
         return Ok(await GameService.SaveCardImage(id, file, cancellationToken));
     }
 
     [HttpPost("api/game/{id}/image/map")]
     public async Task<UploadedFile> UploadMapImage(string id, IFormFile file, CancellationToken cancellationToken)
     {
-        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        await Authorize(permissionsService.Can(PermissionKey.Games_CreateEditDelete));
         return await GameService.SaveMapImage(id, file, cancellationToken);
     }
 
@@ -241,7 +235,7 @@ public class GameController
     [Authorize]
     public async Task DeleteGameCard([FromRoute] string id, CancellationToken cancellationToken)
     {
-        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        await Authorize(permissionsService.Can(PermissionKey.Games_CreateEditDelete));
         await GameService.DeleteCardImage(id, cancellationToken);
     }
 
@@ -249,7 +243,7 @@ public class GameController
     [Authorize]
     public async Task DeleteGameMapImage([FromRoute] string gameId, CancellationToken cancellationToken)
     {
-        await Authorize(_permissionsService.Can(PermissionKey.Games_CreateEditDelete));
+        await Authorize(permissionsService.Can(PermissionKey.Games_CreateEditDelete));
         await GameService.DeleteMapImage(gameId, cancellationToken);
     }
 
@@ -262,10 +256,10 @@ public class GameController
     [HttpPost("/api/game/{id}/rerank")]
     public async Task Rerank([FromRoute] string id, CancellationToken cancellationToken)
     {
-        await Authorize(_permissionsService.Can(PermissionKey.Scores_RegradeAndRerank));
+        await Authorize(permissionsService.Can(PermissionKey.Scores_RegradeAndRerank));
         await Validate(new Entity { Id = id });
 
-        await _scoreDenormalization.DenormalizeGame(id, cancellationToken);
-        await _mediator.Publish(new GameCacheInvalidateNotification(id), cancellationToken);
+        await scoreDenormalization.DenormalizeGame(id, cancellationToken);
+        await mediator.Publish(new GameCacheInvalidateNotification(id), cancellationToken);
     }
 }

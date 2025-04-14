@@ -167,9 +167,7 @@ internal static class ServiceRegistrationExtensions
             .ToArray();
 
     private static Type[] GetRootTypeQuery()
-     => GetRootQuery()
-            .Where(t => t.IsClass && !t.IsAbstract)
-            .ToArray();
+     => [.. GetRootQuery().Where(t => t.IsClass && !t.IsAbstract)];
 
     private class InterfaceTypeMap
     {

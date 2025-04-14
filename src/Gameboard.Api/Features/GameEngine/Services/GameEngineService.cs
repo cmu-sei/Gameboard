@@ -15,6 +15,7 @@ using TopoMojo.Api.Client;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Services;
+using Gameboard.Api.Features.Consoles;
 
 namespace Gameboard.Api.Features.GameEngine;
 
@@ -29,7 +30,8 @@ public interface IGameEngineService
     Task ExtendSession(string challengeId, DateTimeOffset sessionEnd, GameEngineType gameEngineType);
     Task<GameEngineChallengeProgressView> GetChallengeProgress(string challengeId, GameEngineType gameEngineType, CancellationToken cancellationToken);
     Task<GameEngineGameState> GetChallengeState(GameEngineType gameEngineType, string stateJson);
-    Task<ConsoleSummary> GetConsole(Data.Challenge entity, ConsoleRequest model, bool observer);
+    Task<ConsoleState> GetConsole(GameEngineType gameEngine, ConsoleId console, CancellationToken cancellationToken);
+    Task<ConsoleState> GetConsole(Data.Challenge entity, ConsoleRequest model, bool observer);
     Task<GameEngineGameState> GetPreview(Data.ChallengeSpec spec);
     IEnumerable<GameEngineGamespaceVm> GetGamespaceVms(GameEngineGameState state);
     Task<GameEngineGameState> GradeChallenge(Data.Challenge entity, GameEngineSectionSubmission model);
@@ -152,7 +154,7 @@ public class GameEngineService
         };
     }
 
-    public async Task<ConsoleSummary> GetConsole(Data.Challenge entity, ConsoleRequest model, bool observer)
+    public async Task<ConsoleState> GetConsole(Data.Challenge entity, ConsoleRequest model, bool observer)
     {
         switch (model.Action)
         {
@@ -160,7 +162,7 @@ public class GameEngineService
                 {
                     return entity.GameEngineType switch
                     {
-                        GameEngineType.TopoMojo => Mapper.Map<ConsoleSummary>(await Mojo.GetVmTicketAsync(model.Id)),
+                        GameEngineType.TopoMojo => Mapper.Map<ConsoleState>(await Mojo.GetVmTicketAsync(model.Id)),
                         _ => throw new NotImplementedException(),
                     };
                 }
@@ -177,13 +179,12 @@ public class GameEngineService
                                 }
                             );
 
-                            return new ConsoleSummary
+                            return new ConsoleState
                             {
-                                Id = vm.Id,
-                                Name = vm.Name,
-                                SessionId = model.SessionId,
+                                Id = new ConsoleId { ChallengeId = model.SessionId, Name = vm.Name },
+                                AccessTicket = string.Empty,
                                 IsRunning = vm.State == VmPowerState.Running,
-                                IsObserver = observer
+                                Url = vm.Path
                             };
 
                         default:
@@ -195,13 +196,31 @@ public class GameEngineService
         return null;
     }
 
+    public async Task<ConsoleState> GetConsole(GameEngineType gameEngine, ConsoleId consoleId, CancellationToken cancellationToken)
+    {
+        if (gameEngine != GameEngineType.TopoMojo)
+        {
+            throw new NotImplementedException($"Non-Topo game engines are currently unsupported");
+        }
+
+        var thing = await Mojo.GetVmTicketAsync(consoleId.ToString(), cancellationToken);
+
+        return new ConsoleState
+        {
+            Id = consoleId,
+            AccessTicket = thing.Ticket,
+            IsRunning = thing.IsRunning,
+            Url = thing.Url
+        };
+    }
+
     public IEnumerable<GameEngineGamespaceVm> GetGamespaceVms(GameEngineGameState state)
-        => state.Vms.Select(vm => new GameEngineGamespaceVm
+        => [.. state.Vms.Select(vm => new GameEngineGamespaceVm
         {
             Id = vm.Id,
             Name = vm.Name,
             Url = _vmUrlResolver.ResolveUrl(vm)
-        }).ToArray();
+        })];
 
     public async Task<IEnumerable<GameEngineSectionSubmission>> AuditChallenge(Data.Challenge entity)
     {
@@ -252,7 +271,7 @@ public class GameEngineService
         }
         catch (Exception ex)
         {
-            Logger.LogCritical($"Couldn't reach the game engine: {ex.GetType().Name}: {ex.Message}");
+            Logger.LogCritical("Couldn't reach the game engine: {exceptionSummary}", $"{ex.GetType().Name}: {ex.Message}");
             throw;
         }
 
@@ -350,7 +369,6 @@ public class GameEngineService
     }
 
     public Task ExtendSession(Data.Challenge entity, DateTimeOffset sessionEnd)
-
         => ExtendSession(entity.Id, sessionEnd, entity.GameEngineType);
 
     public Task ExtendSession(string challengeId, DateTimeOffset sessionEnd, GameEngineType gameEngineType)

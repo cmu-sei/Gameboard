@@ -174,23 +174,18 @@ public class ObserveVM
     public bool IsVisible { get; set; }
 }
 
+public class GetConsoleStateRequest
+{
+    public string ChallengeId { get; set; }
+    public string Name { get; set; }
+}
+
 public class ConsoleRequest
 {
     public string Name { get; set; }
     public string SessionId { get; set; }
     public ConsoleAction Action { get; set; }
-    public string Id => $"{Name}#{SessionId}";
-}
-
-public class ConsoleSummary
-{
-    public string Id { get; set; }
-    public string Name { get; set; }
-    public string SessionId { get; set; }
-    public string Url { get; set; }
-    public bool IsRunning { get; set; }
-    public bool IsObserver { get; set; }
-    public string Ticket { get; set; }
+    public string Id { get => $"{Name}#{SessionId}"; }
 }
 
 public enum ConsoleAction

@@ -20,6 +20,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ServiceStack;
+using Gameboard.Api.Features.Consoles;
 
 namespace Gameboard.Api.Services;
 
@@ -632,20 +633,20 @@ public partial class ChallengeService
         }, CancellationToken.None);
     }
 
-    public async Task<ConsoleSummary> GetConsole(ConsoleRequest model, bool observer)
-    {
-        var entity = await _challengeStore.Retrieve(model.SessionId);
-        var challenge = Mapper.Map<Challenge>(entity);
+    // public async Task<ConsoleState> GetConsole(ConsoleRequest model, bool observer)
+    // {
+    //     var entity = await _challengeStore.Retrieve(model.SessionId);
+    //     var challenge = Mapper.Map<Challenge>(entity);
 
-        if (!challenge.State.Vms.Any(v => v.Name == model.Name))
-        {
-            var vmNames = string.Join(", ", challenge.State.Vms.Select(vm => vm.Name));
-            throw new ResourceNotFound<GameEngineVmState>("n/a", $"VMS for challenge {model.Name} - searching for {model.Name}, found these names: {vmNames}");
-        }
+    //     if (!challenge.State.Vms.Any(v => v.Name == model.Name))
+    //     {
+    //         var vmNames = string.Join(", ", challenge.State.Vms.Select(vm => vm.Name));
+    //         throw new ResourceNotFound<GameEngineVmState>("n/a", $"VMS for challenge {model.Name} - searching for {model.Name}, found these names: {vmNames}");
+    //     }
 
-        var console = await _gameEngine.GetConsole(entity, model, observer);
-        return console ?? throw new InvalidConsoleAction();
-    }
+    //     var console = await _gameEngine.GetConsole(entity, model, observer);
+    //     return console ?? throw new InvalidConsoleAction();
+    // }
 
     public async Task<List<ObserveChallenge>> GetChallengeConsoles(string gameId)
     {
@@ -730,11 +731,11 @@ public partial class ChallengeService
         return state;
     }
 
-    internal async Task<ConsoleActor> SetConsoleActor(ConsoleRequest model, string id, string name)
+    internal async Task<ConsoleActor> SetConsoleActor(ConsoleId console, string id, string name)
     {
         var entity = await _challengeStore.DbSet
             .Include(c => c.Player)
-            .FirstOrDefaultAsync(c => c.Id == model.SessionId);
+            .FirstOrDefaultAsync(c => c.Id == console.ChallengeId);
 
         return new ConsoleActor
         {
@@ -742,10 +743,10 @@ public partial class ChallengeService
             UserName = name,
             PlayerName = entity.Player.Name,
             ChallengeName = entity.Name,
-            ChallengeId = model.SessionId,
+            ChallengeId = console.ChallengeId,
             GameId = entity.GameId,
             TeamId = entity.TeamId,
-            VmName = model.Name,
+            VmName = console.Name,
             Timestamp = DateTimeOffset.UtcNow
         };
     }

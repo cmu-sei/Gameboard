@@ -45,7 +45,9 @@ internal class RecordUserConsoleActiveHandler(
         var now = _nowService.Get();
         var player = await _practiceService.GetUserActivePracticeSession(request.ActingUser.Id, cancellationToken);
         if (player is null || !player.IsPractice)
+        {
             return new ConsoleActionResponse { Message = null };
+        }
 
         // if the player's session has less time remaining than the extension threshold, automatically extend 
         if (player.SessionEnd - now >= TimeSpan.FromMinutes(EXTEND_THRESHOLD_MINUTES))
