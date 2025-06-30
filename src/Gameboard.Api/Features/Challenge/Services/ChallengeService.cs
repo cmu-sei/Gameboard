@@ -633,21 +633,6 @@ public partial class ChallengeService
         }, CancellationToken.None);
     }
 
-    // public async Task<ConsoleState> GetConsole(ConsoleRequest model, bool observer)
-    // {
-    //     var entity = await _challengeStore.Retrieve(model.SessionId);
-    //     var challenge = Mapper.Map<Challenge>(entity);
-
-    //     if (!challenge.State.Vms.Any(v => v.Name == model.Name))
-    //     {
-    //         var vmNames = string.Join(", ", challenge.State.Vms.Select(vm => vm.Name));
-    //         throw new ResourceNotFound<GameEngineVmState>("n/a", $"VMS for challenge {model.Name} - searching for {model.Name}, found these names: {vmNames}");
-    //     }
-
-    //     var console = await _gameEngine.GetConsole(entity, model, observer);
-    //     return console ?? throw new InvalidConsoleAction();
-    // }
-
     public async Task<List<ObserveChallenge>> GetChallengeConsoles(string gameId)
     {
         // retrieve challenges to list

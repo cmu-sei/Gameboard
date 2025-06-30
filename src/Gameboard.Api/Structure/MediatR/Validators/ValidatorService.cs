@@ -12,6 +12,13 @@ namespace Gameboard.Api.Structure.MediatR;
 
 public interface IValidatorService
 {
+    /// <summary>
+    /// Ensures that an entity of the given type with the provided ID exists. Must be a type registered with EF which
+    /// implements our IEntity interface.
+    /// </summary>
+    /// <typeparam name="TEntity"></typeparam>
+    /// <param name="id"></param>
+    /// <returns></returns>
     IValidatorService AddEntityExistsValidator<TEntity>(string id) where TEntity : class, IEntity;
     IValidatorService AddValidator(IGameboardValidator validator);
     IValidatorService AddValidator(Action<RequestValidationContext> validationAction);
@@ -34,8 +41,10 @@ internal class ValidatorService
     private readonly IStore _store = store;
     private readonly UserRolePermissionsValidator _userRolePermissionsValidator = userRolePermissionsValidator;
 
+
     public IValidatorService AddEntityExistsValidator<TEntity>(string id) where TEntity : class, IEntity
     {
+
         _validationTasks.Add(async ctx =>
         {
             var exists = await _store

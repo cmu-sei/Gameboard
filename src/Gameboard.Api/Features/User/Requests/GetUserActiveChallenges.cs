@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Consoles;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
@@ -23,6 +24,7 @@ public sealed class GetUserActiveChallengesResponse
 
 internal class GetUserActiveChallengesHandler
 (
+    CoreOptions coreOptions,
     IGameEngineService gameEngine,
     INowService now,
     IStore store,
@@ -81,6 +83,7 @@ internal class GetUserActiveChallengesHandler
         var challengeScoreAttemptsStates = new Dictionary<string, UserActiveChallengeScoreAndAttemptsState>();
         var challengeStates = new Dictionary<string, GameEngineGameState>();
         var teamIds = new List<string>();
+        var challengeConsoleIds = new List<ConsoleId>();
 
         foreach (var challenge in challenges)
         {
@@ -93,16 +96,22 @@ internal class GetUserActiveChallengesHandler
                 Score = (decimal)Math.Round(challenge.Score),
                 MaxPossibleScore = challenge.Points
             });
+            challengeConsoleIds.AddRange([.. state.Vms.Select(vm => new ConsoleId { ChallengeId = challenge.Id, Name = vm.Name })]);
             teamIds.Add(challenge.TeamId);
         }
-        teamIds = [.. teamIds.Distinct()];
 
+        // load team data
+        teamIds = [.. teamIds.Distinct()];
         var teams = await _store.WithNoTracking<Data.Player>()
             .Where(p => teamIds.Contains(p.TeamId))
             .Where(p => p.Role == PlayerRole.Manager)
             .Select(p => new SimpleEntity { Id = p.TeamId, Name = p.ApprovedName })
             .GroupBy(p => p.Id)
             .ToDictionaryAsync(gr => gr.Key, gr => gr.FirstOrDefault()?.Name, cancellationToken);
+
+        // get VM access
+        var vmConsoles = await _gameEngine.GetConsoles(coreOptions.GameEngineType, [.. challengeConsoleIds], cancellationToken);
+        var challengeVmConsoles = vmConsoles.GroupBy(vm => vm.Id.ChallengeId).ToDictionary(gr => gr.Key, gr => gr.ToArray());
 
         var typedChallenges = challenges.Select(c => new UserActiveChallenge
         {
@@ -117,7 +126,13 @@ internal class GetUserActiveChallengesHandler
             IsDeployed = challengeStates[c.Id].Vms?.Any() ?? false,
             Markdown = challengeStates[c.Id].Markdown,
             ScoreAndAttemptsState = challengeScoreAttemptsStates[c.Id],
-            Vms = challengeStates[c.Id].Vms.Select(v => new UserActiveChallengeVm { Id = v.Id, Name = v.Name }).ToArray()
+            Vms = challengeVmConsoles[c.Id].Select(consoleState => new UserActiveChallengeVm
+            {
+                Id = consoleState.Id.ToString(),
+                Name = consoleState.Id.Name,
+                AccessTicket = consoleState.AccessTicket,
+                Url = consoleState.Url
+            })
         })
         // now that we have info about points and attempts, we can reason about whether we should return
         // challenges that are maxed out on score or guesses

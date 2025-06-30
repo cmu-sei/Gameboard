@@ -15,6 +15,7 @@ internal sealed class SetActiveUserHandler
     IActingUserService actingUserService,
     ICanAccessConsoleValidator canAccessConsole,
     ChallengeService challengeService,
+    ConsoleActorMap consoleActorMap,
     IValidatorService validator
 ) : IRequestHandler<SetActiveUserCommand>
 {
@@ -29,6 +30,6 @@ internal sealed class SetActiveUserHandler
             .Validate(cancellationToken);
 
         var actingUser = actingUserService.Get();
-        await challengeService.SetConsoleActor(request.Console, actingUser.Id, actingUser.ApprovedName);
+        consoleActorMap.Update(await challengeService.SetConsoleActor(request.Console, actingUser.Id, actingUser.ApprovedName));
     }
 }

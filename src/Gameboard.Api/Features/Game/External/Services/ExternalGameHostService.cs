@@ -199,7 +199,7 @@ internal class ExternalGameHostService : IExternalGameHostService
                 Gamespaces = gamespaces.Select(gs => new ExternalGameStartTeamGamespace
                 {
                     Id = gs.Id,
-                    VmUris = _gameEngine.GetGamespaceVms(gs.State).Select(vm => vm.Url),
+                    VmUris = _gameEngine.GetVmsFromState(gs.State).Select(vm => vm.Url),
                     IsDeployed = gs.State.HasDeployedGamespace
                 }),
                 Players = players.Select(p => new ExternalGameStartMetaDataPlayer

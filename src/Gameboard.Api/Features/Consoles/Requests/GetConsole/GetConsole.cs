@@ -1,26 +1,30 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Consoles.Validators;
 using Gameboard.Api.Features.GameEngine;
+using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Consoles.Requests;
 
-public record GetConsoleRequest(string ChallengeId, string Name) : IRequest<ConsoleState>;
+public record GetConsoleRequest(string ChallengeId, string Name) : IRequest<GetConsoleResponse>;
 
 internal sealed class GetConsoleHandler
 (
+    IActingUserService actingUserService,
     ICanAccessConsoleValidator canAccessConsoleValidator,
+    ChallengeService challengeService,
     IGameEngineService gameEngine,
     IStore store,
     IValidatorService validatorService
-) : IRequestHandler<GetConsoleRequest, ConsoleState>
+) : IRequestHandler<GetConsoleRequest, GetConsoleResponse>
 {
-    public async Task<ConsoleState> Handle(GetConsoleRequest request, CancellationToken cancellationToken)
+    public async Task<GetConsoleResponse> Handle(GetConsoleRequest request, CancellationToken cancellationToken)
     {
         // configure console access validator
         canAccessConsoleValidator.ChallengeId = request.ChallengeId;
@@ -44,7 +48,12 @@ internal sealed class GetConsoleHandler
             throw new ResourceNotFound<GameEngineVmState>("n/a", $"VMS for challenge {request.ChallengeId} - searching for {request.Name}, found these names: {vmNames}");
         }
 
-        var console = await gameEngine.GetConsole(challenge.GameEngineType, new ConsoleId() { ChallengeId = request.ChallengeId, Name = request.Name }, cancellationToken);
-        return console ?? throw new InvalidConsoleAction();
+        var console = await gameEngine.GetConsole(challenge.GameEngineType, new ConsoleId() { ChallengeId = request.ChallengeId, Name = request.Name }, cancellationToken) ?? throw new InvalidConsoleAction();
+        var isPlayingChallenge = await challengeService.UserIsPlayingChallenge(request.ChallengeId, actingUserService.Get().Id);
+        return new GetConsoleResponse
+        {
+            ConsoleState = console,
+            IsViewOnly = !isPlayingChallenge
+        };
     }
 }

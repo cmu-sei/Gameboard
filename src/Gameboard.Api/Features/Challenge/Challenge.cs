@@ -83,6 +83,8 @@ public class UserActiveChallengeVm
 {
     public required string Id { get; set; }
     public required string Name { get; set; }
+    public required string AccessTicket { get; set; }
+    public required string Url { get; set; }
 }
 
 public class UserActiveChallengeScoreAndAttemptsState

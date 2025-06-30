@@ -10,7 +10,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using AutoMapper;
-using Alloy.Api.Client;
 using TopoMojo.Api.Client;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
@@ -32,8 +31,9 @@ public interface IGameEngineService
     Task<GameEngineGameState> GetChallengeState(GameEngineType gameEngineType, string stateJson);
     Task<ConsoleState> GetConsole(GameEngineType gameEngine, ConsoleId console, CancellationToken cancellationToken);
     Task<ConsoleState> GetConsole(Data.Challenge entity, ConsoleRequest model, bool observer);
+    Task<ConsoleState[]> GetConsoles(GameEngineType gameEngine, ConsoleId[] consoleIds, CancellationToken cancellationToken);
     Task<GameEngineGameState> GetPreview(Data.ChallengeSpec spec);
-    IEnumerable<GameEngineGamespaceVm> GetGamespaceVms(GameEngineGameState state);
+    IEnumerable<GameEngineGamespaceVm> GetVmsFromState(GameEngineGameState state);
     Task<GameEngineGameState> GradeChallenge(Data.Challenge entity, GameEngineSectionSubmission model);
     Task<ExternalSpec[]> ListGameEngineSpecs(SearchFilter model);
     Task<GameEngineGameState> LoadGamespace(Data.Challenge entity);
@@ -49,7 +49,6 @@ public class GameEngineService
     ILogger<GameEngineService> logger,
     IMapper mapper,
     CoreOptions options,
-    IAlloyApiClient alloy,
     IHttpClientFactory httpClientFactory,
     ITopoMojoApiClient mojo,
     ICrucibleService crucible,
@@ -57,7 +56,6 @@ public class GameEngineService
 ) : _Service(logger, mapper, options), IGameEngineService
 {
     ITopoMojoApiClient Mojo { get; } = mojo;
-    IAlloyApiClient Alloy { get; } = alloy;
 
     private readonly ICrucibleService _crucible = crucible;
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
@@ -198,23 +196,36 @@ public class GameEngineService
 
     public async Task<ConsoleState> GetConsole(GameEngineType gameEngine, ConsoleId consoleId, CancellationToken cancellationToken)
     {
-        if (gameEngine != GameEngineType.TopoMojo)
+        var consoles = await GetConsoles(gameEngine, [consoleId], cancellationToken);
+
+        if (consoles.Length != 1)
         {
-            throw new NotImplementedException($"Non-Topo game engines are currently unsupported");
+            throw new GameEngineException($"Couldn't resolve console {consoleId.ToString()} on game engine {gameEngine}");
         }
 
-        var thing = await Mojo.GetVmTicketAsync(consoleId.ToString(), cancellationToken);
-
-        return new ConsoleState
-        {
-            Id = consoleId,
-            AccessTicket = thing.Ticket,
-            IsRunning = thing.IsRunning,
-            Url = thing.Url
-        };
+        return consoles[0];
     }
 
-    public IEnumerable<GameEngineGamespaceVm> GetGamespaceVms(GameEngineGameState state)
+    public async Task<ConsoleState[]> GetConsoles(GameEngineType gameEngine, ConsoleId[] consoleIds, CancellationToken cancellationToken)
+    {
+        if (gameEngine != GameEngineType.TopoMojo)
+        {
+            throw new NotImplementedException("Non-Topo game engines are currently unsupported.");
+        }
+
+        var tasks = consoleIds.Select(id => Mojo.GetVmTicketAsync(id.ToString()));
+        var results = await Task.WhenAll(tasks);
+
+        return [.. results.Select(vm => new ConsoleState
+        {
+            Id = new ConsoleId() { ChallengeId = vm.IsolationId, Name = vm.Name },
+            AccessTicket = vm.Ticket,
+            IsRunning = vm.IsRunning,
+            Url = vm.Url
+        })];
+    }
+
+    public IEnumerable<GameEngineGamespaceVm> GetVmsFromState(GameEngineGameState state)
         => [.. state.Vms.Select(vm => new GameEngineGamespaceVm
         {
             Id = vm.Id,

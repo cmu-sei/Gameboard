@@ -349,7 +349,7 @@ internal class GameResourcesDeployService : IGameResourcesDeployService
         {
             Id = state.Id,
             IsDeployed = state.IsActive,
-            VmUris = _gameEngineService.GetGamespaceVms(state).Select(vm => vm.Url)
+            VmUris = _gameEngineService.GetVmsFromState(state).Select(vm => vm.Url)
         };
 
     internal Task<string[]> ResolveChallengeSpecIds(string gameId, CancellationToken cancellationToken)

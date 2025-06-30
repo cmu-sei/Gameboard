@@ -89,7 +89,17 @@ public class TestGameEngineService : IGameEngineService
             Url = "https://sei.cmu.edu"
         });
 
-    public IEnumerable<GameEngineGamespaceVm> GetGamespaceVms(GameEngineGameState state)
+    public Task<ConsoleState[]> GetConsoles(GameEngineType gameEngine, ConsoleId[] consoleIds, CancellationToken cancellationToken)
+    {
+        return Task.FromResult<ConsoleState[]>([.. consoleIds.Select(c => new ConsoleState
+        {
+            Id = c,
+            AccessTicket = string.Empty,
+            IsRunning = false,
+            Url = "https://sei.cmu.edu"
+        })]);
+    }
+    public IEnumerable<GameEngineGamespaceVm> GetVmsFromState(GameEngineGameState state)
         => [];
 
     public Task<GameEngineGameState> GetPreview(Data.ChallengeSpec spec)
