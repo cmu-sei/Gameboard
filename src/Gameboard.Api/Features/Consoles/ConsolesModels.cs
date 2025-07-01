@@ -1,3 +1,5 @@
+using System;
+
 namespace Gameboard.Api.Features.Consoles;
 
 public sealed class ConsoleId
@@ -14,6 +16,8 @@ public sealed class ConsoleId
 public sealed class ConsoleActionResponse
 {
     public required string Message { get; set; }
+    public bool SessionAutoExtended { get; set; } = false;
+    public DateTimeOffset SessionExpiresAt { get; set; }
 }
 
 public sealed class ConsoleState

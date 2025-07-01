@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,7 +39,7 @@ internal sealed class GetConsoleHandler
         // get the console and its state
         var challenge = await store
             .WithNoTracking<Data.Challenge>()
-            .Select(c => new { c.Id, c.State, c.GameEngineType })
+            .Select(c => new { c.Id, c.State, c.GameEngineType, c.EndTime, c.Player.SessionEnd })
             .SingleAsync(c => c.Id == request.ChallengeId, cancellationToken);
         var state = await gameEngine.GetChallengeState(GameEngineType.TopoMojo, challenge.State);
 
@@ -53,7 +54,8 @@ internal sealed class GetConsoleHandler
         return new GetConsoleResponse
         {
             ConsoleState = console,
-            IsViewOnly = !isPlayingChallenge
+            IsViewOnly = !isPlayingChallenge,
+            ExpiresAt = challenge.EndTime < challenge.SessionEnd ? challenge.EndTime : challenge.SessionEnd
         };
     }
 }

@@ -80,6 +80,11 @@ internal class RecordUserConsoleActiveHandler(
         // practice mode session extension when the endpoint is meant to be more generally about
         // user activity.
         var isExtended = extensionResult.SessionEnd != preExtensionSessionEnd;
-        return new ConsoleActionResponse { Message = isExtended ? $"{MESSAGE_EXTENDED}: {postExtensionSessionEnd}" : MESSAGE_NOT_EXTENDED };
+        return new ConsoleActionResponse
+        {
+            Message = isExtended ? $"{MESSAGE_EXTENDED}: {postExtensionSessionEnd}" : MESSAGE_NOT_EXTENDED,
+            SessionAutoExtended = isExtended,
+            SessionExpiresAt = extensionResult.SessionEnd
+        };
     }
 }

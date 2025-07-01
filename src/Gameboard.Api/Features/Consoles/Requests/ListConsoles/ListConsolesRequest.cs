@@ -10,6 +10,7 @@ using Gameboard.Api.Data;
 using Gameboard.Api.Features.GameEngine;
 using Gameboard.Api.Features.Teams;
 using Gameboard.Api.Features.Users;
+using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
@@ -30,6 +31,7 @@ public sealed class ListConsolesQuery : IRequest<ListConsolesResponse>
 internal sealed class GetConsolesHandler
 (
     IActingUserService actingUserService,
+    ConsoleActorMap consoleActorMap,
     IGameEngineService gameEngine,
     EntityExistsValidator<Data.Game> gameExists,
     IStore store,
@@ -66,9 +68,8 @@ internal sealed class GetConsolesHandler
         // run validation
         await validator.Validate(cancellationToken);
 
-        // enforce team rank sort by default
+        // normalize arguments
         request.SortBy ??= ListConsolesRequestSort.Rank;
-        // sanitize search term
         if (request.SearchTerm.IsEmpty())
         {
             request.SearchTerm = null;
@@ -131,6 +132,9 @@ internal sealed class GetConsolesHandler
             })
             .ToDictionaryAsync(gr => gr.TeamId, gr => gr, cancellationToken);
 
+        // and the map which knows who's using which consoles
+        var gameConsoleUsers = consoleActorMap.Find().GroupBy(a => a.ChallengeId).ToDictionary(gr => gr.Key, gr => gr.ToArray());
+
         // load console stuff last, because access tickets are time-sensitive
         var consoleIds = new List<ConsoleId>();
         foreach (var challenge in challenges.Values)
@@ -142,31 +146,58 @@ internal sealed class GetConsolesHandler
         var consoles = await gameEngine.GetConsoles(gameEngineType, [.. consoleIds], cancellationToken);
 
         // construct and return the response
-        return new ListConsolesResponse
+        var responseConsoles = new List<ListConsolesResponseConsole>();
+        foreach (var c in consoles)
         {
-            Consoles = [.. consoles.Where(c => c.Id.ChallengeId.IsNotEmpty()).Select(c => new ListConsolesResponseConsole
+            if (!challenges.TryGetValue(c.Id.ChallengeId, out var challenge))
+            {
+                continue;
+            }
+
+            gameConsoleUsers.TryGetValue(c.Id.ChallengeId, out var consoleUsers);
+            consoleUsers ??= [];
+
+            responseConsoles.Add(new ListConsolesResponseConsole
             {
                 ConsoleId = c.Id,
                 AccessTicket = c.AccessTicket,
+                ActiveUsers = [.. consoleUsers.Where(u => u.VmName == c.Id.Name && u.ChallengeId == challenge.Id).Select(u => new SimpleEntity { Id = u.UserId, Name = u.PlayerName })],
                 Challenge = new ListConsolesResponseChallenge
                 {
-                    Id = c.Id.ChallengeId,
-                    Name = challenges[c.Id.ChallengeId].Name,
-                    IsPractice = challenges[c.Id.ChallengeId].PlayerMode == PlayerMode.Practice,
-                    SpecId = challenges[c.Id.ChallengeId].SpecId
+                    Id = challenge.Id,
+                    Name = challenge.Name,
+                    IsPractice = challenge.PlayerMode == PlayerMode.Practice,
+                    SpecId = challenge.SpecId
                 },
-                IsViewOnly = !userTeams.Contains(challenges[c.Id.ChallengeId].TeamId),
+                IsViewOnly = !userTeams.Contains(challenge.TeamId),
                 Team = new ListConsolesResponseTeam
                 {
-                    Id = challenges[c.Id.ChallengeId].TeamId,
-                    Name = captains[challenges[c.Id.ChallengeId].TeamId].ApprovedName,
-                    Rank = teamScoreData.ContainsKey(challenges[c.Id.ChallengeId].TeamId) ? teamScoreData[challenges[c.Id.ChallengeId].TeamId].Rank : null,
-                    Score = teamScoreData.ContainsKey(challenges[c.Id.ChallengeId].TeamId) ? teamScoreData[challenges[c.Id.ChallengeId].TeamId].ScoreOverall : null,
-
+                    Id = challenge.TeamId,
+                    Name = captains[challenge.TeamId].ApprovedName,
+                    Rank = teamScoreData.ContainsKey(challenge.TeamId) ? teamScoreData[challenges[c.Id.ChallengeId].TeamId].Rank : null,
+                    Score = teamScoreData.ContainsKey(challenge.TeamId) ? teamScoreData[challenges[c.Id.ChallengeId].TeamId].ScoreOverall : null,
                 },
                 TeamId = challenges[c.Id.ChallengeId].TeamId,
                 Url = c.Url
-            }).OrderBy(c => c.Team.Name).ThenBy(c => c.ConsoleId.ChallengeId)]
-        };
+            });
+        }
+
+        // respect sort by
+        if (request.SortBy == ListConsolesRequestSort.Rank)
+        {
+            responseConsoles = [.. responseConsoles
+                .OrderBy(c => c.Team.Rank)
+                .ThenBy(c => c.Challenge.Name)
+                .ThenBy(c => c.ConsoleId.Name)];
+        }
+        else
+        {
+            responseConsoles = [.. responseConsoles
+                .OrderBy(c => c.Team.Name)
+                .ThenBy(c => c.Challenge.Name)
+                .ThenBy(c => c.ConsoleId.Name)];
+        }
+
+        return new ListConsolesResponse { Consoles = [.. responseConsoles] };
     }
 }

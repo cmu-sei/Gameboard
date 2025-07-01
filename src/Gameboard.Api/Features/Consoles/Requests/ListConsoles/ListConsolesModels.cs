@@ -18,6 +18,7 @@ public sealed class ListConsolesResponseConsole
 
     public required ConsoleId ConsoleId { get; set; }
     public required string AccessTicket { get; set; }
+    public required SimpleEntity[] ActiveUsers { get; set; }
     public required ListConsolesResponseChallenge Challenge { get; set; }
     public required bool IsViewOnly { get; set; }
     public required ListConsolesResponseTeam Team { get; set; }

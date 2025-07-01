@@ -93,8 +93,8 @@ public class ChallengeSpecController
     }
 
     [HttpGet("/api/challengespecs/by-game")]
-    public Task<IEnumerable<GameChallengeSpecs>> ListByGame()
-        => _challengeSpecService.ListByGame();
+    public Task<GameChallengeSpecs[]> ListByGame([FromQuery] string gameId)
+        => _challengeSpecService.ListByGame(gameId.IsEmpty() ? null : gameId);
 
     /// <summary>
     /// Load solve performance for the challenge spec
