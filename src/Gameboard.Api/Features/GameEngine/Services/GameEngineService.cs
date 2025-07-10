@@ -215,8 +215,9 @@ public class GameEngineService
 
         var tasks = consoleIds.Select(id => Mojo.GetVmTicketAsync(id.ToString()));
         var results = await Task.WhenAll(tasks);
+        var runningVms = results.Where(r => r.IsRunning).ToArray();
 
-        return [.. results.Select(vm => new ConsoleState
+        return [.. runningVms.Select(vm => new ConsoleState
         {
             Id = new ConsoleId() { ChallengeId = vm.IsolationId, Name = vm.Name },
             AccessTicket = vm.Ticket,

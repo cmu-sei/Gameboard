@@ -133,7 +133,7 @@ internal sealed class GetConsolesHandler
             .ToDictionaryAsync(gr => gr.TeamId, gr => gr, cancellationToken);
 
         // and the map which knows who's using which consoles
-        var gameConsoleUsers = consoleActorMap.Find().GroupBy(a => a.ChallengeId).ToDictionary(gr => gr.Key, gr => gr.ToArray());
+        var gameConsoleUsers = consoleActorMap.Find().GroupBy(a => a.ChallengeId).ToDictionary(gr => gr.Key, gr => gr.DistinctBy(a => a.UserId).ToArray());
 
         // load console stuff last, because access tickets are time-sensitive
         var consoleIds = new List<ConsoleId>();
@@ -143,6 +143,7 @@ internal sealed class GetConsolesHandler
             var challengeVms = gameEngine.GetVmsFromState(state);
             consoleIds.AddRange(challengeVms.Select(vm => new ConsoleId { ChallengeId = challenge.Id, Name = vm.Name }));
         }
+
         var consoles = await gameEngine.GetConsoles(gameEngineType, [.. consoleIds], cancellationToken);
 
         // construct and return the response
