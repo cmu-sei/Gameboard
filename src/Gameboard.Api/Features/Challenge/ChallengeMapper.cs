@@ -127,11 +127,6 @@ namespace Gameboard.Api.Services
             CreateMap<TopoMojo.Api.Client.VmState, ObserveVM>()
                  .ForMember(d => d.ChallengeId, opt => opt.MapFrom(s => s.IsolationId))
             ;
-
-            CreateMap<TopoMojo.Api.Client.VmConsole, ConsoleSummary>()
-                .ForMember(d => d.SessionId, opt => opt.MapFrom(s => s.IsolationId))
-            ;
-
             CreateMap<Data.ChallengeEvent, ChallengeEventSummary>();
         }
     }

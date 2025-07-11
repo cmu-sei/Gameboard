@@ -51,7 +51,7 @@ namespace Gameboard.Api.Services
                 : _cache.Values
             ;
 
-            return q.ToArray();
+            return [.. q];
         }
 
         public ConsoleActor FindActor(string uid)

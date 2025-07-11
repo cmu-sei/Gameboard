@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Features.Practice;
 using Gameboard.Api.Features.Teams;
+using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
 using Gameboard.Api.Structure.MediatR.Validators;
 using MediatR;
@@ -14,10 +15,13 @@ namespace Gameboard.Api.Features.Consoles;
 /// Issued whenever a user's challenge console reports activity. Currently, this only 
 /// matters if they're in practice mode.
 /// </summary>
+/// <param name="ConsoleId">The ID of the console being interacted with.</param>
 /// <param name="ActingUser">The user who owns the challenge console that has reported activity.</param>
-public record RecordUserConsoleActiveCommand(User ActingUser) : IRequest<ConsoleActionResponse>;
+public record RecordUserConsoleActiveCommand(ConsoleId ConsoleId, User ActingUser) : IRequest<ConsoleActionResponse>;
 
 internal class RecordUserConsoleActiveHandler(
+    ChallengeService challengeService,
+    ConsoleActorMap consoleActorMap,
     INowService nowService,
     IPracticeService practiceService,
     ITeamService teamService,
@@ -41,15 +45,23 @@ internal class RecordUserConsoleActiveHandler(
         _validatorService.AddValidator(_userExists.UseProperty(r => r.ActingUser.Id));
         await _validatorService.Validate(request, cancellationToken);
 
+        // associate the actor with the console in the console actor map
+        var consoleActor = await challengeService.SetConsoleActor(request.ConsoleId, request.ActingUser.Id, request.ActingUser.ApprovedName);
+        consoleActorMap.Update(consoleActor);
+
         // determine if this player has an active practice session
         var now = _nowService.Get();
         var player = await _practiceService.GetUserActivePracticeSession(request.ActingUser.Id, cancellationToken);
         if (player is null || !player.IsPractice)
+        {
             return new ConsoleActionResponse { Message = null };
+        }
 
         // if the player's session has less time remaining than the extension threshold, automatically extend 
         if (player.SessionEnd - now >= TimeSpan.FromMinutes(EXTEND_THRESHOLD_MINUTES))
+        {
             return new ConsoleActionResponse { Message = MESSAGE_NOT_EXTENDED };
+        }
 
         // NOTE: due to the way session extension currently works, it actually doesn't matter what you pass
         // for the NewSessionEnd here. The team service extends practice sessions by a max of one hour up
@@ -68,6 +80,11 @@ internal class RecordUserConsoleActiveHandler(
         // practice mode session extension when the endpoint is meant to be more generally about
         // user activity.
         var isExtended = extensionResult.SessionEnd != preExtensionSessionEnd;
-        return new ConsoleActionResponse { Message = isExtended ? $"{MESSAGE_EXTENDED}: {postExtensionSessionEnd}" : MESSAGE_NOT_EXTENDED };
+        return new ConsoleActionResponse
+        {
+            Message = isExtended ? $"{MESSAGE_EXTENDED}: {postExtensionSessionEnd}" : MESSAGE_NOT_EXTENDED,
+            SessionAutoExtended = isExtended,
+            SessionExpiresAt = extensionResult.SessionEnd
+        };
     }
 }

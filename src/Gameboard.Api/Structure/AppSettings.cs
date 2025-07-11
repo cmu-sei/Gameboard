@@ -167,6 +167,7 @@ public class CoreOptions
     public int GameEngineDeployBatchSize { get; set; } = 2;
     public string GameEngineUrl { get; set; } = "http://localhost:5004";
     public int GameEngineMaxRetries { get; set; } = 2;
+    public GameEngineType GameEngineType { get; set; } = GameEngineType.TopoMojo;
     public string ImageFolder { get; set; } = "wwwroot/img";
     public string KeyPrefix { get; set; } = "GB";
     public bool MojoEnabled { get; set; } = true;

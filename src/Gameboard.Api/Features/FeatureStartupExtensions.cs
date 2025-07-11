@@ -19,6 +19,7 @@ using Gameboard.Api.Features.Users;
 using Gameboard.Api.Hubs;
 using Gameboard.Api.Structure;
 using Gameboard.Api.Structure.MediatR;
+using Gameboard.Api.Features.Consoles.Validators;
 
 namespace Gameboard.Api;
 
@@ -46,6 +47,7 @@ public static class ServiceStartupExtensions
             .AddImplementationsOf<IGameboardRequestValidator<IReportQuery>>()
             // these aren't picked up right now because they implement multiple interfaces,
             // but allowing multiple-interface classes causes things like IReportQuery implementers to get snagged
+            .AddScoped<ICanAccessConsoleValidator, CanAccessConsoleValidator>()
             .AddScoped<IExtensionsService, ExtensionsService>()
             .AddScoped<IExternalGameService, ExternalGameService>()
             .AddScoped<IExternalGameModeService, ExternalGameModeService>()

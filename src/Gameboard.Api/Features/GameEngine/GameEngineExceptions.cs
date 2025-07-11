@@ -4,7 +4,11 @@ using Gameboard.Api.Structure;
 
 namespace Gameboard.Api.Features.GameEngine;
 
-internal class GameEngineException(string message, Exception innerEx) : GameboardException(message, innerEx) { }
+internal class GameEngineException : GameboardException
+{
+    public GameEngineException(string message) : base(message) { }
+    public GameEngineException(string message, Exception innerEx) : base(message, innerEx) { }
+}
 
 internal class GradingFailed : GameboardException
 {

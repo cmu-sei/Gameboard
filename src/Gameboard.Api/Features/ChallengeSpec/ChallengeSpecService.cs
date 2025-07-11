@@ -98,21 +98,24 @@ public class ChallengeSpecService
         return Mapper.Map<ChallengeSpec>(entity);
     }
 
-    public async Task<IEnumerable<GameChallengeSpecs>> ListByGame()
-    {
-        return await _store
+    public Task<GameChallengeSpecs[]> ListByGame(string gameId = null)
+        => _store
             .WithNoTracking<Data.ChallengeSpec>()
             .Where(s => !s.IsHidden)
+            .Where(s => gameId == null || s.GameId == gameId)
             .Select(s => new
             {
-                ChallengeSpec = new SimpleEntity { Id = s.Id, Name = s.Name },
+                ChallengeSpec = new SimpleEntity
+                {
+                    Id = s.Id,
+                    Name = s.Name
+                },
                 Game = new SimpleEntity { Id = s.GameId, Name = s.Game.Name },
             })
             .GroupBy(s => s.Game)
             .Select(gr => new GameChallengeSpecs { Game = gr.Key, ChallengeSpecs = gr.Select(thing => thing.ChallengeSpec).OrderBy(s => s.Name).ToArray() })
             .OrderBy(v => v.Game.Name)
             .ToArrayAsync();
-    }
 
     public async Task<IOrderedEnumerable<ChallengeSpecQuestionPerformance>> GetQuestionPerformance(string challengeSpecId, CancellationToken cancellationToken)
     {

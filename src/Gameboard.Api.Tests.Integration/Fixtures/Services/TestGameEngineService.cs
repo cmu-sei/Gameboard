@@ -2,6 +2,7 @@ using AutoMapper;
 using Gameboard.Api.Common;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Features.Consoles;
 using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api.Tests.Integration.Fixtures;
@@ -68,12 +69,37 @@ public class TestGameEngineService : IGameEngineService
         return Task.FromResult(new GameEngineGameState());
     }
 
-    public Task<ConsoleSummary> GetConsole(Data.Challenge entity, ConsoleRequest model, bool observer)
+    public Task<ConsoleState> GetConsole(Data.Challenge entity, ConsoleRequest model, bool observer)
     {
-        return Task.FromResult(new ConsoleSummary { });
+        return Task.FromResult(new ConsoleState
+        {
+            Id = new ConsoleId { ChallengeId = entity.Id, Name = model.Name },
+            AccessTicket = string.Empty,
+            IsRunning = false,
+            Url = "https://sei.cmu.edu"
+        });
     }
 
-    public IEnumerable<GameEngineGamespaceVm> GetGamespaceVms(GameEngineGameState state)
+    public Task<ConsoleState> GetConsole(GameEngineType gameEngine, ConsoleId consoleId, CancellationToken cancellationToken)
+        => Task.FromResult(new ConsoleState
+        {
+            Id = consoleId,
+            AccessTicket = string.Empty,
+            IsRunning = false,
+            Url = "https://sei.cmu.edu"
+        });
+
+    public Task<ConsoleState[]> GetConsoles(GameEngineType gameEngine, ConsoleId[] consoleIds, CancellationToken cancellationToken)
+    {
+        return Task.FromResult<ConsoleState[]>([.. consoleIds.Select(c => new ConsoleState
+        {
+            Id = c,
+            AccessTicket = string.Empty,
+            IsRunning = false,
+            Url = "https://sei.cmu.edu"
+        })]);
+    }
+    public IEnumerable<GameEngineGamespaceVm> GetVmsFromState(GameEngineGameState state)
         => [];
 
     public Task<GameEngineGameState> GetPreview(Data.ChallengeSpec spec)
