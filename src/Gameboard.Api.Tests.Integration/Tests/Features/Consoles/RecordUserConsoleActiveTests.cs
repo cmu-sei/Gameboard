@@ -1,6 +1,8 @@
 using Gameboard.Api.Common;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Consoles;
+using Gameboard.Api.Features.GameEngine;
 
 namespace Gameboard.Api.Tests.Integration;
 
@@ -9,7 +11,7 @@ public class RecordUserConsoleActiveTests(GameboardTestContext testContext) : IC
     private readonly GameboardTestContext _testContext = testContext;
 
     [Theory, GbIntegrationAutoData]
-    public async Task ActionRecorded_WithPracticeSessionNearEnd_Extends(string userId, IFixture fixture)
+    public async Task ActionRecorded_WithPracticeSessionNearEnd_Extends(string challengeId, string userId, IFixture fixture)
     {
         // given
         await _testContext.WithDataState(state =>
@@ -23,7 +25,9 @@ public class RecordUserConsoleActiveTests(GameboardTestContext testContext) : IC
                 p.User = state.Build<Data.User>(fixture, u => u.Id = userId);
                 p.Challenges = state.Build<Data.Challenge>(fixture, c =>
                 {
+                    c.Id = challengeId;
                     c.PlayerMode = PlayerMode.Practice;
+                    c.State = GetChallengeState(challengeId);
                 }).ToCollection();
             });
         });
@@ -31,7 +35,7 @@ public class RecordUserConsoleActiveTests(GameboardTestContext testContext) : IC
         // when
         var result = await _testContext
             .CreateHttpClientWithActingUser(u => u.Id = userId)
-            .PostAsync("api/consoles/active", null)
+            .PostAsync("api/consoles/active", new ConsoleId { ChallengeId = challengeId, Name = "my-vm" }.ToJsonBody())
             .DeserializeResponseAs<ConsoleActionResponse>();
 
         // then
@@ -40,7 +44,7 @@ public class RecordUserConsoleActiveTests(GameboardTestContext testContext) : IC
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ActionRecorded_WithPracticeSessionNotNearEnd_DoesNotExtend(string userId, IFixture fixture)
+    public async Task ActionRecorded_WithPracticeSessionNotNearEnd_DoesNotExtend(string challengeId, string userId, IFixture fixture)
     {
         // given
         await _testContext.WithDataState(state =>
@@ -55,7 +59,9 @@ public class RecordUserConsoleActiveTests(GameboardTestContext testContext) : IC
                 p.User = state.Build<Data.User>(fixture, u => u.Id = userId);
                 p.Challenges = state.Build<Data.Challenge>(fixture, c =>
                 {
+                    c.Id = challengeId;
                     c.PlayerMode = PlayerMode.Practice;
+                    c.State = GetChallengeState(challengeId);
                 }).ToCollection();
             });
         });
@@ -63,7 +69,7 @@ public class RecordUserConsoleActiveTests(GameboardTestContext testContext) : IC
         // when
         var result = await _testContext
             .CreateHttpClientWithActingUser(u => u.Id = userId)
-            .PostAsync("api/consoles/active", null)
+            .PostAsync("api/consoles/active", new ConsoleId { ChallengeId = challengeId, Name = "my-vm" }.ToJsonBody())
             .DeserializeResponseAs<ConsoleActionResponse>();
 
         // then
@@ -72,7 +78,7 @@ public class RecordUserConsoleActiveTests(GameboardTestContext testContext) : IC
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ActionRecorded_WithCompetitiveSessionNearEnd_Extends(string userId, IFixture fixture)
+    public async Task ActionRecorded_WithCompetitiveSessionNearEnd_Extends(string challengeId, string userId, IFixture fixture)
     {
         // given
         await _testContext.WithDataState(state =>
@@ -87,7 +93,9 @@ public class RecordUserConsoleActiveTests(GameboardTestContext testContext) : IC
                 p.User = state.Build<Data.User>(fixture, u => u.Id = userId);
                 p.Challenges = state.Build<Data.Challenge>(fixture, c =>
                 {
+                    c.Id = challengeId;
                     c.PlayerMode = PlayerMode.Practice;
+                    c.State = GetChallengeState(challengeId);
                 }).ToCollection();
             });
         });
@@ -95,10 +103,28 @@ public class RecordUserConsoleActiveTests(GameboardTestContext testContext) : IC
         // when
         var result = await _testContext
             .CreateHttpClientWithActingUser(u => u.Id = userId)
-            .PostAsync("api/consoles/active", null)
+            .PostAsync("api/consoles/active", new ConsoleId { ChallengeId = challengeId, Name = "my-vm" }.ToJsonBody())
             .DeserializeResponseAs<ConsoleActionResponse>();
 
         // then
         result.Message.ShouldBeNull();
+    }
+
+    private string GetChallengeState(string challengeId)
+    {
+        var state = new GameEngineGameState
+        {
+            Vms = [new GameEngineVmState
+            {
+                Id = "123",
+                Name = "my-vm",
+                IsolationId = challengeId,
+                IsRunning = true,
+                IsVisible = true
+            }]
+        };
+
+        var jsonService = _testContext.Services.GetRequiredService<IJsonService>();
+        return jsonService.Serialize(state);
     }
 }
