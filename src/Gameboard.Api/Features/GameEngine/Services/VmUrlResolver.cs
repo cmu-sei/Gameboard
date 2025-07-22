@@ -8,14 +8,9 @@ public interface IVmUrlResolver
     string ResolveUrl(GameEngineVmState vmState);
 }
 
-internal class GameboardMksVmUrlResolver : IVmUrlResolver
+internal class GameboardMksVmUrlResolver(IAppUrlService appUrlService) : IVmUrlResolver
 {
-    private readonly IAppUrlService _appUrlService;
-
-    public GameboardMksVmUrlResolver(IAppUrlService appUrlService)
-    {
-        _appUrlService = appUrlService;
-    }
+    private readonly IAppUrlService _appUrlService = appUrlService;
 
     public string ResolveUrl(GameEngineVmState vmState)
     {

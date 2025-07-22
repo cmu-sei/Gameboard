@@ -9,6 +9,16 @@ public sealed class AutoExtendPracticeSessionResult
     public required DateTimeOffset SessionEnd { get; set; }
 }
 
+public sealed class PracticeChallengeGroupDto
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required string Description { get; set; }
+    public string ImageUrl { get; set; }
+    public required bool IsFeatured { get; set; }
+    public string ParentGroupId { get; set; }
+}
+
 public sealed class PracticeSession
 {
     public required string GameId { get; set; }

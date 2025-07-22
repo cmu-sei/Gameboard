@@ -27,6 +27,7 @@ public class User : IEntity
     public ICollection<ApiKey> ApiKeys { get; set; } = [];
     public ICollection<CertificateTemplate> CreatedCertificateTemplates { get; set; } = [];
     public ICollection<FeedbackTemplate> CreatedFeedbackTemplates { get; set; } = [];
+    public ICollection<PracticeChallengeGroup> CreatedPracticeChallengeGroups { get; set; } = [];
     public ICollection<SystemNotification> CreatedSystemNotifications { get; set; } = [];
     public ICollection<Player> Enrollments { get; set; } = [];
     public ICollection<ManualBonus> EnteredManualBonuses { get; set; } = [];
@@ -36,6 +37,7 @@ public class User : IEntity
     public ICollection<PublishedCompetitiveCertificate> PublishedCompetitiveCertificates { get; set; } = [];
     public ICollection<PublishedPracticeCertificate> PublishedPracticeCertificates { get; set; } = [];
     public ICollection<SystemNotificationInteraction> SystemNotificationInteractions { get; set; } = [];
+    public ICollection<PracticeChallengeGroup> UpdatedPracticeChallengeGroups { get; set; } = [];
     public PracticeModeSettings UpdatedPracticeModeSettings { get; set; }
     public SupportSettings UpdatedSupportSettings { get; set; }
 }

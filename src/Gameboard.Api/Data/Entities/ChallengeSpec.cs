@@ -35,5 +35,6 @@ public class ChallengeSpec : IEntity
         public ICollection<Feedback> Feedback { get; set; } = [];
         public ICollection<FeedbackSubmissionChallengeSpec> FeedbackSubmissions { get; set; } = [];
         public ICollection<ChallengeBonus> Bonuses { get; set; } = [];
+        public ICollection<PracticeChallengeGroup> PracticeChallengeGroups { get; set; } = [];
         public ICollection<PublishedPracticeCertificate> PublishedPracticeCertificates { get; set; } = [];
 }

@@ -46,6 +46,8 @@ internal static class ServiceRegistrationExtensions
             .GroupBy(t => t.GetInterfaces()[0])
             .ToDictionary(t => t.Key, t => t.ToList());
 
+        var imageStoreType = singleInterfaceTypes.Where(t => t.Key.Name.ToLower().Contains("imagestore"));
+
         foreach (var entry in singleInterfaceTypes)
         {
             // if it's a type we want to register and it hasn't already been registered by other logic, add it

@@ -380,6 +380,36 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
+        builder.Entity<PracticeModeSettings>(b =>
+        {
+            b.HasKey(m => m.Id);
+            b.Property(m => m.Id).HasStandardGuidLength();
+            b.Property(m => m.IntroTextMarkdown).HasMaxLength(4000);
+            b
+                .HasOne(m => m.UpdatedByUser)
+                .WithOne(u => u.UpdatedPracticeModeSettings)
+                .IsRequired(false);
+
+            b
+                .HasOne(m => m.CertificateTemplate)
+                .WithOne(t => t.UsedAsPracticeModeDefault)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<PracticeChallengeGroup>(b =>
+        {
+            b.HasKey(g => g.Id);
+
+            b.Property(g => g.ImageUrl).HasStandardUrlLength();
+
+            b.HasOne(g => g.CreatedByUser).WithMany(u => u.CreatedPracticeChallengeGroups);
+            b.HasOne(g => g.UpdatedByUser).WithMany(u => u.UpdatedPracticeChallengeGroups);
+            b.HasMany(g => g.ChallengeSpecs).WithMany(c => c.PracticeChallengeGroups);
+
+            // technically allows infinite nesting, but we limit to Parent Groups and Child Groups with app logic
+            b.HasOne(g => g.ParentGroup).WithMany(p => p.ChildGroups);
+        });
+
         builder.Entity<PublishedCertificate>(b =>
         {
             b.HasKey(c => c.Id);
@@ -406,22 +436,6 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
             b.HasOne(c => c.OwnerUser)
                 .WithMany(u => u.PublishedPracticeCertificates)
                 .HasConstraintName("FK_OwnerUserId_Users_Id");
-        });
-
-        builder.Entity<PracticeModeSettings>(b =>
-        {
-            b.HasKey(m => m.Id);
-            b.Property(m => m.Id).HasStandardGuidLength();
-            b.Property(m => m.IntroTextMarkdown).HasMaxLength(4000);
-            b
-                .HasOne(m => m.UpdatedByUser)
-                .WithOne(u => u.UpdatedPracticeModeSettings)
-                .IsRequired(false);
-
-            b
-                .HasOne(m => m.CertificateTemplate)
-                .WithOne(t => t.UsedAsPracticeModeDefault)
-                .OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<Sponsor>(b =>
@@ -567,6 +581,7 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
     public DbSet<Game> Games { get; set; }
     public DbSet<ManualBonus> ManualBonuses { get; set; }
     public DbSet<Player> Players { get; set; }
+    public DbSet<PracticeChallengeGroup> PracticeChallengeGroups { get; set; }
     public DbSet<PublishedCertificate> PublishedCertificate { get; set; }
     public DbSet<Sponsor> Sponsors { get; set; }
     public DbSet<SupportSettingsAutoTag> SupportSettingsAutoTags { get; set; }
