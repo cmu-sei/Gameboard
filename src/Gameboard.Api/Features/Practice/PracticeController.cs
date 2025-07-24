@@ -62,6 +62,14 @@ public class PracticeController(IActingUserService actingUserService, IMediator 
     public Task RemoveChallengesFromGroup([FromRoute] string id, [FromBody] RemoveChallengesFromGroupRequest request, CancellationToken cancellationToken)
         => _mediator.Send(new RemoveChallengesFromGroupCommand(id, request.ChallengeSpecIds), cancellationToken);
 
+    [HttpGet("challenge-tags")]
+    public Task<ListChallengeTagsResponse> ListTags(CancellationToken cancellationToken)
+        => _mediator.Send(new ListChallengeTagsQuery(), cancellationToken);
+
+    [HttpGet("games")]
+    public Task<ListGamesResponse> ListGames(CancellationToken cancellationToken)
+        => _mediator.Send(new ListGamesQuery(), cancellationToken);
+
     [HttpGet("session")]
     public Task<PracticeSession> GetPracticeSession(CancellationToken cancellationToken)
         => _mediator.Send(new GetPracticeSessionQuery(_actingUserService.Get().Id), cancellationToken);

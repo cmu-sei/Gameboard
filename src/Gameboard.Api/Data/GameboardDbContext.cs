@@ -156,7 +156,7 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
                     p => new { p.Name, p.Id, p.Description, p.GameId, p.Tag, p.Tags, p.Text }
                 )
                 .HasIndex(p => p.TextSearchVector)
-                .HasMethod("GIN"); // Index method on the search vector (GIN or GIST)
+                .HasMethod("GIN"); // index method on the search vector (GIN or GIST)
 
             b.HasOne(p => p.Game).WithMany(u => u.Specs).OnDelete(DeleteBehavior.Cascade);
         });

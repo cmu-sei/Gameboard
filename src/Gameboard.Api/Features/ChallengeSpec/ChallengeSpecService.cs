@@ -117,13 +117,6 @@ public class ChallengeSpecService
             .OrderBy(v => v.Game.Name)
             .ToArrayAsync();
 
-    public IQueryable<Data.ChallengeSpec> GetPracticeEligibleQueryBase()
-        => _store
-            .WithNoTracking<Data.ChallengeSpec>()
-            .Where(s => !s.Disabled)
-            .Where(s => !s.IsHidden)
-            .Where(s => s.Game.PlayerMode == PlayerMode.Practice);
-
     public async Task<IOrderedEnumerable<ChallengeSpecQuestionPerformance>> GetQuestionPerformance(string challengeSpecId, CancellationToken cancellationToken)
     {
         var results = await GetQuestionPerformance([challengeSpecId], cancellationToken);

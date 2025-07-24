@@ -23,6 +23,7 @@ public sealed class GetPracticeChallengeGroupResponseChallenge
 {
     public required string Id { get; set; }
     public required string Name { get; set; }
+    public required SimpleEntity Game { get; set; }
     public required int CountCompleted { get; set; }
     public required int CountLaunched { get; set; }
     public required DateTimeOffset? LastLaunched { get; set; }

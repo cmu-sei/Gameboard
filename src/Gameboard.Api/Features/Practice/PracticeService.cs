@@ -18,7 +18,7 @@ public interface IPracticeService
     // are unavailable when requested
     Task<CanPlayPracticeChallengeResult> GetCanDeployChallenge(string userId, string challengeSpecId, CancellationToken cancellationToken);
     Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, DateTimeOffset currentSessionEnd, CancellationToken cancellationToken);
-    Task<IQueryable<Data.ChallengeSpec>> GetPracticeChallengesQueryBase(string filterTerm);
+    Task<IQueryable<Data.ChallengeSpec>> GetPracticeChallengesQueryBase(string filterTerm = null, bool includeHiddenChallengesIfHasPermission = true);
     Task<PracticeModeSettingsApiModel> GetSettings(CancellationToken cancellationToken);
     Task<Data.Player> GetUserActivePracticeSession(string userId, CancellationToken cancellationToken);
 
@@ -129,9 +129,10 @@ internal partial class PracticeService
     /// <summary>
     /// Load the transformed query results from the database.
     /// </summary>
-    /// <param name="filterTerm"></param>
+    /// <param name="filterTerm">A term by which to filter challenge results. Uses text vectors on various properties of the challenge and game for matching.</param>
+    /// <param name="includeHiddenChallengesIfHasPermission">Include challenges which are </param>
     /// <returns></returns>
-    public async Task<IQueryable<Data.ChallengeSpec>> GetPracticeChallengesQueryBase(string filterTerm)
+    public async Task<IQueryable<Data.ChallengeSpec>> GetPracticeChallengesQueryBase(string filterTerm = null, bool includeHiddenChallengesIfHasPermission = true)
     {
         var canViewHidden = await _permissions.Can(PermissionKey.Games_ViewUnpublished);
 
@@ -140,7 +141,7 @@ internal partial class PracticeService
             .Where(s => s.Game.PlayerMode == PlayerMode.Practice)
             .Where(s => !s.Disabled);
 
-        if (!canViewHidden)
+        if (!canViewHidden || !includeHiddenChallengesIfHasPermission)
         {
             // without the permission, neither spec nor the game can be hidden
             q = q

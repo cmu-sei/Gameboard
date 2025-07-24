@@ -16,7 +16,7 @@ public record AddChallengesToGroupCommand(string ChallengeGroupId, AddChallenges
 
 internal sealed class AddChallengesToGroupHandler
 (
-    ChallengeSpecService challengeSpecService,
+    IPracticeService practiceService,
     IStore store,
     ValidatorService validator
 ) : IRequestHandler<AddChallengesToGroupCommand, AddChallengesToGroupResponse>
@@ -60,8 +60,8 @@ internal sealed class AddChallengesToGroupHandler
 
         if (request.Request.AddByGameId.IsNotEmpty())
         {
-            var specIdsFromGame = await challengeSpecService
-                .GetPracticeEligibleQueryBase()
+            var query = await practiceService.GetPracticeChallengesQueryBase(includeHiddenChallengesIfHasPermission: false);
+            var specIdsFromGame = await query
                 .Where(s => s.GameId == request.Request.AddByGameId)
                 .Select(s => s.Id)
                 .ToArrayAsync(cancellationToken);
@@ -71,8 +71,8 @@ internal sealed class AddChallengesToGroupHandler
 
         if (request.Request.AddByTag.IsNotEmpty())
         {
-            var specsWithTags = await challengeSpecService
-                .GetPracticeEligibleQueryBase()
+            var query = await practiceService.GetPracticeChallengesQueryBase(includeHiddenChallengesIfHasPermission: false);
+            var specsWithTags = await query
                 .Select(s => new { Id = s.Id, TagsRaw = s.Tags })
                 .ToArrayAsync(cancellationToken);
 

@@ -42,6 +42,7 @@ internal sealed class GetPracticeChallengeGroupHandler
                     {
                         Id = s.Id,
                         Name = s.Name,
+                        Game = new SimpleEntity { Id = s.GameId, Name = s.Game.Name },
                         CountCompleted = 0,
                         CountLaunched = 0,
                         LastLaunched = null,
@@ -65,10 +66,12 @@ internal sealed class GetPracticeChallengeGroupHandler
                     {
                         Id = s.Id,
                         Name = s.Name,
+                        Game = new SimpleEntity { Id = s.GameId, Name = s.Game.Name },
                         CountCompleted = 0,
                         CountLaunched = 0,
                         LastLaunched = null
                     })
+                    .OrderBy(c => c.Name)
                     .ToArray()
                 })
                 .OrderBy(g => g.IsFeatured ? 0 : 1)
