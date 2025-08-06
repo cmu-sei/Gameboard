@@ -85,6 +85,13 @@ public class PracticeController(IActingUserService actingUserService, IMediator 
     public Task UpdateSettings([FromBody] PracticeModeSettingsApiModel settings)
         => _mediator.Send(new UpdatePracticeModeSettingsCommand(settings, _actingUserService.Get()));
 
+
+    // this takes the userId in the querystring because it's optional (the user might not be logged in)
+    [HttpGet]
+    [Route("user/challenge-groups")]
+    public Task<GetUserChallengeGroupsResponse> GetUserChallengeGroups([FromQuery] GetUserChallengeGroupsRequest request, CancellationToken cancellationToken)
+        => _mediator.Send(new GetUserChallengeGroupsQuery(request.UserId, request.GroupId, request.ParentGroupId, request.SearchTerm), cancellationToken);
+
     [HttpGet]
     [Route("user/{userId}/history")]
     public Task<UserPracticeHistoryChallenge[]> GetUserPracticeHistory([FromRoute] string userId, CancellationToken cancellationToken)

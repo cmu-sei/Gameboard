@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using NpgsqlTypes;
 
 namespace Gameboard.Api.Data;
 
@@ -11,6 +12,7 @@ public class PracticeChallengeGroup : IEntity
     public required ICollection<ChallengeSpec> ChallengeSpecs { get; set; } = [];
     public required bool IsFeatured { get; set; }
     public string ImageUrl { get; set; }
+    public NpgsqlTsVector TextSearchVector { get; set; }
 
     // we're going to allow nesting to a maximum depth of one (i.e. we have "groups" and "subgroups"),
     // but we're enforcing that with app logic, so we just have a standard self-referring navigation here

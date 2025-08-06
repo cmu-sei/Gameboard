@@ -7,6 +7,10 @@ namespace Gameboard.Api.Data;
 
 public class GameboardDbContext(DbContextOptions options) : DbContext(options)
 {
+    // postgres full text search config defaults
+    public const string DEFAULT_TS_INDEX_FUNCTION = "GIN"; // index method on the search vector (GIN or GIST)
+    public const string DEFAULT_TS_VECTOR_CONFIG = "english"; // language configuration
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -152,11 +156,11 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
                 .HasGeneratedTsVectorColumn
                 (
                     p => p.TextSearchVector,
-                    "english",  // Text search config
+                    DEFAULT_TS_VECTOR_CONFIG,
                     p => new { p.Name, p.Id, p.Description, p.GameId, p.Tag, p.Tags, p.Text }
                 )
                 .HasIndex(p => p.TextSearchVector)
-                .HasMethod("GIN"); // index method on the search vector (GIN or GIST)
+                .HasMethod(DEFAULT_TS_INDEX_FUNCTION);
 
             b.HasOne(p => p.Game).WithMany(u => u.Specs).OnDelete(DeleteBehavior.Cascade);
         });
@@ -310,11 +314,11 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
                 .HasGeneratedTsVectorColumn
                 (
                     g => g.TextSearchVector,
-                    "english",  // Text search config
+                    DEFAULT_TS_VECTOR_CONFIG,
                     g => new { g.Name, g.Competition, g.Id, g.Track, g.Season, g.Division }
                 )
                 .HasIndex(p => p.TextSearchVector)
-                .HasMethod("GIN"); // Index method on the search vector (GIN or GIST)
+                .HasMethod(DEFAULT_TS_INDEX_FUNCTION);
         });
 
         builder.Entity<GameExportBatch>(b =>
@@ -405,6 +409,16 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
             b.HasOne(g => g.CreatedByUser).WithMany(u => u.CreatedPracticeChallengeGroups);
             b.HasOne(g => g.UpdatedByUser).WithMany(u => u.UpdatedPracticeChallengeGroups);
             b.HasMany(g => g.ChallengeSpecs).WithMany(c => c.PracticeChallengeGroups);
+
+            b
+                .HasGeneratedTsVectorColumn
+                (
+                    g => g.TextSearchVector,
+                    DEFAULT_TS_VECTOR_CONFIG,
+                    p => new { p.Name, p.Id, p.Description }
+                )
+                .HasIndex(p => p.TextSearchVector)
+                .HasMethod(DEFAULT_TS_INDEX_FUNCTION);
 
             // technically allows infinite nesting, but we limit to Parent Groups and Child Groups with app logic
             b.HasOne(g => g.ParentGroup).WithMany(p => p.ChildGroups);
