@@ -9,14 +9,45 @@ public sealed class AutoExtendPracticeSessionResult
     public required DateTimeOffset SessionEnd { get; set; }
 }
 
+public sealed class ChallengeGroupsListArgs
+{
+    public bool GetRootOnly { get; set; }
+    public string GroupId { get; set; }
+    public string ParentGroupId { get; set; }
+    public string SearchTerm { get; set; }
+}
+
 public sealed class PracticeChallengeGroupDto
 {
     public required string Id { get; set; }
     public required string Name { get; set; }
     public required string Description { get; set; }
-    public string ImageUrl { get; set; }
+    public required string ImageUrl { get; set; }
     public required bool IsFeatured { get; set; }
-    public string ParentGroupId { get; set; }
+    public required int ChallengeCount { get; set; }
+    public required int ChallengeMaxScoreTotal { get; set; }
+    public required PracticeChallengeGroupDtoChallenge[] Challenges { get; set; }
+    public required string[] Tags { get; set; }
+    public required SimpleEntity ParentGroup { get; set; }
+    public required SimpleEntity[] ChildGroups { get; set; }
+}
+
+public sealed class PracticeChallengeGroupDtoChallenge
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required SimpleEntity Game { get; set; }
+    public required string Description { get; set; }
+    public required string[] Tags { get; set; }
+    public required double MaxPossibleScore { get; set; }
+    public required PracticeChallengeGroupDtoChallengeLaunchData LaunchData { get; set; }
+}
+
+public sealed class PracticeChallengeGroupDtoChallengeLaunchData
+{
+    public required int CountLaunches { get; set; }
+    public required int CountCompletions { get; set; }
+    public required DateTimeOffset? LastLaunch { get; set; }
 }
 
 public sealed class PracticeSession

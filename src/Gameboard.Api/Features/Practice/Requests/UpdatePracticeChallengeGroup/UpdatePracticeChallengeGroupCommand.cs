@@ -17,6 +17,7 @@ internal sealed class UpdatePracticeChallengeGroupHandler
     IActingUserService actingUserService,
     IImageStoreService imageStore,
     INowService now,
+    IPracticeService practiceService,
     IStore store,
     IValidatorService validator
 ) : IRequestHandler<UpdatePracticeChallengeGroupCommand, PracticeChallengeGroupDto>
@@ -68,11 +69,11 @@ internal sealed class UpdatePracticeChallengeGroupHandler
 
 
         // update the image if provided (otherwise, it'll be implicitly removed since this defaults to empty)
-        var imageUrl = string.Empty;
+        var newImageUrl = string.Empty;
         if (request.Request.Image != null)
         {
             // we're intentionally not sweating cleaning up old images for now
-            imageUrl = await imageStore.SaveImage(request.Request.Image, ImageStoreType.PracticeChallengeGroup, request.Request.Id, cancellationToken);
+            newImageUrl = await imageStore.SaveImage(request.Request.Image, ImageStoreType.PracticeChallengeGroup, request.Request.Id, cancellationToken);
         }
 
         var actingUser = actingUserService.Get();
@@ -83,7 +84,7 @@ internal sealed class UpdatePracticeChallengeGroupHandler
                 up => up
                     .SetProperty(g => g.Name, request.Request.Name)
                     .SetProperty(g => g.Description, request.Request.Description)
-                    .SetProperty(g => g.ImageUrl, imageUrl == string.Empty ? null : imageUrl)
+                    .SetProperty(g => g.ImageUrl, g => newImageUrl == string.Empty ? g.ImageUrl : newImageUrl)
                     .SetProperty(g => g.IsFeatured, request.Request.IsFeatured)
                     .SetProperty(g => g.ParentGroupId, request.Request.ParentGroupId)
                     .SetProperty(g => g.UpdatedByUserId, actingUser.Id)
@@ -91,14 +92,6 @@ internal sealed class UpdatePracticeChallengeGroupHandler
                 cancellationToken
             );
 
-        return new PracticeChallengeGroupDto
-        {
-            Id = request.Request.Id,
-            Name = request.Request.Name,
-            Description = request.Request.Description,
-            ParentGroupId = request.Request.ParentGroupId,
-            ImageUrl = imageUrl,
-            IsFeatured = request.Request.IsFeatured
-        };
+        return await practiceService.ChallengeGroupGet(request.Request.Id, cancellationToken);
     }
 }

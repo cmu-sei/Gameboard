@@ -17,6 +17,7 @@ internal sealed class CreatePracticeChallengeGroupHandler
     IActingUserService actingUserService,
     IImageStoreService imageStore,
     INowService now,
+    IPracticeService practiceService,
     IStore store,
     IValidatorService validator
 ) : IRequestHandler<CreatePracticeChallengeGroupCommand, PracticeChallengeGroupDto>
@@ -92,14 +93,6 @@ internal sealed class CreatePracticeChallengeGroupHandler
                 .ExecuteUpdateAsync(up => up.SetProperty(g => g.ImageUrl, imageUrl), cancellationToken);
         }
 
-        return new PracticeChallengeGroupDto
-        {
-            Id = createdGroup.Id,
-            Name = createdGroup.Name,
-            Description = createdGroup.Description,
-            ParentGroupId = createdGroup.ParentGroupId,
-            ImageUrl = imageUrl,
-            IsFeatured = createdGroup.IsFeatured
-        };
+        return await practiceService.ChallengeGroupGet(createdGroup.Id, cancellationToken);
     }
 }
