@@ -75,6 +75,23 @@ internal sealed class UpdatePracticeChallengeGroupHandler
             // we're intentionally not sweating cleaning up old images for now
             newImageUrl = await imageStore.SaveImage(request.Request.Image, ImageStoreType.PracticeChallengeGroup, request.Request.Id, cancellationToken);
         }
+        else
+        {
+            if (request.Request.RemoveImage)
+            {
+                newImageUrl = null;
+            }
+            else
+            {
+                // we just read the existing image out of the DB because it makes the below update clearer/easier
+                newImageUrl = await store
+                    .WithNoTracking<PracticeChallengeGroup>()
+                    .Where(g => g.Id == request.Request.Id)
+                    .Select(g => g.ImageUrl)
+                    .SingleOrDefaultAsync(cancellationToken);
+            }
+
+        }
 
         var actingUser = actingUserService.Get();
         await store.WithNoTracking<PracticeChallengeGroup>()
@@ -84,7 +101,7 @@ internal sealed class UpdatePracticeChallengeGroupHandler
                 up => up
                     .SetProperty(g => g.Name, request.Request.Name)
                     .SetProperty(g => g.Description, request.Request.Description)
-                    .SetProperty(g => g.ImageUrl, g => newImageUrl == string.Empty ? g.ImageUrl : newImageUrl)
+                    .SetProperty(g => g.ImageUrl, g => newImageUrl)
                     .SetProperty(g => g.IsFeatured, request.Request.IsFeatured)
                     .SetProperty(g => g.ParentGroupId, request.Request.ParentGroupId)
                     .SetProperty(g => g.UpdatedByUserId, actingUser.Id)

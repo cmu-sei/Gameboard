@@ -11,6 +11,7 @@ public sealed class AutoExtendPracticeSessionResult
 
 public sealed class ChallengeGroupsListArgs
 {
+    public string ContainChallengeSpecId { get; set; }
     public bool GetRootOnly { get; set; }
     public string GroupId { get; set; }
     public string ParentGroupId { get; set; }

@@ -10,4 +10,10 @@ public sealed class UpdatePracticeChallengeGroupRequest
     public IFormFile Image { get; set; }
     public required bool IsFeatured { get; set; }
     public required string ParentGroupId { get; set; }
+
+    // caller can either leave the image unchanged, replace it, or just delete the old one
+    // non-null Image == replace
+    // null Image && RemoveImage == delete 
+    // null Image && !RemoveImage = leave unchanged
+    public bool RemoveImage { get; set; }
 }

@@ -1,7 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.Users;
 using Gameboard.Api.Structure.MediatR;
 using MediatR;
 
@@ -18,7 +17,6 @@ internal sealed class GetPracticeChallengeGroupHandler
     public async Task<GetPracticeChallengeGroupResponse> Handle(GetPracticeChallengeGroupQuery request, CancellationToken cancellationToken)
     {
         await validator
-            .Auth(c => c.Require(PermissionKey.Practice_EditSettings))
             .AddEntityExistsValidator<PracticeChallengeGroup>(request.Id)
             .Validate(cancellationToken);
 

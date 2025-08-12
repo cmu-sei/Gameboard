@@ -78,6 +78,7 @@ internal class PracticeService
 
     public async Task<PracticeChallengeGroupDto[]> ChallengeGroupsList(ChallengeGroupsListArgs args, CancellationToken cancellationToken)
     {
+        var requestedContainChallengeSpecId = args.ContainChallengeSpecId.IsEmpty() ? null : args.ContainChallengeSpecId;
         var requestedGroupId = args.GroupId.IsEmpty() ? null : args.GroupId;
         var requestedParentGroupId = args.ParentGroupId.IsEmpty() ? null : args.ParentGroupId;
         var requestedSearchTerm = args.SearchTerm.IsEmpty() ? null : args.SearchTerm;
@@ -93,7 +94,11 @@ internal class PracticeService
                 g =>
                     (!args.GetRootOnly && requestedParentGroupId == null) ||
                     (args.GetRootOnly && g.ParentGroupId == null) ||
-                    (g.ParentGroupId == args.ParentGroupId)
+                    (g.ParentGroupId == requestedParentGroupId)
+            )
+            .Where
+            (
+                g => requestedContainChallengeSpecId == null || g.ChallengeSpecs.Any(s => s.Id == requestedContainChallengeSpecId)
             )
             .Where
             (

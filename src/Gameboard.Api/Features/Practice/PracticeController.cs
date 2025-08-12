@@ -35,16 +35,22 @@ public class PracticeController(IActingUserService actingUserService, IMediator 
         => _mediator.Send(new ListChallengesQuery(request), cancellationToken);
 
     [HttpGet("challenge-group/{id}")]
+    [AllowAnonymous]
     public Task<GetPracticeChallengeGroupResponse> GetGroup([FromRoute] string id, CancellationToken cancellationToken)
         => _mediator.Send(new GetPracticeChallengeGroupQuery(id), cancellationToken);
 
     [HttpGet("challenge-group/list")]
+    [AllowAnonymous]
     public Task<ListPracticeChallengeGroupsResponse> ListGroups([FromQuery] ListPracticeChallengeGroupsRequest request, CancellationToken cancellationToken)
         => _mediator.Send(new ListPracticeChallengeGroupsQuery(request), cancellationToken);
 
     [HttpPost("challenge-group")]
     public Task<PracticeChallengeGroupDto> CreatePracticeChallengeGroup([FromForm] CreatePracticeChallengeGroupRequest request, CancellationToken cancellationToken)
         => _mediator.Send(new CreatePracticeChallengeGroupCommand(request), cancellationToken);
+
+    [HttpDelete("challenge-group/{id}")]
+    public Task DeletePracticeChallengeGroup([FromRoute] string id, CancellationToken cancellationToken)
+        => _mediator.Send(new DeletePracticeChallengeGroupCommand(id), cancellationToken);
 
     [HttpPut("challenge-group")]
     public Task<PracticeChallengeGroupDto> UpdatePracticeChallengeGroup([FromForm] UpdatePracticeChallengeGroupRequest request, CancellationToken cancellationToken)
@@ -59,12 +65,8 @@ public class PracticeController(IActingUserService actingUserService, IMediator 
     /// <returns></returns>
     [HttpGet]
     [Route("challenge-group/user-data")]
-    public Task<GetPracticeChallengeGroupsUserDataResponse> GetUserChallengeGroups([FromQuery] GetPracticeChallengeGroupUserDataRequest request, CancellationToken cancellationToken)
+    public Task<GetPracticeChallengeGroupsUserDataResponse> GetPracticeChallengeGroupsUserData([FromQuery] GetPracticeChallengeGroupUserDataRequest request, CancellationToken cancellationToken)
         => _mediator.Send(new GetPracticeChallengeGroupsUserDataQuery(request.UserId, request.ChallengeGroupIds), cancellationToken);
-
-    [HttpDelete("challenge-group/{id}")]
-    public Task DeletePracticeChallengeGroup([FromRoute] string id, CancellationToken cancellationToken)
-        => _mediator.Send(new DeletePracticeChallengeGroupCommand(id), cancellationToken);
 
     [HttpPost("challenge-group/{id}/challenges")]
     public Task<AddChallengesToGroupResponse> AddChallengesToGroup([FromRoute] string id, [FromBody] AddChallengesToGroupRequest request, CancellationToken cancellationToken)
