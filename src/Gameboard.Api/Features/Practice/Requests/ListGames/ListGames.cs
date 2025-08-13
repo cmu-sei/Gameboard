@@ -29,12 +29,15 @@ internal sealed class ListGamesHandler
 
         return new ListGamesResponse
         (
-            [.. games.Select(kv => new ListGamesResponseGame
-            {
-                Id = kv.Key.Id,
-                Name = kv.Key.Name,
-                ChallengeCount = kv.Value
-            })]
+            [
+                .. games.Select(kv => new ListGamesResponseGame
+                {
+                    Id = kv.Key.Id,
+                    Name = kv.Key.Name,
+                    ChallengeCount = kv.Value
+                })
+                .OrderBy(g => g.Name)
+            ]
         );
     }
 }
