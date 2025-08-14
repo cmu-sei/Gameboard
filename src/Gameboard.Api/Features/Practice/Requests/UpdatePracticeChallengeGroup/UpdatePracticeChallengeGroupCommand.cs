@@ -28,12 +28,13 @@ internal sealed class UpdatePracticeChallengeGroupHandler
             .Auth(c => c.Require(PermissionKey.Practice_EditSettings))
             .AddValidator(async ctx =>
             {
-                // if parent group id is specified, it must exist and not have a parent of its own
+                // if parent group id is specified, special validation applies
                 if (request.Request.ParentGroupId.IsEmpty())
                 {
                     return;
                 }
 
+                // it must exist and not have a parent of its own
                 var parentGroupValid = await store
                     .WithNoTracking<PracticeChallengeGroup>()
                     .Where(g => g.Id == request.Request.ParentGroupId)
@@ -51,6 +52,28 @@ internal sealed class UpdatePracticeChallengeGroupHandler
                 else if (parentGroupValid.ParentGroupId.IsNotEmpty())
                 {
                     ctx.AddValidationException(new ChallengeGroupInvalidParentException(request.Request.ParentGroupId, parentGroupValid.ParentGroupId));
+                }
+            })
+            .AddValidator(async ctx =>
+            {
+                // the group being updated must exist, and if it has children, it can't have a parent
+                var updatingGroup = await store
+                    .WithNoTracking<PracticeChallengeGroup>()
+                    .Where(g => g.Id == request.Request.Id)
+                    .Select(g => new
+                    {
+                        g.Id,
+                        ChildGroupsCount = g.ChildGroups.Count
+                    })
+                    .SingleOrDefaultAsync(cancellationToken);
+
+                if (updatingGroup is null)
+                {
+                    ctx.AddValidationException(new ResourceNotFound<PracticeChallengeGroup>(request.Request.Id));
+                }
+                else if (updatingGroup.ChildGroupsCount > 0 && request.Request.ParentGroupId.IsNotEmpty())
+                {
+                    ctx.AddValidationException(new ChallengeGroupInvalidUpdateBecauseParentsAndKidsException(request.Request.Id, request.Request.ParentGroupId, updatingGroup.ChildGroupsCount));
                 }
             })
             .AddValidator(ctx =>
