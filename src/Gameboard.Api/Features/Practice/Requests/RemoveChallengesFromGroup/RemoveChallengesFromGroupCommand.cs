@@ -53,19 +53,13 @@ internal sealed class RemoveChallengesFromGroupHandler
 
             foreach (var specId in request.ChallengeSpecIds)
             {
-                var spec = group.ChallengeSpecs.SingleOrDefault(s => s.Id == specId);
+                var spec = group.ChallengeSpecs.SingleOrDefault(s => s.ChallengeSpecId == specId);
 
                 if (spec != null)
                 {
                     group.ChallengeSpecs.Remove(spec);
                 }
             }
-
-            // foreach (var spec in specs)
-            // {
-            //     spec = group.ChallengeSpecs.Single(s => s.Id == spec.Id)
-            //         group.ChallengeSpecs.Remove(spec);
-            // }
 
             await ctx.SaveChangesAsync(cancellationToken);
         }, cancellationToken);

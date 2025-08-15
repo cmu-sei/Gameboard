@@ -9,10 +9,12 @@ public class PracticeChallengeGroup : IEntity
     public string Id { get; set; }
     public required string Name { get; set; }
     public required string Description { get; set; }
-    public required ICollection<ChallengeSpec> ChallengeSpecs { get; set; } = [];
     public required bool IsFeatured { get; set; }
     public string ImageUrl { get; set; }
     public NpgsqlTsVector TextSearchVector { get; set; }
+
+    // many-to-many with challenge specs
+    public required ICollection<PracticeChallengeGroupChallengeSpec> ChallengeSpecs { get; set; } = [];
 
     // we're going to allow nesting to a maximum depth of one (i.e. we have "groups" and "subgroups"),
     // but we're enforcing that with app logic, so we just have a standard self-referring navigation here

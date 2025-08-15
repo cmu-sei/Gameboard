@@ -98,15 +98,15 @@ internal class PracticeService
             )
             .Where
             (
-                g => requestedContainChallengeSpecId == null || g.ChallengeSpecs.Any(s => s.Id == requestedContainChallengeSpecId)
+                g => requestedContainChallengeSpecId == null || g.ChallengeSpecs.Any(s => s.ChallengeSpecId == requestedContainChallengeSpecId)
             )
             .Where
             (
                 g =>
                     requestedSearchTerm == null ||
                     g.TextSearchVector.Matches(EF.Functions.PlainToTsQuery(GameboardDbContext.DEFAULT_TS_VECTOR_CONFIG, requestedSearchTerm)) ||
-                    g.ChallengeSpecs.Any(s => s.TextSearchVector.Matches(EF.Functions.PlainToTsQuery(GameboardDbContext.DEFAULT_TS_VECTOR_CONFIG, requestedSearchTerm))) ||
-                    g.ChildGroups.SelectMany(cg => cg.ChallengeSpecs).Any(s => s.TextSearchVector.Matches(EF.Functions.PlainToTsQuery(GameboardDbContext.DEFAULT_TS_VECTOR_CONFIG, requestedSearchTerm)))
+                    g.ChallengeSpecs.Any(s => s.ChallengeSpec.TextSearchVector.Matches(EF.Functions.PlainToTsQuery(GameboardDbContext.DEFAULT_TS_VECTOR_CONFIG, requestedSearchTerm))) ||
+                    g.ChildGroups.SelectMany(cg => cg.ChallengeSpecs).Any(s => s.ChallengeSpec.TextSearchVector.Matches(EF.Functions.PlainToTsQuery(GameboardDbContext.DEFAULT_TS_VECTOR_CONFIG, requestedSearchTerm)))
             )
             // we materialize an anonymous type because we have to do a lot of funky aggregation that we don't need to return
             // all the data from (e.g. tags)
@@ -123,22 +123,22 @@ internal class PracticeService
                 {
                     c.Id,
                     c.Name,
-                    ChallengeSpecs = c.ChallengeSpecs.Select(s => new { s.Id, Tags = s.Tags.Split(" ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) }).ToArray(),
+                    ChallengeSpecs = c.ChallengeSpecs.Select(s => new { s.ChallengeSpec.Id, Tags = s.ChallengeSpec.Tags.Split(" ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) }).ToArray(),
                 }).ToArray(),
                 ChallengeCount = g.ChallengeSpecs.Count + g.ChildGroups.SelectMany(c => c.ChallengeSpecs).Count(),
-                ChallengeMaxScoreTotal = g.ChallengeSpecs.Select(s => s.Points).Sum() + g.ChildGroups.SelectMany(c => c.ChallengeSpecs).Select(s => s.Points).Sum(),
+                ChallengeMaxScoreTotal = g.ChallengeSpecs.Select(s => s.ChallengeSpec.Points).Sum() + g.ChildGroups.SelectMany(c => c.ChallengeSpecs).Select(s => s.ChallengeSpec.Points).Sum(),
                 Challenges = g.ChallengeSpecs
-                    .Where(s => !s.IsHidden && !s.Disabled)
+                    .Where(s => !s.ChallengeSpec.IsHidden && !s.ChallengeSpec.Disabled)
                     .Select(s => new PracticeChallengeGroupDtoChallenge
                     {
-                        Id = s.Id,
-                        Name = s.Name,
-                        Game = new SimpleEntity { Id = s.GameId, Name = s.Game.Name },
-                        Description = s.Description,
-                        MaxPossibleScore = s.Points,
+                        Id = s.ChallengeSpec.Id,
+                        Name = s.ChallengeSpec.Name,
+                        Game = new SimpleEntity { Id = s.ChallengeSpec.GameId, Name = s.ChallengeSpec.Game.Name },
+                        Description = s.ChallengeSpec.Description,
+                        MaxPossibleScore = s.ChallengeSpec.Points,
                         // we have to parse the tags out and filter them by practice area settings later, but
                         // can't do that in the EF query context. .split works here, but will happen on retrieval
-                        Tags = s.Tags.Split(" ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
+                        Tags = s.ChallengeSpec.Tags.Split(" ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
                         // default launch data, overwritten later in the function if exists
                         LaunchData = new PracticeChallengeGroupDtoChallengeLaunchData
                         {

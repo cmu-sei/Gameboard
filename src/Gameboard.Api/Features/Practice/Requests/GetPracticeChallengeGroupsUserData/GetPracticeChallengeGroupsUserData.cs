@@ -74,10 +74,10 @@ internal sealed class GetUserChallengeGroupsHandler
                 {
                     GroupId = g.Id,
                     GroupName = g.Name,
-                    SpecId = s.Id,
-                    SpecName = s.Name,
-                    Points = s.Points,
-                    HasCert = s.Game.PracticeCertificateTemplateId != null
+                    SpecId = s.ChallengeSpecId,
+                    SpecName = s.ChallengeSpec.Name,
+                    Points = s.ChallengeSpec.Points,
+                    HasCert = s.ChallengeSpec.Game.PracticeCertificateTemplateId != null
                 })
                 // plus any challenges from child groups
                 .Concat(
@@ -88,10 +88,10 @@ internal sealed class GetUserChallengeGroupsHandler
                         {
                             GroupId = g.Id,
                             GroupName = g.Name,
-                            SpecId = s.Id,
-                            SpecName = s.Name,
-                            Points = s.Points,
-                            HasCert = s.Game.PracticeCertificateTemplateId != null
+                            SpecId = s.ChallengeSpecId,
+                            SpecName = s.ChallengeSpec.Name,
+                            Points = s.ChallengeSpec.Points,
+                            HasCert = s.ChallengeSpec.Game.PracticeCertificateTemplateId != null
                         })
                 )
             )

@@ -403,12 +403,10 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
         builder.Entity<PracticeChallengeGroup>(b =>
         {
             b.HasKey(g => g.Id);
-
             b.Property(g => g.ImageUrl).HasStandardUrlLength();
 
             b.HasOne(g => g.CreatedByUser).WithMany(u => u.CreatedPracticeChallengeGroups);
             b.HasOne(g => g.UpdatedByUser).WithMany(u => u.UpdatedPracticeChallengeGroups);
-            b.HasMany(g => g.ChallengeSpecs).WithMany(c => c.PracticeChallengeGroups);
 
             b
                 .HasGeneratedTsVectorColumn
@@ -422,6 +420,15 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
 
             // technically allows infinite nesting, but we limit to Parent Groups and Child Groups with app logic
             b.HasOne(g => g.ParentGroup).WithMany(p => p.ChildGroups);
+        });
+
+        builder.Entity<PracticeChallengeGroupChallengeSpec>(b =>
+        {
+            b.HasKey(e => e.Id);
+            b.HasAlternateKey(e => new { e.ChallengeSpecId, e.PracticeChallengeGroupId });
+
+            b.HasOne(e => e.ChallengeSpec).WithMany(s => s.PracticeChallengeGroups);
+            b.HasOne(e => e.PracticeChallengeGroup).WithMany(s => s.ChallengeSpecs);
         });
 
         builder.Entity<PublishedCertificate>(b =>

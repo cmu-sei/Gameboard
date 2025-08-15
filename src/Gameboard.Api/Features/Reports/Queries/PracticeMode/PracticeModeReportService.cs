@@ -194,7 +194,7 @@ internal class PracticeModeReportService
         // challenge collection criteria
         if (collectionIds.IsNotEmpty())
         {
-            specIdsQuery = specIdsQuery.Where(s => s.PracticeChallengeGroups.Any(g => collectionIds.Contains(g.Id)));
+            specIdsQuery = specIdsQuery.Where(s => s.PracticeChallengeGroups.Any(g => collectionIds.Contains(g.PracticeChallengeGroupId)));
         }
 
         var finalSpecIds = await specIdsQuery.Select(s => s.Id).ToArrayAsync(cancellationToken);
@@ -614,9 +614,9 @@ internal class PracticeModeReportService
     private decimal CalculatePlayerChallengePercentile(string challengeId, string specId, double score, bool isPractice, IEnumerable<PracticeModeReportByPlayerModePerformanceChallengeScore> percentileTable)
     {
         Func<PracticeModeReportByPlayerModePerformanceChallengeScore, bool> isOtherChallengeRecord = p =>
-                p.IsPractice == isPractice &&
-                p.ChallengeSpecId == specId &&
-                p.ChallengeId != challengeId;
+            p.IsPractice == isPractice &&
+            p.ChallengeSpecId == specId &&
+            p.ChallengeId != challengeId;
 
         var denominator = percentileTable
             .Where(p => isOtherChallengeRecord(p))
