@@ -32,6 +32,7 @@ public class ChallengeSpec : IEntity
         // nav properties
         public string GameId { get; set; }
         public Game Game { get; set; }
+        public ICollection<Data.Challenge> Challenges { get; set; } = [];
         public ICollection<Feedback> Feedback { get; set; } = [];
         public ICollection<FeedbackSubmissionChallengeSpec> FeedbackSubmissions { get; set; } = [];
         public ICollection<ChallengeBonus> Bonuses { get; set; } = [];

@@ -1,6 +1,5 @@
 using Gameboard.Api.Common;
 using Gameboard.Api.Data;
-using Gameboard.Api.Features.ChallengeBonuses;
 using Gameboard.Api.Structure;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,8 +25,8 @@ public class ChallengeBonusControllerAutoDeleteTests : IClassFixture<GameboardTe
                 state.Add<Data.ChallengeSpec>(fixture, spec =>
                 {
                     spec.GameId = gameId;
-                    spec.Bonuses = new ChallengeBonus[]
-                    {
+                    spec.Bonuses =
+                    [
                         new ChallengeBonusCompleteSolveRank
                         {
                             Id = fixture.Create<string>(),
@@ -35,7 +34,7 @@ public class ChallengeBonusControllerAutoDeleteTests : IClassFixture<GameboardTe
                             PointValue = fixture.Create<int>(),
                             ChallengeBonusType = ChallengeBonusType.CompleteSolveRank
                         }
-                    };
+                    ];
                 });
             });
 
@@ -57,7 +56,7 @@ public class ChallengeBonusControllerAutoDeleteTests : IClassFixture<GameboardTe
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task DeleteGameAutoBonuses_WithBonusesAwarded_FailsValidation(string gameId, string challengeId, IFixture fixture)
+    public async Task DeleteGameAutoBonuses_WithBonusesAwarded_FailsValidation(string gameId, string challengeId, string challengeSpecId, IFixture fixture)
     {
         // given: a game with awarded challenge bonuses
         await _testContext
@@ -66,9 +65,14 @@ public class ChallengeBonusControllerAutoDeleteTests : IClassFixture<GameboardTe
                 state.Add<Data.Game>(fixture, g =>
                 {
                     g.Id = gameId;
-                    g.Challenges = state.Build<Data.Challenge>(fixture, c => c.Id = challengeId).ToCollection();
+                    g.Challenges = state.Build<Data.Challenge>(fixture, c =>
+                    {
+                        c.Id = challengeId;
+                        c.SpecId = challengeSpecId;
+                    }).ToCollection();
                     g.Specs = state.Build<Data.ChallengeSpec>(fixture, s =>
                     {
+                        s.Id = challengeSpecId;
                         s.Bonuses = new ChallengeBonusCompleteSolveRank
                         {
                             Id = fixture.Create<string>(),

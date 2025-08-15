@@ -13,7 +13,16 @@ public class ChallengeBonusListTests : IClassFixture<GameboardTestContext>
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task List_WithTwo_Succeeds(string challengeId, string userId, string bonusOneId, string bonusTwoId, string description, IFixture fixture)
+    public async Task List_WithTwo_Succeeds
+    (
+        string challengeId,
+        string challengeSpecId,
+        string userId,
+        string bonusOneId,
+        string bonusTwoId,
+        string description,
+        IFixture fixture
+    )
     {
         // given
         await _testContext.WithDataState(state =>
@@ -27,6 +36,7 @@ public class ChallengeBonusListTests : IClassFixture<GameboardTestContext>
             state.Add<Data.Challenge>(fixture, c =>
             {
                 c.Id = challengeId;
+                c.Spec = new Data.ChallengeSpec { Id = challengeSpecId };
                 c.AwardedManualBonuses = new ManualChallengeBonus[]
                 {
                     new() {

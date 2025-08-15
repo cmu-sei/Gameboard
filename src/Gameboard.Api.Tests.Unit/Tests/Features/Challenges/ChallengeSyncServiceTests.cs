@@ -22,7 +22,8 @@ public class ChallengeSyncServiceTests
             Player = new()
             {
                 SessionEnd = DateTimeOffset.MinValue
-            }
+            },
+            SpecId = "123"
         };
         var store = BuildTestableStore(challenge);
         var sut = new ChallengeSyncService
@@ -55,7 +56,8 @@ public class ChallengeSyncServiceTests
             Player = new()
             {
                 SessionEnd = now.AddHours(1)
-            }
+            },
+            SpecId = "123"
         };
         var store = BuildTestableStore(challenge);
         var sut = new ChallengeSyncService
@@ -88,7 +90,8 @@ public class ChallengeSyncServiceTests
             Player = new()
             {
                 SessionEnd = now.AddHours(-1)
-            }
+            },
+            SpecId = "123"
         };
         var store = BuildTestableStore(challenge);
         var sut = new ChallengeSyncService
@@ -121,7 +124,8 @@ public class ChallengeSyncServiceTests
             Player = new()
             {
                 SessionEnd = now.AddMinutes(-2)
-            }
+            },
+            SpecId = "123"
         };
         var store = BuildTestableStore(challenge);
         var sut = new ChallengeSyncService
@@ -154,7 +158,8 @@ public class ChallengeSyncServiceTests
             Player = new()
             {
                 SessionEnd = now.AddMinutes(-2)
-            }
+            },
+            SpecId = "123"
         };
         var store = BuildTestableStore(challenge);
         var sut = new ChallengeSyncService

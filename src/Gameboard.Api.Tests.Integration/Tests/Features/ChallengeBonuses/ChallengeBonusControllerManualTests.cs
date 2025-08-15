@@ -8,7 +8,7 @@ public class ChallengeBonusControllerManualTests(GameboardTestContext testContex
     private readonly GameboardTestContext _testContext = testContext;
 
     [Theory, GbIntegrationAutoData]
-    public async Task AddManual_WithChallenge_Succeeds(string challengeId, string userId, string description, double pointsValue, IFixture fixture)
+    public async Task AddManual_WithChallenge_Succeeds(string challengeId, string challengeSpecId, string userId, string description, double pointsValue, IFixture fixture)
     {
         // given
         var dbContext = _testContext.GetValidationDbContext();
@@ -16,7 +16,11 @@ public class ChallengeBonusControllerManualTests(GameboardTestContext testContex
 
         await _testContext.WithDataState(state =>
         {
-            state.Add<Data.Challenge>(fixture, c => c.Id = challengeId);
+            state.Add<Data.Challenge>(fixture, c =>
+            {
+                c.Id = challengeId;
+                c.Spec = new Data.ChallengeSpec { Id = challengeSpecId };
+            });
             state.Add<Data.User>(fixture, u =>
             {
                 u.Id = userId;

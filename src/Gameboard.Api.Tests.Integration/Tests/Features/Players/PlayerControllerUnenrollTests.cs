@@ -15,7 +15,15 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext>
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task Unenroll_WhenIsMember_DeletesPlayerAndChallenges(IFixture fixture, string challengeId, string memberPlayerId, string memberUserId, string teamId)
+    public async Task Unenroll_WhenIsMember_DeletesPlayerAndChallenges
+    (
+        IFixture fixture,
+        string challengeId,
+        string challengeSpecId,
+        string memberPlayerId,
+        string memberUserId,
+        string teamId
+    )
     {
         // given
         await _testContext
@@ -50,6 +58,7 @@ public class PlayerControllerUnenrollTests : IClassFixture<GameboardTestContext>
                                 // so it should get deleted
                                 c.Id = challengeId;
                                 c.PlayerId = memberPlayerId;
+                                c.Spec = new Data.ChallengeSpec { Id = challengeSpecId };
                                 c.TeamId = teamId;
                             }).ToCollection();
                         })

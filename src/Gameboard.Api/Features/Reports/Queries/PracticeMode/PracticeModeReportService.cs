@@ -14,7 +14,7 @@ namespace Gameboard.Api.Features.Reports;
 
 public interface IPracticeModeReportService
 {
-    Task<IQueryable<Data.Challenge>> GetBaseQuery(PracticeModeReportParameters parameters, bool includeCompetitive, CancellationToken cancellationToken);
+    IQueryable<Data.Challenge> GetBaseQuery(PracticeModeReportParameters parameters, bool includeCompetitive);
     Task<IEnumerable<PracticeModeReportCsvRecord>> GetCsvExport(PracticeModeReportParameters parameters, CancellationToken cancellationToken);
     Task<PracticeModeReportPlayerModeSummary> GetPlayerModePerformanceSummary(string userId, bool isPractice, CancellationToken cancellationToken);
     Task<PracticeModeReportResults> GetResultsByChallenge(PracticeModeReportParameters parameters, CancellationToken cancellationToken);
@@ -54,7 +54,7 @@ internal class PracticeModeReportService
             .Select(s => s.ToReportViewModel())
             .ToArrayAsync(cancellationToken);
 
-        var query = await GetBaseQuery(parameters, includeCompetitive, cancellationToken);
+        var query = GetBaseQuery(parameters, includeCompetitive);
 
         // query for the raw results
         var challenges = await query.ToListAsync(cancellationToken);
@@ -89,7 +89,7 @@ internal class PracticeModeReportService
                     .Count()
             },
             Specs = specs,
-            Sponsors = sponsors ?? Array.Empty<ReportSponsorViewModel>()
+            Sponsors = sponsors ?? []
         };
     }
 
@@ -129,7 +129,7 @@ internal class PracticeModeReportService
         };
     }
 
-    public async Task<IQueryable<Data.Challenge>> GetBaseQuery(PracticeModeReportParameters parameters, bool includeCompetitive, CancellationToken cancellationToken)
+    public IQueryable<Data.Challenge> GetBaseQuery(PracticeModeReportParameters parameters, bool includeCompetitive)
     {
         // process parameters
         DateTimeOffset? startDate = parameters.PracticeDateStart.HasValue ? parameters.PracticeDateStart.Value.ToUniversalTime() : null;
@@ -165,6 +165,9 @@ internal class PracticeModeReportService
                 .Where(c => c.EndTime <= endDate);
         }
 
+        if (collectionIds.IsNotEmpty())
+            query = query.Where(c => c.Spec.PracticeChallengeGroups.Any(g => collectionIds.Contains(g.PracticeChallengeGroupId)));
+
         if (seasons.IsNotEmpty())
             query = query.Where(c => seasons.Contains(c.Game.Season.ToLower()));
 
@@ -180,25 +183,6 @@ internal class PracticeModeReportService
         if (sponsorIds.IsNotEmpty())
             query = query.Where(c => sponsorIds.Contains(c.Player.Sponsor.Id));
 
-        // we have to constrain the query results by eliminating challenges that have a specId
-        // which points at a nonexistent spec. (This is possible due to the non-FK relationship
-        // between challenge and spec, the fact that specs are deletable, and we hide some specs from reporting 
-        // like the special PC5 Ship Workspace) #317
-        // 
-        // so load all spec ids and add a clause which excludes challenges with orphaned specIds
-        var specIdsQuery = _store
-            .WithNoTracking<Data.ChallengeSpec>()
-            .Where(s => !s.IsHidden);
-        // .Select(s => s.Id);
-
-        // challenge collection criteria
-        if (collectionIds.IsNotEmpty())
-        {
-            specIdsQuery = specIdsQuery.Where(s => s.PracticeChallengeGroups.Any(g => collectionIds.Contains(g.PracticeChallengeGroupId)));
-        }
-
-        var finalSpecIds = await specIdsQuery.Select(s => s.Id).ToArrayAsync(cancellationToken);
-        query = query.Where(c => finalSpecIds.Contains(c.SpecId));
         return query;
     }
 
@@ -566,7 +550,7 @@ internal class PracticeModeReportService
 
     public async Task<ChallengeSubmissionCsvRecord[]> GetSubmissionsCsv(string challengeSpecId, PracticeModeReportParameters parameters, CancellationToken cancellationToken)
     {
-        var challenges = await GetBaseQuery(parameters, false, cancellationToken);
+        var challenges = GetBaseQuery(parameters, false);
 
         // this csv can be generated for all challenges which meet the criteria, or for a specific one via a parameter
         if (challengeSpecId.IsNotEmpty())

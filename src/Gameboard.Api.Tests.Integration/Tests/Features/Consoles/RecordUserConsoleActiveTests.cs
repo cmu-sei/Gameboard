@@ -11,7 +11,7 @@ public class RecordUserConsoleActiveTests(GameboardTestContext testContext) : IC
     private readonly GameboardTestContext _testContext = testContext;
 
     [Theory, GbIntegrationAutoData]
-    public async Task ActionRecorded_WithPracticeSessionNearEnd_Extends(string challengeId, string userId, IFixture fixture)
+    public async Task ActionRecorded_WithPracticeSessionNearEnd_Extends(string challengeId, string challengeSpecId, string userId, IFixture fixture)
     {
         // given
         await _testContext.WithDataState(state =>
@@ -27,6 +27,7 @@ public class RecordUserConsoleActiveTests(GameboardTestContext testContext) : IC
                 {
                     c.Id = challengeId;
                     c.PlayerMode = PlayerMode.Practice;
+                    c.Spec = new Data.ChallengeSpec { Id = challengeSpecId };
                     c.State = GetChallengeState(challengeId);
                 }).ToCollection();
             });
@@ -44,7 +45,7 @@ public class RecordUserConsoleActiveTests(GameboardTestContext testContext) : IC
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ActionRecorded_WithPracticeSessionNotNearEnd_DoesNotExtend(string challengeId, string userId, IFixture fixture)
+    public async Task ActionRecorded_WithPracticeSessionNotNearEnd_DoesNotExtend(string challengeId, string challengeSpecId, string userId, IFixture fixture)
     {
         // given
         await _testContext.WithDataState(state =>
@@ -61,6 +62,7 @@ public class RecordUserConsoleActiveTests(GameboardTestContext testContext) : IC
                 {
                     c.Id = challengeId;
                     c.PlayerMode = PlayerMode.Practice;
+                    c.Spec = new Data.ChallengeSpec { Id = challengeSpecId };
                     c.State = GetChallengeState(challengeId);
                 }).ToCollection();
             });
@@ -78,7 +80,7 @@ public class RecordUserConsoleActiveTests(GameboardTestContext testContext) : IC
     }
 
     [Theory, GbIntegrationAutoData]
-    public async Task ActionRecorded_WithCompetitiveSessionNearEnd_Extends(string challengeId, string userId, IFixture fixture)
+    public async Task ActionRecorded_WithCompetitiveSessionNearEnd_Extends(string challengeId, string challengeSpecId, string userId, IFixture fixture)
     {
         // given
         await _testContext.WithDataState(state =>
@@ -95,6 +97,7 @@ public class RecordUserConsoleActiveTests(GameboardTestContext testContext) : IC
                 {
                     c.Id = challengeId;
                     c.PlayerMode = PlayerMode.Practice;
+                    c.Spec = new Data.ChallengeSpec { Id = challengeSpecId };
                     c.State = GetChallengeState(challengeId);
                 }).ToCollection();
             });

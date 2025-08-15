@@ -58,8 +58,6 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
 
         builder.Entity<Challenge>(b =>
         {
-            b.HasOne(p => p.Player).WithMany(u => u.Challenges).OnDelete(DeleteBehavior.Cascade);
-            b.HasOne(p => p.Game).WithMany(u => u.Challenges).OnDelete(DeleteBehavior.SetNull);
             b.HasIndex(p => p.TeamId);
             b.Property(u => u.Id).HasMaxLength(40);
             b.Property(u => u.SpecId).HasMaxLength(40);
@@ -68,6 +66,10 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
             b.Property(u => u.TeamId).HasMaxLength(40);
             b.Property(u => u.GameId).HasMaxLength(40);
             b.Property(u => u.GraderKey).HasMaxLength(64);
+
+            b.HasOne(p => p.Player).WithMany(u => u.Challenges).OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(p => p.Game).WithMany(u => u.Challenges).OnDelete(DeleteBehavior.SetNull);
+            b.HasOne(c => c.Spec).WithMany(s => s.Challenges).OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<ChallengeBonus>(b =>

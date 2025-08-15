@@ -142,9 +142,9 @@ internal class PracticeService
                         // default launch data, overwritten later in the function if exists
                         LaunchData = new PracticeChallengeGroupDtoChallengeLaunchData
                         {
-                            CountCompletions = 0,
-                            CountLaunches = 0,
-                            LastLaunch = null
+                            CountCompletions = s.ChallengeSpec.Challenges.Where(c => c.Score >= c.Points).Count(),
+                            CountLaunches = s.ChallengeSpec.Challenges.Count,
+                            LastLaunch = s.ChallengeSpec.Challenges.OrderByDescending(c => c.StartTime).Select(c => c.StartTime).FirstOrDefault()
                         }
                     })
                     .ToArray(),
@@ -176,38 +176,6 @@ internal class PracticeService
             foreach (var challenge in challenges)
             {
                 challenge.Tags = [.. challenge.Tags.Intersect(visibleTags).OrderBy(t => t)];
-            }
-        }
-
-        // calculate launch data (improved dramatically by #317, when we get there)
-        var challengeSpecIds = challengeGroups.SelectMany(g => g.Challenges.Select(c => c.Id)).Distinct().ToArray();
-        var challengeData = await store
-            .WithNoTracking<Data.Challenge>()
-            .Where(c => challengeSpecIds.Contains(c.SpecId))
-            .GroupBy(c => c.SpecId)
-            .Select(gr => new
-            {
-                ChallengeSpecId = gr.Key,
-                LaunchCount = gr.Count(),
-                SolveCount = gr.Where(c => c.Score >= c.Points).Count(),
-                LastLaunch = gr.OrderByDescending(c => c.StartTime).Select(c => c.StartTime).FirstOrDefault()
-            })
-            .ToDictionaryAsync(s => s.ChallengeSpecId, s => s, cancellationToken);
-
-        // append launch data to challenges where we can
-        foreach (var challengeGroup in challengeGroups)
-        {
-            foreach (var challenge in challengeGroup.Challenges)
-            {
-                if (challengeData.TryGetValue(challenge.Id, out var launchData))
-                {
-                    challenge.LaunchData = new PracticeChallengeGroupDtoChallengeLaunchData
-                    {
-                        CountCompletions = launchData.SolveCount,
-                        CountLaunches = launchData.LaunchCount,
-                        LastLaunch = launchData.LastLaunch
-                    };
-                }
             }
         }
 
@@ -334,18 +302,11 @@ internal class PracticeService
 
     public async Task<UserPracticeHistoryChallenge[]> GetUserPracticeHistory(string userId, CancellationToken cancellationToken)
     {
-        // restrict to living specs #317
-        var specs = await store
-            .WithNoTracking<Data.ChallengeSpec>()
-            .Where(s => s.Game.PlayerMode == PlayerMode.Practice || s.Game.Challenges.Any(c => c.PlayerMode == PlayerMode.Practice))
-            .Select(s => s.Id)
-            .ToArrayAsync(cancellationToken);
-
         return await store
             .WithNoTracking<Data.Challenge>()
             .Where(c => c.Player.UserId == userId)
             .Where(c => c.PlayerMode == PlayerMode.Practice)
-            .Where(c => specs.Contains(c.SpecId))
+            .Where(c => c.Spec.Game.PlayerMode == PlayerMode.Practice || c.Spec.Game.Challenges.Any(c => c.PlayerMode == PlayerMode.Practice))
             .Where(c => c.Score > 0)
             .GroupBy(c => new { c.SpecId })
             .Select(gr => new UserPracticeHistoryChallenge
