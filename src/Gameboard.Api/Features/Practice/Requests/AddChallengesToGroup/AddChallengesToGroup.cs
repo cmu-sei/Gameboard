@@ -103,18 +103,6 @@ internal sealed class AddChallengesToGroupHandler
         // have to do this with proper EF because we don't have a real entity for the many-to-many
         var specs = finalSpecIds.Select(sId => new PracticeChallengeGroupChallengeSpec { PracticeChallengeGroupId = request.ChallengeGroupId, ChallengeSpecId = sId }).ToArray();
         await store.SaveAddRange(specs);
-        // await store.DoTransaction(async ctx =>
-        // {
-        //     var group = await ctx.PracticeChallengeGroups.FindAsync(request.ChallengeGroupId, cancellationToken);
-
-        //     foreach (var spec in specs)
-        //     {
-        //         ctx.Attach(spec);
-        //         group.ChallengeSpecs.Add(spec);
-        //     }
-
-        //     await ctx.SaveChangesAsync(cancellationToken);
-        // }, cancellationToken);
 
         return new AddChallengesToGroupResponse { AddedChallengeSpecIds = finalSpecIds };
     }

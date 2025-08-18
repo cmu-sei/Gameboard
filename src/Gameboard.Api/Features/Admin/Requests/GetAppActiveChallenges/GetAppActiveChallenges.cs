@@ -12,17 +12,15 @@ using Microsoft.EntityFrameworkCore;
 namespace Gameboard.Api.Features.Admin;
 
 public sealed record GetAppActiveChallengesQuery(PlayerMode PlayerMode) : IRequest<GetAppActiveChallengesResponse>;
-public sealed record GetAppActiveChallengesResponse
-(
-    IEnumerable<AppActiveChallengeSpec> Specs
-);
+public sealed record GetAppActiveChallengesResponse(IEnumerable<AppActiveChallengeSpec> Specs);
 
-internal class GetAppActiveChallengesHandler(
+internal class GetAppActiveChallengesHandler
+(
     IAppService appOverviewService,
     IStore store,
     ITeamService teamService,
     IValidatorService validatorService
-    ) : IRequestHandler<GetAppActiveChallengesQuery, GetAppActiveChallengesResponse>
+) : IRequestHandler<GetAppActiveChallengesQuery, GetAppActiveChallengesResponse>
 {
     private readonly IAppService _appOverviewService = appOverviewService;
     private readonly IStore _store = store;
@@ -52,7 +50,7 @@ internal class GetAppActiveChallengesHandler(
         var specIds = challenges.Select(c => c.SpecId).Distinct().ToArray();
         var teamIds = challenges.Select(c => c.TeamId).Distinct().ToArray();
 
-        // get specs separately because _ugh_
+        // get specs separately because _ugh_ #317
         var specs = await _store
             .WithNoTracking<Data.ChallengeSpec>()
             .Include(s => s.Game)
