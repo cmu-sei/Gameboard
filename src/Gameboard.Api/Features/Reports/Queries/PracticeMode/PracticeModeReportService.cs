@@ -59,7 +59,7 @@ internal class PracticeModeReportService
         // query for the raw results
         var challenges = await query.ToListAsync(cancellationToken);
 
-        // also load challenge spec data for these challenges (spec can't be joined)
+        // also load challenge spec data for these challenges (spec can't be joined), see #317
         var specs = await _store
             .WithNoTracking<Data.ChallengeSpec>()
             .Include(s => s.Game)
@@ -134,6 +134,7 @@ internal class PracticeModeReportService
         // process parameters
         DateTimeOffset? startDate = parameters.PracticeDateStart.HasValue ? parameters.PracticeDateStart.Value.ToUniversalTime() : null;
         DateTimeOffset? endDate = parameters.PracticeDateEnd.HasValue ? parameters.PracticeDateEnd.Value.ToEndDate().ToUniversalTime() : null;
+        var collectionIds = _reportsService.ParseMultiSelectCriteria(parameters.Collections);
         var gameIds = _reportsService.ParseMultiSelectCriteria(parameters.Games);
         var sponsorIds = _reportsService.ParseMultiSelectCriteria(parameters.Sponsors);
         var seasons = _reportsService.ParseMultiSelectCriteria(parameters.Seasons);
@@ -164,34 +165,40 @@ internal class PracticeModeReportService
                 .Where(c => c.EndTime <= endDate);
         }
 
-        if (parameters.Seasons.IsNotEmpty())
-            query = query.Where(c => parameters.Seasons.Contains(c.Game.Season));
+        if (seasons.IsNotEmpty())
+            query = query.Where(c => seasons.Contains(c.Game.Season.ToLower()));
 
-        if (parameters.Series.IsNotEmpty())
-            query = query.Where(c => parameters.Series.Contains(c.Game.Competition));
+        if (series.IsNotEmpty())
+            query = query.Where(c => series.Contains(c.Game.Competition.ToLower()));
 
-        if (parameters.Tracks.IsNotEmpty())
-            query = query.Where(c => parameters.Tracks.Contains(c.Game.Track));
+        if (tracks.IsNotEmpty())
+            query = query.Where(c => tracks.Contains(c.Game.Track.ToLower()));
 
-        if (parameters.Games is not null && parameters.Games.Length > 0)
-            query = query.Where(c => parameters.Games.Contains(c.GameId));
+        if (gameIds.IsNotEmpty())
+            query = query.Where(c => gameIds.Contains(c.GameId));
 
-        if (parameters.Sponsors is not null && parameters.Sponsors.Length > 0)
+        if (sponsorIds.IsNotEmpty())
             query = query.Where(c => sponsorIds.Contains(c.Player.Sponsor.Id));
 
         // we have to constrain the query results by eliminating challenges that have a specId
         // which points at a nonexistent spec. (This is possible due to the non-FK relationship
         // between challenge and spec, the fact that specs are deletable, and we hide some specs from reporting 
-        // like the special PC5 Ship Workspace)
+        // like the special PC5 Ship Workspace) #317
         // 
         // so load all spec ids and add a clause which excludes challenges with orphaned specIds
-        var allSpecIds = await _store
+        var specIdsQuery = _store
             .WithNoTracking<Data.ChallengeSpec>()
-            .Where(s => !s.IsHidden)
-            .Select(s => s.Id)
-            .ToArrayAsync(cancellationToken);
-        query = query.Where(c => allSpecIds.Contains(c.SpecId));
+            .Where(s => !s.IsHidden);
+        // .Select(s => s.Id);
 
+        // challenge collection criteria
+        if (collectionIds.IsNotEmpty())
+        {
+            specIdsQuery = specIdsQuery.Where(s => s.PracticeChallengeGroups.Any(g => collectionIds.Contains(g.PracticeChallengeGroupId)));
+        }
+
+        var finalSpecIds = await specIdsQuery.Select(s => s.Id).ToArrayAsync(cancellationToken);
+        query = query.Where(c => finalSpecIds.Contains(c.SpecId));
         return query;
     }
 
@@ -607,9 +614,9 @@ internal class PracticeModeReportService
     private decimal CalculatePlayerChallengePercentile(string challengeId, string specId, double score, bool isPractice, IEnumerable<PracticeModeReportByPlayerModePerformanceChallengeScore> percentileTable)
     {
         Func<PracticeModeReportByPlayerModePerformanceChallengeScore, bool> isOtherChallengeRecord = p =>
-                p.IsPractice == isPractice &&
-                p.ChallengeSpecId == specId &&
-                p.ChallengeId != challengeId;
+            p.IsPractice == isPractice &&
+            p.ChallengeSpecId == specId &&
+            p.ChallengeId != challengeId;
 
         var denominator = percentileTable
             .Where(p => isOtherChallengeRecord(p))

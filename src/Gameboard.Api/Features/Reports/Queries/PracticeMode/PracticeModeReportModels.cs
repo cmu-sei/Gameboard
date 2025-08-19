@@ -37,6 +37,13 @@ public sealed class PracticeModeReportParameters
 {
     public DateTimeOffset? PracticeDateStart { get; set; }
     public DateTimeOffset? PracticeDateEnd { get; set; }
+
+    /// <summary>
+    /// Delimited IDs of practice challenge collections. Restricts results to
+    /// challenges which are created based on a challenge spec that must be in
+    /// one of the specific collections (if provided).
+    /// </summary>
+    public string Collections { get; set; }
     public string Games { get; set; }
     public string Grouping { get; set; }
     public string Seasons { get; set; }

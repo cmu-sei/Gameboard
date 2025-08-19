@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Features.Challenges;
+using Gameboard.Api.Features.Practice;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,9 +12,10 @@ namespace Gameboard.Api.Features.Reports;
 [ApiController]
 [Authorize]
 [Route("/api/reports")]
-public class ReportsController(IMediator mediator, IReportsService service) : ControllerBase
+public class ReportsController(IMediator mediator, IPracticeService practiceService, IReportsService service) : ControllerBase
 {
     private readonly IMediator _mediator = mediator;
+    private readonly IPracticeService _practiceService = practiceService;
     private readonly IReportsService _service = service;
 
     [HttpGet]
@@ -95,6 +97,10 @@ public class ReportsController(IMediator mediator, IReportsService service) : Co
     [HttpGet("parameter/challenge-tags")]
     public Task<string[]> GetChallengeTags(CancellationToken cancellationToken)
         => _service.ListChallengeTags(cancellationToken);
+
+    [HttpGet("parameter/collections")]
+    public Task<SimpleEntity[]> GetCollections(CancellationToken cancellationToken)
+        => _mediator.Send(new GetPracticeCollectionsParameterOptionsQuery(), cancellationToken);
 
     [HttpGet("parameter/games")]
     public Task<IEnumerable<SimpleEntity>> GetGames()

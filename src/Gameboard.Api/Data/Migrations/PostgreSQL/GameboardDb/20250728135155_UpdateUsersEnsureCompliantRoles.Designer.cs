@@ -3,6 +3,7 @@ using System;
 using Gameboard.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -12,9 +13,11 @@ using NpgsqlTypes;
 namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 {
     [DbContext(typeof(GameboardDbContextPostgreSQL))]
-    partial class GameboardDbContextPostgreSQLModelSnapshot : ModelSnapshot
+    [Migration("20250728135155_UpdateUsersEnsureCompliantRoles")]
+    partial class UpdateUsersEnsureCompliantRoles
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,6 +25,21 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("ChallengeSpecPracticeChallengeGroup", b =>
+                {
+                    b.Property<string>("ChallengeSpecsId")
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("PracticeChallengeGroupsId")
+                        .HasColumnType("text");
+
+                    b.HasKey("ChallengeSpecsId", "PracticeChallengeGroupsId");
+
+                    b.HasIndex("PracticeChallengeGroupsId");
+
+                    b.ToTable("ChallengeSpecPracticeChallengeGroup");
+                });
 
             modelBuilder.Entity("GameGameExportBatch", b =>
                 {
@@ -1152,12 +1170,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Property<string>("ParentGroupId")
                         .HasColumnType("text");
 
-                    b.Property<NpgsqlTsVector>("TextSearchVector")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("tsvector")
-                        .HasAnnotation("Npgsql:TsVectorConfig", "english")
-                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Name", "Id", "Description" });
-
                     b.Property<string>("UpdatedByUserId")
                         .HasColumnType("character varying(40)");
 
@@ -1170,35 +1182,9 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
                     b.HasIndex("ParentGroupId");
 
-                    b.HasIndex("TextSearchVector");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("TextSearchVector"), "GIN");
-
                     b.HasIndex("UpdatedByUserId");
 
                     b.ToTable("PracticeChallengeGroups");
-                });
-
-            modelBuilder.Entity("Gameboard.Api.Data.PracticeChallengeGroupChallengeSpec", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ChallengeSpecId")
-                        .IsRequired()
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<string>("PracticeChallengeGroupId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasAlternateKey("ChallengeSpecId", "PracticeChallengeGroupId");
-
-                    b.HasIndex("PracticeChallengeGroupId");
-
-                    b.ToTable("PracticeChallengeGroupChallengeSpec");
                 });
 
             modelBuilder.Entity("Gameboard.Api.Data.PracticeModeSettings", b =>
@@ -1699,6 +1685,21 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.HasDiscriminator().HasValue(1);
                 });
 
+            modelBuilder.Entity("ChallengeSpecPracticeChallengeGroup", b =>
+                {
+                    b.HasOne("Gameboard.Api.Data.ChallengeSpec", null)
+                        .WithMany()
+                        .HasForeignKey("ChallengeSpecsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Gameboard.Api.Data.PracticeChallengeGroup", null)
+                        .WithMany()
+                        .HasForeignKey("PracticeChallengeGroupsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("GameGameExportBatch", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.GameExportBatch", null)
@@ -2051,25 +2052,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
                     b.Navigation("UpdatedByUser");
                 });
 
-            modelBuilder.Entity("Gameboard.Api.Data.PracticeChallengeGroupChallengeSpec", b =>
-                {
-                    b.HasOne("Gameboard.Api.Data.ChallengeSpec", "ChallengeSpec")
-                        .WithMany("PracticeChallengeGroups")
-                        .HasForeignKey("ChallengeSpecId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Gameboard.Api.Data.PracticeChallengeGroup", "PracticeChallengeGroup")
-                        .WithMany("ChallengeSpecs")
-                        .HasForeignKey("PracticeChallengeGroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ChallengeSpec");
-
-                    b.Navigation("PracticeChallengeGroup");
-                });
-
             modelBuilder.Entity("Gameboard.Api.Data.PracticeModeSettings", b =>
                 {
                     b.HasOne("Gameboard.Api.Data.CertificateTemplate", "CertificateTemplate")
@@ -2317,8 +2299,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
                     b.Navigation("FeedbackSubmissions");
 
-                    b.Navigation("PracticeChallengeGroups");
-
                     b.Navigation("PublishedPracticeCertificates");
                 });
 
@@ -2372,8 +2352,6 @@ namespace Gameboard.Api.Data.Migrations.PostgreSQL.GameboardDb
 
             modelBuilder.Entity("Gameboard.Api.Data.PracticeChallengeGroup", b =>
                 {
-                    b.Navigation("ChallengeSpecs");
-
                     b.Navigation("ChildGroups");
                 });
 

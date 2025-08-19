@@ -13,12 +13,14 @@ namespace Gameboard.Api.Features.Practice;
 
 public interface IPracticeService
 {
+    Task<PracticeChallengeGroupDto[]> ChallengeGroupsList(ChallengeGroupsListArgs args, CancellationToken cancellationToken);
+    Task<PracticeChallengeGroupDto> ChallengeGroupGet(string id, CancellationToken cancellationToken);
     string EscapeSuggestedSearches(IEnumerable<string> input);
     // we're currently not using this, but I'd like to add an endpoint for it so that we can clarify why practice challenges
     // are unavailable when requested
     Task<CanPlayPracticeChallengeResult> GetCanDeployChallenge(string userId, string challengeSpecId, CancellationToken cancellationToken);
     Task<DateTimeOffset> GetExtendedSessionEnd(DateTimeOffset currentSessionBegin, DateTimeOffset currentSessionEnd, CancellationToken cancellationToken);
-    Task<IQueryable<Data.ChallengeSpec>> GetPracticeChallengesQueryBase(string filterTerm);
+    Task<IQueryable<Data.ChallengeSpec>> GetPracticeChallengesQueryBase(string filterTerm = null, bool includeHiddenChallengesIfHasPermission = true);
     Task<PracticeModeSettingsApiModel> GetSettings(CancellationToken cancellationToken);
     Task<Data.Player> GetUserActivePracticeSession(string userId, CancellationToken cancellationToken);
 
@@ -43,7 +45,7 @@ public enum CanPlayPracticeChallengeResult
     Yes
 }
 
-internal partial class PracticeService
+internal class PracticeService
 (
     CoreOptions coreOptions,
     IGuidService guids,
@@ -62,7 +64,168 @@ internal partial class PracticeService
     private readonly INowService _now = now;
     private readonly IUserRolePermissionsService _permissions = permissionsService;
     private readonly ISlugService _slugService = slugService;
-    private readonly IStore _store = store;
+
+    public async Task<PracticeChallengeGroupDto> ChallengeGroupGet(string id, CancellationToken cancellationToken)
+    {
+        var result = await ChallengeGroupsList(new ChallengeGroupsListArgs { GroupId = id }, cancellationToken);
+        if (result.Length == 1)
+        {
+            return result[0];
+        }
+
+        throw new ResourceNotFound<PracticeChallengeGroup>(id);
+    }
+
+    public async Task<PracticeChallengeGroupDto[]> ChallengeGroupsList(ChallengeGroupsListArgs args, CancellationToken cancellationToken)
+    {
+        var requestedContainChallengeSpecId = args.ContainChallengeSpecId.IsEmpty() ? null : args.ContainChallengeSpecId;
+        var requestedGroupId = args.GroupId.IsEmpty() ? null : args.GroupId;
+        var requestedParentGroupId = args.ParentGroupId.IsEmpty() ? null : args.ParentGroupId;
+        var requestedSearchTerm = args.SearchTerm.IsEmpty() ? null : args.SearchTerm;
+        var practiceSettings = await GetSettings(cancellationToken);
+        var hasGlobalCertificate = practiceSettings.CertificateTemplateId.IsNotEmpty();
+
+        // now pull the challenge groups and their challenges (specs)
+        var challengeGroups = await store
+            .WithNoTracking<PracticeChallengeGroup>()
+            .Where(g => requestedGroupId == null || g.Id == requestedGroupId)
+            .Where
+            (
+                g =>
+                    (!args.GetRootOnly && requestedParentGroupId == null) ||
+                    (args.GetRootOnly && g.ParentGroupId == null) ||
+                    (g.ParentGroupId == requestedParentGroupId)
+            )
+            .Where
+            (
+                g => requestedContainChallengeSpecId == null || g.ChallengeSpecs.Any(s => s.ChallengeSpecId == requestedContainChallengeSpecId)
+            )
+            .Where
+            (
+                g =>
+                    requestedSearchTerm == null ||
+                    g.TextSearchVector.Matches(EF.Functions.PlainToTsQuery(GameboardDbContext.DEFAULT_TS_VECTOR_CONFIG, requestedSearchTerm)) ||
+                    g.ChallengeSpecs.Any(s => s.ChallengeSpec.TextSearchVector.Matches(EF.Functions.PlainToTsQuery(GameboardDbContext.DEFAULT_TS_VECTOR_CONFIG, requestedSearchTerm))) ||
+                    g.ChildGroups.SelectMany(cg => cg.ChallengeSpecs).Any(s => s.ChallengeSpec.TextSearchVector.Matches(EF.Functions.PlainToTsQuery(GameboardDbContext.DEFAULT_TS_VECTOR_CONFIG, requestedSearchTerm)))
+            )
+            // we materialize an anonymous type because we have to do a lot of funky aggregation that we don't need to return
+            // all the data from (e.g. tags)
+            .Select(g => new
+            {
+                g.Id,
+                g.Name,
+                g.Description,
+                g.ImageUrl,
+                g.IsFeatured,
+                g.TextSearchVector,
+                ParentGroup = g.ParentGroupId != null ? new SimpleEntity { Id = g.ParentGroupId, Name = g.ParentGroup.Name } : null,
+                ChildGroups = g.ChildGroups.Select(c => new
+                {
+                    c.Id,
+                    c.Name,
+                    ChallengeSpecs = c.ChallengeSpecs.Select(s => new { s.ChallengeSpec.Id, Tags = s.ChallengeSpec.Tags.Split(" ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) }).ToArray(),
+                }).ToArray(),
+                ChallengeCount = g.ChallengeSpecs.Count + g.ChildGroups.SelectMany(c => c.ChallengeSpecs).Count(),
+                ChallengeMaxScoreTotal = g.ChallengeSpecs.Select(s => s.ChallengeSpec.Points).Sum() + g.ChildGroups.SelectMany(c => c.ChallengeSpecs).Select(s => s.ChallengeSpec.Points).Sum(),
+                Challenges = g.ChallengeSpecs
+                    .Where(s => !s.ChallengeSpec.IsHidden && !s.ChallengeSpec.Disabled)
+                    .Select(s => new PracticeChallengeGroupDtoChallenge
+                    {
+                        Id = s.ChallengeSpec.Id,
+                        Name = s.ChallengeSpec.Name,
+                        Game = new SimpleEntity { Id = s.ChallengeSpec.GameId, Name = s.ChallengeSpec.Game.Name },
+                        Description = s.ChallengeSpec.Description,
+                        MaxPossibleScore = s.ChallengeSpec.Points,
+                        // we have to parse the tags out and filter them by practice area settings later, but
+                        // can't do that in the EF query context. .split works here, but will happen on retrieval
+                        Tags = s.ChallengeSpec.Tags.Split(" ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
+                        // default launch data, overwritten later in the function if exists
+                        LaunchData = new PracticeChallengeGroupDtoChallengeLaunchData
+                        {
+                            CountCompletions = 0,
+                            CountLaunches = 0,
+                            LastLaunch = null
+                        }
+                    })
+                    .ToArray(),
+            })
+            .OrderBy(c => c.IsFeatured ? 0 : 1)
+                .ThenByDescending(g => requestedSearchTerm == null ? 1 : g.TextSearchVector.Rank(EF.Functions.PlainToTsQuery(GameboardDbContext.DEFAULT_TS_VECTOR_CONFIG, requestedSearchTerm)))
+                .ThenBy(c => c.Name)
+            .ToArrayAsync(cancellationToken);
+
+        // shortcut out if there are no groups
+        if (challengeGroups.Length == 0)
+        {
+            return [];
+        }
+
+        // otherwise, we have to do some work
+        // first, we need to screen out tags that are on these challenges/groups but shouldn't show to end users
+        // (filtered by practice area settings)
+        var groupTagsDict = new Dictionary<string, string[]>();
+        var challenges = challengeGroups.SelectMany(g => g.Challenges).ToArray();
+        var visibleTags = new HashSet<string>(await GetVisibleChallengeTags(cancellationToken));
+
+        foreach (var group in challengeGroups)
+        {
+            var groupTags = new List<string>(group.Challenges.SelectMany(c => c.Tags));
+            groupTags.AddRange(group.ChildGroups.SelectMany(g => g.ChallengeSpecs.SelectMany(s => s.Tags)));
+            groupTagsDict.Add(group.Id, [.. visibleTags.Intersect(groupTags.Distinct().OrderBy(t => t))]);
+
+            foreach (var challenge in challenges)
+            {
+                challenge.Tags = [.. challenge.Tags.Intersect(visibleTags).OrderBy(t => t)];
+            }
+        }
+
+        // calculate launch data (improved dramatically by #317, when we get there)
+        var challengeSpecIds = challengeGroups.SelectMany(g => g.Challenges.Select(c => c.Id)).Distinct().ToArray();
+        var challengeData = await store
+            .WithNoTracking<Data.Challenge>()
+            .Where(c => challengeSpecIds.Contains(c.SpecId))
+            .GroupBy(c => c.SpecId)
+            .Select(gr => new
+            {
+                ChallengeSpecId = gr.Key,
+                LaunchCount = gr.Count(),
+                SolveCount = gr.Where(c => c.Score >= c.Points).Count(),
+                LastLaunch = gr.OrderByDescending(c => c.StartTime).Select(c => c.StartTime).FirstOrDefault()
+            })
+            .ToDictionaryAsync(s => s.ChallengeSpecId, s => s, cancellationToken);
+
+        // append launch data to challenges where we can
+        foreach (var challengeGroup in challengeGroups)
+        {
+            foreach (var challenge in challengeGroup.Challenges)
+            {
+                if (challengeData.TryGetValue(challenge.Id, out var launchData))
+                {
+                    challenge.LaunchData = new PracticeChallengeGroupDtoChallengeLaunchData
+                    {
+                        CountCompletions = launchData.SolveCount,
+                        CountLaunches = launchData.LaunchCount,
+                        LastLaunch = launchData.LastLaunch
+                    };
+                }
+            }
+        }
+
+        return challengeGroups.Select(g => new PracticeChallengeGroupDto
+        {
+            Id = g.Id,
+            Name = g.Name,
+            Description = g.Description,
+            ImageUrl = g.ImageUrl,
+            IsFeatured = g.IsFeatured,
+            ChallengeCount = g.ChallengeCount,
+            ChallengeMaxScoreTotal = g.ChallengeMaxScoreTotal,
+            Challenges = g.Challenges,
+            ChildGroups = [.. g.ChildGroups.Select(c => new SimpleEntity { Id = c.Id, Name = c.Name })],
+            ParentGroup = g.ParentGroup,
+            Tags = groupTagsDict.GetValueOrDefault(g.Id) ?? [],
+        }).ToArray();
+    }
 
     // To avoid needing a table that literally just displays a list of strings, we store the list of suggested searches as a 
     // newline-delimited string in the PracticeModeSettings table (which has only one record). 
@@ -129,18 +292,19 @@ internal partial class PracticeService
     /// <summary>
     /// Load the transformed query results from the database.
     /// </summary>
-    /// <param name="filterTerm"></param>
+    /// <param name="filterTerm">A term by which to filter challenge results. Uses text vectors on various properties of the challenge and game for matching.</param>
+    /// <param name="includeHiddenChallengesIfHasPermission">Include challenges which are </param>
     /// <returns></returns>
-    public async Task<IQueryable<Data.ChallengeSpec>> GetPracticeChallengesQueryBase(string filterTerm)
+    public async Task<IQueryable<Data.ChallengeSpec>> GetPracticeChallengesQueryBase(string filterTerm = null, bool includeHiddenChallengesIfHasPermission = true)
     {
         var canViewHidden = await _permissions.Can(PermissionKey.Games_ViewUnpublished);
 
-        var q = _store
+        var q = store
             .WithNoTracking<Data.ChallengeSpec>()
             .Where(s => s.Game.PlayerMode == PlayerMode.Practice)
             .Where(s => !s.Disabled);
 
-        if (!canViewHidden)
+        if (!canViewHidden || !includeHiddenChallengesIfHasPermission)
         {
             // without the permission, neither spec nor the game can be hidden
             q = q
@@ -171,13 +335,13 @@ internal partial class PracticeService
     public async Task<UserPracticeHistoryChallenge[]> GetUserPracticeHistory(string userId, CancellationToken cancellationToken)
     {
         // restrict to living specs #317
-        var specs = await _store
+        var specs = await store
             .WithNoTracking<Data.ChallengeSpec>()
             .Where(s => s.Game.PlayerMode == PlayerMode.Practice || s.Game.Challenges.Any(c => c.PlayerMode == PlayerMode.Practice))
             .Select(s => s.Id)
             .ToArrayAsync(cancellationToken);
 
-        return await _store
+        return await store
             .WithNoTracking<Data.Challenge>()
             .Where(c => c.Player.UserId == userId)
             .Where(c => c.PlayerMode == PlayerMode.Practice)
@@ -200,13 +364,13 @@ internal partial class PracticeService
     public async Task<PracticeModeSettingsApiModel> GetSettings(CancellationToken cancellationToken)
     {
         using var settingsLock = await _lockService.GetArbitraryLock($"{nameof(PracticeService)}.{nameof(GetSettings)}").LockAsync(cancellationToken);
-        var settings = await _store.FirstOrDefaultAsync<PracticeModeSettings>(cancellationToken);
+        var settings = await store.FirstOrDefaultAsync<PracticeModeSettings>(cancellationToken);
 
         // if we don't have any settings, make up some defaults (and save them)
         if (settings is null)
         {
             settings = GetDefaultSettings();
-            await _store.SaveAddRange(settings);
+            await store.SaveAddRange(settings);
         }
 
         var apiModel = _mapper.Map<PracticeModeSettingsApiModel>(settings);
@@ -229,7 +393,7 @@ internal partial class PracticeService
 
     public async Task<PracticeModeSettings> UpdateSettings(PracticeModeSettingsApiModel update, string actingUserId, CancellationToken cancellationToken)
     {
-        var settings = await _store.FirstOrDefaultAsync<PracticeModeSettings>(cancellationToken);
+        var settings = await store.FirstOrDefaultAsync<PracticeModeSettings>(cancellationToken);
         if (settings is null)
         {
             settings.Id = settings.Id.IsEmpty() ? _guids.Generate() : settings.Id;
@@ -250,7 +414,7 @@ internal partial class PracticeService
             settings.DefaultPracticeSessionLengthMinutes = _coreOptions.PracticeDefaultSessionLength;
         }
 
-        await _store.SaveUpdate(settings, cancellationToken);
+        await store.SaveUpdate(settings, cancellationToken);
         return settings;
     }
 
@@ -260,7 +424,7 @@ internal partial class PracticeService
             .ToArrayAsync();
 
     private IQueryable<Data.Player> GetActivePracticeSessionsQueryBase()
-        => _store
+        => store
             .WithNoTracking<Data.Player>()
             .Where(p => p.SessionEnd > _now.Get())
             .Where(p => p.Mode == PlayerMode.Practice);

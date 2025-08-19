@@ -7,6 +7,10 @@ namespace Gameboard.Api.Data;
 
 public class GameboardDbContext(DbContextOptions options) : DbContext(options)
 {
+    // postgres full text search config defaults
+    public const string DEFAULT_TS_INDEX_FUNCTION = "GIN"; // index method on the search vector (GIN or GIST)
+    public const string DEFAULT_TS_VECTOR_CONFIG = "english"; // language configuration
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -152,11 +156,11 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
                 .HasGeneratedTsVectorColumn
                 (
                     p => p.TextSearchVector,
-                    "english",  // Text search config
+                    DEFAULT_TS_VECTOR_CONFIG,
                     p => new { p.Name, p.Id, p.Description, p.GameId, p.Tag, p.Tags, p.Text }
                 )
                 .HasIndex(p => p.TextSearchVector)
-                .HasMethod("GIN"); // Index method on the search vector (GIN or GIST)
+                .HasMethod(DEFAULT_TS_INDEX_FUNCTION);
 
             b.HasOne(p => p.Game).WithMany(u => u.Specs).OnDelete(DeleteBehavior.Cascade);
         });
@@ -310,11 +314,11 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
                 .HasGeneratedTsVectorColumn
                 (
                     g => g.TextSearchVector,
-                    "english",  // Text search config
+                    DEFAULT_TS_VECTOR_CONFIG,
                     g => new { g.Name, g.Competition, g.Id, g.Track, g.Season, g.Division }
                 )
                 .HasIndex(p => p.TextSearchVector)
-                .HasMethod("GIN"); // Index method on the search vector (GIN or GIST)
+                .HasMethod(DEFAULT_TS_INDEX_FUNCTION);
         });
 
         builder.Entity<GameExportBatch>(b =>
@@ -380,6 +384,53 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
+        builder.Entity<PracticeModeSettings>(b =>
+        {
+            b.HasKey(m => m.Id);
+            b.Property(m => m.Id).HasStandardGuidLength();
+            b.Property(m => m.IntroTextMarkdown).HasMaxLength(4000);
+            b
+                .HasOne(m => m.UpdatedByUser)
+                .WithOne(u => u.UpdatedPracticeModeSettings)
+                .IsRequired(false);
+
+            b
+                .HasOne(m => m.CertificateTemplate)
+                .WithOne(t => t.UsedAsPracticeModeDefault)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<PracticeChallengeGroup>(b =>
+        {
+            b.HasKey(g => g.Id);
+            b.Property(g => g.ImageUrl).HasStandardUrlLength();
+
+            b.HasOne(g => g.CreatedByUser).WithMany(u => u.CreatedPracticeChallengeGroups);
+            b.HasOne(g => g.UpdatedByUser).WithMany(u => u.UpdatedPracticeChallengeGroups);
+
+            b
+                .HasGeneratedTsVectorColumn
+                (
+                    g => g.TextSearchVector,
+                    DEFAULT_TS_VECTOR_CONFIG,
+                    p => new { p.Name, p.Id, p.Description }
+                )
+                .HasIndex(p => p.TextSearchVector)
+                .HasMethod(DEFAULT_TS_INDEX_FUNCTION);
+
+            // technically allows infinite nesting, but we limit to Parent Groups and Child Groups with app logic
+            b.HasOne(g => g.ParentGroup).WithMany(p => p.ChildGroups);
+        });
+
+        builder.Entity<PracticeChallengeGroupChallengeSpec>(b =>
+        {
+            b.HasKey(e => e.Id);
+            b.HasAlternateKey(e => new { e.ChallengeSpecId, e.PracticeChallengeGroupId });
+
+            b.HasOne(e => e.ChallengeSpec).WithMany(s => s.PracticeChallengeGroups);
+            b.HasOne(e => e.PracticeChallengeGroup).WithMany(s => s.ChallengeSpecs);
+        });
+
         builder.Entity<PublishedCertificate>(b =>
         {
             b.HasKey(c => c.Id);
@@ -406,22 +457,6 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
             b.HasOne(c => c.OwnerUser)
                 .WithMany(u => u.PublishedPracticeCertificates)
                 .HasConstraintName("FK_OwnerUserId_Users_Id");
-        });
-
-        builder.Entity<PracticeModeSettings>(b =>
-        {
-            b.HasKey(m => m.Id);
-            b.Property(m => m.Id).HasStandardGuidLength();
-            b.Property(m => m.IntroTextMarkdown).HasMaxLength(4000);
-            b
-                .HasOne(m => m.UpdatedByUser)
-                .WithOne(u => u.UpdatedPracticeModeSettings)
-                .IsRequired(false);
-
-            b
-                .HasOne(m => m.CertificateTemplate)
-                .WithOne(t => t.UsedAsPracticeModeDefault)
-                .OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<Sponsor>(b =>
@@ -567,6 +602,7 @@ public class GameboardDbContext(DbContextOptions options) : DbContext(options)
     public DbSet<Game> Games { get; set; }
     public DbSet<ManualBonus> ManualBonuses { get; set; }
     public DbSet<Player> Players { get; set; }
+    public DbSet<PracticeChallengeGroup> PracticeChallengeGroups { get; set; }
     public DbSet<PublishedCertificate> PublishedCertificate { get; set; }
     public DbSet<Sponsor> Sponsors { get; set; }
     public DbSet<SupportSettingsAutoTag> SupportSettingsAutoTags { get; set; }

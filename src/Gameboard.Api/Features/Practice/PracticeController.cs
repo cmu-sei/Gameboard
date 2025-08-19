@@ -18,6 +18,9 @@ public class PracticeController(IActingUserService actingUserService, IMediator 
 
     /// <summary>
     /// Search challenges within games that have been set to Practice mode.
+    /// 
+    /// This is the public-facing endpoint which supports anonymous and unprivileged search, and orders by amorphous text vector vibes. The elevated endpoint, for admin tasks,
+    /// is below.
     /// </summary>
     /// <param name="filter"></param>
     /// <param name="userProgress">Whether or not the challenge has ever been attempted/completed by the current user (in practice mode).</param>
@@ -27,15 +30,69 @@ public class PracticeController(IActingUserService actingUserService, IMediator 
     public Task<SearchPracticeChallengesResult> Search([FromQuery] SearchFilter filter, [FromQuery] SearchPracticeChallengesRequestUserProgress? userProgress = null)
         => _mediator.Send(new SearchPracticeChallengesQuery(filter, userProgress));
 
+    [HttpGet("challenge/list")]
+    public Task<PracticeChallengeView[]> ListChallenges([FromQuery] ListChallengesRequest request, CancellationToken cancellationToken)
+        => _mediator.Send(new ListChallengesQuery(request), cancellationToken);
+
+    [HttpGet("challenge-group/{id}")]
+    [AllowAnonymous]
+    public Task<GetPracticeChallengeGroupResponse> GetGroup([FromRoute] string id, CancellationToken cancellationToken)
+        => _mediator.Send(new GetPracticeChallengeGroupQuery(id), cancellationToken);
+
+    [HttpGet("challenge-group/list")]
+    [AllowAnonymous]
+    public Task<ListPracticeChallengeGroupsResponse> ListGroups([FromQuery] ListPracticeChallengeGroupsRequest request, CancellationToken cancellationToken)
+        => _mediator.Send(new ListPracticeChallengeGroupsQuery(request), cancellationToken);
+
+    [HttpPost("challenge-group")]
+    public Task<PracticeChallengeGroupDto> CreatePracticeChallengeGroup([FromForm] CreatePracticeChallengeGroupRequest request, CancellationToken cancellationToken)
+        => _mediator.Send(new CreatePracticeChallengeGroupCommand(request), cancellationToken);
+
+    [HttpDelete("challenge-group/{id}")]
+    public Task DeletePracticeChallengeGroup([FromRoute] string id, CancellationToken cancellationToken)
+        => _mediator.Send(new DeletePracticeChallengeGroupCommand(id), cancellationToken);
+
+    [HttpPut("challenge-group")]
+    public Task<PracticeChallengeGroupDto> UpdatePracticeChallengeGroup([FromForm] UpdatePracticeChallengeGroupRequest request, CancellationToken cancellationToken)
+        => _mediator.Send(new UpdatePracticeChallengeGroupCommand(request), cancellationToken);
+
+    /// <summary>
+    /// Given one or more practice challenge collections, get the user's overall progress and performance on them and any subcollections
+    /// they contain (including completions, attempts, and certificates.)
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("challenge-group/user-data")]
+    public Task<GetPracticeChallengeGroupsUserDataResponse> GetPracticeChallengeGroupsUserData([FromQuery] GetPracticeChallengeGroupUserDataRequest request, CancellationToken cancellationToken)
+        => _mediator.Send(new GetPracticeChallengeGroupsUserDataQuery(request.UserId, request.ChallengeGroupIds), cancellationToken);
+
+    [HttpPost("challenge-group/{id}/challenges")]
+    public Task<AddChallengesToGroupResponse> AddChallengesToGroup([FromRoute] string id, [FromBody] AddChallengesToGroupRequest request, CancellationToken cancellationToken)
+        => _mediator.Send(new AddChallengesToGroupCommand(id, request), cancellationToken);
+
+    [HttpDelete("challenge-group/{id}/challenges")]
+    public Task RemoveChallengesFromGroup([FromRoute] string id, [FromBody] RemoveChallengesFromGroupRequest request, CancellationToken cancellationToken)
+        => _mediator.Send(new RemoveChallengesFromGroupCommand(id, request.ChallengeSpecIds), cancellationToken);
+
+    [HttpGet("challenge-tags")]
+    public Task<ListChallengeTagsResponse> ListTags(CancellationToken cancellationToken)
+        => _mediator.Send(new ListChallengeTagsQuery(), cancellationToken);
+
+    [HttpGet("games")]
+    public Task<ListGamesResponse> ListGames(CancellationToken cancellationToken)
+        => _mediator.Send(new ListGamesQuery(), cancellationToken);
+
     [HttpGet("session")]
-    public Task<PracticeSession> GetPracticeSession()
-        => _mediator.Send(new GetPracticeSessionQuery(_actingUserService.Get().Id));
+    public Task<PracticeSession> GetPracticeSession(CancellationToken cancellationToken)
+        => _mediator.Send(new GetPracticeSessionQuery(_actingUserService.Get().Id), cancellationToken);
 
     [HttpGet]
     [Route("settings")]
     [AllowAnonymous]
-    public Task<PracticeModeSettingsApiModel> GetSettings()
-        => _mediator.Send(new GetPracticeModeSettingsQuery(_actingUserService.Get()));
+    public Task<PracticeModeSettingsApiModel> GetSettings(CancellationToken cancellationToken)
+        => _mediator.Send(new GetPracticeModeSettingsQuery(_actingUserService.Get()), cancellationToken);
 
     [HttpPut]
     [Route("settings")]

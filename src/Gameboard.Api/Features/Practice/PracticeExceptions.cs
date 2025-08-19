@@ -22,6 +22,18 @@ internal class CantExtendEndedPracticeSession : GameboardValidationException
         : base($"""Can't extend practice session for team "{teamId}" because it has already ended.""") { }
 }
 
+internal class ChallengeGroupInvalidParentException : GameboardValidationException
+{
+    public ChallengeGroupInvalidParentException(string invalidParentGroupId, string itsParentGroupId)
+        : base($"""Parent group "{invalidParentGroupId}" is an invalid parent because it has its own parent ("{itsParentGroupId}"). We only allow one level of nesting of challenge groups.""") { }
+}
+
+internal class ChallengeGroupInvalidUpdateBecauseParentsAndKidsException : GameboardValidationException
+{
+    public ChallengeGroupInvalidUpdateBecauseParentsAndKidsException(string groupId, string parentGroupId, int childCount)
+        : base($"""Group "{groupId}" can't be updated to have parent "{parentGroupId}" because it has {childCount} child groups. Groups with child groups can't also have a parent group (no multiple nesting).""") { }
+}
+
 internal class UserLevelPracticeGamespaceLimitReached : GameboardValidationException
 {
     public UserLevelPracticeGamespaceLimitReached(string userId, string gameId, IEnumerable<string> teamIds)

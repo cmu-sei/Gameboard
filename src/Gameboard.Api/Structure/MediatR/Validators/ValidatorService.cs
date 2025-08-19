@@ -18,8 +18,12 @@ public interface IValidatorService
     /// </summary>
     /// <typeparam name="TEntity"></typeparam>
     /// <param name="id"></param>
+    /// <param name="isRequiredValue">
+    ///     Indicates whether the value passed for id is a required property for validation. If false and if not
+    ///     provided (e.g. is null or empty), validation is skipped. True by default.
+    /// </param>
     /// <returns></returns>
-    IValidatorService AddEntityExistsValidator<TEntity>(string id) where TEntity : class, IEntity;
+    IValidatorService AddEntityExistsValidator<TEntity>(string id, bool isRequiredValue = true) where TEntity : class, IEntity;
     IValidatorService AddValidator(IGameboardValidator validator);
     IValidatorService AddValidator(Action<RequestValidationContext> validationAction);
     IValidatorService AddValidator(Func<RequestValidationContext, Task> validationTask);
@@ -42,8 +46,12 @@ internal class ValidatorService
     private readonly UserRolePermissionsValidator _userRolePermissionsValidator = userRolePermissionsValidator;
 
 
-    public IValidatorService AddEntityExistsValidator<TEntity>(string id) where TEntity : class, IEntity
+    public IValidatorService AddEntityExistsValidator<TEntity>(string id, bool isRequiredValue = true) where TEntity : class, IEntity
     {
+        if (!isRequiredValue && id.IsEmpty())
+        {
+            return this;
+        }
 
         _validationTasks.Add(async ctx =>
         {
