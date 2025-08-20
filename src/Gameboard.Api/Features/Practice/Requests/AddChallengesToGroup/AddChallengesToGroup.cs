@@ -53,11 +53,13 @@ internal sealed class AddChallengesToGroupHandler
         // distinct specIds implied by all three and add them to the group
         var specIds = new List<string>();
 
+        // specific specs
         if (request.Request.AddBySpecIds.IsNotEmpty())
         {
             specIds.AddRange(request.Request.AddBySpecIds);
         }
 
+        // by game id
         if (request.Request.AddByGameId.IsNotEmpty())
         {
             var query = await practiceService.GetPracticeChallengesQueryBase(includeHiddenChallengesIfHasPermission: false);
@@ -69,6 +71,33 @@ internal sealed class AddChallengesToGroupHandler
             specIds.AddRange(specIdsFromGame);
         }
 
+        // by various game metadata
+        var addByDivision = request.Request.AddByGameDivision.IsEmpty() ? null : request.Request.AddByGameDivision.ToLower();
+        var addBySeason = request.Request.AddByGameSeason.IsEmpty() ? null : request.Request.AddByGameSeason.ToLower();
+        var addBySeries = request.Request.AddByGameSeries.IsEmpty() ? null : request.Request.AddByGameSeries.ToLower();
+        var addByTrack = request.Request.AddByGameTrack.IsEmpty() ? null : request.Request.AddByGameTrack.ToLower();
+
+        if (addByDivision != null || addBySeason != null || addBySeries != null || addByTrack != null)
+        {
+            var query = await practiceService.GetPracticeChallengesQueryBase(includeHiddenChallengesIfHasPermission: false);
+            var specIdsFromGameMetaData = await query
+                .Where
+                (
+                    s => s.Game != null &&
+                    (
+                        (addByDivision == null || s.Game.Division.ToLower() == addByDivision) &&
+                        (addBySeason == null || s.Game.Season.ToLower() == addBySeason) &&
+                        (addBySeries == null || s.Game.Competition.ToLower() == addBySeries) &&
+                        (addByTrack == null || s.Game.Track.ToLower() == addByTrack)
+                    )
+                )
+                .Select(s => s.Id)
+                .ToArrayAsync(cancellationToken);
+
+            specIds.AddRange(specIdsFromGameMetaData);
+        }
+
+        // by challenge tag
         if (request.Request.AddByTag.IsNotEmpty())
         {
             var query = await practiceService.GetPracticeChallengesQueryBase(includeHiddenChallengesIfHasPermission: false);
@@ -103,18 +132,6 @@ internal sealed class AddChallengesToGroupHandler
         // have to do this with proper EF because we don't have a real entity for the many-to-many
         var specs = finalSpecIds.Select(sId => new PracticeChallengeGroupChallengeSpec { PracticeChallengeGroupId = request.ChallengeGroupId, ChallengeSpecId = sId }).ToArray();
         await store.SaveAddRange(specs);
-        // await store.DoTransaction(async ctx =>
-        // {
-        //     var group = await ctx.PracticeChallengeGroups.FindAsync(request.ChallengeGroupId, cancellationToken);
-
-        //     foreach (var spec in specs)
-        //     {
-        //         ctx.Attach(spec);
-        //         group.ChallengeSpecs.Add(spec);
-        //     }
-
-        //     await ctx.SaveChangesAsync(cancellationToken);
-        // }, cancellationToken);
 
         return new AddChallengesToGroupResponse { AddedChallengeSpecIds = finalSpecIds };
     }

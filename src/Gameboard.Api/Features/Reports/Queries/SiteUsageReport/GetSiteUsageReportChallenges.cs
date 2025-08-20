@@ -35,7 +35,7 @@ internal sealed class GetSiteUsageReportChallengesHandler : IRequestHandler<GetS
     {
         await _validator.Validate(request, cancellationToken);
 
-        // have to do dumb joiny stuff because challengespec ARGH
+        // have to do dumb joiny stuff because challengespec ARGH #317
         var specChallenges = await _reportService
             .GetBaseQuery(request.ReportParameters)
             .GroupBy(c => c.SpecId)
