@@ -48,48 +48,45 @@ internal class PracticeModeReportService
 
     private async Task<PracticeModeReportUngroupedResults> BuildUngroupedResults(PracticeModeReportParameters parameters, bool includeCompetitive, CancellationToken cancellationToken)
     {
-        // load sponsors - we need them for the report data and they can't be joined
-        var sponsors = await _store
-            .WithNoTracking<Data.Sponsor>()
-            .Select(s => s.ToReportViewModel())
-            .ToArrayAsync(cancellationToken);
-
         var query = GetBaseQuery(parameters, includeCompetitive);
 
         // query for the raw results
-        var challenges = await query.ToListAsync(cancellationToken);
-
-        // also load challenge spec data for these challenges (spec can't be joined), see #317
-        var specs = await _store
-            .WithNoTracking<Data.ChallengeSpec>()
-            .Include(s => s.Game)
-            .Where(s => challenges.Select(c => c.SpecId).Contains(s.Id))
-            .ToDictionaryAsync(s => s.Id, s => s, cancellationToken);
+        var challenges = await query
+            .Include(c => c.Spec)
+                .ThenInclude(s => s.Game)
+            .Select(c => new
+            {
+                Challenge = c,
+                c.Spec,
+                Sponsor = c.Player.Sponsor.ToReportViewModel(),
+                c.Player.UserId,
+            })
+            .ToArrayAsync(cancellationToken);
 
         return new PracticeModeReportUngroupedResults
         {
-            Challenges = challenges,
+            Challenges = [.. challenges.Select(c => c.Challenge)],
             OverallStats = new()
             {
-                AttemptCount = challenges.Count,
+                AttemptCount = challenges.Length,
                 ChallengeCount = challenges
-                    .Select(c => c.SpecId)
+                    .Select(c => c.Spec.Id)
                     .Distinct()
                     .Count(),
                 CompletionCount = challenges
-                    .Where(c => c.Score >= c.Points)
+                    .Where(c => c.Challenge.Score >= c.Challenge.Points)
                     .Count(),
                 PlayerCount = challenges
-                    .Select(c => c.Player.UserId)
+                    .Select(c => c.UserId)
                     .Distinct()
                     .Count(),
                 SponsorCount = challenges
-                    .Select(c => c.Player.SponsorId)
+                    .Select(c => c.Sponsor.Id)
                     .Distinct()
                     .Count()
             },
-            Specs = specs,
-            Sponsors = sponsors ?? []
+            Specs = challenges.Select(c => c.Spec).DistinctBy(s => s.Id).ToDictionary(s => s.Id, s => s),
+            Sponsors = challenges.Select(c => c.Sponsor).DistinctBy(s => s.Id) ?? []
         };
     }
 

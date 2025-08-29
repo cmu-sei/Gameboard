@@ -65,6 +65,12 @@ internal class GetGameCenterPracticeQueryHandler
                 c.StartTime,
                 c.EndTime,
                 c.SpecId,
+                Spec = new
+                {
+                    Id = c.SpecId,
+                    c.Spec.Name,
+                    c.Spec.Tag
+                },
                 c.Points,
                 c.Score,
                 c.TeamId,

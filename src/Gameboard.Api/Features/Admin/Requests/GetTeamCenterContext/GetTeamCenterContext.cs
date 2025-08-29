@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -76,43 +75,25 @@ internal class GetTeamCenterContextHandler(
         // take the first for name/challenge resolution
         var captain = players.First();
 
-        // load all specs for the game (because we need their max scores and names)
-        var specs = await _store
-            .WithNoTracking<Data.ChallengeSpec>()
-            .Where(s => s.GameId == captain.GameId)
-            .Where(s => !s.Disabled && !s.IsHidden)
-            .Select(s => new
-            {
-                s.Id,
-                s.Name,
-                s.Points
-            })
-            .ToDictionaryAsync
-            (
-                s => s.Id,
-                s => s,
-                cancellationToken
-            );
-
-        var specIds = specs.Select(s => s.Key).ToArray();
+        // var specIds = specs.Select(s => s.Key).ToArray();
         var challenges = await _store
             .WithNoTracking<Data.Challenge>()
+            .Where(c => c.Spec.GameId == captain.GameId)
+            .Where(c => !c.Spec.Disabled && !c.Spec.IsHidden)
             .Where(c => c.TeamId == request.TeamId)
-            .Where(c => specIds.Contains(c.SpecId))
             .Select(c => new
             {
                 c.Id,
                 c.Score,
                 Start = c.StartTime > DateTimeOffset.MinValue ? c.StartTime.ToUnixTimeMilliseconds() : default(long?),
                 End = c.EndTime > DateTimeOffset.MinValue ? c.EndTime.ToUnixTimeMilliseconds() : default(long?),
-                c.SpecId
+                Spec = new SimpleEntity { Id = c.SpecId, Name = c.Spec.Name },
             })
             .ToArrayAsync(cancellationToken);
 
         var score = await _scoringService.GetTeamScore(request.TeamId, cancellationToken);
         var challengeScores = score.Challenges
             .Select(s => new { s.Id, s.SpecId, s.Score })
-            .Where(s => specIds.Contains(s.SpecId))
             .ToDictionary(s => s.SpecId, s => s);
 
         return new TeamCenterContext
@@ -129,8 +110,8 @@ internal class GetTeamCenterContextHandler(
                 Id = c.Id,
                 Start = c.Start,
                 End = c.End,
-                Score = challengeScores.TryGetValue(c.SpecId, out var value) ? value.Score : null,
-                Spec = new SimpleEntity { Id = c.SpecId, Name = specs[c.SpecId].Name }
+                Score = challengeScores.TryGetValue(c.Spec.Id, out var value) ? value.Score : null,
+                Spec = c.Spec
             }),
             Players = players.Select(p => new TeamCenterContextPlayer
             {

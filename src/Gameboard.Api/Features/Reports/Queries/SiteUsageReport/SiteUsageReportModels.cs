@@ -29,7 +29,7 @@ public sealed class SiteUsageReportRecord
     public required int UserCount { get; set; }
 }
 
-public sealed class SiteUsageReportChallenge
+public sealed class SiteUsageReportChallengeSpec
 {
     public required string Id { get; set; }
     public required string Name { get; set; }
