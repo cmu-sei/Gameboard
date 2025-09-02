@@ -8,9 +8,9 @@ using ServiceStack;
 
 namespace Gameboard.Api.Features.Reports;
 
-public sealed record GetSiteUsageReportChallengesQuery(SiteUsageReportParameters ReportParameters, PagingArgs PagingArgs) : IReportQuery, IRequest<PagedEnumerable<SiteUsageReportChallenge>>;
+public sealed record GetSiteUsageReportChallengesQuery(SiteUsageReportParameters ReportParameters, PagingArgs PagingArgs) : IReportQuery, IRequest<PagedEnumerable<SiteUsageReportChallengeSpec>>;
 
-internal sealed class GetSiteUsageReportChallengesHandler : IRequestHandler<GetSiteUsageReportChallengesQuery, PagedEnumerable<SiteUsageReportChallenge>>
+internal sealed class GetSiteUsageReportChallengesHandler : IRequestHandler<GetSiteUsageReportChallengesQuery, PagedEnumerable<SiteUsageReportChallengeSpec>>
 {
     private readonly IPagingService _pagingService;
     private readonly ISiteUsageReportService _reportService;
@@ -31,11 +31,11 @@ internal sealed class GetSiteUsageReportChallengesHandler : IRequestHandler<GetS
         _validator = validator;
     }
 
-    public async Task<PagedEnumerable<SiteUsageReportChallenge>> Handle(GetSiteUsageReportChallengesQuery request, CancellationToken cancellationToken)
+    public async Task<PagedEnumerable<SiteUsageReportChallengeSpec>> Handle(GetSiteUsageReportChallengesQuery request, CancellationToken cancellationToken)
     {
         await _validator.Validate(request, cancellationToken);
 
-        // have to do dumb joiny stuff because challengespec ARGH
+        // have to do dumb joiny stuff because challengespec ARGH #317
         var specChallenges = await _reportService
             .GetBaseQuery(request.ReportParameters)
             .GroupBy(c => c.SpecId)
@@ -51,7 +51,7 @@ internal sealed class GetSiteUsageReportChallengesHandler : IRequestHandler<GetS
             .Where(cs => specChallenges.Keys.Contains(cs.Id))
             .Include(cs => cs.Game)
             .GroupBy(cs => new { cs.Id, cs.Name })
-            .Select(gr => new SiteUsageReportChallenge
+            .Select(gr => new SiteUsageReportChallengeSpec
             {
                 Id = gr.Key.Id,
                 Name = gr.Key.Name,

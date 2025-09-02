@@ -52,6 +52,7 @@ public class GameEngineMaps : Profile
             .ForMember(c => c.LastSyncTime, o => o.Ignore())
             .ForMember(c => c.PlayerMode, o => o.Ignore())
             .ForMember(c => c.SpecId, o => o.Ignore())
+            .ForMember(c => c.Spec, o => o.Ignore())
             .ForMember(c => c.Tag, o => o.Ignore())
             .ForMember(c => c.TeamId, o => o.Ignore())
             .ForMember(c => c.Tickets, o => o.Ignore())

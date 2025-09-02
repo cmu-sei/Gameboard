@@ -60,7 +60,7 @@ internal sealed class PracticeModeReportChallengeDetailHandler : IRequestHandler
             })
             .SingleAsync(s => s.Spec.Id == request.ChallengeSpecId, cancellationToken);
 
-        var query = await _reportService.GetBaseQuery(request.Parameters, false, cancellationToken);
+        var query = _reportService.GetBaseQuery(request.Parameters, false);
 
         var results = await query
             .Where(c => c.SpecId == request.ChallengeSpecId)

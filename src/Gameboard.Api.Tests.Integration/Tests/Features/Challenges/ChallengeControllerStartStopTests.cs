@@ -25,6 +25,7 @@ public class ChallengeControllerStartStopTests(GameboardTestContext testContext)
     public async Task Start_WithGameEngineResponseWithVMsAndNotIsActive_HasDeployedGamespace
     (
         string challengeId,
+        string challengeSpecId,
         string gameId,
         string playerId,
         string sponsorId,
@@ -35,6 +36,7 @@ public class ChallengeControllerStartStopTests(GameboardTestContext testContext)
     {
         await _testContext.WithDataState(state =>
         {
+            state.Add<Data.ChallengeSpec>(fixture, s => s.Id = challengeSpecId);
             state.Add<Data.Sponsor>(fixture, s => s.Id = sponsorId);
             state.Add<Data.Game>(fixture, g =>
             {
@@ -54,6 +56,7 @@ public class ChallengeControllerStartStopTests(GameboardTestContext testContext)
                                 c.Id = challengeId;
                                 c.GameId = gameId;
                                 c.PlayerId = playerId;
+                                c.SpecId = challengeSpecId;
                                 c.TeamId = teamId;
                             })
                         ]
@@ -90,6 +93,7 @@ public class ChallengeControllerStartStopTests(GameboardTestContext testContext)
     public async Task Stop_WithGameEngineResponseNoVMsAndIsActive_DoesNotHaveDeployedGamespace
     (
         string challengeId,
+        string challengeSpecId,
         string gameId,
         string playerId,
         string sponsorId,
@@ -109,6 +113,7 @@ public class ChallengeControllerStartStopTests(GameboardTestContext testContext)
 
         await _testContext.WithDataState(state =>
         {
+            state.Add<Data.ChallengeSpec>(fixture, s => s.Id = challengeSpecId);
             state.Add<Data.Sponsor>(fixture, s => s.Id = sponsorId);
             state.Add<Data.Game>(fixture, g =>
             {
@@ -130,6 +135,7 @@ public class ChallengeControllerStartStopTests(GameboardTestContext testContext)
                 c.Id = challengeId;
                 c.GameId = gameId;
                 c.PlayerId = playerId;
+                c.SpecId = challengeSpecId;
                 c.TeamId = teamId;
             });
         });

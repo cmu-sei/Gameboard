@@ -206,7 +206,7 @@ internal class ScoringService(
         // hidden specs don't count toward score
         var specs = await _store
             .WithNoTracking<Data.ChallengeSpec>()
-            .Include(s => s.Bonuses)
+                .Include(s => s.Bonuses)
             .Where(spec => spec.GameId == captain.GameId)
             .Where(spec => !spec.IsHidden)
             .ToListAsync(cancellationToken);

@@ -24,7 +24,6 @@ public class TeamsControllerResetTests(GameboardTestContext testContext) : IClas
         await _testContext.WithDataState(state =>
         {
             state.Add<Data.ChallengeSpec>(fixture, spec => spec.Id = challengeSpecId);
-
             state.Add<Data.Game>(fixture, g =>
             {
                 g.Id = gameId;
@@ -40,6 +39,7 @@ public class TeamsControllerResetTests(GameboardTestContext testContext) : IClas
                             state.Build<Data.Challenge>(fixture, c =>
                             {
                                 c.GameId = gameId;
+                                c.SpecId = challengeSpecId;
                                 c.TeamId = teamId;
                             })
                         ];
@@ -94,6 +94,7 @@ public class TeamsControllerResetTests(GameboardTestContext testContext) : IClas
                             state.Build<Data.Challenge>(fixture, c =>
                             {
                                 c.GameId = gameId;
+                                c.SpecId = challengeSpecId;
                                 c.TeamId = teamId;
                             })
                         ];

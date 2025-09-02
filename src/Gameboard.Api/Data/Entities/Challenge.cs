@@ -11,7 +11,6 @@ public class Challenge : IEntity
 {
     public string Id { get; set; }
     public string Name { get; set; }
-    public string SpecId { get; set; }
     public string ExternalId { get; set; }
     public string TeamId { get; set; }
     public string Tag { get; set; }
@@ -51,6 +50,8 @@ public class Challenge : IEntity
     public Game Game { get; set; }
     public string PlayerId { get; set; }
     public Player Player { get; set; }
+    public required string SpecId { get; set; }
+    public Data.ChallengeSpec Spec { get; set; }
 
     // Control delete behavior with relationships
     public ICollection<AwardedChallengeBonus> AwardedBonuses { get; set; } = [];

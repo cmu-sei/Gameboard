@@ -22,6 +22,7 @@ public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestCont
         TopoMojo.Api.Client.GameState state1,
         string challenge2Id,
         TopoMojo.Api.Client.GameState state2,
+        string challengeSpecId,
         IFixture fixture
     )
     {
@@ -34,11 +35,13 @@ public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestCont
                 p.TeamId = teamId;
             });
 
+            state.Add<Data.ChallengeSpec>(fixture, s => s.Id = challengeSpecId);
             state.Add<Data.Challenge>(fixture, c =>
             {
                 c.Id = challenge1Id;
                 c.GameEngineType = GameEngineType.TopoMojo;
                 c.PlayerId = playerId;
+                c.SpecId = challengeSpecId;
                 // NOTE: this isn't random - it's handcrafted so we can verify the data "tree"
                 // See Fixtures/SpecimenBuilders/GameStateBuilder.cs
                 c.State = JsonSerializer.Serialize(state1);
@@ -50,6 +53,7 @@ public class GameEngineControllerGetStateTests : IClassFixture<GameboardTestCont
                 c.Id = challenge2Id;
                 c.GameEngineType = GameEngineType.TopoMojo;
                 c.PlayerId = playerId;
+                c.SpecId = challengeSpecId;
                 c.State = JsonSerializer.Serialize(state2);
                 c.TeamId = teamId;
             });

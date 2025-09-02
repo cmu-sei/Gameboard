@@ -12,17 +12,15 @@ using Microsoft.EntityFrameworkCore;
 namespace Gameboard.Api.Features.Admin;
 
 public sealed record GetAppActiveChallengesQuery(PlayerMode PlayerMode) : IRequest<GetAppActiveChallengesResponse>;
-public sealed record GetAppActiveChallengesResponse
-(
-    IEnumerable<AppActiveChallengeSpec> Specs
-);
+public sealed record GetAppActiveChallengesResponse(IEnumerable<AppActiveChallengeSpec> Specs);
 
-internal class GetAppActiveChallengesHandler(
+internal class GetAppActiveChallengesHandler
+(
     IAppService appOverviewService,
     IStore store,
     ITeamService teamService,
     IValidatorService validatorService
-    ) : IRequestHandler<GetAppActiveChallengesQuery, GetAppActiveChallengesResponse>
+) : IRequestHandler<GetAppActiveChallengesQuery, GetAppActiveChallengesResponse>
 {
     private readonly IAppService _appOverviewService = appOverviewService;
     private readonly IStore _store = store;
@@ -43,21 +41,26 @@ internal class GetAppActiveChallengesHandler(
                 c.Id,
                 c.Name,
                 c.SpecId,
+                Spec = new
+                {
+                    Id = c.SpecId,
+                    c.Spec.Name,
+                    c.Spec.Tag,
+                    c.Spec.GameEngineType,
+                    Game = new
+                    {
+                        Id = c.Spec.GameId,
+                        c.Spec.Game.Name,
+                        c.Spec.Game.MaxTeamSize,
+                    }
+                },
                 c.TeamId,
                 c.StartTime,
                 HasTickets = c.Tickets.Any(t => t.Status != "closed")
             })
             .ToArrayAsync(cancellationToken);
 
-        var specIds = challenges.Select(c => c.SpecId).Distinct().ToArray();
         var teamIds = challenges.Select(c => c.TeamId).Distinct().ToArray();
-
-        // get specs separately because _ugh_
-        var specs = await _store
-            .WithNoTracking<Data.ChallengeSpec>()
-            .Include(s => s.Game)
-            .Where(s => specIds.Contains(s.Id))
-            .ToDictionaryAsync(s => s.Id, s => s, cancellationToken);
 
         // get teams
         var teams = (await _teamService.GetTeams(teamIds))
@@ -79,13 +82,13 @@ internal class GetAppActiveChallengesHandler(
                 {
                     Id = gr.Key,
                     Name = gr.Value.First().Name,
-                    Tag = specs[specId].Tag,
+                    Tag = sampleChallenge.Spec.Tag,
                     Game = new AppActiveChallengeGame
                     {
-                        Id = specs[specId].GameId,
-                        Name = specs[specId].Game.Name,
-                        IsTeamGame = specs[specId].Game.MaxTeamSize > 1,
-                        Engine = specs[specId].GameEngineType
+                        Id = sampleChallenge.Spec.Game.Id,
+                        Name = sampleChallenge.Spec.Game.Name,
+                        IsTeamGame = sampleChallenge.Spec.Game.MaxTeamSize > 1,
+                        Engine = sampleChallenge.Spec.GameEngineType
                     },
                     Challenges = gr.Value.Select(c => new AppActiveChallenge
                     {

@@ -36,10 +36,9 @@ internal class ConfigureGameAutoBonusesValidator(
             {
                 var bonusesAwarded = await _store
                     .WithNoTracking<AwardedChallengeBonus>()
-                        .Include(b => b.Challenge)
                     .Where(b => b.Challenge.GameId == request.Parameters.GameId)
                     .Select(b => b.Id)
-                    .ToListAsync(cancellationToken);
+                    .ToArrayAsync(cancellationToken);
 
                 foreach (var bonusAwarded in bonusesAwarded)
                     context.AddValidationException(new CantDeleteAutoBonusIfAwarded(request.Parameters.GameId, bonusesAwarded));

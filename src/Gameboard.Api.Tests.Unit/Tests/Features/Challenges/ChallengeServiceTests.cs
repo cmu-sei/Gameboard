@@ -73,7 +73,7 @@ public class ChallengeServiceTests
                 new GameEngineChallengeRegistration
                 {
                     AttemptLimit = 0,
-                    Challenge = new Data.Challenge { },
+                    Challenge = new Data.Challenge { SpecId = specId },
                     ChallengeSpec = fakeSpec,
                     Game = fakeGame,
                     Player = fakePlayer,
@@ -196,7 +196,7 @@ public class ChallengeServiceTests
                 new GameEngineChallengeRegistration
                 {
                     AttemptLimit = 0,
-                    Challenge = new Data.Challenge { },
+                    Challenge = new Data.Challenge { SpecId = specId },
                     ChallengeSpec = fakeSpec,
                     Game = fakeGame,
                     Player = fakePlayer,

@@ -48,10 +48,14 @@ internal class ChallengesReportService
         var startDateEnd = parameters.StartDateEnd.HasValue ? parameters.StartDateEnd.Value.ToEndDate().ToUniversalTime() : default(DateTimeOffset?);
 
         if (parameters.StartDateStart.HasValue)
+        {
             startDateCondition = c => c.StartTime >= parameters.StartDateStart.Value.ToUniversalTime();
+        }
 
         if (parameters.StartDateEnd.HasValue)
+        {
             endDateCondition = c => c.EndTime <= parameters.StartDateEnd.Value.ToEndDate().ToUniversalTime();
+        }
 
         var specs = await GetBaseQuery(parameters)
             .Select(cs => new

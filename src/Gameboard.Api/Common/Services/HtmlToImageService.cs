@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api.Common.Services;
 
@@ -19,7 +20,7 @@ public interface IHtmlToImageService
     Task<byte[]> ToPng(string fileName, string htmlString, int? width = null, int? height = null);
 }
 
-internal class HtmlToImageService(CoreOptions coreOptions) : IHtmlToImageService
+internal class HtmlToImageService(CoreOptions coreOptions, ILogger<HtmlToImageService> logger) : IHtmlToImageService
 {
 
     public async Task<byte[]> ToPdf(string fileName, string htmlString, int? width = null, int? height = null)
@@ -32,8 +33,6 @@ internal class HtmlToImageService(CoreOptions coreOptions) : IHtmlToImageService
         {
             "--title",
             """ "Gameboard Certificate" '""",
-            // "--dpi",
-            // "300",
             "--margin-top",
             "0mm",
             "--margin-right",
@@ -52,6 +51,7 @@ internal class HtmlToImageService(CoreOptions coreOptions) : IHtmlToImageService
         };
 
         // run chromium and verify
+        logger.LogInformation("Starting wkhtmltopdf with args {args}", string.Join(' ', args));
         var result = await StartProcessAsync.StartAsync("wkhtmltopdf", args);
         if (result != 0)
             throw new Exception("PDF generation failed.");
@@ -102,6 +102,7 @@ internal class HtmlToImageService(CoreOptions coreOptions) : IHtmlToImageService
             tempImagePath
         };
 
+        logger.LogInformation("Starting wkhtmltopdf with args {args}", string.Join(' ', args));
         var result = await StartProcessAsync.StartAsync("wkhtmltoimage", args);
         if (result != 0)
         {
