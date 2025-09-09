@@ -11,9 +11,9 @@ public sealed class CrucibleServiceAccountAuthenticationConfig
 
     /// <summary>
     /// An access token that will expire in this amount of time or less (in seconds) will automatically
-    /// be renewed before it's attached to a request. Defaults to 3600 (one hour).
+    /// be renewed before it's attached to a request. Defaults to 300 (5 minutes).
     /// </summary>
-    public int RenewTokenThreshold { get; set; } = 3600;
+    public int RenewTokenThreshold { get; set; } = 300;
 }
 
 public static class CrucibleServiceRegistrationExtensions
@@ -21,8 +21,8 @@ public static class CrucibleServiceRegistrationExtensions
     public static IServiceCollection AddCrucibleServiceAccountAuthentication(this IServiceCollection services, CrucibleServiceAccountAuthenticationConfig config)
     {
         services.AddSingleton(config);
-        services.AddTransient<CrucibleServiceAccountBearerTokenHandler>();
         services.AddSingleton<ICrucibleServiceAccountTokenService, CrucibleServiceAccountTokenService>();
+        services.AddTransient<CrucibleServiceAccountBearerTokenHandler>();
 
         return services;
     }
