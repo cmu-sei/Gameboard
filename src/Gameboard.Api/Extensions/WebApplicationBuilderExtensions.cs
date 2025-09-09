@@ -21,50 +21,41 @@ internal static class WebApplicationBuilderExtensions
     {
         var settings = builder.Configuration.Get<AppSettings>() ?? new AppSettings();
 
-        settings.Cache.SharedFolder = Path.Combine(
-            builder.Environment.ContentRootPath,
-            settings.Cache.SharedFolder ?? string.Empty
-        );
+        // If in dev or integration tests, go easy on HTTPS
+        if (builder.Environment.IsDevOrTest())
+        {
+            settings.Oidc.RequireHttpsMetadata = false;
+        }
 
-        settings.Core.ImageFolder = Path.Combine(
-            builder.Environment.ContentRootPath,
-            settings.Core.ImageFolder ?? string.Empty
-        );
-
+        // apply defaults
+        settings.Cache.SharedFolder = Path.Combine(builder.Environment.ContentRootPath, settings.Cache.SharedFolder ?? string.Empty);
+        settings.Core.ImageFolder = Path.Combine(builder.Environment.ContentRootPath, settings.Core.ImageFolder ?? string.Empty);
+        settings.Core.TempDirectory = Path.Combine(builder.Environment.ContentRootPath, settings.Core.TempDirectory = "wwwroot/temp");
+        settings.Core.TemplatesDirectory = Path.Combine(builder.Environment.ContentRootPath, settings.Core.TemplatesDirectory ?? "wwwroot/templates");
         settings.Core.WebHostRoot = builder.Environment.ContentRootPath;
 
         if (settings.Core.ChallengeDocUrl.IsEmpty())
+        {
             settings.Core.ChallengeDocUrl = settings.PathBase;
+        }
 
         if (!settings.Core.ChallengeDocUrl?.EndsWith("/") ?? true)
+        {
             settings.Core.ChallengeDocUrl += "/";
+        }
 
         Directory.CreateDirectory(settings.Core.ImageFolder);
 
-        settings.Core.TempDirectory = Path.Combine
-        (
-            builder.Environment.ContentRootPath,
-            settings.Core.TempDirectory = "wwwroot/temp"
-        );
-
-        settings.Core.TemplatesDirectory = Path.Combine
-        (
-            builder.Environment.ContentRootPath,
-            settings.Core.TemplatesDirectory ?? "wwwroot/templates"
-        );
-
+        // I think this config is for old reports, we may be able to pull
         CsvConfig<Tuple<string, string>>.OmitHeaders = true;
         CsvConfig<Tuple<string, string, string>>.OmitHeaders = true;
         CsvConfig<ChallengeStatsExport>.OmitHeaders = true;
         CsvConfig<ChallengeDetailsExport>.OmitHeaders = true;
 
-        if (builder.Environment.IsDevOrTest())
-            settings.Oidc.RequireHttpsMetadata = false;
-
         return settings;
     }
 
-    public static void ConfigureServices(this WebApplicationBuilder builder, AppSettings settings)
+    public static void ConfigureServices(this WebApplicationBuilder builder, AppSettings settings, Microsoft.Extensions.Logging.ILogger logger)
     {
         var services = builder.Services;
 
@@ -78,7 +69,9 @@ internal static class WebApplicationBuilderExtensions
             .AddCache(() => settings.Cache);
 
         if (settings.OpenApi.Enabled)
+        {
             services.AddSwagger(settings.Oidc, settings.OpenApi);
+        }
 
         services
             .AddDataProtection()
@@ -94,7 +87,7 @@ internal static class WebApplicationBuilderExtensions
             .AddGameboardData(builder.Environment, settings.Database)
             .AddGameboardMediatR()
             .AddGameboardServices(settings)
-            .AddConfiguredHttpClients(settings.Core)
+            .AddConfiguredHttpClients(settings, logger)
             .AddDefaults(settings.Defaults, builder.Environment.ContentRootPath);
 
         // HOSTED SERVICES
@@ -110,7 +103,7 @@ internal static class WebApplicationBuilderExtensions
         builder.AddGameboardSignalRServices();
 
         // Configure Auth
-        services.AddConfiguredAuthentication(settings.Oidc, settings.ApiKey, builder.Environment);
+        services.AddConfiguredAuthentication(settings.Oidc, settings.ApiKey, builder.Environment, logger);
         services.AddConfiguredAuthorization();
     }
 

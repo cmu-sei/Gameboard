@@ -23,6 +23,13 @@ public static class ServiceCollectionExtensions
         if (existingService != null) services.Remove(existingService);
     }
 
+    public static IServiceCollection ReplaceService<C>(this IServiceCollection services, C replacement) where C : class
+    {
+        RemoveService<C>(services);
+        services.AddSingleton(replacement);
+        return services;
+    }
+
     public static IServiceCollection ReplaceService<I, C>(this IServiceCollection services, bool allowMultipleReplace = false) where I : class where C : class, I
     {
         if (allowMultipleReplace)

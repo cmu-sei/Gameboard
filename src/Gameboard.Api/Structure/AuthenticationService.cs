@@ -8,90 +8,80 @@ using System.Threading.Tasks;
 using IdentityModel.Client;
 using Microsoft.Extensions.Logging;
 
-namespace Gameboard.Api
+namespace Gameboard.Api;
+
+public interface IAuthenticationService
 {
-    public interface IAuthenticationService
+    Task<TokenResponse> GetToken(CancellationToken ct = new CancellationToken());
+    void InvalidateToken();
+}
+
+public class AuthenticationService(IHttpClientFactory httpClientFactory, CrucibleOptions settings, ILogger<AuthenticationService> logger) : IAuthenticationService
+{
+    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
+    private readonly CrucibleOptions _settings = settings;
+    private readonly ILogger<AuthenticationService> _logger = logger;
+    private readonly SemaphoreSlim _semaphore = new(1);
+
+    private TokenResponse _tokenResponse;
+
+    public async Task<TokenResponse> GetToken(CancellationToken ct = new CancellationToken())
     {
-        Task<TokenResponse> GetToken(CancellationToken ct = new CancellationToken());
-        void InvalidateToken();
-    }
-
-    public class AuthenticationService : IAuthenticationService
-    {
-        private readonly object _lock = new();
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly CrucibleOptions _settings;
-        private readonly ILogger<AuthenticationService> _logger;
-        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
-
-        private TokenResponse _tokenResponse;
-
-        public AuthenticationService(IHttpClientFactory httpClientFactory, CrucibleOptions settings, ILogger<AuthenticationService> logger)
-        {
-            _httpClientFactory = httpClientFactory;
-            _settings = settings;
-            _logger = logger;
-        }
-
-        public async Task<TokenResponse> GetToken(CancellationToken ct = new CancellationToken())
-        {
-            if (!ValidateToken())
-            {
-                try
-                {
-                    // Check again so we don't renew again if
-                    // another thread already did while we were waiting on the lock
-                    await _semaphore.WaitAsync(ct);
-                    _tokenResponse = await RenewToken(ct);
-                }
-                finally
-                {
-                    _semaphore.Release();
-                }
-            }
-
-            return _tokenResponse;
-        }
-
-        public void InvalidateToken()
-        {
-            _tokenResponse = null;
-        }
-
-        private bool ValidateToken()
-        {
-            if (_tokenResponse == null || _tokenResponse.ExpiresIn <= 3600)//_clientOptions.CurrentValue.TokenRefreshSeconds)
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
-        }
-
-        private async Task<TokenResponse> RenewToken(CancellationToken ct)
+        if (!ValidateToken())
         {
             try
             {
-                var httpClient = _httpClientFactory.CreateClient("identity");
-                var response = await httpClient.RequestPasswordTokenAsync(new PasswordTokenRequest
-                {
-                    Address = _settings.TokenUrl,
-                    ClientId = _settings.ClientId,
-                    Scope = _settings.Scope,
-                    UserName = _settings.UserName,
-                    Password = _settings.Password
-                }, ct);
-
-                return response;
+                // Check again so we don't renew again if another thread already did while we were waiting on the lock
+                await _semaphore.WaitAsync(ct);
+                _tokenResponse = await RenewToken(ct);
             }
-            catch (Exception ex)
+            finally
             {
-                _logger.LogError($"Exception renewing auth token. {ex.GetType().Name} - {ex.Message}");
+                _semaphore.Release();
             }
-
-            return null;
         }
+
+        return _tokenResponse;
+    }
+
+    public void InvalidateToken()
+    {
+        _tokenResponse = null;
+    }
+
+    private bool ValidateToken()
+    {
+        if (_tokenResponse == null || _tokenResponse.ExpiresIn <= 3600)//_clientOptions.CurrentValue.TokenRefreshSeconds)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    private async Task<TokenResponse> RenewToken(CancellationToken ct)
+    {
+        try
+        {
+            var httpClient = _httpClientFactory.CreateClient("identity");
+            var response = await httpClient.RequestPasswordTokenAsync(new PasswordTokenRequest
+            {
+                Address = _settings.TokenUrl,
+                ClientId = _settings.ClientId,
+                Scope = _settings.Scope,
+                UserName = _settings.UserName,
+                Password = _settings.Password
+            }, ct);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Exception renewing auth token. {exTypeName} - {exMessage}", ex.GetType().Name, ex.Message);
+        }
+
+        return null;
     }
 }

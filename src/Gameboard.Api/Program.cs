@@ -32,7 +32,7 @@ startupLogger.LogInformation("Starting Gameboard in {envName} configuration.", b
 
 // load settings and configure services
 var settings = builder.BuildAppSettings();
-builder.ConfigureServices(settings);
+builder.ConfigureServices(settings, startupLogger);
 
 // build and configure app
 var app = builder.Build();

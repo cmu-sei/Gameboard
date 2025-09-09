@@ -68,7 +68,7 @@ namespace Gameboard.Api
             }
             else
             {
-                _logger.LogError($"Error in {nameof(AuthenticatingHandler)}: {_token.Error}");
+                _logger.LogError("Error in {errorTypeName}: {tokenError}", nameof(AuthenticatingHandler), _token.Error);
             }
         }
     }

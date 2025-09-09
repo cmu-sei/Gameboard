@@ -18,47 +18,55 @@ namespace Microsoft.Extensions.DependencyInjection
             JsonWebTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
             services.AddAuthorizationBuilder()
-                .SetDefaultPolicy(new AuthorizationPolicyBuilder()
-                    .RequireAuthenticatedUser()
-                    .AddAuthenticationSchemes
-                    (
-                        JwtBearerDefaults.AuthenticationScheme,
-                        ApiKeyAuthentication.AuthenticationScheme
-                    ).Build())
-
-                .AddPolicy(AppConstants.TicketOnlyPolicy, new AuthorizationPolicyBuilder()
-                    .RequireAuthenticatedUser()
-                    .AddAuthenticationSchemes(
-                        TicketAuthentication.AuthenticationScheme
-                    )
-                    .Build()
-)
-                .AddPolicy(AppConstants.ConsolePolicy, new AuthorizationPolicyBuilder()
-                    .RequireAuthenticatedUser()
-                    .AddAuthenticationSchemes(
-                        AppConstants.MksCookie
-                    )
-                    .Build()
-)
-                .AddPolicy(AppConstants.HubPolicy, new AuthorizationPolicyBuilder()
-                    .RequireAuthenticatedUser()
-                    .AddAuthenticationSchemes(
-                        TicketAuthentication.AuthenticationScheme,
-                        AppConstants.MksCookie
-                    )
-                    .Build()
-)
-                .AddPolicy(AppConstants.GraderPolicy, new AuthorizationPolicyBuilder()
-                    .RequireAuthenticatedUser()
-                    .AddAuthenticationSchemes(
-                        JwtBearerDefaults.AuthenticationScheme,
-                        GraderKeyAuthentication.AuthenticationScheme
-                    ).Build()
-)
-                .AddPolicy(AppConstants.ApiKeyAuthPolicy, new AuthorizationPolicyBuilder()
-                    .RequireAuthenticatedUser()
-                    .AddAuthenticationSchemes(ApiKeyAuthentication.AuthenticationScheme)
-                    .Build());
+                .SetDefaultPolicy
+                (
+                    new AuthorizationPolicyBuilder()
+                        .RequireAuthenticatedUser()
+                        .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, ApiKeyAuthentication.AuthenticationScheme)
+                        .Build()
+                )
+                .AddPolicy
+                (
+                    AppConstants.TicketOnlyPolicy,
+                    new AuthorizationPolicyBuilder()
+                        .RequireAuthenticatedUser()
+                        .AddAuthenticationSchemes(TicketAuthentication.AuthenticationScheme)
+                        .Build()
+                )
+                .AddPolicy
+                (
+                    AppConstants.ConsolePolicy,
+                    new AuthorizationPolicyBuilder()
+                        .RequireAuthenticatedUser()
+                        .AddAuthenticationSchemes(AppConstants.MksCookie)
+                        .Build()
+                )
+                .AddPolicy
+                (
+                    AppConstants.HubPolicy,
+                    new AuthorizationPolicyBuilder()
+                        .RequireAuthenticatedUser()
+                        .AddAuthenticationSchemes(TicketAuthentication.AuthenticationScheme, AppConstants.MksCookie)
+                        .Build()
+                )
+                .AddPolicy
+                (
+                    AppConstants.GraderPolicy,
+                    new AuthorizationPolicyBuilder()
+                        .RequireAuthenticatedUser()
+                        .AddAuthenticationSchemes(
+                            JwtBearerDefaults.AuthenticationScheme,
+                            GraderKeyAuthentication.AuthenticationScheme
+                        ).Build()
+                )
+                .AddPolicy
+                (
+                    AppConstants.ApiKeyAuthPolicy,
+                    new AuthorizationPolicyBuilder()
+                        .RequireAuthenticatedUser()
+                        .AddAuthenticationSchemes(ApiKeyAuthentication.AuthenticationScheme)
+                        .Build()
+                );
 
             return services;
         }
