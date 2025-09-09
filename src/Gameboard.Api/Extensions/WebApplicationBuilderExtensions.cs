@@ -103,7 +103,7 @@ internal static class WebApplicationBuilderExtensions
         builder.AddGameboardSignalRServices();
 
         // Configure Auth
-        services.AddConfiguredAuthentication(settings.Oidc, settings.ApiKey, builder.Environment, logger);
+        services.AddConfiguredAuthentication(settings.Oidc, settings.ApiKey, builder.Environment);
         services.AddConfiguredAuthorization();
     }
 
