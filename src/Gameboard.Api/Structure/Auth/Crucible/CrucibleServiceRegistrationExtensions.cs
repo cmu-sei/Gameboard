@@ -11,9 +11,9 @@ public sealed class CrucibleServiceAccountAuthenticationConfig
 
     /// <summary>
     /// An access token that will expire in this amount of time or less (in seconds) will automatically
-    /// be renewed before it's attached to a request. Defaults to 300 (5 minutes).
+    /// be renewed before it's attached to a request. Defaults to 120 (2 minutes).
     /// </summary>
-    public int RenewTokenThreshold { get; set; } = 300;
+    public int RenewTokenThreshold { get; set; } = 120;
 }
 
 public static class CrucibleServiceRegistrationExtensions
