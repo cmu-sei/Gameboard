@@ -17,6 +17,7 @@ public class AppSettings
     public CrucibleOptions Crucible { get; set; } = new CrucibleOptions();
     public DatabaseOptions Database { get; set; } = new DatabaseOptions();
     public Defaults Defaults { get; set; } = new Defaults();
+    public GameEngineOptions GameEngine { get; set; } = new GameEngineOptions();
     public HeaderOptions Headers { get; set; } = new HeaderOptions();
     public LoggingSettings Logging { get; set; } = new LoggingSettings();
     public OidcOptions Oidc { get; set; } = new OidcOptions();
@@ -28,6 +29,13 @@ public class ApiKeyOptions
 {
     public int BytesOfRandomness { get; set; } = 32;
     public int RandomCharactersLength { get; set; } = 36;
+}
+
+public sealed class GameEngineOptions
+{
+    public string ClientId { get; set; }
+    public string ClientSecret { get; set; }
+    public GameEngineType Type { get; set; } = GameEngineType.TopoMojo;
 }
 
 public class LoggingSettings

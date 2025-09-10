@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -401,35 +400,52 @@ public class GameEngineService
         switch (gameEngineType)
         {
             case GameEngineType.TopoMojo:
-                // right now, the release version of the topo client doesn't have the .LoadGamespaceChallengeProgressAsync signature
-                // (because it's still in dev), so I'm injecting an http client factory that issues the request until it's released
-                // return await Mojo.LoadGamespaceChallengeProgressAsync(challengeId);
-
-                var client = _httpClientFactory.CreateClient("topo");
-                var response = await client.GetAsync($"api/gamespace/{challengeId}/challenge/progress", cancellationToken);
-
-                if (!response.IsSuccessStatusCode)
-                    throw new GameEngineException($"Error {response.StatusCode} occurred requesting challenge progress for challenge {challengeId}", new Exception(response.ReasonPhrase));
-
-                var progress = await response.Content.ReadFromJsonAsync<GameEngineChallengeProgressView>(cancellationToken);
-
-                // topo doesn't currently compute a per-section or per-question max/current score, so we can do that here
-                foreach (var section in progress.Variant.Sections)
+                // we have to do some calculations and stuff, particularly around weighting and scoring, to translate these
+                // to GB types
+                var topoProgress = await Mojo.LoadGamespaceChallengeProgressAsync(challengeId, cancellationToken);
+                var progress = new GameEngineChallengeProgressView
                 {
-                    section.Score = EngineWeightToScore(section.Questions.Where(q => q.IsCorrect).Select(q => q.Weight).Sum(), progress.MaxPoints) ?? 0;
-                    section.TotalWeight = section.Questions.Sum(q => q.Weight);
-                    section.ScoreMax = EngineWeightToScore(section.TotalWeight, progress.MaxPoints) ?? 0;
-
-                    foreach (var question in section.Questions)
+                    Id = topoProgress.Id,
+                    Attempts = topoProgress.Attempts,
+                    ExpiresAtTimestamp = topoProgress.ExpiresAtTimestamp,
+                    MaxAttempts = topoProgress.MaxAttempts,
+                    MaxPoints = topoProgress.MaxPoints,
+                    LastScoreTime = topoProgress.LastScoreTime,
+                    NextSectionPreReqThisSection = EngineWeightToScore(topoProgress.NextSectionPreReqThisSection, topoProgress.MaxPoints),
+                    NextSectionPreReqTotal = EngineWeightToScore(topoProgress.NextSectionPreReqTotal, topoProgress.MaxPoints),
+                    Score = topoProgress.Score,
+                    Variant = new GameEngineVariantView
                     {
-                        question.ScoreMax = EngineWeightToScore(question.Weight, progress.MaxPoints) ?? 0;
-                        question.ScoreCurrent = question.IsCorrect ? question.ScoreMax : 0;
-                    }
-                }
+                        Sections = topoProgress.Variant.Sections.Select(s =>
+                        {
+                            var totalWeight = s.Questions.Sum(q => q.Weight);
+                            var scoreMax = EngineWeightToScore(totalWeight, topoProgress.MaxPoints) ?? 0;
 
-                // we can also make the weights of the prereqs more readable
-                progress.NextSectionPreReqThisSection = EngineWeightToScore(progress.NextSectionPreReqThisSection, progress.MaxPoints);
-                progress.NextSectionPreReqTotal = EngineWeightToScore(progress.NextSectionPreReqTotal, progress.MaxPoints);
+                            var section = new GameEngineSectionView
+                            {
+                                Name = s.Name,
+                                PreReqPrevSection = s.PreReqPrevSection,
+                                PreReqTotal = s.PreReqTotal,
+                                Score = s.Score,
+                                ScoreMax = scoreMax,
+                                Text = s.Text,
+                                TotalWeight = totalWeight,
+                                Questions = s.Questions.Select(q =>
+                                {
+                                    var questionView = Mapper.Map<GameEngineQuestionView>(q);
+                                    questionView.ScoreMax = EngineWeightToScore(q.Weight, topoProgress.MaxPoints) ?? 0;
+                                    questionView.ScoreCurrent = q.IsCorrect ? questionView.ScoreMax : 0;
+                                    return questionView;
+                                }).ToArray()
+                            };
+
+                            return section;
+                        }).ToArray(),
+                        Text = topoProgress.Variant.Text,
+                        TotalSectionCount = topoProgress.Variant.TotalSectionCount
+                    },
+                    Text = topoProgress.Text
+                };
 
                 return progress;
             default:

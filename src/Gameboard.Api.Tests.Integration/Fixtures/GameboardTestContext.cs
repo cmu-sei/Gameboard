@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Testcontainers.PostgreSql;
 
@@ -20,10 +21,14 @@ public class GameboardTestContext : WebApplicationFactory<Program>, IAsyncLifeti
     {
         builder
             .UseEnvironment("Test")
+            .UseSetting("GameEngine:ClientId", "a-test-client")
+            .UseSetting("GameEngine:ClientSecret", "a-test-client-secret")
             .ConfigureServices(services =>
             {
                 if (_container is null)
+                {
                     throw new GbAutomatedTestSetupException("Couldn't initialize the test context - the database container hasn't been resolved.");
+                }
 
                 // Add DB context with connection to the container
                 // connstring
