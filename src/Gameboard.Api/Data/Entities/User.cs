@@ -17,6 +17,7 @@ public class User : IEntity
     public UserRoleKey Role { get; set; }
     public DateTimeOffset CreatedOn { get; set; }
     public DateTimeOffset? LastLoginDate { get; set; }
+    public UserRoleKey? LastIdpAssignedRole { get; set; }
     public int LoginCount { get; set; }
     public bool HasDefaultSponsor { get; set; }
     public bool PlayAudioOnBrowserNotification { get; set; }
@@ -40,13 +41,4 @@ public class User : IEntity
     public ICollection<PracticeChallengeGroup> UpdatedPracticeChallengeGroups { get; set; } = [];
     public PracticeModeSettings UpdatedPracticeModeSettings { get; set; }
     public SupportSettings UpdatedSupportSettings { get; set; }
-}
-
-public enum UserRoleKey
-{
-    Member = 0,
-    Tester = 1,
-    Support = 2,
-    Director = 3,
-    Admin = 4
 }

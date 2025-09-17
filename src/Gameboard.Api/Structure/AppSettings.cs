@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Gameboard.Api.Data;
 using Microsoft.AspNetCore.Cors.Infrastructure;
@@ -57,6 +58,17 @@ public class OidcOptions
     public bool DefaultUserNameInferFromEmail { get; set; } = false;
     public int MksCookieMinutes { get; set; } = 60;
     public bool RequireHttpsMetadata { get; set; } = true;
+    public string UserRolesClaimPath { get; set; } = "realm_access.roles";
+    public Dictionary<string, string> UserRolesMap { get; set; } = new Dictionary<string, string>()
+    {
+        // note that we spell out "administrator" here because default settings for other Crucible apps
+        // have the role spelled this way
+        { "administrator", UserRoleKey.Admin.ToString() },
+        { "director", UserRoleKey.Director.ToString() },
+        { "member", UserRoleKey.Member.ToString() },
+        { "support", UserRoleKey.Support.ToString() },
+        { "tester", UserRoleKey.Tester.ToString() }
+    };
     public bool StoreUserEmails { get; set; } = false;
 }
 

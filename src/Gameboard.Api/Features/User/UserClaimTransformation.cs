@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ using AutoMapper;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Users;
 using Gameboard.Api.Services;
+using Gameboard.Api.Structure.Auth.Crucible;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -104,6 +106,21 @@ public class UserClaimTransformation
                 }
             }
 
+            // GB's roles are currently supersets of permissions, so their effective role is
+            // their most powerful role of their actual assigned role or their IDP role
+            var idpRole = ResolveUserIdpRole(principal);
+            user.Role = idpRole is not null && idpRole > user.Role ? idpRole.Value : user.Role;
+
+            // if we resolved an IDP role, update the DB so we can track and display that information (to explain)
+            // conflicts between a user's GB-app-level role and their IDP assigned role
+            if (idpRole is not null)
+            {
+                await _store
+                    .WithNoTracking<Data.User>()
+                    .Where(u => u.Id == user.Id)
+                    .ExecuteUpdateAsync(up => up.SetProperty(u => u.LastIdpAssignedRole, idpRole));
+            }
+
             // TODO: implement IChangeToken for this
             _cache.Set(subject, user, new TimeSpan(0, 5, 0));
         }
@@ -123,14 +140,47 @@ public class UserClaimTransformation
         }
 
         return new ClaimsPrincipal
+        (
+            new ClaimsIdentity
             (
-                new ClaimsIdentity
-                (
-                    claims,
-                    principal.Identity.AuthenticationType,
-                    AppConstants.NameClaimName,
-                    AppConstants.RoleClaimName
-                )
-            );
+                claims,
+                principal.Identity.AuthenticationType,
+                AppConstants.NameClaimName,
+                AppConstants.RoleClaimName
+            )
+        );
+    }
+
+    private UserRoleKey? ResolveUserIdpRole(ClaimsPrincipal principal)
+    {
+        if (_oidcOptions.UserRolesClaimPath.IsEmpty() || _oidcOptions.UserRolesMap.Count == 0)
+        {
+            return null;
+        }
+
+        // if role claim path is set and we have a map from its value to a GB user role, they get the "highest" of all 
+        // possible roles among their GB role and IDP roles
+        var roleClaimValues = principal.GetRoleClaims(_oidcOptions.UserRolesClaimPath);
+        var idpResolvedUserRoles = new List<UserRoleKey>();
+
+        foreach (var value in roleClaimValues)
+        {
+            if (_oidcOptions.UserRolesMap.TryGetValue(value, out var idpRoleMapping))
+            {
+                // if the string value that this claim is mapped to matches the name of a GB user role, 
+                // add it to the possible list of roles we can resolve from the IDP
+                if (Enum.TryParse<UserRoleKey>(idpRoleMapping, out var userRoleKey))
+                {
+                    idpResolvedUserRoles.Add(userRoleKey);
+                }
+            }
+        }
+
+        if (idpResolvedUserRoles.Count == 0)
+        {
+            return null;
+        }
+
+        return idpResolvedUserRoles.Max();
     }
 }

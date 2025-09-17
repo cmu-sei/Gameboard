@@ -23,6 +23,7 @@ public class User
     public Player[] Enrollments { get; set; }
     public DateTimeOffset CreatedOn { get; set; }
     public DateTimeOffset? LastLoginDate { get; set; }
+    public UserRoleKey? LastIdpAssignedRole { get; set; }
     public int LoginCount { get; set; }
 
     public bool HasDefaultSponsor { get; set; }
@@ -79,7 +80,7 @@ public class UserSettings
     public bool PlayAudioOnBrowserNotification { get; set; }
 }
 
-public class UserOnly
+public class ListUsersResponseUser
 {
     public required string Id { get; set; }
     public required string Name { get; set; }
@@ -89,7 +90,11 @@ public class UserOnly
     public required DateTimeOffset CreatedOn { get; set; }
     public required DateTimeOffset? LastLoginDate { get; set; }
     public required int LoginCount { get; set; }
-    public required UserRoleKey Role { get; set; }
+
+    // role madness
+    public required UserRoleKey AppRole { get; set; }
+    public required UserRoleKey? LastIdpAssignedRole { get; set; }
+    public required UserRoleKey EffectiveRole { get; set; }
 }
 
 public class TryCreateUserResult

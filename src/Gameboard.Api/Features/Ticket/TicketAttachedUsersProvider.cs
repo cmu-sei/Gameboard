@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Users;
+using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Support;
@@ -59,13 +60,15 @@ internal class TicketAttachedUsersProvider(IUserRolePermissionsService permissio
                 u =>
                     (distinctUserIds.Length > 0 && distinctUserIds.Contains(u.Id)) ||
                     (ticketInfo.TeamId != null && ticketInfo.TeamId != "" && u.Enrollments.Any(p => p.TeamId == ticketInfo.TeamId)) ||
-                    supportRoles.Contains(u.Role)
+                    supportRoles.Contains(u.Role) ||
+                    (u.LastIdpAssignedRole != null && supportRoles.Contains(u.LastIdpAssignedRole.Value))
             )
             .Select(u => new
             {
                 u.Id,
                 u.ApprovedName,
-                IsSupportPersonnel = supportRoles.Contains(u.Role),
+                u.Role,
+                u.LastIdpAssignedRole,
                 TeamIds = u.Enrollments.Select(p => p.TeamId)
             })
             .ToArrayAsync();
@@ -78,7 +81,7 @@ internal class TicketAttachedUsersProvider(IUserRolePermissionsService permissio
             IsAssignedTo = u.Id == ticketInfo.AssignedUserId,
             IsCreatedBy = u.Id == ticketInfo.CreatorUserId,
             IsRequestedBy = u.Id == ticketInfo.RequesterUserId,
-            IsSupportPersonnel = u.IsSupportPersonnel,
+            IsSupportPersonnel = supportRoles.Contains(UserService.ResolveEffectiveRole(u.Role, u.LastIdpAssignedRole)),
             IsTeammate = u.TeamIds.Any(tId => tId == ticketInfo.TeamId)
         });
     }

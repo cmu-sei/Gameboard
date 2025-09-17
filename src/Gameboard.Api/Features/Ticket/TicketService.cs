@@ -586,8 +586,13 @@ public class TicketService
         var activityUsers = ticket.Activity.Select(a => a.User.Id).ToArray();
         var activityUserRoles = await _store
             .WithNoTracking<Data.User>()
-            .Select(u => new { u.Id, u.Role })
-            .ToDictionaryAsync(u => u.Id, u => u.Role, CancellationToken.None);
+            .Select(u => new
+            {
+                u.Id,
+                u.Role,
+                u.LastIdpAssignedRole
+            })
+            .ToDictionaryAsync(u => u.Id, u => UserService.ResolveEffectiveRole(u.Role, u.LastIdpAssignedRole), CancellationToken.None);
 
         foreach (var activity in ticket.Activity)
         {
@@ -603,13 +608,15 @@ public class TicketService
     private async Task<TicketUser> BuildTicketUser(Data.User user)
     {
         if (user is null)
+        {
             return null;
+        }
 
         return new TicketUser()
         {
             Name = user.ApprovedName,
             Id = user.Id,
-            IsSupportPersonnel = await _permissionsService.Can(user.Role, PermissionKey.Support_ManageTickets)
+            IsSupportPersonnel = await _permissionsService.Can(UserService.ResolveEffectiveRole(user.Role, user.LastIdpAssignedRole), PermissionKey.Support_ManageTickets)
         };
     }
 

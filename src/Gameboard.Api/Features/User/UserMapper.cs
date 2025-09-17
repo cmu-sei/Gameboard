@@ -11,11 +11,17 @@ namespace Gameboard.Api.Services
         {
             CreateMap<string, string>().ConvertUsing(str => str == null ? null : str.Trim());
 
-            CreateMap<Data.User, User>();
+            // FROM Data.User
+            CreateMap<Data.User, User>()
+                .ForMember(d => d.Role, opt => opt.MapFrom(s => UserService.ResolveEffectiveRole(s.Role, s.LastIdpAssignedRole)));
             CreateMap<Data.User, TeamMember>();
-            CreateMap<Data.User, UserOnly>();
+            CreateMap<Data.User, ListUsersResponseUser>()
+                .ForMember(d => d.AppRole, opt => opt.MapFrom(s => s.Role))
+                .ForMember(d => d.EffectiveRole, opt => opt.MapFrom(s => UserService.ResolveEffectiveRole(s.Role, s.LastIdpAssignedRole)));
             CreateMap<Data.User, SimpleEntity>()
                 .ForMember(s => s.Name, opt => opt.MapFrom(u => u.ApprovedName));
+
+            // TO Data.User
             CreateMap<User, Data.User>();
             CreateMap<NewUser, Data.User>();
             CreateMap<UpdateUser, SelfChangedUser>();

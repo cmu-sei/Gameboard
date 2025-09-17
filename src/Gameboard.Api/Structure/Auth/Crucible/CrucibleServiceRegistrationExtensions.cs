@@ -4,10 +4,11 @@ namespace Gameboard.Api.Structure.Auth.Crucible;
 
 public sealed class CrucibleServiceAccountAuthenticationConfig
 {
-    public required string OidcAudience { get; set; }
-    public required string OidcAuthority { get; set; }
     public required string ClientId { get; set; }
     public required string ClientSecret { get; set; }
+    public required string OidcAudience { get; set; }
+    public required string OidcAuthority { get; set; }
+    // public string OidcRoleClaimPath { get; set; }
 
     /// <summary>
     /// An access token that will expire in this amount of time or less (in seconds) will automatically

@@ -16,7 +16,9 @@ public static class EnumerableExtensions
     public static IOrderedEnumerable<TSort> Sort<TSort, TKey>(this IEnumerable<TSort> enumerable, Func<TSort, TKey> orderBy, SortDirection? sortDirection = null)
     {
         if (sortDirection == SortDirection.Desc)
+        {
             return enumerable.OrderByDescending(orderBy);
+        }
 
         return enumerable.OrderBy(orderBy);
     }

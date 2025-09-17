@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
+using Gameboard.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gameboard.Api.Features.Users;
@@ -259,12 +260,12 @@ internal class UserRolePermissionsService(IActingUserService actingUserService, 
 
     public async Task<IEnumerable<PermissionKey>> GetPermissions(string userId, CancellationToken cancellationToken)
     {
-        var role = await _store
+        var roles = await _store
             .WithNoTracking<Data.User>()
-            .Select(u => u.Role)
+            .Select(u => new { u.LastIdpAssignedRole, u.Role })
             .SingleOrDefaultAsync(cancellationToken);
 
-        return await GetPermissions(role);
+        return await GetPermissions(UserService.ResolveEffectiveRole(roles.Role, roles.LastIdpAssignedRole));
     }
 
     public async Task<IEnumerable<UserRole>> GetRoles()
