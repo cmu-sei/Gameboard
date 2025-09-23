@@ -439,9 +439,15 @@ internal sealed class GameImportExportService
         // certificate templates
         if (importBatch.CertificateTemplates.Any())
         {
+            var existingCertificateTemplateIds = await _store
+                .WithNoTracking<CertificateTemplate>()
+                .Select(t => t.Id)
+                .ToArrayAsync(cancellationToken);
+
             var certificateTemplates = importBatch
                 .CertificateTemplates
                 .Values
+                .Where(t => !existingCertificateTemplateIds.Contains(t.Id))
                 .Select(t => new CertificateTemplate
                 {
                     Id = t.Id,
@@ -453,6 +459,7 @@ internal sealed class GameImportExportService
 
             await _store.SaveAddRange(certificateTemplates);
 
+            // update the default practice area template if one is imported here
             if (importBatch.PracticeAreaCertificateTemplateId.IsNotEmpty())
             {
                 var updatedSettings = await _practice.GetSettings(cancellationToken);
@@ -464,11 +471,17 @@ internal sealed class GameImportExportService
         // external hosts
         if (importBatch.ExternalHosts.Any())
         {
+            var existingHostIds = await _store
+                .WithNoTracking<ExternalGameHost>()
+                .Select(h => h.Id)
+                .ToArrayAsync(cancellationToken);
+
             await _store.SaveAddRange
             (
                 importBatch
                     .ExternalHosts
                     .Values
+                    .Where(h => !existingHostIds.Contains(h.Id))
                     .Select(h => new ExternalGameHost
                     {
                         Id = h.Id,
@@ -487,28 +500,43 @@ internal sealed class GameImportExportService
         }
 
         // feedback templates
-        var feedbackTemplates = importBatch
-            .FeedbackTemplates
-            .Values
-            .Select(t => new FeedbackTemplate
-            {
-                Id = t.Id,
-                Content = t.Content,
-                CreatedByUserId = actingUser.Id,
-                HelpText = t.HelpText,
-                Name = t.Name
-            })
-            .ToArray();
-        await _store.SaveAddRange(feedbackTemplates);
+        if (importBatch.FeedbackTemplates.Any())
+        {
+            var existingFeedbackTemplateIds = await _store
+                .WithNoTracking<FeedbackTemplate>()
+                .Select(t => t.Id)
+                .ToArrayAsync(cancellationToken);
+
+            var feedbackTemplates = importBatch
+                .FeedbackTemplates
+                .Values
+                .Where(t => !existingFeedbackTemplateIds.Contains(t.Id))
+                .Select(t => new FeedbackTemplate
+                {
+                    Id = t.Id,
+                    Content = t.Content,
+                    CreatedByUserId = actingUser.Id,
+                    HelpText = t.HelpText,
+                    Name = t.Name
+                })
+                .ToArray();
+            await _store.SaveAddRange(feedbackTemplates);
+        }
 
         // sponsors
         if (importBatch.Sponsors.Any())
         {
+            var existingSponsorIds = await _store
+                .WithNoTracking<Data.Sponsor>()
+                .Select(s => s.Id)
+                .ToArrayAsync(cancellationToken);
+
             await _store.SaveAddRange
             (
                 importBatch
                     .Sponsors
                     .Values
+                    .Where(s => !existingSponsorIds.Contains(s.Id))
                     .Select(s => new Data.Sponsor
                     {
                         Id = s.Id,
@@ -527,75 +555,83 @@ internal sealed class GameImportExportService
         }
 
         // and now games!
-        var importedGames = importBatch.Games.Select(g => new Data.Game
-        {
-            Name = g.Name,
-            Competition = g.Competition,
-            Season = g.Season,
-            Track = g.Track,
-            Division = g.Division,
-            AllowLateStart = g.AllowLateStart,
-            AllowPreview = g.AllowPreview,
-            AllowPublicScoreboardAccess = g.AllowPublicScoreboardAccess,
-            AllowReset = g.AllowReset,
-            Background = g.MapImageFileName,
-            CardText1 = g.CardText1,
-            CardText2 = g.CardText2,
-            CardText3 = g.CardText3,
-            GameStart = g.GameStart ?? DateTime.MinValue,
-            GameEnd = g.GameEnd ?? DateTime.MinValue,
-            GameMarkdown = g.GameMarkdown,
-            GamespaceLimitPerSession = g.GamespaceLimitPerSession,
-            IsFeatured = g.IsFeatured,
-            IsPublished = setGamesPublishStatus ?? g.IsPublished,
-            Logo = g.CardImageFileName,
-            MaxAttempts = g.MaxAttempts ?? 0,
-            MaxTeamSize = g.MaxTeamSize,
-            MinTeamSize = g.MinTeamSize,
-            Mode = g.Mode,
-            PlayerMode = g.PlayerMode,
-            RegistrationClose = g.RegistrationClose ?? DateTime.MinValue,
-            RegistrationOpen = g.RegistrationOpen ?? DateTime.MinValue,
-            RegistrationConstraint = g.RegistrationConstraint,
-            RegistrationMarkdown = g.RegistrationMarkdown,
-            RegistrationType = g.RegistrationType,
-            RequireSynchronizedStart = g.RequireSynchronizedStart,
-            RequireSponsoredTeam = g.RequireSponsoredTeam,
-            SessionAvailabilityWarningThreshold = g.SessionAvailabilityWarningThreshold,
-            SessionLimit = g.SessionLimit ?? 0,
-            SessionMinutes = g.SessionMinutes,
-            ShowOnHomePageInPracticeMode = g.ShowOnHomePageInPracticeMode,
+        var existingGameIds = await _store
+            .WithNoTracking<Data.Game>()
+            .Select(g => g.Id)
+            .ToArrayAsync(cancellationToken);
 
-            // specs
-            Specs = [.. g.Specs.Select(s => new Data.ChallengeSpec
-                {
-                    Id = _guids.Generate(),
-                    Description = s.Description,
-                    Disabled = s.Disabled,
-                    ExternalId = s.ExternalId,
-                    GameEngineType = s.GameEngineType,
-                    IsHidden = s.IsHidden,
-                    Name = s.Name,
-                    Points = s.Points,
-                    ShowSolutionGuideInCompetitiveMode = s.ShowSolutionGuideInCompetitiveMode,
-                    Tag = s.Tag,
-                    Tags = s.Tags,
-                    Text = s.Text,
-                    X = s.X,
-                    Y = s.Y,
-                    R = s.R
-                })
-            ],
+        var importedGames = importBatch
+            .Games
+            .Where(g => !existingGameIds.Contains(g.Id))
+            .Select(g => new Data.Game
+            {
+                Name = g.Name,
+                Competition = g.Competition,
+                Season = g.Season,
+                Track = g.Track,
+                Division = g.Division,
+                AllowLateStart = g.AllowLateStart,
+                AllowPreview = g.AllowPreview,
+                AllowPublicScoreboardAccess = g.AllowPublicScoreboardAccess,
+                AllowReset = g.AllowReset,
+                Background = g.MapImageFileName,
+                CardText1 = g.CardText1,
+                CardText2 = g.CardText2,
+                CardText3 = g.CardText3,
+                GameStart = g.GameStart ?? DateTime.MinValue,
+                GameEnd = g.GameEnd ?? DateTime.MinValue,
+                GameMarkdown = g.GameMarkdown,
+                GamespaceLimitPerSession = g.GamespaceLimitPerSession,
+                IsFeatured = g.IsFeatured,
+                IsPublished = setGamesPublishStatus ?? g.IsPublished,
+                Logo = g.CardImageFileName,
+                MaxAttempts = g.MaxAttempts ?? 0,
+                MaxTeamSize = g.MaxTeamSize,
+                MinTeamSize = g.MinTeamSize,
+                Mode = g.Mode,
+                PlayerMode = g.PlayerMode,
+                RegistrationClose = g.RegistrationClose ?? DateTime.MinValue,
+                RegistrationOpen = g.RegistrationOpen ?? DateTime.MinValue,
+                RegistrationConstraint = g.RegistrationConstraint,
+                RegistrationMarkdown = g.RegistrationMarkdown,
+                RegistrationType = g.RegistrationType,
+                RequireSynchronizedStart = g.RequireSynchronizedStart,
+                RequireSponsoredTeam = g.RequireSponsoredTeam,
+                SessionAvailabilityWarningThreshold = g.SessionAvailabilityWarningThreshold,
+                SessionLimit = g.SessionLimit ?? 0,
+                SessionMinutes = g.SessionMinutes,
+                ShowOnHomePageInPracticeMode = g.ShowOnHomePageInPracticeMode,
 
-            // related entities
-            CertificateTemplateId = g.CertificateTemplateId,
-            ChallengesFeedbackTemplateId = g.ChallengesFeedbackTemplateId,
-            ExternalHostId = g.ExternalHostId,
-            FeedbackTemplateId = g.FeedbackTemplateId,
-            PracticeCertificateTemplateId = g.PracticeCertificateTemplateId,
-            Sponsor = g.SponsorId
-        })
-        .ToArray();
+                // specs
+                Specs = [.. g.Specs.Select(s => new Data.ChallengeSpec
+                    {
+                        Id = _guids.Generate(),
+                        Description = s.Description,
+                        Disabled = s.Disabled,
+                        ExternalId = s.ExternalId,
+                        GameEngineType = s.GameEngineType,
+                        IsHidden = s.IsHidden,
+                        Name = s.Name,
+                        Points = s.Points,
+                        ShowSolutionGuideInCompetitiveMode = s.ShowSolutionGuideInCompetitiveMode,
+                        Tag = s.Tag,
+                        Tags = s.Tags,
+                        Text = s.Text,
+                        X = s.X,
+                        Y = s.Y,
+                        R = s.R
+                    })
+                ],
+
+                // related entities
+                CertificateTemplateId = g.CertificateTemplateId,
+                ChallengesFeedbackTemplateId = g.ChallengesFeedbackTemplateId,
+                ExternalHostId = g.ExternalHostId,
+                FeedbackTemplateId = g.FeedbackTemplateId,
+                PracticeCertificateTemplateId = g.PracticeCertificateTemplateId,
+                Sponsor = g.SponsorId
+            })
+            .ToArray();
 
         await _store.SaveAddRange(importedGames);
 
