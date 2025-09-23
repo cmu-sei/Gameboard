@@ -59,7 +59,7 @@ public class OidcOptions
     public int MksCookieMinutes { get; set; } = 60;
     public bool RequireHttpsMetadata { get; set; } = true;
     public string UserRolesClaimPath { get; set; } = "realm_access.roles";
-    public Dictionary<string, string> UserRolesMap { get; set; } = new Dictionary<string, string>()
+    public Dictionary<string, string> UserRolesClaimMap { get; set; } = new Dictionary<string, string>()
     {
         // note that we spell out "administrator" here because default settings for other Crucible apps
         // have the role spelled this way
