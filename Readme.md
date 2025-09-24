@@ -36,3 +36,13 @@ Review the `appsettings.conf` file. Put alterations in `appsettings.Development.
 ## User documentation
 
 Gameboard is part of the [Crucible](https://cmu-sei.github.io/crucible/) framework. We maintain comprehensive documentation for all Crucible apps, including Gameboard, there. [Check it out!](https://cmu-sei.github.io/crucible/gameboard/)
+
+## Reporting bugs and requesting features
+
+Think you found a bug? Please report all Crucible bugs - including bugs for the individual Crucible apps - in the [cmu-sei/crucible issue tracker](https://github.com/cmu-sei/crucible/issues).
+
+Include as much detail as possible including steps to reproduce, specific app involved, and any error messages you may have received.
+
+Have a good idea for a new feature? Submit all new feature requests through the [cmu-sei/crucible issue tracker](https://github.com/cmu-sei/crucible/issues).
+
+Include the reasons why you're requesting the new feature and how it might benefit other Crucible users.
