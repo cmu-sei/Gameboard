@@ -55,19 +55,12 @@ public class UserClaimTransformation
                     .SingleOrDefaultAsync(u => u.Id == subject, CancellationToken.None)
             );
 
-            if (user is not null)
+            // handle unseen user/subject
+            user ??= new User
             {
-                user.RolePermissions = await userRolePermissionsService.GetPermissions(user.Role);
-            }
-            else
-            {
-                user = new User
-                {
-                    Id = subject,
-                    Role = UserRoleKey.Member,
-                    RolePermissions = await userRolePermissionsService.GetPermissions(UserRoleKey.Member)
-                };
-            }
+                Id = subject,
+                Role = UserRoleKey.Member
+            };
 
             if (user.SponsorId.IsEmpty())
             {
@@ -110,6 +103,8 @@ public class UserClaimTransformation
 
             // Resolve the user's role by examining their app-level role and any IDP-supplied roles (see function below)
             user.Role = await ResolveUserRole(principal, user.Id, user.Role);
+            // And resolve their permissions based on role
+            user.RolePermissions = await userRolePermissionsService.GetPermissions(user.Role);
 
             // TODO: implement IChangeToken for this
             _cache.Set(subject, user, new TimeSpan(0, 5, 0));

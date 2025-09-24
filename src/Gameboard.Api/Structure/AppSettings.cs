@@ -58,6 +58,7 @@ public class OidcOptions
     public bool DefaultUserNameInferFromEmail { get; set; } = false;
     public int MksCookieMinutes { get; set; } = 60;
     public bool RequireHttpsMetadata { get; set; } = true;
+    public bool StoreUserEmails { get; set; } = false;
     public string UserRolesClaimPath { get; set; } = "realm_access.roles";
     public Dictionary<string, string> UserRolesClaimMap { get; set; } = new Dictionary<string, string>()
     {
@@ -69,7 +70,6 @@ public class OidcOptions
         { "support", UserRoleKey.Support.ToString() },
         { "tester", UserRoleKey.Tester.ToString() }
     };
-    public bool StoreUserEmails { get; set; } = false;
 }
 
 public class OpenIdClient
