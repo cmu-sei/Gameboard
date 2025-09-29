@@ -8,10 +8,10 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using Crucible.Common.Authentication.Claims;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Users;
 using Gameboard.Api.Services;
-using Gameboard.Api.Structure.Auth.Crucible;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -179,7 +179,7 @@ public class UserClaimTransformation
 
         // if role claim path is set and we have a map from its value to a GB user role, they get the "highest" of all 
         // possible roles among their GB role and IDP roles
-        var roleClaimValues = principal.GetRoleClaims(_oidcOptions.UserRolesClaimPath);
+        var roleClaimValues = principal.GetClaimValues(_oidcOptions.UserRolesClaimPath);
         var idpResolvedUserRoles = new List<UserRoleKey>();
 
         foreach (var value in roleClaimValues)
