@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using AutoMapper;
-using Castle.Core.Logging;
 using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Users;
