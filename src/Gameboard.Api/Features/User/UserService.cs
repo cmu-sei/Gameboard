@@ -2,11 +2,12 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Data.Abstractions;
@@ -14,6 +15,7 @@ using Gameboard.Api.Features.Users;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using ServiceStack;
 
 namespace Gameboard.Api.Services;
 
@@ -114,7 +116,7 @@ public class UserService
         return await BuildUserDto(await _store.WithNoTracking<Data.User>().SingleOrDefaultAsync(u => u.Id == id));
     }
 
-    public async Task<User> Update(UpdateUser model, bool canAdminUsers)
+    public async Task<User> Update(UpdateUser model)
     {
         var entity = await _userStore.Retrieve(model.Id, q => q.Include(u => u.Sponsor));
         var sponsorUpdated = false;
@@ -124,12 +126,19 @@ public class UserService
         if (model.Role.HasValue && model.Role != entity.Role)
         {
             if (!await _permissionsService.Can(PermissionKey.Users_EditRoles))
+            {
                 throw new ActionForbidden();
+            }
 
             var hasRemainingAdmins = await _store
                 .WithNoTracking<Data.User>()
-                .Where(u => u.Role == UserRoleKey.Admin && u.Id != model.Id)
+                .Where(u => u.Id != model.Id && (u.Role == UserRoleKey.Admin || u.LastIdpAssignedRole == UserRoleKey.Admin))
                 .AnyAsync();
+
+            if (model.Role.HasValue && model.Role != UserRoleKey.Admin && entity.Role == UserRoleKey.Admin && !hasRemainingAdmins)
+            {
+                throw new CantDemoteLastAdmin(model.Id, model.Role.Value);
+            }
 
             entity.Role = model.Role.Value;
         }
@@ -177,7 +186,7 @@ public class UserService
         _localCache.Remove(id);
     }
 
-    public async Task<IEnumerable<UserOnly>> List<TProject>(UserSearch model) where TProject : class
+    public async Task<ListUsersResponseUser[]> List(UserSearch model, CancellationToken cancellationToken)
     {
         var query = _store
             .WithNoTracking<Data.User>();
@@ -193,7 +202,7 @@ public class UserService
         }
 
         if (model.WantsRoles)
-            query = query.Where(u => ((int)u.Role) > 0);
+            query = query.Where(u => u.Role != UserRoleKey.Member || (u.LastIdpAssignedRole != null && u.LastIdpAssignedRole != UserRoleKey.Member));
 
         if (model.WantsPending)
         {
@@ -218,7 +227,19 @@ public class UserService
         {
             if (model.Sort.Contains("lastLogin", StringComparison.CurrentCultureIgnoreCase))
             {
-                query = query.Sort(u => u.LastLoginDate, model.SortDirection);
+                if (model.SortDirection == SortDirection.Asc)
+                {
+                    query = query
+                        .OrderBy(u => u.LastLoginDate == null ? 0 : 1)
+                        .ThenBy(u => u.LastLoginDate);
+                }
+                else
+                {
+                    query = query
+                        .OrderBy(u => u.LastLoginDate == null ? 1 : 0)
+                        .ThenByDescending(u => u.LastLoginDate);
+
+                }
             }
             else if (model.Sort.Contains("createdOn"))
             {
@@ -242,7 +263,7 @@ public class UserService
         if (model.Take > 0)
             query = query.Take(model.Take);
 
-        return await query.Select(u => new UserOnly
+        return await query.Select(u => new ListUsersResponseUser
         {
             Id = u.Id,
             Name = u.Name,
@@ -251,7 +272,9 @@ public class UserService
             CreatedOn = u.CreatedOn,
             LastLoginDate = u.LastLoginDate,
             LoginCount = u.LoginCount,
-            Role = u.Role,
+            AppRole = u.Role,
+            EffectiveRole = ResolveEffectiveRole(u.Role, u.LastIdpAssignedRole),
+            LastIdpAssignedRole = u.LastIdpAssignedRole,
             Sponsor = new SponsorWithParentSponsor
             {
                 Id = u.SponsorId,
@@ -266,15 +289,20 @@ public class UserService
                 }
             }
         })
-        .ToArrayAsync();
+        .ToArrayAsync(cancellationToken);
     }
 
     public async Task<SimpleEntity[]> ListSupport(SearchFilter model)
     {
         var roles = await _permissionsService.GetRolesWithPermission(PermissionKey.Support_ManageTickets);
 
-        var q = _store.WithNoTracking<Data.User>();
-        q = q.Where(u => roles.Contains(u.Role));
+        var q = _store
+            .WithNoTracking<Data.User>()
+            .Where
+            (
+                u => roles.Contains(u.Role) ||
+                    (u.LastIdpAssignedRole != null && roles.Contains(u.LastIdpAssignedRole.Value))
+            );
 
         if (model.Term.NotEmpty())
         {
@@ -288,13 +316,16 @@ public class UserService
             );
         }
 
-        return await _mapper.ProjectTo<SimpleEntity>(q).ToArrayAsync();
+        return await _mapper
+            .ProjectTo<SimpleEntity>(q)
+            .OrderBy(q => q.Name)
+            .ToArrayAsync();
     }
 
     private async Task<User> BuildUserDto(Data.User user)
     {
         var mapped = _mapper.Map<User>(user);
-        mapped.RolePermissions = await _permissionsService.GetPermissions(user.Role);
+        mapped.RolePermissions = await _permissionsService.GetPermissions(ResolveEffectiveRole(user.Role, user.LastIdpAssignedRole));
         return mapped;
     }
 
@@ -334,4 +365,12 @@ public class UserService
 
         return tryName;
     }
+
+    // ROLE RULES
+    // A user must have a GB assigned role ("Member" by default), and if configured, they might also have
+    // a role provided by the IdP (often Keycloak, in our case). Their effective role is the greatest of these
+    // two. We compute their effective in several places, including some static contexts like maps
+    // We quasi-encapsulate all this below so at least we don't have to repeat ourselves elsewhere.
+    public static UserRoleKey ResolveEffectiveRole(UserRoleKey appRole, UserRoleKey? lastIdpAssignedRole)
+        => lastIdpAssignedRole != null && lastIdpAssignedRole > appRole ? lastIdpAssignedRole.Value : appRole;
 }

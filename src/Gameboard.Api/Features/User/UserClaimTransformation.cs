@@ -3,21 +3,25 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using Crucible.Common.Authentication.Claims;
 using Gameboard.Api.Data;
 using Gameboard.Api.Features.Users;
 using Gameboard.Api.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace Gameboard.Api;
 
 public class UserClaimTransformation
 (
+    ILogger<UserClaimTransformation> logger,
     IMemoryCache cache,
     IMapper mapper,
     OidcOptions oidcOptions,
@@ -51,19 +55,12 @@ public class UserClaimTransformation
                     .SingleOrDefaultAsync(u => u.Id == subject, CancellationToken.None)
             );
 
-            if (user is not null)
+            // handle unseen user/subject
+            user ??= new User
             {
-                user.RolePermissions = await userRolePermissionsService.GetPermissions(user.Role);
-            }
-            else
-            {
-                user = new User
-                {
-                    Id = subject,
-                    Role = UserRoleKey.Member,
-                    RolePermissions = await userRolePermissionsService.GetPermissions(UserRoleKey.Member)
-                };
-            }
+                Id = subject,
+                Role = UserRoleKey.Member
+            };
 
             if (user.SponsorId.IsEmpty())
             {
@@ -104,6 +101,11 @@ public class UserClaimTransformation
                 }
             }
 
+            // Resolve the user's role by examining their app-level role and any IDP-supplied roles (see function below)
+            user.Role = await ResolveUserRole(principal, user.Id, user.Role);
+            // And resolve their permissions based on role
+            user.RolePermissions = await userRolePermissionsService.GetPermissions(user.Role);
+
             // TODO: implement IChangeToken for this
             _cache.Set(subject, user, new TimeSpan(0, 5, 0));
         }
@@ -123,14 +125,81 @@ public class UserClaimTransformation
         }
 
         return new ClaimsPrincipal
+        (
+            new ClaimsIdentity
             (
-                new ClaimsIdentity
-                (
-                    claims,
-                    principal.Identity.AuthenticationType,
-                    AppConstants.NameClaimName,
-                    AppConstants.RoleClaimName
-                )
-            );
+                claims,
+                principal.Identity.AuthenticationType,
+                AppConstants.NameClaimName,
+                AppConstants.RoleClaimName
+            )
+        );
+    }
+
+    /// <summary>
+    /// The user resolved from the ClaimsPrincipal may have an app-level (Gameboard) role, one or more identity provider-assigned roles,
+    /// or both. If they have an IDP role, we need to resolve it and log it in the DB. The user's effective role (which will be set to the Role claim)
+    /// during claims transformation is the "highest" among all roles between their GB role and any resolved IDP roles.
+    /// 
+    /// To configure mapping between 
+    /// </summary>
+    /// <param name="principal">The ClaimsPrincipal representing the current user being transformed.</param>
+    /// <param name="appUserId">The ID of the user currently being transformed</param>
+    /// <param name="appUserRole">The app-level role of the user currently being transformed</param>
+    /// <returns>The user's effective role, defined as the "maximum" role they have among Gameboard and all IDP roles (if they exist).</returns>
+    private async Task<UserRoleKey> ResolveUserRole(ClaimsPrincipal principal, string appUserId, UserRoleKey appUserRole)
+    {
+        logger.LogInformation("Resolving user role (user {appUserId}, app role {appUserRole})", appUserId, appUserRole);
+
+        // encapsulate the computation of their highest IDP role, if it exists
+        var idpRole = ResolveUserIdpRole(principal);
+        logger.LogInformation("User {appUser} has IDP role {idpRole}", appUserId, idpRole);
+
+        // if we resolved an IDP role, update the DB so we can track and display that information (to explain)
+        // conflicts between a user's GB-app-level role and their IDP assigned role
+        if (idpRole is not null)
+        {
+            await _store
+                .WithNoTracking<Data.User>()
+                .Where(u => u.Id == appUserId)
+                .ExecuteUpdateAsync(up => up.SetProperty(u => u.LastIdpAssignedRole, idpRole));
+        }
+
+        var effectiveRole = idpRole is not null && idpRole > appUserRole ? idpRole.Value : appUserRole;
+        logger.LogInformation("User {userId} effective role resolved to {role}", appUserId, effectiveRole);
+        return effectiveRole;
+    }
+
+    private UserRoleKey? ResolveUserIdpRole(ClaimsPrincipal principal)
+    {
+        if (_oidcOptions.UserRolesClaimPath.IsEmpty() || _oidcOptions.UserRolesClaimMap.Count == 0)
+        {
+            return null;
+        }
+
+        // if role claim path is set and we have a map from its value to a GB user role, they get the "highest" of all 
+        // possible roles among their GB role and IDP roles
+        var roleClaimValues = principal.GetClaimValues(_oidcOptions.UserRolesClaimPath);
+        var idpResolvedUserRoles = new List<UserRoleKey>();
+
+        foreach (var value in roleClaimValues)
+        {
+            if (_oidcOptions.UserRolesClaimMap.TryGetValue(value, out var idpRoleMapping))
+            {
+                // if the string value that this claim is mapped to matches the name of a GB user role, 
+                // add it to the possible list of roles we can resolve from the IDP
+                if (Enum.TryParse<UserRoleKey>(idpRoleMapping, out var userRoleKey))
+                {
+                    idpResolvedUserRoles.Add(userRoleKey);
+                }
+            }
+        }
+
+        if (idpResolvedUserRoles.Count == 0)
+        {
+            return null;
+        }
+
+        return idpResolvedUserRoles.Max();
     }
 }

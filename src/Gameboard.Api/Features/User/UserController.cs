@@ -127,7 +127,7 @@ public class UserController
         );
 
         await Validate(model);
-        return await _userService.Update(model, canAdminUsers);
+        return await _userService.Update(model);
     }
 
     /// <summary>
@@ -156,12 +156,13 @@ public class UserController
     /// Find users
     /// </summary>
     /// <param name="model"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns>UserOnly[]</returns>
     [HttpGet("/api/users")]
-    public async Task<IEnumerable<UserOnly>> List([FromQuery] UserSearch model)
+    public async Task<ListUsersResponseUser[]> List([FromQuery] UserSearch model, CancellationToken cancellationToken)
     {
         await Authorize(_permissionsService.Can(PermissionKey.Admin_View));
-        return await _userService.List<UserOnly>(model);
+        return await _userService.List(model, cancellationToken);
     }
 
     /// <summary>

@@ -72,7 +72,7 @@ internal class GraderKeyAuthenticationHandler : AuthenticationHandler<GraderKeyA
             .Select(c => c.Id)
             .SingleOrDefaultAsync();
 
-        if (challengeId.IsNullOrEmpty())
+        if (challengeId.IsEmpty())
             return AuthenticateResult.Fail(new GraderKeyUnresolvedChallengeException(graderKey));
 
         var claimsPrincipal = new ClaimsPrincipal
