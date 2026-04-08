@@ -2,6 +2,7 @@
 # multi-stage target: dev
 #
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS dev
+ARG VERSION
 
 ENV ASPNETCORE_URLS=http://*:5000 \
     ASPNETCORE_ENVIRONMENT=DEVELOPMENT
@@ -9,7 +10,7 @@ ENV ASPNETCORE_URLS=http://*:5000 \
 COPY . /app
 
 WORKDIR /app/src/Gameboard.Api
-RUN dotnet publish -c Release -o /app/dist
+RUN dotnet publish -c Release -o /app/dist /p:Version=${VERSION:-1.0.0} /p:AssemblyVersion=${VERSION:-1.0.0}
 CMD ["dotnet", "run"]
 
 #
@@ -20,10 +21,12 @@ ARG commit
 ENV COMMIT=$commit
 
 # install tools for PNG generation on the server
-RUN apt-get update && apt-get install -y wget && apt-get clean
-RUN wget -O ~/wkhtmltopdf.deb https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.bookworm_amd64.deb
-RUN apt-get install -y ~/wkhtmltopdf.deb
-RUN rm ~/wkhtmltopdf.deb
+ARG TARGETARCH
+RUN apt-get update && apt-get install -y wget && apt-get clean \
+    && ARCH=$([ "$TARGETARCH" = "arm64" ] && echo "arm64" || echo "amd64") \
+    && wget -O ~/wkhtmltopdf.deb "https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.bookworm_${ARCH}.deb" \
+    && apt-get install -y ~/wkhtmltopdf.deb \
+    && rm ~/wkhtmltopdf.deb
 
 COPY --from=dev /app/dist /app
 COPY --from=dev /app/LICENSE.md /app/LICENSE.md
