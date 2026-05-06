@@ -1,12 +1,14 @@
 #
 # multi-stage target: dev
 #
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS dev
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS dev
 ARG VERSION
+
 
 ENV ASPNETCORE_URLS=http://*:5000 \
     ASPNETCORE_ENVIRONMENT=DEVELOPMENT
 
+WORKDIR /app
 COPY . /app
 
 WORKDIR /app/src/Gameboard.Api
@@ -16,20 +18,28 @@ CMD ["dotnet", "run"]
 #
 # multi-stage target: prod
 #
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS prod
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS prod
 ARG commit
 ENV COMMIT=$commit
 
 # install tools for PNG generation on the server
 ARG TARGETARCH
 RUN apt-get update && apt-get install -y wget && apt-get clean \
-    && ARCH=$([ "$TARGETARCH" = "arm64" ] && echo "arm64" || echo "amd64") \
-    && wget -O ~/wkhtmltopdf.deb "https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.bookworm_${ARCH}.deb" \
-    && apt-get install -y ~/wkhtmltopdf.deb \
-    && rm ~/wkhtmltopdf.deb
+    && ARCH="${TARGETARCH:-amd64}" \
+    && [ "$ARCH" = "arm64" ] || ARCH="amd64" \
+    && wget -O /tmp/libjpeg62-turbo.deb "http://ftp.debian.org/debian/pool/main/libj/libjpeg-turbo/libjpeg62-turbo_2.1.5-2_${ARCH}.deb" \
+    && dpkg -i /tmp/libjpeg62-turbo.deb \
+    && rm /tmp/libjpeg62-turbo.deb \
+    && wget -O /tmp/wkhtmltopdf.deb "https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.bookworm_${ARCH}.deb" \
+    && apt-get install -y /tmp/wkhtmltopdf.deb \
+    && rm /tmp/wkhtmltopdf.deb
+
+# sanity check so CI fails early if package layout changes
+RUN which wkhtmltoimage && wkhtmltoimage --version
 
 COPY --from=dev /app/dist /app
 COPY --from=dev /app/LICENSE.md /app/LICENSE.md
+
 WORKDIR /app
 EXPOSE 80
 ENV ASPNETCORE_URLS=http://*:80
