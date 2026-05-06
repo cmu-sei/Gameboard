@@ -4,6 +4,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS dev
 ARG VERSION
 
+
 ENV ASPNETCORE_URLS=http://*:5000 \
     ASPNETCORE_ENVIRONMENT=DEVELOPMENT
 
@@ -24,7 +25,8 @@ ENV COMMIT=$commit
 # install tools for PNG generation on the server
 ARG TARGETARCH
 RUN apt-get update && apt-get install -y wget && apt-get clean \
-    && ARCH=$([ "$TARGETARCH" = "arm64" ] && echo "arm64" || echo "amd64") \
+    && ARCH="${TARGETARCH:-amd64}" \
+    && [ "$ARCH" = "arm64" ] || ARCH="amd64" \
     && wget -O ~/wkhtmltopdf.deb "https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.bookworm_${ARCH}.deb" \
     && apt-get install -y ~/wkhtmltopdf.deb \
     && rm ~/wkhtmltopdf.deb
