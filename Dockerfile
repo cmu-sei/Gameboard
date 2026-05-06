@@ -1,12 +1,13 @@
 #
 # multi-stage target: dev
 #
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS dev
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS dev
 ARG VERSION
 
 ENV ASPNETCORE_URLS=http://*:5000 \
     ASPNETCORE_ENVIRONMENT=DEVELOPMENT
 
+WORKDIR /app
 COPY . /app
 
 WORKDIR /app/src/Gameboard.Api
@@ -16,7 +17,7 @@ CMD ["dotnet", "run"]
 #
 # multi-stage target: prod
 #
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS prod
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS prod
 ARG commit
 ENV COMMIT=$commit
 
@@ -28,8 +29,12 @@ RUN apt-get update && apt-get install -y wget && apt-get clean \
     && apt-get install -y ~/wkhtmltopdf.deb \
     && rm ~/wkhtmltopdf.deb
 
+# sanity check so CI fails early if package layout changes
+RUN which wkhtmltoimage && wkhtmltoimage --version
+
 COPY --from=dev /app/dist /app
 COPY --from=dev /app/LICENSE.md /app/LICENSE.md
+
 WORKDIR /app
 EXPOSE 80
 ENV ASPNETCORE_URLS=http://*:80
