@@ -27,9 +27,12 @@ ARG TARGETARCH
 RUN apt-get update && apt-get install -y wget && apt-get clean \
     && ARCH="${TARGETARCH:-amd64}" \
     && [ "$ARCH" = "arm64" ] || ARCH="amd64" \
-    && wget -O ~/wkhtmltopdf.deb "https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.bookworm_${ARCH}.deb" \
-    && apt-get install -y ~/wkhtmltopdf.deb \
-    && rm ~/wkhtmltopdf.deb
+    && wget -O /tmp/libjpeg62-turbo.deb "http://ftp.debian.org/debian/pool/main/libj/libjpeg-turbo/libjpeg62-turbo_2.1.5-2_${ARCH}.deb" \
+    && dpkg -i /tmp/libjpeg62-turbo.deb \
+    && rm /tmp/libjpeg62-turbo.deb \
+    && wget -O /tmp/wkhtmltopdf.deb "https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.bookworm_${ARCH}.deb" \
+    && apt-get install -y /tmp/wkhtmltopdf.deb \
+    && rm /tmp/wkhtmltopdf.deb
 
 # sanity check so CI fails early if package layout changes
 RUN which wkhtmltoimage && wkhtmltoimage --version
