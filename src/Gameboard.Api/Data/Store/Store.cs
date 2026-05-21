@@ -25,7 +25,7 @@ public interface IStore
     Task<int> ExecuteUpdateAsync<TEntity>
     (
         Expression<Func<TEntity, bool>> predicate,
-        Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls
+        Action<UpdateSettersBuilder<TEntity>> setPropertyCalls
     ) where TEntity : class, IEntity;
     Task<bool> Exists<TEntity>(string id) where TEntity : class, IEntity;
     Task<TEntity> FirstOrDefaultAsync<TEntity>(CancellationToken cancellationToken) where TEntity : class, IEntity;
@@ -99,7 +99,7 @@ internal class Store(IGuidService guids, GameboardDbContext dbContext) : IStore
     public Task<int> ExecuteUpdateAsync<TEntity>
     (
         Expression<Func<TEntity, bool>> predicate,
-        Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls
+        Action<UpdateSettersBuilder<TEntity>> setPropertyCalls
     ) where TEntity : class, IEntity
         => _dbContext
             .Set<TEntity>()
