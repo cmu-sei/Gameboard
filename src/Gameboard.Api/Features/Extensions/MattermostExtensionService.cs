@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
+using Duende.IdentityModel.Client;
 using Gameboard.Api.Data;
 
 namespace Gameboard.Api.Features.Extensions;

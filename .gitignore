@@ -3,6 +3,7 @@ appsettings.Development.*
 appsettings.Test.*
 .vs/
 *.csproj.user
+*.csproj.lscache
 
 # compiled output
 **/bin/*
