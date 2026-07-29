@@ -12,15 +12,14 @@ public class EnrollmentReportServiceTests
     [Theory, GameboardAutoData]
     public async Task GetResults_WithOnePlayerAndChallenge_ReportsCompleteSolve(IFixture fixture)
     {
-        // given 
+        // given
         var sponsors = new Data.Sponsor
         {
             Id = "good-people",
             Name = "The Good People",
             Logo = "good-people.jpg"
         }
-        .ToEnumerable()
-        .BuildMock();
+        .ToEnumerable().ToList().BuildMock();
 
         var challenge = fixture.Create<Data.Challenge>();
         challenge.Points = 50;
@@ -57,7 +56,7 @@ public class EnrollmentReportServiceTests
     [Theory, GameboardAutoData]
     public async Task GetResults_WithOneTeamRecord_ReportsExpectedValues(string gameId, IFixture fixture)
     {
-        // given 
+        // given
         var sponsors = new List<Data.Sponsor>
         {
             new()
@@ -124,7 +123,7 @@ public class EnrollmentReportServiceTests
     [Theory, GameboardAutoData]
     public async Task GetResults_WithGameInPracAndChallengeInComp_ReportsOneResult(IFixture fixture)
     {
-        // given 
+        // given
         var sponsors = new List<Data.Sponsor>
         {
             new()
@@ -169,7 +168,7 @@ public class EnrollmentReportServiceTests
     [Theory, GameboardAutoData]
     public async Task GetResults_WithPlayerWithNoChallenges_IsIncluded(IFixture fixture)
     {
-        // given 
+        // given
         var sponsors = new List<Data.Sponsor>
         {
             new()
@@ -184,7 +183,7 @@ public class EnrollmentReportServiceTests
         player.Challenges = Array.Empty<Data.Challenge>();
         player.Game = fixture.Create<Data.Game>();
         player.Sponsor = sponsors.First();
-        var players = player.ToEnumerable().BuildMock();
+        var players = player.ToEnumerable().ToList().BuildMock();
 
         var reportsService = A.Fake<IReportsService>();
         A.CallTo(() => reportsService.ParseMultiSelectCriteria(string.Empty))

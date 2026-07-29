@@ -4,14 +4,14 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
+using Gameboard.Api.Features.Sponsors;
+using Gameboard.Api.Features.Users;
+using Gameboard.Api.Services;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using MediatR;
-using Gameboard.Api.Features.Sponsors;
-using Gameboard.Api.Services;
-using Gameboard.Api.Common.Services;
-using Gameboard.Api.Features.Users;
 
 namespace Gameboard.Api.Controllers;
 
@@ -95,8 +95,16 @@ public class SponsorController(
 
     [HttpPut("api/sponsor/{sponsorId}/avatar")]
     [Authorize]
-    public Task UpdateSponsorAvatar([FromRoute] string sponsorId, [FromForm] IFormFile avatarFile, CancellationToken cancellationToken)
-        => _mediator.Send(new SetSponsorAvatarCommand(sponsorId, avatarFile, _actingUserService.Get()), cancellationToken);
+    [Consumes("multipart/form-data")]
+    public Task UpdateSponsorAvatar(
+        [FromRoute] string sponsorId,
+        IFormFile avatarFile, // <- no [FromForm] on IFormFile
+        CancellationToken cancellationToken
+    )
+        => _mediator.Send(
+            new SetSponsorAvatarCommand(sponsorId, avatarFile, _actingUserService.Get()),
+            cancellationToken
+        );
 
     /// <summary>
     /// Delete sponsor

@@ -20,7 +20,12 @@ namespace Gameboard.Api
                 return default;
             }
 
-            return DateTimeOffset.Parse(dateString).ToUniversalTime();
+            if (!DateTimeOffset.TryParse(dateString, out var parsed))
+            {
+                throw new JsonException($"Unable to parse \"{dateString}\" as a DateTimeOffset.");
+            }
+
+            return parsed.ToUniversalTime();
         }
 
         public override void Write(Utf8JsonWriter writer, DateTimeOffset value, JsonSerializerOptions options)

@@ -15,6 +15,7 @@ using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
 using ServiceStack.Text;
+using Crucible.Common.ServiceDefaults;
 
 namespace Gameboard.Api.Extensions;
 
@@ -108,6 +109,18 @@ internal static class WebApplicationBuilderExtensions
         // Configure Auth
         services.AddConfiguredAuthentication(settings.Oidc, settings.ApiKey, builder.Environment);
         services.AddConfiguredAuthorization();
+
+        // add Crucible Common Service Defaults with configuration from appsettings
+        services.AddServiceDefaults(builder.Environment, builder.Configuration, openTelemetryOptions =>
+        {
+            // Bind configuration from appsettings "OpenTelemetry" section
+            var telemetrySection = builder.Configuration.GetSection("OpenTelemetry");
+            if (telemetrySection.Exists())
+            {
+                telemetrySection.Bind(openTelemetryOptions);
+            }
+        });
+
     }
 
     private static WebApplicationBuilder AddGameboardSerilog(this WebApplicationBuilder builder, AppSettings settings)
@@ -118,44 +131,45 @@ internal static class WebApplicationBuilderExtensions
         // choose to monitor the output of its pod in a K8s-style scenario). But if you want richer logging,
         //  you can add a Seq instance using its configuration so you get nice metadata like the userID
         // and name for API requests. Want to use a non-Seq sink? We get it. PR us and let's talk about it.
-        builder.Host.UseSerilog();
 
         Serilog.Debugging.SelfLog.Enable(Console.Error);
-        var loggerConfiguration = new LoggerConfiguration()
-            .MinimumLevel.Is(settings.Logging.MinimumLogLevel)
-            .WriteTo.Console(theme: AnsiConsoleTheme.Code);
 
-        // normally, you'd do this in an appsettings.json and just rely on built-in config
-        // assembly stuff, but we distribute with a helm chart and a weird conf format, so
-        // we need to manually set up the log levels
-        foreach (var logNamespace in settings.Logging.NamespacesErrorLevel)
+        // Configure Serilog to write to providers so OpenTelemetry can capture logs
+        builder.Host.UseSerilog((context, services, loggerConfiguration) =>
         {
-            loggerConfiguration = loggerConfiguration.MinimumLevel.Override(logNamespace, LogEventLevel.Error);
-        }
+            loggerConfiguration
+                .MinimumLevel.Is(settings.Logging.MinimumLogLevel)
+                .WriteTo.Console(theme: AnsiConsoleTheme.Code);
 
-        foreach (var logNamespace in settings.Logging.NamespacesFatalLevel)
-        {
-            loggerConfiguration = loggerConfiguration.MinimumLevel.Override(logNamespace, LogEventLevel.Fatal);
-        }
+            // normally, you'd do this in an appsettings.json and just rely on built-in config
+            // assembly stuff, but we distribute with a helm chart and a weird conf format, so
+            // we need to manually set up the log levels
+            foreach (var logNamespace in settings.Logging.NamespacesErrorLevel)
+            {
+                loggerConfiguration.MinimumLevel.Override(logNamespace, LogEventLevel.Error);
+            }
 
-        foreach (var logNamespace in settings.Logging.NamespacesInfoLevel)
-        {
-            loggerConfiguration = loggerConfiguration.MinimumLevel.Override(logNamespace, LogEventLevel.Information);
-        }
+            foreach (var logNamespace in settings.Logging.NamespacesFatalLevel)
+            {
+                loggerConfiguration.MinimumLevel.Override(logNamespace, LogEventLevel.Fatal);
+            }
 
-        foreach (var logNamespace in settings.Logging.NamespacesWarningLevel)
-        {
-            loggerConfiguration = loggerConfiguration.MinimumLevel.Override(logNamespace, LogEventLevel.Warning);
-        }
+            foreach (var logNamespace in settings.Logging.NamespacesInfoLevel)
+            {
+                loggerConfiguration.MinimumLevel.Override(logNamespace, LogEventLevel.Information);
+            }
 
-        // set up sinks on demand
-        if (settings.Logging.SeqInstanceUrl.IsNotEmpty())
-        {
-            loggerConfiguration = loggerConfiguration.WriteTo.Seq(settings.Logging.SeqInstanceUrl, apiKey: settings.Logging.SeqInstanceApiKey);
-        }
+            foreach (var logNamespace in settings.Logging.NamespacesWarningLevel)
+            {
+                loggerConfiguration.MinimumLevel.Override(logNamespace, LogEventLevel.Warning);
+            }
 
-        // weirdly, this really does appear to be the way to replace the default logger with Serilog 🤷
-        Log.Logger = loggerConfiguration.CreateLogger();
+            // set up sinks on demand
+            if (settings.Logging.SeqInstanceUrl.IsNotEmpty())
+            {
+                loggerConfiguration.WriteTo.Seq(settings.Logging.SeqInstanceUrl, apiKey: settings.Logging.SeqInstanceApiKey);
+            }
+        }, writeToProviders: true);
 
         return builder;
     }
