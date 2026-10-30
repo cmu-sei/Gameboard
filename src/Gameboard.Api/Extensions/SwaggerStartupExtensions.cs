@@ -7,7 +7,7 @@ using System.IO;
 using System.Reflection;
 using Gameboard.Api;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -63,16 +63,10 @@ namespace Microsoft.Extensions.DependencyInjection
                         },
                     });
 
-                    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-                    {
-                        {
-                            new OpenApiSecurityScheme
-                            {
-                                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "oauth2" }
-                            },
-                            new[] { oidc.Audience }
-                        }
-                    });
+                    options.AddSecurityRequirement((document) => new OpenApiSecurityRequirement
+                {
+                    { new OpenApiSecuritySchemeReference("oauth2", document), [oidc.Audience] }
+                });
                 }
             });
 

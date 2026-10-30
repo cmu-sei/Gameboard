@@ -16,3 +16,5 @@ jobs:
           github_app_private_key: ${{ secrets.CRUCIBLE_HELM_UPDATE_PRIVATE_KEY }}
           chart_file: charts/gameboard/charts/gameboard-api/Chart.yaml
           parent_chart_file: charts/gameboard/Chart.yaml
+          settings_file: src/Gameboard.Api/appsettings.conf
+          settings_file_kind: dotnet-conf

@@ -134,7 +134,7 @@ public class GameController
 
     /// <summary>
     /// List games for admin interfaces.
-    /// 
+    ///
     /// NOTE: This endpoint will eventually replace /api/games and take its path - it's just a modernized
     /// expression of the same utility.
     /// </summary>
@@ -207,7 +207,8 @@ public class GameController
     }
 
     [HttpPost("/api/games/import/preview")]
-    public async Task<GameImportExportBatch> PreviewImportPackage([FromForm] IFormFile packageFile, CancellationToken cancellationToken)
+    [Consumes("multipart/form-data")]
+    public async Task<GameImportExportBatch> PreviewImportPackage(IFormFile packageFile, CancellationToken cancellationToken)
     {
         var package = await packageFile.ToBytes(cancellationToken);
         return await mediator.Send(new PreviewImportPackageQuery(package), cancellationToken);
