@@ -18,7 +18,7 @@ internal sealed class ImageStoreService(CoreOptions coreOptions) : IImageStoreSe
 {
     public bool ImageExists(string fileName)
     {
-        var path = Path.Combine(coreOptions.ImageFolder, fileName);
+        var path = ImagePath.Resolve(coreOptions.ImageFolder, fileName);
         return File.Exists(path);
     }
 
