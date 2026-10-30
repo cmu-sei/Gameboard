@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -133,6 +134,12 @@ internal static class WebApplicationBuilderExtensions
         // and name for API requests. Want to use a non-Seq sink? We get it. PR us and let's talk about it.
 
         Serilog.Debugging.SelfLog.Enable(Console.Error);
+
+        // Serilog's console sink is the only console writer we want. Drop the default providers
+        // (console, debug, event source) so that `writeToProviders` below only forwards to the
+        // OpenTelemetry provider added later by AddServiceDefaults - otherwise every line is
+        // written to the console twice.
+        builder.Logging.ClearProviders();
 
         // Configure Serilog to write to providers so OpenTelemetry can capture logs
         builder.Host.UseSerilog((context, services, loggerConfiguration) =>
