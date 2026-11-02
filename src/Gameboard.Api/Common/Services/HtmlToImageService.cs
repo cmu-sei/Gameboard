@@ -34,6 +34,8 @@ internal class HtmlToImageService(CoreOptions coreOptions, ILogger<HtmlToImageSe
 
         var args = new string[]
         {
+            "--disable-local-file-access",
+            "--disable-javascript",
             "--title",
             """ "Gameboard Certificate" '""",
             "--margin-top",
@@ -97,6 +99,8 @@ internal class HtmlToImageService(CoreOptions coreOptions, ILogger<HtmlToImageSe
         // save it with wkhtmltoimage
         var args = new string[]
         {
+            "--disable-local-file-access",
+            "--disable-javascript",
             "-f",
             "png",
             "--quality",
@@ -105,7 +109,7 @@ internal class HtmlToImageService(CoreOptions coreOptions, ILogger<HtmlToImageSe
             tempImagePath
         };
 
-        logger.LogInformation("Starting wkhtmltopdf with args {args}", string.Join(' ', args));
+        logger.LogInformation("Starting wkhtmltoimage with args {args}", string.Join(' ', args));
         var result = await StartProcessAsync.StartAsync("wkhtmltoimage", args);
         if (result != 0)
         {

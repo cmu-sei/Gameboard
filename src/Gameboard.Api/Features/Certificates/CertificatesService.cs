@@ -262,23 +262,27 @@ internal class CertificatesService
         // we allow the context to be null in this private function so that we can offer previews to admins
         if (htmlContext != null)
         {
+            // user-supplied values must be HTML-encoded to prevent XSS injection through template substitution.
+            // challenge/game/team names and dates originate from the database (created by admins), so they are
+            // lower-risk, but encoding them too is defensive. requestedName comes directly from the URL query
+            // parameter and is the primary injection vector.
             innerTemplate = templateHtml
-                .Replace("{{challengeName}}", htmlContext.Challenge?.Name)
-                .Replace("{{challengeDescription}}", htmlContext.Challenge?.Description)
-                .Replace("{{gameName}}", htmlContext.Game?.Name)
-                .Replace("{{date}}", htmlContext.Date.ToLocalTime().ToString("M/d/yyyy"))
-                .Replace("{{division}}", htmlContext.Game?.Division)
-                .Replace("{{playerName}}", htmlContext.UserRequestedName.IsNotEmpty() ? htmlContext.UserRequestedName : htmlContext.PlayerName)
-                .Replace("{{rank}}", htmlContext.Rank?.ToString() ?? "--")
-                .Replace("{{score}}", htmlContext.Score.ToString())
-                .Replace("{{season}}", htmlContext.Game?.Season)
-                .Replace("{{series}}", htmlContext.Game?.Series)
-                .Replace("{{teamName}}", htmlContext.TeamName)
-                .Replace("{{totalPlayerCount}}", htmlContext.TotalPlayerCount?.ToString() ?? "--")
-                .Replace("{{totalTeamCount}}", htmlContext.TotalTeamCount?.ToString() ?? "--")
-                .Replace("{{time}}", GetDurationDescription(htmlContext.Duration))
-                .Replace("{{track}}", htmlContext.Game?.Track)
-                .Replace("{{userName}}", htmlContext.UserName);
+                .Replace("{{challengeName}}", HtmlEncoder.Encode(htmlContext.Challenge?.Name))
+                .Replace("{{challengeDescription}}", HtmlEncoder.Encode(htmlContext.Challenge?.Description))
+                .Replace("{{gameName}}", HtmlEncoder.Encode(htmlContext.Game?.Name))
+                .Replace("{{date}}", HtmlEncoder.Encode(htmlContext.Date.ToLocalTime().ToString("M/d/yyyy")))
+                .Replace("{{division}}", HtmlEncoder.Encode(htmlContext.Game?.Division))
+                .Replace("{{playerName}}", HtmlEncoder.Encode(htmlContext.UserRequestedName.IsNotEmpty() ? htmlContext.UserRequestedName : htmlContext.PlayerName))
+                .Replace("{{rank}}", HtmlEncoder.Encode(htmlContext.Rank?.ToString() ?? "--"))
+                .Replace("{{score}}", HtmlEncoder.Encode(htmlContext.Score.ToString()))
+                .Replace("{{season}}", HtmlEncoder.Encode(htmlContext.Game?.Season))
+                .Replace("{{series}}", HtmlEncoder.Encode(htmlContext.Game?.Series))
+                .Replace("{{teamName}}", HtmlEncoder.Encode(htmlContext.TeamName))
+                .Replace("{{totalPlayerCount}}", HtmlEncoder.Encode(htmlContext.TotalPlayerCount?.ToString() ?? "--"))
+                .Replace("{{totalTeamCount}}", HtmlEncoder.Encode(htmlContext.TotalTeamCount?.ToString() ?? "--"))
+                .Replace("{{time}}", HtmlEncoder.Encode(GetDurationDescription(htmlContext.Duration)))
+                .Replace("{{track}}", HtmlEncoder.Encode(htmlContext.Game?.Track))
+                .Replace("{{userName}}", HtmlEncoder.Encode(htmlContext.UserName));
         }
 
         // compose final html and save to a temp file
