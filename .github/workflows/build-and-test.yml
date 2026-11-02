@@ -17,6 +17,7 @@ jobs:
       contents: read
     with:
       test-project: src/Gameboard.Api.Tests.Unit
+      build-project: src/Gameboard.Api.Tests.Unit  # the solution is in src/, not the repository root
       expect-postgres: false   # unit tests; no database
       dotnet-version: "10.0.x" # repo has no global.json
 
@@ -26,5 +27,6 @@ jobs:
       contents: read
     with:
       test-project: src/Gameboard.Api.Tests.Integration
+      build-project: src/Gameboard.Api.Tests.Integration  # the solution is in src/, not the repository root
       expect-postgres: false   # Testcontainers PostgreSQL, but not the shared harness's banner
       dotnet-version: "10.0.x" # repo has no global.json
