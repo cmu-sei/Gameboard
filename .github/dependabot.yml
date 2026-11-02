@@ -45,6 +45,7 @@ updates:
       minor-and-patch:
         # A group without patterns outranks every other group's wildcard.
         patterns: ["*"]
+        exclude-patterns: ["FakeItEasy", "MockQueryable.FakeItEasy", "SharpCompress"]
         update-types: [minor, patch]
     # These later versions need a commercial license.
     ignore:
