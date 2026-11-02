@@ -24,9 +24,9 @@ updates:
     cooldown:
       default-days: 5
 
-  # The API's NuGet dependencies.
+  # The API's NuGet dependencies (Gameboard.Api.sln is in src/; Dependabot doesn't search subdirectories).
   - package-ecosystem: nuget
-    directory: /
+    directory: /src
     schedule:
       interval: weekly
     # Wait before taking new releases: hijacked versions are usually caught and pulled within days.
