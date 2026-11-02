@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Gameboard.Api.Common.Services;
 using Gameboard.Api.Data;
 using Gameboard.Api.Services;
 using Gameboard.Api.Structure.MediatR;
@@ -19,6 +20,7 @@ public record SetSponsorAvatarCommand(string SponsorId, IFormFile AvatarFile, Us
 
 internal class SetSponsorAvatarHandler(
     CoreOptions coreOptions,
+    IGuidService guids,
     ContentTypeValidator<SetSponsorAvatarCommand> legalAvatarType,
     EntityExistsValidator<SetSponsorAvatarCommand, Data.Sponsor> sponsorExists,
     SponsorService sponsorService,
@@ -27,6 +29,7 @@ internal class SetSponsorAvatarHandler(
     ) : IRequestHandler<SetSponsorAvatarCommand, string>
 {
     private readonly CoreOptions _coreOptions = coreOptions;
+    private readonly IGuidService _guids = guids;
     private readonly ContentTypeValidator<SetSponsorAvatarCommand> _legalAvatarType = legalAvatarType;
     private readonly EntityExistsValidator<SetSponsorAvatarCommand, Data.Sponsor> _sponsorExists = sponsorExists;
     private readonly SponsorService _sponsorService = sponsorService;
@@ -57,9 +60,11 @@ internal class SetSponsorAvatarHandler(
 
         if (request.AvatarFile is not null)
         {
-            // upload the new file
-            avatarFileName = request.AvatarFile.FileName.ToLower();
-            uploadedAvatarFullPath = Path.Combine(_coreOptions.ImageFolder, avatarFileName);
+            // never build the upload path from the client-supplied file name - it can contain directory
+            // separators ("../../appsettings.json") and would let a caller write anywhere the process can.
+            // instead, name the file ourselves and take its extension from the content type we validated above.
+            avatarFileName = $"{sponsor.Id.ToLower()}_{_guids.Generate()[..6]}{_sponsorService.ResolveLogoFileExtension(request.AvatarFile.ContentType)}";
+            uploadedAvatarFullPath = ImagePath.Resolve(_coreOptions.ImageFolder, avatarFileName);
 
             using var stream = new FileStream(uploadedAvatarFullPath, FileMode.Create);
             await request.AvatarFile.CopyToAsync(stream, cancellationToken);

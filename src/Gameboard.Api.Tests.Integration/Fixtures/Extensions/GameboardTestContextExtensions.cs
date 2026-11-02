@@ -5,6 +5,7 @@ using Gameboard.Api.Common;
 using Gameboard.Api.Data;
 using Gameboard.Api.Structure.Auth;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +14,7 @@ namespace Gameboard.Api.Tests.Integration.Fixtures;
 
 internal static class GameboardTestContextExtensions
 {
-    public static WebApplicationFactory<Program> BuildTestApplication(this GameboardTestContext testContext, Action<TestAuthenticationUser>? actingUserBuilder, Action<IServiceCollection>? configureTestServices = null)
+    public static WebApplicationFactory<Program> BuildTestApplication(this GameboardTestContext testContext, Action<TestAuthenticationUser>? actingUserBuilder, Action<IServiceCollection>? configureTestServices = null, Action<IWebHostBuilder>? configureWebHost = null)
     {
         var user = new TestAuthenticationUser();
         actingUserBuilder?.Invoke(user);
@@ -21,6 +22,8 @@ internal static class GameboardTestContextExtensions
         return testContext
             .WithWebHostBuilder(builder =>
             {
+                configureWebHost?.Invoke(builder);
+
                 builder.ConfigureTestServices(services =>
                 {
                     // spoof authentication

@@ -227,7 +227,7 @@ internal sealed class GameImportExportService
             var logoFileName = default(string);
             if (sponsor.Logo.IsNotEmpty())
             {
-                var logoFilePath = Path.Combine(_coreOptions.ImageFolder, sponsor.Logo);
+                var logoFilePath = ImagePath.Resolve(_coreOptions.ImageFolder, sponsor.Logo);
                 var destinationPath = Path.Combine
                 (
                     GetExportBatchImgRootPath(exportBatchId),
@@ -241,7 +241,7 @@ internal sealed class GameImportExportService
             var parentLogoFileName = default(string);
             if (sponsor.ParentSponsorId.IsNotEmpty())
             {
-                var logoFilePath = Path.Combine(_coreOptions.ImageFolder, sponsor.ParentSponsor.Logo);
+                var logoFilePath = ImagePath.Resolve(_coreOptions.ImageFolder, sponsor.ParentSponsor.Logo);
                 var destinationPath = Path.Combine
                 (
                     GetExportBatchImgRootPath(exportBatchId),
@@ -277,7 +277,7 @@ internal sealed class GameImportExportService
 
             if (game.Logo.IsNotEmpty())
             {
-                var fileName = Path.Combine(_coreOptions.ImageFolder, game.Logo);
+                var fileName = ImagePath.Resolve(_coreOptions.ImageFolder, game.Logo);
                 var extension = Path.GetExtension(fileName);
                 var destinationFileName = Path.Combine
                 (
@@ -291,7 +291,7 @@ internal sealed class GameImportExportService
 
             if (game.Background.IsNotEmpty())
             {
-                var fileName = Path.Combine(_coreOptions.ImageFolder, game.Background);
+                var fileName = ImagePath.Resolve(_coreOptions.ImageFolder, game.Background);
                 var extension = Path.GetExtension(fileName);
                 var destinationFileName = Path.Combine
                 (
