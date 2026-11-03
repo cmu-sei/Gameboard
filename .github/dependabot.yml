@@ -36,16 +36,9 @@ updates:
       semver-minor-days: 7
       semver-patch-days: 3
     groups:
-      # MockQueryable.FakeItEasy 10.0.13+ needs FakeItEasy 9, so the two move together.
-      fakeiteasy:
-        patterns: ["FakeItEasy", "MockQueryable.FakeItEasy"]
-      # SharpCompress is still 0.x, where minor versions change the API; it gets its own PR.
-      sharpcompress:
-        patterns: ["SharpCompress"]
       minor-and-patch:
         # A group without patterns outranks every other group's wildcard.
         patterns: ["*"]
-        exclude-patterns: ["FakeItEasy", "MockQueryable.FakeItEasy", "SharpCompress"]
         update-types: [minor, patch]
     # These later versions need a commercial license.
     ignore:
